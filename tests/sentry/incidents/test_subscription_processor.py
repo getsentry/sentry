@@ -12,7 +12,7 @@ import pytest
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
-# from sentry.conf.server import SEER_ANOMALY_DETECTION_URL
+from sentry.conf.server import SEER_ANOMALY_DETECTION_URL
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -445,31 +445,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         with self.feature(["organizations:incidents", "organizations:anomaly-detection-alerts"]):
             rule = self.dynamic_rule
             processor = self.send_update(rule, 10)
-            # mock_seer_request.assert_called_with(
-            #     "POST",
-            #     SEER_ANOMALY_DETECTION_URL,
-            #     body=orjson.dumps(
-            #         {
-            #             "organization_id": self.sub.project.organization.id,
-            #             "project_id": self.sub.project_id,
-            #             "config": {
-            #                 "time_period": rule.threshold_period,
-            #                 "sensitivity": rule.sensitivity.value,
-            #                 "seasonality": rule.seasonality.value,
-            #                 "direction": rule.detection_type.value,
-            #             },
-            #             "context": {
-            #                 "id": rule.id,
-            #                 "cur_window": {
-            #                     "timestamp": timestamp.now(),
-            #                     "value": 10
-            #                 }
-            #             }
-            #         }
-            #     ),
-            #     headers={"content-type": "application/json;charset=utf-8"},
-            # )
-            mock_seer_request.assert_called_once()  # placeholder for now until I figure out timestamp
+
+            assert mock_seer_request.call_args.args[0] == "POST"
+            assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_URL
+            deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
+            assert deserialized_body["organization_id"] == self.sub.project.organization.id
+            assert deserialized_body["project_id"] == self.sub.project_id
+            assert deserialized_body["config"]["time_period"] == rule.threshold_period
+            assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
+            assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
+            assert deserialized_body["config"]["direction"] == rule.detection_type.value
+            assert deserialized_body["context"]["id"] == rule.id
+            assert deserialized_body["context"]["cur_window"]["value"] == 10
+
             self.assert_trigger_counts(processor, self.trigger, 0, 0)
             incident = self.assert_active_incident(rule)
             assert incident.date_started == (
