@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {openModal} from 'sentry/actionCreators/modal';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import SetupAlertIntegrationButton from 'sentry/views/alerts/rules/issue/setupAlertIntegrationButton';
 
 jest.mock('sentry/actionCreators/modal');

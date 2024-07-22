@@ -10,10 +10,10 @@ import useApi from 'sentry/utils/useApi';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 type Props = {
+  closeModal: () => void;
   integrationSlug: string;
   organization: Organization;
   project: Project;
-  closeModal: () => void;
   setHasError: (boolean) => void;
 };
 
