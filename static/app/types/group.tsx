@@ -782,7 +782,7 @@ export const enum PriorityLevel {
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
-  annotations: string[] | Annotation[];
+  annotations: Annotation[];
   assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
