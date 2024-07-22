@@ -299,6 +299,11 @@ export type TagWithTopValues = {
 /**
  * Inbox, issue owners and Activity
  */
+export type Annotation = {
+  displayName: string;
+  url: string;
+};
+
 export type InboxReasonDetails = {
   count?: number | null;
   until?: string | null;
@@ -777,7 +782,7 @@ export const enum PriorityLevel {
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
-  annotations: string[];
+  annotations: string[] | Annotation[];
   assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;

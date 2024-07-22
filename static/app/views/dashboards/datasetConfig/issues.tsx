@@ -122,7 +122,9 @@ export function transformIssuesResponseToTable(
         issue: shortId,
         title,
         project: project.slug,
-        links: annotations?.join(', '),
+        links: annotations?.every(a => typeof a === 'string')
+          ? annotations.join(', ')
+          : ((annotations ?? []) as any),
       };
 
       // Get lifetime stats
