@@ -1764,7 +1764,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity_provider(
         integration: Integration | None = None,
-        config: Mapping[str, Any] | None = None,
+        config: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> IdentityProvider:
         if integration is not None:

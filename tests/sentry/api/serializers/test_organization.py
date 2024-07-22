@@ -88,7 +88,6 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "performance-tracing-without-performance",
             "invite-members",
-            "invite-members-rate-limits",
             "minute-resolution-sessions",
             "new-page-filter",
             "open-membership",
@@ -100,9 +99,6 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "team-roles",
-            "performance-issues-search",
-            "transaction-name-normalize",
-            "transaction-name-mark-scrubbed-as-sanitized",
         }
 
     @mock.patch("sentry.features.batch_has")
