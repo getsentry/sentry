@@ -134,7 +134,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.data["metadata"]["title"] == event2.title
 
     def test_auto_updates_grouping_config(self):
-        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
 
         save_new_event({"message": "Adopt don't shop"}, self.project)
         assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
@@ -147,7 +147,7 @@ class EventManagerGroupingTest(TestCase):
 
         assert audit_log_entry.data == {
             "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
-            "sentry:secondary_grouping_config": LEGACY_CONFIG,
+            "sentry:secondary_grouping_config": "mobile:2021-02-12",
             "sentry:secondary_grouping_expiry": ANY,  # tested separately below
             "id": self.project.id,
             "slug": self.project.slug,
