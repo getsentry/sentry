@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint
@@ -89,7 +91,7 @@ class DiscoverSavedQuery(Model):
     organization = FlexibleForeignKey("sentry.Organization")
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     name = models.CharField(max_length=255)
-    query = JSONField()
+    query: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     version = models.IntegerField(null=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)

@@ -22,7 +22,7 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
-from sentry.discover.models import DiscoverSavedQueryTypes
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.group import Group
@@ -90,7 +90,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_dataclass(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> tuple[SnubaParams, dict[str, Any]]:
+    ) -> tuple[SnubaParams, ParamsType]:
         """This will eventually replace the get_snuba_params function"""
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
             if (
@@ -274,6 +274,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         If dataset is ambiguous (i.e., could be either transactions or errors),
         default to errors.
         """
+        dataset_source = DatasetSourcesTypes.INFERRED.value
         if dataset_inferred_from_query:
             decision = dataset_inferred_from_query
             sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")
@@ -287,11 +288,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             # In the case that neither or both datasets return data,
             # default to Errors.
             decision = DiscoverSavedQueryTypes.ERROR_EVENTS
+            dataset_source = DatasetSourcesTypes.FORCED.value
             sentry_sdk.set_tag("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
         if query.dataset != decision:
             query.dataset = decision
+            query.dataset_source = dataset_source
             query.save()
 
         return decision

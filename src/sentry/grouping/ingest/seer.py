@@ -14,6 +14,7 @@ from sentry.seer.similarity.utils import (
     event_content_is_seer_eligible,
     filter_null_from_event_title,
     get_stacktrace_string,
+    killswitch_enabled,
 )
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -29,11 +30,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
 
     project = event.project
 
-    has_either_seer_grouping_feature = features.has(
-        "projects:similarity-embeddings-metadata", project
-    ) or features.has("projects:similarity-embeddings-grouping", project)
-
-    if not has_either_seer_grouping_feature:
+    if not _project_has_similarity_grouping_enabled(project):
         return False
 
     if _has_customized_fingerprint(event, primary_hashes):
@@ -53,10 +50,24 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     # and rate limiting friends instead happens in the `with_circuit_breaker` helper used where
     # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
     # errors arising from that call.)
-    if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
+    if killswitch_enabled(project.id, event) or _ratelimiting_enabled(event, project):
         return False
 
     return True
+
+
+def _project_has_similarity_grouping_enabled(project: Project) -> bool:
+    has_either_seer_grouping_feature = features.has(
+        "projects:similarity-embeddings-metadata", project
+    ) or features.has("projects:similarity-embeddings-grouping", project)
+
+    # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
+    # the backfill script completes, we turn on this option, enabling ingest immediately rather than
+    # forcing the project to wait until it's been manually added to a feature handler. Once all
+    # projects have been backfilled, the option (and this check) can go away.
+    has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
+
+    return has_either_seer_grouping_feature or has_been_backfilled
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
@@ -90,42 +101,6 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,
             tags={"call_made": False, "blocker": fingerprint_variant.type},
-        )
-        return True
-
-    return False
-
-
-def _killswitch_enabled(event: Event, project: Project) -> bool:
-    """
-    Check both the global and similarity-specific Seer killswitches.
-    """
-
-    logger_extra = {"event_id": event.event_id, "project_id": project.id}
-
-    if options.get("seer.global-killswitch.enabled"):
-        logger.warning(
-            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
-            extra=logger_extra,
-        )
-        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={"call_made": False, "blocker": "global-killswitch"},
-        )
-        return True
-
-    if options.get("seer.similarity-killswitch.enabled"):
-        logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
-            extra=logger_extra,
-        )
-        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={"call_made": False, "blocker": "similarity-killswitch"},
         )
         return True
 

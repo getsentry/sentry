@@ -39,22 +39,13 @@ from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import get_search_filter
+from sentry.search.snuba.executors import FIRST_RELEASE_FILTERS, get_search_filter
 from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
-
-
-# these filters are currently not supported in the snuba only search
-# and will use PostgresSnubaQueryExecutor instead of GroupAttributesPostgresSnubaQueryExecutor
-UNSUPPORTED_SNUBA_FILTERS = [
-    "issue.priority",  # coming soon
-    "firstRelease",  # coming soon
-    "first_release",  # coming soon
-]
 
 
 def inbox_search(
@@ -179,24 +170,24 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             else:
 
                 def use_group_snuba_dataset() -> bool:
+                    if not features.has("organizations:issue-search-snuba", organization):
+                        return False
+
                     # if useGroupSnubaDataset we consider using the snuba dataset
                     if not request.GET.get("useGroupSnubaDataset"):
                         return False
                     # haven't migrated trends
                     if query_kwargs["sort_by"] == "trends":
                         return False
-                    # check for unsupported snuba filters
-                    return (
-                        len(
-                            list(
-                                filter(
-                                    lambda x: x.key.name in UNSUPPORTED_SNUBA_FILTERS,
-                                    query_kwargs.get("search_filters", []),
-                                )
-                            )
+
+                    # check for the first_release search filters, which require postgres if the environment is specified
+                    if environments:
+                        return all(
+                            sf.key.name not in FIRST_RELEASE_FILTERS
+                            for sf in query_kwargs.get("search_filters", [])
                         )
-                        == 0
-                    )
+
+                    return True
 
                 query_kwargs["referrer"] = "search.group_index"
                 query_kwargs["use_group_snuba_dataset"] = use_group_snuba_dataset()

@@ -844,3 +844,15 @@ class EventAttributeConditionTest(RuleTestCase):
             data={"match": MatchType.EQUAL, "attribute": "exception.type", "value": "SyntaxError"}
         )
         self.assertPasses(rule, event)
+
+    def test_attr_is_in(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.IS_IN, "attribute": "platform", "value": "php, python"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.IS_IN, "attribute": "platform", "value": "python"}
+        )
+        self.assertDoesNotPass(rule, event)

@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {BaseButtonProps} from 'sentry/components/button';

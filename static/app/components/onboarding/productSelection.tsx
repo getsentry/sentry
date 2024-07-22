@@ -95,10 +95,7 @@ export const platformProductAvailability = {
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-aspnetcore': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-  ],
+  'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -434,7 +431,7 @@ export function ProductSelection({
             description={t(
               'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
             )}
-            docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/tracing/"
             onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
             disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
             checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}

@@ -248,3 +248,27 @@ class GetSimilarityDataFromSeerTest(TestCase):
             SeerSimilarIssueData(**similar_issue_data),
             SeerSimilarIssueData(**less_similar_issue_data),
         ]
+
+    @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_calls_seer_deletion_task_if_parent_group_not_found(
+        self,
+        mock_seer_similarity_request: MagicMock,
+        mock_seer_deletion_request: MagicMock,
+    ):
+        mock_seer_similarity_request.return_value = self._make_response(
+            {
+                "responses": [
+                    {
+                        "message_distance": 0.05,
+                        "parent_hash": "not a real hash",
+                        "should_group": True,
+                        "stacktrace_distance": 0.01,
+                    }
+                ]
+            }
+        )
+
+        get_similarity_data_from_seer(self.request_params)
+
+        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["not a real hash"])

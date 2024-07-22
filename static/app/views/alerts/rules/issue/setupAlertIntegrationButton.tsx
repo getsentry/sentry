@@ -1,11 +1,16 @@
+import styled from '@emotion/styled';
+
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import SetupAlertIntegrationModal from 'sentry/views/alerts/rules/issue/setupAlertIntegrationModal';
 
 type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
@@ -54,6 +59,33 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
       return null;
     }
 
+    if (organization.features.includes('messaging-integration-onboarding')) {
+      // TODO(Mia): only render if organization has team plan and above
+      return (
+        <Tooltip
+          title={t('Send alerts to your messaging service. Install the integration now.')}
+        >
+          <Button
+            size="sm"
+            icon={
+              <IconWrapper>
+                <PluginIcon pluginId="slack" size={16} />
+                <PluginIcon pluginId="msteams" size={16} />
+                <PluginIcon pluginId="discord" size={16} />
+              </IconWrapper>
+            }
+            onClick={() =>
+              openModal(deps => <SetupAlertIntegrationModal {...deps} />, {
+                closeEvents: 'escape-key',
+              })
+            }
+          >
+            {t('Connect to messaging')}
+          </Button>
+        </Tooltip>
+      );
+    }
+
     const {isSelfHosted} = ConfigStore.getState();
     // link to docs to set up Slack for self-hosted folks
     const referrerQuery = '?referrer=issue-alert-builder';
@@ -64,7 +96,6 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
       : {
           to: `/settings/${organization.slug}/integrations/slack/${referrerQuery}`,
         };
-
     // TOOD(Steve): need to use the Tooltip component because adding a title to the button
     // puts the tooltip in the upper left hand corner of the page instead of the button
     return (
@@ -80,3 +111,8 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
     );
   }
 }
+
+const IconWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;

@@ -17,6 +17,11 @@ logger = logging.getLogger("sentry.events.grouping")
 
 Job = MutableMapping[str, Any]
 
+# We are moving all projects off these configuration without waiting for events
+CONFIGS_TO_DEPRECATE: list[str] = [
+    "mobile:2021-02-12",
+]
+
 
 def update_grouping_config_if_needed(project: Project) -> None:
     if _project_should_update_grouping(project):
@@ -27,7 +32,9 @@ def _project_should_update_grouping(project: Project) -> bool:
     should_update_org = (
         project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
     )
-    return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
+    is_deprecated_config = project.get_option("sentry:grouping_config") in CONFIGS_TO_DEPRECATE
+    auto_update = bool(project.get_option("sentry:grouping_auto_update"))
+    return is_deprecated_config or (auto_update and should_update_org)
 
 
 def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
@@ -79,6 +86,12 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:secondary_grouping_expiry": expiry,
             "sentry:grouping_config": new_config,
         }
+        # Any project on deprecated configs may be there only because auto updates are
+        # disabled (not because they want to use that specific config). This will reduce the
+        # chance of that happening unintentionally.
+        if current_config in CONFIGS_TO_DEPRECATE:
+            changes["sentry:grouping_auto_update"] = True
+
         for key, value in changes.items():
             project.update_option(key, value)
 

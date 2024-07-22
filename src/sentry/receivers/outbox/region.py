@@ -5,6 +5,7 @@ These receivers are triggered on the region silo as outbox messages
 are drained. Receivers are expected to make local state changes (tombstones)
 and perform RPC calls to propagate changes to Control Silo.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -20,10 +21,12 @@ from sentry.hybridcloud.services.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
 from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.files.utils import get_relocation_storage
 from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory, process_region_outbox
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.types.region import get_local_region
 
 
@@ -71,3 +74,28 @@ def process_disable_auth_provider(object_identifier: int, shard_identifier: int,
     # Deprecated
     auth_service.disable_provider(provider_id=object_identifier)
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()
+
+
+# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
+@receiver(process_region_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
+def process_relocation_reply_with_export(payload: Any, **kwds):
+    uuid = payload["relocation_uuid"]
+    slug = payload["org_slug"]
+    relocation_storage = get_relocation_storage()
+    path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+    try:
+        encrypted_contents = relocation_storage.open(path)
+    except Exception:
+        raise FileNotFoundError(
+            "Could not open SaaS -> SaaS export in export-side relocation bucket."
+        )
+
+    with encrypted_contents:
+        control_relocation_export_service.reply_with_export(
+            relocation_uuid=uuid,
+            requesting_region_name=payload["requesting_region_name"],
+            replying_region_name=payload["replying_region_name"],
+            org_slug=slug,
+            encrypted_contents=encrypted_contents.read(),
+        )

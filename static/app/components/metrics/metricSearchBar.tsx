@@ -1,12 +1,14 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 import {useId} from '@react-aria/utils';
 
+import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {MRI} from 'sentry/types/metrics';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
@@ -15,7 +17,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ensureQuotedTextFilters} from 'sentry/views/metrics/utils';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 
-interface MetricSearchBarProps extends Partial<Omit<SmartSearchBarProps, 'projectIds'>> {
+export interface MetricSearchBarProps
+  extends Partial<Omit<SmartSearchBarProps, 'projectIds'>> {
   onChange: (value: string) => void;
   blockedTags?: string[];
   disabled?: boolean;
@@ -115,8 +118,30 @@ export function MetricSearchBar({
     [onChange, searchConfig]
   );
 
+  if (hasMetricsNewInputs(org)) {
+    return (
+      <QueryFieldGroup.SmartSearchBar
+        id={id}
+        disabled={disabled}
+        maxMenuHeight={220}
+        organization={org}
+        onGetTagValues={getTagValues}
+        // don't highlight tags while loading as we don't know yet if they are supported
+        highlightUnsupportedTags={!isLoading}
+        onClose={handleChange}
+        onSearch={handleChange}
+        placeholder={t('Filter by tags')}
+        query={query}
+        savedSearchType={SavedSearchType.METRIC}
+        {...searchConfig}
+        {...props}
+        css={wideSearchBarCss(disabled)}
+      />
+    );
+  }
+
   return (
-    <WideSearchBar
+    <SmartSearchBar
       id={id}
       disabled={disabled}
       maxMenuHeight={220}
@@ -129,14 +154,16 @@ export function MetricSearchBar({
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
-      disallowWildcard
       {...searchConfig}
       {...props}
+      css={wideSearchBarCss(disabled)}
     />
   );
 }
 
-const WideSearchBar = styled(SmartSearchBar)`
-  width: 100%;
-  opacity: ${p => (p.disabled ? '0.6' : '1')};
-`;
+function wideSearchBarCss(disabled?: boolean) {
+  return css`
+    width: 100%;
+    opacity: ${disabled ? '0.6' : '1'};
+  `;
+}

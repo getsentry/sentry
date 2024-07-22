@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 from sentry.constants import TICKET_ACTIONS
 from sentry.integrations.github_enterprise import GitHubEnterpriseCreateTicketAction
+from sentry.rules import MatchType
 from sentry.rules import rules as default_rules
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.registry import RuleRegistry
@@ -213,3 +214,36 @@ class ProjectRuleConfigurationTest(APITestCase):
                 "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
                 in [filter["id"] for filter in response.data["conditions"]]
             )
+
+    def test_has_in_feature(self):
+        with self.feature({"organizations:issues-alerts-is-in": False}):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            tagged_event_filter = next(
+                (
+                    filter
+                    for filter in response.data["filters"]
+                    if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
+                ),
+                None,
+            )
+            assert tagged_event_filter
+            filter_list = [
+                choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
+            ]
+            assert MatchType.IS_IN not in filter_list
+
+        with self.feature({"organizations:issues-alerts-is-in": True}):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            tagged_event_filter = next(
+                (
+                    filter
+                    for filter in response.data["filters"]
+                    if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
+                ),
+                None,
+            )
+            assert tagged_event_filter
+            filter_list = [
+                choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
+            ]
+            assert MatchType.IS_IN in filter_list

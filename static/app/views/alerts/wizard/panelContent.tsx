@@ -142,6 +142,16 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustomMetrics,
   },
+  span_metrics: {
+    description: t('Alert on span based metrics that you have configured.'),
+    examples: [
+      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
+      t(
+        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
+      ),
+    ],
+    illustration: diagramCustomMetrics,
+  },
   llm_tokens: {
     description: t(
       'Receive an alert when the total number of tokens used by your LLMs reaches a limit.'

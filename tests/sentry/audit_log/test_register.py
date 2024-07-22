@@ -34,6 +34,7 @@ class AuditLogEventRegisterTest(TestCase):
             "project.enable",
             "project.disable",
             "project.ownership-rule.edit",
+            "project_template.create",
             "tagkey.remove",
             "projectkey.create",
             "projectkey.edit",

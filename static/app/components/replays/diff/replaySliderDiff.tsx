@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -6,9 +6,11 @@ import ReplayIFrameRoot from 'sentry/components/replays/player/replayIFrameRoot'
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
@@ -44,7 +46,8 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
 function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width}) {
   const rightSideElem = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
-  const {onMouseDown} = useResizableDrawer({
+
+  const {onMouseDown: onDividerMouseDown} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -62,6 +65,22 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
       }
     },
   });
+
+  const organization = useOrganization();
+  const dividerClickedRef = useRef(false); // once set, never flips back to false
+
+  const onDividerMouseDownWithAnalytics: React.MouseEventHandler<HTMLElement> =
+    useCallback(
+      (event: React.MouseEvent<HTMLElement>) => {
+        // tracks only the first mouseDown since the last render
+        if (organization && !dividerClickedRef.current) {
+          trackAnalytics('replay.hydration-modal.slider-interaction', {organization});
+          dividerClickedRef.current = true;
+        }
+        onDividerMouseDown(event);
+      },
+      [onDividerMouseDown, organization]
+    );
 
   return (
     <Fragment>
@@ -91,7 +110,7 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
           </ReplayContextProvider>
         </Placement>
       </Cover>
-      <Divider ref={dividerElem} onMouseDown={onMouseDown} />
+      <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
     </Fragment>
   );
 }

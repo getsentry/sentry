@@ -1,5 +1,4 @@
 import {Children, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -46,7 +45,7 @@ export function CollapsibleValue({
   const baseLevelPadding = isBaseLevel && shouldShowToggleButton;
 
   return (
-    <CollapsibleDataContainer baseLevelPadding={baseLevelPadding}>
+    <CollapsibleDataContainer data-base-with-toggle={baseLevelPadding}>
       {numChildren > 0 ? (
         <ToggleButton
           size="zero"
@@ -56,7 +55,7 @@ export function CollapsibleValue({
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
           borderless
-          baseLevelPadding={baseLevelPadding}
+          data-base-with-toggle={baseLevelPadding}
         />
       ) : null}
       {prefix}
@@ -74,15 +73,13 @@ export function CollapsibleValue({
   );
 }
 
-const CollapsibleDataContainer = styled('span')<{baseLevelPadding: boolean}>`
+const CollapsibleDataContainer = styled('span')`
   position: relative;
 
-  ${p =>
-    p.baseLevelPadding &&
-    css`
-      display: block;
-      padding-left: ${space(3)};
-    `}
+  &[data-base-with-toggle='true'] {
+    display: block;
+    padding-left: ${space(3)};
+  }
 `;
 
 const IndentedValues = styled('div')`
@@ -101,7 +98,7 @@ const NumItemsButton = styled(Button)`
   margin: 0 ${space(0.5)};
 `;
 
-const ToggleButton = styled(Button)<{baseLevelPadding: boolean}>`
+const ToggleButton = styled(Button)`
   position: absolute;
   left: -${space(3)};
   top: 2px;
@@ -111,9 +108,7 @@ const ToggleButton = styled(Button)<{baseLevelPadding: boolean}>`
   background: none;
   border: none;
 
-  ${p =>
-    p.baseLevelPadding &&
-    css`
-      left: 0;
-    `}
+  &[data-base-with-toggle='true'] {
+    left: 0;
+  }
 `;

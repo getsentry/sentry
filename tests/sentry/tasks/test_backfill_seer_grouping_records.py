@@ -12,6 +12,7 @@ from django.test import override_settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
+from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.issues.occurrence_consumer import EventLookupError
@@ -29,7 +30,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_events_from_nodestore,
     lookup_event,
     lookup_group_data_stacktrace_bulk,
-    make_backfill_grouping_index_redis_key,
+    make_backfill_grouping_id_redis_key,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -154,7 +155,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         super().tearDown()
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         redis_client.set(
-            f"{make_backfill_grouping_index_redis_key(self.project.id)}", 0, ex=60 * 60 * 24 * 7
+            f"{make_backfill_grouping_id_redis_key(self.project.id)}", 0, ex=60 * 60 * 24 * 7
         )
 
     def test_lookup_event_success(self):
@@ -486,10 +487,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "request_hash": self.group_hashes[group.id],
             }
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
+        last_processed_id = int(
+            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
         )
-        assert last_processed_index == len(groups)
+        assert last_processed_id == sorted([group.id for group in groups])[0]
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
@@ -523,7 +524,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_index_input=None,
+                last_processed_group_id_input=None,
                 cohort=[self.project.id, project2.id],
                 last_processed_project_index_input=0,
             )
@@ -535,12 +536,18 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "request_hash": self.group_hashes[group.id],
             }
 
+        project_group_ids = sorted(
+            [group.id for group in Group.objects.filter(project_id=self.project.id)]
+        )
+        project2_group_ids = sorted(
+            [group.id for group in Group.objects.filter(project_id=project2.id)]
+        )
         expected_call_args_list = [
             call(
                 "backfill_seer_grouping_records",
                 extra={
                     "current_project_id": self.project.id,
-                    "last_processed_group_index": None,
+                    "last_processed_group_id": None,
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 0,
                     "only_delete": False,
@@ -548,16 +555,47 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
             call(
+                "calling next backfill task",
+                extra={
+                    "project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[0],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[0],
+                    "cohort": [self.project.id, project2.id],
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                },
+            ),
+            call(
                 "backfill_seer_grouping_records",
                 extra={
                     "current_project_id": project2.id,
-                    "last_processed_group_index": None,
+                    "last_processed_group_id": None,
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 1,
                     "only_delete": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": project2.id}),
+            call(
+                "calling next backfill task",
+                extra={"project_id": project2.id, "last_processed_group_id": project2_group_ids[0]},
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": project2.id,
+                    "last_processed_group_id": project2_group_ids[0],
+                    "cohort": [self.project.id, project2.id],
+                    "last_processed_project_index": 1,
+                    "only_delete": False,
+                },
+            ),
             call(
                 "reached the end of the project list",
                 extra={
@@ -585,17 +623,21 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=99999999999999,
-                last_processed_group_index_input=None,
+                last_processed_group_id_input=None,
                 cohort=[99999999999999, self.project.id],
                 last_processed_project_index_input=0,
             )
+
+        last_processed_group_id = sorted(
+            [group.id for group in Group.objects.filter(project_id=self.project.id)]
+        )[0]
 
         expected_call_args_list = [
             call(
                 "backfill_seer_grouping_records",
                 extra={
                     "current_project_id": 99999999999999,
-                    "last_processed_group_index": None,
+                    "last_processed_group_id": None,
                     "cohort": [99999999999999, self.project.id],
                     "last_processed_project_index": 0,
                     "only_delete": False,
@@ -609,13 +651,30 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "backfill_seer_grouping_records",
                 extra={
                     "current_project_id": self.project.id,
-                    "last_processed_group_index": None,
+                    "last_processed_group_id": None,
                     "cohort": [99999999999999, self.project.id],
                     "last_processed_project_index": 1,
                     "only_delete": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
+            call(
+                "calling next backfill task",
+                extra={
+                    "project_id": self.project.id,
+                    "last_processed_group_id": last_processed_group_id,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": last_processed_group_id,
+                    "cohort": [99999999999999, self.project.id],
+                    "last_processed_project_index": 1,
+                    "only_delete": False,
+                },
+            ),
             call(
                 "reached the end of the project list",
                 extra={
@@ -657,7 +716,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_index_input=None,
+                last_processed_group_id_input=None,
                 cohort="test",
                 last_processed_project_index_input=0,
             )
@@ -669,12 +728,18 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "request_hash": self.group_hashes[group.id],
             }
 
+        project_group_ids = sorted(
+            [group.id for group in Group.objects.filter(project_id=self.project.id)]
+        )
+        project2_group_ids = sorted(
+            [group.id for group in Group.objects.filter(project_id=project2.id)]
+        )
         expected_call_args_list = [
             call(
                 "backfill_seer_grouping_records",
                 extra={
                     "current_project_id": self.project.id,
-                    "last_processed_group_index": None,
+                    "last_processed_group_id": None,
                     "cohort": "test",
                     "last_processed_project_index": 0,
                     "only_delete": False,
@@ -682,16 +747,47 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
             call(
+                "calling next backfill task",
+                extra={
+                    "project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[0],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[0],
+                    "cohort": "test",
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                },
+            ),
+            call(
                 "backfill_seer_grouping_records",
                 extra={
                     "current_project_id": project2.id,
-                    "last_processed_group_index": None,
+                    "last_processed_group_id": None,
                     "cohort": "test",
                     "last_processed_project_index": 1,
                     "only_delete": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": project2.id}),
+            call(
+                "calling next backfill task",
+                extra={"project_id": project2.id, "last_processed_group_id": project2_group_ids[0]},
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": project2.id,
+                    "last_processed_group_id": project2_group_ids[0],
+                    "cohort": "test",
+                    "last_processed_project_index": 1,
+                    "only_delete": False,
+                },
+            ),
             call(
                 "reached the end of the project list",
                 extra={
@@ -718,10 +814,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(self.project.id, None)
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
+        last_processed_id = int(
+            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
         )
-        assert last_processed_index == 0
+        assert last_processed_id == 0
 
         for group in Group.objects.filter(project_id=self.project.id):
             assert not group.data["metadata"].get("seer_similarity")
@@ -766,7 +862,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id, None)
 
-        for group in Group.objects.filter(project_id=self.project.id):
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
             if group not in groups_seen_once:
                 assert group.data["metadata"].get("seer_similarity") == {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
@@ -776,12 +873,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 assert group.data["metadata"].get("seer_similarity") is None
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
+        last_processed_id = int(
+            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
         )
-        assert last_processed_index == len(
-            Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
-        )
+        assert last_processed_id == sorted([group.id for group in groups])[0]
 
     @pytest.mark.skip(
         "this test is flakey in production; trying to replicate locally and skipping it for now"
@@ -857,10 +952,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 }
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
+        last_processed_id = int(
+            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
         )
-        assert last_processed_index == len(groups)
+        assert last_processed_id == sorted([group.id for group in groups])[0]
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
@@ -919,20 +1014,21 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 )
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
+        last_processed_id = int(
+            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
         )
-        assert last_processed_index == len(groups)
+        assert last_processed_id == sorted([group.id for group in groups])[0]
 
-    @pytest.mark.skip(
-        "this test is flakey in production; trying to replicate locally and skipping it for now"
-    )
     @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_multiple_batches(self, mock_post_bulk_grouping_records):
+    def test_backfill_seer_grouping_records_multiple_batches(
+        self, mock_post_bulk_grouping_records, mock_backfill_logger, mock_utils_logger
+    ):
         """
-        Test that the metadata is set for all 21 groups showing that the record has been created,
-        where 21 > the batch size, 20.
+        Test that the metadata is set for all groups showing that the record has been created,
+        where number of groups > the batch size, 10.
         """
         function_names = [f"another_function_{str(i)}" for i in range(10)]
         type_names = [f"AnotherError{str(i)}" for i in range(10)]
@@ -952,16 +1048,127 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(
+                current_project_id=self.project.id,
+                last_processed_group_id_input=None,
+                cohort=None,
+                last_processed_project_index_input=0,
+            )
+
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
             assert group.data["metadata"].get("seer_similarity") is not None
 
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
-        )
-        assert last_processed_index == len(groups)
+        batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
+        project_group_ids = sorted([group.id for group in groups], reverse=True)
+        expected_backfill_call_args_list = [
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": None,
+                    "cohort": None,
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                },
+            ),
+            call("about to call next backfill", extra={"project_id": self.project.id}),
+            call(
+                "calling next backfill task",
+                extra={
+                    "project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[batch_size - 1],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[batch_size - 1],
+                    "cohort": None,
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                },
+            ),
+            call("about to call next backfill", extra={"project_id": self.project.id}),
+            call(
+                "calling next backfill task",
+                extra={
+                    "project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[-1],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": project_group_ids[-1],
+                    "cohort": None,
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                },
+            ),
+            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+        ]
+        assert mock_backfill_logger.info.call_args_list == expected_backfill_call_args_list
+
+        expected_utils_call_args_list = [
+            call(
+                "backfill_seer_grouping_records.start",
+                extra={"project_id": self.project.id, "last_processed_index": None},
+            ),
+            call(
+                "backfill_seer_grouping_records.batch",
+                extra={
+                    "project_id": self.project.id,
+                    "batch_len": 10,
+                    "last_processed_group_id": project_group_ids[batch_size - 1],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.bulk_update",
+                extra={"project_id": self.project.id, "num_updated": 10},
+            ),
+            call(
+                "backfill_seer_grouping_records.start",
+                extra={
+                    "project_id": self.project.id,
+                    "last_processed_index": project_group_ids[batch_size - 1],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.batch",
+                extra={
+                    "project_id": self.project.id,
+                    "batch_len": 6,
+                    "last_processed_group_id": project_group_ids[-1],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.bulk_update",
+                extra={"project_id": self.project.id, "num_updated": 6},
+            ),
+            call(
+                "backfill_seer_grouping_records.start",
+                extra={
+                    "project_id": self.project.id,
+                    "last_processed_index": project_group_ids[-1],
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.batch",
+                extra={
+                    "project_id": self.project.id,
+                    "batch_len": 0,
+                    "last_processed_group_id": None,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.no_more_groups",
+                extra={"project_id": self.project.id},
+            ),
+        ]
+        assert mock_utils_logger.info.call_args_list == expected_utils_call_args_list
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
@@ -1032,7 +1239,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_index_input=None,
+                last_processed_group_id_input=None,
                 cohort=[self.project.id, project2.id],
                 last_processed_project_index_input=0,
                 only_delete=True,
@@ -1042,7 +1249,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "backfill_seer_grouping_records",
                 extra={
                     "current_project_id": self.project.id,
-                    "last_processed_group_index": None,
+                    "last_processed_group_id": None,
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 0,
                     "only_delete": True,
@@ -1056,7 +1263,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "backfill_seer_grouping_records",
                 extra={
                     "current_project_id": project2.id,
-                    "last_processed_group_index": None,
+                    "last_processed_group_id": None,
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 1,
                     "only_delete": True,
@@ -1119,10 +1326,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "request_hash": self.group_hashes[group.id],
             }
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
+        last_processed_id = int(
+            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
         )
-        assert last_processed_index == len(groups)
+        assert last_processed_id == sorted([group.id for group in groups])[0]
 
         # Assert metadata was not set for groups that will be deleted
         for group in Group.objects.filter(project_id=self.project.id, id__in=deleted_group_ids):
@@ -1238,10 +1445,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "request_hash": self.group_hashes[group.id],
             }
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
+        last_processed_id = int(
+            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
         )
-        assert last_processed_index == len(groups)
+        assert last_processed_id == sorted([group.id for group in groups])[0]
 
         # Assert metadata was not set for groups that is 90 days old
         old_group = Group.objects.get(project_id=self.project.id, id=old_group_id)
@@ -1265,8 +1472,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(self.project.id, None)
 
         groups = Group.objects.all()
-        groups_len = len(groups)
-        group_ids_sorted = sorted([group.id for group in groups])
+        group_ids_sorted = sorted([group.id for group in groups], reverse=True)
         mock_logger.info.assert_called_with(
             "tasks.backfill_seer_grouping_records.no_data",
             extra={
@@ -1275,13 +1481,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
         mock_call_next_backfill.assert_called_with(
-            last_processed_group_index=groups_len,
+            last_processed_group_id=group_ids_sorted[-1],
             project_id=self.project.id,
             redis_client=ANY,
-            len_group_id_batch_unfiltered=groups_len,
-            last_group_id=groups[groups_len - 1].id,
             last_processed_project_index=0,
             cohort=None,
+            enable_ingestion=False,
         )
 
     @with_feature("projects:similarity-embeddings-backfill")
@@ -1330,3 +1535,54 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_logger.info.assert_called_with(
             "backfill_seer_grouping_records.killswitch_enabled",
         )
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_enable_ingestion(
+        self, mock_post_bulk_grouping_records, mock_logger
+    ):
+        """
+        Test that when the enable_ingestion flag is True, the project option is set and the
+        log is called.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None, enable_ingestion=True)
+
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+
+        mock_logger.info.assert_called_with(
+            "backfill_seer_grouping_records.enable_ingestion",
+            extra={"project_id": self.project.id},
+        )
+        assert self.project.get_option("sentry:similarity_backfill_completed") is not None
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_no_enable_ingestion(
+        self, mock_post_bulk_grouping_records, mock_logger
+    ):
+        """
+        Test that when the enable_ingestion flag is False, the project option is not set.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+
+        assert self.project.get_option("sentry:similarity_backfill_completed") is None

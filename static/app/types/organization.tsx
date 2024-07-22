@@ -36,6 +36,7 @@ export interface OrganizationSummary {
     id: ObjectStatus;
     name: string;
   };
+  uptimeAutodetection?: boolean;
 }
 
 /**
@@ -48,7 +49,8 @@ export interface Organization extends OrganizationSummary {
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
-  availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
+  /** @deprecated use orgRoleList instead. */
+  availableRoles: {id: string; name: string}[];
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -79,6 +81,12 @@ export interface Organization extends OrganizationSummary {
   trustedRelays: Relay[];
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
+  extraOptions?: {
+    traces: {
+      checkSpanExtractionDate: boolean;
+      spansExtractionDate: number;
+    };
+  };
   orgRole?: string;
   planSampleRate?: number | null;
 }

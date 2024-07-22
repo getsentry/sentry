@@ -31,7 +31,7 @@ jobs:
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for backend file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -44,7 +44,7 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           # fetch-depth: 0 - Use if the BASE_COMMIT on codecov_automated_test_selection is at unknown depth
           #                   (i.e. git merge-base ${{ github.sha }}^ origin/main)
@@ -52,7 +52,7 @@ jobs:
           #                   (i.e. git rev-parse ${{ github.sha }}^)
           fetch-depth: 0
       - name: Set up Python 3.10.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4
         with:
           python-version: '3.10.10'
       # We need the setup to collect the list of tests properly
@@ -141,7 +141,7 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3
         with:
           name: codecov_ats
           path: .artifacts/codecov_ats
@@ -157,7 +157,7 @@ jobs:
     # It would fail if the coverage-ats step didn't run
     if: needs.files-changed.outputs.backend == 'true'
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3
         with:
           name: codecov_ats
           path: .artifacts

@@ -16,11 +16,13 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
+from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import (
@@ -56,7 +58,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -65,6 +67,7 @@ from sentry.utils import json
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
+@apply_feature_flag_on_cls("organizations:issue-search-snuba")
 class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -2931,22 +2934,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             assert [int(row["id"]) for row in response.data] == expected_group_ids
 
-    def test_snuba_unsupported_filters(self) -> None:
-        self.login_as(user=self.user)
-        for query in [
-            "issue.priority:high",
-        ]:
-            with patch(
-                "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-                side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-            ) as mock_query:
-                self.get_success_response(
-                    sort="new",
-                    useGroupSnubaDataset=1,
-                    query=query,
-                )
-                assert mock_query.call_count == 0
-
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
@@ -2974,6 +2961,163 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event1.group.id
         assert mock_query.call_count == 1
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_priority(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.priority:high",
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event1.group.id
+
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="priority:medium",
+        )
+        assert len(response.data) == 0
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_first_release_no_environments(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        old_release = Release.objects.create(organization_id=self.organization.id, version="abc")
+        old_release.add_project(self.project)
+
+        new_release = Release.objects.create(organization_id=self.organization.id, version="def")
+        new_release.add_project(self.project)
+
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        event1.group.first_release = new_release
+        event1.group.save()
+
+        self.login_as(user=self.user)
+
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        for release, expected_groups in (
+            ("fake", []),
+            (old_release.version, []),
+            ("latest", [event1.group.id]),
+            (new_release.version, [event1.group.id]),
+        ):
+            response = self.get_success_response(
+                sort="new",
+                useGroupSnubaDataset=1,
+                query=f"first_release:{release}",
+            )
+            assert len(response.data) == len(expected_groups)
+            assert {int(r["id"]) for r in response.data} == set(expected_groups)
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_first_release_with_environments(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        release = Release.objects.create(organization_id=self.organization.id, version="release1")
+        release.add_project(self.project)
+        Environment.objects.create(organization_id=self.organization.id, name="production")
+
+        event = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage", "environment": "development"},
+            project_id=self.project.id,
+        )
+        GroupEnvironment.objects.filter(group_id=event.group.id).update(first_release=release)
+        event.group.first_release = release
+        event.group.save()
+
+        self.login_as(user=self.user)
+
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+
+        for release, environment, expected_groups in (
+            (release.version, "development", [event.group.id]),
+            (release.version, "production", []),
+        ):
+            response = self.get_success_response(
+                sort="new",
+                useGroupSnubaDataset=1,
+                query=f"first_release:{release}",
+                environment=environment,
+            )
+            assert len(response.data) == len(expected_groups)
+            assert {int(r["id"]) for r in response.data} == set(expected_groups)
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_unlinked(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"fingerprint": ["group-2"], "message": "AnotherMessage"},
+            project_id=self.project.id,
+        )
+        PlatformExternalIssue.objects.create(project_id=self.project.id, group_id=event1.group.id)
+        self.external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=self.integration.id, key="123"
+        )
+        GroupLink.objects.create(
+            project_id=self.project.id,
+            group_id=event1.group.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=self.external_issue.id,
+        )
+
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+
+        for value in [0, 5]:
+            with override_options({"snuba.search.max-pre-snuba-candidates": value}):
+                response = self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query="is:linked",
+                )
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event1.group.id
+
+                response = self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query="is:unlinked",
+                )
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event2.group.id
 
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",

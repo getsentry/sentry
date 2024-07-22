@@ -14,7 +14,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery
 from sentry.search.utils import tokenize_query
 
 
@@ -142,6 +142,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             query=data["query"],
             version=data["version"],
             dataset=data["query_dataset"],
+            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
             created_by_id=request.user.id if request.user.is_authenticated else None,
         )
 

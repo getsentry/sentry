@@ -27,7 +27,10 @@ class Args(TypedDict):
 
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
-    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
+    nullable_metrics = {
+        constants.SPAN_MESSAGING_LATENCY,
+        constants.SPAN_METRICS_MAP["cache.item_size"],
+    }
 
     def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
         self.builder = builder
@@ -173,6 +176,30 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "division_if",
+                    required_args=[
+                        fields.MetricArg(
+                            # the dividend, needs to be named column, otherwise the query builder won't be able to determine the correct target table
+                            "column",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "divisorColumn",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    snql_gauge=self._resolve_division_if,
+                    snql_distribution=self._resolve_division_if,
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "sum",
@@ -1222,6 +1249,48 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
             ],
+            alias,
+        )
+
+    def _resolve_sum_if(
+        self,
+        metric_name: str,
+        if_col_name: str,
+        if_val: SelectType,
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric(metric_name),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [self.builder.column(if_col_name), if_val],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_division_if(
+        self,
+        args: Mapping[str, str | Column | SelectType],
+        alias: str,
+    ) -> SelectType:
+        return function_aliases.resolve_division(
+            self._resolve_sum_if(args["column"], args["if_col"], args["if_val"]),
+            self._resolve_sum_if(args["divisorColumn"], args["if_col"], args["if_val"]),
             alias,
         )
 

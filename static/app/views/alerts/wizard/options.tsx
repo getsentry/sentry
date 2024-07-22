@@ -14,8 +14,14 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import {DEFAULT_METRIC_ALERT_FIELD} from 'sentry/utils/metrics/mri';
+import {
+  hasCustomMetrics,
+  hasCustomMetricsExtractionRules,
+} from 'sentry/utils/metrics/features';
+import {
+  DEFAULT_METRIC_ALERT_FIELD,
+  DEFAULT_SPAN_METRIC_ALERT_FIELD,
+} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -40,6 +46,7 @@ export type AlertType =
   | 'crash_free_users'
   | 'custom_transactions'
   | 'custom_metrics'
+  | 'span_metrics'
   | 'llm_tokens'
   | 'llm_cost';
 
@@ -57,7 +64,10 @@ export enum MEPAlertsDataset {
 
 export type MetricAlertType = Exclude<AlertType, 'issues'>;
 
-export const DatasetMEPAlertQueryTypes: Record<Dataset, MEPAlertsQueryType> = {
+export const DatasetMEPAlertQueryTypes: Record<
+  Exclude<Dataset, 'search_issues'>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  MEPAlertsQueryType
+> = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
@@ -77,6 +87,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
   custom_metrics: t('Custom Metric'),
+  span_metrics: t('Span Metric'),
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
@@ -124,7 +135,10 @@ export const getAlertWizardCategories = (org: Organization) => {
     }
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
-      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
+      options: [
+        hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions',
+        ...(hasCustomMetricsExtractionRules(org) ? ['span_metrics' as const] : []),
+      ],
     });
   }
   return result;
@@ -193,6 +207,11 @@ export const AlertWizardRuleTemplates: Record<
   },
   custom_metrics: {
     aggregate: DEFAULT_METRIC_ALERT_FIELD,
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  span_metrics: {
+    aggregate: DEFAULT_SPAN_METRIC_ALERT_FIELD,
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },

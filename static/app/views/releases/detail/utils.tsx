@@ -1,8 +1,8 @@
 import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
-import type {Moment} from 'moment';
-import moment from 'moment';
+import type {Moment} from 'moment-timezone';
+import moment from 'moment-timezone';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';

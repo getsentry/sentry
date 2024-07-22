@@ -14,7 +14,9 @@ from django.utils.functional import cached_property
 from bitfield import TypedClassBitField
 from sentry import features, roles
 from sentry.app import env
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -486,3 +488,13 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
 
     def delete_option(self, key: str) -> None:
         self.option_manager.unset_value(self, key)
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+        if flags.hide_organizations:
+            self.status = OrganizationStatus.RELOCATION_PENDING_APPROVAL
+        return old_pk

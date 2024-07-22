@@ -12,6 +12,7 @@ from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
+from sentry.grouping.ingest.config import update_grouping_config_if_needed
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
@@ -170,6 +171,26 @@ class EventManagerGroupingTest(TestCase):
                 int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
             )
             assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
+
+    def test_disabled_auto_update_does_not_update(self):
+        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
+
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
+            self.project.update_option("sentry:grouping_auto_update", False)
+            save_new_event({"message": "foo"}, self.project)
+            # It does not update the config because it is False
+            assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
+
+    def test_deprecated_configs_upgrade_automatically(self):
+        # This is not yet a deprecated config but we will simulate it
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        self.project.update_option("sentry:grouping_auto_update", False)
+
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
+            update_grouping_config_if_needed(self.project)
+            # Nothing changes
+            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+            assert self.project.get_option("sentry:grouping_auto_update") is True
 
 
 class PlaceholderTitleTest(TestCase):

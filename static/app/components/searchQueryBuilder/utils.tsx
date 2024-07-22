@@ -1,36 +1,30 @@
-import {useCallback} from 'react';
-import {getFocusableTreeWalker} from '@react-aria/focus';
-import type {ListState} from '@react-stately/list';
-import type {Node} from '@react-types/shared';
-
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {
   BooleanOperator,
   FilterType,
-  filterTypeConfig,
-  interchangeableFilterOperators,
   type ParseResult,
   type ParseResultToken,
   parseSearch,
   type SearchConfig,
-  type TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {t} from 'sentry/locale';
-import type {Tag, TagCollection} from 'sentry/types';
-import {escapeDoubleQuotes} from 'sentry/utils';
-import {FieldKey, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import type {TagCollection} from 'sentry/types/group';
+import {FieldValueType} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
-const SHOULD_ESCAPE_REGEX = /[\s"()]/;
-
-function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
+function getSearchConfigFromKeys(
+  keys: TagCollection,
+  getFieldDefinition: FieldDefinitionGetter
+): Partial<SearchConfig> {
   const config = {
+    textOperatorKeys: new Set<string>(),
     booleanKeys: new Set<string>(),
     numericKeys: new Set<string>(),
     dateKeys: new Set<string>(),
     durationKeys: new Set<string>(),
+    percentageKeys: new Set<string>(),
   } satisfies Partial<SearchConfig>;
 
   for (const key in keys) {
@@ -39,12 +33,17 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
       continue;
     }
 
+    if (fieldDef.allowComparisonOperators) {
+      config.textOperatorKeys.add(key);
+    }
+
     switch (fieldDef.valueType) {
       case FieldValueType.BOOLEAN:
         config.booleanKeys.add(key);
         break;
       case FieldValueType.NUMBER:
       case FieldValueType.INTEGER:
+      case FieldValueType.PERCENTAGE:
         config.numericKeys.add(key);
         break;
       case FieldValueType.DATE:
@@ -63,6 +62,7 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
+  getFieldDefinition: FieldDefinitionGetter,
   options?: {filterKeys: TagCollection; disallowLogicalOperators?: boolean}
 ): ParseResult | null {
   return collapseTextTokens(
@@ -72,7 +72,7 @@ export function parseQueryBuilderValue(
         ? new Set([BooleanOperator.AND, BooleanOperator.OR])
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
-      ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
+      ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
     })
   );
 }
@@ -100,15 +100,11 @@ const isSimpleTextToken = (
   return [Token.FREE_TEXT, Token.SPACES].includes(token.type);
 };
 
-export function getKeyLabel(key: Tag) {
-  return key.alias ?? key.key;
-}
-
 /**
  * Collapse adjacent FREE_TEXT and SPACES tokens into a single token.
  * This is useful for rendering the minimum number of inputs in the UI.
  */
-export function collapseTextTokens(tokens: ParseResult | null) {
+function collapseTextTokens(tokens: ParseResult | null) {
   if (!tokens) {
     return null;
   }
@@ -148,114 +144,6 @@ export function tokenIsInvalid(token: TokenResult<Token>) {
   }
 
   return Boolean(token.invalid);
-}
-
-export function getValidOpsForFilter(
-  filterToken: TokenResult<Token.FILTER>
-): readonly TermOperator[] {
-  // If the token is invalid we want to use the possible expected types as our filter type
-  const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
-
-  // Determine any interchangeable filter types for our valid types
-  const interchangeableTypes = validTypes.map(
-    type => interchangeableFilterOperators[type] ?? []
-  );
-
-  // Combine all types
-  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
-
-  // Find all valid operations
-  const validOps = new Set<TermOperator>(
-    allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
-  );
-
-  return [...validOps];
-}
-
-export function escapeTagValue(value: string): string {
-  if (!value) {
-    return '';
-  }
-
-  // Wrap in quotes if there is a space or parens
-  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
-}
-
-export function unescapeTagValue(value: string): string {
-  return value.replace(/\\"/g, '"');
-}
-
-export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
-  switch (token.type) {
-    case Token.VALUE_TEXT: {
-      if (!token.value) {
-        return token.text;
-      }
-
-      return token.quoted ? unescapeTagValue(token.value) : token.text;
-    }
-    case Token.VALUE_RELATIVE_DATE:
-      return t('%s', `${token.value}${token.unit} ago`);
-    default:
-      return token.text;
-  }
-}
-
-export function getDefaultFilterValue({key}: {key: string}): string {
-  const fieldDef = getFieldDefinition(key);
-
-  if (!fieldDef) {
-    return '""';
-  }
-
-  if (key === FieldKey.IS) {
-    return 'unresolved';
-  }
-
-  switch (fieldDef.valueType) {
-    case FieldValueType.BOOLEAN:
-      return 'true';
-    case FieldValueType.INTEGER:
-    case FieldValueType.NUMBER:
-      return '100';
-    case FieldValueType.DATE:
-      return '-24h';
-    case FieldValueType.STRING:
-    default:
-      return '""';
-  }
-}
-
-export function shiftFocusToChild(
-  element: HTMLElement,
-  item: Node<ParseResultToken>,
-  state: ListState<ParseResultToken>
-) {
-  // Ensure that the state is updated correctly
-  state.selectionManager.setFocusedKey(item.key);
-
-  // When this row gains focus, immediately shift focus to the input
-  const walker = getFocusableTreeWalker(element);
-  const nextNode = walker.nextNode();
-  if (nextNode) {
-    (nextNode as HTMLElement).focus();
-  }
-}
-
-export function useShiftFocusToChild(
-  item: Node<ParseResultToken>,
-  state: ListState<ParseResultToken>
-) {
-  const onFocus = useCallback(
-    (e: React.FocusEvent<HTMLDivElement, Element>) => {
-      shiftFocusToChild(e.currentTarget, item, state);
-    },
-    [item, state]
-  );
-
-  return {
-    shiftFocusProps: {onFocus},
-  };
 }
 
 export function isDateToken(token: TokenResult<Token.FILTER>) {

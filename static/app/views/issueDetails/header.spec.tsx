@@ -118,7 +118,7 @@ describe('GroupHeader', () => {
       });
       const mobileProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
-        platform: 'apple-ios',
+        platform: 'unity',
       });
 
       const MOCK_GROUP = GroupFixture();

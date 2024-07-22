@@ -37,12 +37,25 @@ export interface ImportOptions {
 
 export interface ProfileGroup {
   activeProfileIndex: number;
-  measurements: Partial<Profiling.Schema['measurements']>;
+  measurements: Partial<Profiling.Measurements>;
   metadata: Partial<Profiling.Schema['metadata']>;
   name: string;
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
+  type: 'transaction' | 'loading';
+  images?: Image[];
+}
+
+export interface ContinuousProfileGroup {
+  activeProfileIndex: number;
+  measurements: Partial<Profiling.ContinuousMeasurements>;
+  metadata: Partial<Profiling.Schema['metadata']>;
+  name: string;
+  profiles: Profile[];
+  traceID: string;
+  transactionID: string | null;
+  type: 'continuous' | 'loading';
   images?: Image[];
 }
 
@@ -51,7 +64,7 @@ export function importProfile(
   traceID: string,
   type: 'flamegraph' | 'flamechart',
   frameFilter?: (frame: Frame) => boolean
-): ProfileGroup {
+): ProfileGroup | ContinuousProfileGroup {
   return Sentry.withScope(scope => {
     const span = Sentry.startInactiveSpan({
       op: 'import',
@@ -102,6 +115,7 @@ function importJSSelfProfile(
   const profile = importSingleProfile(input, frameIndex, options);
 
   return {
+    type: 'transaction',
     traceID,
     name: traceID,
     transactionID: null,
@@ -175,11 +189,12 @@ function importSentrySampledProfile(
   }
 
   return {
+    type: 'transaction',
     transactionID: input.transaction.id,
     traceID: input.transaction.trace_id,
     name: input.transaction.name,
     activeProfileIndex,
-    measurements: input.measurements,
+    measurements: input.measurements ?? {},
     metadata: {
       deviceLocale: input.device.locale,
       deviceManufacturer: input.device.manufacturer,
@@ -218,6 +233,7 @@ export function importSchema(
   );
 
   return {
+    type: 'transaction',
     traceID,
     transactionID: input.metadata.transactionID ?? null,
     name: input.metadata?.transactionName ?? traceID,
@@ -237,7 +253,7 @@ export function importSentryContinuousProfileChunk(
   input: Readonly<Profiling.SentryContinousProfileChunk>,
   traceID: string,
   options: ImportOptions
-): ProfileGroup {
+): ContinuousProfileGroup {
   const frameIndex = createContinuousProfileFrameIndex(
     input.profile.frames,
     input.platform
@@ -246,10 +262,11 @@ export function importSentryContinuousProfileChunk(
   return {
     traceID,
     name: '',
+    type: 'continuous',
     transactionID: null,
     activeProfileIndex: 0,
     profiles: [importSingleProfile(input.profile, frameIndex, options)],
-    measurements: {},
+    measurements: input.measurements ?? {},
     metadata: {
       platform: input.platform,
     },
@@ -266,9 +283,9 @@ function importSingleProfile(
     | ReturnType<typeof createFrameIndex>
     | ReturnType<typeof createContinuousProfileFrameIndex>
     | ReturnType<typeof createSentrySampleProfileFrameIndex>,
-  {span, type, continuous, frameFilter, profileIds}: ImportOptions
+  {span, type, frameFilter, profileIds}: ImportOptions
 ): Profile {
-  if (continuous && isSentryContinuousProfile(profile)) {
+  if (isSentryContinuousProfile(profile)) {
     // In some cases, the SDK may return spans as undefined and we dont want to throw there.
     if (!span) {
       return ContinuousProfile.FromProfile(profile, frameIndex);

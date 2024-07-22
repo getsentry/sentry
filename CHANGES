@@ -1,3 +1,42 @@
+24.7.0
+------
+
+### Hierarchical grouping deprecation (ongoing)
+
+This project will move any projects using the mobile grouping configuration as defined here:
+https://github.com/getsentry/sentry/blob/44d816f0b9a9450fdf47136313b3a4b955ceab84/src/sentry/grouping/strategies/configurations.py&#35;L160-L188
+
+By: @armenzg (#74144)
+
+### Various fixes & improvements
+
+- chore(api): Rewrite Org Details docs (#73293) by @isabellaenriquez
+- metrics(replay): log rrweb_event_count to slow clicks table (#74277) by @aliu39
+- fix(slack): Fix error handling when fetching slack channel information (#74267) by @dashed
+- chore(replay): alpha -> beta (#74279) by @michellewzhang
+- feat(trace-view): Add UI fallback to old view for STs (#73684) by @k-fish
+- chore(similarity): Add killswitches for each feature flag (#74274) by @jangjodi
+- feat(prompts): support a visible status for un-hiding components (#74228) by @aliu39
+- nit(opsgenie): add config access requirement to error text (#74111) by @mifu67
+- ref(similarity): Add killswitch to delete record task (#74212) by @jangjodi
+- ref(profiling) battery usage chart (#74273) by @JonasBa
+- ref(discover): Use snake case for dataset variable (#74215) by @narsaynorath
+- ref(proguard): Deobfuscate view hierarchies as part of symbolication (#74196) by @loewenheim
+- feat(profiling) construct profile from continuous chunk (#74171) by @JonasBa
+- ref(profiling) store unit on profile chart (#74152) by @JonasBa
+- ref(metrics): Update copies (#74270) by @priscilawebdev
+- ref(proguard): Remove separate queue (#74269) by @loewenheim
+- ref(metrics): Update copies (#74268) by @priscilawebdev
+- Revert "ref(proguard): Remove separate queue (#74198)" (a1ab12d0) by @getsentry-bot
+- ref(proguard): Remove separate queue (#74198) by @loewenheim
+- feat(metrics): numeric span attribute extraction (#74190) by @obostjancic
+- feat(metrics): update extraction rule tag description (#74118) by @obostjancic
+- fix(minimetrics): skip span attribute attach if there is no span (#74193) by @obostjancic
+- feat(auto-import): Enable default vscode auto-import for Sentry BE (#74197) by @MichaelSun48
+- fix: fix broken links to Performance docs pages (#74235) by @mjq
+
+_Plus 911 more_
+
 24.6.0
 ------
 

@@ -1,7 +1,6 @@
 import {Fragment, type PropsWithChildren, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
-import * as qs from 'query-string';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -16,7 +15,6 @@ import KeyValueData, {
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
@@ -27,7 +25,6 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -257,56 +254,25 @@ function TableRow({
   );
 }
 
-function getSearchParamFromNode(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (isTransactionNode(node) || isTraceErrorNode(node)) {
-    return `id:${node.value.event_id}`;
-  }
-
-  // Issues associated to a span or autogrouped node are not queryable, so we query by
-  // the parent transaction's id
-  const parentTransaction = node.parent_transaction;
-  if ((isSpanNode(node) || isAutogroupedNode(node)) && parentTransaction) {
-    return `id:${parentTransaction.value.event_id}`;
-  }
-
-  if (isMissingInstrumentationNode(node)) {
-    throw new Error('Missing instrumentation nodes do not have associated issues');
-  }
-
-  return '';
-}
-
 function IssuesLink({
   node,
   children,
 }: {
   children: React.ReactNode;
-  node?: TraceTreeNode<TraceTree.NodeValue>;
+  node: TraceTreeNode<TraceTree.NodeValue>;
 }) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = params.traceSlug?.trim() ?? '';
-
-  const dateSelection = useMemo(() => {
-    const normalizedParams = normalizeDateTimeParams(qs.parse(window.location.search), {
-      allowAbsolutePageDatetime: true,
-    });
-    const start = decodeScalar(normalizedParams.start);
-    const end = decodeScalar(normalizedParams.end);
-    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-
-    return {start, end, statsPeriod};
-  }, []);
 
   return (
     <Link
       to={{
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {
-          query: `trace:${traceSlug} ${node ? getSearchParamFromNode(node) : ''}`,
-          start: dateSelection.start,
-          end: dateSelection.end,
-          statsPeriod: dateSelection.statsPeriod,
+          query: `trace:${traceSlug}`,
+          start: new Date(node.space[0]).toISOString(),
+          end: new Date(node.space[0] + node.space[1]).toISOString(),
           // If we don't pass the project param, the issues page will filter by the last selected project.
           // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
           project: -1,
@@ -443,9 +409,12 @@ function NodeActions(props: {
     return '';
   }, [props]);
 
+  const params = useParams<{traceSlug?: string}>();
+
   const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
     orgSlug: props.organization.slug,
-    projectSlug: props.node.value.project_slug,
+    projectSlug: props.node.metadata.project_slug ?? '',
+    traceId: params.traceSlug ?? '',
   });
 
   return (

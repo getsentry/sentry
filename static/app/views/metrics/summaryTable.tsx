@@ -12,6 +12,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconFilter, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MetricAggregation} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
@@ -49,6 +50,7 @@ export const SummaryTable = memo(function SummaryTable({
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
+  const totalColumns = getTotalColumns(series);
   const canFilter = series.length > 1 && !!onRowFilter;
   const hasActions = series.some(s => s.release || s.transaction) || canFilter;
   const hasMultipleSeries = series.length > 1;
@@ -144,7 +146,7 @@ export const SummaryTable = memo(function SummaryTable({
     .map(s => {
       return {
         ...s,
-        ...getValues(s),
+        ...getTotals(s),
       };
     })
     // Filter series with no data
@@ -167,29 +169,23 @@ export const SummaryTable = memo(function SummaryTable({
     });
 
   return (
-    <SummaryTableWrapper hasActions={hasActions}>
+    <SummaryTableWrapper hasActions={hasActions} totalColumnsCount={totalColumns.length}>
       <HeaderCell disabled />
       <HeaderCell disabled />
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
         {t('Name')}
       </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
-        {t('Avg')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
-        {t('Min')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
-        {t('Max')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
-        {t('Sum')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="total" right>
-        <Tooltip title={t('Selected aggregation over the whole time period')}>
-          {t('Value')}
-        </Tooltip>
-      </SortableHeaderCell>
+      {totalColumns.map(aggregate => (
+        <SortableHeaderCell
+          key={aggregate}
+          onClick={changeSort}
+          sortState={sort}
+          name={aggregate}
+          right
+        >
+          {aggregate}
+        </SortableHeaderCell>
+      ))}
       {hasActions && <HeaderCell disabled right />}
       <HeaderCell disabled />
       <TableBodyWrapper
@@ -200,107 +196,93 @@ export const SummaryTable = memo(function SummaryTable({
           }
         }}
       >
-        {rows.map(
-          ({
-            seriesName,
-            id,
-            groupBy,
-            color,
-            hidden,
-            unit,
-            transaction,
-            release,
-            avg,
-            min,
-            max,
-            sum,
-            total,
-            isEquationSeries,
-            queryIndex,
-          }) => {
-            return (
-              <Fragment key={id}>
-                <Row
-                  onClick={() => {
+        {rows.map(row => {
+          return (
+            <Fragment key={row.id}>
+              <Row
+                onClick={() => {
+                  if (hasMultipleSeries) {
+                    onRowClick(row);
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (hasMultipleSeries) {
+                    onRowHover?.(row.id);
+                  }
+                }}
+              >
+                <PaddingCell />
+                <Cell
+                  onClick={event => {
+                    event.stopPropagation();
                     if (hasMultipleSeries) {
-                      onRowClick({
-                        id,
-                        groupBy,
-                      });
-                    }
-                  }}
-                  onMouseEnter={() => {
-                    if (hasMultipleSeries) {
-                      onRowHover?.(id);
+                      onColorDotClick?.(row);
                     }
                   }}
                 >
-                  <PaddingCell />
-                  <Cell
-                    onClick={event => {
-                      event.stopPropagation();
-                      if (hasMultipleSeries) {
-                        onColorDotClick?.({
-                          id,
-                          groupBy,
-                        });
-                      }
+                  <ColorDot
+                    color={row.color}
+                    isHidden={!!row.hidden}
+                    style={{
+                      backgroundColor: row.hidden
+                        ? 'transparent'
+                        : colorFn(row.color).alpha(1).string(),
                     }}
+                  />
+                </Cell>
+                <TextOverflowCell>
+                  <Tooltip
+                    title={
+                      <FullSeriesName seriesName={row.seriesName} groupBy={row.groupBy} />
+                    }
+                    delay={500}
+                    overlayStyle={{maxWidth: '80vw'}}
                   >
-                    <ColorDot
-                      color={color}
-                      isHidden={!!hidden}
-                      style={{
-                        backgroundColor: hidden
-                          ? 'transparent'
-                          : colorFn(color).alpha(1).string(),
-                      }}
-                    />
-                  </Cell>
-                  <TextOverflowCell>
-                    <Tooltip
-                      title={<FullSeriesName seriesName={seriesName} groupBy={groupBy} />}
-                      delay={500}
-                      overlayStyle={{maxWidth: '80vw'}}
-                    >
-                      <TextOverflow>{seriesName}</TextOverflow>
-                    </Tooltip>
-                  </TextOverflowCell>
-                  <NumberCell>{formatMetricUsingUnit(avg, unit)}</NumberCell>
-                  <NumberCell>{formatMetricUsingUnit(min, unit)}</NumberCell>
-                  <NumberCell>{formatMetricUsingUnit(max, unit)}</NumberCell>
-                  <NumberCell>{formatMetricUsingUnit(sum, unit)}</NumberCell>
-                  <NumberCell>{formatMetricUsingUnit(total, unit)}</NumberCell>
+                    <TextOverflow>{row.seriesName}</TextOverflow>
+                  </Tooltip>
+                </TextOverflowCell>
+                {totalColumns.map(aggregate => (
+                  <NumberCell key={aggregate}>
+                    {row[aggregate]
+                      ? formatMetricUsingUnit(row[aggregate], row.unit)
+                      : '–'}
+                  </NumberCell>
+                ))}
 
-                  {hasActions && (
-                    <CenterCell>
-                      <ButtonBar gap={0.5}>
-                        {transaction && (
-                          <div>
-                            <Tooltip title={t('Open Transaction Summary')}>
-                              <LinkButton
-                                to={transactionTo(transaction)}
-                                size="zero"
-                                borderless
-                              >
-                                <IconLightning size="sm" />
-                              </LinkButton>
-                            </Tooltip>
-                          </div>
-                        )}
+                {hasActions && (
+                  <CenterCell>
+                    <ButtonBar gap={0.5}>
+                      {row.transaction && (
+                        <div>
+                          <Tooltip title={t('Open Transaction Summary')}>
+                            <LinkButton
+                              to={transactionTo(row.transaction)}
+                              size="zero"
+                              borderless
+                            >
+                              <IconLightning size="sm" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
 
-                        {release && (
-                          <div>
-                            <Tooltip title={t('Open Release Details')}>
-                              <LinkButton to={releaseTo(release)} size="zero" borderless>
-                                <IconReleases size="sm" />
-                              </LinkButton>
-                            </Tooltip>
-                          </div>
-                        )}
+                      {row.release && (
+                        <div>
+                          <Tooltip title={t('Open Release Details')}>
+                            <LinkButton
+                              to={releaseTo(row.release)}
+                              size="zero"
+                              borderless
+                            >
+                              <IconReleases size="sm" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
 
-                        {/* do not show add/exclude filter if there's no groupby or if this is an equation */}
-                        {Object.keys(groupBy ?? {}).length > 0 && !isEquationSeries && (
+                      {/* do not show add/exclude filter if there's no groupby or if this is an equation */}
+                      {Object.keys(row.groupBy ?? {}).length > 0 &&
+                        !row.isEquationSeries && (
                           <DropdownMenu
                             items={[
                               {
@@ -309,11 +291,8 @@ export const SummaryTable = memo(function SummaryTable({
                                 size: 'sm',
                                 onAction: () => {
                                   handleRowFilter(
-                                    queryIndex,
-                                    {
-                                      id,
-                                      groupBy,
-                                    },
+                                    row.queryIndex,
+                                    row,
                                     MetricSeriesFilterUpdateType.ADD
                                   );
                                 },
@@ -324,11 +303,8 @@ export const SummaryTable = memo(function SummaryTable({
                                 size: 'sm',
                                 onAction: () => {
                                   handleRowFilter(
-                                    queryIndex,
-                                    {
-                                      id,
-                                      groupBy,
-                                    },
+                                    row.queryIndex,
+                                    row,
                                     MetricSeriesFilterUpdateType.EXCLUDE
                                   );
                                 },
@@ -351,16 +327,15 @@ export const SummaryTable = memo(function SummaryTable({
                             )}
                           />
                         )}
-                      </ButtonBar>
-                    </CenterCell>
-                  )}
+                    </ButtonBar>
+                  </CenterCell>
+                )}
 
-                  <PaddingCell />
-                </Row>
-              </Fragment>
-            );
-          }
-        )}
+                <PaddingCell />
+              </Row>
+            </Fragment>
+          );
+        })}
       </TableBodyWrapper>
     </SummaryTableWrapper>
   );
@@ -438,7 +413,23 @@ function SortableHeaderCell({
   );
 }
 
-function getValues(series: Series) {
+// These aggregates can always be shown as we can calculate them on the frontend
+const DEFAULT_TOTALS: MetricAggregation[] = ['avg', 'min', 'max', 'sum'];
+// Count and count_unique will always match the sum column
+const TOTALS_BLOCKLIST: MetricAggregation[] = ['count', 'count_unique'];
+
+function getTotalColumns(series: Series[]) {
+  const totals = new Set<MetricAggregation>();
+  series.forEach(({aggregate}) => {
+    if (!DEFAULT_TOTALS.includes(aggregate) && !TOTALS_BLOCKLIST.includes(aggregate)) {
+      totals.add(aggregate);
+    }
+  });
+
+  return DEFAULT_TOTALS.concat(Array.from(totals).sort((a, b) => a.localeCompare(b)));
+}
+
+function getTotals(series: Series) {
   const {data, total, aggregate} = series;
   if (!data) {
     return {min: null, max: null, avg: null, sum: null};
@@ -459,25 +450,29 @@ function getValues(series: Series) {
     {min: Infinity, max: -Infinity, sum: 0, definedDatapoints: 0}
   );
 
-  const values = {
+  const values: Partial<Record<MetricAggregation, number>> = {
     min: res.min,
     max: res.max,
     sum: res.sum,
     avg: res.sum / res.definedDatapoints,
   };
 
-  if (aggregate in values) {
-    values[aggregate] = total;
-  }
+  values[aggregate] = total;
 
   return values;
 }
 
-const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
+const SummaryTableWrapper = styled(`div`)<{
+  hasActions: boolean;
+  totalColumnsCount: number;
+}>`
   display: grid;
   /* padding | color dot | name | avg | min | max | sum | total | actions | padding */
   grid-template-columns:
-    ${space(0.75)} ${space(3)} 8fr repeat(${p => (p.hasActions ? 6 : 5)}, max-content)
+    ${space(0.75)} ${space(3)} 8fr repeat(
+      ${p => (p.hasActions ? p.totalColumnsCount + 1 : p.totalColumnsCount)},
+      max-content
+    )
     ${space(0.75)};
 
   max-height: 200px;

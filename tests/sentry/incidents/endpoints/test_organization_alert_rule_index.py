@@ -734,7 +734,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         side_effect=[
             SlackChannelIdData("#", "10", False),
             SlackChannelIdData("#", "10", False),

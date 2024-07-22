@@ -2,18 +2,48 @@ import {createContext, useContext, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Frame} from 'sentry/utils/profiling/frame';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
-type ProfileGroupContextValue = ProfileGroup;
-
+type ProfileGroupContextValue = ContinuousProfileGroup | ProfileGroup;
 const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null);
 
-export function useProfileGroup() {
+function assertContinuousProfileGroup(
+  input: ProfileGroupContextValue | null
+): asserts input is ContinuousProfileGroup {
+  if (input && input.type !== 'loading' && input.type !== 'continuous') {
+    throw new Error('ProfileGroup is not of continuous profile type.');
+  }
+}
+
+function assertTransactionProfileGroup(
+  input: ProfileGroupContextValue | null
+): asserts input is ProfileGroup {
+  if (input && input.type !== 'loading' && input.type !== 'transaction') {
+    throw new Error('ProfileGroup is not of transaction profile type.');
+  }
+}
+
+export function useProfileGroup(): ProfileGroup {
   const context = useContext(ProfileGroupContext);
   if (!context) {
     throw new Error('useProfileGroup was called outside of ProfileGroupProvider');
   }
+  assertTransactionProfileGroup(context);
+  return context;
+}
+
+export function useContinuousProfileGroup(): ContinuousProfileGroup {
+  const context = useContext(ProfileGroupContext);
+  if (!context) {
+    throw new Error(
+      'useContinuousProfileGroup was called outside of ProfileGroupProvider'
+    );
+  }
+  assertContinuousProfileGroup(context);
   return context;
 }
 
@@ -25,6 +55,7 @@ export const LOADING_PROFILE_GROUP: Readonly<ProfileGroup> = {
   measurements: {},
   traceID: '',
   profiles: [],
+  type: 'loading',
 };
 
 interface ProfileGroupProviderProps {
