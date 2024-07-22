@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0742_backfill_alertrule_detection_type"),
+        ("sentry", "0743_backfill_broken_monitor_notification_setting_option"),
     ]
 
     operations = [
