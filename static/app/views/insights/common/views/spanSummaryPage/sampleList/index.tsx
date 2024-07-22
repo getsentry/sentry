@@ -30,6 +30,7 @@ import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sa
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {
+  getTraceFieldDefinition,
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
@@ -229,6 +230,7 @@ export function SampleList({
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
             projectIds={selection.projects}
+            fieldDefinitionGetter={getTraceFieldDefinition}
           />
         </Feature>
 

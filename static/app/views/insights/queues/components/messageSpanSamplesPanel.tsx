@@ -47,6 +47,7 @@ import {
 import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
 import {
+  getTraceFieldDefinition,
   ModuleName,
   SpanIndexedField,
   type SpanMetricsResponse,
@@ -372,6 +373,7 @@ export function MessageSpanSamplesPanel() {
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
+                fieldDefinitionGetter={getTraceFieldDefinition}
               />
             </ModuleLayout.Full>
           </Feature>

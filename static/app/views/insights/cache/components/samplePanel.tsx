@@ -48,6 +48,7 @@ import {
 } from 'sentry/views/insights/common/views/spans/types';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
+  getTraceFieldDefinition,
   MetricsFields,
   type MetricsQueryFilters,
   ModuleName,
@@ -408,6 +409,7 @@ export function CacheSamplePanel() {
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
+                fieldDefinitionGetter={getTraceFieldDefinition}
               />
             </ModuleLayout.Full>
           </Feature>

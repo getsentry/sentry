@@ -58,6 +58,7 @@ import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
+  getTraceFieldDefinition,
   ModuleName,
   SpanFunction,
   SpanIndexedField,
@@ -499,6 +500,7 @@ export function HTTPSamplesPanel() {
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
+                fieldDefinitionGetter={getTraceFieldDefinition}
               />
             </ModuleLayout.Full>
           </Feature>

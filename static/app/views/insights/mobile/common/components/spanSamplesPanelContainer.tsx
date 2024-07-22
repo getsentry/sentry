@@ -28,6 +28,7 @@ import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sa
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {
+  getTraceFieldDefinition,
   type ModuleName,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
@@ -210,6 +211,7 @@ export function SpanSamplesContainer({
           supportedTags={supportedTags}
           dataset={DiscoverDatasets.SPANS_INDEXED}
           projectIds={selection.projects}
+          fieldDefinitionGetter={getTraceFieldDefinition}
         />
       </Feature>
       <SampleTable

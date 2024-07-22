@@ -24,6 +24,7 @@ import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpan
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
+import {getTraceFieldDefinition} from 'sentry/views/insights/types';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
 import {useSpanMetricsFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
@@ -244,6 +245,7 @@ function SpansContentV2(props: Props) {
           // This dataset is separate from the query itself which is on metrics; it's for obtaining autocomplete recommendations
           dataset={DiscoverDatasets.SPANS_INDEXED}
           onSearch={handleChange('spansQuery')}
+          fieldDefinitionGetter={getTraceFieldDefinition}
         />
       </FilterActions>
 
