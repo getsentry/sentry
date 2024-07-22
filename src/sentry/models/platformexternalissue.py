@@ -35,7 +35,7 @@ class PlatformExternalIssue(Model):
         # group annotations by group id
         annotations_by_group_id = defaultdict(list)
         for ei in external_issues:
-            annotation = {"url": ei.web_url, "display_name": ei.display_name}
+            annotation = {"url": ei.web_url, "displayName": ei.display_name}
             annotations_by_group_id[ei.group_id].append(annotation)
 
         return annotations_by_group_id

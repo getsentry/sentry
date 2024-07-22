@@ -348,7 +348,7 @@ class IssueBasicMixin:
         for ei in external_issues:
             link = self.get_issue_url(ei.key)
             label = self.get_issue_display_name(ei) or ei.key
-            annotations.append({"url": link, "display_name": label})
+            annotations.append({"url": link, "displayName": label})
 
         return annotations
 

@@ -432,7 +432,7 @@ class IssueTrackingPlugin2(Plugin):
         tag_list.append(
             {
                 "url": self._get_issue_url_compat(group, issue),
-                "display_name": self._get_issue_label_compat(group, issue),
+                "displayName": self._get_issue_label_compat(group, issue),
             }
         )
 

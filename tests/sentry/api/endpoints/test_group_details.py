@@ -156,7 +156,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
-            {"url": "https://example.com/issues/2", "display_name": "Issue#2"}
+            {"url": "https://example.com/issues/2", "displayName": "Issue#2"}
         ]
 
     def test_plugin_external_issue_annotation(self):
@@ -173,7 +173,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
-            {"url": "https://trello.com/c/134", "display_name": "Trello-134"}
+            {"url": "https://trello.com/c/134", "displayName": "Trello-134"}
         ]
 
     def test_integration_external_issue_annotation(self):
@@ -193,7 +193,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
-            {"url": "https://example.com/browse/api-123", "display_name": "api-123"}
+            {"url": "https://example.com/browse/api-123", "displayName": "api-123"}
         ]
 
     def test_permalink_superuser(self):

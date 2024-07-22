@@ -313,7 +313,7 @@ class IssueTrackingPlugin(Plugin):
         tag_list.append(
             {
                 "url": self.get_issue_url(group=group, issue_id=issue_id),
-                "display_name": self.get_issue_label(group=group, issue_id=issue_id),
+                "displayName": self.get_issue_label(group=group, issue_id=issue_id),
             }
         )
 
