@@ -23,19 +23,6 @@ CONFIGS_TO_DEPRECATE: list[str] = [
 ]
 
 
-def update_grouping_config_if_needed(project: Project) -> None:
-    if _project_should_update_grouping(project):
-        _auto_update_grouping(project)
-
-
-def _project_should_update_grouping(project: Project) -> bool:
-    should_update_org = (
-        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
-    )
-    is_deprecated_config = project.get_option("sentry:grouping_config") in CONFIGS_TO_DEPRECATE
-    return is_deprecated_config or should_update_org
-
-
 def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
     """
     Determine whether an auto-upate happened within the last `tolerance` seconds.
@@ -51,7 +38,7 @@ def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
     return time_since_update < 60
 
 
-def _auto_update_grouping(project: Project) -> None:
+def update_grouping_config_if_needed(project: Project) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
 
