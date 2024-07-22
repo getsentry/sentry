@@ -357,7 +357,6 @@ export function HTTPSamplesPanel() {
           <ModuleLayout.Full>
             <ReadoutRibbon>
               <MetricReadout
-                align="left"
                 title={getThroughputTitle('http')}
                 value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
@@ -365,7 +364,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.avg}
                 value={
                   domainTransactionMetrics?.[0]?.[
@@ -377,7 +375,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('3XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
                 unit="percentage"
@@ -385,7 +382,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('4XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
                 unit="percentage"
@@ -393,7 +389,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('5XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
                 unit="percentage"
@@ -401,7 +396,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.timeSpent}
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}

@@ -302,7 +302,6 @@ export function CacheSamplePanel() {
           <ModuleLayout.Full>
             <ReadoutRibbon>
               <MetricReadout
-                align="left"
                 title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[
@@ -313,7 +312,6 @@ export function CacheSamplePanel() {
                 isLoading={areCacheTransactionMetricsFetching}
               />
               <MetricReadout
-                align="left"
                 title={getThroughputTitle('cache')}
                 value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
@@ -321,7 +319,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
                 value={
                   transactionDurationData?.[0]?.[
@@ -333,7 +330,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
@@ -343,7 +339,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.timeSpent}
                 value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}

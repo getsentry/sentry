@@ -126,7 +126,6 @@ function MetricsBlock({
   return (
     <MetricReadout
       title={title}
-      align="left"
       value={hasData ? value : undefined}
       isLoading={isLoading}
       unit={unit}

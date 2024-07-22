@@ -34,7 +34,6 @@ interface Props {
   title: string;
   unit: Unit;
   value: ReactText | undefined;
-  align?: 'left' | 'right';
   isLoading?: boolean;
   preferredPolarity?: Polarity;
   tooltip?: React.ReactNode;
@@ -43,25 +42,18 @@ interface Props {
 export function MetricReadout(props: Props) {
   return (
     <ReadoutWrapper>
-      <ReadoutTitle alignment={props.align ?? 'right'}>{props.title}</ReadoutTitle>
-      <ReadoutContentWrapper alignment={props.align ?? 'right'}>
+      <ReadoutTitle alignment={'left'}>{props.title}</ReadoutTitle>
+      <ReadoutContentWrapper alignment={'left'}>
         <ReadoutContent {...props} />
       </ReadoutContentWrapper>
     </ReadoutWrapper>
   );
 }
 
-function ReadoutContent({
-  unit,
-  value,
-  tooltip,
-  align = 'right',
-  isLoading,
-  preferredPolarity,
-}: Props) {
+function ReadoutContent({unit, value, tooltip, isLoading, preferredPolarity}: Props) {
   if (isLoading) {
     return (
-      <LoadingContainer align={align}>
+      <LoadingContainer align="left">
         <LoadingIndicator mini />
       </LoadingContainer>
     );
@@ -75,7 +67,7 @@ function ReadoutContent({
 
   if (isARateUnit(unit)) {
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit, {
           minimumValue: MINIMUM_RATE_VALUE,
         })}
@@ -86,7 +78,7 @@ function ReadoutContent({
   if (unit === DurationUnit.MILLISECOND) {
     // TODO: Implement other durations
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         <Duration
           seconds={typeof value === 'string' ? parseFloat(value) : value / 1000}
           fixedDigits={2}
@@ -99,7 +91,7 @@ function ReadoutContent({
   if (unit === SizeUnit.BYTE) {
     // TODO: Implement other sizes
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         <FileSize bytes={typeof value === 'string' ? parseInt(value, 10) : value} />
       </NumberContainer>
     );
@@ -107,7 +99,7 @@ function ReadoutContent({
 
   if (unit === 'count') {
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         {formatAbbreviatedNumber(typeof value === 'string' ? parseInt(value, 10) : value)}
       </NumberContainer>
     );
@@ -117,11 +109,11 @@ function ReadoutContent({
     const numericValue = typeof value === 'string' ? parseFloat(value) : value;
     if (numericValue <= 1) {
       renderedValue = (
-        <NumberContainer align={align}>US ${numericValue.toFixed(3)}</NumberContainer>
+        <NumberContainer align="left">US ${numericValue.toFixed(3)}</NumberContainer>
       );
     } else {
       renderedValue = (
-        <NumberContainer align={align}>
+        <NumberContainer align="left">
           US ${formatAbbreviatedNumber(numericValue)}
         </NumberContainer>
       );
@@ -130,7 +122,7 @@ function ReadoutContent({
 
   if (unit === 'percentage') {
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         {formatPercentage(
           typeof value === 'string' ? parseFloat(value) : value,
           undefined,
@@ -142,7 +134,7 @@ function ReadoutContent({
 
   if (unit === 'percent_change') {
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         <PercentChange
           value={typeof value === 'string' ? parseFloat(value) : value}
           minimumValue={MINIMUM_PERCENTAGE_VALUE}
@@ -154,7 +146,7 @@ function ReadoutContent({
 
   if (tooltip) {
     return (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         <Tooltip title={tooltip} isHoverable showUnderline>
           {renderedValue}
         </Tooltip>
@@ -162,7 +154,7 @@ function ReadoutContent({
     );
   }
 
-  return <NumberContainer align={align}>{renderedValue}</NumberContainer>;
+  return <NumberContainer align="left">{renderedValue}</NumberContainer>;
 }
 
 const MINIMUM_RATE_VALUE = 0.01;

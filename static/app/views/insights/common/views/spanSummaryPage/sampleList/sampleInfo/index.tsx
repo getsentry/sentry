@@ -57,7 +57,6 @@ function SampleInfo(props: Props) {
     <ReadoutRibbon>
       <MetricReadout
         title={getThroughputTitle(spanMetrics?.[SpanMetricsField.SPAN_OP])}
-        align="left"
         value={spanMetrics?.['spm()']}
         unit={RateUnit.PER_MINUTE}
         isLoading={isLoading}
@@ -65,7 +64,6 @@ function SampleInfo(props: Props) {
 
       <MetricReadout
         title={DataTitles.avg}
-        align="left"
         value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
         isLoading={isLoading}
@@ -73,7 +71,6 @@ function SampleInfo(props: Props) {
 
       <MetricReadout
         title={DataTitles.timeSpent}
-        align="left"
         value={spanMetrics?.[0]?.[`sum(${SpanMetricsField.SPAN_SELF_TIME}))`]}
         unit={DurationUnit.MILLISECOND}
         tooltip={getTimeSpentExplanation(

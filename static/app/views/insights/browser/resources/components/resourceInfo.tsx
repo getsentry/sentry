@@ -71,7 +71,6 @@ function ResourceInfo(props: Props) {
     <Fragment>
       <ReadoutRibbon>
         <MetricReadout
-          align="left"
           title={getThroughputTitle('resource')}
           value={throughput}
           unit={RESOURCE_THROUGHPUT_UNIT}
@@ -79,7 +78,6 @@ function ResourceInfo(props: Props) {
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles['avg(http.response_content_length)']}
           tooltip={tooltips.avgContentLength}
           value={avgContentLength}
@@ -88,7 +86,6 @@ function ResourceInfo(props: Props) {
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles['avg(http.decoded_response_content_length)']}
           value={avgDecodedContentLength}
           tooltip={tooltips.avgDecodedContentLength}
@@ -97,7 +94,6 @@ function ResourceInfo(props: Props) {
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles['avg(http.response_transfer_size)']}
           value={avgTransferSize}
           tooltip={tooltips.avgTransferSize}
@@ -106,7 +102,6 @@ function ResourceInfo(props: Props) {
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles.avg}
           value={avgDuration}
           unit={DurationUnit.MILLISECOND}
@@ -114,7 +109,6 @@ function ResourceInfo(props: Props) {
         />
 
         <MetricReadout
-          align="left"
           title={DataTitles.timeSpent}
           value={timeSpentTotal}
           unit={DurationUnit.MILLISECOND}

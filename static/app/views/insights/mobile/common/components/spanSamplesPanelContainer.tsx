@@ -159,14 +159,12 @@ export function SpanSamplesContainer({
       <ReadoutRibbon>
         <MetricReadout
           title={DataTitles.avg}
-          align="left"
           value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
           unit={DurationUnit.MILLISECOND}
           isLoading={isLoading}
         />
         <MetricReadout
           title={DataTitles.count}
-          align="left"
           value={spanMetrics?.['count()'] ?? 0}
           unit="count"
           isLoading={isLoading}
