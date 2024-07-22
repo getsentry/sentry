@@ -262,6 +262,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             and widget.discover_widget_split != new_discover_widget_split
         ):
             widget.discover_widget_split = new_discover_widget_split
+            widget.dataset_source = DatasetSourcesTypes.INFERRED.value
             widget.save()
 
         return new_discover_widget_split
