@@ -3311,10 +3311,10 @@
   dependencies:
     remove-accents "0.4.2"
 
-"@tanstack/query-core@4.29.7":
-  version "4.29.7"
-  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-4.29.7.tgz#9fe4587e23cb9566b937c518ffa44226041d388d"
-  integrity sha512-GXG4b5hV2Loir+h2G+RXhJdoZhJLnrBWsuLB2r0qBRyhWuXq9w/dWxzvpP89H0UARlH6Mr9DiVj4SMtpkF/aUA==
+"@tanstack/query-core@5.51.9":
+  version "5.51.9"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.51.9.tgz#eb2e02c715068d5664680b773e39eb44db6b48d8"
+  integrity sha512-HsAwaY5J19MD18ykZDS3aVVh+bAt0i7m6uQlFC2b77DLV9djo+xEN7MWQAQQTR8IM+7r/zbozTQ7P0xr0bHuew==
 
 "@tanstack/react-query-devtools@^4.36.1":
   version "4.36.1"
@@ -3325,13 +3325,12 @@
     superjson "^1.10.0"
     use-sync-external-store "^1.2.0"
 
-"@tanstack/react-query@^4.29.7":
-  version "4.29.7"
-  resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-4.29.7.tgz#772996905a81ca64172582891c5a82e88dbafccd"
-  integrity sha512-ijBWEzAIo09fB1yd22slRZzprrZ5zMdWYzBnCg5qiXuFbH78uGN1qtGz8+Ed4MuhaPaYSD+hykn+QEKtQviEtg==
+"@tanstack/react-query@^5.51.11":
+  version "5.51.11"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-5.51.11.tgz#8ab2cf6a4baa7a99b5682addf31328525f43242c"
+  integrity sha512-4Kq2x0XpDlpvSnaLG+8pHNH60zEc3mBvb3B2tOMDjcPCi/o+Du3p/9qpPLwJOTliVxxPJAP27fuIhLrsRdCr7A==
   dependencies:
-    "@tanstack/query-core" "4.29.7"
-    use-sync-external-store "^1.2.0"
+    "@tanstack/query-core" "5.51.9"
 
 "@tanstack/react-virtual@^3.5.1":
   version "3.5.1"
