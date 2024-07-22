@@ -1659,8 +1659,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         # Check if any search filters are in POSTGRES_ONLY_SEARCH_FIELDS
         search_filters = search_filters or ()
         group_ids_to_pass_to_snuba = None
+        too_many_candidates = False
         if any(sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS for sf in search_filters):
-            group_ids_to_pass_to_snuba = list(group_queryset.values_list("id", flat=True))
+            max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
+            group_ids_to_pass_to_snuba = list(
+                group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
+            )
+            if too_many_candidates := (len(group_ids_to_pass_to_snuba) > max_candidates):
+                metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
+                group_ids_to_pass_to_snuba = None
 
         # remove the search filters that are only for postgres
         search_filters = [
@@ -1692,6 +1699,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 Condition(Column("timestamp", joined_entity), Op.GTE, start),
                 Condition(Column("timestamp", joined_entity), Op.LT, end),
             ]
+
             having = []
             # if we need to prefetch from postgres, we add filter by the group ids
             if group_ids_to_pass_to_snuba is not None:
@@ -1837,6 +1845,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 k += 1
                 count += bulk_result[k]["data"][0]["count"]
             k += 1
+
+        if too_many_candidates:
+            # If we had too many candidates to reasonably pass down to snuba,
+            # we need to apply the Postgres filter as a post-filtering step.
+            filtered_group_ids = group_queryset.filter(
+                id__in=[group["g.group_id"] for group in data]
+            ).values_list("id", flat=True)
+
+            data = [group for group in data if group["g.group_id"] in filtered_group_ids]
 
         paginator_results = SequencePaginator(
             [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
