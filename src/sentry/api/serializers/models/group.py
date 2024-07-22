@@ -145,7 +145,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     isSubscribed: bool
     subscriptionDetails: GroupSubscriptionResponseOptional | None
     hasSeen: bool
-    annotations: Sequence[str]
+    annotations: dict[str, str]
 
 
 class SeenStats(TypedDict):
