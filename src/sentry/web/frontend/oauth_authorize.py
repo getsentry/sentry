@@ -292,7 +292,7 @@ class OAuthAuthorizeView(AuthLoginView):
         else:
             raise NotImplementedError
 
-    def approve(self, request: HttpRequest, application, **params):
+    def approve(self, request: HttpRequest, application, scoping_organization_id: int, **params):
         try:
             with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
@@ -342,6 +342,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
+                scoping_organization_id=scoping_organization_id,
             )
 
             logger.info(
