@@ -1665,13 +1665,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             group_ids_to_pass_to_snuba = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-        if (
-            group_ids_to_pass_to_snuba is not None
-            and len(group_ids_to_pass_to_snuba) > max_candidates
-        ):
-            metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
-            too_many_candidates = True
-            group_ids_to_pass_to_snuba = []
+            if too_many_candidates := (len(group_ids_to_pass_to_snuba) > max_candidates):
+                metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
+                group_ids_to_pass_to_snuba = None
 
         # remove the search filters that are only for postgres
         search_filters = [
@@ -1706,7 +1702,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
             having = []
             # if we need to prefetch from postgres, we add filter by the group ids
-            if group_ids_to_pass_to_snuba is not None and not too_many_candidates:
+            if group_ids_to_pass_to_snuba is not None:
                 # will not find any matches, we can return early
                 if len(group_ids_to_pass_to_snuba) == 0:
                     return self.empty_result
@@ -1850,7 +1846,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 count += bulk_result[k]["data"][0]["count"]
             k += 1
 
-        if too_many_candidates and group_ids_to_pass_to_snuba == []:
+        if too_many_candidates:
             # If we had too many candidates to reasonably pass down to snuba,
             # we need to apply the Postgres filter as a post-filtering step.
             filtered_group_ids = group_queryset.filter(
