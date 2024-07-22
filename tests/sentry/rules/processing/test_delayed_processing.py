@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import cast
+from typing import DefaultDict, cast
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -10,7 +10,9 @@ import pytest
 
 from sentry import buffer
 from sentry.eventstore.models import GroupEvent
+from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_frequency import (
     ComparisonType,
@@ -26,6 +28,7 @@ from sentry.rules.processing.delayed_processing import (
     get_condition_group_results,
     get_condition_query_groups,
     get_group_to_groupevent,
+    get_rules_to_fire,
     get_rules_to_groups,
     get_rules_to_slow_conditions,
     get_slow_conditions,
@@ -43,8 +46,17 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 pytestmark = pytest.mark.sentry_metrics
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
-TEST_RULE_SLOW_CONDITION = {"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}
-TEST_RULE_FAST_CONDITION = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+TEST_RULE_SLOW_CONDITION: EventFrequencyConditionData = {
+    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+    "value": 1,
+    "interval": "1h",
+}
+
+TEST_RULE_FAST_CONDITION: EventFrequencyConditionData = {
+    "id": "sentry.rules.conditions.every_event.EveryEventCondition",
+    "value": 1,
+    "interval": "1h",
+}
 
 
 def test_bucket_num_groups():
@@ -366,8 +378,117 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
 
 
 class GetRulesToFireTest(TestCase):
-    def test_get_rules_to_fire(self):
-        pass
+    def setUp(self):
+        self.organization = self.create_organization()
+        self.project = self.create_project()
+        self.environment = self.create_environment()
+
+        self.rule1: Rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[TEST_RULE_SLOW_CONDITION],
+            environment_id=self.environment.id,
+        )
+        self.group1: Group = self.create_group(self.project)
+        self.group2: Group = self.create_group(self.project)
+
+        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int]] = {
+            UniqueConditionQuery(
+                cls_id=TEST_RULE_SLOW_CONDITION["id"],
+                interval=TEST_RULE_SLOW_CONDITION["interval"],
+                environment_id=self.environment.id,
+            ): {self.group1.id: 2, self.group2.id: 1}
+        }
+
+        self.rules_to_slow_conditions: DefaultDict[
+            Rule, list[EventFrequencyConditionData]
+        ] = defaultdict(list)
+        self.rules_to_slow_conditions[self.rule1].append(TEST_RULE_SLOW_CONDITION)
+
+        self.rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
+        self.rules_to_groups[self.rule1.id].add(self.group1.id)
+        self.rules_to_groups[self.rule1.id].add(self.group2.id)
+
+        # Mock _passes_comparison function
+        self.patcher = patch("sentry.rules.processing.delayed_processing._passes_comparison")
+        self.mock_passes_comparison = self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
+
+    def test_comparison(self):
+        self.mock_passes_comparison.return_value = True
+
+        result = get_rules_to_fire(
+            self.condition_group_results,
+            self.rules_to_slow_conditions,
+            self.rules_to_groups,
+            self.project.id,
+        )
+
+        assert result[self.rule1] == {self.group1.id, self.group2.id}
+
+    def test_comparison_fail_all(self):
+        self.mock_passes_comparison.return_value = False
+
+        result = get_rules_to_fire(
+            self.condition_group_results,
+            self.rules_to_slow_conditions,
+            self.rules_to_groups,
+            self.project.id,
+        )
+
+        assert self.rule1 not in result
+
+    def test_comparison_any(self):
+        self.rule1.data["action_match"] = "any"
+        self.mock_passes_comparison.return_value = True
+
+        result = get_rules_to_fire(
+            self.condition_group_results,
+            self.rules_to_slow_conditions,
+            self.rules_to_groups,
+            self.project.id,
+        )
+
+        assert result[self.rule1] == {self.group1.id, self.group2.id}
+
+    def test_comparison_any_fail(self):
+        self.rule1.data["action_match"] = "any"
+        self.mock_passes_comparison.return_value = False
+
+        result = get_rules_to_fire(
+            self.condition_group_results,
+            self.rules_to_slow_conditions,
+            self.rules_to_groups,
+            self.project.id,
+        )
+
+        assert self.rule1 not in result
+
+    def test_empty_input(self):
+        result = get_rules_to_fire({}, defaultdict(list), defaultdict(set), self.project.id)
+        assert len(result) == 0
+
+    @patch("sentry.rules.processing.delayed_processing._passes_comparison", return_value=True)
+    def test_multiple_rules_and_groups(self, mock_passes):
+        rule2 = self.create_project_rule(
+            project=self.project,
+            condition_match=[TEST_RULE_SLOW_CONDITION],
+            environment_id=self.environment.id,
+        )
+        self.rules_to_slow_conditions[rule2].append(TEST_RULE_SLOW_CONDITION)
+        self.rules_to_groups[rule2.id].add(self.group2.id)
+
+        result = get_rules_to_fire(
+            self.condition_group_results,
+            self.rules_to_slow_conditions,
+            self.rules_to_groups,
+            self.project.id,
+        )
+
+        assert len(result) == 2
+        assert result[self.rule1] == {self.group1.id, self.group2.id}
+        assert result[rule2] == {self.group2.id}
 
 
 class GetRulesToGroupsTest(TestCase):
