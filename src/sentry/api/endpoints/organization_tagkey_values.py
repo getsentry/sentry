@@ -36,8 +36,15 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
         if request.GET.get("dataset"):
             try:
                 dataset = Dataset(request.GET.get("dataset"))
+                sentry_sdk.set_tag("dataset", dataset.value)
             except ValueError:
                 raise ParseError(detail="Invalid dataset parameter")
+        elif request.GET.get("includeTransactions") == "1":
+            sentry_sdk.set_tag("dataset", Dataset.Discover.value)
+        elif request.GET.get("includeReplays") == "1":
+            sentry_sdk.set_tag("dataset", Dataset.Replays.value)
+        else:
+            sentry_sdk.set_tag("dataset", Dataset.Events.value)
 
         try:
             # still used by events v1 which doesn't require global views
