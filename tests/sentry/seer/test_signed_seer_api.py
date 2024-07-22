@@ -11,7 +11,7 @@ from sentry.testutils.helpers import override_options
 def test_make_signed_seer_api_request():
     body = b'{"b": 12, "thing": "thing"}'
 
-    def url_request(timeout: int | None = None):
+    def run_test_case(timeout: int | None = None):
         mock = Mock()
         mock.host = "localhost"
         mock.port = None
@@ -26,7 +26,7 @@ def test_make_signed_seer_api_request():
 
         return mock.urlopen
 
-    mock_url_open = url_request()
+    mock_url_open = run_test_case()
     mock_url_open.assert_called_once_with(
         "POST",
         "/v0/some/url",
@@ -34,7 +34,7 @@ def test_make_signed_seer_api_request():
         headers={"content-type": "application/json;charset=utf-8"},
     )
 
-    mock_url_open = url_request(timeout=5)
+    mock_url_open = run_test_case(timeout=5)
     mock_url_open.assert_called_once_with(
         "POST",
         "/v0/some/url",
@@ -44,7 +44,7 @@ def test_make_signed_seer_api_request():
     )
 
     with override_options({"seer.api.use-shared-secret": 1.0}):
-        mock_url_open = url_request()
+        mock_url_open = run_test_case()
         mock_url_open.assert_called_once_with(
             "POST",
             "/v0/some/url",
