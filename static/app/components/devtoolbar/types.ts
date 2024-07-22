@@ -1,10 +1,13 @@
 import type SentrySDK from '@sentry/react'; // TODO: change to `@sentry/browser` when we have our own package.json
 
+import type {Organization} from 'sentry/types/organization';
+
 export type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 
 export type Configuration = {
   apiPrefix: string;
   environment: string | string[];
+  organization: Organization | undefined;
   organizationSlug: string;
   placement: 'right-edge' | 'bottom-right-corner';
   projectId: number;

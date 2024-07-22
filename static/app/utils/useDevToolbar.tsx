@@ -24,6 +24,7 @@ export default function useDevToolbar({enabled}: {enabled: boolean}) {
         organizationSlug: 'sentry',
         projectId: 11276,
         projectSlug: 'javascript',
+        organization,
 
         trackAnalytics: (props: {eventKey: string; eventName: string}) =>
           rawTrackAnalyticsEvent({...props, organization}),
