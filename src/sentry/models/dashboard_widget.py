@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
@@ -74,6 +75,31 @@ class DashboardWidgetTypes(TypesClass):
         (TRANSACTION_LIKE, "transaction-like"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DatasetSourcesTypes(Enum):
+    """
+    Ambiguous queries that haven't been or couldn't be categorized into a
+    specific dataset.
+    """
+
+    UNKNOWN = 0
+    """
+     Dataset inferred by either running the query or using heuristics.
+    """
+    INFERRED = 1
+    """
+     Canonical dataset, user explicitly selected it.
+    """
+    USER = 2
+    """
+     Was an ambiguous dataset forced to split (i.e. we picked a default)
+    """
+    FORCED = 3
+
+    @classmethod
+    def as_choices(cls):
+        return tuple((source.value, source.name.lower()) for source in cls)
 
 
 # TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
@@ -233,6 +259,11 @@ class DashboardWidget(Model):
     detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
     discover_widget_split = BoundedPositiveIntegerField(
         choices=DashboardWidgetTypes.as_choices(), null=True
+    )
+
+    # The method of which the discover split datasets was decided
+    dataset_source = BoundedPositiveIntegerField(
+        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
     )
 
     class Meta:

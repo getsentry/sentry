@@ -4,7 +4,7 @@ from sentry.models.userrole import UserRole
 
 @register(UserRole)
 class UserRoleSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "name": obj.name,

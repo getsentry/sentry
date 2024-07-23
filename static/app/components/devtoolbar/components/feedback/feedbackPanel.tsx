@@ -142,14 +142,16 @@ function FeedbackListItem({item}: {item: FeedbackIssueListItem}) {
         </TextOverflow>
       </div>
 
-      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'project'}}>
-        <ProjectBadge
-          css={css({'&& img': {boxShadow: 'none'}})}
-          project={item.project}
-          avatarSize={16}
-          hideName
-          avatarProps={{hasTooltip: false}}
-        />
+      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'owner'}}>
+        {item.project ? (
+          <ProjectBadge
+            css={css({'&& img': {boxShadow: 'none'}})}
+            project={item.project}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: false}}
+          />
+        ) : null}
         <TextOverflow>{item.shortId}</TextOverflow>
       </div>
 

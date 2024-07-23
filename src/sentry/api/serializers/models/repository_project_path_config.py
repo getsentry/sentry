@@ -6,7 +6,7 @@ from sentry.models.integrations.repository_project_path_config import Repository
 
 @register(RepositoryProjectPathConfig)
 class RepositoryProjectPathConfigSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         integration = None
         if obj.organization_integration_id:
             integration = integration_service.get_integration(

@@ -43,7 +43,7 @@ URL_MIN_PERCENT = 0.05
 # Default value for how often we should run these subscriptions when onboarding them
 ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=60).total_seconds())
 # Default timeout for subscriptions when we're onboarding them
-ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 1000
+ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 logger = logging.getLogger("sentry.uptime-url-autodetection")
 
@@ -267,7 +267,7 @@ def check_url_robots_txt(url: str) -> bool:
         return get_robots_txt_parser(url).can_fetch(UPTIME_USER_AGENT, url)
     except Exception:
         logger.warning("Failed to check robots.txt", exc_info=True)
-        return False
+        return True
 
 
 def get_robots_txt_parser(url: str) -> RobotFileParser:

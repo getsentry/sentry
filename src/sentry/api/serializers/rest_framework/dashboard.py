@@ -439,6 +439,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     self.query_warnings["columns"][
                         field
                     ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+
+        widget_type = data.get("widget_type")
+        if widget_type and widget_type in {
+            DashboardWidgetTypes.ERROR_EVENTS,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+        }:
+            data["discover_widget_split"] = widget_type
+
         return data
 
 
@@ -513,7 +521,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         bad things will happen
         """
         self.instance = Dashboard.objects.create(
-            organization=self.context.get("organization"),
+            organization=self.context["organization"],
             title=validated_data["title"],
             created_by_id=self.context["request"].user.id,
         )

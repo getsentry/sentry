@@ -116,9 +116,7 @@ describe('Metrics Extraction Rules Table', function () {
     const editButtons = await screen.findAllByLabelText('Edit metric');
     await userEvent.click(editButtons[1]);
 
-    expect(
-      await screen.findByRole('heading', {name: /span.duration/})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: 'Edit Metric'})).toBeInTheDocument();
   });
 
   it('shall display cardinality limit warning', async function () {
