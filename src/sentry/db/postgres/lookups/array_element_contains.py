@@ -1,4 +1,4 @@
-from django.db.backends.postgresql.base import DatabaseWrapper
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models import Lookup
 from django.db.models.sql.compiler import SQLCompiler
 
@@ -9,7 +9,7 @@ class ArrayElementContainsLookup(Lookup):
     lookup_name = "element_contains"
 
     def as_sql(
-        self, compiler: SQLCompiler, connection: DatabaseWrapper
+        self, compiler: SQLCompiler, connection: BaseDatabaseWrapper
     ) -> tuple[str, list[int | str]]:
         """
         Custom lookup for checking if an element of the array contains a value.
