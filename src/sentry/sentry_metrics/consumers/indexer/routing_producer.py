@@ -91,7 +91,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         self.__message_router = message_router
         self.__closed = False
         self.__offsets_to_be_committed: MutableMapping[Partition, int] = {}
-        self.__queue: Deque[tuple[Mapping[Partition, int], Future[Message[KafkaPayload]]]] = deque()
+        self.__queue: Deque[tuple[Mapping[Partition, int], Future[str]]] = deque()
         self.__all_producers = message_router.get_all_producers()
 
     def poll(self) -> None:
@@ -141,7 +141,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         producer, topic = self.__message_router.get_route_for_message(message)
         output_message = Message(message.value.replace(message.payload.routing_message))
 
-        future: Future[Message[KafkaPayload]] = Future()
+        future: Future[str] = Future()
         future.set_running_or_notify_cancel()
         producer.produce(
             topic=topic.name,
