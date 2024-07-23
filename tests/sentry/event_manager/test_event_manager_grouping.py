@@ -6,13 +6,12 @@ from unittest import mock
 from unittest.mock import ANY, MagicMock
 
 import pytest
-from django.test import override_settings
 
 from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
-from sentry.grouping.ingest.config import update_grouping_config_if_needed
+from sentry.grouping.ingest.config import DO_NOT_UPGRADE_YET
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
@@ -135,62 +134,50 @@ class EventManagerGroupingTest(TestCase):
         assert group.data["metadata"]["title"] == event2.title
 
     def test_auto_updates_grouping_config(self):
-        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
-
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
-            save_new_event({"message": "Dogs are great!"}, self.project)
-            assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
-
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
-            save_new_event({"message": "Adopt don't shop"}, self.project)
-            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
-
-            with assume_test_silo_mode_of(AuditLogEntry):
-                audit_log_entry = AuditLogEntry.objects.get()
-
-            assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
-            assert audit_log_entry.actor_label == "Sentry"
-
-            assert audit_log_entry.data == {
-                "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
-                "sentry:secondary_grouping_config": LEGACY_CONFIG,
-                "sentry:secondary_grouping_expiry": ANY,  # tested separately below
-                "id": self.project.id,
-                "slug": self.project.slug,
-                "name": self.project.name,
-                "status": 0,
-                "public": False,
-            }
-
-            # When the config upgrade is actually happening, the expiry value is set before the
-            # audit log entry is created, which means the expiry is based on a timestamp
-            # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
-            # necessary.
-            actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
-            expected_expiry = (
-                int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-            )
-            assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
-
-    def test_disabled_auto_update_does_not_update(self):
-        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
-
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
-            self.project.update_option("sentry:grouping_auto_update", False)
-            save_new_event({"message": "foo"}, self.project)
-            # It does not update the config because it is False
-            assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
-
-    def test_deprecated_configs_upgrade_automatically(self):
-        # This is not yet a deprecated config but we will simulate it
         self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-        self.project.update_option("sentry:grouping_auto_update", False)
 
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
-            update_grouping_config_if_needed(self.project)
-            # Nothing changes
-            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
-            assert self.project.get_option("sentry:grouping_auto_update") is True
+        save_new_event({"message": "Adopt don't shop"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_log_entry = AuditLogEntry.objects.get()
+
+        assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
+        assert audit_log_entry.actor_label == "Sentry"
+
+        assert audit_log_entry.data == {
+            "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
+            "sentry:secondary_grouping_config": "mobile:2021-02-12",
+            "sentry:secondary_grouping_expiry": ANY,  # tested separately below
+            "id": self.project.id,
+            "slug": self.project.slug,
+            "name": self.project.name,
+            "status": 0,
+            "public": False,
+        }
+
+        # When the config upgrade is actually happening, the expiry value is set before the
+        # audit log entry is created, which means the expiry is based on a timestamp
+        # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
+        # necessary.
+        actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
+        expected_expiry = (
+            int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+        )
+        assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
+
+    def test_does_not_update_project_in_exclude_list(self):
+        # It does not update the config because it is listed in DO_NOT_UPGRADE_YET
+        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
+        assert LEGACY_CONFIG in DO_NOT_UPGRADE_YET
+        save_new_event({"message": "foo"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
+
+        # It updates the config because it is not listed in DO_NOT_UPGRADE_YET
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        assert "mobile:2021-02-12" not in DO_NOT_UPGRADE_YET
+        save_new_event({"message": "foo"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
 
 class PlaceholderTitleTest(TestCase):

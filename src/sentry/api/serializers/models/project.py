@@ -890,7 +890,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
-    groupingAutoUpdate: bool
     fingerprintingRules: str
     organization: OrganizationSerializerResponse
     plugins: list[Plugin]
@@ -990,9 +989,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 ),
                 "secondaryGroupingConfig": self.get_value_with_default(
                     attrs, "sentry:secondary_grouping_config"
-                ),
-                "groupingAutoUpdate": self.get_value_with_default(
-                    attrs, "sentry:grouping_auto_update"
                 ),
                 "fingerprintingRules": self.get_value_with_default(
                     attrs, "sentry:fingerprinting_rules"
