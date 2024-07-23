@@ -12,8 +12,8 @@ import {
   MissingFrame,
   StackTraceMiniFrame,
 } from 'sentry/views/insights/database/components/stackTraceMiniFrame';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
 
 interface Props {
   groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];

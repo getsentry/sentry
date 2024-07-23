@@ -10,7 +10,7 @@ import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/sett
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 type Props = {
   browserTypes?: BrowserType[];

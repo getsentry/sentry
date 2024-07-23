@@ -39,7 +39,8 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export function WebVitalsLandingPage() {
   const location = useLocation();

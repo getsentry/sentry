@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {QueuesTable} from 'sentry/views/insights/queues/components/tables/queuesTable';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 describe('queuesTable', () => {
   const organization = OrganizationFixture();

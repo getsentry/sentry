@@ -25,10 +25,10 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByDestinationQuery} from 'sentry/views/insights/queues/queries/useQueuesByDestinationQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 import {
   ModuleName,
   SpanFunction,
-  SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 

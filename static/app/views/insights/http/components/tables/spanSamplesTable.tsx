@@ -14,8 +14,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 import type {SpanIndexedResponse} from 'sentry/views/insights/types';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type DataRowKeys =

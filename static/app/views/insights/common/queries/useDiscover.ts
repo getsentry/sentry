@@ -5,10 +5,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import type {SpanIndexedField} from 'sentry/views/insights/spanFields';
 import type {
   MetricsProperty,
   MetricsResponse,
-  SpanIndexedField,
   SpanIndexedResponse,
   SpanMetricsProperty,
   SpanMetricsResponse,

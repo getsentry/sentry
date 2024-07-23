@@ -11,11 +11,11 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {DATE_FORMAT} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 import type {
   SpanIndexedFieldTypes,
   SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 

@@ -4,7 +4,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 const DEFAULT_SORT: Sort[] = [{field: 'timestamp', kind: 'desc'}];
 
