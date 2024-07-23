@@ -95,20 +95,11 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
           </GlobalSelectionLink>
         </LoggerAnnotation>
       )}
-      {annotations?.map((annotation, key) =>
-        typeof annotation === 'string' ? (
-          <AnnotationNoMargin
-            dangerouslySetInnerHTML={{
-              __html: annotation,
-            }}
-            key={key}
-          />
-        ) : (
-          <AnnotationNoMargin key={key}>
-            <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
-          </AnnotationNoMargin>
-        )
-      )}
+      {annotations?.map((annotation, key) => (
+        <AnnotationNoMargin key={key}>
+          <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
+        </AnnotationNoMargin>
+      ))}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
