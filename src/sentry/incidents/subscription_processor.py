@@ -15,7 +15,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
-from sentry.conf.server import SEER_ANOMALY_DETECTION_URL
+from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -630,7 +630,7 @@ class SubscriptionProcessor:
         anomaly type and the alert rule's threshold type.
         """
         # need to define constants for anomaly types
-        anomaly_type = anomaly.get("anomaly").get("anomaly_type")
+        anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
         if anomaly_type == "none" or anomaly_type == "no_data":
             return False
@@ -654,7 +654,7 @@ class SubscriptionProcessor:
                 "time_period": self.alert_rule.threshold_period,
                 "sensitivity": self.alert_rule.sensitivity,
                 "seasonality": self.alert_rule.seasonality,
-                "direction": self.alert_rule.detection_type,
+                "direction": self.alert_rule.threshold_type,
             }
 
             context = {
@@ -666,7 +666,7 @@ class SubscriptionProcessor:
             }
             response = make_signed_seer_api_request(
                 self.seer_anomaly_detection_connection_pool,
-                SEER_ANOMALY_DETECTION_URL,
+                SEER_ANOMALY_DETECTION_ENDPOINT_URL,
                 json.dumps(
                     {
                         "organization_id": self.subscription.project.organization.id,
@@ -674,7 +674,7 @@ class SubscriptionProcessor:
                         "config": ad_config,
                         "context": context,
                     }
-                ),
+                ).encode("utf-8"),
             )
         except (TimeoutError, MaxRetryError):
             logger.warning(
@@ -682,7 +682,9 @@ class SubscriptionProcessor:
                 extra={
                     "subscription_id": self.subscription.id,
                     "dataset": self.subscription.snuba_query.dataset,
-                    # TODO (MF): add other, relevant fields here
+                    "organization_id": self.subscription.project.organization.id,
+                    "project_id": self.subscription.project_id,
+                    "alert_rule_id": self.alert_rule.id,
                 },
             )
             return None
