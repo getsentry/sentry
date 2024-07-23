@@ -134,7 +134,7 @@ export function PipelinesTable() {
     'api.performance.ai-analytics.token-usage-chart'
   );
 
-  const {data: tokenCostData, isLoading: tokenCostLoading} = useSpanMetrics(
+  const {data: tokenCostData, isLoading: tokenCostLoading, error: tokenCostError} = useSpanMetrics(
     {
       search: new MutableSearch(
         `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
@@ -159,7 +159,7 @@ export function PipelinesTable() {
           tokenUsedDataPoint['sum(ai.total_tokens.used)'];
       }
     }
-    if (!tokenCostLoading) {
+    if (!tokenCostLoading && !tokenCostError) {
       const tokenCostDataPoint = tokenCostData.find(
         tokenRow => tokenRow['span.ai.pipeline.group'] === row['span.group']
       );
