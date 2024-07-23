@@ -10,8 +10,6 @@ from uuid import uuid4
 import orjson
 import pytest
 from django.utils import timezone
-
-# from urllib3.exceptions import TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
@@ -541,6 +539,66 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert processor.get_anomaly_detected(anomaly1)
         assert processor.get_anomaly_detected(anomaly2)
         assert not processor.get_anomaly_detected(not_anomaly)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.incidents.subscription_processor.logger")
+    def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
+        rule = self.dynamic_rule
+        processor = SubscriptionProcessor(self.sub)
+        from urllib3.exceptions import TimeoutError
+
+        mock_seer_request.side_effect = TimeoutError
+        result = processor.get_anomaly_data_from_seer(10)
+        timeout_extra = {
+            "subscription_id": self.sub.id,
+            "dataset": self.sub.snuba_query.dataset,
+            "organization_id": self.sub.project.organization.id,
+            "project_id": self.sub.project_id,
+            "alert_rule_id": rule.id,
+        }
+        mock_logger.warning.assert_called_with(
+            "Timeout error when hitting anomaly detection endpoint",
+            extra=timeout_extra,
+        )
+
+        assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.incidents.subscription_processor.logger")
+    def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
+        processor = SubscriptionProcessor(self.sub)
+        seer_return_value: dict[str, list] = {"anomalies": []}
+
+        mock_seer_request.reset_mock()
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        result = processor.get_anomaly_data_from_seer(10)
+        assert mock_logger.warning.call_args[0] == (
+            "Seer anomaly detection response returned an empty list",
+        )
+        assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.incidents.subscription_processor.logger")
+    def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
+        processor = SubscriptionProcessor(self.sub)
+        seer_return_value: dict[str, list] = {}
+
+        mock_seer_request.reset_mock()
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        result = processor.get_anomaly_data_from_seer(10)
+        assert mock_logger.exception.called_with(
+            "Failed to parse Seer anomaly detection response",
+        )
+        assert result is None
 
     def test_alert(self):
         # Verify that an alert rule that only expects a single update to be over the
