@@ -11,7 +11,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationResponse
@@ -19,6 +18,9 @@ from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IntegrationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.integrations.api.bases.organization_integrations import (
+    OrganizationIntegrationBaseEndpoint,
+)
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization.model import (
