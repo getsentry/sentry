@@ -208,6 +208,7 @@ function FormWrapper({
       onCancel={closeModal}
       onSubmit={handleSubmit}
       cardinality={cardinality}
+      submitDisabled={createExtractionRuleMutation.isLoading}
     />
   );
 }

@@ -110,6 +110,7 @@ export function MetricsExtractionRuleEditModal({
           onCancel={closeModal}
           onSubmit={handleSubmit}
           cardinality={cardinality}
+          submitDisabled={updateExtractionRuleMutation.isLoading}
           isEdit
           requireChanges
         />
