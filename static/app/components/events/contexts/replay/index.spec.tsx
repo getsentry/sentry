@@ -19,6 +19,6 @@ describe('replay event context', function () {
 
     expect(screen.getByText('Replay ID')).toBeInTheDocument();
     expect(screen.getByText(replayId)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View Replay'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: replayId})).toBeInTheDocument();
   });
 });
