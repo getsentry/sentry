@@ -6,6 +6,10 @@ inputs:
     description: 'Path to coverage file(s) - comma separated for multiple files'
     default: '.artifacts/*.coverage.xml'
     required: true
+  test_result_files:
+    description: 'Path to test result file(s) - comma separated for multiple files'
+    default: '.artifacts/*.junit.xml'
+    required: true
   type:
     description: 'The type of change (frontend, backend)'
     default: 'backend'
@@ -28,5 +32,13 @@ runs:
         files: ${{ inputs.files }}
         override_commit: ${{ inputs.commit_sha}}
         plugin: noop
+        verbose: true
+      continue-on-error: true
+    - name: Upload test results to codecov
+      uses: codecov/test-results-action@2b4994ec0ffe80e6c5f8fd5a2e3cfe48994b3680 # v1
+      with:
+        token: ${{ inputs.token }}
+        files: ${{ inputs.files }}
+        override_commit: ${{ inputs.commit_sha}}
         verbose: true
       continue-on-error: true
