@@ -57,7 +57,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-function createVirtualMRI(rule: MetricsExtractionRule): MRI {
+export function createVirtualMRI(rule: MetricsExtractionRule): MRI {
   return `v:custom/${rule.spanAttribute}|${rule.projectId}@${rule.unit}`;
 }
 
