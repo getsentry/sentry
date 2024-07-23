@@ -7,6 +7,7 @@ import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
 from rest_framework import status
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
@@ -215,13 +216,14 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert(self, mock_send_historical_data_to_seer):
+    def test_anomaly_detection_alert(self, mock_seer_request):
         data = {
             **self.alert_rule_dict,
             "detection_type": AlertRuleDetectionType.DYNAMIC,
             "sensitivity": AlertRuleSensitivity.LOW,
             "seasonality": AlertRuleSeasonality.AUTO,
         }
+        mock_seer_request.return_value = HTTPResponse(status=200)
         with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug,
@@ -233,7 +235,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
-        assert mock_send_historical_data_to_seer.call_count == 1
+        assert mock_seer_request.call_count == 1
 
     def test_monitor_type_with_condition(self):
         data = {

@@ -122,7 +122,10 @@ class AlertRuleIndexMixin(Endpoint):
             else:
                 alert_rule = serializer.save()
                 if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-                    send_historical_data_to_seer(rule=alert_rule, user=request.user)
+                    resp = send_historical_data_to_seer(rule=alert_rule, user=request.user)
+                    if resp.status != 200:
+                        return Response(status=status.HTTP_400_BAD_REQUEST)
+
                 referrer = request.query_params.get("referrer")
                 session_id = request.query_params.get("sessionId")
                 duplicate_rule = request.query_params.get("duplicateRule")
