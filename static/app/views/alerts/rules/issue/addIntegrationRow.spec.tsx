@@ -24,7 +24,7 @@ describe('AddIntegrationRow', function () {
 
   const getComponent = () => (
     <AddIntegrationRow
-      integrationSlug={integrationSlug}
+      providerKey={integrationSlug}
       organization={org}
       project={project}
       closeModal={jest.fn()}
@@ -83,7 +83,7 @@ describe('AddIntegrationRow', function () {
 
     render(
       <AddIntegrationRow
-        integrationSlug={integrationSlug}
+        providerKey={integrationSlug}
         organization={org}
         project={project}
         closeModal={jest.fn()}

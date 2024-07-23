@@ -11,14 +11,14 @@ import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegratio
 
 type Props = {
   closeModal: () => void;
-  integrationSlug: string;
   organization: Organization;
   project: Project;
+  providerKey: string;
   setHasError: (boolean) => void;
 };
 
 function AddIntegrationRow({
-  integrationSlug,
+  providerKey,
   organization,
   project,
   closeModal,
@@ -28,11 +28,11 @@ function AddIntegrationRow({
 
   const api = useApi();
   const fetchData = useCallback(() => {
-    if (!integrationSlug) {
+    if (!providerKey) {
       return Promise.resolve();
     }
 
-    const endpoint = `/organizations/${organization.slug}/config/integrations/?provider_key=${integrationSlug}`;
+    const endpoint = `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`;
     return api
       .requestPromise(endpoint)
       .then(integrations => {
@@ -41,7 +41,7 @@ function AddIntegrationRow({
       .catch(() => {
         setHasError(true);
       });
-  }, [integrationSlug, api, organization.slug, setHasError]);
+  }, [providerKey, api, organization.slug, setHasError]);
 
   useEffect(() => {
     fetchData();
@@ -52,18 +52,16 @@ function AddIntegrationRow({
   }
 
   const {metadata} = provider;
-  const size = 'sm' as const;
-  const priority = 'primary' as const;
 
   const buttonProps = {
     style: {margin: 0},
-    size,
-    priority,
+    size: 'sm' as const,
+    priority: 'primary' as const,
     'data-test-id': 'install-button',
     organization,
   };
 
-  // TODO(Mia): disable button if user does not have necessary permissions
+  // TODO(Mia): show request installation button if user does not have necessary permissions
   const integrationButton = metadata.aspects.externalInstall ? (
     <Button
       href={metadata.aspects.externalInstall.url}
@@ -86,7 +84,7 @@ function AddIntegrationRow({
   return (
     <RowWrapper>
       <IconTextWrapper>
-        <PluginIcon pluginId={integrationSlug} size={40} />
+        <PluginIcon pluginId={providerKey} size={40} />
         <NameHeader>Connect {provider.name}</NameHeader>
       </IconTextWrapper>
       {integrationButton}

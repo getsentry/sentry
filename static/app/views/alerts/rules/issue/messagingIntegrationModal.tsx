@@ -43,7 +43,7 @@ function MessagingIntegrationModal({
             return (
               <AddIntegrationRow
                 key={value}
-                integrationSlug={value}
+                providerKey={value}
                 organization={organization}
                 project={project}
                 closeModal={closeModal}
