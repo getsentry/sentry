@@ -101,7 +101,6 @@ function BaseTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
-
   ...props
 }: BaseTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
