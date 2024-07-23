@@ -114,7 +114,12 @@ export default storyBook(SearchQueryBuilder, story => {
   });
 
   story('Config Options', () => {
-    const configs = ['disallowFreeText', 'disallowLogicalOperators', 'disallowWildcard'];
+    const configs = [
+      'disallowFreeText',
+      'disallowLogicalOperators',
+      'disallowWildcard',
+      'disallowUnsupportedFilters',
+    ];
 
     const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
     const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
@@ -141,7 +146,7 @@ export default storyBook(SearchQueryBuilder, story => {
           ))}
         </MultipleCheckbox>
         <SearchQueryBuilder
-          initialQuery="(browser.name:Firefox OR browser.name:Internet*) TypeError"
+          initialQuery="(unsupported_key:value OR browser.name:Internet*) TypeError"
           filterKeySections={FITLER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}

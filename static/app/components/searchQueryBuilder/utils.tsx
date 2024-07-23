@@ -67,6 +67,7 @@ export function parseQueryBuilderValue(
     filterKeys: TagCollection;
     disallowFreeText?: boolean;
     disallowLogicalOperators?: boolean;
+    disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
   }
 ): ParseResult | null {
@@ -74,12 +75,14 @@ export function parseQueryBuilderValue(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
       disallowFreeText: options?.disallowFreeText,
+      validateKeys: options?.disallowUnsupportedFilters,
       disallowWildcard: options?.disallowWildcard,
       disallowedLogicalOperators: options?.disallowLogicalOperators
         ? new Set([BooleanOperator.AND, BooleanOperator.OR])
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
+      supportedTags: options?.filterKeys,
     })
   );
 }

@@ -49,6 +49,10 @@ export interface SearchQueryBuilderProps {
    */
   disallowLogicalOperators?: boolean;
   /**
+   * When true, unsupported filter keys will be highlighted as invalid.
+   */
+  disallowUnsupportedFilters?: boolean;
+  /**
    * When true, the wildcard (*) in filter values or free text will be marked as invalid.
    */
   disallowWildcard?: boolean;
@@ -101,6 +105,7 @@ export function SearchQueryBuilder({
   className,
   disallowLogicalOperators,
   disallowFreeText,
+  disallowUnsupportedFilters,
   disallowWildcard,
   label,
   initialQuery,
@@ -124,6 +129,7 @@ export function SearchQueryBuilder({
       parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
         disallowFreeText,
         disallowLogicalOperators,
+        disallowUnsupportedFilters,
         disallowWildcard,
         filterKeys,
       }),
@@ -133,6 +139,7 @@ export function SearchQueryBuilder({
       disallowWildcard,
       fieldDefinitionGetter,
       filterKeys,
+      disallowUnsupportedFilters,
       state.query,
     ]
   );
