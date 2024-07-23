@@ -702,16 +702,27 @@ class GroupSerializerBase(Serializer, ABC):
         if request and is_active_superuser(request) and request.user.id == user.id:
             return True
 
-        # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
-        # because the user isn't an org member. Instead we can use the auth token and the installation
-        # it's associated with to find out what organization the token has access to.
-        if (
-            request
-            and getattr(request.user, "is_sentry_app", False)
-            and is_api_token_auth(request.auth)
-        ):
-            if AuthenticatedToken.from_token(request.auth).token_has_org_access(organization_id):
-                return True
+        if request and is_api_token_auth(request.auth):
+            token = AuthenticatedToken.from_token(request.auth)
+
+            if getattr(request.user, "is_sentry_app", False):
+                # This is an app, we exit early if we're able. I have a feeling this is
+                # wrong because a Sentry App probably shouldn't have cross-organization
+                # access (as is implied by the fall-through). But this was the behavior
+                # I encountered while extending this section and I didn't have clear
+                # indications that it was actually wrong. If you know better fix it.
+                if token.token_has_org_access(organization_id):
+                    return True
+            else:
+                # Presumably if this is not an app and the token was explicitly scoped
+                # to the organization membership was pre-determined. However, we don't
+                # assume here. If you know better fix it.
+                return (
+                    token.token_has_org_access(organization_id)
+                    and OrganizationMember.objects.filter(
+                        user_id=user.id, organization_id=organization_id
+                    ).exists()
+                )
 
         if (
             request
