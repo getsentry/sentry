@@ -191,12 +191,12 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         # TODO(Gabe): Temporary kludge to allow this to pass while pydantic
         # deprecation warnings are active.
-        warninfo = [
+        filtered_warnings = [
             info for info in warninfo if not isinstance(info.message, PydanticDeprecatedSince20)
         ]
 
         # until it is turned into an error, we'll get a warning about parsing an invalid version
-        (warning,) = warninfo
+        (warning,) = filtered_warnings
         assert isinstance(warning.message, DeprecationWarning)
         (warn_msg,) = warning.message.args
         assert (
