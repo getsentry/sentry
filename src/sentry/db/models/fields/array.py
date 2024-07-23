@@ -73,5 +73,4 @@ class ArrayField(models.Field):
         return [self.of.to_python(x) for x in value]
 
 
-ArrayField.register_lookup(ArrayElementContainsLookup)
 DjangoArrayField.register_lookup(ArrayElementContainsLookup)
