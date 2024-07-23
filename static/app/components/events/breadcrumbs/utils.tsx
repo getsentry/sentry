@@ -195,8 +195,9 @@ function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
     case BreadcrumbType.DEVICE:
     case BreadcrumbType.NETWORK:
       return {title: 'pink400', icon: 'pink400', iconBorder: 'pink200'};
-    case BreadcrumbType.DEBUG:
     case BreadcrumbType.INFO:
+      return {title: 'blue400', icon: 'blue300', iconBorder: 'blue200'};
+    case BreadcrumbType.DEBUG:
     default:
       return {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'};
   }
