@@ -156,7 +156,6 @@ function importSentrySampledProfile(
   }
 
   let activeProfileIndex = 0;
-
   const profiles: Profile[] = [];
 
   for (const key in samplesByThread) {
@@ -259,13 +258,51 @@ export function importSentryContinuousProfileChunk(
     input.platform
   );
 
+  const samplesByThread: Record<
+    string,
+    Profiling.SentryContinousProfileChunk['profile']['samples']
+  > = {};
+
+  for (let i = 0; i < input.profile.samples.length; i++) {
+    const sample = input.profile.samples[i];
+    if (!samplesByThread[sample.thread_id]) {
+      samplesByThread[sample.thread_id] = [];
+    }
+    samplesByThread[sample.thread_id].push(sample);
+  }
+
+  for (const key in samplesByThread) {
+    samplesByThread[key].sort((a, b) => a.timestamp - b.timestamp);
+  }
+
+  const profiles: Profile[] = [];
+
+  for (const key in samplesByThread) {
+    const profile: Profiling.ContinuousProfile = {
+      ...input,
+      ...input.profile,
+      samples: samplesByThread[key],
+    };
+
+    profiles.push(
+      wrapWithSpan(
+        options.span,
+        () => ContinuousProfile.FromProfile(profile, frameIndex),
+        {
+          op: 'profile.import',
+          description: 'sampled',
+        }
+      )
+    );
+  }
+
   return {
     traceID,
     name: '',
     type: 'continuous',
     transactionID: null,
     activeProfileIndex: 0,
-    profiles: [importSingleProfile(input.profile, frameIndex, options)],
+    profiles,
     measurements: input.measurements ?? {},
     metadata: {
       platform: input.platform,
