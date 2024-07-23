@@ -10,6 +10,7 @@ const context = createContext<Configuration>({
   projectId: 0,
   projectSlug: '',
   featureFlags: [],
+  featureFlagTemplateUrl: _flag => '',
 });
 
 export function ConfigurationContextProvider({
