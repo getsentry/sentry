@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -1576,6 +1577,277 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+};
+
+const TRACE_FIELDS = [
+  SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.SPAN_STATUS,
+  SpanIndexedField.RESPONSE_CODE,
+];
+
+const TRACE_FIELD_DEFINITIONS: Record<
+  SpanIndexedField | SpanMetricsField,
+  FieldDefinition
+> = {
+  /** Indexed Fields */
+  [SpanIndexedField.SPAN_ACTION]: {
+    desc: t(
+      'The type of span action, i.e `SELECT` for a SQL span or `POST` for an HTTP span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_CATEGORY]: {
+    desc: t(
+      'The Insights module that the span is associated with, i.e `cache`, `db`, `http`, etc.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DESCRIPTION]: {
+    desc: t('Parameterized and scrubbed description of the span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DOMAIN]: {
+    desc: t(
+      'General scope of the span’s action, i.e. the tables involved in a `db` span or the host name in an `http` span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DURATION]: {
+    desc: t('The total time taken by the span'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_GROUP]: {
+    desc: t('Unique hash of the span’s description'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_MODULE]: {
+    desc: t('The group ID of the span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_OP]: {
+    desc: t('The operation of the span, i.e `http.client`, `middleware`'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+  // TODO: Remove this when self time is deprecated
+  [SpanIndexedField.SPAN_SELF_TIME]: {
+    desc: t('The duration of the span excluding '),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.ENVIRONMENT]: {
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.SPAN_STATUS]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.ID]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.SDK_NAME]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.TRACE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.TRANSACTION_ID]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.TRANSACTION_METHOD]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.TRANSACTION_OP]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.TIMESTAMP]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.RAW_DOMAIN]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.PROJECT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.PROJECT_ID]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.PROFILE_ID]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.RELEASE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.TRANSACTION]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.ORIGIN_TRANSACTION]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.REPLAY_ID]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.BROWSER_NAME]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.USER]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.USER_ID]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.USER_EMAIL]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.USER_USERNAME]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.INP]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.INP_SCORE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.INP_SCORE_WEIGHT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.TOTAL_SCORE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.RESPONSE_CODE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.CACHE_HIT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.CACHE_ITEM_SIZE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.TRACE_STATUS]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.MESSAGING_MESSAGE_ID]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+
+  /** Metrics Fields */
+  [SpanMetricsField.PROJECT_ID]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.FILE_EXTENSION]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.AI_TOTAL_TOKENS_USED]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.AI_TOTAL_COST]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.OS_NAME]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.APP_START_TYPE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.DEVICE_CLASS]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.CACHE_ITEM_SIZE]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+  [SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NEVER,
+  },
+};
+
+export const getTraceFieldDefinition = (key: string) => {
+  if (key in TRACE_FIELD_DEFINITIONS) {
+    return TRACE_FIELD_DEFINITIONS[key];
+  }
+
+  return null;
 };
 
 export const getFieldDefinition = (
