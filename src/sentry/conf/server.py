@@ -2973,12 +2973,8 @@ SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 # Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
 SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
-# If this is turned on, then sentry will perform automatic grouping updates.
-# This is enabled in production
-SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
-
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 

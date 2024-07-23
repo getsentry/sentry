@@ -4,7 +4,7 @@ from sentry.models.platformexternalissue import PlatformExternalIssue
 
 @register(PlatformExternalIssue)
 class PlatformExternalIssueSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "issueId": str(obj.group_id),

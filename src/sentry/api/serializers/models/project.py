@@ -556,7 +556,7 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
             attrs[item]["organization"] = orgs[str(item.organization_id)]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["organization"] = attrs["organization"]
         return data
@@ -890,7 +890,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
-    groupingAutoUpdate: bool
     fingerprintingRules: str
     organization: OrganizationSerializerResponse
     plugins: list[Plugin]
@@ -990,9 +989,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 ),
                 "secondaryGroupingConfig": self.get_value_with_default(
                     attrs, "sentry:secondary_grouping_config"
-                ),
-                "groupingAutoUpdate": self.get_value_with_default(
-                    attrs, "sentry:grouping_auto_update"
                 ),
                 "fingerprintingRules": self.get_value_with_default(
                     attrs, "sentry:fingerprinting_rules"
@@ -1132,7 +1128,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
 
 class SharedProjectSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import features
 
         feature_list = []

@@ -4,6 +4,7 @@ import {useGridListItem} from '@react-aria/gridlist';
 import type {ListState} from '@react-stately/list';
 import type {FocusableElement, Node} from '@react-types/shared';
 
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
 function isInputElement(target: EventTarget): target is HTMLInputElement {
@@ -27,6 +28,7 @@ export function useQueryBuilderGridItem(
   state: ListState<ParseResultToken>,
   ref: RefObject<FocusableElement>
 ) {
+  const {wrapperRef} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useGridListItem({node: item}, state, ref);
 
   // When focus is inside the input, we want to handle some things differently.
@@ -89,7 +91,7 @@ export function useQueryBuilderGridItem(
           e.stopPropagation();
 
           // Focus the next token
-          const el = document.querySelector(
+          const el = wrapperRef.current?.querySelector(
             `[data-key="${state.collection.getKeyAfter(item.key)}"]`
           );
 
@@ -118,7 +120,7 @@ export function useQueryBuilderGridItem(
           e.stopPropagation();
 
           // Focus the previous token
-          const el = document.querySelector(
+          const el = wrapperRef.current?.querySelector(
             `[data-key="${state.collection.getKeyBefore(item.key)}"]`
           );
 
@@ -133,7 +135,7 @@ export function useQueryBuilderGridItem(
         }
       }
     },
-    [handleInputKeyDown, item.key, state.collection]
+    [handleInputKeyDown, item.key, state.collection, wrapperRef]
   );
 
   const onKeyDown = useCallback(
