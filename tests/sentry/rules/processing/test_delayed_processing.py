@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import DefaultDict, cast
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -24,6 +24,7 @@ from sentry.rules.processing.delayed_processing import (
     UniqueConditionQuery,
     apply_delayed,
     bucket_num_groups,
+    bulk_fetch_events,
     generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
@@ -143,9 +144,76 @@ class BuildGroupToGroupEventTest(TestCase):
         pass
 
 
-class BulkFetchEventsTest(TestCase):
-    def test_bulk_fetch_events(self):
-        pass
+class BulkFetchEventsTest(CreateEventTestCase):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        self.environment = self.create_environment(project=self.project)
+
+        self.event = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name
+        )
+        self.event_two = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name
+        )
+
+        self.expected = {
+            self.event.event_id: self.event,
+            self.event_two.event_id: self.event_two,
+        }
+
+    def test_basic(self):
+        event_ids: list[str] = [self.event.event_id, self.event_two.event_id]
+        result = bulk_fetch_events(event_ids, self.project.id)
+
+        assert len(result) == len(self.expected)
+        for expected, fetched in zip(self.expected, result):
+            assert expected == fetched
+
+    def test_empty_list(self):
+        event_ids: list[str] = []
+        result = bulk_fetch_events(event_ids, self.project.id)
+        assert len(result) == 0
+
+    def test_invalid_project(self):
+        event_ids: list[str] = [self.event.event_id, self.event_two.event_id]
+        result = bulk_fetch_events(event_ids, 0)
+        assert len(result) == 0
+
+    def test_with_invalid_event_ids(self):
+        event_ids: list[str] = ["-1", "0"]
+        result = bulk_fetch_events(event_ids, self.project.id)
+        assert len(result) == 0
+
+    def test_event_ids_with_mixed_validity(self):
+        event_ids: list[str] = ["-1", self.event.event_id, "0", self.event_two.event_id]
+        result = bulk_fetch_events(event_ids, self.project.id)
+
+        assert len(result) == len(self.expected)
+        for expected, fetched in zip(self.expected, result):
+            assert expected == fetched
+
+    @patch("sentry.rules.processing.delayed_processing.ConditionalRetryPolicy")
+    @patch("sentry.rules.processing.delayed_processing.EVENT_LIMIT", 2)
+    def test_more_than_limit_event_ids(self, mock_retry_policy):
+        """
+        Test that when the number of event_ids exceeds the EVENT_LIMIT,
+        batches into groups based on the EVENT_LIMT, and then merges results.
+        """
+        event_ids: list[str] = ["-1", self.event.event_id, "0", self.event_two.event_id]
+        mock_retry_instance = MagicMock()
+        mock_retry_policy.return_value = mock_retry_instance
+
+        def mock_return_value(lambda_func):
+            return lambda_func()
+
+        mock_retry_instance.side_effect = mock_return_value
+
+        results = bulk_fetch_events(event_ids, self.project.id)
+        assert mock_retry_instance.call_count == 2
+        assert len(results) == len(self.expected)
+        for expected, fetched in zip(self.expected, results):
+            assert expected == fetched
 
 
 class GetConditionGroupResultsTest(CreateEventTestCase):
@@ -303,7 +371,6 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
-
         self.rule = self.create_alert_rule(self.organization, [self.project])
 
         # Create some groups
