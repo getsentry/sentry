@@ -1,3 +1,3 @@
-from .array_element_contains import ArrayElementContains  # NOQA
+from .array_element_contains import ArrayElementContainsLookup
 
-__all__ = ["ArrayElementContains"]
+__all__ = ["ArrayElementContainsLookup"]
