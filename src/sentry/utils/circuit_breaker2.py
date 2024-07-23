@@ -135,7 +135,9 @@ class CircuitBreaker:
             "recovery_duration", self.window * DEFAULT_RECOVERY_WINDOW_MULTIPLIER
         )
 
-        self.limiter = RedisSlidingWindowRateLimiter()
+        self.limiter = RedisSlidingWindowRateLimiter(
+            cluster=settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER
+        )
         self.redis_pipeline = self.limiter.client.pipeline()
 
         self.primary_quota = Quota(
