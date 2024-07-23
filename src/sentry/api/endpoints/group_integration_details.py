@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.activity import Activity

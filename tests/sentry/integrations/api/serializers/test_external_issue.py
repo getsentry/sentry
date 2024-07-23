@@ -1,5 +1,5 @@
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.testutils.cases import TestCase
 
 

@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.api.serializers.models.integration import serialize_provider
+from sentry.integrations.api.serializers.models.integration import serialize_provider
 from sentry.integrations.services.integration import integration_service
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 

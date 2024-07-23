@@ -11,8 +11,9 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
-from sentry.api.serializers import IntegrationSerializer, serialize
+from sentry.api.serializers import serialize
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs
+from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
