@@ -117,7 +117,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
     __slots__ = ("stored_problems",)
 
-    IGNORED_LIST = {"*.nib", "*.plist", .dat"}
+    IGNORED_LIST = {"*.nib", "*.plist", "*kblayout_iphone.dat"}
     SPAN_PREFIX = "file"
     type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
