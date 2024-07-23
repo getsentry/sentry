@@ -285,7 +285,7 @@ const CardColumn = styled('div')`
   grid-column: span 1;
 `;
 
-const ValueLink = styled(Link)`
+export const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.linkUnderline} underline dotted;
 `;
 
