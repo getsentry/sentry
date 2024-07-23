@@ -42,8 +42,8 @@ class JSONSerializationTest(TestCase):
         self.assertEqual(json.dumps(res), "null")
 
     def test_enum(self):
-        enum = Enum("foo", "a b c")
-        res = enum.a
+        EnumFoo = Enum("EnumFoo", "a b c")
+        res = EnumFoo.a
         self.assertEqual(json.dumps(res), "1")
 
     def test_translation(self):
