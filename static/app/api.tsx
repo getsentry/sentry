@@ -3,7 +3,6 @@ import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
-import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {
   PROJECT_MOVED,
@@ -385,22 +384,24 @@ export class Client {
     let didSuccessfullyRetry = false;
 
     if (isSudoRequired) {
-      openSudo({
-        isSuperuser: code === SUPERUSER_REQUIRED,
-        sudo: code === SUDO_REQUIRED,
-        retryRequest: async () => {
-          try {
-            const data = await this.requestPromise(path, requestOptions);
-            requestOptions.success?.(data);
-            didSuccessfullyRetry = true;
-          } catch (err) {
-            requestOptions.error?.(err);
-          }
-        },
-        onClose: () =>
-          // If modal was closed, then forward the original response
-          !didSuccessfullyRetry && requestOptions.error?.(response),
-      });
+      import('sentry/actionCreators/sudoModal').then(modals =>
+        modals.openSudo({
+          isSuperuser: code === SUPERUSER_REQUIRED,
+          sudo: code === SUDO_REQUIRED,
+          retryRequest: async () => {
+            try {
+              const data = await this.requestPromise(path, requestOptions);
+              requestOptions.success?.(data);
+              didSuccessfullyRetry = true;
+            } catch (err) {
+              requestOptions.error?.(err);
+            }
+          },
+          onClose: () =>
+            // If modal was closed, then forward the original response
+            !didSuccessfullyRetry && requestOptions.error?.(response),
+        })
+      );
       return;
     }
 
