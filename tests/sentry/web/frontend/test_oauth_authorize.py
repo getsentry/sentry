@@ -421,4 +421,4 @@ class OrganizationOAuthAuthorizeTokenTest(TestCase):
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
         assert location == "https://example.com"
-        assert parse_qs(fragment)["error"] == "access_denied"
+        assert parse_qs(fragment)["error"] == ["access_denied"]
