@@ -88,8 +88,9 @@ const StyledButton = styled(Button)`
 `;
 
 const ComboBox = styled(_ComboBox)`
-  input: {
+  input {
     border-radius: 0;
+    font-weight: 600;
   }
   :last-child input {
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
