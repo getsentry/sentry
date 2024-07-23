@@ -3423,6 +3423,7 @@ SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
+SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
