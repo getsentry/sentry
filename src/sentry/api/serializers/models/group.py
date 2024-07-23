@@ -707,7 +707,7 @@ class GroupSerializerBase(Serializer, ABC):
         if request and is_active_superuser(request) and request.user.id == user.id:
             return True
 
-        if request and is_api_token_auth(request.auth):
+        if request and hasattr(request, "auth") and is_api_token_auth(request.auth):
             token = AuthenticatedToken.from_token(request.auth)
 
             if getattr(request.user, "is_sentry_app", False):
