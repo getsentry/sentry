@@ -13,14 +13,15 @@ from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.models.authprovider import AuthProvider
-from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
+from sentry.users.services.user.service import user_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -393,13 +394,15 @@ def build_auth(request, saml_config):
 def handle_saml_single_logout(request):
     # Do not handle SLO if a user is in more than 1 organization
     # Propagating it to multiple IdPs results in confusion for the user
-    organizations = Organization.objects.get_for_user(user=request.user)
+    organizations = user_service.get_organizations(user_id=request.user.id)
     if not len(organizations) == 1:
         return
 
     org = organizations[0]
-    provider = get_provider(org.slug)
+    if not features.has("organizations:sso-saml2-slo", org):
+        return
 
+    provider = get_provider(org.slug)
     if not provider or not provider.is_saml:
         return
 
