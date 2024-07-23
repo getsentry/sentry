@@ -172,6 +172,10 @@ export interface ControlProps
    */
   onClear?: () => void;
   /**
+   * Called when the menu is opened or closed.
+   */
+  onOpenChange?: (newOpenState: boolean) => void;
+  /**
    * Called when the search input's value changes (applicable only when `searchable`
    * is true).
    */
@@ -233,6 +237,7 @@ export function Control({
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
+  onOpenChange,
 
   // Select props
   size = 'md',
@@ -327,6 +332,8 @@ export function Control({
     preventOverflowOptions,
     flipOptions,
     onOpenChange: open => {
+      onOpenChange?.(open);
+
       nextFrameCallback(() => {
         if (open) {
           // Focus on search box if present

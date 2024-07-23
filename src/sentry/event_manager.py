@@ -129,9 +129,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
-    CircuitBreakerTripped,
     circuit_breaker_activated,
-    with_circuit_breaker,
 )
 from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
@@ -1530,13 +1528,18 @@ def _save_aggregate(
                 seer_matched_group = None
 
                 if should_call_seer_for_grouping(event, primary_hashes):
+                    metrics.incr(
+                        "grouping.similarity.did_call_seer",
+                        # TODO: Consider lowering this (in all the spots this metric is
+                        # collected) once we roll Seer grouping out more widely
+                        sample_rate=1.0,
+                        tags={"call_made": True, "blocker": "none"},
+                    )
                     try:
                         # If the `projects:similarity-embeddings-grouping` feature is disabled,
                         # we'll still get back result metadata, but `seer_matched_group` will be None
-                        seer_response_data, seer_matched_group = with_circuit_breaker(
-                            "event_manager.get_seer_similar_issues",
-                            lambda: get_seer_similar_issues(event, primary_hashes),
-                            options.get("seer.similarity.circuit-breaker-config"),
+                        seer_response_data, seer_matched_group = get_seer_similar_issues(
+                            event, primary_hashes
                         )
                         event.data["seer_similarity"] = seer_response_data
 
@@ -1547,33 +1550,8 @@ def _save_aggregate(
                                 "seer_similarity"
                             ] = seer_response_data
 
-                        metrics.incr(
-                            "grouping.similarity.did_call_seer",
-                            # TODO: Consider lowering this (in all the spots this metric is
-                            # collected) once we roll Seer grouping out more widely
-                            sample_rate=1.0,
-                            tags={"call_made": True, "blocker": "none"},
-                        )
-
-                    except CircuitBreakerTripped:
-                        # TODO: Do we want to include all of the conditions which cause us to log a
-                        # `grouping.similarity.seer_call_blocked` metric (here and in
-                        # `should_call_seer_for_grouping`) under a single outcome tag on the span
-                        # and timer metric below and in `record_calculation_metric_with_result`
-                        # (also below)? Right now they just fall into the `new_group` bucket.
-                        metrics.incr(
-                            "grouping.similarity.did_call_seer",
-                            sample_rate=1.0,
-                            tags={"call_made": False, "blocker": "circuit-breaker"},
-                        )
-
                     # Insurance - in theory we shouldn't ever land here
                     except Exception as e:
-                        metrics.incr(
-                            "grouping.similarity.did_call_seer",
-                            sample_rate=1.0,
-                            tags={"call_made": True, "blocker": "none"},
-                        )
                         sentry_sdk.capture_exception(
                             e, tags={"event": event.event_id, "project": project.id}
                         )
@@ -2364,6 +2342,12 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
+    organization_supports_severity = features.has(
+        "organizations:seer-based-priority", event.project.organization, actor=None
+    )
+    if not organization_supports_severity:
+        return {}
+
     if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
         logger.warning(
             "get_severity_metadata_for_group.seer_killswitch_enabled",

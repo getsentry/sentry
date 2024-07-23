@@ -13,6 +13,7 @@ import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/tokens/fil
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {formatFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
+import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   type ParseResultToken,
   Token,
@@ -31,6 +32,7 @@ interface SearchQueryTokenProps {
 
 interface FilterValueProps extends SearchQueryTokenProps {
   filterRef: React.RefObject<HTMLDivElement>;
+  onActiveChange: (active: boolean) => void;
 }
 
 function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
@@ -81,7 +83,7 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   }
 }
 
-function FilterValue({token, state, item, filterRef}: FilterValueProps) {
+function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValueProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilder();
 
@@ -94,9 +96,10 @@ function FilterValue({token, state, item, filterRef}: FilterValueProps) {
       focusOverride.part === 'value'
     ) {
       setIsEditing(true);
+      onActiveChange(true);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
-  }, [dispatch, focusOverride, isEditing, item.key]);
+  }, [dispatch, focusOverride, isEditing, item.key, onActiveChange]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: () => {
@@ -116,9 +119,11 @@ function FilterValue({token, state, item, filterRef}: FilterValueProps) {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
             setIsEditing(false);
+            onActiveChange(false);
           }}
           onCommit={() => {
             setIsEditing(false);
+            onActiveChange(false);
             if (state.collection.getKeyAfter(item.key)) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
@@ -133,7 +138,10 @@ function FilterValue({token, state, item, filterRef}: FilterValueProps) {
   return (
     <ValueButton
       aria-label={t('Edit value for filter: %s', token.key.text)}
-      onClick={() => setIsEditing(true)}
+      onClick={() => {
+        setIsEditing(true);
+        onActiveChange(true);
+      }}
       {...filterButtonProps}
     >
       <InteractionStateLayer />
@@ -160,6 +168,7 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
 
 export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
@@ -185,38 +194,52 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     onKeyDown,
   });
 
-  // TODO(malwilley): Add better error messaging
   const tokenHasError = 'invalid' in token && defined(token.invalid);
 
   return (
     <FilterWrapper
       aria-label={token.text}
-      data-invalid={tokenHasError}
+      aria-invalid={tokenHasError}
       ref={ref}
       {...modifiedRowProps}
     >
-      <BaseGridCell {...gridCellProps}>
-        <FilterKeyOperator token={token} state={state} item={item} />
-      </BaseGridCell>
-      <FilterValueGridCell {...gridCellProps}>
-        <FilterValue token={token} state={state} item={item} filterRef={ref} />
-      </FilterValueGridCell>
-      <BaseGridCell {...gridCellProps}>
-        <FilterDelete token={token} state={state} item={item} />
-      </BaseGridCell>
+      <GridInvalidTokenTooltip
+        token={token}
+        state={state}
+        item={item}
+        containerDisplayMode="grid"
+        forceVisible={filterMenuOpen ? false : undefined}
+      >
+        <BaseGridCell {...gridCellProps}>
+          <FilterKeyOperator
+            token={token}
+            state={state}
+            item={item}
+            onOpenChange={setFilterMenuOpen}
+          />
+        </BaseGridCell>
+        <FilterValueGridCell {...gridCellProps}>
+          <FilterValue
+            token={token}
+            state={state}
+            item={item}
+            filterRef={ref}
+            onActiveChange={setFilterMenuOpen}
+          />
+        </FilterValueGridCell>
+        <BaseGridCell {...gridCellProps}>
+          <FilterDelete token={token} state={state} item={item} />
+        </BaseGridCell>
+      </GridInvalidTokenTooltip>
     </FilterWrapper>
   );
 }
 
 const FilterWrapper = styled('div')`
   position: relative;
-  display: grid;
-  grid-template-columns: auto auto auto auto;
-  align-items: stretch;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   height: 24px;
-
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
 
@@ -228,6 +251,17 @@ const FilterWrapper = styled('div')`
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
   }
+
+  &[aria-invalid='true'] {
+    border-color: ${p => p.theme.red400};
+  }
+`;
+
+const GridInvalidTokenTooltip = styled(InvalidTokenTooltip)`
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  align-items: stretch;
+  height: 22px;
 `;
 
 const BaseGridCell = styled('div')`
