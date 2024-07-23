@@ -18,11 +18,25 @@ DEFAULT_CONFIG: CircuitBreakerConfig = {
 }
 
 
+class MockCircuitBreaker(CircuitBreaker):
+    """
+    A circuit breaker with extra methods useful for mocking state.
+
+    To understand the methods below, it helps to understand the `RedisSlidingWindowRateLimiter`
+    which powers the circuit breaker. Details can be found in
+    https://github.com/getsentry/sentry-redis-tools/blob/d4f3dc883b1137d82b6b7a92f4b5b41991c1fc8a/sentry_redis_tools/sliding_windows_rate_limiter.py,
+    (which is the implementation behind the rate limiter) but TL;DR, quota usage during the time
+    window is tallied in buckets ("granules"), and as time passes the window slides forward one
+    granule at a time. To be able to mimic this, most of the methods here operate at the granule
+    level.
+    """
+
+
 @freeze_time()
 class CircuitBreakerTest(TestCase):
     def setUp(self) -> None:
         self.config = DEFAULT_CONFIG
-        self.breaker = CircuitBreaker("dogs_are_great", self.config)
+        self.breaker = MockCircuitBreaker("dogs_are_great", self.config)
 
         # Clear all existing keys from redis
         self.breaker.redis_pipeline.flushall()
@@ -78,7 +92,7 @@ class CircuitBreakerTest(TestCase):
             (False, mock_logger.warning),
         ]:
             settings.DEBUG = settings_debug_value
-            breaker = CircuitBreaker("dogs_are_great", config)
+            breaker = MockCircuitBreaker("dogs_are_great", config)
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has a recovery error limit (%d) greater than or equal"
@@ -104,7 +118,7 @@ class CircuitBreakerTest(TestCase):
             (False, mock_logger.warning),
         ]:
             settings.DEBUG = settings_debug_value
-            breaker = CircuitBreaker("dogs_are_great", config)
+            breaker = MockCircuitBreaker("dogs_are_great", config)
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has BROKEN and RECOVERY state durations (%d and %d sec, respectively)"
