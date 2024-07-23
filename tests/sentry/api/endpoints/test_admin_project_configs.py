@@ -10,6 +10,8 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class AdminRelayProjectConfigsEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-internal-project-config"
+
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
@@ -137,3 +139,12 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         expected = {"configs": {str(inexsitent_key): None}}
         actual = response.json()
         assert actual == expected
+
+    def test_invalidate_project_config(self):
+        response = self.get_response(method="post", project_id=self.project.id)
+        assert response.status_code == 401
+
+        self.login_as(self.superuser, superuser=True)
+
+        response = self.get_response(method="post", project_id=self.project.id)
+        assert response.status_code == 204
