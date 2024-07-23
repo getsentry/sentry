@@ -2344,12 +2344,6 @@ def _get_severity_metadata_for_group(
     """
     from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
-    organization_supports_severity = features.has(
-        "organizations:seer-based-priority", event.project.organization, actor=None
-    )
-    if not organization_supports_severity:
-        return {}
-
     if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
         logger.warning(
             "get_severity_metadata_for_group.seer_killswitch_enabled",
