@@ -172,7 +172,7 @@ function getBreadcrumbTitle(category: RawCrumb['category']) {
       return BREADCRUMB_TITLE_PLACEHOLDER;
     default:
       const titleCategory = category.split('.').join(' ');
-      return toTitleCase(titleCategory);
+      return toTitleCase(titleCategory, {allowInnerUpperCase: true});
   }
 }
 
