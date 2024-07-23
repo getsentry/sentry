@@ -60,10 +60,8 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
-    if (
-      organization.features.includes('alert-crash-free-metrics') &&
-      metricRuleTemplate?.dataset === Dataset.SESSIONS
-    ) {
+    // If theres anything using the legacy sessions dataset, we need to convert it to metrics
+    if (metricRuleTemplate?.dataset === Dataset.SESSIONS) {
       metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
     }
 
