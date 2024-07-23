@@ -36,6 +36,7 @@ class CreateGroupingRecordsRequest(TypedDict):
 class BulkCreateGroupingRecordsResponse(TypedDict):
     success: bool
     groups_with_neighbor: NotRequired[dict[str, RawSeerSimilarIssueData]]
+    reason: NotRequired[str]
 
 
 seer_grouping_connection_pool = connection_from_url(
@@ -69,7 +70,7 @@ def post_bulk_grouping_records(
     except ReadTimeoutError:
         extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
         logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
-        return {"success": False}
+        return {"success": False, "reason": "ReadTimeoutError"}
 
     if response.status >= 200 and response.status < 300:
         logger.info("seer.post_bulk_grouping_records.success", extra=extra)
@@ -77,7 +78,7 @@ def post_bulk_grouping_records(
     else:
         extra.update({"reason": response.reason})
         logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
-        return {"success": False}
+        return {"success": False, "reason": response.reason}
 
 
 def delete_project_grouping_records(
