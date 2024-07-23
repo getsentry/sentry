@@ -9,7 +9,11 @@ import useToolbarRoute from '../hooks/useToolbarRoute';
 import {navigationButtonCss, navigationCss} from '../styles/navigation';
 import {resetButtonCss, resetDialogCss} from '../styles/reset';
 
-export default function Navigation({setIsHidden}: {setIsHidden: (val: boolean) => void}) {
+export default function Navigation({
+  setIsDisabled,
+}: {
+  setIsDisabled: (val: boolean) => void;
+}) {
   const {trackAnalytics} = useConfiguration();
   const placement = usePlacementCss();
 
@@ -26,7 +30,7 @@ export default function Navigation({setIsHidden}: {setIsHidden: (val: boolean) =
       <NavButton panelName="feedback" label={'User Feedback'} icon={<IconMegaphone />} />
       <HideButton
         onClick={() => {
-          setIsHidden(true);
+          setIsDisabled(true);
           trackAnalytics?.({
             eventKey: `devtoolbar.nav.hide.click`,
             eventName: `devtoolbar: Hide devtoolbar`,

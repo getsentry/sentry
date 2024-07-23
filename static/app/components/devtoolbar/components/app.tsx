@@ -17,8 +17,11 @@ import PanelRouter from './panelRouter';
 export default function App() {
   const placement = usePlacementCss();
   const [visibility] = useVisibility();
-  const [isHidden, setIsHidden] = useSessionStorage('hide_employee_devtoolbar', false);
-  if (isHidden) {
+  const [isDisabled, setIsDisabled] = useSessionStorage(
+    'hide_employee_devtoolbar',
+    false
+  );
+  if (isDisabled) {
     return null;
   }
 
@@ -28,9 +31,9 @@ export default function App() {
       <Global styles={loadingIndicatorCss} />
       <Global styles={avatarCss} />
       <div css={[fixedContainerBaseCss, placement.fixedContainer.css, {visibility}]}>
-        {isHidden ? null : (
+        {isDisabled ? null : (
           <Fragment>
-            <Navigation setIsHidden={setIsHidden} />
+            <Navigation setIsDisabled={setIsDisabled} />
             <Suspense fallback={<LoadingPanel />}>
               <PanelRouter />
             </Suspense>
