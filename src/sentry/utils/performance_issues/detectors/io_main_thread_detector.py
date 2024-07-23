@@ -194,7 +194,10 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         if data is None:
             return False
         file_path = data.get("file.path", "")
-        if any(glob_match(file_path, ignored_pattern, ignore_case=True) for ignored_pattern in self.IGNORED_LIST):
+        if any(
+            glob_match(file_path, ignored_pattern, ignore_case=True)
+            for ignored_pattern in self.IGNORED_LIST
+        ):
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
