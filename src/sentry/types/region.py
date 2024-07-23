@@ -8,8 +8,8 @@ from urllib.parse import urljoin
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest
+from pydantic import TypeAdapter
 from pydantic.dataclasses import dataclass
-from pydantic.tools import parse_obj_as
 
 from sentry import options
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_function
@@ -151,18 +151,19 @@ class RegionDirectory:
 def _parse_raw_config(region_config: Any) -> Iterable[Region]:
     if isinstance(region_config, (str, bytes)):
         json_config_values = json.loads(region_config)
-        config_values = parse_obj_as(list[Region], json_config_values)
+        adapter = TypeAdapter(list[Region])
+        config_values = adapter.validate_python(json_config_values)
     else:
         config_values = region_config
 
     if not isinstance(config_values, (list, tuple)):
-        config_values = [config_values]  # type: ignore[unreachable]
+        config_values = [config_values]
 
     for config_value in config_values:
         if isinstance(config_value, Region):
             yield config_value
         else:
-            category = config_value["category"]  # type: ignore[unreachable]
+            category = config_value["category"]
             config_value["category"] = (
                 category if isinstance(category, RegionCategory) else RegionCategory[category]
             )
