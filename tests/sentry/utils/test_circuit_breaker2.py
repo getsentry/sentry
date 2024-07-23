@@ -3,6 +3,7 @@ from typing import Any
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, patch
 
+import time_machine
 from django.conf import settings
 from redis.client import Pipeline
 
@@ -318,6 +319,172 @@ class CircuitBreakerTest(TestCase):
                 500,
             )
             assert breaker.recovery_duration == 500
+
+
+@freeze_time()
+class RecordErrorTest(TestCase):
+    def setUp(self) -> None:
+        self.config = DEFAULT_CONFIG
+        self.breaker = MockCircuitBreaker("dogs_are_great", self.config)
+
+        # Clear all existing keys from redis
+        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.execute()
+
+    def test_increments_error_count(self):
+        config = self.config
+        breaker = self.breaker
+
+        # The breaker starts with a clean slate
+        assert breaker._get_remaining_error_quota() == config["error_limit"]
+
+        breaker.record_error()
+
+        # The error has been tallied
+        assert breaker._get_remaining_error_quota() == config["error_limit"] - 1
+
+    def test_no_error_recorded_in_broken_state(self):
+        breaker = self.breaker
+
+        breaker._set_breaker_state(CircuitBreakerState.BROKEN)
+        breaker._add_quota_usage(breaker.primary_quota, breaker.error_limit)
+
+        # Because we're in the BROKEN state, we start with the main quota maxed out and the
+        # RECOVERY quota yet to be used
+        assert breaker._get_remaining_error_quota(breaker.primary_quota) == 0
+        assert (
+            breaker._get_remaining_error_quota(breaker.recovery_quota)
+            == breaker.recovery_error_limit
+        )
+
+        breaker.record_error()
+
+        # Neither quota is incremented
+        assert breaker._get_remaining_error_quota(breaker.primary_quota) == 0
+        assert (
+            breaker._get_remaining_error_quota(breaker.recovery_quota)
+            == breaker.recovery_error_limit
+        )
+
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_logs_a_warning_in_broken_state(self, mock_logger: MagicMock):
+        breaker = self.breaker
+
+        seconds_ellapsed_since_circuit_break = 2
+        breaker._set_breaker_state(
+            CircuitBreakerState.BROKEN,
+            seconds_left=breaker.broken_state_duration - seconds_ellapsed_since_circuit_break,
+        )
+
+        breaker.record_error()
+
+        # No log - we just switched into BROKEN state, and even though we're not supposed to land in
+        # the `record_error` method in that state, there's a small buffer to account for race
+        # conditions
+        assert mock_logger.warning.call_count == 0
+
+        seconds_ellapsed_since_circuit_break = 20
+        breaker._set_breaker_state(
+            CircuitBreakerState.BROKEN,
+            seconds_left=breaker.broken_state_duration - seconds_ellapsed_since_circuit_break,
+        )
+
+        breaker.record_error()
+
+        # Now we do log a warning, because at this point we can no longer blame a race condition -
+        # it's been too long since the circuit broke
+        mock_logger.warning.assert_called_with(
+            "Attempt to record circuit breaker error while circuit is in BROKEN state",
+            extra={"key": "dogs_are_great", "time_in_state": 20},
+        )
+
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_handles_hitting_max_errors_in_non_broken_state(self, mock_logger: MagicMock):
+        config = self.config
+        breaker = self.breaker
+        now = int(time.time())
+
+        for state, quota, limit in [
+            (CircuitBreakerState.OK, breaker.primary_quota, breaker.error_limit),
+            (CircuitBreakerState.RECOVERY, breaker.recovery_quota, breaker.recovery_error_limit),
+        ]:
+
+            breaker._set_breaker_state(state)
+            breaker._add_quota_usage(quota, limit - 1)
+            assert breaker._get_remaining_error_quota(quota) == 1
+            assert breaker._get_controlling_quota() == quota
+
+            breaker.record_error()
+
+            # Hitting the limit puts us into the BROKEN state
+            assert breaker._get_remaining_error_quota(quota) == 0
+            assert breaker._get_controlling_quota() is None
+            assert breaker._get_state_and_remaining_time() == (
+                CircuitBreakerState.BROKEN,
+                breaker.broken_state_duration,
+            )
+            mock_logger.warning.assert_called_with(
+                "Circuit breaker '%s' error limit hit",
+                "dogs_are_great",
+                extra={
+                    "current_state": state,
+                    "error_limit": limit,
+                    "error_limit_window": config["error_limit_window"],
+                },
+            )
+
+            # Now jump to one second after the BROKEN state has expired to see that we're in
+            # RECOVERY
+            with time_machine.travel(now + breaker.broken_state_duration + 1, tick=False):
+                assert breaker._get_controlling_quota() is breaker.recovery_quota
+                assert breaker._get_state_and_remaining_time() == (
+                    CircuitBreakerState.RECOVERY,
+                    breaker.recovery_duration - 1,
+                )
+
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_stays_in_current_state_if_redis_call_changing_state_fails(
+        self, mock_logger: MagicMock
+    ):
+        breaker = self.breaker
+
+        for current_state, quota, limit, seconds_left in [
+            # The case where the current state is the BROKEN state isn't included here because the
+            # switch from BROKEN state to RECOVERY state happens passively (by `broken_state_key`
+            # expiring), rather than through an active call to redis
+            (
+                CircuitBreakerState.OK,
+                breaker.primary_quota,
+                breaker.error_limit,
+                None,
+            ),
+            (
+                CircuitBreakerState.RECOVERY,
+                breaker.recovery_quota,
+                breaker.recovery_error_limit,
+                1231,
+            ),
+        ]:
+
+            breaker._set_breaker_state(current_state, seconds_left)
+            breaker._add_quota_usage(quota, limit - 1)
+            assert breaker._get_remaining_error_quota(quota) == 1
+            assert breaker._get_controlling_quota() == quota
+
+            with patch(
+                "sentry.utils.circuit_breaker2.CircuitBreaker._set_in_redis", side_effect=Exception
+            ):
+                breaker.record_error()
+
+            # We've recorded the error, but the state hasn't changed
+            assert breaker._get_remaining_error_quota(quota) == 0
+            assert breaker._get_controlling_quota() == quota
+            assert breaker._get_state_and_remaining_time() == (current_state, seconds_left)
+            mock_logger.exception.assert_called_with(
+                "Couldn't set state-change keys in redis for circuit breaker '%s'",
+                breaker.key,
+                extra={"current_state": current_state},
+            )
 
 
 @freeze_time()
