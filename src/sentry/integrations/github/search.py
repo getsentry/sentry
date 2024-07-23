@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.github.integration import GitHubIntegration, build_repository_query
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.models.integrations.integration import Integration

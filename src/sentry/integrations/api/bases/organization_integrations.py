@@ -5,8 +5,8 @@ from typing import Any
 from django.http import Http404
 from rest_framework.request import Request
 
-from sentry.api.bases.integration import IntegrationEndpoint, RegionIntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
+from sentry.integrations.api.bases.integration import IntegrationEndpoint, RegionIntegrationEndpoint
 from sentry.integrations.services.integration import (
     RpcIntegration,
     RpcOrganizationIntegration,
