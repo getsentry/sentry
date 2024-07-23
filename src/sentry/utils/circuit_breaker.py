@@ -1,3 +1,8 @@
+"""
+NOTE: This circuit breaker implementation is deprecated and is slated to eventually be removed. Use
+the `CircuitBreaker` class found in `circuit_breaker2.py` instead.
+"""
+
 from collections.abc import Callable
 from typing import ParamSpec, TypedDict, TypeVar
 
