@@ -16,7 +16,7 @@ from sentry.search.events.builder.errors import (
     ErrorsTopEventsQueryBuilder,
 )
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import OTHER_KEY, create_result_key, transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -199,6 +199,7 @@ def top_events_timeseries(
     rollup: int,
     limit: int,
     organization: Organization,
+    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     referrer: str | None = None,
     top_events: EventsResponse | None = None,
@@ -232,6 +233,9 @@ def top_events_timeseries(
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
     """
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if top_events is None:
         with sentry_sdk.start_span(op="discover.errors", description="top_events.fetch_events"):
             top_events = query(
@@ -242,6 +246,7 @@ def top_events_timeseries(
                 orderby=orderby,
                 limit=limit,
                 referrer=referrer,
+                snuba_params=snuba_params,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
@@ -258,6 +263,7 @@ def top_events_timeseries(
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
+        snuba_params=snuba_params,
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
             skip_tag_resolution=True,
@@ -274,6 +280,7 @@ def top_events_timeseries(
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
             equations=equations,
+            snuba_params=snuba_params,
         )
         result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
