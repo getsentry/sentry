@@ -161,3 +161,70 @@ CATEGORY_LIST = [
     {id: "serverless", "name": _("Serverless"), "platforms": SERVERLESS},
     {id: "temporary", "name": _("Temporary"), "platforms": TEMPORARY},
 ]
+
+
+# Mirrors 'replayBackendPlatforms` in sentry/static/app/data/platformCategories.tsx
+REPLAY_BACKEND_PLATFORMS = [
+    "bun",
+    "deno",
+    "dotnet-aspnetcore",
+    "dotnet-aspnet",
+    "elixir",
+    "go-echo",
+    "go-fasthttp",
+    "go-fiber",
+    "go",
+    "go-gin",
+    "go-http",
+    "go-iris",
+    "go-martini",
+    "go-negroni",
+    "java-spring",
+    "java-spring-boot",
+    "node",
+    "node-express",
+    "php",
+    "php-laravel",
+    "php-symfony",
+    "python-aiohttp",
+    "python-bottle",
+    "python-django",
+    "python-falcon",
+    "python-fastapi",
+    "python-flask",
+    "python-pyramid",
+    "python-quart",
+    "python-sanic",
+    "python-starlette",
+    "python-tornado",
+    "ruby-rails",
+]
+
+# Mirrors 'replayFrontendPlatforms` in sentry/static/app/data/platformCategories.tsx
+REPLAY_FRONTEND_PLATFORMS = [
+    "javascript",
+    "javascript-angular",
+    "javascript-astro",
+    "javascript-backbone",
+    "javascript-capacitor",
+    "capacitor",
+    "javascript-electron",
+    "electron",
+    "javascript-ember",
+    "javascript-gatsby",
+    "javascript-nextjs",
+    "javascript-react",
+    "javascript-remix",
+    "javascript-svelte",
+    "javascript-sveltekit",
+    "javascript-vue",
+]
+
+# Mirrors 'replayMobilePlatforms` in sentry/static/app/data/platformCategories.tsx
+REPLAY_MOBILE_PLATFORMS = [
+    "android",
+    "apple-ios",
+    "react-native",
+]
+
+REPLAY_PLATFORMS = REPLAY_BACKEND_PLATFORMS + REPLAY_FRONTEND_PLATFORMS + REPLAY_MOBILE_PLATFORMS

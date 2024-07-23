@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+from django.db.models import F
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,6 +18,7 @@ from sentry.api.helpers.actionable_items_helper import (
 )
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
+from sentry.utils.platform_categories import REPLAY_PLATFORMS
 
 
 class ActionableItemResponse(TypedDict):
@@ -62,6 +64,23 @@ class ActionableItemsEndpoint(ProjectEndpoint):
             response = EventError(event_error).get_api_context()
 
             actions.append(response)
+
+        # Check if replays are set up
+
+        if project.platform:
+            org_has_sent_replays = (
+                Project.objects.filter(organization=project.organization)
+                .filter(flags=F("flags").bitor(Project.flags.has_replays))
+                .exists()
+            )
+            if project.platform in REPLAY_PLATFORMS and not org_has_sent_replays:
+                actions.append(
+                    {
+                        "type": "replay_setup",
+                        "message": "Replays are not set up for this organization",
+                        "data": {},
+                    }
+                )
 
         priority_get = lambda x: priority_ranking.get(x["type"], ActionPriority.UNKNOWN)
         sorted_errors = sorted(actions, key=priority_get)
