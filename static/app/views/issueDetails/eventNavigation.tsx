@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import scrollToElement from 'scroll-to-element';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -13,6 +12,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,21 +35,37 @@ const EventNavLabels = {
   [EventNavOptions.OLDEST]: t('First Event'),
 };
 
-const jumpToSections = [
-  {section: '#event-highlights', label: t('Event Highlights')},
-  {section: '#stacktrace', label: t('Stack Trace')},
-  {section: '#exception', label: t('Exception')},
-  {section: '#breadcrumbs', label: t('Replay & Breadcrumbs')},
-  {section: '#tags', label: t('Tags')},
-  {section: '#context', label: t('Context')},
-  {section: '#hydration-diff', label: t('Hydration Error Diff')},
-  {section: '#user-feedback', label: t('User Feedback')},
-  {section: '#replay', label: t('Replay')},
+const eventDataSections = [
+  {section: 'event-highlights', label: t('Event Highlights'), condition: () => true},
+  {
+    section: 'stacktrace',
+    label: t('Stack Trace'),
+    condition: (event: Event) => event.entries.find(entry => entry.type === 'stacktrace'),
+  },
+  {
+    section: 'exception',
+    label: t('Exception'),
+    condition: (event: Event) => event.entries.find(entry => entry.type === 'exception'),
+  },
+  {
+    section: 'breadcrumbs',
+    label: t('Breadcrumbs'),
+    condition: (event: Event) =>
+      event.entries.find(entry => entry.type === 'breadcrumbs'),
+  },
+  {section: 'tags', label: t('Tags'), condition: (event: Event) => event.tags.length > 0},
+  {section: 'context', label: t('Context'), condition: (event: Event) => event.context},
+  {
+    section: 'user-feedback',
+    label: t('User Feedback'),
+    condition: (event: Event) => event.userReport,
+  },
+  {
+    section: 'replay',
+    label: t('Replay'),
+    condition: (event: Event) => getReplayIdFromEvent(event),
+  },
 ];
-
-function handleClick(section: string) {
-  scrollToElement(section);
-}
 
 export default function EventNavigation({event, group}: EventNavigationProps) {
   const location = useLocation();
@@ -61,11 +77,15 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
 
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
+  const jumpToSections = eventDataSections.filter(eventSection =>
+    eventSection.condition(event)
+  );
+
   return (
     <div>
       <EventNavigationWrapper>
         <Tabs>
-          <TabList hideBorder hideSelection showPressed>
+          <TabList hideBorder>
             {Object.keys(EventNavLabels).map(label => {
               return (
                 <TabList.Item
@@ -136,21 +156,20 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
         <JumpTo>
           <div>{t('Jump to:')}</div>
           <ButtonBar>
-            {jumpToSections.map(jump => {
-              if (!document.getElementById(jump.section.replace('#', ''))) {
-                return null;
-              }
-              return (
-                <StyledButton
-                  key={jump.section}
-                  onClick={() => handleClick(jump.section)}
-                  borderless
-                  size="sm"
-                >
-                  {jump.label}
-                </StyledButton>
-              );
-            })}
+            {jumpToSections.map(jump => (
+              <StyledButton
+                key={jump.section}
+                onClick={() => {
+                  document
+                    .getElementById(jump.section)
+                    ?.scrollIntoView({behavior: 'smooth'});
+                }}
+                borderless
+                size="sm"
+              >
+                {jump.label}
+              </StyledButton>
+            ))}
           </ButtonBar>
         </JumpTo>
       </EventInfoJumpToWrapper>

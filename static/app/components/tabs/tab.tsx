@@ -23,8 +23,6 @@ interface TabProps extends AriaTabProps {
    */
   overflowing: boolean;
   state: TabListState<any>;
-  hideSelection?: boolean;
-  showPressed?: boolean;
 }
 
 /**
@@ -45,14 +43,7 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
  * usage in tabs.stories.js
  */
 function BaseTab(
-  {
-    item,
-    state,
-    orientation,
-    overflowing,
-    hideSelection = false,
-    showPressed = false,
-  }: TabProps,
+  {item, state, orientation, overflowing}: TabProps,
   forwardedRef: React.ForwardedRef<HTMLLIElement>
 ) {
   const ref = useObjectRef(forwardedRef);
@@ -94,13 +85,10 @@ function BaseTab(
         <StyledInteractionStateLayer
           orientation={orientation}
           higherOpacity={isSelected}
-          isPressed={showPressed ? isSelected : undefined}
         />
         <FocusLayer orientation={orientation} />
         {rendered}
-        {!hideSelection && (
-          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
-        )}
+        {<TabSelectionIndicator orientation={orientation} selected={isSelected} />}
       </InnerWrap>
     </TabWrap>
   );

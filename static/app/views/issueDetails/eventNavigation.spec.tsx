@@ -14,7 +14,10 @@ describe('EventNavigation', () => {
     dateCreated: '2019-03-20T00:00:00.000Z',
     errors: [],
     entries: [],
-    tags: [{key: 'environment', value: 'dev'}],
+    tags: [
+      {key: 'environment', value: 'dev'},
+      {key: 'replayId', value: 'replay-id'},
+    ],
     previousEventID: 'prev-event-id',
     nextEventID: 'next-event-id',
   });
@@ -81,5 +84,13 @@ describe('EventNavigation', () => {
       'href',
       `/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event`
     );
+  });
+
+  it('shows jump to sections', async () => {
+    render(<EventNavigation {...defaultProps} />);
+
+    expect(await screen.findByText('Replay')).toBeInTheDocument();
+    expect(await screen.findByText('Tags')).toBeInTheDocument();
+    expect(await screen.findByText('Event Highlights')).toBeInTheDocument();
   });
 });
