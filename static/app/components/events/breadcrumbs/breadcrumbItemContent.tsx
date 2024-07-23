@@ -190,7 +190,7 @@ function ExceptionCrumbContent({
 }
 
 const Link = styled('a')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
   text-decoration: underline;
   text-decoration-style: dotted;
   word-break: break-all;
@@ -206,6 +206,8 @@ const LightenTextColor = styled('pre')`
 `;
 
 const BreadcrumbText = styled(Timeline.Text)`
-  white-space: pre;
+  white-space: pre-wrap;
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  color: ${p => p.theme.textColor};
 `;

@@ -18,9 +18,9 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 interface BreadcrumbsTimelineProps {
   breadcrumbs: EnhancedCrumb[];
   /**
-   * If false, expands the contents of the breadcrumb's data payload, adds padding.
+   * If true, expands the contents of the breadcrumbs' data payload
    */
-  isCompact?: boolean;
+  fullyExpanded?: boolean;
   /**
    * Shows the line after the last breadcrumbs icon.
    * Useful for connecting timeline to components rendered after it.
@@ -35,7 +35,7 @@ interface BreadcrumbsTimelineProps {
 export default function BreadcrumbsTimeline({
   breadcrumbs,
   startTimeString,
-  isCompact = false,
+  fullyExpanded = false,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ export default function BreadcrumbsTimeline({
     ) : null;
 
     return (
-      <Timeline.Item
+      <BreadcrumbItem
         key={virtualizedRow.key}
         ref={virtualizer.measureElement}
         title={
@@ -96,17 +96,17 @@ export default function BreadcrumbsTimeline({
         timestamp={timestampComponent}
         // XXX: Only the virtual crumb can be marked as active for breadcrumbs
         isActive={isVirtualCrumb ?? false}
-        style={showLastLine ? {background: 'transparent'} : {}}
         data-index={virtualizedRow.index}
+        showLastLine={showLastLine}
       >
-        <ContentWrapper isCompact={isCompact}>
+        <ContentWrapper>
           <BreadcrumbItemContent
             breadcrumb={breadcrumb}
             meta={meta}
-            fullyExpanded={!isCompact}
+            fullyExpanded={fullyExpanded}
           />
         </ContentWrapper>
-      </Timeline.Item>
+      </BreadcrumbItem>
     );
   });
 
@@ -139,6 +139,18 @@ const Timestamp = styled('div')`
   }
 `;
 
-const ContentWrapper = styled('div')<{isCompact: boolean}>`
-  padding-bottom: ${p => space(p.isCompact ? 0.5 : 1.0)};
+const ContentWrapper = styled('div')`
+  padding-bottom: ${space(1)};
+`;
+
+const BreadcrumbItem = styled(Timeline.Item)`
+  border-bottom: 1px solid transparent;
+  &:not(:last-child) {
+    border-image: linear-gradient(
+        to right,
+        transparent 20px,
+        ${p => p.theme.translucentInnerBorder} 20px
+      )
+      100% 1;
+  }
 `;
