@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
@@ -152,7 +151,9 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
     colorConfig: getBreadcrumbColorConfig(ec.breadcrumb.type),
     filter: getBreadcrumbFilter(ec.breadcrumb.type),
     iconComponent: <BreadcrumbIcon type={ec.breadcrumb.type} />,
-    levelComponent: <BreadcrumbLevel level={ec.breadcrumb.level} />,
+    levelComponent: (
+      <BreadcrumbLevel level={ec.breadcrumb.level}>{ec.breadcrumb.level}</BreadcrumbLevel>
+    ),
   }));
 }
 
@@ -272,24 +273,24 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
   }
 }
 
-function BreadcrumbLevel({level}: {level: BreadcrumbLevelType}) {
-  switch (level) {
-    case BreadcrumbLevelType.ERROR:
-    case BreadcrumbLevelType.FATAL:
-      return <StyledTag type="error">{level}</StyledTag>;
-    case BreadcrumbLevelType.WARNING:
-      return <StyledTag type="warning">{level}</StyledTag>;
-    case BreadcrumbLevelType.DEBUG:
-    case BreadcrumbLevelType.INFO:
-    case BreadcrumbLevelType.LOG:
-      return <StyledTag type="highlight">{level}</StyledTag>;
-    case BreadcrumbLevelType.UNDEFINED:
-    default:
-      return null;
-  }
-}
-
-const StyledTag = styled(Tag)`
+const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
+  border: 0;
+  background: none;
+  color: ${p => {
+    switch (p.level) {
+      case BreadcrumbLevelType.ERROR:
+      case BreadcrumbLevelType.FATAL:
+        return p.theme.red400;
+      case BreadcrumbLevelType.WARNING:
+        return p.theme.yellow400;
+      default:
+      case BreadcrumbLevelType.DEBUG:
+      case BreadcrumbLevelType.INFO:
+      case BreadcrumbLevelType.LOG:
+        return p.theme.gray300;
+    }
+  }};
+  display: ${p => (p.level === BreadcrumbLevelType.UNDEFINED ? 'none' : 'block')};
 `;

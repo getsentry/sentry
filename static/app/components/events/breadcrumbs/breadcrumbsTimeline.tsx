@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
@@ -85,11 +85,13 @@ export default function BreadcrumbsTimeline({
         key={virtualizedRow.key}
         ref={virtualizer.measureElement}
         title={
-          <Fragment>
-            {title}
-            {isVirtualCrumb && <Subtitle> - {t('This event')}</Subtitle>}
+          <Header>
+            <div>
+              {title}
+              {isVirtualCrumb && <Subtitle> - {t('This event')}</Subtitle>}
+            </div>
             {levelComponent}
-          </Fragment>
+          </Header>
         }
         colorConfig={colorConfig}
         icon={iconComponent}
@@ -122,6 +124,11 @@ export default function BreadcrumbsTimeline({
     </div>
   );
 }
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
 
 const Subtitle = styled('p')`
   margin: 0;
