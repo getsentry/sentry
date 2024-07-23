@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {Link} from 'react-router';
+import Link from 'sentry/components/links/link';
 
 import {Button} from 'sentry/components/button';
 import {
