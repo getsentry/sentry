@@ -248,12 +248,13 @@ const FilterWrapper = styled('div')`
     outline: none;
   }
 
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
+  &[aria-invalid='true'] {
+    border-color: ${p => p.theme.red200};
+    background-color: ${p => p.theme.red100};
   }
 
-  &[aria-invalid='true'] {
-    border-color: ${p => p.theme.red400};
+  &[aria-selected='true'] {
+    background-color: ${p => p.theme.gray100};
   }
 `;
 
