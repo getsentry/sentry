@@ -10,7 +10,7 @@ interface EquationSymbolProps extends React.ComponentProps<typeof DeprecatedSymb
 }
 
 export function getEquationSymbol(equationId: number) {
-  return `ƒ${equationId + 1}`;
+  return `Ƒ${equationId + 1}`;
 }
 
 export const EquationSymbol = forwardRef<HTMLSpanElement, EquationSymbolProps>(
