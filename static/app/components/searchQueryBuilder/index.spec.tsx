@@ -1969,4 +1969,45 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
   });
+
+  describe('disallowWildcard', function () {
+    it('should mark tokens with wildcards invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowWildcard
+          initialQuery="browser.name:Firefox*"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'browser.name:Firefox*'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      // Put focus into token, should show error message
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(
+        await screen.findByText('Wildcards not supported in search')
+      ).toBeInTheDocument();
+    });
+
+    it('should mark free text with wildcards invalid', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} disallowWildcard initialQuery="foo*" />
+      );
+
+      expect(screen.getByRole('row', {name: 'foo*'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      expect(
+        await screen.findByText('Wildcards not supported in search')
+      ).toBeInTheDocument();
+    });
+  });
 });
