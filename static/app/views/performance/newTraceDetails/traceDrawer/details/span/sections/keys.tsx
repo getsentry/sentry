@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import Link from 'sentry/components/links/link';
 
 import {Button} from 'sentry/components/button';
 import {
@@ -14,6 +13,7 @@ import {
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
