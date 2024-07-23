@@ -318,3 +318,59 @@ class CircuitBreakerTest(TestCase):
                 500,
             )
             assert breaker.recovery_duration == 500
+
+
+@freeze_time()
+class ShouldAllowRequestTest(TestCase):
+    def setUp(self) -> None:
+        self.config = DEFAULT_CONFIG
+        self.breaker = MockCircuitBreaker("dogs_are_great", self.config)
+
+        # Clear all existing keys from redis
+        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.execute()
+
+    def test_allows_request_in_non_broken_state_with_quota_remaining(self):
+        breaker = self.breaker
+
+        for state, quota, limit in [
+            (CircuitBreakerState.OK, breaker.primary_quota, breaker.error_limit),
+            (CircuitBreakerState.RECOVERY, breaker.recovery_quota, breaker.recovery_error_limit),
+        ]:
+            breaker._set_breaker_state(state)
+            breaker._add_quota_usage(quota, limit - 5)
+            assert breaker._get_remaining_error_quota(quota) == 5
+
+            assert breaker.should_allow_request() is True
+
+    def test_blocks_request_in_non_broken_state_with_no_quota_remaining(self):
+        breaker = self.breaker
+
+        for state, quota, limit in [
+            (CircuitBreakerState.OK, breaker.primary_quota, breaker.error_limit),
+            (CircuitBreakerState.RECOVERY, breaker.recovery_quota, breaker.recovery_error_limit),
+        ]:
+            breaker._set_breaker_state(state)
+            breaker._add_quota_usage(quota, limit)
+            assert breaker._get_remaining_error_quota(quota) == 0
+
+            assert breaker.should_allow_request() is False
+
+    def test_blocks_request_in_BROKEN_state(self):
+        breaker = self.breaker
+
+        breaker._set_breaker_state(CircuitBreakerState.BROKEN)
+
+        assert breaker.should_allow_request() is False
+
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_allows_request_if_redis_call_fails(self, mock_logger: MagicMock):
+        breaker = self.breaker
+
+        with patch(
+            "sentry.utils.circuit_breaker2.CircuitBreaker._get_from_redis", side_effect=Exception
+        ):
+            assert breaker.should_allow_request() is True
+            mock_logger.exception.assert_called_with(
+                "Couldn't get state from redis for circuit breaker '%s'", breaker.key
+            )
