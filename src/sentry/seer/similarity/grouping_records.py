@@ -36,7 +36,7 @@ class CreateGroupingRecordsRequest(TypedDict):
 class BulkCreateGroupingRecordsResponse(TypedDict):
     success: bool
     groups_with_neighbor: NotRequired[dict[str, RawSeerSimilarIssueData]]
-    reason: NotRequired[str]
+    reason: NotRequired[str | None]
 
 
 seer_grouping_connection_pool = connection_from_url(
