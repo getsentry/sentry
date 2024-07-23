@@ -1,7 +1,7 @@
-import type {Dispatch, ReactNode, SetStateAction} from 'react';
+import type {CSSProperties, Dispatch, ReactNode, SetStateAction} from 'react';
 import {createContext, useContext, useState} from 'react';
 
-type State = 'visible' | 'hidden';
+type State = CSSProperties['visibility'];
 
 const VisibilityContext = createContext<[State, Dispatch<SetStateAction<State>>]>([
   'visible',
