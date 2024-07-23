@@ -15,9 +15,6 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
-from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
-    OrganizationIntegrationMigrateOpsgenieEndpoint,
-)
 from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -112,6 +109,52 @@ from sentry.incidents.endpoints.project_alert_rule_task_details import (
 from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredIndexEndpoint,
     TeamAlertsTriggeredTotalsEndpoint,
+)
+from sentry.integrations.api.endpoints.avatar.doc_integration import DocIntegrationAvatarEndpoint
+from sentry.integrations.api.endpoints.codeowners.external_actor import (
+    ExternalTeamDetailsEndpoint,
+    ExternalTeamEndpoint,
+    ExternalUserDetailsEndpoint,
+    ExternalUserEndpoint,
+)
+from sentry.integrations.api.endpoints.group_integration_details import (
+    GroupIntegrationDetailsEndpoint,
+)
+from sentry.integrations.api.endpoints.group_integrations import GroupIntegrationsEndpoint
+from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.integrations.api.endpoints.integrations import (
+    DocIntegrationDetailsEndpoint,
+    DocIntegrationsEndpoint,
+    OrganizationConfigIntegrationsEndpoint,
+    OrganizationIntegrationDetailsEndpoint,
+    OrganizationIntegrationRequestEndpoint,
+    OrganizationIntegrationsEndpoint,
+    OrganizationPluginsConfigsEndpoint,
+    OrganizationPluginsEndpoint,
+)
+from sentry.integrations.api.endpoints.internal.integration_proxy import (
+    InternalIntegrationProxyEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_code_mapping_codeowners import (
+    OrganizationCodeMappingCodeOwnersEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_code_mapping_details import (
+    OrganizationCodeMappingDetailsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_code_mappings import (
+    OrganizationCodeMappingsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_integration_issues import (
+    OrganizationIntegrationIssuesEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_integration_migrate_opsgenie import (
+    OrganizationIntegrationMigrateOpsgenieEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_integration_repos import (
+    OrganizationIntegrationReposEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_integration_serverless_functions import (
+    OrganizationIntegrationServerlessFunctionsEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -221,7 +264,6 @@ from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.avatar import (
-    DocIntegrationAvatarEndpoint,
     OrganizationAvatarEndpoint,
     SentryAppAvatarEndpoint,
     UserAvatarEndpoint,
@@ -232,14 +274,7 @@ from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.check_am2_compatibility import CheckAM2CompatibilityEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.codeowners import (
-    ExternalTeamDetailsEndpoint,
-    ExternalTeamEndpoint,
-    ExternalUserDetailsEndpoint,
-    ExternalUserEndpoint,
-    ProjectCodeOwnersDetailsEndpoint,
-    ProjectCodeOwnersEndpoint,
-)
+from .endpoints.codeowners import ProjectCodeOwnersDetailsEndpoint, ProjectCodeOwnersEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
@@ -269,8 +304,6 @@ from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEnd
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
-from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
-from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
@@ -285,17 +318,6 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
-from .endpoints.integration_features import IntegrationFeaturesEndpoint
-from .endpoints.integrations import (
-    DocIntegrationDetailsEndpoint,
-    DocIntegrationsEndpoint,
-    OrganizationConfigIntegrationsEndpoint,
-    OrganizationIntegrationDetailsEndpoint,
-    OrganizationIntegrationRequestEndpoint,
-    OrganizationIntegrationsEndpoint,
-    OrganizationPluginsConfigsEndpoint,
-    OrganizationPluginsEndpoint,
-)
 from .endpoints.integrations.sentry_apps import (
     OrganizationSentryAppComponentsEndpoint,
     OrganizationSentryAppsEndpoint,
@@ -323,7 +345,6 @@ from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
     InternalFeatureFlagsEndpoint,
-    InternalIntegrationProxyEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalQueueTasksEndpoint,
@@ -348,11 +369,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_code_mapping_codeowners import (
-    OrganizationCodeMappingCodeOwnersEndpoint,
-)
-from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
-from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
@@ -406,11 +422,6 @@ from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrends
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_integration_issues import OrganizationIntegrationIssuesEndpoint
-from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from .endpoints.organization_integration_serverless_functions import (
-    OrganizationIntegrationServerlessFunctionsEndpoint,
-)
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
