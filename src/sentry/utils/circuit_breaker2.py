@@ -5,8 +5,11 @@ confident it works we can replace use of the original for the severity service w
 and get rid of the old one, at which point this can lose the `2`.
 """
 
+import logging
 from enum import Enum
 from typing import NotRequired, TypedDict
+
+logger = logging.getLogger(__name__)
 
 
 class CircuitBreakerState(Enum):
