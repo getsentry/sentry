@@ -715,8 +715,8 @@ class GroupSerializerBase(Serializer, ABC):
                     return True
             else:
                 # Presumably if this is not an app and the token was explicitly scoped
-                # to the organization membership was pre-determined. However, we don't
-                # assume here. If you know better fix it.
+                # to the organization then membership was pre-determined. However, we
+                # don't assume here. If you know better fix it.
                 return (
                     token.token_has_org_access(organization_id)
                     and OrganizationMember.objects.filter(
