@@ -176,6 +176,8 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
         try:
             body = bytes(request.body)
+            if len(body) == 0:
+                raise MissingWebhookPayloadError()
         except MissingWebhookPayloadError as e:
             logger.warning("github_enterprise.webhook.missing-body", extra=extra)
             sentry_sdk.capture_exception(e)

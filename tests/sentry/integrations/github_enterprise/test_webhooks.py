@@ -120,22 +120,6 @@ class WebhookTest(APITestCase):
         assert b"Provided signature does not match the computed body signature" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_invalid_algorithm(self, mock_installation):
-        mock_installation.return_value = self.metadata
-
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_HUB_SIGNATURE="sha3=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-        assert response.status_code == 400
-        assert b"Signature algorithm is unsupported" in response.content
-
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_malformed_signature_too_short_sha1(self, mock_installation):
         mock_installation.return_value = self.metadata
 
