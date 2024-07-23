@@ -39,12 +39,7 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     """
     formatted_data = []
     for datum in data.data.get("data", []):
-        ts_point = TimeSeriesPoint(timestamp=datum.get("time"))
-        if datum.get("count"):
-            ts_point["value"] = datum.get("count")
-        else:
-            ts_point["value"] = 0
-
+        ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
         formatted_data.append(ts_point)
     return formatted_data
 
@@ -66,15 +61,27 @@ def get_project_id_from_rule(rule: AlertRule) -> int | None:
     subscriptions = rule.snuba_query.subscriptions.all()
     if subscriptions:
         project = subscriptions[0].project
-
         if not project:
             return None
-    return project.id
+
+    if project:
+        return project.id
+
+    return None
 
 
-def send_historical_data_to_seer(rule: AlertRule, user: User) -> None:
+def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPResponse:
+    base_error_response = BaseHTTPResponse(
+        status=status.HTTP_400_BAD_REQUEST,
+        reason="Something went wrong!",
+        version=0,
+        version_string="HTTP/?",
+        decode_content=True,
+        request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
+    )
     if not features.has("organizations:anomaly-detection-alerts", rule.organization, actor=user):
-        return None
+        base_error_response.reason = "You do not have the anomaly detection alerts feature enabled."
+        return base_error_response
 
     project_id = get_project_id_from_rule(rule)
     if not project_id:
@@ -85,11 +92,23 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> None:
                 "project_id": project_id,
             },
         )
-        return None
+        base_error_response.reason = "No project associated with rule. Cannot create rule."
+        return base_error_response
     snuba_query = SnubaQuery.objects.get(id=rule.snuba_query_id)
     time_period = int(snuba_query.time_window / 60)
     historical_data = fetch_historical_data(rule, snuba_query)
+    if not historical_data:
+        base_error_response.reason = "No historical data available. Cannot create rule."
+        return base_error_response
+
     formatted_data = format_historical_data(historical_data)
+
+    if not rule.sensitivity or not rule.seasonality or rule.threshold_type is not None:
+        # this won't happen because we've already gone through the serializer, but mypy insists
+        base_error_response.reason = (
+            "Cannot create rule - missing expected configuration for a dynamic alert."
+        )
+        return base_error_response
 
     ad_config = ADConfig(
         time_period=time_period,
@@ -151,7 +170,7 @@ def fetch_historical_data(rule: AlertRule, snuba_query: SnubaQuery) -> SnubaTSRe
         dataset_label = "errors"
     dataset = get_dataset(dataset_label)
     project_id = get_project_id_from_rule(rule)
-    if not project_id:
+    if not project_id or not dataset:
         return None
 
     historical_data = dataset.timeseries_query(
