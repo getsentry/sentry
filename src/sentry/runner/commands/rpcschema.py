@@ -80,7 +80,7 @@ def rpcschema(diagnose: bool, partial: bool) -> None:
         entries = [RpcSchemaEntry(sig) for sig in signatures]
         path_dict = {entry.api_path: entry.build_api_entry() for entry in entries}
 
-        spec = OpenAPI.parse_obj(
+        spec = OpenAPI.model_validate(
             dict(
                 info=dict(
                     title="Sentry Internal RPC APIs",
