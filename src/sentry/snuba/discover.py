@@ -242,6 +242,9 @@ def query(
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     assert dataset in [
         Dataset.Discover,
         Dataset.Transactions,
@@ -284,6 +287,7 @@ def timeseries_query(
     query: str,
     params: ParamsType,
     rollup: int,
+    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
@@ -322,6 +326,10 @@ def timeseries_query(
         Dataset.Discover,
         Dataset.Transactions,
     ], "A dataset is required to query discover"
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if (
         "start" not in params
         or params["start"] is None
@@ -451,6 +459,7 @@ def top_events_timeseries(
     rollup: int,
     limit: int,
     organization: Organization,
+    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     referrer: str | None = None,
     top_events: EventsResponse | None = None,
@@ -488,6 +497,10 @@ def top_events_timeseries(
         Dataset.Discover,
         Dataset.Transactions,
     ], "A dataset is required to query discover"
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
             top_events = query(
@@ -613,6 +626,7 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
+    snuba_params: SnubaParams | None = None,
     per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
     cursor: int | None = 0,
 ) -> list[FacetResult]:
@@ -631,6 +645,9 @@ def get_facets(
     """
     sample = len(params["project_id"]) > 2
     fetch_projects = len(params["project_id"]) > 1
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
@@ -775,6 +792,7 @@ def spans_histogram_query(
     user_query: str,
     params: ParamsType,
     num_buckets: int,
+    snuba_params: SnubaParams | None = None,
     precision: int = 0,
     min_value: float | None = None,
     max_value: float | None = None,
@@ -813,6 +831,9 @@ def spans_histogram_query(
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
 
     min_value, max_value = find_span_histogram_min_max(
         span, min_value, max_value, user_query, params, data_filter
@@ -862,6 +883,7 @@ def histogram_query(
     user_query: str,
     params: ParamsType,
     num_buckets: int,
+    snuba_params: SnubaParams | None = None,
     precision: int = 0,
     min_value: float | None = None,
     max_value: float | None = None,
@@ -902,6 +924,9 @@ def histogram_query(
     :param extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param normalize_results: Indicate whether to normalize the results by column into bins.
     """
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
 
     multiplier = int(10**precision)
     if max_value is not None:

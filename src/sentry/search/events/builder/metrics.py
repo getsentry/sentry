@@ -52,6 +52,7 @@ from sentry.search.events.types import (
     QueryBuilderConfig,
     QueryFramework,
     SelectType,
+    SnubaParams,
     WhereType,
 )
 from sentry.sentry_metrics import indexer
@@ -1552,6 +1553,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         self,
         params: ParamsType,
         interval: int,
+        snuba_params: SnubaParams | None = None,
         dataset: Dataset | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -1837,6 +1839,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         params: ParamsType,
         interval: int,
         top_events: list[dict[str, Any]],
+        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -1851,6 +1854,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         super().__init__(
             dataset=dataset,
             params=params,
+            snuba_params=snuba_params,
             interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_columns)),
