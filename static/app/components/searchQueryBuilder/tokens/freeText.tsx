@@ -22,6 +22,7 @@ import type {
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
+  InvalidReason,
   type ParseResultToken,
   Token,
   type TokenResult,
@@ -261,13 +262,38 @@ function KeyDescription({tag}: {tag: Tag}) {
   );
 }
 
+function shouldHideInvalidTooltip({
+  token,
+  inputValue,
+  isOpen,
+}: {
+  inputValue: string;
+  isOpen: boolean;
+  token: TokenResult<Token.FREE_TEXT>;
+}) {
+  if (!token.invalid || isOpen) {
+    return true;
+  }
+
+  switch (token.invalid.type) {
+    case InvalidReason.FREE_TEXT_NOT_ALLOWED:
+      return inputValue === '';
+    case InvalidReason.WILDCARD_NOT_ALLOWED:
+      return !inputValue.includes('*');
+    default:
+      return false;
+  }
+}
+
 function InvalidText({
   token,
   state,
   item,
   inputValue,
+  isOpen,
 }: {
   inputValue: string;
+  isOpen: boolean;
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FREE_TEXT>;
@@ -280,7 +306,9 @@ function InvalidText({
       state={state}
       token={token}
       item={item}
-      forceVisible={!inputValue.includes('*') ? false : undefined}
+      forceVisible={
+        shouldHideInvalidTooltip({token, inputValue, isOpen}) ? false : undefined
+      }
       skipWrapper={false}
     >
       <InvisibleText aria-hidden>{inputValue}</InvisibleText>
@@ -297,6 +325,7 @@ function SearchQueryBuilderInputInternal({
   const organization = useOrganization();
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
+  const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
   const isFocused =
@@ -486,6 +515,7 @@ function SearchQueryBuilderInputInternal({
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}
+        onOpenChange={setIsOpen}
         tabIndex={isFocused ? 0 : -1}
         maxOptions={50}
         onPaste={onPaste}
@@ -515,7 +545,13 @@ function SearchQueryBuilderInputInternal({
           )
         }
       </SearchQueryBuilderCombobox>
-      <InvalidText token={token} state={state} item={item} inputValue={inputValue} />
+      <InvalidText
+        token={token}
+        state={state}
+        item={item}
+        inputValue={inputValue}
+        isOpen={isOpen}
+      />
     </Fragment>
   );
 }

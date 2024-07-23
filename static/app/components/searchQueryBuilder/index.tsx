@@ -41,6 +41,10 @@ export interface SearchQueryBuilderProps {
   searchSource: string;
   className?: string;
   /**
+   * When true, free text will be marked as invalid.
+   */
+  disallowFreeText?: boolean;
+  /**
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
@@ -96,6 +100,7 @@ function ActionButtons() {
 export function SearchQueryBuilder({
   className,
   disallowLogicalOperators,
+  disallowFreeText,
   disallowWildcard,
   label,
   initialQuery,
@@ -117,11 +122,13 @@ export function SearchQueryBuilder({
   const parsedQuery = useMemo(
     () =>
       parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        disallowFreeText,
         disallowLogicalOperators,
         disallowWildcard,
         filterKeys,
       }),
     [
+      disallowFreeText,
       disallowLogicalOperators,
       disallowWildcard,
       fieldDefinitionGetter,

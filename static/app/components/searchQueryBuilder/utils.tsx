@@ -65,6 +65,7 @@ export function parseQueryBuilderValue(
   getFieldDefinition: FieldDefinitionGetter,
   options?: {
     filterKeys: TagCollection;
+    disallowFreeText?: boolean;
     disallowLogicalOperators?: boolean;
     disallowWildcard?: boolean;
   }
@@ -72,6 +73,7 @@ export function parseQueryBuilderValue(
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
+      disallowFreeText: options?.disallowFreeText,
       disallowWildcard: options?.disallowWildcard,
       disallowedLogicalOperators: options?.disallowLogicalOperators
         ? new Set([BooleanOperator.AND, BooleanOperator.OR])
