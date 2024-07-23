@@ -98,7 +98,7 @@ class LeakyBucketRateLimiterTest(TestCase):
 
         with freeze_time("2077-09-13"):
             for i in range(5):
-                assert baz() is True
+                assert baz() == "normal value"
                 assert len(last_info) == 0
 
             baz_rv = baz()
