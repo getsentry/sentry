@@ -50,6 +50,9 @@ const VISIBLE_COLUMNS_MOBILE = [
   ReplayColumn.ACTIVITY,
 ];
 
+const visibleColumns = (allMobileProj: boolean) =>
+  allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS;
+
 function GroupReplays({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
@@ -88,7 +91,7 @@ function GroupReplays({group}: Props) {
           isFetching={isFetching}
           replays={[]}
           sort={undefined}
-          visibleColumns={allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
+          visibleColumns={visibleColumns(allMobileProj)}
           showDropdownFilters={false}
         />
       </StyledLayoutPage>
@@ -99,7 +102,7 @@ function GroupReplays({group}: Props) {
       eventView={eventView}
       organization={organization}
       pageLinks={pageLinks}
-      visibleColumns={allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
+      visibleColumns={visibleColumns(allMobileProj)}
       group={group}
     />
   );
@@ -149,10 +152,7 @@ function GroupReplaysTableInner({
         pageLinks={pageLinks}
         selectedReplayIndex={selectedReplayIndex}
         setSelectedReplayIndex={setSelectedReplayIndex}
-        visibleColumns={[
-          ReplayColumn.PLAY_PAUSE,
-          ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
-        ]}
+        visibleColumns={[ReplayColumn.PLAY_PAUSE, ...visibleColumns(allMobileProj)]}
         overlayContent={overlayContent}
         replays={replays}
       />
@@ -236,7 +236,7 @@ function GroupReplaysTable({
       sort={undefined}
       visibleColumns={[
         ...(selectedReplay ? [ReplayColumn.PLAY_PAUSE] : []),
-        ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
+        ...visibleColumns(allMobileProj),
       ]}
       showDropdownFilters={false}
       onClickPlay={setSelectedReplayIndex}
