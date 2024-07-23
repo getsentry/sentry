@@ -45,7 +45,6 @@ export type GridColumn<K = ObjectKey> = {
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
-  tooltip?: string;
 };
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;

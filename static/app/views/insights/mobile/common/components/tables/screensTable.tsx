@@ -131,8 +131,9 @@ export function ScreensTable({
       );
     }
 
-    if (column.tooltip) {
-      return columnWithTooltip(column.tooltip);
+    const tooltip = columnTooltipMap ? columnTooltipMap[column.key] : undefined;
+    if (tooltip) {
+      return columnWithTooltip(tooltip);
     }
     return sortLink;
   }
@@ -147,7 +148,6 @@ export function ScreensTable({
             key: columnKey,
             name: columnNameMap[columnKey],
             width: COL_WIDTH_UNDEFINED,
-            toolTip: columnTooltipMap ? columnTooltipMap[columnKey] : undefined,
           };
         })}
         columnSortBy={defaultSort}
