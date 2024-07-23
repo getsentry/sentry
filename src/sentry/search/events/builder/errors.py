@@ -44,6 +44,7 @@ class ErrorsQueryBuilderMixin:
             self.params.user,
             list(filter(None, self.params.environments)),
             value_converters=value_converters,
+            allow_aggregate_filters=True,
         )
         return parsed_terms
 
