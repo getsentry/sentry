@@ -222,7 +222,9 @@ function isPageloadTransaction(node: TraceTreeNode<TraceTree.NodeValue>): boolea
   return isTransactionNode(node) && node.value['transaction.op'] === 'pageload';
 }
 
-function isSSRTransaction(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
+function isServerRequestHandlerTransaction(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): boolean {
   return isTransactionNode(node) && node.value['transaction.op'] === 'http.server';
 }
 
@@ -241,9 +243,6 @@ function childParentSwap({
   parent: TraceTreeNode<TraceTree.NodeValue>;
 }) {
   const parentOfParent = parent.parent!;
-
-  parent.invalidate(parent);
-  child.invalidate(child);
 
   const parentIndex = parentOfParent.children.indexOf(parent);
   parentOfParent.children[parentIndex] = child;
@@ -588,8 +587,13 @@ export class TraceTree {
         );
       }
 
-      if (isPageloadTransaction(node) && isSSRTransaction(parent)) {
+      if (isPageloadTransaction(node) && isServerRequestHandlerTransaction(parent)) {
         childParentSwap({parent, child: node});
+
+        // The swap can occur at a later point when new transactions are fetched,
+        // which means we need to invalidate the tree and re-render the UI.
+        parent.invalidate(parent);
+        node.invalidate(node);
       }
 
       if (value && 'children' in value) {
@@ -921,11 +925,14 @@ export class TraceTree {
         childTransactions,
       };
 
+      // If we have a browser request span and a server request handler transaction, we want to
+      // reparent the transaction under the span. This is because the server request handler
+      // was the parent of the browser request span which likely served the document.
       if (
         firstTransaction &&
         !childTransactions.length &&
         isBrowserRequestSpan(spanNodeValue) &&
-        isSSRTransaction(firstTransaction)
+        isServerRequestHandlerTransaction(firstTransaction)
       ) {
         childTransactions = [firstTransaction];
         spanNodeValue.childTransactions = childTransactions;
