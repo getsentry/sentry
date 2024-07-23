@@ -109,8 +109,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:org-ingest-subdomains": False,
         # Replace the footer Sentry logo with a Sentry pride logo
         "organizations:sentry-pride-logo-footer": False,
-        # Enable priority alerts using the Seer calculations
-        "organizations:seer-based-priority": False,
     }
 
     permanent_project_features = {
