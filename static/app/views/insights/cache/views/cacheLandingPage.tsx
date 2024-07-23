@@ -12,6 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   DismissId,
@@ -151,7 +152,7 @@ export function CacheLandingPage() {
       cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
       transactionsListError?.message === CACHE_ERROR_MESSAGE;
 
-    if (onboardingProject || !hasData) {
+    if (defined(pageAlert?.message) && (onboardingProject || !hasData)) {
       setPageInfo(undefined);
       return;
     }
