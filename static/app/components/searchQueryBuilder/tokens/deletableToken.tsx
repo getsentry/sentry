@@ -8,6 +8,7 @@ import type {Node} from '@react-types/shared';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
+import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   shiftFocusToChild,
   useShiftFocusToChild,
@@ -16,7 +17,6 @@ import type {
   InvalidReason,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -55,8 +55,6 @@ export function DeletableToken({
     shiftFocusToChild(e.currentTarget, item, state);
   };
 
-  const isFocused =
-    state.selectionManager.isFocused && state.selectionManager.focusedKey === item.key;
   const isInvalid = Boolean(invalid);
 
   return (
@@ -66,13 +64,7 @@ export function DeletableToken({
       ref={ref}
     >
       {children}
-      <Tooltip
-        skipWrapper
-        disabled={!isInvalid}
-        forceVisible={isFocused ? true : undefined}
-        position="bottom"
-        title={invalid?.reason ?? t('This token is invalid')}
-      >
+      <InvalidTokenTooltip token={token} state={state} item={item}>
         <HoverFocusBorder>
           <FloatingCloseButton
             {...gridCellProps}
@@ -87,7 +79,7 @@ export function DeletableToken({
             <IconClose legacySize="10px" />
           </FloatingCloseButton>
         </HoverFocusBorder>
-      </Tooltip>
+      </InvalidTokenTooltip>
     </Wrapper>
   );
 }

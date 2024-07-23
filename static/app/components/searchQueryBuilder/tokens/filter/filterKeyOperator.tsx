@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterOperatorProps = {
   item: Node<ParseResultToken>;
+  onOpenChange: (isOpen: boolean) => void;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FILTER>;
 };
@@ -185,7 +186,12 @@ function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   };
 }
 
-export function FilterKeyOperator({token, state, item}: FilterOperatorProps) {
+export function FilterKeyOperator({
+  token,
+  state,
+  item,
+  onOpenChange,
+}: FilterOperatorProps) {
   const organization = useOrganization();
   const {dispatch, searchSource, query, savedSearchType} = useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
@@ -206,6 +212,7 @@ export function FilterKeyOperator({token, state, item}: FilterOperatorProps) {
       size="sm"
       options={options}
       value={operator}
+      onOpenChange={onOpenChange}
       onChange={option => {
         trackAnalytics('search.operator_autocompleted', {
           organization,
