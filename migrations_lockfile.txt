@@ -10,6 +10,6 @@ hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0743_backfill_broken_monitor_notification_setting_option
+sentry: 0744_add_dataset_source_field_to_dashboards
 social_auth: 0002_default_auto_field
 uptime: 0006_projectuptimesubscription_name_owner
