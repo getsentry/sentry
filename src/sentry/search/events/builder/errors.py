@@ -18,7 +18,11 @@ from snuba_sdk import (
 )
 
 from sentry.api.issue_search import convert_query_values, convert_status_value
-from sentry.search.events.builder.discover import DiscoverQueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder.discover import (
+    DiscoverQueryBuilder,
+    TimeseriesQueryBuilder,
+    TopEventsQueryBuilder,
+)
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import SelectType
 from sentry.snuba.entity_subscription import ENTITY_TIME_COLUMNS, get_entity_key_from_query_builder
@@ -142,6 +146,32 @@ class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, DiscoverQueryBuilder):
 
 
 class ErrorsTimeseriesQueryBuilder(ErrorsQueryBuilderMixin, TimeseriesQueryBuilder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @property
+    def time_column(self) -> SelectType:
+        return Column("time", entity=Entity(self.dataset.value, alias=self.dataset.value))
+
+    def get_snql_query(self) -> Request:
+        return Request(
+            dataset=self.dataset.value,
+            app_id="errors",
+            query=Query(
+                match=self.match,
+                select=self.select,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=[OrderBy(self.time_column, Direction.ASC)],
+                granularity=self.granularity,
+                limit=self.limit,
+            ),
+            tenant_ids=self.tenant_ids,
+        )
+
+
+class ErrorsTopEventsQueryBuilder(ErrorsQueryBuilderMixin, TopEventsQueryBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
