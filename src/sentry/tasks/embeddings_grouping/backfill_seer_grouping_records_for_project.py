@@ -43,7 +43,6 @@ logger = logging.getLogger(__name__)
     soft_time_limit=60 * 15,
     time_limit=60 * 15 + 5,
     acks_late=True,
-    reject_on_worker_lost=True,
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int,
