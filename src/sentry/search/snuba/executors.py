@@ -1616,6 +1616,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         end = max([retention_date, end])
         return start, end, retention_date
 
+    @metrics.wraps("snuba.search.group_attributes.query")
     def query(
         self,
         projects: Sequence[Project],
@@ -1636,7 +1637,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         aggregate_kwargs: TrendsSortWeights | None = None,
         use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
-        now = timezone.now()
         start, end, retention_date = self.calculate_start_end(
             retention_window_start, search_filters, date_from, date_to
         )
@@ -1892,10 +1892,5 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
         groups = group_queryset.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-        metrics.timing(
-            "snuba.search.group_attributes.query",
-            (timezone.now() - now).total_seconds(),
-            tags={"postgres_only": False},
-        )
         # TODO: Add types to paginators and remove this
         return cast(CursorResult[Group], paginator_results)
