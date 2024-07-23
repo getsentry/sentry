@@ -14,13 +14,18 @@ import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type EventNavigationProps = {
   event: Event;
   group: Group;
+};
+
+type SectionDefinition = {
+  condition: (event: Event) => boolean;
+  label: string;
+  section: string;
 };
 
 enum EventNavOptions {
@@ -35,41 +40,40 @@ const EventNavLabels = {
   [EventNavOptions.OLDEST]: t('First Event'),
 };
 
-const eventDataSections = [
+const eventDataSections: SectionDefinition[] = [
   {section: 'event-highlights', label: t('Event Highlights'), condition: () => true},
   {
     section: 'stacktrace',
     label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.find(entry => entry.type === 'stacktrace'),
+    condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
   },
   {
     section: 'exception',
     label: t('Exception'),
-    condition: (event: Event) => event.entries.find(entry => entry.type === 'exception'),
+    condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
   },
   {
     section: 'breadcrumbs',
     label: t('Breadcrumbs'),
     condition: (event: Event) =>
-      event.entries.find(entry => entry.type === 'breadcrumbs'),
+      event.entries.some(entry => entry.type === 'breadcrumbs'),
   },
   {section: 'tags', label: t('Tags'), condition: (event: Event) => event.tags.length > 0},
-  {section: 'context', label: t('Context'), condition: (event: Event) => event.context},
+  {section: 'context', label: t('Context'), condition: (event: Event) => !!event.context},
   {
     section: 'user-feedback',
     label: t('User Feedback'),
-    condition: (event: Event) => event.userReport,
+    condition: (event: Event) => !!event.userReport,
   },
   {
     section: 'replay',
     label: t('Replay'),
-    condition: (event: Event) => getReplayIdFromEvent(event),
+    condition: (event: Event) => !!getReplayIdFromEvent(event),
   },
 ];
 
 export default function EventNavigation({event, group}: EventNavigationProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const organization = useOrganization();
 
   const hasPreviousEvent = defined(event.previousEventID);
@@ -128,21 +132,18 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
               }}
             />
           </Navigation>
-          <StyledButton
-            onClick={() => {
-              const searchTermWithoutQuery = omit(location.query, 'query');
-              navigate({
-                pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${group.id}/events/`
-                ),
-                query: searchTermWithoutQuery,
-              });
+          <LinkButton
+            to={{
+              pathname: normalizeUrl(
+                `/organizations/${organization.slug}/issues/${group.id}/events/`
+              ),
+              query: omit(location.query, 'query'),
             }}
             borderless
             size="sm"
           >
             {t('View All Events')}
-          </StyledButton>
+          </LinkButton>
         </NavigationWrapper>
       </EventNavigationWrapper>
       <Divider />
