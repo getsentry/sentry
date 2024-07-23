@@ -12,7 +12,12 @@ from typing import Any, Literal, NotRequired, TypedDict, overload
 
 from django.conf import settings
 
-from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.ratelimits.sliding_windows import (
+    GrantedQuota,
+    Quota,
+    RedisSlidingWindowRateLimiter,
+    RequestedQuota,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +186,82 @@ class CircuitBreaker:
                 default_recovery_duration,
             )
             self.recovery_duration = default_recovery_duration
+
+    def record_error(self) -> None:
+        """
+        Record a single error towards the breaker's quota, and handle the case where that error puts
+        us over the limit.
+        """
+        now = int(time.time())
+        state, seconds_left_in_state = self._get_state_and_remaining_time()
+
+        if state == CircuitBreakerState.BROKEN:
+            assert seconds_left_in_state is not None  # mypy appeasement
+
+            # If the circuit is BROKEN, and `should_allow_request` is being used correctly, requests
+            # should be blocked and we shouldn't even be here. That said, maybe there was a race
+            # condition, so make sure the circuit hasn't just been tripped before crying foul.
+            seconds_elapsed_in_state = self.broken_state_duration - seconds_left_in_state
+            if seconds_elapsed_in_state > 5:
+                logger.warning(
+                    "Attempt to record circuit breaker error while circuit is in BROKEN state",
+                    extra={"key": self.key, "time_in_state": seconds_elapsed_in_state},
+                )
+            # We shouldn't have made the request, so don't record the error
+            return
+
+        # Even though we're not checking it during RECOVERY, we track errors in the primary quota as
+        # well as in the RECOVERY quota because they still happened, and eventually switching back
+        # to the okay state doesn't make that untrue
+        quotas = (
+            [self.primary_quota, self.recovery_quota]
+            if state == CircuitBreakerState.RECOVERY
+            else [self.primary_quota]
+        )
+        self.limiter.use_quotas(
+            [RequestedQuota(self.key, 1, quotas)], [GrantedQuota(self.key, 1, [])], now
+        )
+
+        # If incrementing has made us hit the current limit, switch to the BROKEN state
+        controlling_quota = self._get_controlling_quota(state)
+        remaining_errors_allowed = self._get_remaining_error_quota(controlling_quota)
+        if remaining_errors_allowed == 0:
+            logger.warning(
+                "Circuit breaker '%s' error limit hit",
+                self.key,
+                extra={
+                    "current_state": state,
+                    "error_limit": controlling_quota.limit,
+                    "error_limit_window": controlling_quota.window_seconds,
+                },
+            )
+
+            # RECOVERY will only start after the BROKEN state has expired, so push out the RECOVERY
+            # expiry time. We'll store the expiry times as our redis values so we can determine how
+            # long we've been in a given state.
+            broken_state_timeout = self.broken_state_duration
+            recovery_state_timeout = self.broken_state_duration + self.recovery_duration
+            broken_state_expiry = now + broken_state_timeout
+            recovery_state_expiry = now + recovery_state_timeout
+
+            # Set reids keys for switching state. While they're both set (starting now) we'll be in
+            # the BROKEN state. Once `broken_state_key` expires in redis we'll switch to RECOVERY,
+            # and then once `recovery_state_key` expires we'll be back to normal.
+            try:
+                self._set_in_redis(
+                    [
+                        (self.broken_state_key, broken_state_expiry, broken_state_timeout),
+                        (self.recovery_state_key, recovery_state_expiry, recovery_state_timeout),
+                    ]
+                )
+
+            # If redis errors, stay in the current state
+            except Exception:
+                logger.exception(
+                    "Couldn't set state-change keys in redis for circuit breaker '%s'",
+                    self.key,
+                    extra={"current_state": state},
+                )
 
     def should_allow_request(self) -> bool:
         """
