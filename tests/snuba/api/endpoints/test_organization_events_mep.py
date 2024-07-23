@@ -3730,7 +3730,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 "dataset": "metricsEnhanced",
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
-            }
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content
@@ -3777,7 +3778,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 "dataset": "metricsEnhanced",
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
-            }
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content
