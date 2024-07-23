@@ -12,7 +12,7 @@ from sentry.conf.server import (
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +135,9 @@ def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
             "seer.delete_grouping_records.hashes.success",
             extra=extra,
         )
+        metrics.incr("grouping.similarity.delete_records_by_hash", tags={"success": True})
         return True
     else:
         logger.error("seer.delete_grouping_records.hashes.failure", extra=extra)
+        metrics.incr("grouping.similarity.delete_records_by_hash", tags={"success": False})
         return False
