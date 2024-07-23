@@ -50,7 +50,19 @@ export const globalCss = css`
     }
   }
 
-  * {
+  @media (prefers-reduced-motion) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0s !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
   }
 

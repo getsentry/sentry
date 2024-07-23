@@ -32,6 +32,7 @@ from sentry.search.events.types import (
     ParamsType,
     QueryBuilderConfig,
     SelectType,
+    SnubaParams,
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
@@ -159,6 +160,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         dataset: Dataset,
         params: ParamsType,
         interval: int,
+        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
         equations: list[str] | None = None,
@@ -171,6 +173,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         super().__init__(
             dataset,
             params,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=equations,
@@ -275,6 +278,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         params: ParamsType,
         interval: int,
         top_events: list[dict[str, Any]],
+        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -290,6 +294,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         super().__init__(
             dataset,
             params,
+            snuba_params=snuba_params,
             interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),
