@@ -51,7 +51,8 @@ logger = logging.getLogger(__name__)
 
 
 class SubscriptionCallback(Protocol):
-    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool: ...
+    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool:
+        ...
 
 
 alert_subscription_callback_registry: dict[AlertRuleMonitorTypeInt, SubscriptionCallback] = {}
