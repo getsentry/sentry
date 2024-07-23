@@ -90,7 +90,6 @@ export interface TabListProps
     TabListStateOptions<TabListItemProps> {
   className?: string;
   hideBorder?: boolean;
-  hideSelection?: boolean;
   outerWrapStyles?: React.CSSProperties;
 }
 
