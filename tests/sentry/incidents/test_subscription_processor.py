@@ -433,9 +433,54 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     def test_seer_call(self, mock_seer_request: MagicMock):
-        # trigger an alert
+        # trigger a warning
         rule = self.dynamic_rule
-        seer_return_value = {
+        trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        warning_action = create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+        seer_return_value_1 = {
+            "anomalies": [
+                {
+                    "anomaly": {"anomaly_score": 0.7, "anomaly_type": "anomaly_low"},
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_1), status=200)
+        processor = self.send_update(rule, 5, timedelta(minutes=-3))
+
+        assert mock_seer_request.call_args.args[0] == "POST"
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
+        assert deserialized_body["organization_id"] == self.sub.project.organization.id
+        assert deserialized_body["project_id"] == self.sub.project_id
+        assert deserialized_body["config"]["time_period"] == rule.threshold_period
+        assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
+        assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
+        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["context"]["id"] == rule.id
+        assert deserialized_body["context"]["cur_window"]["value"] == 5
+
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [warning_action],
+            [(5, IncidentStatus.WARNING, mock.ANY)],
+        )
+
+        # trigger critical
+        seer_return_value_2 = {
             "anomalies": [
                 {
                     "anomaly": {"anomaly_score": 0.9, "anomaly_type": "anomaly_high"},
@@ -445,7 +490,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ]
         }
 
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_2), status=200)
         processor = self.send_update(rule, 10, timedelta(minutes=-2))
 
         assert mock_seer_request.call_args.args[0] == "POST"
@@ -460,28 +505,30 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 10
 
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
         incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
             incident,
-            [self.action],
+            [warning_action],
             [(10, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         # trigger a resolution
-        seer_return_value = {
+        seer_return_value_3 = {
             "anomalies": [
                 {
                     "anomaly": {"anomaly_score": 0.5, "anomaly_type": "none"},
                     "timestamp": 1,
-                    "value": 5,
+                    "value": 1,
                 }
             ]
         }
 
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        processor = self.send_update(rule, 5, timedelta(minutes=-1))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value_3), status=200)
+        processor = self.send_update(rule, 1, timedelta(minutes=-1))
 
         assert mock_seer_request.call_args.args[0] == "POST"
         assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
@@ -493,13 +540,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == rule.threshold_type
         assert deserialized_body["context"]["id"] == rule.id
-        assert deserialized_body["context"]["cur_window"]["value"] == 5
+        assert deserialized_body["context"]["cur_window"]["value"] == 1
 
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
         self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(5, IncidentStatus.CLOSED, mock.ANY)]
+            incident, [warning_action], [(1, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_has_anomaly(self):
@@ -512,33 +561,28 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         }
 
         anomaly2 = {
-            "anomaly": {"anomaly_score": 0.9, "anomaly_type": "anomaly_low"},
+            "anomaly": {"anomaly_score": 0.6, "anomaly_type": "anomaly_low"},
             "timestamp": 1,
             "value": 10,
         }
 
         not_anomaly = {
-            "anomaly": {"anomaly_score": 0.5, "anomaly_type": "none"},
+            "anomaly": {"anomaly_score": 0.2, "anomaly_type": "none"},
             "timestamp": 1,
             "value": 10,
         }
 
-        processor = SubscriptionProcessor(self.sub)
-        assert processor.has_anomaly(anomaly1)
-        assert not processor.has_anomaly(anomaly2)
-        assert not processor.has_anomaly(not_anomaly)
+        warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
 
-        rule.update(threshold_type=AlertRuleThresholdType.BELOW.value)
-        processor = SubscriptionProcessor(self.sub)
-        assert not processor.has_anomaly(anomaly1)
-        assert processor.has_anomaly(anomaly2)
-        assert not processor.has_anomaly(not_anomaly)
+        trigger = self.trigger
 
-        rule.update(threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value)
         processor = SubscriptionProcessor(self.sub)
-        assert processor.has_anomaly(anomaly1)
-        assert processor.has_anomaly(anomaly2)
-        assert not processor.has_anomaly(not_anomaly)
+        assert processor.has_anomaly(anomaly1, trigger)
+        assert processor.has_anomaly(anomaly1, warning_trigger)
+        assert not processor.has_anomaly(anomaly2, trigger)
+        assert processor.has_anomaly(anomaly2, warning_trigger)
+        assert not processor.has_anomaly(not_anomaly, trigger)
+        assert not processor.has_anomaly(not_anomaly, warning_trigger)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @mock.patch(
@@ -603,7 +647,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.logger")
     def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
-        mock_seer_request.return_value = HTTPResponse(None, status=200)
+        mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
         result = processor.get_anomaly_data_from_seer(10)
         assert mock_logger.exception.called_with("Failed to parse Seer anomaly detection response")
         assert result is None

@@ -549,7 +549,7 @@ class SubscriptionProcessor:
                     # NOTE: There should only be one anomaly in the list
                     for potential_anomaly in potential_anomalies:
                         if self.has_anomaly(
-                            potential_anomaly
+                            potential_anomaly, trigger
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
                             incident_trigger = self.trigger_alert_threshold(
@@ -561,7 +561,7 @@ class SubscriptionProcessor:
                             self.trigger_alert_counts[trigger.id] = 0
 
                         if (
-                            not self.has_anomaly(potential_anomaly)
+                            not self.has_anomaly(potential_anomaly, trigger)
                             and self.active_incident
                             and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                         ):
@@ -621,29 +621,18 @@ class SubscriptionProcessor:
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def has_anomaly(self, anomaly) -> bool:
+    def has_anomaly(self, anomaly, trigger: AlertRuleTrigger) -> bool:
         """
         Helper function to determine whether we care about an anomaly based on the
-        anomaly type and the alert rule's threshold type.
-        TODO: add the anomaly type once that's added to Sentry
+        anomaly type and trigger type.
         TODO: replace the anomaly types with constants (once they're added to Sentry)
         """
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
-        if anomaly_type == "none" or anomaly_type == "no_data":
-            return False
-        elif anomaly_type == "anomaly_high":
-            if (
-                self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-                or self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW.value
-            ):
-                return True
-        else:
-            if (
-                self.alert_rule.threshold_type == AlertRuleThresholdType.BELOW.value
-                or self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW.value
-            ):
-                return True
+        if anomaly_type == "anomaly_high" or (
+            trigger.label == WARNING_TRIGGER_LABEL and anomaly_type == "anomaly_low"
+        ):
+            return True
         return False
 
     def get_anomaly_data_from_seer(self, aggregation_value: float | None):
