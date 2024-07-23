@@ -1,15 +1,17 @@
-from typing import Any
-
 from django.contrib.postgres.fields import ArrayField
+from django.db.backends.postgresql.base import DatabaseWrapper
 from django.db.models import Lookup
+from django.db.models.sql.compiler import SQLCompiler
 
-__all__ = ["ArrayElementContains"]
+__all__ = ["ArrayElementContainsLookup"]
 
 
-class ArrayElementContains(Lookup):
+class ArrayElementContainsLookup(Lookup):
     lookup_name = "element_contains"
 
-    def as_sql(self, compiler: Any, connection: Any) -> Any:
+    def as_sql(
+        self, compiler: SQLCompiler, connection: DatabaseWrapper
+    ) -> tuple[str, list[int | str]]:
         """
         Custom lookup for checking if an element of the array contains a value.
         """
@@ -19,14 +21,12 @@ class ArrayElementContains(Lookup):
         params = lhs_params + rhs_params
 
         return (
-            """EXISTS (
-            SELECT * FROM UNNEST({}) AS elem
-            WHERE elem LIKE '%%' || {} || '%%'
-        )""".format(
-                lhs, rhs
-            ),
+            f"""EXISTS (
+            SELECT * FROM UNNEST({lhs}) AS elem
+            WHERE elem LIKE '%%' || {rhs} || '%%'
+        )""",
             params,
         )
 
 
-ArrayField.register_lookup(ArrayElementContains)
+ArrayField.register_lookup(ArrayElementContainsLookup)
