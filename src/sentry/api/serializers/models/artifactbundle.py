@@ -22,7 +22,7 @@ class ArtifactBundlesSerializer(Serializer):
     def _format_date(date):
         return None if date is None else date.isoformat()[:19] + "Z"
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         # We sort by id, since it's the best (already existing) field to define total order of
         # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
@@ -45,7 +45,7 @@ class ArtifactBundlesSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "bundleId": str(attrs["bundle_id"]),
             "associations": attrs["associations"],
@@ -60,7 +60,7 @@ class ArtifactBundleFilesSerializer(Serializer):
         Serializer.__init__(self, *args, **kwargs)
         self.archive = archive
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         return {item: self._compute_attrs(item) for item in item_list}
 
     def _compute_attrs(self, item):
@@ -80,7 +80,7 @@ class ArtifactBundleFilesSerializer(Serializer):
             "sourcemap": sourcemap,
         }
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": base64.urlsafe_b64encode(attrs["file_path"].encode()).decode(),
             # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
