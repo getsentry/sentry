@@ -5,7 +5,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry.discover.models import TeamKeyTransaction
+from sentry.discover.models import DatasetSourcesTypes, TeamKeyTransaction
 from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -3679,6 +3679,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_split_decision_for_transactions_widget(self):
         transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -3711,6 +3712,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_split_decision_for_ambiguous_widget_without_data(self):
         _, widget, __ = create_widget(
@@ -3736,6 +3738,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
         widget.refresh_from_db()
         assert widget.discover_widget_split is None
+        assert widget.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
     def test_split_decision_for_ambiguous_widget_with_data(self):
         # Store a transaction
