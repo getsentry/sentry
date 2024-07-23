@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
+const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 export const getQuerySymbol = (index: number) => {
   let result = '';
