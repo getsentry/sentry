@@ -2,7 +2,7 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models import Lookup
 from django.db.models.sql.compiler import SQLCompiler
 
-__all__ = ["ArrayElementContainsLookup"]
+__all__ = ("ArrayElementContainsLookup",)
 
 
 class ArrayElementContainsLookup(Lookup):
