@@ -21,6 +21,7 @@ import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
@@ -41,7 +42,13 @@ const VISIBLE_COLUMNS = [
   ReplayColumn.ACTIVITY,
 ];
 
-const VISIBLE_COLUMNS_WITH_PLAY = [ReplayColumn.PLAY_PAUSE, ...VISIBLE_COLUMNS];
+const VISIBLE_COLUMNS_MOBILE = [
+  ReplayColumn.REPLAY,
+  ReplayColumn.OS,
+  ReplayColumn.DURATION,
+  ReplayColumn.COUNT_ERRORS,
+  ReplayColumn.ACTIVITY,
+];
 
 function GroupReplays({group}: Props) {
   const organization = useOrganization();
@@ -52,6 +59,7 @@ function GroupReplays({group}: Props) {
     location,
     organization,
   });
+  const {allMobileProj} = useAllMobileProj();
 
   useEffect(() => {
     trackAnalytics('replay.render-issues-group-list', {
@@ -80,7 +88,7 @@ function GroupReplays({group}: Props) {
           isFetching={isFetching}
           replays={[]}
           sort={undefined}
-          visibleColumns={VISIBLE_COLUMNS}
+          visibleColumns={allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           showDropdownFilters={false}
         />
       </StyledLayoutPage>
@@ -91,7 +99,7 @@ function GroupReplays({group}: Props) {
       eventView={eventView}
       organization={organization}
       pageLinks={pageLinks}
-      visibleColumns={VISIBLE_COLUMNS}
+      visibleColumns={allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
       group={group}
     />
   );
@@ -124,6 +132,7 @@ function GroupReplaysTableInner({
     replaySlug,
     group,
   });
+  const {allMobileProj} = useAllMobileProj();
 
   return (
     <ReplayContextProvider
@@ -140,7 +149,10 @@ function GroupReplaysTableInner({
         pageLinks={pageLinks}
         selectedReplayIndex={selectedReplayIndex}
         setSelectedReplayIndex={setSelectedReplayIndex}
-        visibleColumns={VISIBLE_COLUMNS_WITH_PLAY}
+        visibleColumns={[
+          ReplayColumn.PLAY_PAUSE,
+          ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
+        ]}
         overlayContent={overlayContent}
         replays={replays}
       />
@@ -175,6 +187,7 @@ function GroupReplaysTable({
     queryReferrer: 'issueReplays',
   });
   const {replays} = replayListData;
+  const {allMobileProj} = useAllMobileProj();
 
   const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
   const selectedReplayIndex = parseInt(
@@ -221,7 +234,10 @@ function GroupReplaysTable({
   const replayTable = (
     <ReplayTable
       sort={undefined}
-      visibleColumns={selectedReplay ? VISIBLE_COLUMNS_WITH_PLAY : VISIBLE_COLUMNS}
+      visibleColumns={[
+        ...(selectedReplay ? [ReplayColumn.PLAY_PAUSE] : []),
+        ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
+      ]}
       showDropdownFilters={false}
       onClickPlay={setSelectedReplayIndex}
       fetchError={replayListData.fetchError}
