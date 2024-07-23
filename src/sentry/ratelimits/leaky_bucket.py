@@ -5,12 +5,15 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from time import time
-from typing import Any
+from typing import Any, ParamSpec, TypeVar
 
 from django.conf import settings
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +116,9 @@ class LeakyBucketRateLimiter:
     def decorator(
         self,
         key_override: str | None = None,
-        limited_handler: Callable[[LeakyBucketLimitInfo, dict[str, Any]], Any] | None = None,
+        limited_handler: Callable[[LeakyBucketLimitInfo, dict[str, Any]], R] | None = None,
         raise_exception: bool = False,
-    ) -> Callable[[Any], Any]:
+    ) -> Callable[[Callable[P, R]], Callable[P, R]]:
         """
         Decorator to limit the rate of requests
 
@@ -181,7 +184,7 @@ class LeakyBucketRateLimiter:
 
         """
 
-        def decorator(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
+        def decorator(func: Callable[P, R]) -> Callable[P, R]:
             @functools.wraps(func)
             def wrapper(*args: Any, **kwargs: Any) -> Any:
                 try:
