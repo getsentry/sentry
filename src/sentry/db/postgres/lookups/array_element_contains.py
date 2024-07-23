@@ -1,4 +1,3 @@
-from django.contrib.postgres.fields import ArrayField
 from django.db.backends.postgresql.base import DatabaseWrapper
 from django.db.models import Lookup
 from django.db.models.sql.compiler import SQLCompiler
@@ -27,6 +26,3 @@ class ArrayElementContainsLookup(Lookup):
         )""",
             params,
         )
-
-
-ArrayField.register_lookup(ArrayElementContainsLookup)
