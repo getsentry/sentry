@@ -141,9 +141,6 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert actual == expected
 
     def test_invalidate_project_config(self):
-        """
-        Asking for an inexistent project key will return an empty result
-        """
         response = self.get_response(method="post", project_id=self.project.id)
         assert response.status_code == 401
 
