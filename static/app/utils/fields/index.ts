@@ -530,16 +530,86 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   },
 };
 
+enum TraceFields {
+  SPAN_ACTION = 'span.action',
+  SPAN_CATEGORY = 'span.category',
+  SPAN_DESCRIPTION = 'span.description',
+  SPAN_DOMAIN = 'span.domain',
+  SPAN_DURATION = 'span.duration',
+  SPAN_GROUP = 'span.group',
+  SPAN_MODULE = 'span.module',
+  SPAN_OP = 'span.op',
+  // TODO: Remove this when self time is deprecated
+  SPAN_SELF_TIME = 'span.self_time',
+}
+
+const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+  /** Indexed Fields */
+  [TraceFields.SPAN_ACTION]: {
+    desc: t(
+      'The type of span action, i.e `SELECT` for a SQL span or `POST` for an HTTP span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceFields.SPAN_CATEGORY]: {
+    desc: t(
+      'The Insights module that the span is associated with, i.e `cache`, `db`, `http`, etc.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceFields.SPAN_DESCRIPTION]: {
+    desc: t('Parameterized and scrubbed description of the span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceFields.SPAN_DOMAIN]: {
+    desc: t(
+      'General scope of the span’s action, i.e. the tables involved in a `db` span or the host name in an `http` span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceFields.SPAN_DURATION]: {
+    desc: t('The total time taken by the span'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [TraceFields.SPAN_GROUP]: {
+    desc: t('Unique hash of the span’s description'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+  [TraceFields.SPAN_MODULE]: {
+    desc: t('The group ID of the span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+  [TraceFields.SPAN_OP]: {
+    desc: t('The operation of the span, i.e `http.client`, `middleware`'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+  [TraceFields.SPAN_SELF_TIME]: {
+    desc: t('The duration of the span excluding '),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+};
+
 type AllEventFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
   | keyof typeof MEASUREMENT_FIELDS
   | keyof typeof SPAN_OP_FIELDS
+  | keyof typeof TRACE_FIELD_DEFINITIONS
   | FieldKey;
 
 const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
+  ...TRACE_FIELD_DEFINITIONS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
