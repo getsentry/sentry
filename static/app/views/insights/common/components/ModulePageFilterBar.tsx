@@ -34,7 +34,7 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
     if (!hasDataWithSelectedProjects && hasDataWithAllProjects) {
       const startTime = 0.5 * SECOND;
       const endTime = startTime + 5 * SECOND;
-      // by adding a small delay to show the tooltip, we ensure the annimation occurs and the tooltip popping up is more obvious
+      // by adding a small delay to show the tooltip, we ensure the animation occurs and the tooltip popping up is more obvious
       setTimeout(() => setShowTooltip(true), startTime);
       setTimeout(() => setShowTooltip(false), endTime);
     }
