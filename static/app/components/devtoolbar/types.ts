@@ -11,7 +11,7 @@ export type Configuration = {
   projectSlug: string;
   SentrySDK?: typeof SentrySDK;
   domId?: string;
-  featureFlagTemplateUrl?: (flag: string) => string;
+  featureFlagTemplateUrl?: undefined | ((flag: string) => string | undefined);
   featureFlags?: string[];
   trackAnalytics?: (props: {eventKey: string; eventName: string}) => void;
 };

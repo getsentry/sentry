@@ -43,7 +43,7 @@ export default function FeatureFlagsPanel() {
           .map(flag => {
             return (
               <Cell key={flag} style={{alignItems: 'flex-start'}}>
-                {featureFlagTemplateUrl ? (
+                {featureFlagTemplateUrl?.(flag) ? (
                   <ExternalLink
                     style={{textDecoration: 'inherit', color: 'inherit'}}
                     href={featureFlagTemplateUrl(flag)}
