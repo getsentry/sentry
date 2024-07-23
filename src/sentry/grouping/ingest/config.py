@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.events.grouping")
 Job = MutableMapping[str, Any]
 
 # Used to migrate projects that have no activity via getsentry scripts
-CONFIGS_TO_DEPRECATE = "mobile:2021-02-12"
+CONFIGS_TO_DEPRECATE = ("mobile:2021-02-12",)
 
 # We want to test the new optimized transition code with projects that are on
 # deprecated configs before making it the default code path.
