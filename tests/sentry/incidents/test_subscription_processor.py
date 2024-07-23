@@ -502,7 +502,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident, [self.action], [(5, IncidentStatus.CLOSED, mock.ANY)]
         )
 
-    def test_get_anomaly_detected(self):
+    def test_has_anomaly(self):
         rule = self.dynamic_rule
         # test alert ABOVE
         anomaly1 = {
@@ -524,21 +524,21 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         }
 
         processor = SubscriptionProcessor(self.sub)
-        assert processor.get_anomaly_detected(anomaly1)
-        assert not processor.get_anomaly_detected(anomaly2)
-        assert not processor.get_anomaly_detected(not_anomaly)
+        assert processor.has_anomaly(anomaly1)
+        assert not processor.has_anomaly(anomaly2)
+        assert not processor.has_anomaly(not_anomaly)
 
         rule.update(threshold_type=AlertRuleThresholdType.BELOW.value)
         processor = SubscriptionProcessor(self.sub)
-        assert not processor.get_anomaly_detected(anomaly1)
-        assert processor.get_anomaly_detected(anomaly2)
-        assert not processor.get_anomaly_detected(not_anomaly)
+        assert not processor.has_anomaly(anomaly1)
+        assert processor.has_anomaly(anomaly2)
+        assert not processor.has_anomaly(not_anomaly)
 
         rule.update(threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value)
         processor = SubscriptionProcessor(self.sub)
-        assert processor.get_anomaly_detected(anomaly1)
-        assert processor.get_anomaly_detected(anomaly2)
-        assert not processor.get_anomaly_detected(not_anomaly)
+        assert processor.has_anomaly(anomaly1)
+        assert processor.has_anomaly(anomaly2)
+        assert not processor.has_anomaly(not_anomaly)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @mock.patch(
@@ -574,12 +574,25 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         seer_return_value: dict[str, list] = {"anomalies": []}
-
-        mock_seer_request.reset_mock()
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         result = processor.get_anomaly_data_from_seer(10)
         assert mock_logger.warning.call_args[0] == (
-            "Seer anomaly detection response returned an empty list",
+            "Seer anomaly detection response returned no potential anomalies",
+        )
+        assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.incidents.subscription_processor.logger")
+    def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
+        processor = SubscriptionProcessor(self.sub)
+        mock_seer_request.return_value = HTTPResponse("You flew too close to the sun", status=403)
+        result = processor.get_anomaly_data_from_seer(10)
+        assert mock_logger.error.called_with(
+            f"Received 403 when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",  # noqa
+            extra={"response_data": "You flew too close to the sun"},
         )
         assert result is None
 
@@ -590,14 +603,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.logger")
     def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
-        seer_return_value: dict[str, list] = {}
-
-        mock_seer_request.reset_mock()
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_seer_request.return_value = HTTPResponse(None, status=200)
         result = processor.get_anomaly_data_from_seer(10)
-        assert mock_logger.exception.called_with(
-            "Failed to parse Seer anomaly detection response",
-        )
+        assert mock_logger.exception.called_with("Failed to parse Seer anomaly detection response")
         assert result is None
 
     def test_alert(self):

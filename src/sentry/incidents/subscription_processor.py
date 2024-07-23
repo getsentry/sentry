@@ -511,13 +511,13 @@ class SubscriptionProcessor:
 
         aggregation_value = self.get_aggregation_value(subscription_update)
 
-        self.has_feature_flag = features.has(
+        self.has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
         )
 
-        if self.has_feature_flag:
-            anomalies = self.get_anomaly_data_from_seer(aggregation_value)
-            if anomalies is None:
+        if self.has_anomaly_detection:
+            potential_anomalies = self.get_anomaly_data_from_seer(aggregation_value)
+            if potential_anomalies is None:
                 return []
 
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
@@ -543,13 +543,13 @@ class SubscriptionProcessor:
             # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
                 if (
-                    self.has_feature_flag
+                    self.has_anomaly_detection
                     and trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
                 ):
-                    # MF: There should only be one anomaly in the list
-                    for anomaly in anomalies:
-                        if self.get_anomaly_detected(
-                            anomaly
+                    # NOTE: There should only be one anomaly in the list
+                    for potential_anomaly in potential_anomalies:
+                        if self.has_anomaly(
+                            potential_anomaly
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
                             incident_trigger = self.trigger_alert_threshold(
@@ -560,9 +560,8 @@ class SubscriptionProcessor:
                         else:
                             self.trigger_alert_counts[trigger.id] = 0
 
-                        # MF: There's no explicit "resolve threshold" for anomaly detection. I chose to resolve if no anomaly detected, but unsure if that's correct.
                         if (
-                            not self.get_anomaly_detected(anomaly)
+                            not self.has_anomaly(potential_anomaly)
                             and self.active_incident
                             and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                         ):
@@ -622,14 +621,13 @@ class SubscriptionProcessor:
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def get_anomaly_detected(
-        self, anomaly
-    ) -> bool:  # TODO: add the anomaly type once that's added to Sentry
+    def has_anomaly(self, anomaly) -> bool:
         """
         Helper function to determine whether we care about an anomaly based on the
         anomaly type and the alert rule's threshold type.
+        TODO: add the anomaly type once that's added to Sentry
+        TODO: replace the anomaly types with constants (once they're added to Sentry)
         """
-        # need to define constants for anomaly types
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
         if anomaly_type == "none" or anomaly_type == "no_data":
@@ -650,7 +648,7 @@ class SubscriptionProcessor:
 
     def get_anomaly_data_from_seer(self, aggregation_value: float | None):
         try:
-            ad_config = {
+            anomaly_detection_config = {
                 "time_period": self.alert_rule.threshold_period,
                 "sensitivity": self.alert_rule.sensitivity,
                 "seasonality": self.alert_rule.seasonality,
@@ -671,7 +669,7 @@ class SubscriptionProcessor:
                     {
                         "organization_id": self.subscription.project.organization.id,
                         "project_id": self.subscription.project_id,
-                        "config": ad_config,
+                        "config": anomaly_detection_config,
                         "context": context,
                     }
                 ).encode("utf-8"),
@@ -689,23 +687,27 @@ class SubscriptionProcessor:
             )
             return None
 
-        # TODO (MF): handle response codes if status code != 200
-        # MF: But it doesn't seem like the mock response has status codes. So.
+        if response.status != 200:
+            logger.error(
+                f"Received {response.status} when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",  # noqa
+                extra={"response_data": response.data},
+            )
+            return None
 
         try:
-            anomalies = json.loads(response.data.decode("utf-8")).get("anomalies")
-            if not anomalies:
+            results = json.loads(response.data.decode("utf-8")).get("anomalies")
+            if not results:
                 logger.warning(
-                    "Seer anomaly detection response returned an empty list",
+                    "Seer anomaly detection response returned no potential anomalies",
                     extra={
-                        "ad_config": ad_config,
+                        "ad_config": anomaly_detection_config,
                         "context": context,
                         "response_data": response.data,
                         "reponse_code": response.status,
                     },
                 )
                 return None
-            return anomalies
+            return results
         except (
             AttributeError,
             UnicodeError,
@@ -714,7 +716,7 @@ class SubscriptionProcessor:
             logger.exception(
                 "Failed to parse Seer anomaly detection response",
                 extra={
-                    "ad_config": ad_config,
+                    "ad_config": anomaly_detection_config,
                     "context": context,
                     "response_data": response.data,
                     "reponse_code": response.status,
