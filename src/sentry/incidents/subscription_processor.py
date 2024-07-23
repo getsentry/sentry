@@ -67,7 +67,7 @@ ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 # ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
 #  functionality, then maybe we should move this to constants
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
-DEFAULT_COUNT = "count"
+DEFAULT_AGGREGATE_KEY = "count"
 
 T = TypeVar("T")
 
@@ -104,6 +104,9 @@ class SubscriptionProcessor:
         self.triggers.sort(key=lambda trigger: trigger.alert_threshold)
 
         # NOTE: may not work if rule has multiple subscriptions?
+        # TODO: key stats off the aggregate key - NOT the alertrule+trigger key
+        # Stats would need to be stored off the alert_rule key
+        # Then within that - divided by the aggregate key
         (
             last_update,
             trigger_alert_counts,
@@ -435,9 +438,9 @@ class SubscriptionProcessor:
         key_constructors = snuba_query.query.parse(
             "group by"
         )  # somehow parse the query to determine what are we grouping by IF there are any groups
-        key = DEFAULT_COUNT
+        key = DEFAULT_AGGREGATE_KEY
         for key_constructor in key_constructors:
-            key += update_row[key_constructor]
+            key = ".".join([key, update_row[key_constructor]])
         return key
 
     def get_aggregation_values(
@@ -451,7 +454,7 @@ class SubscriptionProcessor:
             # Then key the value off the key
             key = self.get_aggregate_key(self.alert_rule.snuba_query, row)
 
-            aggregation_values[key] = row[DEFAULT_COUNT]
+            aggregation_values[key] = row[DEFAULT_AGGREGATE_KEY]
 
         # TODO: handle comparison aggregates
         # TODO: handle metric crash rate aggregates
@@ -860,6 +863,8 @@ class SubscriptionProcessor:
         """
         Updates stats about the alert rule, if they're changed.
         :return:
+
+        TODO: modify to properly handle multiple updates
         """
         updated_trigger_alert_counts = {
             trigger_id: alert_count
@@ -887,7 +892,12 @@ def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscri
     :return: A list containing the alert rule stat keys
     """
     key_base = ALERT_RULE_BASE_KEY % (alert_rule.id, subscription.project_id)
-    return [ALERT_RULE_BASE_STAT_KEY % (key_base, stat_key) for stat_key in ALERT_RULE_STAT_KEYS]
+    # constructs a key_base of 'alert_rule:<alert_rule_id>:project:<project_id>'
+    key_list = [
+        ALERT_RULE_BASE_STAT_KEY % (key_base, stat_key) for stat_key in ALERT_RULE_STAT_KEYS
+    ]
+    # constructs a list of ['alert_rule:<alert_rule_id>:project:<project_id>:last_updated', ...]
+    return key_list
 
 
 def build_trigger_stat_keys(
@@ -910,7 +920,11 @@ def build_alert_rule_trigger_stat_key(
     alert_rule_id: int, project_id: int, trigger_id: int, stat_key: str
 ) -> str:
     key_base = ALERT_RULE_BASE_KEY % (alert_rule_id, project_id)
-    return ALERT_RULE_BASE_TRIGGER_STAT_KEY % (key_base, trigger_id, stat_key)
+    # constructs a key_base of 'alert_rule:<alert_rule_id>:project:<project_id>'
+    key_list = ALERT_RULE_BASE_TRIGGER_STAT_KEY % (key_base, trigger_id, stat_key)
+    # constructs a list of ['alert_rule:<alert_rule_id>:project:<project_id>:trigger:<trigger_id>:<stat_key>', ...]
+    # stat_key === (alert_triggered, resolve_triggered)
+    return key_list
 
 
 def partition(iterable: Sequence[T], n: int) -> Sequence[Sequence[T]]:
@@ -937,6 +951,10 @@ def get_alert_rule_stats(
      - trigger_resolve_counts: A dict of trigger resolve counts, where the key is the
        trigger id, and the value is an int representing how many consecutive times we
        have triggered the resolve threshold
+
+    Stats only really make sense for a single alert state...
+        the trigger counts are used to determine whether we should fire or resolve an alert _after X consecutive triggers_
+        This should/can be keyed off the aggregate ID
     """
     alert_rule_keys = build_alert_rule_stat_keys(alert_rule, subscription)
     trigger_keys = build_trigger_stat_keys(alert_rule, subscription, triggers)
