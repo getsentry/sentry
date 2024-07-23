@@ -273,7 +273,9 @@ function GroupHeader({
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
-              {group.issueType in NEW_ISSUE_TYPES && <StyledFeatureBadge type="new" />}
+              {NEW_ISSUE_TYPES.includes(group.issueType) && (
+                <StyledFeatureBadge type="new" />
+              )}
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
