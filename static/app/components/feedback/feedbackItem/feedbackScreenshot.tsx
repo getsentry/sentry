@@ -50,7 +50,7 @@ export default function FeedbackScreenshot({
       {onClick ? <StyledImageButton onClick={onClick}>{img}</StyledImageButton> : img}
     </StyledPanel>
   ) : (
-    <File>
+    <File onClick={onClick}>
       <NoPreviewFound>
         <IconImage />
         {t('No preview found')}
