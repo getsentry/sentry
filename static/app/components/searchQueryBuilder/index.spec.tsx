@@ -2028,4 +2028,27 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
   });
+
+  describe('highlightUnsupportedFilters', function () {
+    it('should mark unsupported filters as invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowUnsupportedFilters
+          initialQuery="foo:bar"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'foo:bar'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Invalid key. "foo" is not a supported search key.')
+      ).toBeInTheDocument();
+    });
+  });
 });
