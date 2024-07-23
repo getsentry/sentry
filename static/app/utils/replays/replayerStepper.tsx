@@ -68,11 +68,11 @@ export default function replayerStepper<
     const considerFrame = (frame: Frame) => {
       if (shouldVisitFrame(frame, replayer)) {
         frameRef.current = frame;
-        window.setTimeout(() => {
+        window.requestAnimationFrame(() => {
           const timestamp =
             'offsetMs' in frame ? frame.offsetMs : frame.timestamp - startTimestampMs;
           replayer.pause(timestamp);
-        }, 0);
+        });
       } else {
         frameRef.current = undefined;
         nextOrDone();
