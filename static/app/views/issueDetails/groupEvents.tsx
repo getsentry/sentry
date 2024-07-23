@@ -107,27 +107,26 @@ function UpdatedSearchBar({
       const orgSlug = organization.slug;
       const projectIds = [group.project.id];
 
-      const eventsDatasetValues = fetchTagValues({
-        api,
-        orgSlug,
-        tagKey: key,
-        search,
-        projectIds,
-        dataset: Dataset.ERRORS,
-      });
+      const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
+        fetchTagValues({
+          api,
+          orgSlug,
+          tagKey: key,
+          search,
+          projectIds,
+          dataset: Dataset.ERRORS,
+        }),
+        fetchTagValues({
+          api,
+          orgSlug,
+          tagKey: key,
+          search,
+          projectIds,
+          dataset: Dataset.ISSUE_PLATFORM,
+        }),
+      ]);
 
-      const issuePlatformDatasetValues = fetchTagValues({
-        api,
-        orgSlug,
-        tagKey: key,
-        search,
-        projectIds,
-        dataset: Dataset.ISSUE_PLATFORM,
-      });
-
-      return await Promise.all([eventsDatasetValues, issuePlatformDatasetValues]).then(
-        tagValues => mergeAndSortTagValues(tagValues[0], tagValues[1])
-      );
+      return mergeAndSortTagValues(eventsDatasetValues, issuePlatformDatasetValues);
     },
     [api, group.project.id, organization.slug]
   );
