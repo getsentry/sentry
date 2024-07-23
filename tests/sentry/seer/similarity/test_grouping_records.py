@@ -68,7 +68,7 @@ def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_l
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_logger: MagicMock):
-    expected_return_value = {"success": False}
+    expected_return_value = {"success": False, "reason": "ReadTimeoutError"}
     mock_seer_request.side_effect = ReadTimeoutError(
         DUMMY_POOL, settings.SEER_AUTOFIX_URL, "read timed out"
     )
@@ -91,7 +91,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_logger: MagicMock):
-    expected_return_value = {"success": False}
+    expected_return_value = {"success": False, "reason": "INTERNAL SERVER ERROR"}
     mock_seer_request.return_value = HTTPResponse(
         b"<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n",
         reason="INTERNAL SERVER ERROR",
