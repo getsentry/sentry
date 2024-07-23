@@ -240,8 +240,8 @@ export default TeamStatsControls;
 const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
   display: grid;
   align-items: center;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 246px ${p => (p.showEnvironment ? '246px' : '')} 1fr;

@@ -22,7 +22,7 @@ const Panel = styled(
   border-radius: ${p => p.theme.panelBorderRadius};
   border: 1px
     ${p => (p.dashedBorder ? 'dashed' + p.theme.gray300 : 'solid ' + p.theme.border)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
   position: relative;
 `;
 

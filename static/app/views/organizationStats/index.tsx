@@ -395,7 +395,7 @@ const HeadingSubtitle = styled('p')`
 const PageControl = styled('div')`
   display: grid;
   width: 100%;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
   grid-template-columns: minmax(0, max-content);
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
