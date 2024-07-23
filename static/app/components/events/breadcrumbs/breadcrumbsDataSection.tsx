@@ -23,10 +23,8 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {
   IconClock,
   IconEllipsis,
-  IconFilter,
   IconMegaphone,
   IconSearch,
-  IconSort,
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -81,23 +79,20 @@ export default function BreadcrumbsDataSection({
         ({Header, Body}) => (
           <Fragment>
             <Header>
-              <BreadcrumbHeader>
-                <NavigationCrumbs
-                  crumbs={[
-                    {
-                      label: (
-                        <CrumbContainer>
-                          <ProjectAvatar project={project} />
-                          <ShortId>{group.shortId}</ShortId>
-                        </CrumbContainer>
-                      ),
-                    },
-                    {label: getShortEventId(event.id)},
-                    {label: t('Breadcrumbs')},
-                  ]}
-                />
-                <BreadcrumbsFeedback />
-              </BreadcrumbHeader>
+              <NavigationCrumbs
+                crumbs={[
+                  {
+                    label: (
+                      <CrumbContainer>
+                        <ProjectAvatar project={project} />
+                        <ShortId>{group.shortId}</ShortId>
+                      </CrumbContainer>
+                    ),
+                  },
+                  {label: getShortEventId(event.id)},
+                  {label: t('Breadcrumbs')},
+                ]}
+              />
             </Header>
             <Body>
               <BreadcrumbsDrawerContent
@@ -107,7 +102,7 @@ export default function BreadcrumbsDataSection({
             </Body>
           </Fragment>
         ),
-        {ariaLabel: 'breadcrumb drawer', closeOnOutsideClick: false}
+        {ariaLabel: 'breadcrumb drawer'}
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -119,23 +114,12 @@ export default function BreadcrumbsDataSection({
 
   const actions = (
     <ButtonBar gap={1}>
+      <BreadcrumbsFeedback />
       <Button
         aria-label={t('Search Breadcrumbs')}
         icon={<IconSearch size="xs" />}
         size="xs"
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
-      />
-      <Button
-        aria-label={t('Filter Breadcrumbs')}
-        icon={<IconFilter size="xs" />}
-        size="xs"
-        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.FILTER)}
-      />
-      <Button
-        aria-label={t('Sort Breadcrumbs')}
-        icon={<IconSort size="xs" />}
-        size="xs"
-        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SORT)}
       />
       <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
@@ -221,12 +205,6 @@ function BreadcrumbsFeedback() {
     </Button>
   );
 }
-
-const BreadcrumbHeader = styled('div')`
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-`;
 
 const ViewAllContainer = styled('div')`
   position: relative;
