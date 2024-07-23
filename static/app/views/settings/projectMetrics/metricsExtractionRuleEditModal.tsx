@@ -98,7 +98,7 @@ export function MetricsExtractionRuleEditModal({
   return (
     <Fragment>
       <Header>
-        <h4>{metricExtractionRule.spanAttribute}</h4>
+        <h4>{t('Edit Metric')}</h4>
       </Header>
       <CloseButton />
       <Body>
