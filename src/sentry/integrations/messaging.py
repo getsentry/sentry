@@ -1,10 +1,12 @@
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpResponse
+from django.db import IntegrityError
+from django.http import Http404, HttpResponse
 from django.urls import re_path
 from django.urls.resolvers import URLPattern
 from django.utils.decorators import method_decorator
@@ -19,7 +21,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models.identity import Identity
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations import Integration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
@@ -29,6 +31,8 @@ from sentry.types.actor import ActorType
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
+
+logger = logging.getLogger("sentry.integrations.messaging")
 
 
 @dataclass(frozen=True)
@@ -231,10 +235,30 @@ class _MessagingHandlerFactory(ActionHandlerFactory):
 
 
 @control_silo_view
-class LinkIdentityView(BaseView, ABC):
+class LinkingView(BaseView, ABC):
     @property
     @abstractmethod
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def provider(self) -> ExternalProviders:
+        raise NotImplementedError
+
+    @property
+    def provider_slug(self) -> str:
+        return self.parent_messaging_spec.provider_slug
+
+    @property
+    @abstractmethod
+    def user_parameter(self) -> str:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def confirmation_template(self) -> str:
+        """Path to the HTML template to render for a non-POST request."""
         raise NotImplementedError
 
     # TODO: Replace thw two template properties below with base templates for all
@@ -248,9 +272,14 @@ class LinkIdentityView(BaseView, ABC):
 
     @property
     @abstractmethod
-    def linked_template(self) -> str:
+    def success_template(self) -> str:
         """Path to the HTML template to show when an identity has been linked."""
         raise NotImplementedError
+
+    @property
+    def success_metric(self) -> str | None:
+        """Optional analytics key to record on success."""
+        return None
 
     def notify_on_success(self, integration: Integration, params: Mapping[str, Any]) -> None:
         pass
@@ -266,7 +295,7 @@ class LinkIdentityView(BaseView, ABC):
             )
 
         organization, integration, idp = get_identity_or_404(
-            ExternalProviders.MSTEAMS,
+            self.provider,
             request.user,
             integration_id=params["integration_id"],
             organization_id=params["organization_id"],
@@ -274,28 +303,78 @@ class LinkIdentityView(BaseView, ABC):
 
         if request.method != "POST":
             return render_to_response(
-                "sentry/auth-link-identity.html",
+                self.confirmation_template,
                 request=request,
                 context={"organization": organization, "provider": integration.get_provider()},
             )
 
-        Identity.objects.link_identity(
-            user=request.user, idp=idp, external_id=params["teams_user_id"]
-        )
+        response = self.execute(idp, params, request)
+        if response is not None:
+            return response
 
         self.notify_on_success(integration, params)
 
-        if False:  # TODO: Generalize for all providers
+        if self.success_metric:
             provider_slug = self.parent_messaging_spec.provider_slug
             analytics.record(
-                f"integrations.{provider_slug}.identity_linked",
+                self.success_metric,
                 provider=provider_slug,
                 actor_id=request.user.id,
                 actor_type=ActorType.USER,
             )
 
         return render_to_response(
-            "sentry/integrations/msteams/linked.html",
+            self.success_template,
             request=request,
             context={"team_id": params["team_id"]},
         )
+
+    @abstractmethod
+    def execute(
+        self, idp: IdentityProvider, params: Mapping[str, Any], request: Request
+    ) -> HttpResponse | None:
+        """Execute the operation on the Identity table.
+
+        Return a response to trigger an early halt under exceptional conditions.
+        Return None if everything is normal.
+        """
+        raise NotImplementedError
+
+
+class LinkIdentityView(LinkingView, ABC):
+    @property
+    def confirmation_template(self) -> str:
+        return "sentry/auth-link-identity.html"
+
+    def execute(
+        self, idp: IdentityProvider, params: Mapping[str, Any], request: Request
+    ) -> HttpResponse | None:
+        Identity.objects.link_identity(
+            user=request.user, idp=idp, external_id=params[self.user_parameter]
+        )
+        return None
+
+
+class UnlinkIdentityView(LinkingView, ABC):
+    @property
+    def confirmation_template(self) -> str:
+        return "sentry/auth-unlink-identity.html"
+
+    @property
+    def no_identity_template(self) -> str | None:
+        """Optional page to show if identities were not found."""
+        return None
+
+    def execute(
+        self, idp: IdentityProvider, params: Mapping[str, Any], request: Request
+    ) -> HttpResponse | None:
+        try:
+            identities = Identity.objects.filter(idp=idp, external_id=params[self.user_parameter])
+            if self.no_identity_template and not identities:
+                return render_to_response(self.no_identity_template, request=request, context={})
+            identities.delete()
+        except IntegrityError:
+            tag = f"{self.provider_slug}.unlink.integrity-error"
+            logger.exception(tag)
+            raise Http404
+        return None
