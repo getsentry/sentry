@@ -1110,11 +1110,11 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     quota_allowance_summary["threads_used"],
                 )
                 for k, v in quota_allowance_summary["throttled_by"].items():
-                    k = allocation_policy_prefix + k
+                    k = allocation_policy_prefix + "throttling_policy." + k
                     span.set_tag(k, v)
                     sentry_sdk.set_tag(k, v)
                 for k, v in quota_allowance_summary["rejected_by"].items():
-                    k = allocation_policy_prefix + k
+                    k = allocation_policy_prefix + "rejecting_policy." + k
                     span.set_tag(k, v)
                     sentry_sdk.set_tag(k, v)
 
