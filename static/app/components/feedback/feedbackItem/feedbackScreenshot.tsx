@@ -57,7 +57,7 @@ export default function FeedbackScreenshot({
       </NoPreviewFound>
       <Tooltip position="right" title={t('Click to download')}>
         <FileDownload
-          className="feedback-attachment-download-button"
+          aria-label="feedback-attachment-download-button"
           href={`/api/0/projects/${organization.slug}/${projectSlug}/events/${screenshot.event_id}/attachments/${screenshot.id}/?download=1`}
         >
           <TextOverflow>{screenshot.name}</TextOverflow>
