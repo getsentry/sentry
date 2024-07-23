@@ -198,8 +198,8 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
         # Disable org-members from creating new projects
         disable_member_project_creation: bool
 
-        # Disable superuser access to an organization
-        disable_superuser_access: bool
+        # Prevent superuser access to an organization
+        prevent_superuser_access: bool
 
         bitfield_default = 1
 

@@ -513,7 +513,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if "allowMemberProjectCreation" in data:
             org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
         if "allowSuperuserAccess" in data:
-            org.flags.disable_superuser_access = not data["allowSuperuserAccess"]
+            org.flags.prevent_superuser_access = not data["allowSuperuserAccess"]
         if "name" in data:
             org.name = data["name"]
         if "slug" in data:
@@ -531,7 +531,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "require_2fa": org.flags.require_2fa.is_set,
                 "codecov_access": org.flags.codecov_access.is_set,
                 "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
-                "disable_superuser_access": org.flags.disable_superuser_access.is_set,
+                "prevent_superuser_access": org.flags.prevent_superuser_access.is_set,
             },
         }
 

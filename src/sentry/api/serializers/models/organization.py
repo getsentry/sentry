@@ -353,7 +353,7 @@ class OrganizationSerializer(Serializer):
             ),
             "avatar": avatar,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
-            "allowSuperuserAccess": not obj.flags.disable_superuser_access,
+            "allowSuperuserAccess": not obj.flags.prevent_superuser_access,
             "links": {
                 "organizationUrl": generate_organization_url(obj.slug),
                 "regionUrl": generate_region_url(),
