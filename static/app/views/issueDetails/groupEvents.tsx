@@ -19,7 +19,7 @@ import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {mergeTagValues} from 'sentry/views/issueDetails/utils';
+import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
 import AllEventsTable from './allEventsTable';
@@ -124,7 +124,7 @@ function UpdatedSearchBar({
         projectIds,
         dataset: Dataset.ISSUE_PLATFORM,
       });
-      return mergeTagValues(eventsDatasetValues, issuePlatformDatasetValues);
+      return mergeAndSortTagValues(eventsDatasetValues, issuePlatformDatasetValues);
     },
     [api, group.project.id, organization.slug]
   );

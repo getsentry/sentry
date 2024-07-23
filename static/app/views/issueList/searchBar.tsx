@@ -25,7 +25,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {mergeTagValues} from 'sentry/views/issueDetails/utils';
+import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
 
@@ -144,7 +144,7 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
       });
 
       return await Promise.all([eventsDatasetValues, issuePlatformDatasetValues]).then(
-        tagValues => mergeTagValues(tagValues[0], tagValues[1])
+        tagValues => mergeAndSortTagValues(tagValues[0], tagValues[1])
       );
     },
     [

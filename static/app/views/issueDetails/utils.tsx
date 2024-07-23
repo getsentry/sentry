@@ -51,26 +51,40 @@ export function useDefaultIssueEvent() {
 /**
  * Combines two TagValue arrays and combines TagValue.count upon conflict
  */
-export function mergeTagValues(
+export function mergeAndSortTagValues(
   tagValues1: TagValue[],
-  tagValues2: TagValue[]
+  tagValues2: TagValue[],
+  sort: 'count' | 'lastSeen' = 'lastSeen'
 ): TagValue[] {
   const tagValueCollection = tagValues1.reduce<Record<string, TagValue>>(
     (acc, tagValue) => {
-      acc[tagValue.name] = tagValue;
+      acc[tagValue.value] = tagValue;
       return acc;
     },
     {}
   );
   tagValues2.forEach(tagValue => {
-    if (tagValueCollection[tagValue.name]) {
-      tagValueCollection[tagValue.name].count += tagValue.count;
+    if (tagValueCollection[tagValue.value]) {
+      tagValueCollection[tagValue.value].count += tagValue.count;
+      if (
+        new Date(tagValue.lastSeen) >
+        new Date(tagValueCollection[tagValue.value].lastSeen)
+      ) {
+        tagValueCollection[tagValue.value].lastSeen = tagValue.lastSeen;
+      }
     } else {
-      tagValueCollection[tagValue.name] = tagValue;
+      tagValueCollection[tagValue.value] = tagValue;
     }
   });
-
-  return Object.values(tagValueCollection);
+  const allTagValues: TagValue[] = Object.values(tagValueCollection);
+  if (sort === 'count') {
+    allTagValues.sort((a, b) => b.count - a.count);
+  } else {
+    allTagValues.sort(
+      (a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime()
+    );
+  }
+  return allTagValues;
 }
 
 /**
