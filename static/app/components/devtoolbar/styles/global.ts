@@ -34,7 +34,7 @@ export const globalCss = css`
     --blue200: rgba(60, 116, 221, 0.5);
     --blue100: rgba(60, 116, 221, 0.09);
 
-    --z-index: 100000;
+    --z-index: 10000;
 
     color: var(--gray400);
     font-family: system-ui, 'Helvetica Neue', Arial, sans-serif;
