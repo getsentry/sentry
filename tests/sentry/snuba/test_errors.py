@@ -1722,7 +1722,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0]["any_transaction"] == "a" * 32
-        assert data[0]["any_user_id"] == 1
+        assert data[0]["any_user_id"] == "1"
         assert data[0]["count"] == 1
 
     def test_offsets(self):
