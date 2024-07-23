@@ -373,6 +373,7 @@ module = [
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
     "sentry.search.events.builder.errors",
+    "sentry.search.events.builder.issue_platform",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.discover",
     "sentry.search.events.datasets.filter_aliases",
