@@ -1,5 +1,6 @@
 import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
 import React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
@@ -89,12 +90,11 @@ export function Content({
         {hasSuffix && (
           <div>
             {hasErrors && <AnnotatedTextErrors errors={errors} />}
-            {actionButton &&
-              (actionButtonAlwaysVisible ? (
-                actionButton
-              ) : (
-                <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
-              ))}
+            {actionButton && (
+              <ActionButtonWrapper actionButtonAlwaysVisible={actionButtonAlwaysVisible}>
+                {actionButton}
+              </ActionButtonWrapper>
+            )}
           </div>
         )}
       </ValueSection>
@@ -288,11 +288,15 @@ const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.linkUnderline} underline dotted;
 `;
 
-const ActionButtonWrapper = styled('div')`
-  visibility: hidden;
-  ${ContentWrapper}:hover & {
-    visibility: visible;
-  }
+const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`
+  ${p =>
+    !p.actionButtonAlwaysVisible &&
+    css`
+      visibility: hidden;
+      ${ContentWrapper}:hover & {
+        visibility: visible;
+      }
+    `}
 `;
 
 export const KeyValueData = {

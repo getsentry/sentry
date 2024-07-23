@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
+import {Link} from 'react-router';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {
   rawSpanKeys,
   type RawSpanType,
@@ -90,7 +91,7 @@ function getSpanTimeWindow(timestamp: number) {
   };
 }
 
-function getNonSizeKeyActionButtonData({
+function getNonSizeKeyActionData({
   organization,
   extractionRules,
   spanAttribute,
@@ -113,11 +114,10 @@ function getNonSizeKeyActionButtonData({
 
   if (extractionRule) {
     const virtualMRI = createVirtualMRI(extractionRule);
-    const spanTimeWindow = getSpanTimeWindow(spanTimestamp);
+    const spanTimeWindow = getSpanTimeWindow(spanTimestamp * 1000);
     return {
       actionButton: (
-        <LinkButton
-          size="xs"
+        <Link
           to={getMetricsUrl(organization.slug, {
             start: getUtcDateString(spanTimeWindow.startTime),
             end: getUtcDateString(spanTimeWindow.endTime),
@@ -135,7 +135,7 @@ function getNonSizeKeyActionButtonData({
           })}
         >
           {t('Open in Metrics')}
-        </LinkButton>
+        </Link>
       ),
       actionButtonAlwaysVisible: true,
     };
@@ -246,12 +246,12 @@ export function SpanKeys({
         key: key,
         subject: key,
         value: value as string | number,
-        ...getNonSizeKeyActionButtonData({
+        ...getNonSizeKeyActionData({
           organization,
           extractionRules,
           spanAttribute: key,
           projectId,
-          spanTimestamp: span.timestamp * 1000,
+          spanTimestamp: span.timestamp,
         }),
       });
     }
