@@ -48,7 +48,7 @@ describe('Metrics Page Header Actions', function () {
       await userEvent.click(button);
 
       expect(
-        await screen.findByRole('heading', {name: /Configure Metric/})
+        await screen.findByRole('heading', {name: 'Create Metric'})
       ).toBeInTheDocument();
     });
   });
