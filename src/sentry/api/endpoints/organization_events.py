@@ -438,7 +438,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     error_results = None
 
                 original_results = _data_fn(scoped_dataset, offset, limit, scoped_query)
-                if original_results.get("data"):
+                if original_results.get("data") is not None:
                     dataset_meta = original_results.get("meta", {})
                 else:
                     dataset_meta = list(original_results.values())[0].get("data").get("meta", {})

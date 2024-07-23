@@ -3725,7 +3725,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
         response = self.do_request(
             {
-                "field": ["count()", "transaction.name", "error.type"],
+                "field": ["count()", "transaction.op", "error.type"],
                 "query": "",
                 "dataset": "metricsEnhanced",
                 "per_page": 50,
@@ -3734,11 +3734,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
-        assert response.data.get("meta").get("discoverSplitDecision") is None
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
         widget.refresh_from_db()
-        assert widget.discover_widget_split is None
-        assert widget.dataset_source == DatasetSourcesTypes.UNKNOWN.value
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
     def test_split_decision_for_ambiguous_widget_with_data(self):
         # Store a transaction
@@ -3779,10 +3781,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
-        assert response.data.get("meta").get("discoverSplitDecision") is None
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
         widget.refresh_from_db()
-        assert widget.discover_widget_split is DashboardWidgetTypes.DISCOVER
+        assert widget.discover_widget_split is DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(

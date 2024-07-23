@@ -8,6 +8,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -791,6 +792,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_split_decision_for_transactions_widget(self):
         self.store_transaction_metric(
@@ -820,6 +822,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_split_decision_for_top_events_errors_widget(self):
         error_data = load_data("python", timestamp=before_now(minutes=1))
@@ -860,6 +863,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_split_decision_for_top_events_transactions_widget(self):
         self.store_transaction_metric(
@@ -896,6 +900,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_split_decision_for_ambiguous_widget_without_data(self):
         _, widget, __ = create_widget(
@@ -917,10 +922,13 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
 
         assert response.status_code == 200, response.content
-        assert response.data.get("meta").get("discoverSplitDecision") is None
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
         widget.refresh_from_db()
-        assert widget.discover_widget_split is None
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -1569,15 +1577,14 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
 
         saved_widget = DashboardWidget.objects.get(id=widget.id)
-        assert saved_widget.discover_widget_split == DashboardWidgetTypes.DISCOVER
+        assert saved_widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
 
         assert response.status_code == 200, response.content
 
         assert response.status_code == 200, response.content
         # Fell back to discover data which is empty for this test (empty group of '').
-        assert len(response.data.keys()) == 2
+        assert len(response.data.keys()) == 1
         assert bool(response.data["error_value,"])
-        assert bool(response.data["transaction_value,"])
 
     def test_top_events_with_transaction_on_demand_passing_widget_id_saved(self):
         field = "count()"
