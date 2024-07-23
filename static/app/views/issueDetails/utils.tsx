@@ -66,10 +66,7 @@ export function mergeAndSortTagValues(
   tagValues2.forEach(tagValue => {
     if (tagValueCollection[tagValue.value]) {
       tagValueCollection[tagValue.value].count += tagValue.count;
-      if (
-        new Date(tagValue.lastSeen) >
-        new Date(tagValueCollection[tagValue.value].lastSeen)
-      ) {
+      if (tagValue.lastSeen > tagValueCollection[tagValue.value].lastSeen) {
         tagValueCollection[tagValue.value].lastSeen = tagValue.lastSeen;
       }
     } else {
