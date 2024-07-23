@@ -122,6 +122,7 @@ def get_similarity_data_from_seer(
             sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
+        seer_similarity_circuit_breaker.record_error()
         return []
 
     metric_tags["response_status"] = response.status
@@ -147,6 +148,9 @@ def get_similarity_data_from_seer(
                 "error": "Redirect" if redirect else "RequestError",
             },
         )
+
+        if response.status >= 500:
+            seer_similarity_circuit_breaker.record_error()
 
         return []
 
