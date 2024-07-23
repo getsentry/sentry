@@ -6,12 +6,13 @@ and get rid of the old one, at which point this can lose the `2`.
 """
 
 import logging
+import time
 from enum import Enum
-from typing import NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, overload
 
 from django.conf import settings
 
-from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter
+from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 
 logger = logging.getLogger(__name__)
 
@@ -180,3 +181,124 @@ class CircuitBreaker:
                 default_recovery_duration,
             )
             self.recovery_duration = default_recovery_duration
+
+    def _get_from_redis(self, keys: list[str]) -> Any:
+        for key in keys:
+            self.redis_pipeline.get(key)
+        return self.redis_pipeline.execute()
+
+    def _set_in_redis(self, keys_values_and_timeouts: list[tuple[str, Any, int]]) -> None:
+        for key, value, timeout in keys_values_and_timeouts:
+            self.redis_pipeline.set(key, value, timeout)
+        self.redis_pipeline.execute()
+
+    def _get_state_and_remaining_time(
+        self,
+    ) -> tuple[CircuitBreakerState, int | None]:
+        """
+        Return the current state of the breaker (OK, BROKEN, or in RECOVERY), along with the
+        number of seconds until that state expires (or `None` when in OK state, as it has no
+        expiry).
+        """
+        now = int(time.time())
+
+        try:
+            broken_state_expiry, recovery_state_expiry = self._get_from_redis(
+                [self.broken_state_key, self.recovery_state_key]
+            )
+        except Exception:
+            logger.exception("Couldn't get state from redis for circuit breaker '%s'", self.key)
+
+            # Default to letting traffic through so the breaker doesn't become a single point of failure
+            return (CircuitBreakerState.OK, None)
+
+        # The BROKEN state key should always expire before the RECOVERY state one, so check it first
+        if broken_state_expiry is not None:
+            broken_state_seconds_left = int(broken_state_expiry) - now
+
+            # In theory there should always be time left (the key should have expired otherwise),
+            # but race conditions/caching/etc means we should check, just to be sure
+            if broken_state_seconds_left > 0:
+                return (CircuitBreakerState.BROKEN, broken_state_seconds_left)
+
+        if recovery_state_expiry is not None:
+            recovery_state_seconds_left = int(recovery_state_expiry) - now
+            if recovery_state_seconds_left > 0:
+                return (CircuitBreakerState.RECOVERY, recovery_state_seconds_left)
+
+        return (CircuitBreakerState.OK, None)
+
+    @overload
+    def _get_controlling_quota(
+        self, state: Literal[CircuitBreakerState.OK, CircuitBreakerState.RECOVERY]
+    ) -> Quota:
+        ...
+
+    @overload
+    def _get_controlling_quota(self, state: Literal[CircuitBreakerState.BROKEN]) -> None:
+        ...
+
+    @overload
+    def _get_controlling_quota(self) -> Quota | None:
+        ...
+
+    def _get_controlling_quota(self, state: CircuitBreakerState | None = None) -> Quota | None:
+        """
+        Return the Quota corresponding to the given breaker state (or the current breaker state, if
+        no state is provided). If the state is question is the BROKEN state, return None.
+        """
+        controlling_quota_by_state = {
+            CircuitBreakerState.OK: self.primary_quota,
+            CircuitBreakerState.BROKEN: None,
+            CircuitBreakerState.RECOVERY: self.recovery_quota,
+        }
+
+        _state = state or self._get_state_and_remaining_time()[0]
+
+        return controlling_quota_by_state[_state]
+
+    @overload
+    def _get_remaining_error_quota(self, quota: None, window_end: int | None) -> None:
+        ...
+
+    @overload
+    def _get_remaining_error_quota(self, quota: Quota, window_end: int | None) -> int:
+        ...
+
+    @overload
+    def _get_remaining_error_quota(self, quota: None) -> None:
+        ...
+
+    @overload
+    def _get_remaining_error_quota(self, quota: Quota) -> int:
+        ...
+
+    @overload
+    def _get_remaining_error_quota(self) -> int | None:
+        ...
+
+    def _get_remaining_error_quota(
+        self, quota: Quota | None = None, window_end: int | None = None
+    ) -> int | None:
+        """
+        Get the number of allowable errors remaining in the given quota for the time window ending
+        at the given time.
+
+        If no quota is given, in OK and RECOVERY states, return the current controlling quota's
+        remaining errors. In BROKEN state, return None.
+
+        If no time window end is given, return the current amount of quota remaining.
+        """
+        if not quota:
+            quota = self._get_controlling_quota()
+            if quota is None:  # BROKEN state
+                return None
+
+        now = int(time.time())
+        window_end = window_end or now
+
+        _, result = self.limiter.check_within_quotas(
+            [RequestedQuota(self.key, quota.limit, [quota])], window_end
+        )
+
+        return result[0].granted
