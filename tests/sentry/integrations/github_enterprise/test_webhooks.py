@@ -60,6 +60,50 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_missing_payload(self, mock_installation):
+        mock_installation.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 400
+        assert b"Webhook payload not found" in response.content
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_missing_github_event_header(self, mock_installation):
+        mock_installation.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 400
+        assert b"Missing X-GitHub-Event header" in response.content
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_invalid_json(self, mock_installation):
+        mock_installation.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=b'{"some_key": "value"',  # missing closing bracket
+            content_type="application/json",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 400
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_invalid_signature_event(self, mock_installation):
         mock_installation.return_value = self.metadata
 
@@ -76,7 +120,23 @@ class WebhookTest(APITestCase):
         assert b"Provided signature does not match the computed body signature" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_too_short(self, mock_installation):
+    def test_invalid_algorithm(self, mock_installation):
+        mock_installation.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha3=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 400
+        assert b"Signature algorithm is unsupported" in response.content
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_malformed_signature_too_short_sha1(self, mock_installation):
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -92,7 +152,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_no_value(self, mock_installation):
+    def test_malformed_signature_no_value_sha1(self, mock_installation):
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -102,6 +162,38 @@ class WebhookTest(APITestCase):
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 400
+        assert b"Signature value does not match the expected format" in response.content
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_malformed_signature_too_short_sha256(self, mock_installation):
+        mock_installation.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE_256="sha256=33521a2abfcf36fec",  # hash is too short
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 400
+        assert b"Signature value does not match the expected format" in response.content
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_malformed_signature_no_value_sha256(self, mock_installation):
+        mock_installation.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE_256="sha256=",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 400
@@ -121,6 +213,22 @@ class WebhookTest(APITestCase):
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 204
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_sha256_signature_invalid(self, mock_installation):
+        mock_installation.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE_256="sha256=7fb2fed663d2f386f29c1cff8980e11738a435b7e3c9332c1ab1fcc870f8abcd",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 401
+        assert b"Provided signature does not match the computed body signature" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     @override_options({"github-enterprise-app.allowed-hosts-legacy-webhooks": ["35.232.149.196"]})
