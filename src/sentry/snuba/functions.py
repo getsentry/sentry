@@ -133,6 +133,7 @@ def top_events_timeseries(
     rollup,
     limit,
     organization,
+    snuba_params=None,
     equations=None,
     referrer=None,
     top_events=None,
@@ -152,6 +153,7 @@ def top_events_timeseries(
                 selected_columns,
                 query=user_query,
                 params=params,
+                snuba_params=snuba_params,
                 equations=equations,
                 orderby=orderby,
                 limit=limit,
@@ -163,6 +165,7 @@ def top_events_timeseries(
     top_functions_builder = ProfileTopFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
         params=params,
+        snuba_params=snuba_params,
         interval=rollup,
         top_events=top_events["data"],
         other=False,
@@ -186,6 +189,7 @@ def top_events_timeseries(
         top_functions_builder,
         params,
         rollup,
+        snuba_params=snuba_params,
         top_events=top_events,
         allow_empty=allow_empty,
         zerofill_results=zerofill_results,
@@ -198,6 +202,7 @@ def format_top_events_timeseries_results(
     query_builder,
     params,
     rollup,
+    snuba_params=None,
     top_events=None,
     allow_empty=True,
     zerofill_results=True,
@@ -205,6 +210,9 @@ def format_top_events_timeseries_results(
 ):
     if top_events is None:
         assert top_events, "Need to provide top events"  # TODO: support this use case
+    if snuba_params is not None and len(params) == 0:
+        # Compatibility so its easier to convert to SnubaParams
+        params = snuba_params.filter_params
 
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(

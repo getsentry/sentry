@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import call
 from urllib.robotparser import RobotFileParser
@@ -18,6 +18,7 @@ from sentry.uptime.detectors.ranking import (
     _get_cluster,
     add_base_url_to_rank,
     get_organization_bucket,
+    get_project_base_url_rank_key,
 )
 from sentry.uptime.detectors.tasks import (
     LAST_PROCESSED_KEY,
@@ -98,8 +99,8 @@ class ProcessDetectionBucketTest(TestCase):
             mock_process_project_url_ranking.delay.assert_not_called()
 
     def test_bucket(self):
-        bucket = timezone.now().replace(second=0, microsecond=0)
-        dummy_organization_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
+        bucket = datetime(2024, 7, 18, 0, 21)
+        dummy_organization_id = 21
 
         self.project.organization = Organization(id=dummy_organization_id)
 
@@ -144,16 +145,37 @@ class ProcessOrganizationUrlRankingTest(TestCase):
                 ]
             )
 
-    def test_should_not_detect(self):
+    def test_should_not_detect_project(self):
         with mock.patch(
-            # TODO: Replace this mock with real tests when we implement this function properly
-            "sentry.uptime.detectors.tasks.should_detect_for_project",
-            return_value=False,
-        ), mock.patch(
             "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
+            self.project.update_option("sentry:uptime_autodetection", False)
             assert not process_project_url_ranking(self.project, 5)
             mock_get_candidate_urls_for_project.assert_not_called()
+
+    def test_should_not_detect_organization(self):
+        url_1 = "https://sentry.io"
+        url_2 = "https://sentry.sentry.io"
+        project_2 = self.create_project()
+        add_base_url_to_rank(self.project, url_2)
+        add_base_url_to_rank(self.project, url_1)
+        add_base_url_to_rank(self.project, url_1)
+        add_base_url_to_rank(project_2, url_1)
+
+        keys = [
+            get_project_base_url_rank_key(self.project),
+            get_project_base_url_rank_key(project_2),
+        ]
+        redis = _get_cluster()
+        assert all(redis.exists(key) for key in keys)
+
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
+        ) as mock_get_candidate_urls_for_project:
+            self.organization.update_option("sentry:uptime_autodetection", False)
+            assert not process_organization_url_ranking(self.organization.id)
+            mock_get_candidate_urls_for_project.assert_not_called()
+            assert all(not redis.exists(key) for key in keys)
 
 
 @freeze_time()
@@ -282,6 +304,15 @@ class ProcessCandidateUrlTest(TestCase):
         with mock.patch(
             "sentry.uptime.detectors.tasks.get_robots_txt_parser",
             return_value=test_robot_parser,
+        ):
+            assert process_candidate_url(self.project, 100, url, 50)
+
+    def test_error_robots_txt(self):
+        # Supplying no robots txt should allow all urls
+        url = "https://sentry.io"
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            side_effect=Exception("Robots.txt fetch failed"),
         ):
             assert process_candidate_url(self.project, 100, url, 50)
 

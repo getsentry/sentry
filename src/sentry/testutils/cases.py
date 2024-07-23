@@ -2320,14 +2320,11 @@ class OutcomesSnubaTest(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
 class ProfilesSnubaTestCase(
     TestCase,
     BaseTestCase,  # forcing this to explicitly inherit BaseTestCase addresses some type hint issues
 ):
-    def setUp(self):
-        super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/functions/drop").status_code == 200
-
     def store_functions(
         self,
         functions,
@@ -2336,11 +2333,8 @@ class ProfilesSnubaTestCase(
         extras=None,
         timestamp=None,
     ):
-        if timestamp is None:
-            timestamp = before_now(minutes=10)
-
         if transaction is None:
-            transaction = load_data("transaction", timestamp=timestamp)
+            transaction = load_data("transaction", timestamp=timestamp or before_now(minutes=10))
 
         profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
         if profile_context.get("profile_id") is None:

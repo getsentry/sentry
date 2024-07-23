@@ -861,3 +861,76 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
         response = self.do_request("post", f"{self.url}?environment=mock_env", data=data)
         assert response.status_code == 201, response.data
+
+    def test_post_dashboard_with_widget_split_datasets(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                    "widgetType": "error-events",
+                },
+                {
+                    "title": "Transaction Op Count",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Transaction Op Count",
+                            "fields": ["count()", "transaction.op"],
+                            "columns": ["transaction.op"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                    "widgetType": "transaction-like",
+                },
+                {
+                    "title": "Irrelevant widget type",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Issues",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                    "widgetType": "issue",
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+
+        dashboard = Dashboard.objects.get(id=response.data["id"])
+        widgets = dashboard.dashboardwidget_set.all()
+        assert widgets[0].widget_type == DashboardWidgetTypes.get_id_for_type_name("error-events")
+        assert widgets[0].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
+            "error-events"
+        )
+
+        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name(
+            "transaction-like"
+        )
+        assert widgets[1].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
+            "transaction-like"
+        )
+
+        assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
+        assert widgets[2].discover_widget_split is None

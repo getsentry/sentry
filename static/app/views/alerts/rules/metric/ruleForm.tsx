@@ -38,6 +38,7 @@ import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {AggregationKey} from 'sentry/utils/fields';
+import {findExtractionRuleCondition} from 'sentry/utils/metrics/extractionRules';
 import {
   getForceMetricsLayerQueryExtras,
   hasCustomMetrics,
@@ -47,6 +48,7 @@ import {
   DEFAULT_METRIC_ALERT_FIELD,
   DEFAULT_SPAN_METRIC_ALERT_FIELD,
   formatMRIField,
+  parseField,
 } from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
@@ -1037,6 +1039,19 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onDataLoaded: this.handleTimeSeriesDataFetched,
     };
 
+    let formattedQuery = `event.type:${eventTypes?.join(',')}`;
+    if (alertType === 'custom_metrics') {
+      formattedQuery = '';
+    }
+    if (alertType === 'span_metrics') {
+      const mri = parseField(aggregate)!.mri;
+      const condition = findExtractionRuleCondition(
+        mri,
+        this.state.metricExtractionRules || []
+      );
+      formattedQuery = condition?.value || '';
+    }
+
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
@@ -1047,9 +1062,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
                 <Aggregate>{formattedAggregate}</Aggregate>
-                {!['custom_metrics', 'span_metrics'].includes(alertType)
-                  ? `event.type:${eventTypes?.join(',')}`
-                  : ''}
+                {formattedQuery}
               </AlertInfo>
             )}
           </ChartHeader>

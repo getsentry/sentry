@@ -33,11 +33,12 @@ type Props = {
 
 export type TableStat = {
   accepted: number;
-  dropped: number;
   filtered: number;
+  invalid: number;
   project: Project;
   projectLink: string;
   projectSettingsLink: string;
+  rate_limited: number;
   total: number;
 };
 
@@ -69,7 +70,7 @@ class UsageTable extends Component<Props> {
 
   renderTableRow(stat: TableStat & {project: Project}) {
     const {dataCategory} = this.props;
-    const {project, total, accepted, filtered, dropped} = stat;
+    const {project, total, accepted, filtered, invalid, rate_limited} = stat;
 
     return [
       <CellProject key={0}>
@@ -106,12 +107,19 @@ class UsageTable extends Component<Props> {
       </CellStat>,
       <CellStat key={4}>
         {formatUsageWithUnits(
-          dropped,
+          rate_limited,
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
         )}
       </CellStat>,
       <CellStat key={5}>
+        {formatUsageWithUnits(
+          invalid,
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
+        )}
+      </CellStat>,
+      <CellStat key={6}>
         <ButtonBar gap={1}>
           <Button
             icon={<IconGraph type="bar" />}
@@ -158,10 +166,10 @@ class UsageTable extends Component<Props> {
 export default withSentryRouter(UsageTable);
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: repeat(6, auto);
+  grid-template-columns: repeat(7, auto);
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr repeat(5, minmax(0, auto));
+    grid-template-columns: 1fr repeat(6, minmax(0, auto));
   }
 `;
 
