@@ -203,7 +203,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
             </Button>
             <DropdownMenu
               triggerProps={{
-                'aria-label': t('Short-ID copy actions'),
+                'aria-label': t('Event actions'),
                 icon: <Chevron direction="down" />,
                 size: 'zero',
                 borderless: true,
