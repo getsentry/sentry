@@ -25,6 +25,7 @@ from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetTypes
+from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -262,7 +263,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             and widget.discover_widget_split != new_discover_widget_split
         ):
             widget.discover_widget_split = new_discover_widget_split
-            widget.dataset_source = DatasetSourcesTypes.INFERRED.value
+            widget.dataset_source = DashboardDatasetSourcesTypes.INFERRED.value
             widget.save()
 
         return new_discover_widget_split
