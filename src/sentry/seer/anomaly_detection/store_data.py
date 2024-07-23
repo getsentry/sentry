@@ -49,13 +49,6 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     return formatted_data
 
 
-def is_data_empty(data: list[TimeSeriesPoint]) -> bool:
-    for datum in data:
-        if datum.get("value") != 0:
-            return False
-    return True
-
-
 def translate_direction(direction: int) -> str:
     """
     Temporary translation map to Seer's expected values
@@ -98,19 +91,6 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> None:
     historical_data = fetch_historical_data(rule, snuba_query)
     formatted_data = format_historical_data(historical_data)
 
-    if is_data_empty(formatted_data):
-        return BaseHTTPResponse(
-            status=status.HTTP_400_BAD_REQUEST,
-            reason="No historical data available. Cannot make anomaly detection rule.",
-            version=0,
-            version_string="HTTP/?",
-            decode_content=True,
-            request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
-        )
-
-    # TODO: handle case where we have some historical data but it's less than 7 days
-    # need to add something to the response that the front end can render to let the user know it won't work for x num of days
-
     ad_config = ADConfig(
         time_period=time_period,
         sensitivity=rule.sensitivity,
@@ -133,13 +113,24 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> None:
         )
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
+        timeout_text = "Timeout error when hitting Seer store data endpoint"
         logger.warning(
-            "Timeout error when hitting Seer store data endpoint",
+            timeout_text,
             extra={
                 "rule_id": rule.id,
                 "project_id": project_id,
             },
         )
+        return BaseHTTPResponse(
+            status=status.HTTP_408_REQUEST_TIMEOUT,
+            reason=timeout_text,
+            version=0,
+            version_string="HTTP/?",
+            decode_content=True,
+            request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
+        )
+    # TODO warn if there isn't at least 7 days of data
+
     return resp
 
 
