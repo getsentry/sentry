@@ -5,6 +5,7 @@ import orjson
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -16,6 +17,8 @@ from sentry.models.dashboard_widget import (
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
+
+DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
 @register(DashboardWidget)
@@ -67,6 +70,7 @@ class DashboardWidgetSerializer(Serializer):
             # Default to discover type if null
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
+            "datasetSource": DATASET_SOURCES[obj.dataset_source],
         }
 
 
