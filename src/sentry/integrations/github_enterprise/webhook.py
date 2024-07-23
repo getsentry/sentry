@@ -278,7 +278,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 return HttpResponse(MISSING_SIGNATURE_HEADERS_ERROR, status=400)
             else:
                 # the host is allowed to skip signature verification
-                logger.info("github_enterprise.webhook.allowed-missing-signature", extra=extra)
+                # log it, and continue on.
                 logger.info("github_enterprise.webhook.allowed-missing-signature", extra=extra)
 
         except (MalformedSignatureError, IndexError) as e:
