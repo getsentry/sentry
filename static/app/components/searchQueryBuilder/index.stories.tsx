@@ -1,7 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -108,6 +109,50 @@ export default storyBook(SearchQueryBuilder, story => {
             searchSource="storybook"
           />
         </MinHeightSizingWindow>
+      </Fragment>
+    );
+  });
+
+  story('Config Options', () => {
+    const configs = [
+      'disallowFreeText',
+      'disallowLogicalOperators',
+      'disallowWildcard',
+      'disallowUnsupportedFilters',
+    ];
+
+    const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
+    const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
+      acc[config] = true;
+      return acc;
+    }, {});
+
+    return (
+      <Fragment>
+        <p>
+          There are some config options which allow you to customize which types of syntax
+          are considered valid. This should be used when the search backend does not
+          support certain operators like boolean logic or wildcards.
+        </p>
+        <MultipleCheckbox
+          onChange={setEnabledConfigs}
+          value={enabledConfigs}
+          name="enabled configs"
+        >
+          {configs.map(config => (
+            <MultipleCheckbox.Item key={config} value={config}>
+              {config}
+            </MultipleCheckbox.Item>
+          ))}
+        </MultipleCheckbox>
+        <SearchQueryBuilder
+          initialQuery="(unsupported_key:value OR browser.name:Internet*) TypeError"
+          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          {...queryBuilderOptions}
+        />
       </Fragment>
     );
   });
