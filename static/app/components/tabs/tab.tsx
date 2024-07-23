@@ -88,7 +88,7 @@ function BaseTab(
         />
         <FocusLayer orientation={orientation} />
         {rendered}
-        {<TabSelectionIndicator orientation={orientation} selected={isSelected} />}
+        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
       </InnerWrap>
     </TabWrap>
   );
