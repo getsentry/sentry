@@ -218,11 +218,11 @@ function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean
   );
 }
 
-function isPageloadTransaction(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
+function isPageloadTransactionNode(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
   return isTransactionNode(node) && node.value['transaction.op'] === 'pageload';
 }
 
-function isServerRequestHandlerTransaction(
+function isServerRequestHandlerTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): boolean {
   return isTransactionNode(node) && node.value['transaction.op'] === 'http.server';
@@ -590,8 +590,8 @@ export class TraceTree {
 
       if (
         childrenCount === 1 &&
-        isPageloadTransaction(node) &&
-        isServerRequestHandlerTransaction(parent)
+        isPageloadTransactionNode(node) &&
+        isServerRequestHandlerTransactionNode(parent)
       ) {
         // The swap can occur at a later point when new transactions are fetched,
         // which means we need to invalidate the tree and re-render the UI.
@@ -936,7 +936,7 @@ export class TraceTree {
         firstTransaction &&
         !childTransactions.length &&
         isBrowserRequestSpan(spanNodeValue) &&
-        isServerRequestHandlerTransaction(firstTransaction)
+        isServerRequestHandlerTransactionNode(firstTransaction)
       ) {
         childTransactions = [firstTransaction];
         spanNodeValue.childTransactions = childTransactions;
