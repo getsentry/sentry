@@ -14,10 +14,7 @@ from sentry.api.authentication import (
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
 )
-from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
-from sentry.models.apitoken import ApiToken
 from sentry.models.userip import UserIP
-from sentry.organizations.services.organization import organization_service
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 
 
@@ -91,62 +88,3 @@ class AuthenticationMiddleware(MiddlewareMixin):
             return expired(request, exception.user)
         else:
             return None
-
-
-class OrganizationScopedAuthenticationMiddleware(MiddlewareMixin):
-    """Restricts cross-organization access for organization-scoped tokens."""
-
-    def process_request(self, request: HttpRequest) -> None:
-        # TODO: We only care about tokens authorization. Is this correct? Should we care about
-        # more? I haven't restricted the org-application oauth flow yet to only produce tokens.
-        # It can produce grants.
-        if not hasattr(request, "auth") or not isinstance(
-            request.auth, (ApiToken, ApiTokenReplica)
-        ):
-            return None
-
-        # If the user's token does not allow them to access the organization we disable the
-        # authorization set by "AuthenticationMiddleware".
-        #
-        # TODO: This is how the auth middleware handles it but should we raise an auth
-        # exception or otherwise return a 401 response?
-        if not can_access_organization(request, request.auth):
-            request.auth = None
-            request.user = SimpleLazyObject(lambda: get_user(request))
-
-
-def can_access_organization(request: HttpRequest, token: ApiToken | ApiTokenReplica) -> bool:
-    # Tokens which are not scoped are passed through.
-    if not token.scoping_organization_id:
-        return True
-
-    # TODO
-    # Resource is not scoped by any url params. Safe to ignore? Can the
-    # organization be specified in the headers?
-    if not request.resolver_match:
-        return True
-
-    # TODO
-    # No org-id or slug in the urls params. Safe to ignore? Do any
-    # resources query for organizations based on user membership?
-    org_id_or_slug = request.resolver_match.kwargs.get("organization_id_or_slug")
-    if org_id_or_slug is None:
-        return True
-
-    try:
-        organization_id = int(org_id_or_slug)
-    except ValueError:
-        # TODO
-        # Are we fetching this redudantly? Surely this query happens in
-        # the endpoint. Should we cache it in some way?
-        organization = organization_service.get_organization_by_slug(
-            slug=str(org_id_or_slug),
-            include_projects=False,
-            include_teams=False,
-        )
-        if organization is None:
-            return True
-
-        organization_id = int(organization.id)
-
-    return token.scoping_organization_id == organization_id
