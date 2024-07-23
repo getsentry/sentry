@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import timedelta
 from functools import cached_property
 from unittest.mock import patch
 
@@ -37,7 +38,8 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.factories import EventType
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -224,6 +226,31 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             "seasonality": AlertRuleSeasonality.AUTO,
         }
         mock_seer_request.return_value = HTTPResponse(status=200)
+        day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "super duper bad",
+                    "timestamp": iso_format(day_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "super bad",
+                    "timestamp": iso_format(day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+
         with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug,
@@ -236,6 +263,33 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_no_historical_data(self, mock_seer_request):
+        data = {
+            **self.alert_rule_dict,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+        }
+        data["aggregate"] = "count_unique(user)"
+        mock_seer_request.return_value = HTTPResponse(status=200)
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert (
+            resp.data["detail"]
+            == "No historical data available. Cannot make anomaly detection rule."
+        )
+        assert AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).count() == 0
+        assert mock_seer_request.call_count == 0
 
     def test_monitor_type_with_condition(self):
         data = {

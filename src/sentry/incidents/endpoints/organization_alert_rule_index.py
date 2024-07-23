@@ -119,12 +119,14 @@ class AlertRuleIndexMixin(Endpoint):
                 }
                 find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)
+                # TODO handle slack channel lookup AND anomaly detection
             else:
                 alert_rule = serializer.save()
                 if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
                     resp = send_historical_data_to_seer(rule=alert_rule, user=request.user)
                     if resp.status != 200:
-                        return Response(status=status.HTTP_400_BAD_REQUEST)
+                        alert_rule.delete()
+                        return Response({"detail": resp.reason}, status=status.HTTP_400_BAD_REQUEST)
 
                 referrer = request.query_params.get("referrer")
                 session_id = request.query_params.get("sessionId")

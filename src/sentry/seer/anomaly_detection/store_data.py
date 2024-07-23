@@ -3,6 +3,8 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
+from rest_framework import status
+from urllib3 import BaseHTTPResponse
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
@@ -12,7 +14,6 @@ from sentry.models.user import User
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import ADConfig, Alert, StoreDataRequest, TimeSeriesPoint
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.shared_integrations.exceptions import ApiTimeoutError
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
@@ -46,6 +47,13 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
 
         formatted_data.append(ts_point)
     return formatted_data
+
+
+def is_data_empty(data: list[TimeSeriesPoint]) -> bool:
+    for datum in data:
+        if datum.get("value") != 0:
+            return False
+    return True
 
 
 def translate_direction(direction: int) -> str:
@@ -88,13 +96,27 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> None:
     snuba_query = SnubaQuery.objects.get(id=rule.snuba_query_id)
     time_period = int(snuba_query.time_window / 60)
     historical_data = fetch_historical_data(rule, snuba_query)
+    formatted_data = format_historical_data(historical_data)
+
+    if is_data_empty(formatted_data):
+        return BaseHTTPResponse(
+            status=status.HTTP_400_BAD_REQUEST,
+            reason="No historical data available. Cannot make anomaly detection rule.",
+            version=0,
+            version_string="HTTP/?",
+            decode_content=True,
+            request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
+        )
+
+    # TODO: handle case where we have some historical data but it's less than 7 days
+    # need to add something to the response that the front end can render to let the user know it won't work for x num of days
+
     ad_config = ADConfig(
         time_period=time_period,
         sensitivity=rule.sensitivity,
         direction=translate_direction(rule.threshold_type),
         expected_seasonality=rule.seasonality,
     )
-    formatted_data = format_historical_data(historical_data)
     alert = Alert(id=rule.id)
     body = StoreDataRequest(
         organization_id=rule.organization.id,
@@ -109,6 +131,7 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> None:
             path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
             body=json.dumps(body).encode("utf-8"),
         )
+    # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
         logger.warning(
             "Timeout error when hitting Seer store data endpoint",
@@ -117,7 +140,6 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> None:
                 "project_id": project_id,
             },
         )
-        raise ApiTimeoutError("Timeout error when hitting Seer store data endpoint")
     return resp
 
 
@@ -127,13 +149,10 @@ def fetch_historical_data(rule: AlertRule, snuba_query: SnubaQuery) -> SnubaTSRe
     """
     # TODO: if we can pass the existing timeseries data we have on the front end along here, we can shorten
     # the time period we query and combine the data
-    # TODO: make this an async task(?)
     NUM_DAYS = 28
     end = timezone.now()
     start = end - timedelta(days=NUM_DAYS)
-    # TODO add a check to the serializer that anomaly detection alerts
-    # only have threshold_periods of 15, 30, and 60 minutes
-    granularity = rule.threshold_period * 6000
+    granularity = snuba_query.time_window
 
     dataset_label = snuba_query.dataset
     if dataset_label == "events":
@@ -157,6 +176,5 @@ def fetch_historical_data(rule: AlertRule, snuba_query: SnubaQuery) -> SnubaTSRe
         rollup=granularity,
         referrer=Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value,
         zerofill_results=True,
-        allow_metric_aggregates=True,  # this is False by default, do we need it?
     )
     return historical_data
