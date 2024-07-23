@@ -192,9 +192,7 @@ export function BreadcrumbsDrawerContent({
         }}
         value={timeDisplay}
         options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
-      >
-        {null}
-      </CompactSelect>
+      />
     </ButtonBar>
   );
 

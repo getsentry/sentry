@@ -5,6 +5,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
@@ -13,6 +14,7 @@ import {
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
   getEnhancedBreadcrumbs,
   getSummaryBreadcrumbs,
@@ -116,32 +118,32 @@ export default function BreadcrumbsDataSection({
     <ButtonBar gap={1}>
       <BreadcrumbsFeedback />
       <Button
-        aria-label={t('Search Breadcrumbs')}
+        aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
         size="xs"
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
-      />
-      <Button
-        aria-label={t('Change Time Format for Breadcrumbs')}
-        icon={
-          timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
-            <IconClock size="xs" />
-          ) : (
-            <IconTimer size="xs" />
-          )
-        }
-        onClick={() => {
-          const nextTimeDisplay =
-            timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
-              ? BreadcrumbTimeDisplay.RELATIVE
-              : BreadcrumbTimeDisplay.ABSOLUTE;
-          setTimeDisplay(nextTimeDisplay);
+      >
+        {t('Open Search')}
+      </Button>
+      <CompactSelect
+        size="xs"
+        triggerProps={{
+          icon:
+            timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+              <IconClock />
+            ) : (
+              <IconTimer />
+            ),
+        }}
+        onChange={selectedOption => {
+          setTimeDisplay(selectedOption.value);
           trackAnalytics('breadcrumbs.issue_details.change_time_display', {
-            value: nextTimeDisplay,
+            value: selectedOption.value,
             organization,
           });
         }}
-        size="xs"
+        value={timeDisplay}
+        options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
       />
     </ButtonBar>
   );
