@@ -902,6 +902,7 @@ export type KeyValueListDataItem = {
     link?: string | LocationDescriptor;
   };
   actionButton?: React.ReactNode;
+  actionButtonAlwaysVisible?: boolean;
   isContextData?: boolean;
   isMultiValue?: boolean;
   meta?: Meta;

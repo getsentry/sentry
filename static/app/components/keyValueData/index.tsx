@@ -47,7 +47,14 @@ export function Content({
   disableFormattedData = false,
   ...props
 }: KeyValueDataContentProps) {
-  const {subject, subjectNode, value: contextValue, action = {}, actionButton} = item;
+  const {
+    subject,
+    subjectNode,
+    value: contextValue,
+    action = {},
+    actionButton,
+    actionButtonAlwaysVisible,
+  } = item;
 
   const hasErrors = errors.length > 0;
   const hasSuffix = !!(hasErrors || actionButton);
@@ -82,7 +89,12 @@ export function Content({
         {hasSuffix && (
           <div>
             {hasErrors && <AnnotatedTextErrors errors={errors} />}
-            {actionButton && <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>}
+            {actionButton &&
+              (actionButtonAlwaysVisible ? (
+                actionButton
+              ) : (
+                <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
+              ))}
           </div>
         )}
       </ValueSection>
