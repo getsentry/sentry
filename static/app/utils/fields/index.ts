@@ -579,17 +579,17 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   [TraceFields.SPAN_GROUP]: {
     desc: t('Unique hash of the span’s description'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.DURATION,
+    valueType: FieldValueType.STRING,
   },
   [TraceFields.SPAN_MODULE]: {
     desc: t('The group ID of the span'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.DURATION,
+    valueType: FieldValueType.STRING,
   },
   [TraceFields.SPAN_OP]: {
     desc: t('The operation of the span, i.e `http.client`, `middleware`'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.DURATION,
+    valueType: FieldValueType.STRING,
   },
   [TraceFields.SPAN_SELF_TIME]: {
     desc: t('The duration of the span excluding the duration of its child spans'),
