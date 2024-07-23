@@ -367,6 +367,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             SentryAppInstallationToken,
         )
 
+        if self.scoping_organization_id:
+            return self.scoping_organization_id
+
         try:
             installation = SentryAppInstallation.objects.get_by_api_token(self.id).get()
         except SentryAppInstallation.DoesNotExist:

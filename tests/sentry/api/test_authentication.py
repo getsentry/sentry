@@ -24,6 +24,7 @@ from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
     generate_request_signature,
 )
+from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
@@ -571,6 +572,35 @@ class TestAuthTokens(TestCase):
             assert is_org_auth_token_auth(token) and is_org_auth_token_auth(auth_token)
             assert auth_token.organization_id == self.organization.id
             assert auth_token.application_id is None
+            assert auth_token.allowed_origins == token.get_allowed_origins()
+            assert auth_token.scopes == token.get_scopes()
+            assert auth_token.audit_log_data == token.get_audit_log_data()
+
+    def test_api_tokens_organization_scoped(self):
+        application = ApiApplication.objects.create(owner_id=self.user.id)
+
+        api_token = ApiToken.objects.create(
+            token_type=AuthTokenType.USER,
+            user=self.user,
+            scoping_organization_id=self.organization.id,
+            application_id=application.id,
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            at = api_token
+        with assume_test_silo_mode(SiloMode.REGION):
+            atr = ApiTokenReplica.objects.get(apitoken_id=at.id)
+
+        assert at.organization_id
+
+        for token in [at, atr]:
+            auth_token = AuthenticatedToken.from_token(token)
+
+            assert auth_token.entity_id == at.id
+            assert auth_token.user_id == self.user.id
+            assert is_api_token_auth(token) and is_api_token_auth(auth_token)
+            assert auth_token.organization_id == self.organization.id
+            assert auth_token.application_id == application.id
             assert auth_token.allowed_origins == token.get_allowed_origins()
             assert auth_token.scopes == token.get_scopes()
             assert auth_token.audit_log_data == token.get_audit_log_data()
