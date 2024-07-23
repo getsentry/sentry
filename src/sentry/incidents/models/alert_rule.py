@@ -51,8 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 class SubscriptionCallback(Protocol):
-    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool:
-        ...
+    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool: ...
 
 
 alert_subscription_callback_registry: dict[AlertRuleMonitorTypeInt, SubscriptionCallback] = {}
@@ -734,6 +733,12 @@ class AlertRuleActivity(Model):
 def update_alert_activations(
     subscription: QuerySubscription, alert_rule: AlertRule, value: float
 ) -> bool:
+    # TODO: handle multiple values?
+    # metric_value is on the activations model...
+    # Do we have multiple activations per alert rule then?
+    # We _already_ have multiple activations per alert rule...
+    # they're filtered per subscription though....
+    # So - if a subscription can have multiple values... then this is NOT supported :thinking:
     now = timezone.now()
     subscription_end = subscription.date_added + timedelta(
         seconds=subscription.snuba_query.time_window

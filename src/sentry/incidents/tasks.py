@@ -172,6 +172,7 @@ def handle_snuba_query_update(
 
     # noinspection SpellCheckingInspection
     with metrics.timer("incidents.subscription_procesor.process_update"):
+        # update can have multiple results in Data
         SubscriptionProcessor(subscription).process_update(subscription_update)
 
 

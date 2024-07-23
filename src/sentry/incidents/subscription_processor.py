@@ -67,6 +67,7 @@ ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 # ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
 #  functionality, then maybe we should move this to constants
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
+DEFAULT_COUNT = "count"
 
 T = TypeVar("T")
 
@@ -430,28 +431,32 @@ class SubscriptionProcessor:
 
         return aggregation_value
 
-    def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
-        if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
-            # If the snubaquery dataset is a metrics
-            aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
-                subscription_update
-            )
-        else:
-            # (update.values.data first().values()) first()
-            aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
-            # In some cases Snuba can return a None value for an aggregation. This means
-            # there were no rows present when we made the query for certain types of aggregations
-            # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
-            # the update in the future.
-            if aggregation_value is None:
-                aggregation_value = 0
+    def get_aggregate_key(self, snuba_query, update_row):
+        key_constructors = snuba_query.query.parse(
+            "group by"
+        )  # somehow parse the query to determine what are we grouping by IF there are any groups
+        key = DEFAULT_COUNT
+        for key_constructor in key_constructors:
+            key += update_row[key_constructor]
+        return key
 
-            if self.alert_rule.comparison_delta:
-                aggregation_value = self.get_comparison_aggregation_value(
-                    subscription_update, aggregation_value
-                )
+    def get_aggregation_values(
+        self, subscription_update: QuerySubscriptionUpdate
+    ) -> dict[str, float | None]:
+        # aggregate key is derived from the query and the row values
+        aggregation_values = {}
+        for row in subscription_update["values"]["data"]:
+            # for each row in the data,
+            # pull the key bits from the data_row and construct the key to return?
+            # Then key the value off the key
+            key = self.get_aggregate_key(self.alert_rule.snuba_query, row)
 
-        return aggregation_value
+            aggregation_values[key] = row[DEFAULT_COUNT]
+
+        # TODO: handle comparison aggregates
+        # TODO: handle metric crash rate aggregates
+
+        return aggregation_values
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
         """
@@ -515,56 +520,64 @@ class SubscriptionProcessor:
                 },
             )
 
-        # TODO: aggregate multiple values
-        aggregation_value = self.get_aggregation_value(subscription_update)
-
-        # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        # Current callback will update the activation metric values & delete querysubscription on finish
-        # TODO: register over/under triggers as alert rule callbacks as well
-        invoke_alert_subscription_callback(
-            AlertRuleMonitorTypeInt(self.alert_rule.monitor_type),
-            subscription=self.subscription,
-            alert_rule=self.alert_rule,
-            value=aggregation_value,
-        )
-
-        if aggregation_value is None:
-            metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
-            return
-
         # OVER/UNDER value trigger
+        # These are tightly coupled with the OVER/UNDER threshold types...
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
         fired_incident_triggers = []
+
+        aggregation_values = self.get_aggregation_values(subscription_update)
         with transaction.atomic(router.db_for_write(AlertRule)):
-            # Triggers is the threshold - NOT an instance of a trigger
-            for trigger in self.triggers:
-                if alert_operator(
-                    aggregation_value, trigger.alert_threshold
-                ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
-                    # If the value has breached our threshold (above/below)
-                    # And the trigger is not yet active
-                    metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
-                    # triggering a threshold will create an incident and set the status to active
-                    incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
-                    if incident_trigger is not None:
-                        fired_incident_triggers.append(incident_trigger)
-                else:
-                    self.trigger_alert_counts[trigger.id] = 0
+            for aggregation_value in aggregation_values:
+                # Trigger callbacks for any AlertRules that may need to know about the subscription update
+                # Current callback will update the activation metric values & delete querysubscription on finish
+                # TODO: register over/under triggers as alert rule callbacks as well
 
-                if (
-                    resolve_operator(aggregation_value, self.calculate_resolve_threshold(trigger))
-                    and self.active_incident
-                    and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-                ):
-                    metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
-                    incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
+                # TODO: ensure Activations can support multiple aggregation values per subscription
+                invoke_alert_subscription_callback(
+                    AlertRuleMonitorTypeInt(self.alert_rule.monitor_type),
+                    subscription=self.subscription,
+                    alert_rule=self.alert_rule,
+                    value=aggregation_value,
+                )
 
-                    if incident_trigger is not None:
-                        fired_incident_triggers.append(incident_trigger)
-                else:
-                    self.trigger_resolve_counts[trigger.id] = 0
+                if aggregation_value is None:
+                    metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
+                    continue
+
+                # Triggers is the threshold - NOT an instance of a trigger
+                for trigger in self.triggers:
+                    if alert_operator(
+                        aggregation_value, trigger.alert_threshold
+                    ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+                        # If the value has breached our threshold (above/below)
+                        # And the trigger is not yet active
+                        metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                        # triggering a threshold will create an incident and set the status to active
+                        incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
+                        if incident_trigger is not None:
+                            fired_incident_triggers.append(incident_trigger)
+                    else:
+                        # TODO: determine whether we need to key this off the trigger id AND the aggregate key?
+                        self.trigger_alert_counts[trigger.id] = 0
+
+                    if (
+                        resolve_operator(
+                            aggregation_value, self.calculate_resolve_threshold(trigger)
+                        )
+                        and self.active_incident
+                        and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+                    ):
+                        metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
+                        incident_trigger = self.trigger_resolve_threshold(
+                            trigger, aggregation_value
+                        )
+
+                        if incident_trigger is not None:
+                            fired_incident_triggers.append(incident_trigger)
+                    else:
+                        self.trigger_resolve_counts[trigger.id] = 0
 
             if fired_incident_triggers:
                 # For all the newly created incidents
