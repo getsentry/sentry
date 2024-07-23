@@ -1,11 +1,6 @@
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
-import replayerStepper from 'sentry/utils/replays/replayerStepper';
-import {
-  getNodeId,
-  type RecordingFrame,
-  type ReplayFrame,
-} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 export type Extraction = {
   frame: ReplayFrame;
@@ -13,50 +8,7 @@ export type Extraction = {
   timestamp: number;
 };
 
-type Args = {
-  /**
-   * Frames where we should stop and extract html for a given dom node
-   */
-  frames: ReplayFrame[] | undefined;
-
-  /**
-   * The rrweb events that constitute the replay
-   */
-  rrwebEvents: RecordingFrame[] | undefined;
-
-  /**
-   * The replay start time, in ms
-   */
-  startTimestampMs: number;
-};
-
-export default function extractDomNodes({
-  frames,
-  rrwebEvents,
-  startTimestampMs,
-}: Args): Promise<Map<ReplayFrame, Extraction>> {
-  return replayerStepper({
-    frames,
-    rrwebEvents,
-    startTimestampMs,
-    shouldVisitFrame: frame => {
-      const nodeId = getNodeId(frame);
-      return nodeId !== undefined && nodeId !== -1;
-    },
-    onVisitFrame: (frame, collection, replayer) => {
-      const mirror = replayer.getMirror();
-      const nodeId = getNodeId(frame);
-      const html = extractHtml(nodeId as number, mirror);
-      collection.set(frame as ReplayFrame, {
-        frame,
-        html,
-        timestamp: frame.timestampMs,
-      });
-    },
-  });
-}
-
-function extractHtml(nodeId: number, mirror: Mirror): string | null {
+export default function extractHtml(nodeId: number, mirror: Mirror): string | null {
   const node = mirror.getNode(nodeId);
 
   const html =

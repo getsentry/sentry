@@ -1,4 +1,6 @@
+import {useQuery} from 'sentry/utils/queryClient';
 import replayerStepper from 'sentry/utils/replays/replayerStepper';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
 
 type Args = {
@@ -18,7 +20,7 @@ type Args = {
   startTimestampMs: number;
 };
 
-export default async function extactPageHtml({
+async function extractPageHtml({
   offsetMsToStopAt,
   rrwebEvents,
   startTimestampMs,
@@ -32,11 +34,11 @@ export default async function extactPageHtml({
     frames,
     rrwebEvents,
     startTimestampMs,
-    shouldVisitFrame(_frame) {
+    shouldVisitFrame: () => {
       // Visit all the timestamps (converted to frames) that were passed in above
       return true;
     },
-    onVisitFrame(frame, collection, replayer) {
+    onVisitFrame: (frame, collection, replayer) => {
       const doc = replayer.getMirror().getNode(1);
       const html = (doc as Document)?.body.outerHTML ?? '';
       collection.set(frame, html);
@@ -45,4 +47,22 @@ export default async function extactPageHtml({
   return Array.from(results.entries()).map(([frame, html]) => {
     return [frame.offsetMs, html];
   });
+}
+
+interface Props {
+  offsetMsToStopAt: number[];
+  replay: ReplayReader | null;
+}
+
+export default function useExtractPageHtml({replay, offsetMsToStopAt}: Props) {
+  return useQuery(
+    ['extactPageHtml', replay, offsetMsToStopAt],
+    () =>
+      extractPageHtml({
+        offsetMsToStopAt,
+        rrwebEvents: replay?.getRRWebFrames(),
+        startTimestampMs: replay?.getReplay().started_at.getTime() ?? 0,
+      }),
+    {enabled: Boolean(replay), cacheTime: Infinity}
+  );
 }
