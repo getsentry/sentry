@@ -3,16 +3,24 @@ import omit from 'lodash/omit';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Chevron} from 'sentry/components/chevron';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
-import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconChevron, IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {getShortEventId} from 'sentry/utils/events';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {
+  getAnalyticsDataForEvent,
+  getAnalyticsDataForGroup,
+  getShortEventId,
+} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -85,6 +93,32 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
     eventSection.condition(event)
   );
 
+  const downloadJson = () => {
+    const host = organization.links.regionUrl;
+    const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
+    window.open(jsonUrl);
+    trackAnalytics('issue_details.event_json_clicked', {
+      organization,
+      group_id: parseInt(`${event.groupID}`, 10),
+    });
+  };
+
+  const {onClick: copyLink} = useCopyToClipboard({
+    successMessage: t('Event URL copied to clipboard'),
+    text: window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`),
+    onCopy: () =>
+      trackAnalytics('issue_details.copy_event_link_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        ...getAnalyticsDataForEvent(event),
+      }),
+  });
+
+  const {onClick: copyEventId} = useCopyToClipboard({
+    successMessage: t('Event ID copied to clipboard'),
+    text: event.id,
+  });
+
   return (
     <div>
       <EventNavigationWrapper>
@@ -149,9 +183,53 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
       <Divider />
       <EventInfoJumpToWrapper>
         <EventInfo>
-          <EventID>
-            {tct('Event [eventId]', {eventId: getShortEventId(event.id)})}
-          </EventID>
+          <EventIdInfo>
+            <EventTitle>{t('Event')}</EventTitle>
+            <Button
+              aria-label={t('Copy')}
+              borderless
+              onClick={copyEventId}
+              size="zero"
+              title={event.id}
+              tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
+              translucentBorder
+            >
+              <EventId>
+                {getShortEventId(event.id)}
+                <CopyIconContainer>
+                  <IconCopy size="xs" />
+                </CopyIconContainer>
+              </EventId>
+            </Button>
+            <DropdownMenu
+              triggerProps={{
+                'aria-label': t('Short-ID copy actions'),
+                icon: <Chevron direction="down" />,
+                size: 'zero',
+                borderless: true,
+                showChevron: false,
+              }}
+              position="bottom"
+              size="xs"
+              items={[
+                {
+                  key: 'copy-event-id',
+                  label: t('Copy Event ID'),
+                  onAction: copyEventId,
+                },
+                {
+                  key: 'copy-event-link',
+                  label: t('Copy Event Link'),
+                  onAction: copyLink,
+                },
+                {
+                  key: 'view-json',
+                  label: t('View JSON'),
+                  onAction: downloadJson,
+                },
+              ]}
+            />
+          </EventIdInfo>
           <TimeSince date={event.dateCreated ?? event.dateReceived} />
         </EventInfo>
         <JumpTo>
@@ -224,11 +302,41 @@ const Divider = styled('hr')`
   margin-bottom: ${space(1)};
 `;
 
-const EventID = styled('div')`
-  font-weight: bold;
+const EventIdInfo = styled('span')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+`;
+
+const EventId = styled('span')`
+  position: relative;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
+  text-decoration: underline;
+  text-decoration-color: ${p => p.theme.gray200};
+  &:hover {
+    > span {
+      display: flex;
+    }
+  }
 `;
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray300};
+`;
+
+const CopyIconContainer = styled('span')`
+  display: none;
+  align-items: center;
+  padding: ${space(0.25)};
+  background: ${p => p.theme.background};
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+`;
+
+const EventTitle = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
