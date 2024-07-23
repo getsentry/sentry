@@ -129,11 +129,17 @@ export function PipelinesTable() {
       search: new MutableSearch(
         `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
       ),
-      fields: [
-        'span.ai.pipeline.group',
-        'sum(ai.total_tokens.used)',
-        'sum(ai.total_cost)',
-      ],
+      fields: ['span.ai.pipeline.group', 'sum(ai.total_tokens.used)'],
+    },
+    'api.performance.ai-analytics.token-usage-chart'
+  );
+
+  const {data: tokenCostData, isLoading: tokenCostLoading} = useSpanMetrics(
+    {
+      search: new MutableSearch(
+        `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
+      ),
+      fields: ['span.ai.pipeline.group', 'sum(ai.total_cost)'],
     },
     'api.performance.ai-analytics.token-usage-chart'
   );
@@ -151,8 +157,13 @@ export function PipelinesTable() {
       if (tokenUsedDataPoint) {
         row['sum(ai.total_tokens.used)'] =
           tokenUsedDataPoint['sum(ai.total_tokens.used)'];
-        row['sum(ai.total_cost)'] = tokenUsedDataPoint['sum(ai.total_cost)'];
       }
+    }
+    if (!tokenCostLoading) {
+      const tokenCostDataPoint = tokenCostData.find(
+        tokenRow => tokenRow['span.ai.pipeline.group'] === row['span.group']
+      );
+      row['sum(ai.total_cost)'] = tokenCostDataPoint['sum(ai.total_cost)'];
     }
     return row;
   });
