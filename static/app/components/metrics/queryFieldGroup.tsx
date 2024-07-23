@@ -1,6 +1,7 @@
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {ComboBox as _ComboBox} from 'sentry/components/comboBox';
 import {
   CompactSelect as _CompactSelect,
@@ -8,7 +9,11 @@ import {
   type SelectKey,
   type SingleSelectProps,
 } from 'sentry/components/compactSelect';
+import {DebouncedInput as _DebouncedInput} from 'sentry/components/modals/metricWidgetViewerModal/queries';
 import _SmartSearchBar from 'sentry/components/smartSearchBar';
+import {Tooltip} from 'sentry/components/tooltip';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconDelete} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 export function QueryFieldGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
@@ -56,6 +61,24 @@ function CompactSelect<Value extends SelectKey>(props: CompactSelectProps<Value>
     />
   );
 }
+
+function DeleteButton({title, onClick}: {onClick: () => void; title: string}) {
+  return (
+    <Tooltip title={title} delay={SLOW_TOOLTIP_DELAY}>
+      <StyledButton
+        icon={<IconDelete size="xs" />}
+        aria-label={title}
+        onClick={onClick}
+      />
+    </Tooltip>
+  );
+}
+
+const StyledButton = styled(Button)`
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+`;
 
 const ComboBox = styled(_ComboBox)`
   input: {
@@ -111,7 +134,14 @@ const Label = styled('span')`
   }
 `;
 
+const DebouncedInput = styled(_DebouncedInput)`
+  border-radius: 0;
+  z-index: 1;
+`;
+
 QueryFieldGroup.Label = Label;
 QueryFieldGroup.CompactSelect = CompactSelect;
 QueryFieldGroup.ComboBox = ComboBox;
 QueryFieldGroup.SmartSearchBar = SmartSearchBar;
+QueryFieldGroup.DebouncedInput = DebouncedInput;
+QueryFieldGroup.DeleteButton = DeleteButton;
