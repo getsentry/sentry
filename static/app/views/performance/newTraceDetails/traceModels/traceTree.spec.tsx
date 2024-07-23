@@ -2742,7 +2742,7 @@ describe('TraceTree', () => {
   });
 
   describe('SSR', () => {
-    it('makes pageload transaction a parent of SSR transaction', () => {
+    it('makes pageload transaction a parent of server handler transaction', () => {
       const tree: TraceTree = TraceTree.FromTrace(
         makeTrace({
           transactions: [
@@ -2767,8 +2767,44 @@ describe('TraceTree', () => {
         'http.server'
       );
     });
+
+    it('skips reparenting if server handler has multiple direct transaction children', () => {
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'SSR',
+              ['transaction.op']: 'http.server',
+              children: [
+                makeTransaction({
+                  transaction: 'first pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+                makeTransaction({
+                  transaction: 'second pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+              ],
+            }),
+          ],
+        }),
+        null
+      );
+
+      const transaction = tree.list[1];
+      assertTransactionNode(transaction);
+      expect(transaction.value.transaction).toBe('SSR');
+
+      const firstPageload = tree.list[2];
+      assertTransactionNode(firstPageload);
+      expect(firstPageload.value.transaction).toBe('first pageload');
+
+      const secondPageload = tree.list[3];
+      assertTransactionNode(secondPageload);
+      expect(secondPageload.value.transaction).toBe('second pageload');
+    });
     describe('expanded', () => {
-      it('SSR transaction becomes a child of browser request span if present', async () => {
+      it('server handler transaction becomes a child of browser request span if present', async () => {
         const tree: TraceTree = TraceTree.FromTrace(
           makeTrace({
             transactions: [
@@ -2808,7 +2844,7 @@ describe('TraceTree', () => {
         assertTransactionNode(ssrTransaction);
         expect(ssrTransaction.value.transaction).toBe('SSR');
       });
-      it('SSR transaction becomes a direct child if there is no matching browser request span', async () => {
+      it('server handler transaction becomes a direct child if there is no matching browser request span', async () => {
         const tree: TraceTree = TraceTree.FromTrace(
           makeTrace({
             transactions: [

@@ -525,7 +525,8 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError
+      value: TraceTree.Transaction | TraceTree.TraceError,
+      childrenCount: number
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug:
@@ -587,18 +588,21 @@ export class TraceTree {
         );
       }
 
-      if (isPageloadTransaction(node) && isServerRequestHandlerTransaction(parent)) {
-        childParentSwap({parent, child: node});
-
+      if (
+        childrenCount === 1 &&
+        isPageloadTransaction(node) &&
+        isServerRequestHandlerTransaction(parent)
+      ) {
         // The swap can occur at a later point when new transactions are fetched,
         // which means we need to invalidate the tree and re-render the UI.
+        childParentSwap({parent, child: node});
         parent.invalidate(parent);
         node.invalidate(node);
       }
 
       if (value && 'children' in value) {
         for (const child of value.children) {
-          visit(node, child);
+          visit(node, child, value.children.length);
         }
       }
 
@@ -624,17 +628,17 @@ export class TraceTree {
           typeof orphan.timestamp === 'number' &&
           transaction.start_timestamp <= orphan.timestamp
         ) {
-          visit(traceNode, transaction);
+          visit(traceNode, transaction, transaction.children.length);
           tIdx++;
         } else {
-          visit(traceNode, orphan);
+          visit(traceNode, orphan, 0);
           oIdx++;
         }
       } else if (transaction) {
-        visit(traceNode, transaction);
+        visit(traceNode, transaction, transaction.children.length);
         tIdx++;
       } else if (orphan) {
-        visit(traceNode, orphan);
+        visit(traceNode, orphan, 0);
         oIdx++;
       }
     }
