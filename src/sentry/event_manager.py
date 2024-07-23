@@ -2364,8 +2364,6 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
-    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
-
     if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
         logger.warning(
             "get_severity_metadata_for_group.seer_killswitch_enabled",
@@ -2378,13 +2376,8 @@ def _get_severity_metadata_for_group(
     if not feature_enabled:
         return {}
 
-    is_supported_platform = (
-        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
-        if event.platform
-        else False
-    )
     is_error_group = group_type == ErrorGroupType.type_id if group_type else True
-    if not is_supported_platform or not is_error_group:
+    if not is_error_group:
         return {}
 
     passthrough_data = options.get(

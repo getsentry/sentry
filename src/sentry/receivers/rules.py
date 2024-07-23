@@ -38,19 +38,12 @@ DEFAULT_RULE_DATA_NEW = {
 }
 
 
-PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
-
-
 def has_high_priority_issue_alerts(project: Project) -> bool:
     # High priority alerts are enabled if the project has the feature flag
     # or for python/javascript projects in organization that have the feature flag
-    return features.has("projects:high-priority-alerts", project) or (
-        features.has("organizations:default-high-priority-alerts", project.organization)
-        and project.platform is not None
-        and any(
-            project.platform.startswith(base_platform)
-            for base_platform in PLATFORMS_WITH_PRIORITY_ALERTS
-        )
+    return features.has("organizations:seer-based-priority", project.organization) and (
+        features.has("projects:high-priority-alerts", project)
+        or (features.has("organizations:default-high-priority-alerts", project.organization))
     )
 
 
