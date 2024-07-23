@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -12,6 +12,7 @@ import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 import useConfiguration from '../../hooks/useConfiguration';
 import useCurrentTransactionName from '../../hooks/useCurrentTransactionName';
 import {useSDKFeedbackButton} from '../../hooks/useSDKFeedbackButton';
+import useVisibility from '../../hooks/useVisibility';
 import {
   badgeWithLabelCss,
   gridFlexEndCss,
@@ -34,11 +35,17 @@ import SentryAppLink from '../sentryAppLink';
 import useInfiniteFeedbackList from './useInfiniteFeedbackList';
 
 export default function FeedbackPanel() {
-  const [visible, setVisible] = useState(true);
-  const buttonRef = useSDKFeedbackButton({
-    onFormOpen: () => setVisible(false),
-    onFormClose: () => setVisible(true),
-  });
+  const [, setVisible] = useVisibility();
+
+  const buttonRef = useSDKFeedbackButton(
+    useMemo(
+      () => ({
+        onFormOpen: () => setVisible('hidden'),
+        onFormClose: () => setVisible('visible'),
+      }),
+      [setVisible]
+    )
+  );
   const transactionName = useCurrentTransactionName();
   const queryResult = useInfiniteFeedbackList({
     query: `url:*${transactionName}`,
@@ -62,7 +69,6 @@ export default function FeedbackPanel() {
           </button>
         ) : null
       }
-      visible={visible}
     >
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         <span>
