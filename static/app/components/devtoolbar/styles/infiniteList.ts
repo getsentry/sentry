@@ -24,6 +24,7 @@ export const infiniteListScrollableWindowCss = css`
 `;
 
 export const panelScrollableCss = css`
+  position: relative;
   height: 100%;
   overflow: scroll;
   border-radius: 0;
