@@ -36,6 +36,7 @@ def make_event(**kwargs) -> dict[str, Any]:
     return result
 
 
+@apply_feature_flag_on_cls("organizations:seer-based-priority")
 class TestGetEventSeverity(TestCase):
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -77,8 +78,9 @@ class TestGetEventSeverity(TestCase):
         assert reason == "ml"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 0
 
-        with override_options({"seer.api.use-shared-secret": 1.0}), override_settings(
-            SEER_API_SHARED_SECRET="some-secret"
+        with (
+            override_options({"seer.api.use-shared-secret": 1.0}),
+            override_settings(SEER_API_SHARED_SECRET="some-secret"),
         ):
             _get_severity_score(event)
             mock_urlopen.assert_called_with(
@@ -323,6 +325,7 @@ class TestGetEventSeverity(TestCase):
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
 
 
+@apply_feature_flag_on_cls("organizations:seer-based-priority")
 @apply_feature_flag_on_cls("projects:first-event-severity-calculation")
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
@@ -345,6 +348,24 @@ class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_off(self, mock_get_severity_score: MagicMock):
         with self.feature({"projects:first-event-severity-calculation": False}):
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    platform="python",
+                )
+            )
+            event = manager.save(self.project.id)
+
+            mock_get_severity_score.assert_not_called()
+            assert (
+                event.group
+                and "severity" not in event.group.get_event_metadata()
+                and "severity.reason" not in event.group.get_event_metadata()
+            )
+
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
+    def test_permanent_flag_off(self, mock_get_severity_score: MagicMock):
+        with self.feature({"organizations:seer-based-priority": False}):
             manager = EventManager(
                 make_event(
                     exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
