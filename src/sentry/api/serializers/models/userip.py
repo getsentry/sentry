@@ -4,7 +4,7 @@ from sentry.models.userip import UserIP
 
 @register(UserIP)
 class UserIPSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "ipAddress": obj.ip_address,

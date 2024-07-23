@@ -14,7 +14,7 @@ class EventAttachmentSerializer(Serializer):
         }
         return {ea: {"file": files[ea.file_id]} for ea in item_list if ea.file_id}
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         file = attrs.get("file")
         content_type = obj.content_type or get_mimetype(file)
         size = obj.size if obj.size is not None else file.size

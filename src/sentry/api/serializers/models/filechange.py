@@ -11,7 +11,7 @@ from sentry.models.repository import Repository
 
 @register(CommitFileChange)
 class CommitFileChangeSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         commits = list(
             Commit.objects.filter(id__in=[f.commit_id for f in item_list]).select_related("author")
         )
@@ -35,7 +35,7 @@ class CommitFileChangeSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "orgId": obj.organization_id,

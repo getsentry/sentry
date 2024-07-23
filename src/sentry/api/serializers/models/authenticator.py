@@ -8,7 +8,7 @@ from sentry.auth.authenticators.u2f import U2fInterface
 
 @register(AuthenticatorInterface)
 class AuthenticatorInterfaceSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = {
             "id": str(obj.interface_id),
             "name": obj.name,
@@ -37,7 +37,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
 
 @register(SmsInterface)
 class SmsInterfaceSerializer(AuthenticatorInterfaceSerializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["phone"] = obj.phone_number
         return data

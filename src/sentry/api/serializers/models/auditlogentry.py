@@ -33,7 +33,7 @@ def override_actor_id(user):
 
 @register(AuditLogEntry)
 class AuditLogEntrySerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer); assert on relations
         prefetch_related_objects(item_list, "actor")
         prefetch_related_objects(item_list, "target_user")
@@ -57,7 +57,7 @@ class AuditLogEntrySerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         audit_log_event = audit_log.get(obj.event)
 
         try:

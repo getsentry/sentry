@@ -73,7 +73,7 @@ class ProjectCodeOwnersSerializer(Serializer):
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry.api.validators.project_codeowners import validate_codeowners_associations
 
         data = {

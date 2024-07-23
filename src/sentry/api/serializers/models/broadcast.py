@@ -6,7 +6,7 @@ from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 @register(Broadcast)
 class BroadcastSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         if not user.is_authenticated:
             seen = set()
         else:
@@ -18,7 +18,7 @@ class BroadcastSerializer(Serializer):
 
         return {item: {"seen": item.id in seen} for item in item_list}
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "message": obj.message,
@@ -33,7 +33,7 @@ class BroadcastSerializer(Serializer):
 
 
 class AdminBroadcastSerializer(BroadcastSerializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         attrs = super().get_attrs(item_list, user)
         counts = dict(
             BroadcastSeen.objects.filter(broadcast__in=item_list)
@@ -47,7 +47,7 @@ class AdminBroadcastSerializer(BroadcastSerializer):
             attrs[item]["user_count"] = counts.get(item.id, 0)
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         context = super().serialize(obj, attrs, user)
         context["userCount"] = attrs["user_count"]
         return context

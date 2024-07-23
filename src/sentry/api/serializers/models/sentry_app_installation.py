@@ -36,15 +36,16 @@ class SentryAppInstallationSerializer(Serializer):
             }
         return result
 
-    def serialize(self, install, attrs, user, access=None):
+    def serialize(self, obj, attrs, user, **kwargs):
+        access = kwargs.get("access")
         data = {
             "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
             "organization": {"slug": attrs["organization"].slug},
-            "uuid": install.uuid,
-            "status": SentryAppInstallationStatus.as_str(install.status),
+            "uuid": obj.uuid,
+            "status": SentryAppInstallationStatus.as_str(obj.status),
         }
 
-        if install.api_grant and access and access.has_scope("org:integrations"):
-            data["code"] = install.api_grant.code
+        if obj.api_grant and access and access.has_scope("org:integrations"):
+            data["code"] = obj.api_grant.code
 
         return data

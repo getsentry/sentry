@@ -14,7 +14,7 @@ class OrganizationRelayResponse(TypedDict):
 
 @register(Relay)
 class RelaySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "relayId": str(obj.relay_id),
             "version": str(obj.version),

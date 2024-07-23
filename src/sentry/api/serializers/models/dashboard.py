@@ -20,7 +20,7 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 
 @register(DashboardWidget)
 class DashboardWidgetSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         result = {}
         data_sources = serialize(
             list(
@@ -82,7 +82,7 @@ class DashboardWidgetQueryOnDemandSerializer(Serializer):
 
 @register(DashboardWidgetQuery)
 class DashboardWidgetQuerySerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         result = {}
 
         stateful_extraction_version = (
@@ -122,7 +122,7 @@ class DashboardWidgetQuerySerializer(Serializer):
 
 
 class DashboardListSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         item_dict = {i.id: i for i in item_list}
 
         widgets = (
@@ -183,7 +183,7 @@ class DashboardListSerializer(Serializer):
 
 @register(Dashboard)
 class DashboardDetailsSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         result = {}
 
         widgets = serialize(

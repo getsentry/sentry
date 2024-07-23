@@ -119,7 +119,7 @@ class TriggeredAlertRuleSerializer(AlertRuleSerializer):
             alert_rule_attrs["weekly_avg"] = alert_rule_counts.get(alert_rule.id, 0) / weeks
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         result = super().serialize(obj, attrs, user)
         result["weeklyAvg"] = attrs["weekly_avg"]
         result["totalThisWeek"] = obj.count

@@ -4,7 +4,7 @@ from sentry.models.useremail import UserEmail
 
 @register(UserEmail)
 class UserEmailSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         primary_email = UserEmail.objects.get_primary_email(user)
         return {
             "email": obj.email,

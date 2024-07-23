@@ -4,7 +4,7 @@ from sentry.models.identity import Identity
 
 @register(Identity)
 class IdentitySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "identityProvider": serialize(obj.idp),

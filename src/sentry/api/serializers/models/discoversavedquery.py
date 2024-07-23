@@ -12,7 +12,7 @@ DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 @register(DiscoverSavedQuery)
 class DiscoverSavedQuerySerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
         service_serialized = user_service.serialize_many(
