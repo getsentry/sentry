@@ -1616,6 +1616,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         end = max([retention_date, end])
         return start, end, retention_date
 
+    @metrics.wraps("snuba.search.group_attributes.query")
     def query(
         self,
         projects: Sequence[Project],
@@ -1660,14 +1661,22 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         search_filters = search_filters or ()
         group_ids_to_pass_to_snuba = None
         too_many_candidates = False
-        if any(sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS for sf in search_filters):
-            max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
-            group_ids_to_pass_to_snuba = list(
-                group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
-            )
-            if too_many_candidates := (len(group_ids_to_pass_to_snuba) > max_candidates):
-                metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
-                group_ids_to_pass_to_snuba = None
+        max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
+        with sentry_sdk.start_span(op="snuba_group_attributes_query") as span:
+            if any(sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS for sf in search_filters):
+                group_ids_to_pass_to_snuba = list(
+                    group_queryset.using_replica().values_list("id", flat=True)[
+                        : max_candidates + 1
+                    ]
+                )
+                span.set_data("Max Candidates", max_candidates)
+                span.set_data("Result Size", len(group_ids_to_pass_to_snuba))
+
+                if too_many_candidates := (len(group_ids_to_pass_to_snuba) > max_candidates):
+                    metrics.incr(
+                        "snuba.search.group_attributes.too_many_candidates", skip_internal=False
+                    )
+                    group_ids_to_pass_to_snuba = None
 
         # remove the search filters that are only for postgres
         search_filters = [
@@ -1705,6 +1714,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             if group_ids_to_pass_to_snuba is not None:
                 # will not find any matches, we can return early
                 if len(group_ids_to_pass_to_snuba) == 0:
+                    metrics.incr("snuba.search.group_attributes.no_candidates", skip_internal=False)
                     return self.empty_result
 
                 # limit groups and events to the group ids
@@ -1763,6 +1773,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 if raw_group_types is not None:
                     # no possible groups, return empty
                     if len(raw_group_types) == 0:
+                        metrics.incr(
+                            "snuba.search.group_attributes.no_possible_groups", skip_internal=False
+                        )
                         return self.empty_result
 
                     # filter out the group types that are not visible to the org/user
@@ -1845,6 +1858,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 k += 1
                 count += bulk_result[k]["data"][0]["count"]
             k += 1
+
+        metrics.distribution("snuba.search.group_attributes.num_snuba_results", len(data))
 
         if too_many_candidates:
             # If we had too many candidates to reasonably pass down to snuba,
