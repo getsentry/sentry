@@ -103,11 +103,13 @@ def delete_project_grouping_records(
             "seer.delete_grouping_records.project.success",
             extra={"project_id": project_id},
         )
+        metrics.incr("grouping.similarity.delete_records_by_project", tags={"success": True})
         return True
     else:
         logger.error(
             "seer.delete_grouping_records.project.failure",
         )
+        metrics.incr("grouping.similarity.delete_records_by_project", tags={"success": False})
         return False
 
 
