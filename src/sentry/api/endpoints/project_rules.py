@@ -81,12 +81,12 @@ class DuplicateRuleEvaluator:
         """
         rule.data will supersede rule_data if passed in
         """
-        self._project_id: int = project_id
-        self._rule_data: dict[Any, Any] = rule.data if rule else rule_data
-        self._rule_id: int | None = rule_id
-        self._rule: Rule | None = rule
+        self._project_id = project_id
+        self._rule_data = rule.data if rule else rule_data or {}
+        self._rule_id = rule_id
+        self._rule = rule
 
-        self._keys_to_check: set[str] = self._get_keys_to_check()
+        self._keys_to_check = self._get_keys_to_check()
 
         self._matcher_funcs_by_key: dict[str, Callable[[Rule, str], MatcherResult]] = {
             self.ENVIRONMENT_KEY: self._environment_matcher,
@@ -99,9 +99,7 @@ class DuplicateRuleEvaluator:
         Some keys are ignored as they are not part of the logic.
         Some keys are required to check, and are added on top.
         """
-        keys_to_check: set[str] = {
-            key for key in list(self._rule_data.keys()) if key not in self.EXCLUDED_FIELDS
-        }
+        keys_to_check = {key for key in self._rule_data if key not in self.EXCLUDED_FIELDS}
         keys_to_check.update(self.SPECIAL_FIELDS)
 
         return keys_to_check

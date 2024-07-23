@@ -58,6 +58,7 @@ function getSentryIntegrations(routes?: Function) {
       history: browserHistory as any,
       routes: typeof routes === 'function' ? createRoutes(routes()) : [],
       match,
+      enableLongAnimationFrame: true,
       _experiments: {
         enableInteractions: false,
       },

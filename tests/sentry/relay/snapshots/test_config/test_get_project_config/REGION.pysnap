@@ -1,5 +1,5 @@
 ---
-created: '2024-06-26T15:19:54.439402+00:00'
+created: '2024-07-19T07:45:13.262472+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -80,12 +80,6 @@ config:
       - hoholikik.club
       - smartlink.cool
       - promfflinkdev.com
-    errorMessages:
-      patterns:
-      - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
-      - '*https://react.dev/errors/{418,419,422,423,425}*'
-      - 'ChunkLoadError: Loading chunk *'
-      - '*Uncaught *: ChunkLoadError: Loading chunk *'
     ignoreTransactions:
       isEnabled: true
       patterns:

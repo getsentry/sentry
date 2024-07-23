@@ -15,6 +15,7 @@ export const aggregationToMetricType: Record<MetricAggregation, MetricType> = {
   avg: 'g',
   p50: 'd',
   p75: 'd',
+  p90: 'd',
   p95: 'd',
   p99: 'd',
 };

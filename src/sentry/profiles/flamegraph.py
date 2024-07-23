@@ -22,9 +22,9 @@ from snuba_sdk import (
 )
 
 from sentry import options
-from sentry.profiles.profile_chunks import resolve_datetime64
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
+from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
@@ -505,8 +505,8 @@ class FlamegraphExecutor:
 
         for row in result["data"]:
             profiler_meta = profiler_metas_by_id[(row["project_id"], row["profiler_id"])]
-            start = datetime.fromisoformat(row["start"]).timestamp()
-            end = datetime.fromisoformat(row["end"]).timestamp()
+            start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
+            end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
 
             continuous_profile_candidates.append(
                 {

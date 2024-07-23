@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
 import useConfiguration from '../../hooks/useConfiguration';
-import useInfiniteApiData from '../../hooks/useInfiniteApiData';
-import type {FeedbackIssueListItem} from '../../types';
+import useFetchInfiniteApiData from '../../hooks/useFetchInfiniteApiData';
+import type {ApiEndpointQueryKey, FeedbackIssueListItem} from '../../types';
 
 interface Props {
   query: string;
@@ -12,9 +12,10 @@ export default function useInfiniteFeedbackList({query}: Props) {
   const {environment, organizationSlug, projectId} = useConfiguration();
   const mailbox = 'unresolved';
 
-  return useInfiniteApiData<FeedbackIssueListItem[]>({
+  return useFetchInfiniteApiData<FeedbackIssueListItem[]>({
     queryKey: useMemo(
-      () => [
+      (): ApiEndpointQueryKey => [
+        'io.sentry.toolbar',
         `/organizations/${organizationSlug}/issues/`,
         {
           query: {

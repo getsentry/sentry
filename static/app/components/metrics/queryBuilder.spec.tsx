@@ -1,14 +1,10 @@
-import type React from 'react';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MetricQuerySelect} from 'sentry/components/metrics/metricQuerySelect';
+import {QueryBuilder} from 'sentry/components/metrics/queryBuilder';
 import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
-import {
-  useVirtualMetricsContext,
-  VirtualMetricsContextProvider,
-} from 'sentry/utils/metrics/virtualMetricsContext';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
+import {VirtualMetricsContextProvider} from 'sentry/utils/metrics/virtualMetricsContext';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 
 jest.mock('sentry/utils/usePageFilters');
@@ -32,20 +28,15 @@ const makeFilterProps = (
   };
 };
 
-const SELECTED_MRI = 'c:custom/span_attribute_66@none';
-
-function MetricQuerySelectWithMRI(
-  props: Omit<React.ComponentProps<typeof MetricQuerySelect>, 'mri'>
-) {
-  const {getVirtualMRI} = useVirtualMetricsContext();
-  const mri = getVirtualMRI(SELECTED_MRI);
-
-  if (!mri) {
-    return null;
-  }
-
-  return <MetricQuerySelect {...props} mri={mri} />;
-}
+const makeMetricsQuery = (projectId: string): MetricsQuery => {
+  return {
+    aggregation: 'count',
+    condition: 1,
+    groupBy: [],
+    mri: `v:custom/span_attribute|${projectId}@none`,
+    query: '',
+  };
+};
 
 function renderMockRequests({
   orgSlug,
@@ -57,6 +48,14 @@ function renderMockRequests({
   metricsQueryApiResponse?: Partial<MetricsQueryApiResponse>;
 }) {
   MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/metrics/tags/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/metrics/meta/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/metrics/query/`,
     method: 'POST',
     body: metricsQueryApiResponse ?? {
@@ -64,7 +63,7 @@ function renderMockRequests({
         [
           {
             by: {
-              mri: SELECTED_MRI,
+              mri: `c:custom/span_attribute_${projectId}@none`,
             },
             totals: 2703.0,
           },
@@ -76,18 +75,17 @@ function renderMockRequests({
   });
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/metrics/extraction-rules/`,
-    method: 'GET',
     body: [
       {
-        spanAttribute: 'span.duration',
+        spanAttribute: 'span_attribute',
         aggregates: ['count'],
-        unit: 'millisecond',
+        unit: 'none',
         tags: ['browser.name'],
         conditions: [
           {
-            id: 66,
+            id: 1,
             value: '',
-            mris: ['c:custom/span_attribute_66@none'],
+            mris: [`c:custom/span_attribute_${projectId}@none`],
           },
         ],
         projectId,
@@ -99,7 +97,7 @@ function renderMockRequests({
   });
 }
 
-describe('Metric Query Select', function () {
+describe('Metric Query Builder', function () {
   const {project, organization} = initializeOrg();
 
   it('shall display cardinality limit warning', async function () {
@@ -111,7 +109,12 @@ describe('Metric Query Select', function () {
 
     render(
       <VirtualMetricsContextProvider>
-        <MetricQuerySelectWithMRI onChange={jest.fn()} conditionId={66} />
+        <QueryBuilder
+          onChange={jest.fn()}
+          index={0}
+          metricsQuery={makeMetricsQuery(project.id)}
+          projects={[Number(project.id)]}
+        />
       </VirtualMetricsContextProvider>
     );
 
@@ -135,7 +138,12 @@ describe('Metric Query Select', function () {
 
     render(
       <VirtualMetricsContextProvider>
-        <MetricQuerySelectWithMRI onChange={jest.fn()} conditionId={66} />
+        <QueryBuilder
+          onChange={jest.fn()}
+          index={0}
+          metricsQuery={makeMetricsQuery(project.id)}
+          projects={[Number(project.id)]}
+        />
       </VirtualMetricsContextProvider>
     );
 

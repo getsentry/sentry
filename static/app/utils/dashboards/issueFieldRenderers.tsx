@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
 import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -141,7 +142,15 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   links: {
     sortField: null,
-    renderFunc: ({links}) => <LinksContainer dangerouslySetInnerHTML={{__html: links}} />,
+    renderFunc: ({links}) => (
+      <LinksContainer>
+        {links.map((link, index) => (
+          <ExternalLink key={index} href={link.url}>
+            {link.displayName}
+          </ExternalLink>
+        ))}
+      </LinksContainer>
+    ),
   },
 };
 

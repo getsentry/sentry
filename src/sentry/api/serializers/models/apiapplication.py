@@ -8,7 +8,7 @@ from sentry.models.apiapplication import ApiApplication
 
 @register(ApiApplication)
 class ApiApplicationSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         is_secret_visible = obj.date_added > timezone.now() - timedelta(days=1)
         return {
             "id": obj.client_id,

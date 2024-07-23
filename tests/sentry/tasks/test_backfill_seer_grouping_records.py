@@ -1486,6 +1486,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             redis_client=ANY,
             last_processed_project_index=0,
             cohort=None,
+            enable_ingestion=False,
         )
 
     @with_feature("projects:similarity-embeddings-backfill")
@@ -1534,3 +1535,54 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_logger.info.assert_called_with(
             "backfill_seer_grouping_records.killswitch_enabled",
         )
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_enable_ingestion(
+        self, mock_post_bulk_grouping_records, mock_logger
+    ):
+        """
+        Test that when the enable_ingestion flag is True, the project option is set and the
+        log is called.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None, enable_ingestion=True)
+
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+
+        mock_logger.info.assert_called_with(
+            "backfill_seer_grouping_records.enable_ingestion",
+            extra={"project_id": self.project.id},
+        )
+        assert self.project.get_option("sentry:similarity_backfill_completed") is not None
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_no_enable_ingestion(
+        self, mock_post_bulk_grouping_records, mock_logger
+    ):
+        """
+        Test that when the enable_ingestion flag is False, the project option is not set.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+
+        assert self.project.get_option("sentry:similarity_backfill_completed") is None
