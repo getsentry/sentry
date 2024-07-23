@@ -44,9 +44,9 @@ export default function BreadcrumbItemContent({
   };
 
   const defaultMessage = defined(bc.message) ? (
-    <Timeline.Text>
+    <BreadcrumbText>
       <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
-    </Timeline.Text>
+    </BreadcrumbText>
   ) : null;
   const defaultData = defined(bc.data) ? (
     <Timeline.Data>
@@ -110,7 +110,7 @@ function HTTPCrumbContent({
   return (
     <Fragment>
       {children}
-      <Timeline.Text>
+      <BreadcrumbText>
         {defined(method) && `${method}: `}
         {isValidUrl ? (
           <Link
@@ -123,7 +123,7 @@ function HTTPCrumbContent({
           <AnnotatedText value={url} meta={meta?.data?.url?.['']} />
         )}
         {defined(statusCode) && ` [${statusCode}]`}
-      </Timeline.Text>
+      </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
           <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
@@ -175,10 +175,10 @@ function ExceptionCrumbContent({
   const {type, value, ...otherData} = breadcrumb?.data ?? {};
   return (
     <Fragment>
-      <Timeline.Text>
+      <BreadcrumbText>
         {type && type}
         {type ? value && `: ${value}` : value && value}
-      </Timeline.Text>
+      </BreadcrumbText>
       {children}
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
@@ -203,4 +203,9 @@ const LightenTextColor = styled('pre')`
     padding: ${space(0.25)} 0;
     font-size: ${p => p.theme.fontSizeSmall};
   }
+`;
+
+const BreadcrumbText = styled(Timeline.Text)`
+  white-space: pre;
+  font-family: ${p => p.theme.text.familyMono};
 `;
