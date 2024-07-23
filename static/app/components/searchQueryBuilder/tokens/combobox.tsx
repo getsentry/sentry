@@ -87,6 +87,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: KeyboardEvent) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
+  onOpenChange?: (newOpenState: boolean) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
@@ -469,6 +470,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onKeyDown,
     onKeyUp,
     onInputChange,
+    onOpenChange,
     autoFocus,
     openOnFocus,
     onFocus,
@@ -593,6 +595,10 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     isLoading,
     hasCustomMenu,
   });
+
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [onOpenChange, isOpen]);
 
   const {
     overlayProps,

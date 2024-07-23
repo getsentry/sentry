@@ -2010,4 +2010,22 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
   });
+
+  describe('disallowFreeText', function () {
+    it('should mark free text invalid', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} disallowFreeText initialQuery="foo" />
+      );
+
+      expect(screen.getByRole('row', {name: 'foo'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      expect(
+        await screen.findByText('Free text is not supported in this search')
+      ).toBeInTheDocument();
+    });
+  });
 });
