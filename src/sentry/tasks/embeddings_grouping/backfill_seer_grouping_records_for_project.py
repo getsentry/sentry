@@ -3,8 +3,6 @@ from typing import Any
 
 import sentry_sdk
 from django.conf import settings
-from redis.client import StrictRedis
-from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.models.project import Project
@@ -20,17 +18,13 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_events_from_nodestore,
     get_project_for_batch,
     initialize_backfill,
-    make_backfill_grouping_id_redis_key,
-    make_backfill_project_index_redis_key,
     send_group_and_stacktrace_to_seer,
     send_group_and_stacktrace_to_seer_multithreaded,
     update_groups,
 )
-from sentry.utils import redis
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
-REDIS_KEY_EXPIRY = 60 * 60 * 24  # 1 day
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +60,6 @@ def backfill_seer_grouping_records_for_project(
         logger.info("backfill_seer_grouping_records.killswitch_enabled")
         return
 
-    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-
     logger.info(
         "backfill_seer_grouping_records",
         extra={
@@ -82,10 +74,8 @@ def backfill_seer_grouping_records_for_project(
     try:
         (project, last_processed_group_id, last_processed_project_index,) = initialize_backfill(
             current_project_id,
-            cohort,
             last_processed_group_id_input,
             last_processed_project_index_input,
-            redis_client,
         )
     except FeatureError:
         logger.info(
@@ -103,7 +93,6 @@ def backfill_seer_grouping_records_for_project(
         call_next_backfill(
             last_processed_group_id=None,
             project_id=current_project_id,
-            redis_client=redis_client,
             last_processed_project_index=last_processed_project_index_input,
             cohort=cohort,
             only_delete=only_delete,
@@ -112,7 +101,7 @@ def backfill_seer_grouping_records_for_project(
         return
 
     if only_delete:
-        delete_seer_grouping_records(current_project_id, redis_client)
+        delete_seer_grouping_records(current_project_id)
         logger.info(
             "backfill_seer_grouping_records.deleted_all_records",
             extra={"current_project_id": current_project_id},
@@ -120,7 +109,6 @@ def backfill_seer_grouping_records_for_project(
         call_next_backfill(
             last_processed_group_id=None,
             project_id=current_project_id,
-            redis_client=redis_client,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             only_delete=only_delete,
@@ -138,7 +126,6 @@ def backfill_seer_grouping_records_for_project(
         call_next_backfill(
             last_processed_group_id=batch_end_id,
             project_id=current_project_id,
-            redis_client=redis_client,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
@@ -156,7 +143,6 @@ def backfill_seer_grouping_records_for_project(
         call_next_backfill(
             last_processed_group_id=batch_end_id,
             project_id=current_project_id,
-            redis_client=redis_client,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
@@ -170,7 +156,6 @@ def backfill_seer_grouping_records_for_project(
         call_next_backfill(
             last_processed_group_id=batch_end_id,
             project_id=current_project_id,
-            redis_client=redis_client,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
@@ -222,7 +207,6 @@ def backfill_seer_grouping_records_for_project(
     call_next_backfill(
         last_processed_group_id=batch_end_id,
         project_id=current_project_id,
-        redis_client=redis_client,
         last_processed_project_index=last_processed_project_index,
         cohort=cohort,
         enable_ingestion=enable_ingestion,
@@ -233,18 +217,12 @@ def call_next_backfill(
     *,
     last_processed_group_id: int | None,
     project_id: int,
-    redis_client: RedisCluster | StrictRedis,
     last_processed_project_index: int,
     cohort: str | list[int] | None = None,
     only_delete: bool = False,
     enable_ingestion: bool = False,
 ):
     if last_processed_group_id is not None:
-        redis_client.set(
-            make_backfill_grouping_id_redis_key(project_id),
-            last_processed_group_id,
-            ex=REDIS_KEY_EXPIRY,
-        )
         logger.info(
             "calling next backfill task",
             extra={
@@ -264,7 +242,6 @@ def call_next_backfill(
             headers={"sentry-propagate-traces": False},
         )
     else:
-        # TODO: delete project redis key here if needed?
         # call the backfill on next project
         if not cohort:
             logger.info(
@@ -293,12 +270,6 @@ def call_next_backfill(
             # we're at the end of the project list
             return
 
-        if isinstance(cohort, str):
-            redis_client.set(
-                make_backfill_project_index_redis_key(str(cohort)),
-                last_processed_project_index,
-                ex=REDIS_KEY_EXPIRY,
-            )
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
                 batch_project_id,

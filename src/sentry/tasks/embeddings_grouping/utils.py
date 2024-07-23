@@ -8,8 +8,6 @@ from typing import Any, TypedDict
 import sentry_sdk
 from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
-from redis.client import StrictRedis
-from rediscluster import RedisCluster
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import features, nodestore, options
@@ -94,10 +92,8 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
 @sentry_sdk.tracing.trace
 def initialize_backfill(
     project_id: int,
-    cohort: str | list[int] | None,
     last_processed_group_id: int | None,
     last_processed_project_index: int | None,
-    redis_client: StrictRedis | RedisCluster,
 ):
     logger.info(
         "backfill_seer_grouping_records.start",
@@ -110,23 +106,11 @@ def initialize_backfill(
     if not features.has("projects:similarity-embeddings-backfill", project):
         raise FeatureError("Project does not have feature")
 
-    last_processed_group_id_ret = redis_client.get(make_backfill_grouping_id_redis_key(project_id))
-    if last_processed_group_id is None and last_processed_group_id_ret is not None:
-        last_processed_group_id_ret = int(last_processed_group_id_ret)
-    else:
-        last_processed_group_id_ret = last_processed_group_id
+    last_processed_project_index_ret = (
+        last_processed_project_index if last_processed_project_index else 0
+    )
 
-    if last_processed_project_index is None:
-        if cohort and isinstance(cohort, str):
-            last_processed_project_index_ret = int(
-                redis_client.get(make_backfill_project_index_redis_key(cohort)) or 0
-            )
-        else:
-            last_processed_project_index_ret = 0
-    else:
-        last_processed_project_index_ret = last_processed_project_index
-
-    return project, last_processed_group_id_ret, last_processed_project_index_ret
+    return project, last_processed_group_id, last_processed_project_index_ret
 
 
 @sentry_sdk.tracing.trace
@@ -619,19 +603,8 @@ def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
     return event
 
 
-def make_backfill_grouping_id_redis_key(project_id: int) -> str:
-    redis_key = "grouping_record_backfill.last_processed_grouping_index"
-    return f"{redis_key}-{project_id}"
-
-
-def make_backfill_project_index_redis_key(cohort_name: str):
-    redis_key = "grouping_record_backfill.last_processed_project_index"
-    return f"{redis_key}-{cohort_name}"
-
-
 def delete_seer_grouping_records(
     project_id: int,
-    redis_client: RedisCluster | StrictRedis,
 ):
     """
     Delete seer grouping records for the project_id.
@@ -642,7 +615,6 @@ def delete_seer_grouping_records(
         extra={"project_id": project_id},
     )
     delete_project_grouping_records(project_id)
-    redis_client.delete(make_backfill_grouping_id_redis_key(project_id))
 
     for groups in chunked(
         RangeQuerySetWrapper(
