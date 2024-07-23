@@ -685,7 +685,6 @@ class SubscriptionProcessor:
                     # TODO (MF): add other, relevant fields here
                 },
             )
-            raise Exception
             return None
 
         # TODO (MF): handle response codes if status code != 200
