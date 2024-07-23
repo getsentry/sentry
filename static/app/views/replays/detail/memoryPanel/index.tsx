@@ -17,7 +17,9 @@ export default function MemoryPanel() {
 
   const memoryFrames = replay?.getMemoryFrames();
 
-  const {data: frameToCount} = useCountDomNodes({replay});
+  const {data: frameToCount, isLoading: isDomNodeDataLoading} = useCountDomNodes({
+    replay,
+  });
   const domNodeData = useMemo(
     () => Array.from(frameToCount?.values() || []),
     [frameToCount]
@@ -50,7 +52,7 @@ export default function MemoryPanel() {
     );
 
   const domNodesChart =
-    !replay || isFetching ? (
+    !replay || isDomNodeDataLoading ? (
       <Placeholder height="100%" />
     ) : (
       <Fragment>
