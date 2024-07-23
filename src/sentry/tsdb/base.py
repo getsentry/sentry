@@ -419,7 +419,7 @@ class BaseTSDB(Service):
         start: datetime,
         end: datetime,
         rollup: int | None = None,
-        environment_ids: list[int] | None = None,
+        environment_ids: Sequence[int] | None = None,
         conditions=None,
         use_cache: bool = False,
         jitter_value: int | None = None,
@@ -477,13 +477,13 @@ class BaseTSDB(Service):
         return series
 
     def rollup(
-        self, values: Mapping[int, Sequence[tuple[float, int]]], rollup: int
-    ) -> dict[int, list[list[float]]]:
+        self, values: Mapping[TSDBKey, Sequence[tuple[float, int]]], rollup: int
+    ) -> dict[TSDBKey, list[list[float]]]:
         """
         Given a set of values (as returned from ``get_range``), roll them up
         using the ``rollup`` time (in seconds).
         """
-        result: dict[int, list[list[float]]] = {}
+        result: dict[TSDBKey, list[list[float]]] = {}
         for key, points in values.items():
             result[key] = []
             last_new_ts = None
