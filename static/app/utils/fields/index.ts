@@ -592,7 +592,7 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     valueType: FieldValueType.DURATION,
   },
   [TraceFields.SPAN_SELF_TIME]: {
-    desc: t('The duration of the span excluding '),
+    desc: t('The duration of the span excluding the duration of its child spans'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
