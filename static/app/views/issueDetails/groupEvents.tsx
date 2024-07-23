@@ -107,7 +107,7 @@ function UpdatedSearchBar({
       const orgSlug = organization.slug;
       const projectIds = [group.project.id];
 
-      const eventsDatasetValues = await fetchTagValues({
+      const eventsDatasetValues = fetchTagValues({
         api,
         orgSlug,
         tagKey: key,
@@ -116,7 +116,7 @@ function UpdatedSearchBar({
         dataset: Dataset.ERRORS,
       });
 
-      const issuePlatformDatasetValues = await fetchTagValues({
+      const issuePlatformDatasetValues = fetchTagValues({
         api,
         orgSlug,
         tagKey: key,
@@ -124,7 +124,10 @@ function UpdatedSearchBar({
         projectIds,
         dataset: Dataset.ISSUE_PLATFORM,
       });
-      return mergeAndSortTagValues(eventsDatasetValues, issuePlatformDatasetValues);
+
+      return await Promise.all([eventsDatasetValues, issuePlatformDatasetValues]).then(
+        tagValues => mergeAndSortTagValues(tagValues[0], tagValues[1])
+      );
     },
     [api, group.project.id, organization.slug]
   );
