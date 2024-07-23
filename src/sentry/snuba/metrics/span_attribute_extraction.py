@@ -94,7 +94,7 @@ def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttrib
         "category": "span",
         "mri": extraction_rule.generate_mri(),
         "field": _get_field(extraction_rule),
-        "tags": _get_tags(extraction_rule, parsed_search_query),
+        "tags": _get_tags(extraction_rule, extended_search_query),
         "condition": _get_rule_condition(extraction_rule, extended_search_query),
     }
 
@@ -126,7 +126,7 @@ def _flatten_query_tokens(parsed_search_query: Sequence[QueryToken]) -> list[Sea
     query_tokens: list[SearchFilter] = []
 
     for token in parsed_search_query:
-        if isinstance(token, SearchFilter):
+        if isinstance(token, SearchFilter) and token.operator not in (">", ">=", "<", "<="):
             query_tokens.append(token)
         elif isinstance(token, ParenExpression):
             query_tokens = query_tokens + _flatten_query_tokens(token.children)
