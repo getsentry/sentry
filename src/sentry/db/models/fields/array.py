@@ -6,7 +6,7 @@ from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 
 from sentry.db.models.utils import Creator
-from sentry.db.postgres.lookups import ArrayElementContainsLookup
+from sentry.db.postgres.lookups.array_element_contains import ArrayElementContainsLookup
 from sentry.utils import json
 
 

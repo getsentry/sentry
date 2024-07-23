@@ -19,10 +19,10 @@ class ArrayElementContainsLookup(Lookup):
         rhs, rhs_params = self.process_rhs(compiler, connection)
         params = lhs_params + rhs_params
 
-        return (
-            f"""EXISTS (
-            SELECT * FROM UNNEST({lhs}) AS elem
-            WHERE elem LIKE '%%' || {rhs} || '%%'
-        )""",
-            params,
-        )
+        clause = f"""\
+EXISTS (
+    SELECT * FROM UNNEST({lhs}) AS elem
+    WHERE elem LIKE '%%' || {rhs} || '%%'
+)
+"""
+        return clause, params

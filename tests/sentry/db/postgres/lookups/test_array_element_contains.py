@@ -1,6 +1,6 @@
 from unittest.mock import Mock, patch
 
-from sentry.db.postgres.lookups import ArrayElementContainsLookup
+from sentry.db.postgres.lookups.array_element_contains import ArrayElementContainsLookup
 
 
 def test_as_sql_basic_usage():
