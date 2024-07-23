@@ -7,8 +7,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 import type {MetricsFilters} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME} = SpanMetricsField;
 

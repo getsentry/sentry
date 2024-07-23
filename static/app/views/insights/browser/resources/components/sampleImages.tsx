@@ -19,8 +19,8 @@ import ResourceSize from 'sentry/views/insights/browser/resources/components/res
 import {useIndexedResourcesQuery} from 'sentry/views/insights/browser/resources/queries/useIndexedResourceQuery';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {SpanIndexedField} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 type Props = {groupId: string; projectId?: number};
 

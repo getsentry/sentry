@@ -27,7 +27,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField, SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,

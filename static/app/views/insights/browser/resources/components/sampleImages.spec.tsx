@@ -8,7 +8,7 @@ import type {Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
   SpanIndexedField;

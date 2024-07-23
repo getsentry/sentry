@@ -6,7 +6,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {Option} from 'sentry/views/insights/browser/resources/components/selectControlWithProps';
 import SelectControlWithProps from 'sentry/views/insights/browser/resources/components/selectControlWithProps';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
 

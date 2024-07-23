@@ -53,7 +53,6 @@ import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {SpanMetricsField} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -76,6 +75,7 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.

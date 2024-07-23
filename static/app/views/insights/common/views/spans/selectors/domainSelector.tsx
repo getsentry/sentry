@@ -19,7 +19,8 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 type Props = {
   additionalQuery?: string[];

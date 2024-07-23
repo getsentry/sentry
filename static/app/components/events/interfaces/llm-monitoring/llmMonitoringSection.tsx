@@ -14,7 +14,8 @@ import {
   NumberOfPipelinesChart,
   TotalTokensUsedChart,
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
-import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
+import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 
 interface Props {
   event: Event;

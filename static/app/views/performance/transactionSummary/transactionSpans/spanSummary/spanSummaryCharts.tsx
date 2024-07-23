@@ -24,10 +24,8 @@ import {
   Block,
   BlockContainer,
 } from 'sentry/views/insights/common/views/spanSummaryPage/block';
-import {
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 
 function SpanSummaryCharts() {

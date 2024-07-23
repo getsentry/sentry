@@ -23,7 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -34,6 +34,7 @@ import {BREAKDOWN_SLICES} from './hooks/useTraces';
 import type {SpanResult} from './hooks/useTraceSpans';
 import type {Field} from './data';
 import {getShortenedSdkName, getStylingSliceName} from './utils';
+import type {SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 export const ProjectBadgeWrapper = styled('span')`
   /**

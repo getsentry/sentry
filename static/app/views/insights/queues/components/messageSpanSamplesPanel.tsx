@@ -46,14 +46,10 @@ import {
 } from 'sentry/views/insights/queues/settings';
 import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
-import {
-  getTraceFieldDefinition,
-  ModuleName,
-  SpanIndexedField,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {ModuleName, type SpanMetricsResponse} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 export function MessageSpanSamplesPanel() {
   const router = useRouter();
@@ -373,7 +369,6 @@ export function MessageSpanSamplesPanel() {
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
-                fieldDefinitionGetter={getTraceFieldDefinition}
               />
             </ModuleLayout.Full>
           </Feature>

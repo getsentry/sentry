@@ -25,9 +25,9 @@ import {
   type MetricsResponse,
   ModuleName,
   SpanFunction,
-  SpanMetricsField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 const {TRANSACTION_DURATION} = MetricsFields;

@@ -10,7 +10,7 @@ import {
   getResourceTypeFilter,
 } from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const {SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
 

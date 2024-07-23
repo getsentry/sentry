@@ -4,7 +4,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const DATASET_TO_FIELDS = {
   [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedField,

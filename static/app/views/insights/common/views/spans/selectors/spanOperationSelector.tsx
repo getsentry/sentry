@@ -11,7 +11,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {DefaultEmptyOption} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
+import {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP} = SpanMetricsField;
 

@@ -21,7 +21,8 @@ import {
   TextAlignRight,
 } from 'sentry/views/insights/common/components/textAlign';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 

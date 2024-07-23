@@ -37,7 +37,8 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFunction} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const {
   SPAN_DESCRIPTION,

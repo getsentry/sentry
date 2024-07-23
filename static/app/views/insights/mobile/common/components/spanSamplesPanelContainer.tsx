@@ -27,15 +27,12 @@ import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {
-  getTraceFieldDefinition,
-  type ModuleName,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/types';
+
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import {TraceViewSources} from '../../../../performance/newTraceDetails/traceMetadataHeader';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
+import type {ModuleName, SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -211,7 +208,6 @@ export function SpanSamplesContainer({
           supportedTags={supportedTags}
           dataset={DiscoverDatasets.SPANS_INDEXED}
           projectIds={selection.projects}
-          fieldDefinitionGetter={getTraceFieldDefinition}
         />
       </Feature>
       <SampleTable

@@ -7,7 +7,8 @@ import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const formatter = new SQLishFormatter();
 

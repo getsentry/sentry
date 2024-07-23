@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useResourcesQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 export function Recommendations({
   transaction,

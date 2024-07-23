@@ -13,7 +13,8 @@ import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import type {ModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import type {ValidSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
+import {SpanFunction} from 'sentry/views/insights/types';
 
 const {
   SPAN_DOMAIN,

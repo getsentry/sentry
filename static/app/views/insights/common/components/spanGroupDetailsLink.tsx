@@ -5,7 +5,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP} = SpanMetricsField;
 

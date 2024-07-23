@@ -29,13 +29,9 @@ import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samp
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
-import {
-  getTraceFieldDefinition,
-  ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {SpanMetricsField, SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
@@ -230,7 +226,6 @@ export function SampleList({
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
             projectIds={selection.projects}
-            fieldDefinitionGetter={getTraceFieldDefinition}
           />
         </Feature>
 

@@ -1,5 +1,5 @@
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField, SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 // This constant is to be used as an arg for `getInterval`.
 // 'metrics' fidelity is intended to match the granularities of stored metrics.

@@ -58,15 +58,13 @@ import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
-  getTraceFieldDefinition,
   ModuleName,
   SpanFunction,
-  SpanIndexedField,
-  SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {SpanMetricsField, SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 export function HTTPSamplesPanel() {
   const router = useRouter();
@@ -500,7 +498,6 @@ export function HTTPSamplesPanel() {
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
-                fieldDefinitionGetter={getTraceFieldDefinition}
               />
             </ModuleLayout.Full>
           </Feature>

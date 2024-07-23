@@ -48,18 +48,16 @@ import {
 } from 'sentry/views/insights/common/views/spans/types';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
-  getTraceFieldDefinition,
   MetricsFields,
   type MetricsQueryFilters,
   ModuleName,
   SpanFunction,
-  SpanIndexedField,
   type SpanIndexedQueryFilters,
   type SpanIndexedResponse,
-  SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -409,7 +407,6 @@ export function CacheSamplePanel() {
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
-                fieldDefinitionGetter={getTraceFieldDefinition}
               />
             </ModuleLayout.Full>
           </Feature>

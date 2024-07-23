@@ -30,8 +30,9 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const {
   SPAN_SELF_TIME,

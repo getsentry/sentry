@@ -27,7 +27,8 @@ import {
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
+import {ModuleName} from 'sentry/views/insights/types';
 
 const NULL_SPAN_CATEGORY = t('custom');
 

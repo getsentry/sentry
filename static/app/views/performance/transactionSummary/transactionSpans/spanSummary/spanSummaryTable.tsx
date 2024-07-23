@@ -35,9 +35,7 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
-  getTraceFieldDefinition,
   ModuleName,
-  SpanIndexedField,
   type SpanIndexedResponse,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
@@ -48,6 +46,7 @@ import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/tr
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import Tab from '../../tabs';
+import {SpanIndexedField} from 'sentry/views/insights/spanFields';
 
 type DataRowKeys =
   | SpanIndexedField.ID
@@ -231,7 +230,6 @@ export default function SpanSummaryTable(props: Props) {
         supportedTags={supportedTags}
         dataset={DiscoverDatasets.SPANS_INDEXED}
         onSearch={handleSearch}
-        fieldDefinitionGetter={getTraceFieldDefinition}
       />
       <VisuallyCompleteWithData
         id="SpanDetails-SpanDetailsTable"

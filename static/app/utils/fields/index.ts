@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -1840,14 +1840,6 @@ const TRACE_FIELD_DEFINITIONS: Record<
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NEVER,
   },
-};
-
-export const getTraceFieldDefinition = (key: string) => {
-  if (key in TRACE_FIELD_DEFINITIONS) {
-    return TRACE_FIELD_DEFINITIONS[key];
-  }
-
-  return null;
 };
 
 export const getFieldDefinition = (

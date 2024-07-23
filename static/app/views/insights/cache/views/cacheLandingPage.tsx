@@ -52,7 +52,8 @@ import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHa
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFunction} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;

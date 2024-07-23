@@ -9,7 +9,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
+import {SpanFunction} from 'sentry/views/insights/types';
 
 const {
   SPAN_SELF_TIME,

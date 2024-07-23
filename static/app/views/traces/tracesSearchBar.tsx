@@ -10,7 +10,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getTraceFieldDefinition} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 interface TracesSearchBarProps {
@@ -57,7 +56,6 @@ export function TracesSearchBar({
             dataset={DiscoverDatasets.SPANS_INDEXED}
             projectIds={selection.projects}
             savedSearchType={SavedSearchType.SPAN}
-            fieldDefinitionGetter={getTraceFieldDefinition}
           />
           <StyledButton
             aria-label={t('Remove Span')}

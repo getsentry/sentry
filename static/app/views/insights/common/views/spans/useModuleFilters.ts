@@ -1,7 +1,7 @@
 import pick from 'lodash/pick';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 export type ModuleFilters = {
   [SpanMetricsField.SPAN_ACTION]?: string;

@@ -21,7 +21,7 @@ import {
   getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/spanFields';
 
 const {
   SPAN_SELF_TIME,
