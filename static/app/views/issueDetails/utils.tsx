@@ -77,9 +77,7 @@ export function mergeAndSortTagValues(
   if (sort === 'count') {
     allTagValues.sort((a, b) => b.count - a.count);
   } else {
-    allTagValues.sort(
-      (a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime()
-    );
+    allTagValues.sort((a, b) => (b.lastSeen < a.lastSeen ? -1 : 1));
   }
   return allTagValues;
 }
