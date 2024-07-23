@@ -396,24 +396,52 @@ export type MetricsQueryFilters = {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
+const TRACE_FIELDS = [
+  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_GROUP,
+  SpanIndexedField.SPAN_MODULE,
+  SpanIndexedField.SPAN_OP,
+  SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.SPAN_STATUS,
+  SpanIndexedField.RESPONSE_CODE,
+];
+
 const TRACE_FIELD_DEFINITIONS: Record<
   SpanIndexedField | SpanMetricsField,
   FieldDefinition
 > = {
   /** Indexed Fields */
-  [SpanIndexedField.ENVIRONMENT]: {
+  [SpanIndexedField.SPAN_ACTION]: {
+    desc: t('The type of span action'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_CATEGORY]: {
+    desc: t(
+      'The Insights module that the span is associated with, i.e `cache`, `db`, `http`, etc.'
+    ),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DESCRIPTION]: {
+    desc: t('The description of the span'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.NEVER,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DOMAIN]: {
+    desc: t('The domain of the span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.ENVIRONMENT]: {
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NEVER,
   },
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NEVER,
-  },
-  [SpanIndexedField.SPAN_CATEGORY]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NEVER,
   },
@@ -433,10 +461,7 @@ const TRACE_FIELD_DEFINITIONS: Record<
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NEVER,
   },
-  [SpanIndexedField.SPAN_DESCRIPTION]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NEVER,
-  },
+
   [SpanIndexedField.SPAN_STATUS]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NEVER,
@@ -446,10 +471,6 @@ const TRACE_FIELD_DEFINITIONS: Record<
     valueType: FieldValueType.NEVER,
   },
   [SpanIndexedField.ID]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NEVER,
-  },
-  [SpanIndexedField.SPAN_ACTION]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NEVER,
   },
@@ -474,10 +495,6 @@ const TRACE_FIELD_DEFINITIONS: Record<
     valueType: FieldValueType.NEVER,
   },
   [SpanIndexedField.TRANSACTION_OP]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NEVER,
-  },
-  [SpanIndexedField.SPAN_DOMAIN]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NEVER,
   },
