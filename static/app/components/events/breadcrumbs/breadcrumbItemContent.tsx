@@ -37,7 +37,6 @@ export default function BreadcrumbItemContent({
 }: BreadcrumbItemContentProps) {
   const structuredDataProps = {
     ...DEFAULT_STRUCTURED_DATA_PROPS,
-    forceDefaultExpand: fullyExpanded,
     maxDefaultDepth: fullyExpanded
       ? 10000
       : DEFAULT_STRUCTURED_DATA_PROPS.maxDefaultDepth,
