@@ -290,7 +290,7 @@ export function importSentryContinuousProfileChunk(
         () => ContinuousProfile.FromProfile(profile, frameIndex),
         {
           op: 'profile.import',
-          description: 'sampled',
+          description: 'continuous',
         }
       )
     );
