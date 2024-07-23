@@ -163,7 +163,9 @@ export function PipelinesTable() {
       const tokenCostDataPoint = tokenCostData.find(
         tokenRow => tokenRow['span.ai.pipeline.group'] === row['span.group']
       );
-      row['sum(ai.total_cost)'] = tokenCostDataPoint['sum(ai.total_cost)'];
+      if (tokenCostDataPoint) {
+        row['sum(ai.total_cost)'] = tokenCostDataPoint['sum(ai.total_cost)'];
+      }
     }
     return row;
   });
