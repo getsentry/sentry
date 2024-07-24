@@ -107,15 +107,18 @@ describe('PlatformPicker', function () {
     });
   });
 
-  it('"other" platform shall be in the list', function () {
-    render(<PlatformPicker setPlatform={jest.fn()} defaultCategory="all" />);
-    expect(screen.getByText('Other')).toBeInTheDocument();
-  });
+  it('"other" platform shall be rendered if filter contains it', async function () {
+    render(<PlatformPicker setPlatform={jest.fn()} />);
 
-  it('"other" platform shall NOT be in the list', function () {
-    render(
-      <PlatformPicker setPlatform={jest.fn()} defaultCategory="all" showOther={false} />
-    );
-    expect(screen.queryByText('Other')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('platform-other')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox'), 'Oth');
+
+    expect(screen.queryByTestId('platform-other')).not.toBeInTheDocument();
+
+    // complete the word 'other'
+    await userEvent.type(screen.getByRole('textbox'), 'er');
+
+    expect(screen.getByTestId('platform-other')).toBeInTheDocument();
   });
 });
