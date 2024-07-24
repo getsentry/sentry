@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
 import sentry_sdk
+from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, nodestore
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
@@ -456,13 +457,12 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
     # STEP 3: Fetch the Rule models we need to check
-    alert_rules_qs = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
-    snoozed_rules = set(
-        RuleSnooze.objects.filter(rule__in=alert_rules_qs, user_id=None).values_list(
-            "rule", flat=True
+    alert_rules_query = Rule.objects.filter(id__in=list(rules_to_groups.keys())).exclude(
+        id__in=Subquery(
+            RuleSnooze.objects.filter(rule_id=OuterRef("id"), user_id=None).values("rule_id")
         )
     )
-    alert_rules = [rule for rule in alert_rules_qs if rule.id not in snoozed_rules]
+    alert_rules = list(alert_rules_query)
 
     # STEP 4: Create a map of unique condition queries to a tuple containing the
     # JSON information needed to instantiate that condition class and the
