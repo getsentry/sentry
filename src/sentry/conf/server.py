@@ -2539,6 +2539,13 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 # profiler. For example, only on the web server.
 SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
 
+# To have finer control over which process will have continuous profiling enabled,
+# this environment variable will be required to enable continuous profiling.
+#
+# This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
+# to operate under the continuous profiling model.
+SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
+
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):
