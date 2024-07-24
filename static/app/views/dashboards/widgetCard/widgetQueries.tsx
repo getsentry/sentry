@@ -217,7 +217,7 @@ function WidgetQueries({
       )
     ) {
       // Update the dashboard state with the split decision
-      onWidgetSplitDecision(widget, rawResults?.meta?.discoverSplitDecision);
+      onWidgetSplitDecision?.(widget, rawResults?.meta?.discoverSplitDecision);
     }
   };
 
