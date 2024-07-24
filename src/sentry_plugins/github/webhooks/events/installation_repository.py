@@ -7,7 +7,7 @@ from . import Webhook
 
 class InstallationRepositoryEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def __call__(self, event, organization=None):
+    def __call__(self, event, organization):
         installation = event["installation"]
 
         integration = integration_service.get_integration(

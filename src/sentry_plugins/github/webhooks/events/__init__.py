@@ -1,5 +1,5 @@
 class Webhook:
-    def __call__(self, event, organization=None):
+    def __call__(self, event, organization):
         raise NotImplementedError
 
 

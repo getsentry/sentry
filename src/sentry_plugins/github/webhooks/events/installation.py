@@ -7,7 +7,7 @@ from . import Webhook
 
 class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
-    def __call__(self, event, organization=None):
+    def __call__(self, event, organization):
         action = event["action"]
         installation = event["installation"]
         # TODO(jess): handle uninstalls
