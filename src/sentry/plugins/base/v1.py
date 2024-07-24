@@ -507,13 +507,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     def view_configure(self, request, project, **kwargs):
         if request.method == "GET":
-            return Response(
-                self.get_configure_plugin_fields(
-                    request=request,  # DEPRECATED: this param should not be used
-                    project=project,
-                    **kwargs,
-                )
-            )
+            return Response(self.get_configure_plugin_fields(project=project, **kwargs))
         self.configure(project, request.data)
         return Response({"message": "Successfully updated configuration."})
 

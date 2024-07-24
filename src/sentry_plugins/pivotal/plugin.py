@@ -187,7 +187,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         json_resp = json.loads(body)
         return json_resp["name"]
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         token = self.get_option("token", project)
         helptext = (
             "Enter your API Token (found on "

@@ -155,7 +155,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return f"{url}/{repo}/issues/{issue_iid}"
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         gitlab_token = self.get_option("gitlab_token", project)
         secret_field = get_secret_field_config(
             gitlab_token, "Enter your GitLab API token.", include_prefix=True
