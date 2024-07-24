@@ -25,11 +25,11 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.repository import Repository
@@ -155,7 +155,7 @@ def get_document_origin(org) -> str:
 # Github App docs and list of available endpoints
 # https://docs.github.com/en/rest/apps/installations
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
-class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextIntegration):  # type: ignore[misc]
+class GitHubIntegration(IntegrationInstallation, RepositoryIntegration, CommitContextIntegration, GitHubIssueBasic):  # type: ignore[misc]
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -164,6 +164,8 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             raise IntegrationError("Organization Integration does not exist")
         return GitHubApiClient(integration=self.model, org_integration_id=self.org_integration.id)
 
+    # IntegrationInstallation methods
+
     def is_rate_limited_error(self, exc: Exception) -> bool:
         if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
             metrics.incr("github.link_all_repos.rate_limited_error")
@@ -171,27 +173,44 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         return False
 
-    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
-        trees: dict[str, RepoTree] = {}
-        domain_name = self.model.metadata["domain_name"]
-        extra = {"metadata": self.model.metadata}
-        if domain_name.find("github.com/") == -1:
-            logger.warning("We currently only support github.com domains.", extra=extra)
-            return trees
+    def message_from_error(self, exc: Exception) -> str:
+        if not isinstance(exc, ApiError):
+            return ERR_INTERNAL
 
-        gh_org = domain_name.split("github.com/")[1]
-        extra.update({"gh_org": gh_org})
-        org_exists = organization_service.check_organization_by_id(
-            id=self.org_integration.organization_id, only_visible=False
-        )
-        if not org_exists:
-            logger.error(
-                "No organization information was found. Continuing execution.", extra=extra
-            )
+        if not exc.code:
+            message = ""
         else:
-            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
+            message = API_ERRORS.get(exc.code, "")
 
-        return trees
+        if exc.code == 404 and exc.url and re.search(r"/repos/.*/(compare|commits)", exc.url):
+            message += (
+                " Please also confirm that the commits associated with "
+                f"the following URL have been pushed to GitHub: {exc.url}"
+            )
+
+        if not message:
+            message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
+        return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
+
+    # RepositoryIntegration methods
+
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://github.com/octokit/octokit.rb/blob/master/README.md"
+        return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
     def get_repositories(
         self, query: str | None = None, fetch_max_pages: bool = False
@@ -223,27 +242,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             for i in response.get("items", [])
         ]
 
-    def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        return self.get_client().search_issues(query)
-
-    def source_url_matches(self, url: str) -> bool:
-        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
-
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
-        # Must format the url ourselves since `check_file` is a head request
-        # "https://github.com/octokit/octokit.rb/blob/master/README.md"
-        return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
-
-    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        branch, _, _ = url.partition("/")
-        return branch
-
-    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/blob/", "")
-        _, _, source_path = url.partition("/")
-        return source_path
-
     def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
@@ -253,25 +251,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         )
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
-
-    def message_from_error(self, exc: Exception) -> str:
-        if not isinstance(exc, ApiError):
-            return ERR_INTERNAL
-
-        if not exc.code:
-            message = ""
-        else:
-            message = API_ERRORS.get(exc.code, "")
-
-        if exc.code == 404 and exc.url and re.search(r"/repos/.*/(compare|commits)", exc.url):
-            message += (
-                " Please also confirm that the commits associated with "
-                f"the following URL have been pushed to GitHub: {exc.url}"
-            )
-
-        if not message:
-            message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-        return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
@@ -284,6 +263,37 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError:
             return False
         return True
+
+    # for derive code mappings (TODO: define in an ABC)
+    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
+        trees: dict[str, RepoTree] = {}
+        domain_name = self.model.metadata["domain_name"]
+        extra = {"metadata": self.model.metadata}
+        if domain_name.find("github.com/") == -1:
+            logger.warning("We currently only support github.com domains.", extra=extra)
+            return trees
+
+        gh_org = domain_name.split("github.com/")[1]
+        extra.update({"gh_org": gh_org})
+        org_exists = organization_service.check_organization_by_id(
+            id=self.org_integration.organization_id, only_visible=False
+        )
+        if not org_exists:
+            logger.error(
+                "No organization information was found. Continuing execution.", extra=extra
+            )
+        else:
+            trees = self.get_client().get_trees_for_org(gh_org=gh_org, cache_seconds=cache_seconds)
+
+        return trees
+
+    # TODO: define in issue ABC
+    def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+        return self.get_client().search_issues(query)
+
+    # TODO: this function is not used?
+    def reinstall(self) -> None:
+        self.reinstall_repositories()
 
 
 class GitHubIntegrationProvider(IntegrationProvider):

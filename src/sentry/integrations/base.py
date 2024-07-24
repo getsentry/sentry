@@ -294,7 +294,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return feature in self.features
 
 
-class IntegrationInstallation:
+class IntegrationInstallation(abc.ABC):
     """
     An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.
@@ -363,6 +363,7 @@ class IntegrationInstallation:
     def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         return None
 
+    @abc.abstractmethod
     def get_client(self) -> Any:
         """
         Return an API client for the integration provider
@@ -443,6 +444,7 @@ class IntegrationInstallation:
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
+    @abc.abstractmethod
     def is_rate_limited_error(self, exc: Exception) -> bool:
         raise NotImplementedError
 

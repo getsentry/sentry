@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
@@ -154,7 +155,7 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         return self._request(method, path, headers=headers, data=data, params=params)
 
 
-class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
+class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
     integration_name = "vsts"
     _identity: Identity | None = None
 
