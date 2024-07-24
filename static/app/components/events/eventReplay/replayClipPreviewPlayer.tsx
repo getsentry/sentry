@@ -17,10 +17,12 @@ import ReplayProcessingError from 'sentry/components/replays/replayProcessingErr
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -76,6 +78,7 @@ function ReplayClipPreviewPlayer({
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
   });
+  const organization = useOrganization();
 
   if (replayRecord?.is_archived) {
     return (
@@ -89,6 +92,10 @@ function ReplayClipPreviewPlayer({
   }
 
   if (fetchError) {
+    trackAnalytics('replay.render-missing-replay-alert', {
+      organization,
+      location: 'issue details - clip preview',
+    });
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 
