@@ -26,7 +26,7 @@ DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 class OnDemandResponse(TypedDict):
     enabled: bool
     extractionState: str
-    dashboardWidgetQueryId: str
+    dashboardWidgetQueryId: int
 
 
 class DashboardWidgetQueryResponse(TypedDict):
@@ -227,11 +227,20 @@ class DashboardListSerializer(Serializer):
         return data
 
 
-class DashboardFilters(TypedDict):
+class DashboardFilters(TypedDict, total=False):
     release: list[str]
 
 
-class DashboardDetailsResponse(TypedDict):
+class DashboardDetailsResponseOptional(TypedDict, total=False):
+    environment: list[str]
+    period: str
+    utc: str
+    expired: bool
+    start: str
+    end: str
+
+
+class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: str
     title: str
     dateCreated: str
@@ -239,12 +248,6 @@ class DashboardDetailsResponse(TypedDict):
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
-    environment: list[str] | None
-    period: str | None
-    utc: str | None
-    expired: bool | None
-    start: str | None
-    end: str | None
 
 
 @register(Dashboard)
