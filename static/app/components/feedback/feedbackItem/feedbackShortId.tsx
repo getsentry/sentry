@@ -39,6 +39,9 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
   const organization = useOrganization();
   const projectSlug = useCurrentFeedbackProject();
 
+  // we need this to be a string for the copy url button below
+  // normalizeUrl can return an object if `query` or other options are passed,
+  // which breaks the copy-paste.
   const feedbackUrl =
     window.location.origin +
     normalizeUrl(
