@@ -487,15 +487,12 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  // TODO: this function updates the widget list without triggering any side-effects
-  // be aware: we do lazy loading, so make sure we merge dashboard and modifiedDashboard
+  // TODO: This needs to take into account modified dashboards as well
   handleUpdateWidgetSplitDecision = (widget: Widget, splitDecision: WidgetType) => {
     const {dashboard, onDashboardUpdate} = this.props;
 
     const updatedDashboard = cloneDeep(dashboard);
 
-    // ! Keep in mind that there may not be a widget with the given ID, i.e. new widgets
-    // TODO: Might need to update modified dashboard too
     const widgetIndex = updatedDashboard.widgets.findIndex(w => w.id === widget.id);
 
     if (widgetIndex >= 0) {
