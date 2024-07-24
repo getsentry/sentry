@@ -103,7 +103,7 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
 
     formatted_data = format_historical_data(historical_data)
 
-    if not rule.sensitivity or not rule.seasonality or rule.threshold_type is not None:
+    if not rule.sensitivity or not rule.seasonality or rule.threshold_type is None:
         # this won't happen because we've already gone through the serializer, but mypy insists
         base_error_response.reason = (
             "Cannot create rule - missing expected configuration for a dynamic alert."
