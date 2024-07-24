@@ -86,7 +86,6 @@ function Grid(props: GridProps) {
               />
             );
           case Token.FREE_TEXT:
-          case Token.SPACES:
             return (
               <SearchQueryBuilderFreeText
                 key={item.key}

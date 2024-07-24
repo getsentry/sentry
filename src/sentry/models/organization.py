@@ -198,6 +198,9 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
         # Disable org-members from creating new projects
         disable_member_project_creation: bool
 
+        # Prevent superuser access to an organization
+        prevent_superuser_access: bool
+
         bitfield_default = 1
 
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
@@ -354,7 +357,7 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
                 organization_id__in=org_ids_to_query, role=roles.get_top_dog().id
             ).values_list("organization_id", "user_id")
 
-            for (org_id, user_id) in queried_owner_ids:
+            for org_id, user_id in queried_owner_ids:
                 # An org may have multiple owners. Here we mimic the behavior of
                 # `get_default_owner`, which is to use the first one in the query
                 # result's iteration order.

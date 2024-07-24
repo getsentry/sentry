@@ -17,6 +17,7 @@ class MatchType:
     NOT_EQUAL = "ne"
     NOT_SET = "ns"
     NOT_STARTS_WITH = "nsw"
+    NOT_IN = "nin"
     STARTS_WITH = "sw"
 
 
@@ -43,6 +44,7 @@ MATCH_CHOICES = {
     MatchType.NOT_EQUAL: "does not equal",
     MatchType.NOT_SET: "is not set",
     MatchType.NOT_STARTS_WITH: "does not start with",
+    MatchType.NOT_IN: "not in (comma separated)",
     MatchType.STARTS_WITH: "starts with",
 }
 
@@ -91,5 +93,9 @@ def match_values(group_values: Iterable[Any], match_value: str, match_type: str)
     elif match_type == MatchType.IS_IN:
         values_set = set(match_value.replace(" ", "").split(","))
         return any(g_value in values_set for g_value in group_values)
+
+    elif match_type == MatchType.NOT_IN:
+        values_set = set(match_value.replace(" ", "").split(","))
+        return not any(g_value in values_set for g_value in group_values)
 
     raise RuntimeError("Invalid Match")
