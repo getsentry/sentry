@@ -36,7 +36,6 @@ class CacheFuncForModelsTest(TestCase):
     def test(self):
         mock_test_func = create_autospec(count_func)
         mock_test_func.side_effect = count_func
-        # mock_test_func =  MagicMock(side_effect=count_func)
         decorated_test_func = cache_func_for_models([(CacheModel, arg_extractor)])(mock_test_func)
         self.assert_called_with_count(mock_test_func, "test", 0)
         assert decorated_test_func("test") == 0
@@ -60,7 +59,6 @@ class CacheFuncForModelsTest(TestCase):
     def test_no_recalculate(self):
         mock_test_func = create_autospec(count_func)
         mock_test_func.side_effect = count_func
-        # mock_test_func =  MagicMock(side_effect=count_func)
         decorated_test_func = cache_func_for_models(
             [(CacheModel, arg_extractor)], recalculate=False
         )(mock_test_func)
