@@ -7,12 +7,14 @@ interface Props {
   buttonRef?: RefObject<HTMLButtonElement> | RefObject<HTMLAnchorElement>;
   formTitle?: string;
   messagePlaceholder?: string;
+  parentElement?: Element;
 }
 
 export default function useFeedbackWidget({
   buttonRef,
   formTitle,
   messagePlaceholder,
+  parentElement,
 }: Props) {
   const {feedback, options} = useFeedback({formTitle, messagePlaceholder});
 
@@ -23,17 +25,17 @@ export default function useFeedbackWidget({
 
     if (buttonRef) {
       if (buttonRef.current) {
-        return feedback.attachTo(buttonRef.current, options);
+        return feedback.attachTo(buttonRef.current, {...options, parentElement});
       }
     } else {
-      const widget = feedback.createWidget(options);
+      const widget = feedback.createWidget({...options, parentElement});
       return () => {
         widget.removeFromDom();
       };
     }
 
     return undefined;
-  }, [buttonRef, feedback, options]);
+  }, [buttonRef, feedback, options, parentElement]);
 
   return feedback;
 }

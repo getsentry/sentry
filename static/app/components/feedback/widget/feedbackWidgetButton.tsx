@@ -5,9 +5,14 @@ import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidg
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 
-export default function FeedbackWidgetButton() {
+interface Props {
+  parentElement?: Element;
+}
+
+export default function FeedbackWidgetButton({parentElement}: Props) {
+  console.log('widgetbutton render', parentElement);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const feedback = useFeedbackWidget({buttonRef});
+  const feedback = useFeedbackWidget({buttonRef, parentElement});
 
   // Do not show button if Feedback integration is not enabled
   if (!feedback) {

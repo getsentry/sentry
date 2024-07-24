@@ -1,3 +1,4 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -30,36 +31,44 @@ export default function ReplayComparisonModal({
 }: Props) {
   const integrationsContext = useAsyncSDKIntegrationStore();
 
+  const [elem, setElem] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setElem(document.getElementById('andrew'));
+  }, []);
+  console.log('ReplayComparisonModal render', elem?.id);
+
   return (
-    <OrganizationContext.Provider value={organization}>
-      <AsyncSDKIntegrationContextProvider outerContext={integrationsContext}>
-        <Header closeButton>
-          <ModalHeader>
-            <h4>
-              Hydration Error!!
-              <FeatureBadge type="beta" />
-            </h4>
-            <FeedbackWidgetButton />
-          </ModalHeader>
-        </Header>
-        <Body>
-          <StyledParagraph>
-            {tct(
-              'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before Hydration] refers to the html rendered on the server. [boldAfter:After Hydration] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
-              {
-                boldBefore: <strong />,
-                boldAfter: <strong />,
-              }
-            )}
-          </StyledParagraph>
-          <ReplayDiffChooser
-            replay={replay}
-            leftOffsetMs={leftOffsetMs}
-            rightOffsetMs={rightOffsetMs}
-          />
-        </Body>
-      </AsyncSDKIntegrationContextProvider>
-    </OrganizationContext.Provider>
+    <div id="andrew">
+      <OrganizationContext.Provider value={organization}>
+        <AsyncSDKIntegrationContextProvider outerContext={integrationsContext}>
+          <Header closeButton>
+            <ModalHeader>
+              <h4>
+                Hydration Error!!
+                <FeatureBadge type="beta" />
+              </h4>
+              <FeedbackWidgetButton parentElement={elem ?? undefined} />
+            </ModalHeader>
+          </Header>
+          <Body>
+            <StyledParagraph>
+              {tct(
+                'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before Hydration] refers to the html rendered on the server. [boldAfter:After Hydration] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
+                {
+                  boldBefore: <strong />,
+                  boldAfter: <strong />,
+                }
+              )}
+            </StyledParagraph>
+            <ReplayDiffChooser
+              replay={replay}
+              leftOffsetMs={leftOffsetMs}
+              rightOffsetMs={rightOffsetMs}
+            />
+          </Body>
+        </AsyncSDKIntegrationContextProvider>
+      </OrganizationContext.Provider>
+    </div>
   );
 }
 
