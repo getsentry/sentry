@@ -3,9 +3,14 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
-import {useObjectRef} from '@react-aria/utils';
+import {mergeProps, useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {
+  DOMAttributes,
+  FocusableElement,
+  Node,
+  Orientation,
+} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -37,64 +42,165 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   }
 }
 
+interface BaseTabProps {
+  children: React.ReactNode;
+  hidden: boolean;
+  isSelected: boolean;
+  orientation: Orientation;
+  overflowing: boolean;
+  tabProps: DOMAttributes<FocusableElement>;
+  /**
+   * Additional props to be merged with `tabProps`. This is used
+   * by <DraggableTab> to pass in props used for drag-and-drop functionality.
+   */
+  additionalProps?: React.HTMLAttributes<HTMLElement>;
+  borderStyle?: 'solid' | 'dashed';
+  to?: string;
+  variant?: 'vanilla' | 'draggable';
+}
+
+export const BaseTab = forwardRef(
+  (props: BaseTabProps, forwardedRef: React.ForwardedRef<HTMLLIElement>) => {
+    const {
+      to,
+      orientation,
+      overflowing,
+      tabProps,
+      hidden,
+      isSelected,
+      additionalProps,
+      variant = 'vanilla',
+      borderStyle = 'solid',
+    } = props;
+
+    const ref = useObjectRef(forwardedRef);
+    const InnerWrap = useCallback(
+      ({children}) =>
+        to ? (
+          <TabLink
+            to={to}
+            onMouseDown={handleLinkClick}
+            onPointerDown={handleLinkClick}
+            orientation={orientation}
+            tabIndex={-1}
+          >
+            {children}
+          </TabLink>
+        ) : (
+          <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
+        ),
+      [to, orientation]
+    );
+    if (variant === 'draggable') {
+      return (
+        <DraggableTabWrap
+          {...mergeProps(tabProps, additionalProps)}
+          hidden={hidden}
+          overflowing={overflowing}
+          borderStyle={borderStyle}
+          ref={ref}
+        >
+          {props.children}
+        </DraggableTabWrap>
+      );
+    }
+
+    return (
+      <TabWrap
+        {...mergeProps(tabProps, additionalProps)}
+        hidden={hidden}
+        selected={isSelected}
+        overflowing={overflowing}
+        ref={ref}
+      >
+        <InnerWrap>
+          <StyledInteractionStateLayer
+            orientation={orientation}
+            higherOpacity={isSelected}
+          />
+          <FocusLayer orientation={orientation} />
+          {props.children}
+          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        </InnerWrap>
+      </TabWrap>
+    );
+  }
+);
+
 /**
  * Renders a single tab item. This should not be imported directly into any
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-function BaseTab(
-  {item, state, orientation, overflowing}: TabProps,
-  forwardedRef: React.ForwardedRef<HTMLLIElement>
-) {
-  const ref = useObjectRef(forwardedRef);
+export const Tab = forwardRef(
+  (
+    {item, state, orientation, overflowing}: TabProps,
+    forwardedRef: React.ForwardedRef<HTMLLIElement>
+  ) => {
+    const ref = useObjectRef(forwardedRef);
 
-  const {
-    key,
-    rendered,
-    props: {to, hidden},
-  } = item;
-  const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
+    const {
+      key,
+      rendered,
+      props: {to, hidden},
+    } = item;
+    const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
 
-  const InnerWrap = useCallback(
-    ({children}) =>
-      to ? (
-        <TabLink
-          to={to}
-          onMouseDown={handleLinkClick}
-          onPointerDown={handleLinkClick}
-          orientation={orientation}
-          tabIndex={-1}
-        >
-          {children}
-        </TabLink>
-      ) : (
-        <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
-      ),
-    [to, orientation]
-  );
-
-  return (
-    <TabWrap
-      {...tabProps}
-      hidden={hidden}
-      selected={isSelected}
-      overflowing={overflowing}
-      ref={ref}
-    >
-      <InnerWrap>
-        <StyledInteractionStateLayer
-          orientation={orientation}
-          higherOpacity={isSelected}
-        />
-        <FocusLayer orientation={orientation} />
+    return (
+      <BaseTab
+        tabProps={tabProps}
+        isSelected={isSelected}
+        to={to}
+        hidden={hidden}
+        orientation={orientation}
+        overflowing={overflowing}
+        ref={ref}
+      >
         {rendered}
-        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
-      </InnerWrap>
-    </TabWrap>
-  );
-}
+      </BaseTab>
+    );
+  }
+);
 
-export const Tab = forwardRef(BaseTab);
+const DraggableTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+  borderStyle: 'dashed' | 'solid';
+  overflowing: boolean;
+}>`
+  &[aria-selected='true'] {
+    ${p =>
+      `
+        border-radius: 6px 6px 1px 1px;
+        border-top: 1px ${p.borderStyle} ${p.theme.border};
+        border-left: 1px ${p.borderStyle} ${p.theme.border};
+        border-right: 1px ${p.borderStyle} ${p.theme.border};
+        background-color: ${p.theme.white};
+        color: ${p.theme.fontWeightBold};
+        font-weight: 600;
+      `}
+  }
+
+  &[aria-selected='false'] {
+    border-top: 1px solid transparent;
+  }
+
+  transform: translateY(1px);
+  padding: 5px 10px;
+
+  opacity: 0px;
+
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+  }
+
+  ${p =>
+    p.overflowing &&
+    `
+      opacity: 0;
+      pointer-events: none;
+    `}
+`;
 
 const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;

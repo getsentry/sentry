@@ -85,6 +85,32 @@ function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
+export function OverflowMenu({state, overflowMenuItems, disabled}) {
+  return (
+    <TabListOverflowWrap>
+      <CompactSelect
+        options={overflowMenuItems}
+        value={[...state.selectionManager.selectedKeys][0]}
+        onChange={opt => state.setSelectedKey(opt.value)}
+        disabled={disabled}
+        position="bottom-end"
+        size="sm"
+        offset={4}
+        trigger={triggerProps => (
+          <OverflowMenuTrigger
+            {...triggerProps}
+            size="sm"
+            borderless
+            showChevron={false}
+            icon={<IconEllipsis />}
+            aria-label={t('More tabs')}
+          />
+        )}
+      />
+    </TabListOverflowWrap>
+  );
+}
+
 export interface TabListProps
   extends AriaTabListOptions<TabListItemProps>,
     TabListStateOptions<TabListItemProps> {
@@ -195,27 +221,11 @@ function BaseTabList({
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <TabListOverflowWrap>
-          <CompactSelect
-            options={overflowMenuItems}
-            value={[...state.selectionManager.selectedKeys][0]}
-            onChange={opt => state.setSelectedKey(opt.value)}
-            disabled={disabled}
-            position="bottom-end"
-            size="sm"
-            offset={4}
-            trigger={triggerProps => (
-              <OverflowMenuTrigger
-                {...triggerProps}
-                size="sm"
-                borderless
-                showChevron={false}
-                icon={<IconEllipsis />}
-                aria-label={t('More tabs')}
-              />
-            )}
-          />
-        </TabListOverflowWrap>
+        <OverflowMenu
+          state={state}
+          overflowMenuItems={overflowMenuItems}
+          disabled={disabled}
+        />
       )}
     </TabListOuterWrap>
   );
