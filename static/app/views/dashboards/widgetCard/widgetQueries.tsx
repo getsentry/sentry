@@ -191,6 +191,23 @@ function WidgetQueries({
       isSeriesMetricsExtractedDataResults.every(Boolean) &&
         isSeriesMetricsExtractedDataResults.some(Boolean)
     );
+
+    const resultValues = Object.values(rawResults);
+    if (organization.features.includes('performance-discover-dataset-selector')) {
+      let splitDecision: WidgetType | undefined = undefined;
+      if (rawResults.meta) {
+        splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
+      } else if (Object.values(rawResults).length > 0) {
+        // Multi-series queries will have a meta key on each series
+        // We can just read the decision from one.
+        splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
+      }
+
+      if (splitDecision) {
+        // Update the dashboard state with the split decision
+        onWidgetSplitDecision?.(splitDecision);
+      }
+    }
   };
 
   const isTableMetricsDataResults: boolean[] = [];
