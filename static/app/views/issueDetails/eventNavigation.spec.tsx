@@ -28,6 +28,13 @@ describe('EventNavigation', () => {
     projectSlug: 'project-slug',
   };
 
+  beforeEach(() => {
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue('')},
+    });
+    window.open = jest.fn();
+  });
+
   describe('recommended event tabs', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
@@ -92,5 +99,36 @@ describe('EventNavigation', () => {
     expect(await screen.findByText('Replay')).toBeInTheDocument();
     expect(await screen.findByText('Tags')).toBeInTheDocument();
     expect(await screen.findByText('Event Highlights')).toBeInTheDocument();
+  });
+
+  it('can copy event ID', async () => {
+    render(<EventNavigation {...defaultProps} />);
+
+    await userEvent.click(screen.getByText(testEvent.id));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
+  });
+
+  it('shows event actions dropdown', async () => {
+    render(<EventNavigation {...defaultProps} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event Link'}));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      `http://localhost/organizations/org-slug/issues/group-id/events/event-id/`
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'View JSON'}));
+
+    expect(window.open).toHaveBeenCalledWith(
+      `https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/`
+    );
   });
 });
