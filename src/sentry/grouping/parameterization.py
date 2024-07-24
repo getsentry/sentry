@@ -153,7 +153,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (datetime.datetime\(.*?\))
         """,
     ),
-    ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d(\.\d+)?s)\b"""),
+    ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
     ParameterizationRegex(name="hex", raw_pattern=r"""\b0[xX][0-9a-fA-F]+\b"""),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
     ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),

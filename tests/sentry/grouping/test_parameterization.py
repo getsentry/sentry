@@ -134,8 +134,13 @@ def parameterizer():
         ("bool", """blah a=true had a problem""", """blah a=<bool> had a problem"""),
         (
             "Duration - ms",
-            """blah connection failed after 12345ms 1.899s 3s""",
-            """blah connection failed after <duration> <duration> <duration>""",
+            """connection failed after 1ms 23ms 4567890ms""",
+            """connection failed after <duration> <duration> <duration>""",
+        ),
+        (
+            "Duration - s",
+            """connection failed after 1.234s 56s 78.90s""",
+            """connection failed after <duration> <duration> <duration>""",
         ),
         (
             "Hostname - 2 levels",
