@@ -5,6 +5,8 @@ import Alert from 'sentry/components/alert';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {TagCollection} from 'sentry/types/group';
@@ -132,7 +134,8 @@ export default storyBook(SearchQueryBuilder, story => {
         <p>
           There are some config options which allow you to customize which types of syntax
           are considered valid. This should be used when the search backend does not
-          support certain operators like boolean logic or wildcards.
+          support certain operators like boolean logic or wildcards. Use the checkboxes
+          below to enable/disable the following options:
         </p>
         <MultipleCheckbox
           onChange={setEnabledConfigs}
@@ -152,6 +155,26 @@ export default storyBook(SearchQueryBuilder, story => {
           getTagValues={getTagValues}
           searchSource="storybook"
           {...queryBuilderOptions}
+        />
+        <p>
+          The query above has a few invalid tokens. The invalid tokens are highlighted in
+          red and display a tooltip with a message when focused. The invalid token
+          messages can be customized using the <code>invalidMessages</code> prop. In this
+          case, the unsupported tag message is modified with{' '}
+          <JSXProperty
+            name="invalidMessages"
+            value={{[InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'foo bar baz'}}
+          />
+          .
+        </p>
+        <SearchQueryBuilder
+          initialQuery="AND"
+          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          disallowLogicalOperators
+          invalidMessages={{[InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'foo bar baz'}}
         />
       </Fragment>
     );

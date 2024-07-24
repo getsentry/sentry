@@ -17,6 +17,7 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -67,6 +68,10 @@ export interface SearchQueryBuilderProps {
    * Sections and filter keys are displayed in the order they are provided.
    */
   filterKeySections?: FilterKeySection[];
+  /**
+   * Allows for customization of the invalid token messages.
+   */
+  invalidMessages?: SearchConfig['invalidMessages'];
   label?: string;
   onBlur?: (query: string) => void;
   /**
@@ -107,6 +112,7 @@ export function SearchQueryBuilder({
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
+  invalidMessages,
   label,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -132,15 +138,17 @@ export function SearchQueryBuilder({
         disallowUnsupportedFilters,
         disallowWildcard,
         filterKeys,
+        invalidMessages,
       }),
     [
+      state.query,
+      fieldDefinitionGetter,
       disallowFreeText,
       disallowLogicalOperators,
-      disallowWildcard,
-      fieldDefinitionGetter,
-      filterKeys,
       disallowUnsupportedFilters,
-      state.query,
+      disallowWildcard,
+      filterKeys,
+      invalidMessages,
     ]
   );
 

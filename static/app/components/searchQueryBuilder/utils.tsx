@@ -69,6 +69,7 @@ export function parseQueryBuilderValue(
     disallowLogicalOperators?: boolean;
     disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
+    invalidMessages?: SearchConfig['invalidMessages'];
   }
 ): ParseResult | null {
   return collapseTextTokens(
@@ -82,6 +83,7 @@ export function parseQueryBuilderValue(
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
+      invalidMessages: options?.invalidMessages,
       supportedTags: options?.filterKeys,
     })
   );
