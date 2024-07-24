@@ -316,7 +316,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_actions(self, request, group, **kwargs):
+    def get_actions(self, request, group) -> list[tuple[str, str]]:
         """
         Return a list of available actions to append this aggregate.
 
@@ -326,7 +326,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
             ('Action Label', '/uri/to/action/')
 
-        >>> def get_actions(self, request, group, **kwargs):
+        >>> def get_actions(self, request, group):
         >>>     return [('Google', 'http://google.com')]
         """
         return []
