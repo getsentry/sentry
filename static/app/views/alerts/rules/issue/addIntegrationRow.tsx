@@ -1,14 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 
 type Props = {
   onClickHandler: () => void;
@@ -61,35 +60,19 @@ function AddIntegrationRow({
     organization,
   };
 
-  const close = () => onClickHandler;
-
-  // TODO(Mia): show request installation button if user does not have necessary permissions
-  const integrationButton = metadata.aspects.externalInstall ? (
-    <ExternalButton
-      href={metadata.aspects.externalInstall.url}
-      onClick={() => close}
-      external
-      {...buttonProps}
-    >
-      Add Installation
-    </ExternalButton>
-  ) : (
-    <InternalButton
-      provider={provider}
-      onAddIntegration={close}
-      analyticsParams={{view: 'onboarding', already_installed: false}}
-      modalParams={{projectId: project.id}}
-      {...buttonProps}
-    />
-  );
-
   return (
     <RowWrapper>
       <IconTextWrapper>
         <PluginIcon pluginId={providerKey} size={40} />
         <NameHeader>Connect {provider.name}</NameHeader>
       </IconTextWrapper>
-      {integrationButton}
+      <StyledButton
+        onAddIntegration={onClickHandler}
+        onExternalClick={onClickHandler}
+        organization={organization}
+        project={project}
+        provider={provider}
+      />
     </RowWrapper>
   );
 }
@@ -113,11 +96,7 @@ const NameHeader = styled('h6')`
   margin: 0;
 `;
 
-const ExternalButton = styled(Button)`
-  margin: 0;
-`;
-
-const InternalButton = styled(AddIntegrationButton)`
+const StyledButton = styled(IntegrationButton)`
   margin: 0;
 `;
 
