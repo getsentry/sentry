@@ -122,7 +122,7 @@ class IssueTrackingPlugin(Plugin):
             request.POST or None, initial=self.get_initial_link_form_data(request, group, event)
         )
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         """
         Given an issue_id (string) return an absolute URL to the issue's details
         page.
@@ -135,7 +135,7 @@ class IssueTrackingPlugin(Plugin):
         """
         raise NotImplementedError
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id) -> str:
         """
         Given an issue_id (string) return a string representing the issue.
 
