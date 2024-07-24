@@ -7,7 +7,7 @@ from sentry.testutils.cases import PluginTestCase
 
 
 class SamplePlugin(Plugin2):
-    def get_actions(self, request, group):
+    def get_actions(self, request, group) -> list[tuple[str, str]]:
         return [("Example Action", f"http://example.com?id={group.id}")]
 
     def get_annotations(self, group):

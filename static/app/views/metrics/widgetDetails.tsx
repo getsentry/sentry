@@ -15,9 +15,11 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
+import {isVirtualMetric} from 'sentry/utils/metrics';
 import type {FocusedMetricsSeries, MetricsWidget} from 'sentry/utils/metrics/types';
 import {isMetricsEquationWidget} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
@@ -92,6 +94,7 @@ export function MetricDetails({
 }: MetricDetailsProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const {getCondition} = useVirtualMetricsContext();
 
   const queryWithFocusedSeries = useMemo(
     () =>
@@ -104,32 +107,57 @@ export function MetricDetails({
   );
 
   const selectionRange = focusArea?.selection?.range;
-  const selectionDatetime =
-    defined(selectionRange) && defined(selectionRange) && defined(selectionRange)
-      ? ({
-          start: selectionRange.start,
-          end: selectionRange.end,
-        } as PageFilters['datetime'])
-      : undefined;
 
-  const tracesTarget = generateTracesRouteWithQuery({
-    orgSlug: organization.slug,
-    metric:
-      aggregation && mri
-        ? {
-            max: selectionRange?.max,
-            min: selectionRange?.min,
-            op: aggregation,
-            query: queryWithFocusedSeries,
-            mri: mri,
-          }
-        : undefined,
-    query: {
-      project: selection.projects as unknown as string[],
-      environment: selection.environments,
-      ...normalizeDateTimeParams(selectionDatetime ?? selection.datetime),
-    },
-  });
+  const tracesTarget = useMemo(() => {
+    const selectionDatetime =
+      defined(selectionRange) && defined(selectionRange) && defined(selectionRange)
+        ? ({
+            start: selectionRange.start,
+            end: selectionRange.end,
+          } as PageFilters['datetime'])
+        : undefined;
+
+    if (mri && isVirtualMetric({mri})) {
+      const conditionQuery = getCondition(mri, condition || -1)?.value || '';
+
+      return generateTracesRouteWithQuery({
+        orgSlug: organization.slug,
+        query: {
+          project: selection.projects as unknown as string[],
+          environment: selection.environments,
+          ...normalizeDateTimeParams(selectionDatetime ?? selection.datetime),
+          query: `${conditionQuery.trim()} ${queryWithFocusedSeries?.trim()}`,
+        },
+      });
+    }
+    if (aggregation && mri) {
+      return generateTracesRouteWithQuery({
+        orgSlug: organization.slug,
+        metric: {
+          max: selectionRange?.max,
+          min: selectionRange?.min,
+          op: aggregation,
+          query: queryWithFocusedSeries,
+          mri: mri,
+        },
+        query: {
+          project: selection.projects as unknown as string[],
+          environment: selection.environments,
+          ...normalizeDateTimeParams(selectionDatetime ?? selection.datetime),
+        },
+      });
+    }
+    return '';
+  }, [
+    aggregation,
+    mri,
+    organization.slug,
+    queryWithFocusedSeries,
+    selection,
+    selectionRange,
+    condition,
+    getCondition,
+  ]);
 
   return (
     <TrayWrapper>
