@@ -297,7 +297,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        more_tags = {"escape": "`room`", "foo": "bar"}
+        more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
@@ -307,7 +307,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo", "escape"}
+            group, event.for_group(group), tags={"foo", "escape", "release"}
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -328,7 +328,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo", "escape"}, notes=notes
+            group, event.for_group(group), tags={"foo", "escape", "release"}, notes=notes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
