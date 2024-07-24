@@ -64,7 +64,7 @@ def create_dummy_response(*args, **kwargs):
                 finish_reason="stop",
             )
         ],
-        created=int(time.time()),
+        created=time.time(),
         model="gpt3.5-trubo",
         object="chat.completion",
     )
