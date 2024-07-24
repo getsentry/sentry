@@ -114,7 +114,6 @@ def process_organization_url_ranking(organization_id: int):
         "uptime.process_organization",
         extra={"organization_id": org.id},
     )
-    # TODO: Check quota available for org
     should_detect = should_detect_for_organization(org)
 
     for project_id, project_count in get_candidate_projects_for_org(org):

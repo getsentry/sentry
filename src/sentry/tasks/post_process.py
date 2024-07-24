@@ -26,7 +26,6 @@ from sentry.signals import event_processed, issue_unignored, transaction_process
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
-from sentry.uptime.detectors.detector import detect_base_url_for_project
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -1515,6 +1514,8 @@ def detect_new_escalation(job: PostProcessJob):
 
 
 def detect_base_urls_for_uptime(job: PostProcessJob):
+    from sentry.uptime.detectors.detector import detect_base_url_for_project
+
     url = get_path(job["event"].data, "request", "url")
     detect_base_url_for_project(job["event"].project, url)
 
