@@ -29,10 +29,10 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 function SeriesName({
   seriesName,
-  isSingleSeries,
+  singleQuery,
 }: {
-  isSingleSeries: boolean;
   seriesName: string;
+  singleQuery: boolean;
 }) {
   const organization = useOrganization();
 
@@ -41,9 +41,7 @@ function SeriesName({
 
   return (
     <TextOverflow>
-      <SerieNamePrefix
-        uppercaseText={hasMetricsNewInputs(organization) && !isSingleSeries}
-      >
+      <SerieNamePrefix uppercaseText={hasMetricsNewInputs(organization) && !singleQuery}>
         {prefix}
         {sufix && ':'}
       </SerieNamePrefix>
@@ -60,10 +58,12 @@ export const SummaryTable = memo(function SummaryTable({
   sort = DEFAULT_SORT_STATE as SortState,
   onRowHover,
   onRowFilter,
+  singleQuery,
 }: {
   onRowClick: (series: FocusedMetricsSeries) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
+  singleQuery: boolean;
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
   onRowFilter?: (
     index: number,
@@ -264,10 +264,7 @@ export const SummaryTable = memo(function SummaryTable({
                     delay={500}
                     overlayStyle={{maxWidth: '80vw'}}
                   >
-                    <SeriesName
-                      isSingleSeries={rows.length === 1}
-                      seriesName={row.seriesName}
-                    />
+                    <SeriesName singleQuery={singleQuery} seriesName={row.seriesName} />
                   </Tooltip>
                 </TextOverflowCell>
                 {totalColumns.map(aggregate => (
