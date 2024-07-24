@@ -172,7 +172,7 @@ class Csp(SecurityReport):
         data.setdefault("effective_directive", None)
         return super().to_python(data, **kwargs)
 
-    def to_string(self, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         return orjson.dumps(
             {"csp-report": self.get_api_context()},
             option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,

@@ -45,7 +45,7 @@ class Template(Interface):
 
         return super().to_python(data, **kwargs)
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         context = get_context(
             lineno=self.lineno,
             context_line=self.context_line,

@@ -47,5 +47,5 @@ class Message(Interface):
             {"message": self.message, "formatted": self.formatted, "params": self.params or None}
         )
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         return self.formatted or self.message
