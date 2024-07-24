@@ -241,7 +241,9 @@ export const SummaryTable = memo(function SummaryTable({
                   >
                     <TextOverflow>
                       <SerieNamePrefix
-                        hasMetricsNewInputs={hasMetricsNewInputs(organization)}
+                        uppercaseText={
+                          hasMetricsNewInputs(organization) && rows.length > 1
+                        }
                       >
                         {row.seriesName.split(':')[0]}:
                       </SerieNamePrefix>
@@ -566,6 +568,6 @@ const Row = styled('div')`
   }
 `;
 
-const SerieNamePrefix = styled('span')<{hasMetricsNewInputs: boolean}>`
-  text-transform: ${p => (p.hasMetricsNewInputs ? 'uppercase' : 'lowercase')};
+const SerieNamePrefix = styled('span')<{uppercaseText: boolean}>`
+  text-transform: ${p => (p.uppercaseText ? 'uppercase' : 'lowercase')};
 `;
