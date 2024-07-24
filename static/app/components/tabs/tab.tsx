@@ -105,6 +105,8 @@ export const BaseTab = forwardRef(
           borderStyle={borderStyle}
           ref={ref}
         >
+          <FilledStyledInteractionStateLayer hasSelectedBackground={false} />
+          <FilledFocusLayer />
           {props.children}
         </FilledTabWrap>
       );
@@ -180,9 +182,10 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
         border-right: 1px ${p.borderStyle} ${p.theme.border};
         background-color: ${p.theme.background};
         font-weight: ${p.theme.fontWeightBold};
-      `}
-    border-radius: 6px 6px 1px 1px;
+    `}
   }
+
+  border-radius: 6px 6px 1px 1px;
 
   &[aria-selected='false'] {
     border-top: 1px solid transparent;
@@ -292,12 +295,42 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
   bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
 `;
 
+const FilledStyledInteractionStateLayer = styled(InteractionStateLayer)`
+  position: absolute;
+  width: auto;
+  height: auto;
+  transform: none;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+`;
+
 const FocusLayer = styled('div')<{orientation: Orientation}>`
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
   bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
+
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+  transition: box-shadow 0.1s ease-out;
+
+  li:focus-visible & {
+    box-shadow:
+      ${p => p.theme.focusBorder} 0 0 0 1px,
+      inset ${p => p.theme.focusBorder} 0 0 0 1px;
+  }
+`;
+
+const FilledFocusLayer = styled('div')`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 
   pointer-events: none;
   border-radius: inherit;

@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils';
 interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   as?: React.ElementType;
   color?: string;
+  hasSelectedBackground?: boolean;
   higherOpacity?: boolean;
   isHovered?: boolean;
   isPressed?: boolean;
@@ -65,11 +66,16 @@ const InteractionStateLayer = styled(
         `
       : // If isPressed is undefined, then fallback to default press selectors
         css`
-          *:active > &&,
-          *[aria-expanded='true'] > &&,
-          *[aria-selected='true'] > && {
+          *:active > && {
             opacity: ${p.higherOpacity ? 0.12 : 0.09};
           }
+          ${p.hasSelectedBackground &&
+          css`
+            *[aria-expanded='true'] > &&,
+            *[aria-selected='true'] > && {
+              opacity: ${p.higherOpacity ? 0.12 : 0.09};
+            }
+          `}
         `}
 
 
@@ -78,5 +84,9 @@ const InteractionStateLayer = styled(
     opacity: 0;
   }
 `;
+
+InteractionStateLayer.defaultProps = {
+  hasSelectedBackground: true,
+};
 
 export default InteractionStateLayer;

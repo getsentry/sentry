@@ -192,7 +192,8 @@ export default storyBook(Tabs, story => {
     <div>
       <p>
         Use the variant prop to control which tab design to use. The default, "flat", is
-        used in the above examples, but you can also use "filled" variant, as shown here:
+        used in the above examples, but you can also use "filled" variant, as shown below.
+        Note that the "filled" variant does not work when the oritentation is vertical
       </p>
       <SizingWindow>
         <Tabs>
