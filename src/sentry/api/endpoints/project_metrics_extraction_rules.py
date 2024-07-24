@@ -62,7 +62,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             "organizations:custom-metrics-extraction-rule", organization, actor=request.user
         )
 
-    def _create_audit_entry(self, event: str, project: Project, span_attribute: str):
+    def _create_audit_entry(
+        self, event: str, project: Project, span_attribute: str, config_update: str
+    ):
         self.create_audit_entry(
             request=self.request,
             organization=project.organization,
@@ -71,6 +73,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             data={
                 "span_attribute": span_attribute,
                 "project_slug": project.slug,
+                "config_update": config_update,
             },
         )
 
@@ -91,7 +94,10 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 )
                 for config in config_update:
                     self._create_audit_entry(
-                        "SPAN_BASED_METRIC_DELETE", project, config["spanAttribute"]
+                        "SPAN_BASED_METRIC_DELETE",
+                        project,
+                        config["spanAttribute"],
+                        str(config_update),
                     )
 
             return Response(status=204)
@@ -142,7 +148,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 )
                 for config in configs:
                     self._create_audit_entry(
-                        "SPAN_BASED_METRIC_CREATE", project, config.span_attribute
+                        "SPAN_BASED_METRIC_CREATE", project, config.span_attribute, config_update
                     )
 
             persisted_config = serialize(
@@ -167,7 +173,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
             for config in configs:
-                self._create_audit_entry("SPAN_BASED_METRIC_UPDATE", project, config.span_attribute)
+                self._create_audit_entry(
+                    "SPAN_BASED_METRIC_UPDATE", project, config.span_attribute, config_update
+                )
 
             persisted_config = serialize(
                 configs,
