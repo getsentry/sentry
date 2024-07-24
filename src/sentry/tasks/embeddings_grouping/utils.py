@@ -371,13 +371,9 @@ def _make_seer_call(
             exceptions=ServiceUnavailable,
         )
     except ServiceUnavailable:
-        extra = {
-            "project_id": project_id,
-            "error": "Service Unavailable",
-        }
         logger.exception(
             "tasks.backfill_seer_grouping_records.seer_service_unavailable",
-            extra=extra,
+            extra={"project_id": project_id},
         )
         raise
 
