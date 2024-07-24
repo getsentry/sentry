@@ -174,8 +174,7 @@ const DraggableTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp}
         border-left: 1px ${p.borderStyle} ${p.theme.border};
         border-right: 1px ${p.borderStyle} ${p.theme.border};
         background-color: ${p.theme.white};
-        color: ${p.theme.fontWeightBold};
-        font-weight: 600;
+        font-weight: ${p.theme.fontWeightBold};
       `}
   }
 
@@ -185,8 +184,6 @@ const DraggableTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp}
 
   transform: translateY(1px);
   padding: 5px 10px;
-
-  opacity: 0px;
 
   cursor: pointer;
 
