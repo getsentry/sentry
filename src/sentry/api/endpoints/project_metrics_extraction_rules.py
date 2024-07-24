@@ -148,7 +148,10 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 )
                 for config in configs:
                     self._create_audit_entry(
-                        "SPAN_BASED_METRIC_CREATE", project, config.span_attribute, config_update
+                        "SPAN_BASED_METRIC_CREATE",
+                        project,
+                        config.span_attribute,
+                        str(config_update),
                     )
 
             persisted_config = serialize(
@@ -174,7 +177,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 )
             for config in configs:
                 self._create_audit_entry(
-                    "SPAN_BASED_METRIC_UPDATE", project, config.span_attribute, config_update
+                    "SPAN_BASED_METRIC_UPDATE", project, config.span_attribute, str(config_update)
                 )
 
             persisted_config = serialize(
