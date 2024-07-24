@@ -1361,6 +1361,39 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert data["Other"]["order"] == 1
         assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [7, 6]
 
+    def test_top_events_with_projects_fields(self):
+        # We need to handle the project name fields differently
+        for project_field in ["project", "project.name"]:
+            with self.feature(self.enabled_features):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=2)),
+                        "interval": "1h",
+                        "yAxis": "count()",
+                        "orderby": ["-count()"],
+                        "field": ["count()", project_field],
+                        "topEvents": 5,
+                    },
+                    format="json",
+                )
+
+            data = response.data
+            assert response.status_code == 200, response.content
+
+            assert data[self.project.slug]["order"] == 0, project_field
+            assert [attrs[0]["count"] for _, attrs in data[self.project.slug]["data"]] == [
+                15,
+                0,
+            ], project_field
+
+            assert data[self.project2.slug]["order"] == 1, project_field
+            assert [attrs[0]["count"] for _, attrs in data[self.project2.slug]["data"]] == [
+                7,
+                6,
+            ], project_field
+
     def test_tag_with_conflicting_function_alias_simple(self):
         event_data: _EventDataDict = {
             "data": {
