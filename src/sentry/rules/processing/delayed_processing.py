@@ -457,12 +457,12 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
     # STEP 3: Fetch the Rule models we need to check
-    alert_rules_query = Rule.objects.filter(id__in=list(rules_to_groups.keys())).exclude(
+    alert_rules_queryset = Rule.objects.filter(id__in=list(rules_to_groups.keys())).exclude(
         id__in=Subquery(
             RuleSnooze.objects.filter(rule_id=OuterRef("id"), user_id=None).values("rule_id")
         )
     )
-    alert_rules = list(alert_rules_query)
+    alert_rules = list(alert_rules_queryset)
 
     # STEP 4: Create a map of unique condition queries to a tuple containing the
     # JSON information needed to instantiate that condition class and the
