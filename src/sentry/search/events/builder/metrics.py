@@ -1566,6 +1566,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         config.auto_fields = False
         super().__init__(
             params=params,
+            snuba_params=snuba_params,
             query=query,
             dataset=dataset,
             selected_columns=selected_columns,
