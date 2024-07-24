@@ -587,6 +587,6 @@ const Row = styled('div')`
   }
 `;
 
-const SerieNamePrefix = styled('span')<{uppercaseText?: boolean}>`
+const SerieNamePrefix = styled('span')<{uppercaseText: boolean}>`
   text-transform: ${p => (p.uppercaseText ? 'uppercase' : 'lowercase')};
 `;
