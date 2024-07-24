@@ -72,7 +72,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             token=self.get_option("token", project),
         )
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         token = self.get_option("token", project)
         helptext = "You may generate a Conduit API Token from your account settings in Phabricator."
         secret_field = get_secret_field_config(token, helptext, include_prefix=True)

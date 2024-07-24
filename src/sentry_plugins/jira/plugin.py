@@ -524,7 +524,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return config
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         instance = self.get_option("instance_url", project)
         username = self.get_option("username", project)
         pw = self.get_option("password", project)
