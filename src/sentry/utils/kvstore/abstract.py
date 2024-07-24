@@ -68,7 +68,7 @@ class KVStorage(ABC, Generic[K, V]):
             self.delete(key)
 
     @abstractmethod
-    def bootstrap(self) -> None:
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         """
         Allocate the resources (create tables, etc.) required by the store to
         be usable.
