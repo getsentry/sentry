@@ -25,14 +25,33 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="organizationmapping",
-            name="disable_member_project_creation",
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name="organizationmapping",
-            name="prevent_superuser_access",
-            field=models.BooleanField(default=False),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_organizationmapping"
+                    ADD COLUMN "disable_member_project_creation" boolean NOT NULL DEFAULT false,
+                    ADD COLUMN "prevent_superuser_access" boolean NOT NULL DEFAULT false;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_organizationmapping"
+                    DROP COLUMN "disable_member_project_creation",
+                    DROP COLUMN "prevent_superuser_access";
+                    """,
+                    hints={"tables": ["sentry_organizationmapping"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="organizationmapping",
+                    name="disable_member_project_creation",
+                    field=models.BooleanField(default=False),
+                ),
+                migrations.AddField(
+                    model_name="organizationmapping",
+                    name="prevent_superuser_access",
+                    field=models.BooleanField(default=False),
+                ),
+            ],
+        )
     ]
