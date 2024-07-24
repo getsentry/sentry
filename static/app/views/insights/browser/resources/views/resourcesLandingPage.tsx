@@ -5,10 +5,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -26,9 +22,9 @@ import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -37,7 +33,6 @@ const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
 function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
-  const hasModuleData = useHasFirstSpan(ModuleName.RESOURCE);
   const crumbs = useModuleBreadcrumbs('resource');
 
   return (
@@ -65,21 +60,19 @@ function ResourcesLandingPage() {
           <Layout.Main fullWidth>
             <PageAlert />
             <FilterOptionsContainer columnCount={2}>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-              {hasModuleData && (
-                <DomainSelector
-                  emptyOptionLocation="top"
-                  value={filters[SPAN_DOMAIN] || ''}
-                  additionalQuery={[
-                    ...DEFAULT_RESOURCE_FILTERS,
-                    `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-                  ]}
-                />
-              )}
+              <ModulePageFilterBar
+                moduleName={ModuleName.RESOURCE}
+                extraFilters={
+                  <DomainSelector
+                    emptyOptionLocation="top"
+                    value={filters[SPAN_DOMAIN] || ''}
+                    additionalQuery={[
+                      ...DEFAULT_RESOURCE_FILTERS,
+                      `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+                    ]}
+                  />
+                }
+              />
             </FilterOptionsContainer>
             <ModulesOnboarding moduleName={ModuleName.RESOURCE}>
               <ResourceView />
