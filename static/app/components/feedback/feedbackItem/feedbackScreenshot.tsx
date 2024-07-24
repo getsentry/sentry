@@ -27,7 +27,8 @@ export default function FeedbackScreenshot({
   onClick,
 }: Props) {
   const [isLoading, setIsLoading] = useState(true);
-  const isImage = screenshot.mimetype.includes('image');
+  const isImage =
+    screenshot.mimetype.includes('image') || screenshot.mimetype.includes('png');
 
   const img = (
     <StyledImageVisualization
