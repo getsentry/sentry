@@ -276,7 +276,7 @@ export default function UpdatedGroupHeader({
                   <StyledAvatarList
                     users={userParticipants}
                     teams={teamParticipants}
-                    avatarSize={16}
+                    avatarSize={18}
                     maxVisibleAvatars={2}
                     typeAvatars="participants"
                   />
@@ -288,7 +288,7 @@ export default function UpdatedGroupHeader({
                 {t('Viewers')}
                 <StyledAvatarList
                   users={displayUsers}
-                  avatarSize={16}
+                  avatarSize={18}
                   maxVisibleAvatars={2}
                 />
               </Wrapper>
