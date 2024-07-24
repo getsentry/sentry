@@ -19,6 +19,7 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
@@ -2049,6 +2050,29 @@ describe('SearchQueryBuilder', function () {
       expect(
         await screen.findByText('Invalid key. "foo" is not a supported search key.')
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('invalidMessages', function () {
+    it('should customize invalid messages', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="foo:"
+          invalidMessages={{
+            [InvalidReason.FILTER_MUST_HAVE_VALUE]: 'foo bar baz',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'foo:'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(await screen.findByText('foo bar baz')).toBeInTheDocument();
     });
   });
 });
