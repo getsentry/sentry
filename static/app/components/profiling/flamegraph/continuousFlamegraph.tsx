@@ -48,6 +48,7 @@ import {
   initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
+import type {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
 import type {ContinuousProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
@@ -122,6 +123,16 @@ function getMaxConfigSpace(
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
   return new Rect(0, 0, maxProfileDuration, 0);
+}
+
+function getProfileTransactionOffset(
+  profile: ContinuousProfile | undefined,
+  transaction: EventTransaction | null
+): Rect {
+  if (!transaction || !profile) {
+    return Rect.Empty();
+  }
+  return new Rect((profile.startedAt - transaction.startTimestamp) * 1e3, 0, 0, 0);
 }
 
 function convertContinuousProfileMeasurementsToUIFrames(
@@ -564,7 +575,10 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileTransactionOffset(
+            profile,
+            segment.type === 'resolved' ? segment.data : null
+          ),
         },
       });
 
@@ -640,7 +654,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, profile, segment]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -658,7 +672,10 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: uiFrames.minFrameDuration,
           barHeight: 10,
           depthOffset: 0,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileTransactionOffset(
+            profile,
+            segment.type === 'resolved' ? segment.data : null
+          ),
         },
       });
 
@@ -670,7 +687,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames]
+    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames, profile, segment]
   );
 
   const batteryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
@@ -692,7 +709,10 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: batteryChart.configSpace.height,
           minHeight: batteryChart.configSpace.height,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileTransactionOffset(
+            profile,
+            segment.type === 'resolved' ? segment.data : null
+          ),
         },
       });
 
@@ -713,6 +733,8 @@ export function ContinuousFlamegraph(): ReactElement {
       batteryChart,
       uiFrames.minFrameDuration,
       batteryChartCanvas,
+      profile,
+      segment,
     ]
   );
 
@@ -735,7 +757,10 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: CPUChart.configSpace.height,
           minHeight: CPUChart.configSpace.height,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileTransactionOffset(
+            profile,
+            segment.type === 'resolved' ? segment.data : null
+          ),
         },
       });
 
@@ -756,6 +781,8 @@ export function ContinuousFlamegraph(): ReactElement {
       CPUChart,
       uiFrames.minFrameDuration,
       cpuChartCanvas,
+      profile,
+      segment,
     ]
   );
 
@@ -778,7 +805,10 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: memoryChart.configSpace.height,
           minHeight: memoryChart.configSpace.height,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileTransactionOffset(
+            profile,
+            segment.type === 'resolved' ? segment.data : null
+          ),
         },
       });
 
@@ -799,6 +829,8 @@ export function ContinuousFlamegraph(): ReactElement {
       memoryChart,
       uiFrames.minFrameDuration,
       memoryChartCanvas,
+      profile,
+      segment,
     ]
   );
 
