@@ -122,7 +122,7 @@ class FeatureManagerTest(TestCase):
                 self.true_set = frozenset(true_set)
                 self.false_set = frozenset(false_set)
 
-            def has(self, feature, actor):
+            def has(self, feature, actor, skip_entity: bool | None = False):
                 assert actor == test_user
 
                 if feature.project in self.true_set:
