@@ -19,6 +19,10 @@ import {
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {
+  BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+  BreadcrumbSort,
+} from 'sentry/components/events/interfaces/breadcrumbs';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import useDrawer from 'sentry/components/globalDrawer';
 import {
@@ -51,23 +55,27 @@ export default function BreadcrumbsDataSection({
 }: BreadcrumbsDataSectionProps) {
   const {openDrawer} = useDrawer();
   const organization = useOrganization();
-  // Use the local storage preferences, but allow the drawer to do updates
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
+  // Use the local storage preferences, but allow the drawer to do updates
+  const [sort, _setSort] = useLocalStorageState<BreadcrumbSort>(
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
+  );
 
   const enhancedCrumbs = useMemo(() => getEnhancedBreadcrumbs(event), [event]);
   const summaryCrumbs = useMemo(
-    () => getSummaryBreadcrumbs(enhancedCrumbs),
-    [enhancedCrumbs]
+    () => getSummaryBreadcrumbs(enhancedCrumbs, sort),
+    [enhancedCrumbs, sort]
   );
   const startTimeString = useMemo(
     () =>
       timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-        ? enhancedCrumbs?.at(-1)?.breadcrumb?.timestamp
+        ? summaryCrumbs?.at(0)?.breadcrumb?.timestamp
         : undefined,
-    [enhancedCrumbs, timeDisplay]
+    [summaryCrumbs, timeDisplay]
   );
 
   const onViewAllBreadcrumbs = useCallback(

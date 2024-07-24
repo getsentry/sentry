@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
+import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
   convertCrumbType,
@@ -61,8 +62,11 @@ const Color = styled('span')<{colorConfig: ColorConfig}>`
  * As of writing this, it just grabs a few, but in the future it may collapse,
  * or manipulate them in some way for a better summary.
  */
-export function getSummaryBreadcrumbs(crumbs: EnhancedCrumb[]) {
-  return [...crumbs].reverse().slice(0, BREADCRUMB_SUMMARY_COUNT);
+export function getSummaryBreadcrumbs(crumbs: EnhancedCrumb[], sort: BreadcrumbSort) {
+  const breadcrumbs = [...crumbs];
+  const sortedCrumbs =
+    sort === BreadcrumbSort.OLDEST ? breadcrumbs : breadcrumbs.reverse();
+  return sortedCrumbs.slice(0, BREADCRUMB_SUMMARY_COUNT);
 }
 
 export function applyBreadcrumbSearch(
