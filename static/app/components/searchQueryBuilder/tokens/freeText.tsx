@@ -285,7 +285,10 @@ function shouldHideInvalidTooltip({
   }
 }
 
-function InvalidText({
+// Because the text input may be larger than the actual text, we use a hidden div
+// with the same text content to measure the width of the text. This is used for
+// centering the invalid tooltip, as well as for placing the selection background.
+function HiddenText({
   token,
   state,
   item,
@@ -298,9 +301,6 @@ function InvalidText({
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FREE_TEXT>;
 }) {
-  // Because the text input may be larger than the actual text, we use a div
-  // with the same text contents to determine where the tooltip should be
-  // positioned.
   return (
     <PositionedTooltip
       state={state}
@@ -311,7 +311,9 @@ function InvalidText({
       }
       skipWrapper={false}
     >
-      <InvisibleText aria-hidden>{inputValue}</InvisibleText>
+      <InvisibleText aria-hidden data-hidden-text>
+        {inputValue}
+      </InvisibleText>
     </PositionedTooltip>
   );
 }
@@ -437,6 +439,13 @@ function SearchQueryBuilderInputInternal({
 
   return (
     <Fragment>
+      <HiddenText
+        token={token}
+        state={state}
+        item={item}
+        inputValue={inputValue}
+        isOpen={isOpen}
+      />
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={items}
@@ -545,13 +554,6 @@ function SearchQueryBuilderInputInternal({
           )
         }
       </SearchQueryBuilderCombobox>
-      <InvalidText
-        token={token}
-        state={state}
-        item={item}
-        inputValue={inputValue}
-        isOpen={isOpen}
-      />
     </Fragment>
   );
 }
@@ -609,7 +611,7 @@ const Row = styled('div')`
   }
 
   &[aria-selected='true'] {
-    &::before {
+    [data-hidden-text='true']::before {
       content: '';
       position: absolute;
       left: ${space(0.5)};
@@ -667,15 +669,14 @@ const Details = styled('dd')``;
 
 const PositionedTooltip = styled(InvalidTokenTooltip)`
   position: absolute;
-  z-index: -1;
   top: 0;
   left: 0;
   height: 100%;
 `;
 
 const InvisibleText = styled('div')`
+  position: relative;
   color: transparent;
-  visibility: hidden;
   padding: 0 ${space(0.5)};
   min-width: 9px;
   height: 100%;
