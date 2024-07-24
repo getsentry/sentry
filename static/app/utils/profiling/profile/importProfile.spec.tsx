@@ -35,6 +35,7 @@ describe('importProfile', () => {
         metadata: {} as Profiling.Schema['metadata'],
       },
       '',
+      '',
       'flamechart'
     );
 
@@ -63,6 +64,7 @@ describe('importProfile', () => {
         },
         metadata: {} as Profiling.Schema['metadata'],
       },
+      '',
       '',
       'flamechart'
     );
@@ -102,6 +104,7 @@ describe('importProfile', () => {
         },
       },
       '',
+      '',
       'flamechart'
     );
 
@@ -129,7 +132,7 @@ describe('importProfile', () => {
       ],
     };
 
-    const imported = importProfile(jsSelfProfile, 'profile', 'flamechart');
+    const imported = importProfile(jsSelfProfile, 'profile', '', 'flamechart');
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });
@@ -137,7 +140,7 @@ describe('importProfile', () => {
   it('imports sentry sampled profile', () => {
     const sentrySampledProfile = makeSentrySampledProfile();
 
-    const imported = importProfile(sentrySampledProfile, 'profile', 'flamegraph');
+    const imported = importProfile(sentrySampledProfile, 'profile', '', 'flamegraph');
 
     expect(imported.profiles[0]).toBeInstanceOf(SentrySampledProfile);
   });
@@ -145,7 +148,7 @@ describe('importProfile', () => {
   it('imports sentry continuous profile', () => {
     const continuousProfile = makeSentryContinuousProfile();
 
-    const imported = importProfile(continuousProfile, 'profile', 'flamegraph');
+    const imported = importProfile(continuousProfile, 'profile', '', 'flamegraph');
 
     expect(imported.profiles[0]).toBeInstanceOf(ContinuousProfile);
   });
@@ -155,6 +158,7 @@ describe('importProfile', () => {
       importProfile(
         // @ts-expect-error
         {name: 'profile', activeProfileIndex: 0, profiles: [{type: 'unrecognized'}]},
+        '',
         '',
         'flamechart'
       )
@@ -246,6 +250,7 @@ describe('parseDroppedProfile', () => {
     const imported = importProfile(
       await parseDroppedProfile(file),
       file.name,
+      '',
       'flamechart'
     );
 
@@ -277,6 +282,7 @@ describe('parseDroppedProfile', () => {
     const imported = importProfile(
       await parseDroppedProfile(file),
       file.name,
+      '',
       'flamechart'
     );
 
