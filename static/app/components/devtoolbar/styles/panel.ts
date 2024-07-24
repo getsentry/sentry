@@ -35,5 +35,5 @@ export const panelSectionCss = css`
 `;
 
 export const panelInsetContentCss = css`
-  padding-inline: var(--space100);
+  padding-inline: var(--space150);
 `;
