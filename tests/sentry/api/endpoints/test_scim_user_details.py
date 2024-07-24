@@ -54,8 +54,8 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
     method = "put"
 
-    def setUp(self, provider="dummy"):
-        super().setUp(provider=provider)
+    def setUp(self):
+        super().setUp()
         self.unrestricted_default_role_member = self.create_member(
             user=self.create_user(), organization=self.organization
         )

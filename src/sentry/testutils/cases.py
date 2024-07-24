@@ -2763,11 +2763,13 @@ class TestMigrations(TransactionTestCase):
 
 
 class SCIMTestCase(APITestCase):
-    def setUp(self, provider="dummy"):
+    provider = "dummy"
+
+    def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_provider_inst = AuthProviderModel(
-                organization_id=self.organization.id, provider=provider
+                organization_id=self.organization.id, provider=self.provider
             )
             self.auth_provider_inst.enable_scim(self.user)
             self.auth_provider_inst.save()
@@ -2778,9 +2780,11 @@ class SCIMTestCase(APITestCase):
 
 
 class SCIMAzureTestCase(SCIMTestCase):
+    provider = ACTIVE_DIRECTORY_PROVIDER_NAME
+
     def setUp(self):
         auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
-        super().setUp(provider=ACTIVE_DIRECTORY_PROVIDER_NAME)
+        super().setUp()
         self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
 
 
