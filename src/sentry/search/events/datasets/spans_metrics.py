@@ -30,6 +30,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     nullable_metrics = {
         constants.SPAN_MESSAGING_LATENCY,
         constants.SPAN_METRICS_MAP["cache.item_size"],
+        constants.SPAN_METRICS_MAP["ai.total_cost"],
+        constants.SPAN_METRICS_MAP["ai.total_tokens.used"],
     }
 
     def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):

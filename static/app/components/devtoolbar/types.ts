@@ -11,6 +11,8 @@ export type Configuration = {
   projectSlug: string;
   SentrySDK?: typeof SentrySDK;
   domId?: string;
+  featureFlagTemplateUrl?: undefined | ((flag: string) => string | undefined);
+  featureFlags?: string[];
   trackAnalytics?: (props: {eventKey: string; eventName: string}) => void;
 };
 
@@ -27,9 +29,12 @@ type QueryKeyEndpointOptions<
   query?: Query;
 };
 
-export type ApiQueryKey =
-  | readonly [url: string]
+// Prefix the key with a namespace, to avoid key collisions with other tanstack/query
+// cache requests that imported sentry modules make within the toolbar scope.
+export type ApiEndpointQueryKey =
+  | readonly ['io.sentry.toolbar', url: string]
   | readonly [
+      'io.sentry.toolbar',
       url: string,
       options: QueryKeyEndpointOptions<
         Record<string, string>,

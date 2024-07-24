@@ -130,7 +130,9 @@ def initialize_backfill(
 
 
 @sentry_sdk.tracing.trace
-def get_current_batch_groups_from_postgres(project, last_processed_group_id, batch_size):
+def get_current_batch_groups_from_postgres(
+    project, last_processed_group_id, batch_size, enable_ingestion: bool = False
+):
     group_id_filter = Q()
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
@@ -174,6 +176,13 @@ def get_current_batch_groups_from_postgres(project, last_processed_group_id, bat
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
         )
+        if enable_ingestion:
+            logger.info(
+                "backfill_seer_grouping_records.enable_ingestion",
+                extra={"project_id": project.id},
+            )
+            project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+
         return (
             groups_to_backfill_batch,
             None,

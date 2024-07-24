@@ -782,7 +782,7 @@ export const enum PriorityLevel {
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
-  annotations: string[] | Annotation[];
+  annotations: Annotation[];
   assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
@@ -902,6 +902,10 @@ export type KeyValueListDataItem = {
     link?: string | LocationDescriptor;
   };
   actionButton?: React.ReactNode;
+  /**
+   * If true, the action button will always be visible, not just on hover.
+   */
+  actionButtonAlwaysVisible?: boolean;
   isContextData?: boolean;
   isMultiValue?: boolean;
   meta?: Meta;

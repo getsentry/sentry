@@ -248,6 +248,8 @@ def test_greater_than_conditions():
             {"op": "lte", "name": "span.data.bar", "value": 456},
         ],
     }
+    tags = [tag["key"] for tag in metric_spec["tags"]]
+    assert "foo" not in tags
 
 
 def test_mixed_conditions():

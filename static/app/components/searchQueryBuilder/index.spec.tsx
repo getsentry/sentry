@@ -1969,4 +1969,86 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
   });
+
+  describe('disallowWildcard', function () {
+    it('should mark tokens with wildcards invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowWildcard
+          initialQuery="browser.name:Firefox*"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'browser.name:Firefox*'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      // Put focus into token, should show error message
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(
+        await screen.findByText('Wildcards not supported in search')
+      ).toBeInTheDocument();
+    });
+
+    it('should mark free text with wildcards invalid', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} disallowWildcard initialQuery="foo*" />
+      );
+
+      expect(screen.getByRole('row', {name: 'foo*'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      expect(
+        await screen.findByText('Wildcards not supported in search')
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('disallowFreeText', function () {
+    it('should mark free text invalid', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} disallowFreeText initialQuery="foo" />
+      );
+
+      expect(screen.getByRole('row', {name: 'foo'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      expect(
+        await screen.findByText('Free text is not supported in this search')
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('highlightUnsupportedFilters', function () {
+    it('should mark unsupported filters as invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowUnsupportedFilters
+          initialQuery="foo:bar"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'foo:bar'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Invalid key. "foo" is not a supported search key.')
+      ).toBeInTheDocument();
+    });
+  });
 });
