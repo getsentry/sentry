@@ -447,10 +447,16 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     num_groups = len(rulegroup_to_event_data.keys())
     num_groups_bucketed = bucket_num_groups(num_groups)
     metrics.incr("delayed_processing.num_groups", tags={"num_groups": num_groups_bucketed})
-    logger.info(
-        "delayed_processing.rulegroupeventdata",
-        extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
-    )
+    if num_groups >= 10000:
+        logger.error(
+            "delayed_processing.too_many_groups",
+            extra={"project_id": project_id, "num_groups": num_groups},
+        )
+    else:
+        logger.info(
+            "delayed_processing.rulegroupeventdata",
+            extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
+        )
 
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
