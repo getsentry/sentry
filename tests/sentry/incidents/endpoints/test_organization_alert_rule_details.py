@@ -296,7 +296,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             sensitivity=AlertRuleSensitivity.HIGH,
             threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
             detection_type=AlertRuleDetectionType.DYNAMIC,
-            time_window=900,
+            time_window=30,
         )
         trigger = self.create_alert_rule_trigger(rule, "hi", 0)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
@@ -309,7 +309,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(
                 seasonality=AlertRuleSeasonality.AUTO,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
-                time_window=900,
+                time_window=30,
             )  # Require both seasonality and sensitivity
 
         with pytest.raises(
@@ -318,7 +318,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(
                 sensitivity=AlertRuleSensitivity.MEDIUM,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
-                time_window=900,
+                time_window=30,
             )  # Require both seasonality and sensitivity
 
         with pytest.raises(
@@ -326,7 +326,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         ):
             self.create_alert_rule(
                 detection_type=AlertRuleDetectionType.DYNAMIC,
-                time_window=900,
+                time_window=30,
             )  # DYNAMIC detection type requires seasonality and sensitivity
 
         with pytest.raises(
@@ -338,7 +338,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 sensitivity=AlertRuleSensitivity.HIGH,
                 comparison_delta=60,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
-                time_window=900,
+                time_window=30,
             )
 
         with pytest.raises(ValidationError, match="Invalid time window for dynamic alert"):
@@ -347,7 +347,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 sensitivity=AlertRuleSensitivity.HIGH,
                 threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
-                time_window=60,
+                time_window=1,
             )
 
     @responses.activate

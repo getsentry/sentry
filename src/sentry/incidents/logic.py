@@ -566,7 +566,7 @@ def create_alert_rule(
     if detection_type == AlertRuleDetectionType.DYNAMIC:
         if not (sensitivity and seasonality):
             raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
-        if time_window not in {15 * 60, 30 * 60, 60 * 60}:
+        if time_window not in {15, 30, 60}:
             raise ValidationError("Invalid time window for dynamic alert")
     else:
         if sensitivity or seasonality:

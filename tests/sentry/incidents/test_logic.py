@@ -1302,7 +1302,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
-            time_window=900,
+            time_window=15,
         )
 
         updated_rule = update_alert_rule(
@@ -1356,7 +1356,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
-            time_window=900,
+            time_window=15,
         )
 
         updated_rule = update_alert_rule(rule, detection_type=AlertRuleDetectionType.STATIC)
@@ -1494,7 +1494,7 @@ class CreateAlertRuleTriggerTest(TestCase):
 
     def test_invalid_threshold_dynamic_alert(self):
         rule = self.create_alert_rule(
-            time_window=900,
+            time_window=15,
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
@@ -1559,7 +1559,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
 
     def test_invalid_threshold_dynamic_alert(self):
         rule = self.create_alert_rule(
-            time_window=900,
+            time_window=15,
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
