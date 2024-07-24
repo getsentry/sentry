@@ -38,9 +38,7 @@ function ReleaseHeader({release, orgSlug}: {orgSlug: string; release: Release}) 
             query: {project: release.projects[0].id},
           }}
         >
-          <VersionWrapper>
-            <TextOverflow>{formatVersion(release.version)}</TextOverflow>
-          </VersionWrapper>
+          <VersionWrapper>{formatVersion(release.version)}</VersionWrapper>
         </SentryAppLink>
         {release.commitCount > 0 && (
           <ReleaseCardCommits release={release} withHeading={false} />
