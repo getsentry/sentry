@@ -40,8 +40,8 @@ pytestmark = [requires_snuba]
 old_get_tags = get_tags
 
 
-def fake_get_tags(group, event_for_tags, tags):
-    return old_get_tags(group, event_for_tags, None)
+def fake_get_tags(event_for_tags, tags):
+    return old_get_tags(event_for_tags, None)
 
 
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
