@@ -92,6 +92,9 @@ export type ReplayEventParameters = {
     platform: string | undefined;
     project_id: string | undefined;
   };
+  'replay.render-missing-replay-alert': {
+    surface: string;
+  };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
     context: string;
@@ -136,6 +139,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
   'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
+  'replay.render-missing-replay-alert': 'Render Missing Replay Alert',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
