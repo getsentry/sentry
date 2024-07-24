@@ -19,11 +19,9 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MonitorType} from 'sentry/types/alerts';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import Projects from 'sentry/utils/projects';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -31,6 +29,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 import FilterBar from '../../filterBar';
@@ -62,7 +61,7 @@ const DataConsentBanner = HookOrDefault({
   defaultComponent: null,
 });
 
-function AlertRulesList() {
+export default function AlertRulesList() {
   const location = useLocation();
   const router = useRouter();
   const api = useApi();
@@ -157,10 +156,7 @@ function AlertRulesList() {
     }
   };
 
-  const hasEditAccess = organization.access.includes('alerts:write');
-
   const ruleList = ruleListResponse.filter(defined);
-  const projectsFromResults = uniq(ruleList.flatMap(({projects}) => projects));
   const ruleListPageLinks = getResponseHeader?.('Link');
 
   const sort: {asc: boolean; field: SortField} = {
@@ -239,54 +235,11 @@ function AlertRulesList() {
                   onRetry={refetch}
                 />
               ) : null}
-              <VisuallyCompleteWithData
-                id="AlertRules-Body"
-                hasData={ruleList.length > 0}
-              >
-                <Projects orgId={organization.slug} slugs={projectsFromResults}>
-                  {({initiallyLoaded, projects}) =>
-                    ruleList.map(rule => {
-                      const isIssueAlertInstance = isIssueAlert(rule);
-                      const keyPrefix = isIssueAlertInstance
-                        ? AlertRuleType.ISSUE
-                        : AlertRuleType.METRIC;
-
-                      if (
-                        !isIssueAlertInstance &&
-                        rule.monitorType === MonitorType.ACTIVATED
-                      ) {
-                        return (
-                          <ActivatedRuleRow
-                            // Metric and issue alerts can have the same id
-                            key={`${keyPrefix}-${rule.id}`}
-                            projectsLoaded={initiallyLoaded}
-                            projects={projects as Project[]}
-                            rule={rule}
-                            orgId={organization.slug}
-                            onOwnerChange={handleOwnerChange}
-                            onDelete={handleDeleteRule}
-                            hasEditAccess={hasEditAccess}
-                          />
-                        );
-                      }
-
-                      return (
-                        <RuleListRow
-                          // Metric and issue alerts can have the same id
-                          key={`${keyPrefix}-${rule.id}`}
-                          projectsLoaded={initiallyLoaded}
-                          projects={projects as Project[]}
-                          rule={rule}
-                          orgId={organization.slug}
-                          onOwnerChange={handleOwnerChange}
-                          onDelete={handleDeleteRule}
-                          hasEditAccess={hasEditAccess}
-                        />
-                      );
-                    })
-                  }
-                </Projects>
-              </VisuallyCompleteWithData>
+              <AlertRuleRows
+                ruleList={ruleList}
+                handleOwnerChange={handleOwnerChange}
+                handleDeleteRule={handleDeleteRule}
+              />
             </StyledPanelTable>
             <Pagination
               pageLinks={ruleListPageLinks}
@@ -309,8 +262,6 @@ function AlertRulesList() {
     </Fragment>
   );
 }
-
-export default AlertRulesList;
 
 const StyledLoadingError = styled(LoadingError)`
   grid-column: 1 / -1;
@@ -339,3 +290,61 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
+
+function AlertRuleRows({
+  handleDeleteRule,
+  handleOwnerChange,
+  ruleList,
+}: {
+  handleDeleteRule: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
+  handleOwnerChange: (
+    projectId: string,
+    rule: CombinedMetricIssueAlerts,
+    ownerValue: string
+  ) => void;
+  ruleList: CombinedMetricIssueAlerts[];
+}) {
+  const organization = useOrganization();
+  const hasEditAccess = organization.access.includes('alerts:write');
+  const projectsFromResults = uniq(ruleList.flatMap(({projects}) => projects));
+  const {projects, initiallyLoaded} = useProjects({slugs: projectsFromResults});
+  return (
+    <VisuallyCompleteWithData id="AlertRules-Body" hasData={ruleList.length > 0}>
+      {ruleList.map(rule => {
+        const isIssueAlertInstance = isIssueAlert(rule);
+        const keyPrefix = isIssueAlertInstance
+          ? AlertRuleType.ISSUE
+          : AlertRuleType.METRIC;
+
+        const ruleRowProps = {
+          projectsLoaded: initiallyLoaded,
+          projects,
+          orgId: organization.slug,
+          onOwnerChange: handleOwnerChange,
+          onDelete: handleDeleteRule,
+          hasEditAccess,
+        };
+
+        if (!isIssueAlertInstance && rule.monitorType === MonitorType.ACTIVATED) {
+          return (
+            <ActivatedRuleRow
+              // Metric and issue alerts can have the same id
+              key={`${keyPrefix}-${rule.id}`}
+              rule={rule}
+              {...ruleRowProps}
+            />
+          );
+        }
+
+        return (
+          <RuleListRow
+            // Metric and issue alerts can have the same id
+            key={`${keyPrefix}-${rule.id}`}
+            rule={rule}
+            {...ruleRowProps}
+          />
+        );
+      })}
+    </VisuallyCompleteWithData>
+  );
+}
