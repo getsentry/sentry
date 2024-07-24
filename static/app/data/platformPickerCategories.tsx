@@ -154,6 +154,7 @@ export const createablePlatforms: Set<PlatformKey> = new Set([
   ...mobile,
   ...desktop,
   ...serverless,
+  'other',
 ]);
 
 /**

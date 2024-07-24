@@ -105,6 +105,10 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     const filtered = tempSelectablePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
       .sort((a, b) => {
+        // Ensure 'other' is always rendered as the last item
+        if (a.name.toLowerCase() === 'other') return 1;
+        if (b.name.toLowerCase() === 'other') return -1;
+
         if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
           return 1;
         }

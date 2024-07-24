@@ -106,4 +106,16 @@ describe('PlatformPicker', function () {
       expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]);
     });
   });
+
+  it('"other" platform shall be in the list', function () {
+    render(<PlatformPicker setPlatform={jest.fn()} defaultCategory="all" />);
+    expect(screen.getByText('Other')).toBeInTheDocument();
+  });
+
+  it('"other" platform shall NOT be in the list', function () {
+    render(
+      <PlatformPicker setPlatform={jest.fn()} defaultCategory="all" showOther={false} />
+    );
+    expect(screen.queryByText('Other')).not.toBeInTheDocument();
+  });
 });
