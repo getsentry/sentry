@@ -231,7 +231,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
 
         return self.fields
 
-    def validate_config(self, project, config, actor):
+    def validate_config(self, project, config, actor=None):
         super().validate_config(project, config, actor)
         self.client_errors = []
 

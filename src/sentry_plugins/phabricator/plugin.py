@@ -159,7 +159,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def validate_config(self, project, config, actor):
+    def validate_config(self, project, config, actor=None):
         projectPHIDs = config.get("projectPHIDs")
         if projectPHIDs:
             try:

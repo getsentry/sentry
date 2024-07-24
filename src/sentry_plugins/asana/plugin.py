@@ -177,7 +177,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     def get_issue_url(self, group, issue_id, **kwargs):
         return "https://app.asana.com/0/0/%s" % issue_id
 
-    def validate_config(self, project, config, actor):
+    def validate_config(self, project, config, actor=None):
         """
         ```
         if config['foo'] and not config['bar']:
