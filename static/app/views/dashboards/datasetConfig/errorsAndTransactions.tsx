@@ -635,6 +635,13 @@ function getEventsSeriesRequest(
     return doOnDemandMetricsRequest(api, requestData);
   }
 
+  if (organization.features.includes('performance-discover-dataset-selector')) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...getQueryExtraForSplittingDiscover(widget, organization, false),
+    };
+  }
+
   return doEventsRequest<true>(api, requestData);
 }
 
