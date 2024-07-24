@@ -9,6 +9,8 @@ from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry.constants import UPTIME_AUTODETECTION
+from sentry.uptime.models import get_active_monitor_count_for_org
+from sentry.uptime.subscriptions.subscriptions import MAX_SUBSCRIPTIONS_PER_ORG
 from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
@@ -165,6 +167,9 @@ def delete_organization_bucket(bucket: datetime) -> None:
 
 def should_detect_for_organization(organization: Organization) -> bool:
     if not organization.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION):
+        return False
+
+    if get_active_monitor_count_for_org(organization) >= MAX_SUBSCRIPTIONS_PER_ORG:
         return False
     return True
 
