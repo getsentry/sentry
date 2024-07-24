@@ -599,3 +599,13 @@ class SessionsParams:
         type=int,
         description="""Specify `0` to exclude series from the response. The default is `1`""",
     )
+
+
+class DashboardParams:
+    DASHBOARD_ID = OpenApiParameter(
+        name="dashboard_id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the dashboard you'd like to retrieve.""",
+    )
