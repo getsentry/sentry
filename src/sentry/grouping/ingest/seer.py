@@ -197,11 +197,7 @@ def get_seer_similar_issues(
     )
     parent_group = (
         Group.objects.filter(id=seer_results[0].parent_group_id).first()
-        if (
-            seer_results
-            and seer_results[0].should_group
-            and features.has("projects:similarity-embeddings-grouping", event.project)
-        )
+        if seer_results and seer_results[0].should_group
         else None
     )
 
