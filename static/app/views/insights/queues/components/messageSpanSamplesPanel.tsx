@@ -27,7 +27,7 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
@@ -428,22 +428,20 @@ function ProducerMetricsRibbon({
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
-    <Ribbon>
+    <ReadoutRibbon>
       <MetricReadout
-        align="left"
         title={t('Published')}
         value={metrics?.[0]?.['count_op(queue.publish)']}
         unit={'count'}
         isLoading={isLoading}
       />
       <MetricReadout
-        align="left"
         title={t('Error Rate')}
         value={errorRate}
         unit={'percentage'}
         isLoading={isLoading}
       />
-    </Ribbon>
+    </ReadoutRibbon>
   );
 }
 
@@ -456,16 +454,14 @@ function ConsumerMetricsRibbon({
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
-    <Ribbon>
+    <ReadoutRibbon>
       <MetricReadout
-        align="left"
         title={t('Processed')}
         value={metrics?.[0]?.['count_op(queue.process)']}
         unit={'count'}
         isLoading={isLoading}
       />
       <MetricReadout
-        align="left"
         title={t('Error Rate')}
         value={errorRate}
         unit={'percentage'}
@@ -483,7 +479,7 @@ function ConsumerMetricsRibbon({
         unit={DurationUnit.MILLISECOND}
         isLoading={false}
       />
-    </Ribbon>
+    </ReadoutRibbon>
   );
 }
 

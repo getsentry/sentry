@@ -32,7 +32,7 @@ import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useMetrics,
@@ -300,9 +300,8 @@ export function CacheSamplePanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <Ribbon>
+            <ReadoutRibbon>
               <MetricReadout
-                align="left"
                 title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[
@@ -313,7 +312,6 @@ export function CacheSamplePanel() {
                 isLoading={areCacheTransactionMetricsFetching}
               />
               <MetricReadout
-                align="left"
                 title={getThroughputTitle('cache')}
                 value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
@@ -321,7 +319,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
                 value={
                   transactionDurationData?.[0]?.[
@@ -333,7 +330,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
@@ -343,7 +339,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.timeSpent}
                 value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
@@ -352,7 +347,7 @@ export function CacheSamplePanel() {
                 )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
-            </Ribbon>
+            </ReadoutRibbon>
           </ModuleLayout.Full>
           <ModuleLayout.Full>
             <CompactSelect

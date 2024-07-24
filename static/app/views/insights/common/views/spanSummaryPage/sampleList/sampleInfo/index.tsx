@@ -1,8 +1,11 @@
+import styled from '@emotion/styled';
+
+import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -54,10 +57,9 @@ function SampleInfo(props: Props) {
   }
 
   return (
-    <Ribbon>
+    <StyledReadoutRibbon>
       <MetricReadout
         title={getThroughputTitle(spanMetrics?.[SpanMetricsField.SPAN_OP])}
-        align="left"
         value={spanMetrics?.['spm()']}
         unit={RateUnit.PER_MINUTE}
         isLoading={isLoading}
@@ -65,7 +67,6 @@ function SampleInfo(props: Props) {
 
       <MetricReadout
         title={DataTitles.avg}
-        align="left"
         value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
         isLoading={isLoading}
@@ -73,7 +74,6 @@ function SampleInfo(props: Props) {
 
       <MetricReadout
         title={DataTitles.timeSpent}
-        align="left"
         value={spanMetrics?.[0]?.[`sum(${SpanMetricsField.SPAN_SELF_TIME}))`]}
         unit={DurationUnit.MILLISECOND}
         tooltip={getTimeSpentExplanation(
@@ -82,8 +82,12 @@ function SampleInfo(props: Props) {
         )}
         isLoading={isLoading}
       />
-    </Ribbon>
+    </StyledReadoutRibbon>
   );
 }
+
+const StyledReadoutRibbon = styled(ReadoutRibbon)`
+  margin-bottom: ${space(2)};
+`;
 
 export default SampleInfo;
