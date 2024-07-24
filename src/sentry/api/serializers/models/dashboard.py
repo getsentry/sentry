@@ -23,6 +23,26 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
+class OnDemandResponse(TypedDict):
+    enabled: bool
+    extractionState: str
+    dashboardWidgetQueryId: str
+
+
+class DashboardWidgetQueryResponse(TypedDict):
+    id: str
+    name: str
+    fields: list[str]
+    aggregates: list[str]
+    columns: list[str]
+    fieldAliases: list[str]
+    conditions: str
+    orderby: str
+    widgetId: str
+    onDemand: list[OnDemandResponse]
+    isHidden: bool
+
+
 class ThresholdType(TypedDict):
     max_values: dict[str, int]
     unit: str
@@ -31,14 +51,14 @@ class ThresholdType(TypedDict):
 class DashboardWidgetResponse(TypedDict):
     id: str
     title: str
-    description: str
+    description: str | None
     displayType: str
-    thresholds: ThresholdType
+    thresholds: ThresholdType | None
     interval: str
     dateCreated: str
     dashboardId: str
-    queries: list[str]
-    limit: int
+    queries: list[DashboardWidgetQueryResponse]
+    limit: int | None
     widgetType: str
     layout: dict[str, int]
 
@@ -98,7 +118,7 @@ class DashboardWidgetSerializer(Serializer):
 
 @register(DashboardWidgetQueryOnDemand)
 class DashboardWidgetQueryOnDemandSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> OnDemandResponse:
         return {
             "enabled": obj.extraction_enabled(),
             "extractionState": obj.extraction_state,
@@ -131,7 +151,7 @@ class DashboardWidgetQuerySerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetQueryResponse:
         return {
             "id": str(obj.id),
             "name": obj.name,
@@ -219,12 +239,12 @@ class DashboardDetailsResponse(TypedDict):
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
-    environment: list[str]
-    period: str
-    utc: str
-    expired: bool
-    start: str
-    end: str
+    environment: list[str] | None
+    period: str | None
+    utc: str | None
+    expired: bool | None
+    start: str | None
+    end: str | None
 
 
 @register(Dashboard)
