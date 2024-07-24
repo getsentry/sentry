@@ -23,6 +23,7 @@ export default function useDevToolbar({enabled}: {enabled: boolean}) {
         environment: ['prod'],
         organizationSlug: 'sentry',
         projectId: 11276,
+        projectPlatform: 'javascript',
         projectSlug: 'javascript',
         featureFlags: organization.features,
         featureFlagTemplateUrl: flag =>
