@@ -481,6 +481,80 @@ describe('Dashboards > Detail', function () {
       expect(await screen.findByRole('button', {name: 'Add widget'})).toBeInTheDocument();
     });
 
+    it('shows add widget option with dataset selector flag', async function () {
+      initialData = initializeOrg({
+        organization: OrganizationFixture({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'custom-metrics',
+            'performance-discover-dataset-selector',
+          ],
+        }),
+      });
+      render(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            {...RouteComponentPropsFixture()}
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          >
+            {null}
+          </ViewEditDashboard>
+        </OrganizationContext.Provider>,
+        {router: initialData.router}
+      );
+
+      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
+      expect(menuOptions.map(e => e.textContent)).toEqual([
+        'Errors',
+        'Transactions',
+        'Issues',
+        'Custom Metrics',
+      ]);
+    });
+
+    it('shows add widget option without dataset selector flag', async function () {
+      initialData = initializeOrg({
+        organization: OrganizationFixture({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'custom-metrics',
+          ],
+        }),
+      });
+      render(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            {...RouteComponentPropsFixture()}
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          >
+            {null}
+          </ViewEditDashboard>
+        </OrganizationContext.Provider>,
+        {router: initialData.router}
+      );
+
+      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
+      expect(menuOptions.map(e => e.textContent)).toEqual([
+        'Errors and Transactions',
+        'Issues',
+        'Custom Metrics',
+      ]);
+    });
+
     it('shows top level release filter', async function () {
       const mockReleases = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',

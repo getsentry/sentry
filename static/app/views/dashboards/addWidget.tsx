@@ -118,19 +118,33 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
   );
 
   const items = useMemo(() => {
-    const menuItems: MenuItemProps[] = [
-      {
+    const menuItems: MenuItemProps[] = [];
+
+    if (organization.features.includes('performance-discover-dataset-selector')) {
+      menuItems.push({
+        key: DataSet.ERRORS,
+        label: t('Errors'),
+        onAction: () => handleAction(DataSet.ERRORS),
+      });
+      menuItems.push({
+        key: DataSet.TRANSACTIONS,
+        label: t('Transactions'),
+        onAction: () => handleAction(DataSet.TRANSACTIONS),
+      });
+    } else {
+      menuItems.push({
         key: DataSet.EVENTS,
         label: t('Errors and Transactions'),
         onAction: () => handleAction(DataSet.EVENTS),
-      },
-      {
-        key: DataSet.ISSUES,
-        label: t('Issues'),
-        details: t('States, Assignment, Time, etc.'),
-        onAction: () => handleAction(DataSet.ISSUES),
-      },
-    ];
+      });
+    }
+
+    menuItems.push({
+      key: DataSet.ISSUES,
+      label: t('Issues'),
+      details: t('States, Assignment, Time, etc.'),
+      onAction: () => handleAction(DataSet.ISSUES),
+    });
 
     if (organization.features.includes('dashboards-rh-widget')) {
       menuItems.push({
