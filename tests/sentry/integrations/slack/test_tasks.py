@@ -19,7 +19,6 @@ from sentry.tasks.integrations.slack import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
@@ -283,7 +282,6 @@ class SlackTasksTest(TestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", "chan-id", False),
     )
-    @with_feature("organizations:slack-sdk-get-channel-id")
     def test_task_existing_metric_alert_with_sdk(self, mock_get_channel_id, mock_set_value):
         alert_rule_data = self.metric_alert_data()
         alert_rule = self.create_alert_rule(
