@@ -6,6 +6,7 @@ from uuid import uuid1
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     SEER_ELIGIBLE_PLATFORMS,
+    _is_snipped_context_line,
     event_content_is_seer_eligible,
     filter_null_from_event_title,
     get_stacktrace_string,
@@ -711,6 +712,12 @@ class GetStacktraceStringTest(TestCase):
         data_no_exception["app"]["component"]["values"][0]["id"] = "not-exception"
         stacktrace_str = get_stacktrace_string(data_no_exception)
         assert stacktrace_str == ""
+
+    def test_recognizes_snip_at_start_or_end(self):
+        assert _is_snipped_context_line("{snip} dogs are great") is True
+        assert _is_snipped_context_line("dogs are great {snip}") is True
+        assert _is_snipped_context_line("{snip} dogs are great {snip}") is True
+        assert _is_snipped_context_line("dogs are great") is False
 
 
 class EventContentIsSeerEligibleTest(TestCase):
