@@ -19,7 +19,8 @@ export interface KeyValueDataContentProps {
    * Specifies the item to display.
    * - If set, item.subjectNode will override displaying item.subject.
    * - If item.subjectNode is null, the value section will span the whole card.
-   * - The only displayed action is item.action.link, not item.actionButton
+   * - If item.action.link is specified, the value will appear as a link.
+   * - If item.actionButton is specified, the button will be rendered inline with the value.
    */
   item: KeyValueListDataItem;
   /**
@@ -284,7 +285,7 @@ const CardColumn = styled('div')`
   grid-column: span 1;
 `;
 
-const ValueLink = styled(Link)`
+export const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.linkUnderline} underline dotted;
 `;
 

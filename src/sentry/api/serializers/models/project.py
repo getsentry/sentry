@@ -556,7 +556,7 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
             attrs[item]["organization"] = orgs[str(item.organization_id)]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["organization"] = attrs["organization"]
         return data
@@ -1128,7 +1128,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
 
 class SharedProjectSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import features
 
         feature_list = []

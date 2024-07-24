@@ -1,8 +1,12 @@
+import {useRef, useState} from 'react';
+
 import useEnabledFeatureFlags from 'sentry/components/devtoolbar/components/featureFlags/useEnabledFeatureFlags';
 import {
   infiniteListScrollableWindowCss,
   panelScrollableCss,
 } from 'sentry/components/devtoolbar/styles/infiniteList';
+import Input from 'sentry/components/input';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 
@@ -14,27 +18,50 @@ import PanelLayout from '../panelLayout';
 
 export default function FeatureFlagsPanel() {
   const featureFlags = useEnabledFeatureFlags();
-  const {organizationSlug} = useConfiguration();
+  const {organizationSlug, featureFlagTemplateUrl, trackAnalytics} = useConfiguration();
+  const [searchTerm, setSearchTerm] = useState('');
+  const searchInput = useRef<HTMLInputElement>(null);
 
   return (
     <PanelLayout title="Feature Flags">
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-        <span>
-          Feature flags enabled for <code>{organizationSlug}</code>
-        </span>
+        <Input
+          ref={searchInput}
+          size="sm"
+          placeholder="Search flags"
+          onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+        />
       </div>
 
       <PanelTable
-        headers={['Flags']}
+        headers={[<span key="Flags">Flags enabled for {organizationSlug}</span>]}
         css={[resetFlexColumnCss, infiniteListScrollableWindowCss, panelScrollableCss]}
       >
-        {featureFlags?.sort().map(flag => {
-          return (
-            <Cell key={flag} style={{alignItems: 'flex-start'}}>
-              {flag}
-            </Cell>
-          );
-        })}
+        {featureFlags
+          ?.filter(s => s.toLowerCase().includes(searchTerm))
+          .sort()
+          .map(flag => {
+            return (
+              <Cell key={flag} style={{alignItems: 'flex-start'}}>
+                {featureFlagTemplateUrl?.(flag) ? (
+                  <ExternalLink
+                    style={{textDecoration: 'inherit', color: 'inherit'}}
+                    href={featureFlagTemplateUrl(flag)}
+                    onClick={() => {
+                      trackAnalytics?.({
+                        eventKey: `devtoolbar.feature-flag-list.item.click`,
+                        eventName: `devtoolbar: Click feature-flag-list item`,
+                      });
+                    }}
+                  >
+                    {flag}
+                  </ExternalLink>
+                ) : (
+                  <span>{flag}</span>
+                )}
+              </Cell>
+            );
+          })}
       </PanelTable>
     </PanelLayout>
   );

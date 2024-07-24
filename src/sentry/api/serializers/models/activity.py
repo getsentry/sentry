@@ -14,7 +14,7 @@ class ActivitySerializer(Serializer):
     def __init__(self, environment_func=None):
         self.environment_func = environment_func
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer); assert on relations
         user_ids = [i.user_id for i in item_list if i.user_id]
         user_list = user_service.serialize_many(
@@ -93,7 +93,7 @@ class ActivitySerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         if obj.type == ActivityType.SET_RESOLVED_IN_COMMIT.value:
             data = {"commit": attrs["commit"]}
         elif obj.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value:
@@ -120,7 +120,7 @@ class ActivitySerializer(Serializer):
 
 
 class OrganizationActivitySerializer(ActivitySerializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         from sentry.api.serializers import GroupSerializer
 
         # TODO(dcramer); assert on relations
@@ -142,7 +142,7 @@ class OrganizationActivitySerializer(ActivitySerializer):
             attrs[item]["project"] = projects[str(item.project_id)]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         context = super().serialize(obj, attrs, user)
         context["issue"] = attrs["issue"]
         context["project"] = attrs["project"]

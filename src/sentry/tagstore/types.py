@@ -94,7 +94,7 @@ class GroupTagValue(TagType):
 @register(GroupTagKey)
 @register(TagKey)
 class TagKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import tagstore
 
         output = {
@@ -113,7 +113,7 @@ class TagKeySerializer(Serializer):
 @register(GroupTagValue)
 @register(TagValue)
 class TagValueSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import tagstore
 
         key = tagstore.get_standardized_key(obj.key)
