@@ -94,9 +94,11 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
         )
         base_error_response.reason = "No project associated with rule. Cannot create rule."
         return base_error_response
+
     snuba_query = SnubaQuery.objects.get(id=rule.snuba_query_id)
     time_period = int(snuba_query.time_window / 60)
     historical_data = fetch_historical_data(rule, snuba_query)
+
     if not historical_data:
         base_error_response.reason = "No historical data available. Cannot create rule."
         return base_error_response
@@ -140,16 +142,11 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
                 "project_id": project_id,
             },
         )
-        return BaseHTTPResponse(
-            status=status.HTTP_408_REQUEST_TIMEOUT,
-            reason=timeout_text,
-            version=0,
-            version_string="HTTP/?",
-            decode_content=True,
-            request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
-        )
-    # TODO warn if there isn't at least 7 days of data
+        base_error_response.reason = timeout_text
+        base_error_response.status = status.HTTP_408_REQUEST_TIMEOUT
+        return base_error_response
 
+    # TODO warn if there isn't at least 7 days of data
     return resp
 
 
