@@ -5,7 +5,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
@@ -29,7 +28,7 @@ import {
   IconSearch,
   IconTimer,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -114,6 +113,11 @@ export default function BreadcrumbsDataSection({
     return null;
   }
 
+  const nextTimeDisplay =
+    timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
+      ? BreadcrumbTimeDisplay.RELATIVE
+      : BreadcrumbTimeDisplay.ABSOLUTE;
+
   const actions = (
     <ButtonBar gap={1}>
       <BreadcrumbsFeedback />
@@ -121,29 +125,29 @@ export default function BreadcrumbsDataSection({
         aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
         size="xs"
+        title={t('Open Search')}
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
-      >
-        {t('Open Search')}
-      </Button>
-      <CompactSelect
-        size="xs"
-        triggerProps={{
-          icon:
-            timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
-              <IconClock />
-            ) : (
-              <IconTimer />
-            ),
-        }}
-        onChange={selectedOption => {
-          setTimeDisplay(selectedOption.value);
+      />
+      <Button
+        aria-label={t('Change Time Format for Breadcrumbs')}
+        title={tct('Use [format] Timestamps', {
+          format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
+        })}
+        icon={
+          timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+            <IconClock size="xs" />
+          ) : (
+            <IconTimer size="xs" />
+          )
+        }
+        onClick={() => {
+          setTimeDisplay(nextTimeDisplay);
           trackAnalytics('breadcrumbs.issue_details.change_time_display', {
-            value: selectedOption.value,
+            value: nextTimeDisplay,
             organization,
           });
         }}
-        value={timeDisplay}
-        options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
+        size="xs"
       />
     </ButtonBar>
   );

@@ -191,7 +191,7 @@ export function BreadcrumbsDrawerContent({
           });
         }}
         value={timeDisplay}
-        options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
+        options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
       />
     </ButtonBar>
   );

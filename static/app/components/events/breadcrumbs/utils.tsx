@@ -40,10 +40,16 @@ export const enum BreadcrumbTimeDisplay {
   RELATIVE = 'relative',
   ABSOLUTE = 'absolute',
 }
-export const BREADCRUMB_TIME_DISPLAY_OPTIONS = [
-  {label: t('Relative'), value: BreadcrumbTimeDisplay.RELATIVE},
-  {label: t('Absolute'), value: BreadcrumbTimeDisplay.ABSOLUTE},
-];
+export const BREADCRUMB_TIME_DISPLAY_OPTIONS = {
+  [BreadcrumbTimeDisplay.RELATIVE]: {
+    label: t('Relative'),
+    value: BreadcrumbTimeDisplay.RELATIVE,
+  },
+  [BreadcrumbTimeDisplay.ABSOLUTE]: {
+    label: t('Absolute'),
+    value: BreadcrumbTimeDisplay.ABSOLUTE,
+  },
+};
 export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-display';
 
 const Color = styled('span')<{colorConfig: ColorConfig}>`

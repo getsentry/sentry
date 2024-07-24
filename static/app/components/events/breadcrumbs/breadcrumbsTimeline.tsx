@@ -138,7 +138,7 @@ const Subtitle = styled('p')`
 `;
 
 const Timestamp = styled('div')`
-  margin: 0 ${space(1)};
+  margin-right: ${space(1)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   span {
