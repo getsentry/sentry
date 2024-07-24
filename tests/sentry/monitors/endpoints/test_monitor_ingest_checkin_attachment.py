@@ -1,13 +1,10 @@
-from datetime import timedelta
 from unittest import mock
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from django.utils import timezone
 
-from sentry.models.environment import Environment
 from sentry.models.files.file import File
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.testutils.cases import MonitorIngestTestCase
 
 
@@ -16,22 +13,6 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
 
     def get_path(self, monitor, checkin):
         return reverse(self.endpoint, args=[self.organization.slug, monitor.slug, checkin.guid])
-
-    def _create_monitor(self):
-        return self.create_monitor()
-
-    def _create_monitor_environment(self, monitor, name="production", **kwargs):
-        environment = Environment.get_or_create(project=self.project, name=name)
-
-        monitorenvironment_defaults = {
-            "status": monitor.status,
-            "next_checkin": timezone.now() - timedelta(minutes=1),
-            **kwargs,
-        }
-
-        return MonitorEnvironment.objects.create(
-            monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
-        )
 
     def test_upload(self):
         monitor = self._create_monitor()

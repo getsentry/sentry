@@ -30,6 +30,7 @@ import {
 export interface ImportOptions {
   span: Span | undefined;
   type: 'flamegraph' | 'flamechart';
+  activeThreadId?: string | null;
   continuous?: boolean;
   frameFilter?: (frame: Frame) => boolean;
   profileIds?: Readonly<string[]>;
@@ -62,6 +63,7 @@ export interface ContinuousProfileGroup {
 export function importProfile(
   input: Readonly<Profiling.ProfileInput>,
   traceID: string,
+  activeThreadId: string | null,
   type: 'flamegraph' | 'flamechart',
   frameFilter?: (frame: Frame) => boolean
 ): ProfileGroup | ContinuousProfileGroup {
@@ -78,6 +80,7 @@ export function importProfile(
           span,
           type,
           frameFilter,
+          activeThreadId,
           continuous: true,
         });
       }
@@ -276,6 +279,7 @@ export function importSentryContinuousProfileChunk(
   }
 
   const profiles: Profile[] = [];
+  let activeProfileIndex = 0;
 
   for (const key in samplesByThread) {
     const profile: Profiling.ContinuousProfile = {
@@ -283,6 +287,10 @@ export function importSentryContinuousProfileChunk(
       ...input.profile,
       samples: samplesByThread[key],
     };
+
+    if (options.activeThreadId && key === options.activeThreadId) {
+      activeProfileIndex = profiles.length;
+    }
 
     profiles.push(
       wrapWithSpan(
@@ -301,7 +309,7 @@ export function importSentryContinuousProfileChunk(
     name: '',
     type: 'continuous',
     transactionID: null,
-    activeProfileIndex: 0,
+    activeProfileIndex,
     profiles,
     measurements: input.measurements ?? {},
     metadata: {

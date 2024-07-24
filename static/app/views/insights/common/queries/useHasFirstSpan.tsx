@@ -27,13 +27,22 @@ const modulePropertyMap: Record<
   [ModuleName.AI]: 'hasInsightsLlmMonitoring',
 };
 
-/* Returns whether the module and current project selection has received a first insight span */
-export function useHasFirstSpan(module: ModuleName): boolean {
+/**
+ * Returns whether the module and current project selection has received a first insight span
+ * @param module The name of the module that will be checked for a first span
+ * @param projects The projects to check for the first span. If not provided, the selected projects will be used
+ * @returns true if the module has a first span in the selected projects, false otherwise
+ */
+export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boolean {
   const {projects: allProjects} = useProjects();
   const pageFilters = usePageFilters();
 
   // Unsupported modules. Remove MOBILE_UI from this list once released.
   if ((excludedModuleNames as readonly ModuleName[]).includes(module)) return false;
+
+  if (projects) {
+    return projects.some(p => p[modulePropertyMap[module]] === true);
+  }
 
   let selectedProjects: Project[] = [];
   // There are three cases for the selected pageFilter projects:

@@ -12,8 +12,10 @@ from django.db import router, transaction
 from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from snuba_sdk import Column, Condition, Limit, Op
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
+from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -24,6 +26,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
@@ -43,6 +46,8 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -51,8 +56,9 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription
-from sentry.utils import metrics, redis
+from sentry.utils import json, metrics, redis
 from sentry.utils.dates import to_datetime
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -88,6 +94,11 @@ class SubscriptionProcessor:
         AlertRuleThresholdType.ABOVE: (operator.gt, operator.lt),
         AlertRuleThresholdType.BELOW: (operator.lt, operator.gt),
     }
+
+    seer_anomaly_detection_connection_pool = connection_from_url(
+        settings.SEER_ANOMALY_DETECTION_URL,
+        timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
+    )
 
     def __init__(self, subscription: QuerySubscription) -> None:
         self.subscription = subscription
@@ -500,6 +511,15 @@ class SubscriptionProcessor:
 
         aggregation_value = self.get_aggregation_value(subscription_update)
 
+        self.has_anomaly_detection = features.has(
+            "organizations:anomaly-detection-alerts", self.subscription.project.organization
+        )
+
+        if self.has_anomaly_detection:
+            potential_anomalies = self.get_anomaly_data_from_seer(aggregation_value)
+            if potential_anomalies is None:
+                return []
+
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
         # Current callback will update the activation metric values & delete querysubscription on finish
         # TODO: register over/under triggers as alert rule callbacks as well
@@ -522,31 +542,70 @@ class SubscriptionProcessor:
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
-                if alert_operator(
-                    aggregation_value, trigger.alert_threshold
-                ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
-                    # If the value has breached our threshold (above/below)
-                    # And the trigger is not yet active
-                    metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
-                    # triggering a threshold will create an incident and set the status to active
-                    incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
-                    if incident_trigger is not None:
-                        fired_incident_triggers.append(incident_trigger)
-                else:
-                    self.trigger_alert_counts[trigger.id] = 0
-
                 if (
-                    resolve_operator(aggregation_value, self.calculate_resolve_threshold(trigger))
-                    and self.active_incident
-                    and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+                    self.has_anomaly_detection
+                    and trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
                 ):
-                    metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
-                    incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
+                    # NOTE: There should only be one anomaly in the list
+                    for potential_anomaly in potential_anomalies:
+                        if self.has_anomaly(
+                            potential_anomaly, trigger.label
+                        ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+                            metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                            incident_trigger = self.trigger_alert_threshold(
+                                trigger, aggregation_value
+                            )
+                            if incident_trigger is not None:
+                                fired_incident_triggers.append(incident_trigger)
+                        else:
+                            self.trigger_alert_counts[trigger.id] = 0
 
-                    if incident_trigger is not None:
-                        fired_incident_triggers.append(incident_trigger)
+                        if (
+                            not self.has_anomaly(potential_anomaly, trigger.label)
+                            and self.active_incident
+                            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+                        ):
+                            metrics.incr(
+                                "incidents.alert_rules.threshold", tags={"type": "resolve"}
+                            )
+                            incident_trigger = self.trigger_resolve_threshold(
+                                trigger, aggregation_value
+                            )
+
+                            if incident_trigger is not None:
+                                fired_incident_triggers.append(incident_trigger)
+                        else:
+                            self.trigger_resolve_counts[trigger.id] = 0
                 else:
-                    self.trigger_resolve_counts[trigger.id] = 0
+                    if alert_operator(
+                        aggregation_value, trigger.alert_threshold
+                    ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+                        # If the value has breached our threshold (above/below)
+                        # And the trigger is not yet active
+                        metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                        # triggering a threshold will create an incident and set the status to active
+                        incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
+                        if incident_trigger is not None:
+                            fired_incident_triggers.append(incident_trigger)
+                    else:
+                        self.trigger_alert_counts[trigger.id] = 0
+
+                    if (
+                        resolve_operator(
+                            aggregation_value, self.calculate_resolve_threshold(trigger)
+                        )
+                        and self.active_incident
+                        and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+                    ):
+                        metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
+                        incident_trigger = self.trigger_resolve_threshold(
+                            trigger, aggregation_value
+                        )
+
+                        if incident_trigger is not None:
+                            fired_incident_triggers.append(incident_trigger)
+                    else:
+                        self.trigger_resolve_counts[trigger.id] = 0
 
             if fired_incident_triggers:
                 # For all the newly created incidents
@@ -561,6 +620,98 @@ class SubscriptionProcessor:
         # this will have no effect, but if someone manages to close a triggered incident
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
+
+    def has_anomaly(self, anomaly, label: str) -> bool:
+        """
+        Helper function to determine whether we care about an anomaly based on the
+        anomaly type and trigger type.
+        TODO: replace the anomaly types with constants (once they're added to Sentry)
+        """
+        anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
+
+        if anomaly_type == "anomaly_high" or (
+            label == WARNING_TRIGGER_LABEL and anomaly_type == "anomaly_low"
+        ):
+            return True
+        return False
+
+    def get_anomaly_data_from_seer(self, aggregation_value: float | None):
+        try:
+            anomaly_detection_config = {
+                "time_period": self.alert_rule.threshold_period,
+                "sensitivity": self.alert_rule.sensitivity,
+                "seasonality": self.alert_rule.seasonality,
+                "direction": self.alert_rule.threshold_type,
+            }
+
+            context = {
+                "id": self.alert_rule.id,
+                "cur_window": {
+                    "timestamp": self.last_update,
+                    "value": aggregation_value,
+                },
+            }
+            response = make_signed_seer_api_request(
+                self.seer_anomaly_detection_connection_pool,
+                SEER_ANOMALY_DETECTION_ENDPOINT_URL,
+                json.dumps(
+                    {
+                        "organization_id": self.subscription.project.organization.id,
+                        "project_id": self.subscription.project_id,
+                        "config": anomaly_detection_config,
+                        "context": context,
+                    }
+                ).encode("utf-8"),
+            )
+        except (TimeoutError, MaxRetryError):
+            logger.warning(
+                "Timeout error when hitting anomaly detection endpoint",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "dataset": self.subscription.snuba_query.dataset,
+                    "organization_id": self.subscription.project.organization.id,
+                    "project_id": self.subscription.project_id,
+                    "alert_rule_id": self.alert_rule.id,
+                },
+            )
+            return None
+
+        if response.status != 200:
+            logger.error(
+                f"Received {response.status} when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",  # noqa
+                extra={"response_data": response.data},
+            )
+            return None
+
+        try:
+            results = json.loads(response.data.decode("utf-8")).get("anomalies")
+            if not results:
+                logger.warning(
+                    "Seer anomaly detection response returned no potential anomalies",
+                    extra={
+                        "ad_config": anomaly_detection_config,
+                        "context": context,
+                        "response_data": response.data,
+                        "reponse_code": response.status,
+                    },
+                )
+                return None
+            return results
+        except (
+            AttributeError,
+            UnicodeError,
+            JSONDecodeError,
+        ):
+            logger.exception(
+                "Failed to parse Seer anomaly detection response",
+                extra={
+                    "ad_config": anomaly_detection_config,
+                    "context": context,
+                    "response_data": response.data,
+                    "reponse_code": response.status,
+                },
+            )
+            return None
 
     def calculate_event_date_from_update_date(self, update_date: datetime) -> datetime:
         """
