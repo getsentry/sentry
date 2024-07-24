@@ -82,7 +82,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
             host=self.get_option("host", project), key=self.get_option("key", project)
         )
 
-    def create_issue(self, group, form_data, **kwargs):
+    def create_issue(self, request, group, form_data):
         """
         Create a Redmine issue
         """

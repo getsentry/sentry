@@ -146,7 +146,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         }
         return safe_urlopen(_url, json=json_data, headers=req_headers, allow_redirects=True)
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         json_data = {
             "story_type": "bug",
             "name": force_str(form_data["title"], encoding="utf-8", errors="replace"),
