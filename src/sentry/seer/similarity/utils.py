@@ -37,6 +37,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         exceptions = exceptions[0].get("values")
 
     frame_count = 0
+    html_frame_count = 0  # for a temporary metric
     stacktrace_str = ""
     found_non_snipped_context_line = False
     result_parts = []
@@ -74,6 +75,17 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     if not _is_snipped_context_line(frame_dict["context-line"]):
                         found_non_snipped_context_line = True
 
+                    # Not an exhaustive list of tests we could run to detect HTML, but this is only
+                    # meant to be a temporary, quick-and-dirty metric
+                    # TODO: Don't let this, and the metric below, hang around forever. It's only to
+                    # help us get a sense of whether it's worthwhile trying to more accurately
+                    # detect, and then exclude, frames containing HTML
+                    if (
+                        frame_dict["filename"].endswith("html")
+                        or "<html>" in frame_dict["context-line"]
+                    ):
+                        html_frame_count += 1
+
                     frame_strings.append(
                         f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
                     )
@@ -96,6 +108,20 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             final_frame_count += len(frame_strings)
 
         stacktrace_str += header + "".join(frame_strings)
+
+    metrics.incr(
+        "seer.grouping.html_in_stacktrace",
+        sample_rate=1.0,
+        tags={
+            "html_frames": (
+                "none"
+                if html_frame_count == 0
+                else "all"
+                if html_frame_count == final_frame_count
+                else "some"
+            )
+        },
+    )
 
     return stacktrace_str.strip()
 
