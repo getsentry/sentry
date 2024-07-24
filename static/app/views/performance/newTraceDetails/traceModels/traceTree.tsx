@@ -119,12 +119,11 @@ import {TraceType} from '../traceType';
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export declare namespace TraceTree {
-  interface RawSpan extends RawSpanType {}
   interface Transaction extends TraceFullDetailed {
     profiler_id: string;
     sdk_name: string;
   }
-  interface Span extends RawSpan {
+  interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
     measurements?: Record<string, Measurement>;
@@ -139,14 +138,14 @@ export declare namespace TraceTree {
     timestamp: number;
     type: 'missing_instrumentation';
   }
-  interface SiblingAutogroup extends RawSpan {
+  interface SiblingAutogroup extends RawSpanType {
     autogrouped_by: {
       description: string;
       op: string;
     };
   }
 
-  interface ChildrenAutogroup extends RawSpan {
+  interface ChildrenAutogroup extends RawSpanType {
     autogrouped_by: {
       op: string;
     };
@@ -867,7 +866,7 @@ export class TraceTree {
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
     data: Event,
-    spans: TraceTree.RawSpan[],
+    spans: RawSpanType[],
     options: {sdk: string | undefined} | undefined
   ): [TraceTreeNode<TraceTree.NodeValue>, [number, number] | null] {
     parent.invalidate(parent);
@@ -878,7 +877,7 @@ export class TraceTree {
 
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
-      TraceTree.RawSpan['span_id'],
+      RawSpanType['span_id'],
       TraceTreeNode<TraceTree.Span | TraceTree.Transaction>
     > = {};
 
@@ -2491,7 +2490,7 @@ export function computeAutogroupedBarSegments(
 
 // Returns a list of errors related to the txn with ids matching the span id
 function getRelatedSpanErrorsFromTransaction(
-  span: TraceTree.RawSpan,
+  span: RawSpanType,
   node?: TraceTreeNode<TraceTree.NodeValue>
 ): TraceErrorType[] {
   if (!node || !node.value || !isTransactionNode(node)) {
@@ -2513,7 +2512,7 @@ function getRelatedSpanErrorsFromTransaction(
 
 // Returns a list of performance errors related to the txn with ids matching the span id
 function getRelatedPerformanceIssuesFromTransaction(
-  span: TraceTree.RawSpan,
+  span: RawSpanType,
   node?: TraceTreeNode<TraceTree.NodeValue>
 ): TraceTree.TracePerformanceIssue[] {
   if (!node || !node.value || !isTransactionNode(node)) {
