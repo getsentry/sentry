@@ -444,7 +444,6 @@ class IntegrationInstallation(abc.ABC):
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
-    @abc.abstractmethod
     def is_rate_limited_error(self, exc: Exception) -> bool:
         raise NotImplementedError
 
