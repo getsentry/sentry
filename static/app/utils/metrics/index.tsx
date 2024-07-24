@@ -1,6 +1,6 @@
 import {useCallback, useRef} from 'react';
 import type {InjectedRouter} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -160,6 +160,25 @@ export function getDefaultAggregation(mri: MRI): MetricAggregation {
   }
 
   return DEFAULT_AGGREGATES[parsedMRI.type] || fallbackAggregate;
+}
+
+// Using Records to ensure all MetricAggregations are covered
+const metricAggregationsCheck: Record<MetricAggregation, boolean> = {
+  count: true,
+  count_unique: true,
+  sum: true,
+  avg: true,
+  min: true,
+  max: true,
+  p50: true,
+  p75: true,
+  p90: true,
+  p95: true,
+  p99: true,
+};
+
+export function isMetricsAggregation(value: string): value is MetricAggregation {
+  return !!metricAggregationsCheck[value as MetricAggregation];
 }
 
 export function isAllowedAggregation(aggregation: MetricAggregation) {
@@ -332,13 +351,12 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
-export function isExtractedCustomMetric({mri}: {mri: MRI}) {
-  // Extraced metrics are prefixed with `span_attribute_`
-  return mri.substring(1).startsWith(':custom/span_attribute_');
-}
-
 export function isVirtualMetric({mri}: {mri: MRI}) {
   return mri.startsWith('v:');
+}
+
+export function isCounterMetric({mri}: {mri: MRI}) {
+  return mri.startsWith('c:');
 }
 
 export function isSpanDuration({mri}: {mri: MRI}) {

@@ -1085,7 +1085,7 @@ class DeleteGroupsTest(TestCase):
         )
         assert send_robust.called
 
-    @with_feature("projects:similarity-embeddings-delete-by-hash")
+    @with_feature("projects:similarity-embeddings-grouping")
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )

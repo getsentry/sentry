@@ -203,13 +203,16 @@ export function useMetricsQuery(
       queries
         .map(query => {
           if (isMetricFormula(query)) {
-            return query;
+            return {
+              ...query,
+              formula: query.formula.toUpperCase(),
+            };
           }
           if (!isVirtualMetric(query)) {
             return query;
           }
           if (!query.condition) {
-            // Invalid state. A virtual metric always need to have a condition
+            // Invalid state. A virtual metric always needs to have a condition
             return null;
           }
           const {mri, aggregation} = resolveVirtualMRI(

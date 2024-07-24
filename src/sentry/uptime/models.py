@@ -2,13 +2,16 @@ import enum
 from datetime import timedelta
 from typing import ClassVar, Self
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
+from sentry.types.actor import Actor
 
 
 @region_silo_model
@@ -50,6 +53,11 @@ class ProjectUptimeSubscriptionMode(enum.IntEnum):
     AUTO_DETECTED_ACTIVE = 3
 
 
+class UptimeStatus(enum.IntEnum):
+    OK = 1
+    FAILED = 2
+
+
 @region_silo_model
 class ProjectUptimeSubscription(DefaultFieldsModel):
     # TODO: This should be included in export/import, but right now it has no relation to
@@ -59,6 +67,11 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project")
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
+    uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
+    # (Likely) temporary column to keep track of the current uptime status of this monitor
+    name = models.TextField()
+    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk"], cache_ttl=int(timedelta(hours=1).total_seconds())
@@ -92,3 +105,7 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
                 ),
             ),
         ]
+
+    @property
+    def owner(self) -> Actor | None:
+        return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)

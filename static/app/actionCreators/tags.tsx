@@ -6,8 +6,14 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
+import type {Tag, TagValue} from 'sentry/types';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagValue} from 'sentry/types/group';
+import {
+  type ApiQueryKey,
+  useApiQuery,
+  type UseApiQueryOptions,
+} from 'sentry/utils/queryClient';
+import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const MAX_TAGS = 1000;
 
@@ -192,3 +198,54 @@ export function fetchSpanFieldValues({
     query,
   });
 }
+
+type FetchOrganizationTagsParams = {
+  orgSlug: string;
+  dataset?: Dataset;
+  enabled?: boolean;
+  end?: string;
+  keepPreviousData?: boolean;
+  projectIds?: string[];
+  start?: string;
+  statsPeriod?: string | null;
+  useCache?: boolean;
+};
+
+export const makeFetchOrganizationTags = ({
+  orgSlug,
+  dataset,
+  projectIds,
+  useCache = true,
+  statsPeriod,
+  start,
+  end,
+}: FetchOrganizationTagsParams): ApiQueryKey => {
+  const query: Query = {};
+
+  query.dataset = dataset;
+  query.useCache = useCache ? '1' : '0';
+  query.project = projectIds;
+
+  if (statsPeriod) {
+    query.statsPeriod = statsPeriod;
+  }
+  if (start) {
+    query.start = start;
+  }
+  if (end) {
+    query.end = end;
+  }
+  return [`/organizations/${orgSlug}/tags/`, {query: query}];
+};
+
+export const useFetchOrganizationTags = (
+  params: FetchOrganizationTagsParams,
+  options: Partial<UseApiQueryOptions<Tag[]>>
+) => {
+  return useApiQuery<Tag[]>(makeFetchOrganizationTags(params), {
+    staleTime: Infinity,
+    keepPreviousData: params.keepPreviousData,
+    enabled: params.enabled,
+    ...options,
+  });
+};

@@ -10,6 +10,7 @@ from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
@@ -25,8 +26,18 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
+    DetailedOrganizationSerializerWithProjectsAndTeams,
     TrustedRelaySerializer,
 )
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
@@ -235,6 +246,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     openMembership = serializers.BooleanField(required=False)
     allowSharedIssues = serializers.BooleanField(required=False)
     allowMemberProjectCreation = serializers.BooleanField(required=False)
+    allowSuperuserAccess = serializers.BooleanField(required=False)
     enhancedPrivacy = serializers.BooleanField(required=False)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
@@ -500,6 +512,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.require_email_verification = data["requireEmailVerification"]
         if "allowMemberProjectCreation" in data:
             org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
+        if "allowSuperuserAccess" in data:
+            org.flags.prevent_superuser_access = not data["allowSuperuserAccess"]
         if "name" in data:
             org.name = data["name"]
         if "slug" in data:
@@ -517,6 +531,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "require_2fa": org.flags.require_2fa.is_set,
                 "codecov_access": org.flags.codecov_access.is_set,
                 "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
+                "prevent_superuser_access": org.flags.prevent_superuser_access.is_set,
             },
         }
 
@@ -598,28 +613,256 @@ def post_org_pending_deletion(
         send_delete_confirmation(delete_confirmation_args)
 
 
+@extend_schema_serializer(
+    exclude_fields=[
+        "accountRateLimit",
+        "projectRateLimit",
+        "requireEmailVerification",
+        "apdexThreshold",
+        "genAIConsent",
+        "metricsActivatePercentiles",
+        "metricsActivateLastForGauges",
+        "extrapolateMetrics",
+    ]
+)
+class OrganizationDetailsPutSerializer(serializers.Serializer):
+    # general
+    slug = serializers.CharField(
+        max_length=50,
+        help_text="The new slug for the organization, which needs to be unique.",
+        required=False,
+    )
+    name = serializers.CharField(
+        max_length=64, help_text="The new name for the organization.", required=False
+    )
+    isEarlyAdopter = serializers.BooleanField(
+        help_text="Specify `true` to opt-in to new features before they're released to the public.",
+        required=False,
+    )
+    aiSuggestedSolution = serializers.BooleanField(
+        help_text="Specify `true` to opt-in to [AI Suggested Solution](/product/issues/issue-details/ai-suggested-solution/) to get AI help on how to solve an issue.",
+        required=False,
+    )
+    codecovAccess = serializers.BooleanField(
+        help_text="Specify `true` to enable Code Coverage Insights. This feature is only available for organizations on the Team plan and above. Learn more about Codecov [here](/product/codecov/).",
+        required=False,
+    )
+
+    # membership
+    defaultRole = serializers.ChoiceField(
+        choices=roles.get_choices(),
+        help_text="The default role new members will receive.",
+        required=False,
+    )
+    openMembership = serializers.BooleanField(
+        help_text="Specify `true` to allow organization members to freely join any team.",
+        required=False,
+    )
+    eventsMemberAdmin = serializers.BooleanField(
+        help_text="Specify `true` to allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.",
+        required=False,
+    )
+    alertsMemberWrite = serializers.BooleanField(
+        help_text="Specify `true` to allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.",
+        required=False,
+    )
+    attachmentsRole = serializers.ChoiceField(
+        choices=roles.get_choices(),
+        help_text="The role required to download event attachments, such as native crash reports or log files.",
+        required=False,
+    )
+    debugFilesRole = serializers.ChoiceField(
+        choices=roles.get_choices(),
+        help_text="The role required to download debug information files, ProGuard mappings and source maps.",
+        required=False,
+    )
+
+    # avatar
+    avatarType = serializers.ChoiceField(
+        choices=(("letter_avatar", "Use initials"), ("upload", "Upload an image")),
+        help_text="The type of display picture for the organization.",
+        required=False,
+    )
+    avatar = serializers.CharField(
+        help_text="The image to upload as the organization avatar, in base64. Required if `avatarType` is `upload`.",
+        required=False,
+    )
+
+    # security & privacy
+    require2FA = serializers.BooleanField(
+        help_text="Specify `true` to require and enforce two-factor authentication for all members.",
+        required=False,
+    )
+    allowSharedIssues = serializers.BooleanField(
+        help_text="Specify `true` to allow sharing of limited details on issues to anonymous users.",
+        required=False,
+    )
+    enhancedPrivacy = serializers.BooleanField(
+        help_text="Specify `true` to enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
+        required=False,
+    )
+    scrapeJavaScript = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to scrape missing JavaScript source context when possible.",
+        required=False,
+    )
+    storeCrashReports = serializers.ChoiceField(
+        choices=(
+            (0, "Disabled"),
+            (1, "1 per issue"),
+            (5, "5 per issue"),
+            (10, "10 per issue"),
+            (20, "20 per issue"),
+            (50, "50 per issue"),
+            (100, "100 per issue"),
+            (-1, "Unlimited"),
+        ),
+        help_text="How many native crash reports (such as Minidumps for improved processing and download in issue details) to store per issue.",
+        required=False,
+    )
+    allowJoinRequests = serializers.BooleanField(
+        help_text="Specify `true` to allow users to request to join your organization.",
+        required=False,
+    )
+
+    # data scrubbing
+    dataScrubber = serializers.BooleanField(
+        help_text="Specify `true` to require server-side data scrubbing for all projects.",
+        required=False,
+    )
+    dataScrubberDefaults = serializers.BooleanField(
+        help_text="Specify `true` to apply the default scrubbers to prevent things like passwords and credit cards from being stored for all projects.",
+        required=False,
+    )
+    sensitiveFields = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="A list of additional global field names to match against when scrubbing data for all projects.",
+        required=False,
+    )
+    safeFields = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="A list of global field names which data scrubbers should ignore.",
+        required=False,
+    )
+    scrubIPAddresses = serializers.BooleanField(
+        help_text="Specify `true` to prevent IP addresses from being stored for new events on all projects.",
+        required=False,
+    )
+    relayPiiConfig = serializers.CharField(
+        help_text="""Advanced data scrubbing rules that can be configured for each project as a JSON string. The new rules will only apply to new incoming events. For more details on advanced data scrubbing, see our [full documentation](/security-legal-pii/scrubbing/advanced-datascrubbing/).
+
+> Warning: Calling this endpoint with this field fully overwrites the advanced data scrubbing rules.
+
+Below is an example of a payload for a set of advanced data scrubbing rules for masking credit card numbers from the log message (equivalent to `[Mask] [Credit card numbers] from [$message]` in the Sentry app) and removing a specific key called `foo` (equivalent to `[Remove] [Anything] from [extra.foo]` in the Sentry app):
+```json
+{
+    relayPiiConfig: "{\\"rules\":{\\"0\\":{\\"type\\":\\"creditcard\\",\\"redaction\\":{\\"method\\":\\"mask\\"}},\\"1\\":{\\"type\\":\\"anything\\",\\"redaction\\":{\\"method\\":\\"remove\\"}}},\\"applications\\":{\\"$message\\":[\\"0\\"],\\"extra.foo\\":[\\"1\\"]}}"
+}
+```
+        """,
+        required=False,
+    )
+
+    # relay
+    trustedRelays = serializers.ListField(
+        child=serializers.JSONField(),
+        help_text="""A list of local Relays (the name, public key, and description as a JSON) registered for the organization. This feature is only available for organizations on the Business and Enterprise plans. Read more about Relay [here](/product/relay/).
+
+                                          Below is an example of a list containing a single local Relay registered for the organization:
+                                          ```json
+                                          {
+                                            trustedRelays: [
+                                                {
+                                                    name: "my-relay",
+                                                    publicKey: "eiwr9fdruw4erfh892qy4493reyf89ur34wefd90h",
+                                                    description: "Configuration for my-relay."
+                                                }
+                                            ]
+                                          }
+                                          ```
+                                          """,
+        required=False,
+    )
+
+    # github features
+    githubPRBot = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
+        required=False,
+    )
+    githubOpenPRBot = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitHub integration.",
+        required=False,
+    )
+    githubNudgeInvite = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
+        required=False,
+    )
+
+    # slack features
+    issueAlertsThreadFlag = serializers.BooleanField(
+        help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for an Issue Alert notification. Requires a Slack integration.",
+        required=False,
+    )
+    metricAlertsThreadFlag = serializers.BooleanField(
+        help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for a Metric Alert notification. Requires a Slack integration.",
+        required=False,
+    )
+
+    # legal and compliance
+    aggregatedDataConsent = serializers.BooleanField(
+        help_text="Specify `true` to let Sentry use your error messages, stack traces, spans, and DOM interactions data for issue workflow and other product improvements.",
+        required=False,
+    )
+
+    # restore org
+    cancelDeletion = serializers.BooleanField(
+        help_text="Specify `true` to restore an organization that is pending deletion.",
+        required=False,
+    )
+
+    # private attributes
+    # legacy features
+    accountRateLimit = serializers.IntegerField(
+        min_value=ACCOUNT_RATE_LIMIT_DEFAULT, required=False
+    )
+    projectRateLimit = serializers.IntegerField(
+        min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
+    )
+    requireEmailVerification = serializers.BooleanField(required=False)
+    apdexThreshold = serializers.IntegerField(required=False)
+
+    # TODO: publish when GA'd
+    genAIConsent = serializers.BooleanField(required=False)
+    metricsActivatePercentiles = serializers.BooleanField(required=False)
+    metricsActivateLastForGauges = serializers.BooleanField(required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
+
+
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
+@extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="Retrieve an Organization",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.DETAILED],
+        request=None,
+        responses={
+            200: org_serializers.OrganizationSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=OrganizationExamples.RETRIEVE_ORGANIZATION,
+    )
     def get(self, request: Request, organization) -> Response:
         """
-        Retrieve an Organization
-        ````````````````````````
-
-        Return details on an individual organization including various details
-        such as membership access, features, and teams.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          team should be created for.
-        :param string detailed: Specify '0' to retrieve details without projects and teams.
-        :qparam string include_feature_flags: whether or not to include feature flags in the response
-        :auth: required
+        Return details on an individual organization, including various details
+        such as membership access and teams.
         """
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
@@ -643,21 +886,26 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return self.respond(context)
 
+    @extend_schema(
+        operation_id="Update an Organization",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        request=OrganizationDetailsPutSerializer,
+        responses={
+            200: DetailedOrganizationSerializerWithProjectsAndTeams,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+            413: OpenApiResponse(description="Image too large."),
+        },
+        examples=OrganizationExamples.UPDATE_ORGANIZATION,
+    )
     def put(self, request: Request, organization) -> Response:
         """
-        Update an Organization
-        ``````````````````````
-
-        Update various attributes and configurable settings for the given
-        organization.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          team should be created for.
-        :param string name: an optional new name for the organization.
-        :param string slug: an optional new slug for the organization.  Needs
-                            to be available and unique.
-        :qparam string include_feature_flags: whether or not to include feature flags in the response
-        :auth: required
+        Update various attributes and configurable settings for the given organization.
         """
         from sentry import features
 

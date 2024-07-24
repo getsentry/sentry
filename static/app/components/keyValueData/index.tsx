@@ -1,5 +1,6 @@
 import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
 import React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
@@ -18,7 +19,8 @@ export interface KeyValueDataContentProps {
    * Specifies the item to display.
    * - If set, item.subjectNode will override displaying item.subject.
    * - If item.subjectNode is null, the value section will span the whole card.
-   * - The only displayed action is item.action.link, not item.actionButton
+   * - If item.action.link is specified, the value will appear as a link.
+   * - If item.actionButton is specified, the button will be rendered inline with the value.
    */
   item: KeyValueListDataItem;
   /**
@@ -47,9 +49,17 @@ export function Content({
   disableFormattedData = false,
   ...props
 }: KeyValueDataContentProps) {
-  const {subject, subjectNode, value: contextValue, action = {}} = item;
+  const {
+    subject,
+    subjectNode,
+    value: contextValue,
+    action = {},
+    actionButton,
+    actionButtonAlwaysVisible,
+  } = item;
 
   const hasErrors = errors.length > 0;
+  const hasSuffix = !!(hasErrors || actionButton);
 
   const dataComponent = disableFormattedData ? (
     React.isValidElement(contextValue) ? (
@@ -60,7 +70,6 @@ export function Content({
   ) : (
     <StructuredData
       value={contextValue}
-      depth={0}
       maxDefaultDepth={0}
       meta={meta}
       withAnnotatedText
@@ -72,16 +81,21 @@ export function Content({
     <ContentWrapper hasErrors={hasErrors} {...props}>
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
-        <ValueWrapper hasErrors={hasErrors}>
+        <ValueWrapper hasSuffix={hasSuffix}>
           {!disableLink && defined(action?.link) ? (
             <ValueLink to={action.link}>{dataComponent}</ValueLink>
           ) : (
             dataComponent
           )}
         </ValueWrapper>
-        {hasErrors && (
+        {hasSuffix && (
           <div>
-            <AnnotatedTextErrors errors={errors} />
+            {hasErrors && <AnnotatedTextErrors errors={errors} />}
+            {actionButton && (
+              <ActionButtonWrapper actionButtonAlwaysVisible={actionButtonAlwaysVisible}>
+                {actionButton}
+              </ActionButtonWrapper>
+            )}
           </div>
         )}
       </ValueSection>
@@ -247,9 +261,9 @@ const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean
   grid-column-gap: ${space(0.5)};
 `;
 
-const ValueWrapper = styled('div')<{hasErrors: boolean}>`
+const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
   word-break: break-word;
-  grid-column: ${p => (p.hasErrors ? 'span 1' : '1 / -1')};
+  grid-column: ${p => (p.hasSuffix ? 'span 1' : '1 / -1')};
 `;
 
 const TruncateWrapper = styled('a')`
@@ -271,8 +285,19 @@ const CardColumn = styled('div')`
   grid-column: span 1;
 `;
 
-const ValueLink = styled(Link)`
+export const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.linkUnderline} underline dotted;
+`;
+
+const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`
+  ${p =>
+    !p.actionButtonAlwaysVisible &&
+    css`
+      visibility: hidden;
+      ${ContentWrapper}:hover & {
+        visibility: visible;
+      }
+    `}
 `;
 
 export const KeyValueData = {

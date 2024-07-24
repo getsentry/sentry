@@ -17,17 +17,18 @@ logger = logging.getLogger("sentry.events.grouping")
 
 Job = MutableMapping[str, Any]
 
+# Used to migrate projects that have no activity via getsentry scripts
+CONFIGS_TO_DEPRECATE = ("mobile:2021-02-12",)
 
-def update_grouping_config_if_needed(project: Project) -> None:
-    if _project_should_update_grouping(project):
-        _auto_update_grouping(project)
+# We want to test the new optimized transition code with projects that are on
+# deprecated configs before making it the default code path.
+# Remove this once we have switched to the optimized code path.
+DO_NOT_UPGRADE_YET = ("legacy:2019-03-12", "newstyle:2019-10-29", "newstyle:2019-05-08")
 
 
-def _project_should_update_grouping(project: Project) -> bool:
-    should_update_org = (
-        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
-    )
-    return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
+# Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_permitted
+def _auto_update_grouping(project: Project) -> None:
+    update_grouping_config_if_permitted(project)
 
 
 def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
@@ -45,11 +46,15 @@ def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
     return time_since_update < 60
 
 
-def _auto_update_grouping(project: Project) -> None:
+def update_grouping_config_if_permitted(project: Project) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
 
     if current_config == new_config or current_config == BETA_GROUPING_CONFIG:
+        return
+
+    # Remove this code once we have transitioned to the optimized code path
+    if current_config in DO_NOT_UPGRADE_YET:
         return
 
     # Because the way the auto grouping upgrading happening is racy, we want to
@@ -79,6 +84,7 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:secondary_grouping_expiry": expiry,
             "sentry:grouping_config": new_config,
         }
+
         for key, value in changes.items():
             project.update_option(key, value)
 

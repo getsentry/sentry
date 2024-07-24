@@ -94,7 +94,7 @@ describe('useTraces', function () {
         MockApiClient.matchQuery({
           project: [parseInt(project.id, 10)],
           query: 'foo:bar',
-          period: '3d',
+          statsPeriod: '3d',
           per_page: 10,
           breakdownSlices: 40,
           mri: 'd:transactions/duration@millisecond',

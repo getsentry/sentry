@@ -1,7 +1,9 @@
 import logging
 from typing import Any, TypeVar
 
+from sentry import options
 from sentry.eventstore.models import Event
+from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -116,6 +118,42 @@ def event_content_is_seer_eligible(event: Event) -> bool:
         return False
 
     return True
+
+
+def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
+    """
+    Check both the global and similarity-specific Seer killswitches.
+    """
+
+    logger_extra = {"event_id": event.event_id if event else None, "project_id": project_id}
+
+    if options.get("seer.global-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "global-killswitch"},
+        )
+        return True
+
+    if options.get("seer.similarity-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "similarity-killswitch"},
+        )
+        return True
+
+    return False
 
 
 def filter_null_from_event_title(title: str) -> str:

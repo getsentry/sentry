@@ -2,8 +2,10 @@ import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import useOrganization from 'sentry/utils/useOrganization';
 
-const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
+const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 export const getQuerySymbol = (index: number) => {
   let result = '';
@@ -15,7 +17,10 @@ export const getQuerySymbol = (index: number) => {
   return result;
 };
 
-export const Symbol = styled('span')<{isHidden?: boolean}>`
+export const DeprecatedSymbol = styled('span')<{
+  isHidden?: boolean;
+}>`
+  text-transform: lowercase;
   display: flex;
   width: 38px;
   height: 38px;
@@ -29,7 +34,6 @@ export const Symbol = styled('span')<{isHidden?: boolean}>`
   color: ${p => p.theme.white};
   font-size: 14px;
   background: ${p => p.theme.purple300};
-
   ${p =>
     p.isHidden &&
     `
@@ -39,19 +43,32 @@ export const Symbol = styled('span')<{isHidden?: boolean}>`
   `}
 `;
 
+export const Symbol = styled(DeprecatedSymbol)`
+  color: ${p => p.theme.purple300};
+  border: 1px solid ${p => p.theme.purple200};
+  background: ${p => p.theme.purple100};
+  text-transform: uppercase;
+  font-weight: 600;
+`;
+
 interface QuerySymbolProps extends React.ComponentProps<typeof Symbol> {
   queryId: number;
 }
 
 export const QuerySymbol = forwardRef<HTMLSpanElement, QuerySymbolProps>(
   function QuerySymbol({queryId, ...props}, ref) {
+    const organization = useOrganization();
+
     if (queryId < 0) {
       return null;
     }
+
+    const Component = hasMetricsNewInputs(organization) ? Symbol : DeprecatedSymbol;
+
     return (
-      <Symbol ref={ref} {...props}>
+      <Component ref={ref} {...props}>
         <span>{getQuerySymbol(queryId)}</span>
-      </Symbol>
+      </Component>
     );
   }
 );

@@ -196,7 +196,17 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             help={
               !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? t('Only available in SDK version 7.x and above')
-                : undefined
+                : data.dynamicSdkLoaderOptions.hasPerformance
+                  ? tct(
+                      'The default configurations are [codeTracesSampleRate:tracesSampleRate: 1.0] and distributed tracing to same-origin requests. [configDocs:Read the docs] to learn how to configure this.',
+                      {
+                        codeTracesSampleRate: <code />,
+                        configDocs: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/loader/#custom-configuration" />
+                        ),
+                      }
+                    )
+                  : undefined
             }
             disabledReason={
               !hasAccess

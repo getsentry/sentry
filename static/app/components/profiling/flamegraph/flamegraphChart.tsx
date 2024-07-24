@@ -16,10 +16,9 @@ import {
   getPhysicalSpacePositionFromOffset,
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
-import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
-import {formatTo} from 'sentry/utils/profiling/units/units';
+import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -38,7 +37,7 @@ interface FlamegraphChartProps {
   chartCanvas: FlamegraphCanvas | null;
   chartCanvasRef: HTMLCanvasElement | null;
   chartView: CanvasView<FlamegraphChartModel> | null;
-  configViewUnit: Profile['unit'];
+  configViewUnit: ProfilingFormatterUnit;
   noMeasurementMessage: string | undefined;
   setChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
   status: RequestState<any>['type'];
@@ -310,6 +309,7 @@ export function FlamegraphChart({
           chartView={chartView}
           chartRenderer={chartRenderer}
           canvasBounds={canvasBounds}
+          configViewUnit={configViewUnit}
         />
       ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}

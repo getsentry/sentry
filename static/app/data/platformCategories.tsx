@@ -346,13 +346,14 @@ export const replayBackendPlatforms: readonly PlatformKey[] = [
 
 // These are the frontend platforms that can set up replay.
 export const replayFrontendPlatforms: readonly PlatformKey[] = [
-  'capacitor',
-  'electron',
+  'javascript',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
   'javascript-capacitor',
+  'capacitor',
   'javascript-electron',
+  'electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
@@ -361,20 +362,25 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
-  'javascript',
+];
+
+// These are the mobile platforms that can set up replay.
+export const replayMobilePlatforms: PlatformKey[] = [
+  'android',
+  'apple-ios',
+  'react-native',
 ];
 
 // These are all the platforms that can set up replay.
 export const replayPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms,
   ...replayBackendPlatforms,
+  ...replayMobilePlatforms,
 ];
 
 /**
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `replayPlatforms`.
- * This should match sentry-docs: `/src/wizard/${platform}/replay-onboarding/${subPlatform}/`.
- * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms.filter(p => !['javascript-backbone'].includes(p)),

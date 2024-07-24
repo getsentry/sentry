@@ -8,7 +8,7 @@ import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import sentry_sdk
 from django.core.files.base import ContentFile
@@ -20,6 +20,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
+from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -202,7 +203,7 @@ class AbstractFile(Model):
     name = models.TextField()
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
-    headers = JSONField()
+    headers: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     size = BoundedPositiveIntegerField(null=True)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
 
@@ -212,7 +213,7 @@ class AbstractFile(Model):
     # abstract
     # XXX: uses `builtins.type` to avoid clash with `type` local
     FILE_BLOB_MODEL: ClassVar[builtins.type[AbstractFileBlob]]
-    FILE_BLOB_INDEX_MODEL: ClassVar[builtins.type[Model]]
+    FILE_BLOB_INDEX_MODEL: ClassVar[builtins.type[AbstractFileBlobIndex]]
     DELETE_UNREFERENCED_BLOB_TASK: ClassVar[SentryTask]
     blobs: models.ManyToManyField
 

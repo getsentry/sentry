@@ -95,13 +95,14 @@ function FormatMessage({
     if (!maybeProject) {
       return content;
     }
+
     const projectSlug = maybeProject.slug;
     const description = transactionData ? (
       <Link
         to={generateLinkToEventInTraceView({
           eventId: message,
-          timestamp: event?.endTimestamp ?? '',
-          traceSlug: event?.contexts?.trace?.trace_id ?? '',
+          timestamp: transactionData.timestamp,
+          traceSlug: transactionData.trace,
           projectSlug,
           organization,
           location: {...location, query: {...location.query, referrer: 'breadcrumbs'}},

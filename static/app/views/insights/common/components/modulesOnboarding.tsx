@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
-import type {PLATFORM_TO_ICON} from 'platformicons/build/platformIcon';
 
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
 import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
@@ -15,10 +15,11 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import {LinkButton} from 'sentry/components/button';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -30,26 +31,28 @@ import {
   MODULE_PRODUCT_DOC_LINKS,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-
-type PlatformIcons = keyof typeof PLATFORM_TO_ICON;
+import PerformanceOnboarding from 'sentry/views/performance/onboarding';
 
 export function ModulesOnboarding({
   children,
   moduleName,
-  onboardingContent,
 }: {
   children: React.ReactNode;
   moduleName: ModuleName;
-  onboardingContent?: React.ReactNode;
 }) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const hasData = useHasFirstSpan(moduleName);
-  const hasEmptyStateFeature = organization.features.includes(
-    'insights-empty-state-page'
-  );
 
-  if (hasEmptyStateFeature && (onboardingProject || !hasData)) {
+  if (onboardingProject) {
+    return (
+      <ModuleLayout.Full>
+        <PerformanceOnboarding organization={organization} project={onboardingProject} />
+      </ModuleLayout.Full>
+    );
+  }
+
+  if (!hasData) {
     return (
       <ModuleLayout.Full>
         <ModulesOnboardingPanel moduleName={moduleName} />
@@ -57,38 +60,7 @@ export function ModulesOnboarding({
     );
   }
 
-  if (onboardingContent && (onboardingProject || !hasData)) {
-    return (
-      <ModuleLayout.Full>
-        <OldModulesOnboardingPanel>{onboardingContent}</OldModulesOnboardingPanel>
-      </ModuleLayout.Full>
-    );
-  }
-
-  if (!onboardingProject && hasData) {
-    return children;
-  }
-
-  if (!onboardingContent) {
-    return children;
-  }
-  // TODO: Add an error state?
-  return (
-    <ModuleLayout.Full>
-      <LoadingIndicator />
-    </ModuleLayout.Full>
-  );
-}
-
-function OldModulesOnboardingPanel({children}: {children: React.ReactNode}) {
-  return (
-    <Panel>
-      <Container>
-        <ContentContainer>{children}</ContentContainer>
-        <PerfImage src={emptyStateImg} />
-      </Container>
-    </Panel>
-  );
+  return children;
 }
 
 function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
@@ -97,24 +69,28 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
   return (
     <Panel>
       <Container>
-        <ContentContainer>
-          <Fragment>
-            <Header>{emptyStateContent.heading}</Header>
-            <p>{emptyStateContent.description}</p>
-          </Fragment>
-          <SplitContainer>
-            <ModulePreview moduleName={moduleName} />
-            <ValueProp>
-              {emptyStateContent.valuePropDescription}
-              <ul>
-                {emptyStateContent.valuePropPoints.map(point => (
-                  <li key={point?.toString()}>{point}</li>
-                ))}
-              </ul>
-            </ValueProp>
-          </SplitContainer>
-        </ContentContainer>
-        <PerfImage src={emptyStateImg} />
+        <SplitMainContent>
+          <ModuleInfo>
+            <Fragment>
+              <Header>{emptyStateContent.heading}</Header>
+              <p>{emptyStateContent.description}</p>
+            </Fragment>
+            <SplitContainer>
+              <ModulePreview moduleName={moduleName} />
+              <ValueProp>
+                {emptyStateContent.valuePropDescription}
+                <ul>
+                  {emptyStateContent.valuePropPoints.map(point => (
+                    <li key={point?.toString()}>{point}</li>
+                  ))}
+                </ul>
+              </ValueProp>
+            </SplitContainer>
+          </ModuleInfo>
+          <Sidebar>
+            <PerfImage src={emptyStateImg} />
+          </Sidebar>
+        </SplitMainContent>
         <LinkButton
           priority="primary"
           external
@@ -131,6 +107,8 @@ type ModulePreviewProps = {moduleName: ModuleName};
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
+  const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
+
   return (
     <ModulePreviewContainer>
       <ModulePreviewImage src={emptyStateContent.imageSrc} />
@@ -138,10 +116,18 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
         <SupportedSdkContainer>
           <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
-            {emptyStateContent.supportedSdks.map(sdk => (
-              <SupportedSdkIconContainer key={sdk}>
-                <PlatformIcon platform={sdk} size={'25px'} />
-              </SupportedSdkIconContainer>
+            {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
+              <Tooltip title={startCase(sdk)} key={sdk} position="top">
+                <SupportedSdkIconContainer
+                  onMouseOver={() => setHoveredIcon(sdk)}
+                  onMouseOut={() => setHoveredIcon(null)}
+                >
+                  <PlatformIcon
+                    platform={sdk}
+                    size={hoveredIcon === sdk ? '30px' : '25px'}
+                  />
+                </SupportedSdkIconContainer>
+              </Tooltip>
             ))}
           </SupportedSdkList>
         </SupportedSdkContainer>
@@ -150,14 +136,14 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
   );
 }
 
+const Sidebar = styled('div')`
+  position: relative;
+  flex: 3;
+`;
+
 const PerfImage = styled('img')`
-  width: 400px;
-  user-select: none;
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding-right: ${space(2)};
-  padding-top: ${space(4)};
+  max-width: 100%;
+  min-width: 200px;
 `;
 
 const Container = styled('div')`
@@ -167,10 +153,11 @@ const Container = styled('div')`
   padding: ${space(4)};
 `;
 
-const ContentContainer = styled('div')`
-  position: relative;
-  width: 60%;
-  z-index: 1;
+const SplitMainContent = styled('div')`
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap-reverse;
+  gap: ${space(4)};
 `;
 
 const Header = styled('h3')`
@@ -180,6 +167,11 @@ const Header = styled('h3')`
 const SplitContainer = styled(Panel)`
   display: flex;
   justify-content: center;
+`;
+
+const ModuleInfo = styled('div')`
+  flex: 5;
+  width: 100%;
 `;
 
 const ModulePreviewImage = styled('img')`
@@ -193,7 +185,6 @@ const ModulePreviewImage = styled('img')`
 const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
-  height: 100%;
   padding: ${space(3)};
   background-color: ${p => p.theme.backgroundSecondary};
 `;
@@ -208,7 +199,9 @@ const SupportedSdkContainer = styled('div')`
 
 const SupportedSdkList = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${space(0.5)};
+  justify-content: center;
 `;
 
 const SupportedSdkIconContainer = styled('div')`
@@ -219,6 +212,9 @@ const SupportedSdkIconContainer = styled('div')`
   width: 42px;
   height: 42px;
   border-radius: 3px;
+  &:hover {
+    box-shadow: 0 0 0 1px ${p => p.theme.gray200};
+  }
 `;
 
 const ValueProp = styled('div')`
@@ -235,14 +231,14 @@ type EmptyStateContent = {
   imageSrc: any;
   valuePropDescription: React.ReactNode;
   valuePropPoints: React.ReactNode[];
-  supportedSdks?: PlatformIcons[];
+  supportedSdks?: PlatformKey[];
 };
 
 const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   app_start: {
-    heading: t('Don’t lose the race at the starting line'),
+    heading: t(`Don't lose your user's attention before your app loads`),
     description: tct(
-      'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing regression.',
+      'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing to regressions.',
       {
         dataTypePlural:
           MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase(),
@@ -257,6 +253,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Real user performance metrics.'),
     ],
     imageSrc: appStartPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   ai: {
     heading: t('Find out what your LLM model is actually saying'),
@@ -282,6 +279,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     imageSrc: llmPreviewImg,
+    supportedSdks: ['python'],
   },
   // Mobile UI is not released yet
   'mobile-ui': {
@@ -307,16 +305,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Hit / miss ratio of keys accessed by your application.'),
     ],
     imageSrc: cachesPreviewImg,
-    supportedSdks: [
-      'ruby',
-      'python',
-      'javascript',
-      'java',
-      'dotnet',
-      'php-laravel',
-      'php-symfony',
-      'python-django',
-    ],
+    supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
   },
   db: {
     heading: tct(
@@ -337,7 +326,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       tct('High volume [dataTypePlural].', {
         dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase(),
       }),
-      t('Outlier database spans.'),
+      t('One off slow queries, vs. trends'),
     ],
     imageSrc: queriesPreviewImg,
   },
@@ -371,18 +360,29 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       tct('[dataType] performance broken down by category and domain.', {
         dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
       }),
-      tct(
-        'Which routes are loading [dataTypePlural], and whether they’re blocking rendering.',
-        {
-          dataTypePlural:
-            MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase(),
-        }
-      ),
+      tct('Whether [dataTypePlural] are blocking page rendering.', {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase(),
+      }),
       tct('[dataType] size and whether it’s growing over time.', {
         dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
       }),
     ],
     imageSrc: assetsPreviewImg,
+    // TODO - this is a lot of manual work, and its duplicated between here and our docs, it would great if there's a single source of truth
+    supportedSdks: [
+      'javascript',
+      'javascript-angular',
+      'javascript-astro',
+      'javascript-ember',
+      'javascript-gatsby',
+      'javascript-nextjs',
+      'javascript-react',
+      'javascript-remix',
+      'javascript-solid',
+      'javascript-svelte',
+      'javascript-sveltekit',
+      'javascript-vue',
+    ],
   },
   vital: {
     heading: t('Finally answer, is this page slow for everyone or just me?'),
@@ -393,8 +393,8 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       dataType: MODULE_DATA_TYPES[ModuleName.VITAL],
     }),
     valuePropPoints: [
-      t('Performance scores broken down by route.'),
-      t('Performance metrics for operations that affect screen load performance.'),
+      t('Performance scores broken down by page.'),
+      t('Performance metrics for individual operations that affect page performance.'),
       t('Drill down to real user sessions.'),
     ],
     imageSrc: webVitalsPreviewImg,
@@ -416,9 +416,10 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Published vs., processed job volume.'),
     ],
     imageSrc: queuesPreviewImg,
+    supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
   },
   screen_load: {
-    heading: t(`Don’t lose your customer’s attention before your app loads`),
+    heading: t(`Don’t lose your user's attention once your app loads`),
     description: tct(
       'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
       {
@@ -435,5 +436,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Drill down to real user sessions.'),
     ],
     imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
 };

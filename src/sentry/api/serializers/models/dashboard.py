@@ -3,9 +3,11 @@ from typing import TypedDict
 
 import orjson
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -17,6 +19,8 @@ from sentry.models.dashboard_widget import (
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
+
+DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
 class ThresholdType(TypedDict):
@@ -41,7 +45,7 @@ class DashboardWidgetResponse(TypedDict):
 
 @register(DashboardWidget)
 class DashboardWidgetSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         result = {}
         data_sources = serialize(
             list(
@@ -58,6 +62,21 @@ class DashboardWidgetSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetResponse:
+        widget_type = (
+            DashboardWidgetTypes.get_type_name(obj.widget_type)
+            or DashboardWidgetTypes.TYPE_NAMES[0]
+        )
+
+        if (
+            features.has(
+                "organizations:performance-discover-dataset-selector",
+                obj.dashboard.organization,
+                actor=user,
+            )
+            and obj.discover_widget_split is not None
+        ):
+            widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
+
         return {
             "id": str(obj.id),
             "title": obj.title,
@@ -71,9 +90,9 @@ class DashboardWidgetSerializer(Serializer):
             "queries": attrs["queries"],
             "limit": obj.limit,
             # Default to discover type if null
-            "widgetType": DashboardWidgetTypes.get_type_name(obj.widget_type)
-            or DashboardWidgetTypes.TYPE_NAMES[0],
+            "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
+            "datasetSource": DATASET_SOURCES[obj.dataset_source],
         }
 
 
@@ -89,7 +108,7 @@ class DashboardWidgetQueryOnDemandSerializer(Serializer):
 
 @register(DashboardWidgetQuery)
 class DashboardWidgetQuerySerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         result = {}
 
         stateful_extraction_version = (
@@ -129,7 +148,7 @@ class DashboardWidgetQuerySerializer(Serializer):
 
 
 class DashboardListSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         item_dict = {i.id: i for i in item_list}
 
         widgets = (
@@ -210,7 +229,7 @@ class DashboardDetailsResponse(TypedDict):
 
 @register(Dashboard)
 class DashboardDetailsModelSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         result = {}
 
         widgets = serialize(

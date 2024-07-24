@@ -75,7 +75,7 @@ describe('Wizard utils', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
-        dataset: Dataset.SESSIONS,
+        dataset: Dataset.METRICS,
       })
     ).toEqual('crash_free_sessions');
   });
@@ -84,7 +84,7 @@ describe('Wizard utils', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_USERS,
-        dataset: Dataset.SESSIONS,
+        dataset: Dataset.METRICS,
       })
     ).toEqual('crash_free_users');
   });

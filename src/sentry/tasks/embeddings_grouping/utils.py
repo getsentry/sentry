@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 
 import sentry_sdk
+from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
@@ -94,7 +95,7 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
 def initialize_backfill(
     project_id: int,
     cohort: str | list[int] | None,
-    last_processed_group_index: int | None,
+    last_processed_group_id: int | None,
     last_processed_project_index: int | None,
     redis_client: StrictRedis | RedisCluster,
 ):
@@ -102,19 +103,18 @@ def initialize_backfill(
         "backfill_seer_grouping_records.start",
         extra={
             "project_id": project_id,
-            "last_processed_index": last_processed_group_index,
+            "last_processed_index": last_processed_group_id,
         },
     )
     project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-backfill", project):
         raise FeatureError("Project does not have feature")
 
-    if last_processed_group_index is None:
-        last_processed_group_index_ret = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(project_id)) or 0
-        )
+    last_processed_group_id_ret = redis_client.get(make_backfill_grouping_id_redis_key(project_id))
+    if last_processed_group_id is None and last_processed_group_id_ret is not None:
+        last_processed_group_id_ret = int(last_processed_group_id_ret)
     else:
-        last_processed_group_index_ret = last_processed_group_index
+        last_processed_group_id_ret = last_processed_group_id
 
     if last_processed_project_index is None:
         if cohort and isinstance(cohort, str):
@@ -126,46 +126,66 @@ def initialize_backfill(
     else:
         last_processed_project_index_ret = last_processed_project_index
 
-    return project, last_processed_group_index_ret, last_processed_project_index_ret
+    return project, last_processed_group_id_ret, last_processed_project_index_ret
 
 
 @sentry_sdk.tracing.trace
-def get_current_batch_groups_from_postgres(project, last_processed_group_index, batch_size):
-    groups_to_backfill_query = (
+def get_current_batch_groups_from_postgres(
+    project, last_processed_group_id, batch_size, enable_ingestion: bool = False
+):
+    group_id_filter = Q()
+    if last_processed_group_id is not None:
+        group_id_filter = Q(id__lt=last_processed_group_id)
+
+    groups_to_backfill_batch = (
         Group.objects.filter(
+            group_id_filter,
             project_id=project.id,
             type=ErrorGroupType.type_id,
             times_seen__gt=1,
-            last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
         )
-        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
-        .values_list("id", "data")
-        .order_by("-times_seen", "id")
+        .values_list("id", "data", "status", "last_seen")
+        .order_by("-id")[:batch_size]
     )
-    total_groups_to_backfill_length = groups_to_backfill_query.count()
+    total_groups_to_backfill_length = len(groups_to_backfill_batch)
+    batch_end_group_id = (
+        groups_to_backfill_batch[total_groups_to_backfill_length - 1][0]
+        if total_groups_to_backfill_length
+        else None
+    )
 
-    batch_end_index = min(last_processed_group_index + batch_size, total_groups_to_backfill_length)
-    groups_to_backfill_batch = groups_to_backfill_query[last_processed_group_index:batch_end_index]
+    # Filter out groups that are pending deletion in memory so postgres won't make a bad query plan
+    groups_to_backfill_batch = [
+        (group[0], group[1])
+        for group in groups_to_backfill_batch
+        if group[2] not in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+        and group[3] > datetime.now(UTC) - timedelta(days=90)
+    ]
+    total_groups_to_backfill_length = len(groups_to_backfill_batch)
 
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
             "batch_len": len(groups_to_backfill_batch),
-            "last_processed_index": last_processed_group_index,
-            "total_groups_length": total_groups_to_backfill_length,
+            "last_processed_group_id": batch_end_group_id,
         },
     )
-
-    if len(groups_to_backfill_batch) == 0:
+    if total_groups_to_backfill_length == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
         )
+        if enable_ingestion:
+            logger.info(
+                "backfill_seer_grouping_records.enable_ingestion",
+                extra={"project_id": project.id},
+            )
+            project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+
         return (
             groups_to_backfill_batch,
-            batch_end_index,
-            total_groups_to_backfill_length,
+            None,
         )
 
     groups_to_backfill_with_no_embedding = [
@@ -183,8 +203,7 @@ def get_current_batch_groups_from_postgres(project, last_processed_group_index, 
         )
     return (
         groups_to_backfill_with_no_embedding,
-        batch_end_index,
-        total_groups_to_backfill_length,
+        batch_end_group_id,
     )
 
 
@@ -600,7 +619,7 @@ def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
     return event
 
 
-def make_backfill_grouping_index_redis_key(project_id: int):
+def make_backfill_grouping_id_redis_key(project_id: int) -> str:
     redis_key = "grouping_record_backfill.last_processed_grouping_index"
     return f"{redis_key}-{project_id}"
 
@@ -623,7 +642,7 @@ def delete_seer_grouping_records(
         extra={"project_id": project_id},
     )
     delete_project_grouping_records(project_id)
-    redis_client.delete(make_backfill_grouping_index_redis_key(project_id))
+    redis_client.delete(make_backfill_grouping_id_redis_key(project_id))
 
     for groups in chunked(
         RangeQuerySetWrapper(

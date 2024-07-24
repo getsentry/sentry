@@ -17,8 +17,10 @@ interface Series {
   type: 'line' | 'area';
 }
 
-export interface ProfileSeriesMeasurement extends Profiling.Measurement {
+export interface ProfileSeriesMeasurement {
   name: string;
+  unit: string;
+  values: {elapsed: number; value: number}[];
 }
 
 function computeLabelPrecision(min: number, max: number): number {
@@ -35,6 +37,7 @@ function computeLabelPrecision(min: number, max: number): number {
 }
 
 interface ChartOptions {
+  timelineUnit?: ProfilingFormatterUnit;
   type?: 'line' | 'area';
 }
 
@@ -64,7 +67,7 @@ export class FlamegraphChart {
     options: ChartOptions = {}
   ) {
     this.series = new Array<Series>();
-    this.timelineFormatter = makeTimelineFormatter('nanoseconds');
+    this.timelineFormatter = makeTimelineFormatter(options.timelineUnit ?? 'nanoseconds');
 
     if (!measurements || !measurements.length) {
       this.formatter = makeFormatter('percent');
@@ -115,14 +118,14 @@ export class FlamegraphChart {
         }
 
         // Track and update X domain max and min
-        if (m.elapsed_since_start_ns > this.domains.x[1]) {
-          this.domains.x[1] = m.elapsed_since_start_ns;
+        if (m.elapsed > this.domains.x[1]) {
+          this.domains.x[1] = m.elapsed;
         }
-        if (m.elapsed_since_start_ns < this.domains.x[0]) {
-          this.domains.x[1] = m.elapsed_since_start_ns;
+        if (m.elapsed < this.domains.x[0]) {
+          this.domains.x[1] = m.elapsed;
         }
 
-        this.series[j].points[i] = {x: m.elapsed_since_start_ns, y: m.value};
+        this.series[j].points[i] = {x: m.elapsed, y: m.value};
       }
     }
 

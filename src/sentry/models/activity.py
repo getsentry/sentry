@@ -115,7 +115,7 @@ class Activity(Model):
     # if the user is not set, it's assumed to be the system
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
-    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(null=True)
 
     objects: ClassVar[ActivityManager] = ActivityManager()
 

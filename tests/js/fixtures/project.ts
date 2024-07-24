@@ -27,7 +27,6 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     dynamicSamplingBiases: null,
     firstEvent: null,
     firstTransactionEvent: false,
-    groupingAutoUpdate: false,
     groupingConfig: '',
     hasCustomMetrics: false,
     hasFeedbacks: false,
