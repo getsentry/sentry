@@ -154,6 +154,7 @@ interface State {
   dataUnit?: string;
   description?: string;
   errors?: Record<string, any>;
+  id?: string;
   selectedDashboard?: DashboardDetails['id'];
   thresholds?: ThresholdsConfig | null;
   widgetToBeUpdated?: Widget;
@@ -331,6 +332,7 @@ function WidgetBuilder({
       }
 
       setState({
+        id: widgetFromDashboard.id,
         title: widgetFromDashboard.title,
         description: widgetFromDashboard.description,
         displayType: newDisplayType,
@@ -372,6 +374,7 @@ function WidgetBuilder({
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
   const currentWidget = {
+    id: state.id,
     title: state.title,
     description: state.description,
     displayType: state.displayType,
@@ -827,7 +830,11 @@ function WidgetBuilder({
     if (widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateWidgetIndex = getUpdateWidgetIndex();
-      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
+      // TODO: Ensure set here
+      const nextWidgetData = {
+        ...widgetData,
+        id: widgetToBeUpdated.id,
+      };
 
       // Only modify and re-compact if the default height has changed
       if (
@@ -851,6 +858,7 @@ function WidgetBuilder({
       return;
     }
 
+    // Ensure set here
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
@@ -992,6 +1000,12 @@ function WidgetBuilder({
       }
 
       return newState;
+    });
+  }
+
+  function handleUpdateWidgetSplitDecision(splitDecision: WidgetType) {
+    setState(prevState => {
+      return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[splitDecision]};
     });
   }
 
@@ -1143,6 +1157,9 @@ function WidgetBuilder({
                                     }}
                                     noDashboardsMEPProvider
                                     isWidgetInvalid={!state.queryConditionsValid}
+                                    onWidgetSplitDecision={
+                                      handleUpdateWidgetSplitDecision
+                                    }
                                   />
                                   <DataSetStep
                                     dataSet={state.dataSet}

@@ -62,7 +62,7 @@ import {
 } from 'sentry/views/performance/utils';
 
 import type {Widget, WidgetQuery} from '../types';
-import {DisplayType} from '../types';
+import {DisplayType, WidgetType} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
@@ -687,21 +687,41 @@ export function filterAggregateParams(
   return true;
 }
 
-const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
-  return organization.features.includes('performance-discover-dataset-selector');
-};
-
 const getQueryExtraForSplittingDiscover = (
   widget: Widget,
   organization: Organization,
-  _useOnDemandMetrics: boolean
+  useOnDemandMetrics: boolean
 ) => {
-  // TODO: What's the correct condition here for sending the split?
-  if (!shouldSendWidgetForSplittingDiscover(organization)) {
+  // We want to send the dashboardWidgetId on the request if we're in the Widget
+  // Builder with the selector feature flag
+  const isEditing = location.pathname.endsWith('/edit/');
+  const hasDiscoverSelector = organization.features.includes(
+    'performance-discover-dataset-selector'
+  );
+
+  if (!hasDiscoverSelector) {
+    if (
+      !useOnDemandMetrics ||
+      !organization.features.includes('performance-discover-widget-split-ui')
+    ) {
+      return {};
+    }
+    if (widget.id) {
+      return {dashboardWidgetId: widget.id};
+    }
+
     return {};
   }
-  if (widget.id) {
+
+  if (
+    isEditing &&
+    widget.id &&
+    ![WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
+      widget.widgetType ?? WidgetType.DISCOVER
+    )
+  ) {
     return {dashboardWidgetId: widget.id};
   }
+
   return {};
 };

@@ -91,7 +91,7 @@ type Props = WithRouterProps & {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onUpdate?: (widget: Widget | null) => void;
-  onWidgetSplitDecision?: (widget: Widget, splitDecision: WidgetType) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;

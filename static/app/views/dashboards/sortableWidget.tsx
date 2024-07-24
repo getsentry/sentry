@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
-import type {DashboardFilters, Widget, WidgetType} from './types';
+import type {DashboardFilters, Widget} from './types';
 
 const TABLE_ITEM_LIMIT = 20;
 
@@ -19,7 +19,6 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   isMobile?: boolean;
   isPreview?: boolean;
-  onWidgetSplitDecision?: (widget: Widget, splitDecision: WidgetType) => void;
   windowWidth?: number;
 };
 
@@ -36,7 +35,6 @@ function SortableWidget(props: Props) {
     windowWidth,
     index,
     dashboardFilters,
-    onWidgetSplitDecision,
   } = props;
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
@@ -46,7 +44,6 @@ function SortableWidget(props: Props) {
     onDelete,
     onEdit,
     onDuplicate,
-    onWidgetSplitDecision,
     showContextMenu: true,
     isPreview,
     index,

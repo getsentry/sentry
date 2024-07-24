@@ -48,7 +48,7 @@ type Props = {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
-  onWidgetSplitDecision?: (widget: Widget, splitDecision: WidgetType) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onZoom?: AugmentedEChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showSlider?: boolean;

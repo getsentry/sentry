@@ -1,7 +1,6 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -485,20 +484,6 @@ class DashboardDetail extends Component<Props, State> {
       // `updateDashboard` does its own error handling
       () => undefined
     );
-  };
-
-  // TODO: This needs to take into account modified dashboards as well
-  handleUpdateWidgetSplitDecision = (widget: Widget, splitDecision: WidgetType) => {
-    const {dashboard, onDashboardUpdate} = this.props;
-
-    const updatedDashboard = cloneDeep(dashboard);
-
-    const widgetIndex = updatedDashboard.widgets.findIndex(w => w.id === widget.id);
-
-    if (widgetIndex >= 0) {
-      updatedDashboard.widgets[widgetIndex].widgetType = splitDecision;
-      onDashboardUpdate?.(updatedDashboard);
-    }
   };
 
   handleAddCustomWidget = (widget: Widget) => {
@@ -1007,9 +992,6 @@ class DashboardDetail extends Component<Props, State> {
                                   newWidget={newWidget}
                                   onSetNewWidget={onSetNewWidget}
                                   isPreview={this.isPreview}
-                                  onWidgetSplitDecision={
-                                    this.handleUpdateWidgetSplitDecision
-                                  }
                                 />
                               </WidgetViewerContext.Provider>
                             </MEPSettingProvider>

@@ -119,7 +119,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: OnDataFetchedProps) => void;
-  onWidgetSplitDecision?: (widget: Widget, splitDecision: WidgetType) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 };
 
 function WidgetQueries({
@@ -217,7 +217,7 @@ function WidgetQueries({
       )
     ) {
       // Update the dashboard state with the split decision
-      onWidgetSplitDecision?.(widget, rawResults?.meta?.discoverSplitDecision);
+      onWidgetSplitDecision?.(rawResults?.meta?.discoverSplitDecision);
     }
   };
 

@@ -91,7 +91,6 @@ type Props = {
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
-  onWidgetSplitDecision?: (widget: Widget, splitDecision: WidgetType) => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
 };
@@ -384,14 +383,8 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {
-      isEditingDashboard,
-      widgetLimitReached,
-      isPreview,
-      dashboard,
-      location,
-      onWidgetSplitDecision,
-    } = this.props;
+    const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
+      this.props;
 
     const widgetProps = {
       widget,
@@ -400,7 +393,6 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
-      onWidgetSplitDecision,
 
       isPreview,
 
