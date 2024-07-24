@@ -91,8 +91,5 @@ class ExternalIssue(Model):
 
         integration = integration_service.get_integration(integration_id=self.integration_id)
 
-        return (
-            integration.get_installation(organization_id=self.organization_id)
-            if integration is not None
-            else None
-        )
+        assert integration, "Integration is required to get an installation"
+        return integration.get_installation(organization_id=self.organization_id)
