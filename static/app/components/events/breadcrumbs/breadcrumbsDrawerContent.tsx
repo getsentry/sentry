@@ -70,7 +70,7 @@ export function BreadcrumbsDrawerContent({
 
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-    BreadcrumbTimeDisplay.RELATIVE
+    BreadcrumbTimeDisplay.ABSOLUTE
   );
   const filterOptions = useMemo(
     () => getBreadcrumbFilterOptions(breadcrumbs),
@@ -191,10 +191,8 @@ export function BreadcrumbsDrawerContent({
           });
         }}
         value={timeDisplay}
-        options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
-      >
-        {null}
-      </CompactSelect>
+        options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
+      />
     </ButtonBar>
   );
 
@@ -226,6 +224,7 @@ export function BreadcrumbsDrawerContent({
           <BreadcrumbsTimeline
             breadcrumbs={displayCrumbs}
             startTimeString={startTimeString}
+            fullyExpanded
           />
         )}
       </TimelineContainer>

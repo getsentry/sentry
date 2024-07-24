@@ -22,6 +22,7 @@ export interface TimelineItemProps {
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  showLastLine?: boolean;
   style?: CSSProperties;
   timestamp?: React.ReactNode;
 }
@@ -34,21 +35,13 @@ export const Item = forwardRef(function _Item(
     colorConfig = {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'},
     timestamp,
     isActive = false,
-    style,
     ...props
   }: TimelineItemProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   const theme = useTheme();
   return (
-    <Row
-      style={{
-        borderBottom: `1px solid ${isActive ? theme[colorConfig.icon] : 'transparent'}`,
-        ...style,
-      }}
-      ref={ref}
-      {...props}
-    >
+    <Row ref={ref} {...props}>
       <IconWrapper
         style={{
           borderColor: isActive ? theme[colorConfig.iconBorder] : 'transparent',
@@ -60,21 +53,13 @@ export const Item = forwardRef(function _Item(
       </IconWrapper>
       <Title style={{color: theme[colorConfig.title]}}>{title}</Title>
       {timestamp ?? <div />}
-      <Spacer
-        style={{borderLeft: `1px solid ${isActive ? theme.border : 'transparent'}`}}
-      />
-      <Content
-        style={{
-          marginBottom: `${isActive ? space(1) : 0}`,
-        }}
-      >
-        {children}
-      </Content>
+      <Spacer />
+      <Content>{children}</Content>
     </Row>
   );
 });
 
-const Row = styled('div')`
+const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
   color: ${p => p.theme.subText};
   display: grid;
@@ -87,7 +72,8 @@ const Row = styled('div')`
   }
   &:last-child {
     margin-bottom: 0;
-    background: ${p => p.theme.background};
+    /* Show/hide connecting line from the last element of the timeline */
+    background: ${p => (p.showLastLine ? 'transparent' : p.theme.background)};
   }
 `;
 
