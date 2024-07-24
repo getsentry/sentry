@@ -191,13 +191,12 @@ export default storyBook(Tabs, story => {
   story('Variants', () => (
     <div>
       <p>
-        Use the variant prop to control which tab design to use. The default, "vanilla",
-        is used in the above examples, but you can also use "draggable" variant, as shown
-        here:
+        Use the variant prop to control which tab design to use. The default, "flat", is
+        used in the above examples, but you can also use "filled" variant, as shown here:
       </p>
       <SizingWindow>
         <Tabs>
-          <TabList variant={'draggable'}>
+          <TabList variant={'filled'}>
             {TABS.map(tab => (
               <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
             ))}

@@ -55,9 +55,13 @@ export interface BaseTabProps {
    * by <DraggableTab> to pass in props used for drag-and-drop functionality.
    */
   additionalProps?: React.HTMLAttributes<HTMLElement>;
+  /**
+   * This controls the border style of the tab. Only active when
+   * `variant=filled` since other variants do not have a border
+   */
   borderStyle?: 'solid' | 'dashed';
   to?: string;
-  variant?: 'vanilla' | 'draggable';
+  variant?: 'flat' | 'filled';
 }
 
 export const BaseTab = forwardRef(
@@ -70,7 +74,7 @@ export const BaseTab = forwardRef(
       hidden,
       isSelected,
       additionalProps,
-      variant = 'vanilla',
+      variant = 'flat',
       borderStyle = 'solid',
     } = props;
 
@@ -92,7 +96,7 @@ export const BaseTab = forwardRef(
         ),
       [to, orientation]
     );
-    if (variant === 'draggable') {
+    if (variant === 'filled') {
       return (
         <DraggableTabWrap
           {...mergeProps(tabProps, additionalProps)}
