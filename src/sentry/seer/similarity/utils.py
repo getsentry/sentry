@@ -183,4 +183,4 @@ def _is_snipped_context_line(context_line: str) -> bool:
     # This check is implicitly restricted to JS (and friends) events by the fact that the `{snip]`
     # is only added in the JS processor. See
     # https://github.com/getsentry/sentry/blob/d077a5bb7e13a5927794b35d9ae667a4f181feb7/src/sentry/lang/javascript/utils.py#L72-L77.
-    return context_line.startswith("{snip}") and context_line.endswith("{snip}")
+    return context_line.startswith("{snip}") or context_line.endswith("{snip}")
