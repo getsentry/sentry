@@ -765,6 +765,14 @@ class Columns(Enum):
         issue_platform_name=None,  # TODO: This doesn't exist yet
         alias="profiler.id",
     )
+    THREAD_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="contexts[trace.thread_id]",
+        discover_name="contexts[trace.thread_id]",
+        issue_platform_name=None,
+        alias="thread.id",
+    )
 
     REPLAY_ID = Column(
         group_name=None,
