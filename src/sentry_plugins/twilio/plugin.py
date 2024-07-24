@@ -156,7 +156,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
             return error_message
         return None
 
-    def notify_users(self, group, event, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         if not self.is_configured(group.project):
             return
         project = group.project
