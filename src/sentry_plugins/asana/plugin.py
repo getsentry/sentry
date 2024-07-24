@@ -53,7 +53,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("workspace", project))
 
     def has_workspace_access(self, workspace, choices):

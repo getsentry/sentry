@@ -35,7 +35,7 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
         ),
     ]
 
-    def is_configured(self, project):
+    def is_configured(self, project) -> bool:
         return all(self.get_option(key, project) for key in ("userkey", "apikey"))
 
     def get_config(self, **kwargs):

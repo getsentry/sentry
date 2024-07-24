@@ -42,7 +42,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         )
     ]
 
-    def is_configured(self, project):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("webhook", project))
 
     def get_config(self, project, **kwargs):

@@ -38,7 +38,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
 
         return message
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("service_key", project))
 
     def get_config(self, **kwargs):

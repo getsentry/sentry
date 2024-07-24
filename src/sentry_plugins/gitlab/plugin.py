@@ -32,7 +32,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         ),
     ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(
             self.get_option("gitlab_repo", project)
             and self.get_option("gitlab_token", project)
