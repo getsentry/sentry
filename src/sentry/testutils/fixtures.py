@@ -627,6 +627,15 @@ class Fixtures:
     def create_webhook_payload(self, *args, **kwargs):
         return Factories.create_webhook_payload(*args, **kwargs)
 
+    def create_dashboard(self, *args, **kwargs):
+        return Factories.create_dashboard(*args, **kwargs)
+
+    def create_dashboard_widget(self, *args, **kwargs):
+        return Factories.create_dashboard_widget(*args, **kwargs)
+
+    def create_dashboard_widget_query(self, *args, **kwargs):
+        return Factories.create_dashboard_widget_query(*args, **kwargs)
+
     def create_uptime_subscription(
         self,
         type: str = "test",
