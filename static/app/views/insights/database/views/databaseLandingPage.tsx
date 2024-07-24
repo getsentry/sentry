@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -9,7 +8,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -21,6 +19,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -203,15 +202,10 @@ export function DatabaseLandingPage() {
               </ModuleLayout.Half>
 
               <ModuleLayout.Full>
-                <FilterOptionsContainer>
-                  <SelectorContainer>
-                    <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                  </SelectorContainer>
-
-                  <SelectorContainer>
-                    <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-                  </SelectorContainer>
-                </FilterOptionsContainer>
+                <ToolRibbon>
+                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                </ToolRibbon>
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
@@ -245,24 +239,6 @@ function AlertBanner(props) {
     </ModuleLayout.Full>
   );
 }
-
-const FilterOptionsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    flex-wrap: nowrap;
-  }
-`;
-
-const SelectorContainer = styled('div')`
-  flex-basis: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    flex-basis: auto;
-  }
-`;
 
 const LIMIT: number = 25;
 
