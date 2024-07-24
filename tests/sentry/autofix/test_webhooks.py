@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
 from unittest.mock import call, patch
 
 from django.conf import settings
 from django.test import override_settings
 
+from sentry.autofix.utils import AutofixState, AutofixStatus
 from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.testutils.cases import APITestCase
 
@@ -11,7 +13,12 @@ class AutofixPrWebhookTest(APITestCase):
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
-        return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
+        return_value=AutofixState(
+            run_id=1,
+            request={"project_id": 2, "issue": {"id": 3}},
+            updated_at=datetime.now(timezone.utc),
+            status=AutofixStatus.PROCESSING,
+        ),
     )
     @patch("sentry.autofix.webhooks.analytics.record")
     @patch("sentry.autofix.webhooks.metrics.incr")
@@ -38,7 +45,12 @@ class AutofixPrWebhookTest(APITestCase):
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
-        return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
+        return_value=AutofixState(
+            run_id=1,
+            request={"project_id": 2, "issue": {"id": 3}},
+            updated_at=datetime.now(timezone.utc),
+            status=AutofixStatus.PROCESSING,
+        ),
     )
     @patch("sentry.autofix.webhooks.analytics.record")
     @patch("sentry.autofix.webhooks.metrics.incr")
@@ -65,7 +77,12 @@ class AutofixPrWebhookTest(APITestCase):
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
-        return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
+        return_value=AutofixState(
+            run_id=1,
+            request={"project_id": 2, "issue": {"id": 3}},
+            updated_at=datetime.now(timezone.utc),
+            status=AutofixStatus.PROCESSING,
+        ),
     )
     @patch("sentry.autofix.webhooks.analytics.record")
     @patch("sentry.autofix.webhooks.metrics.incr")

@@ -1,6 +1,8 @@
+from datetime import datetime
 from unittest.mock import ANY, patch
 
 from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS
+from sentry.autofix.utils import AutofixState, AutofixStatus
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -16,12 +18,15 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int):
         return f"/api/0/issues/{group_id}/autofix/"
 
-    @patch(
-        "sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_get_autofix_state",
-        return_value={"status": "PROCESSING"},
-    )
-    def test_ai_autofix_get_endpoint_with_autofix(self, mock_autofix_state_call):
+    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    def test_ai_autofix_get_endpoint_with_autofix(self, mock_get_autofix_state):
         group = self.create_group()
+        mock_get_autofix_state.return_value = AutofixState(
+            run_id=123,
+            request={"project_id": 456, "issue": {"id": 789}},
+            updated_at=datetime.strptime("2023-07-18T12:00:00Z", "%Y-%m-%dT%H:%M:%SZ"),
+            status=AutofixStatus.PROCESSING,
+        )
 
         self.login_as(user=self.user)
         response = self.client.get(self._get_url(group.id), format="json")
@@ -30,15 +35,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"] is not None
         assert response.data["autofix"]["status"] == "PROCESSING"
 
-        mock_autofix_state_call.assert_called_once()
-        mock_autofix_state_call.assert_called_with(group.id)
+        mock_get_autofix_state.assert_called_once_with(group_id=group.id)
 
-    @patch(
-        "sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_get_autofix_state",
-        return_value=None,
-    )
-    def test_ai_autofix_get_endpoint_without_autofix(self, mock_autofix_state_call):
+    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
+    def test_ai_autofix_get_endpoint_without_autofix(self, mock_get_autofix_state):
         group = self.create_group()
+        mock_get_autofix_state.return_value = None
 
         self.login_as(user=self.user)
         response = self.client.get(self._get_url(group.id), format="json")
@@ -46,11 +48,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["autofix"] is None
 
-        mock_autofix_state_call.assert_called_once()
-        mock_autofix_state_call.assert_called_with(group.id)
+        mock_get_autofix_state.assert_called_once_with(group_id=group.id)
 
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
-    def test_ai_autofix_post_endpoint(self, mock_call):
+    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    def test_ai_autofix_post_endpoint(self, mock_check_autofix_status, mock_call):
         release = self.create_release(project=self.project, version="1.0.0")
 
         repo = self.create_repo(
@@ -75,6 +77,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert group is not None
         group.save()
+
+        mock_call.return_value = 123  # Mocking the run_id returned by _call_autofix
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -107,8 +111,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 202
 
+        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
+
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
-    def test_ai_autofix_post_without_event_id(self, mock_call):
+    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    def test_ai_autofix_post_without_event_id(self, mock_check_autofix_status, mock_call):
         release = self.create_release(project=self.project, version="1.0.0")
 
         repo = self.create_repo(
@@ -133,6 +140,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert group is not None
         group.save()
+
+        mock_call.return_value = 123  # Mocking the run_id returned by _call_autofix
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -162,10 +171,15 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
         assert response.status_code == 202
+
+        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
-    def test_ai_autofix_post_without_event_id_no_recommended_event(self, mock_call, mock_event):
+    @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
+    def test_ai_autofix_post_without_event_id_no_recommended_event(
+        self, mock_check_autofix_status, mock_call, mock_event
+    ):
         release = self.create_release(project=self.project, version="1.0.0")
 
         repo = self.create_repo(
@@ -190,6 +204,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert group is not None
         group.save()
+
+        mock_call.return_value = 123  # Mocking the run_id returned by _call_autofix
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -220,6 +236,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202
+
+        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
     @patch("sentry.models.Group.get_latest_event", return_value=None)
