@@ -10,7 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import SetupAlertIntegrationModal from 'sentry/views/alerts/rules/issue/setupAlertIntegrationModal';
+import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
 type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
@@ -51,6 +51,9 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
   }
 
   renderBody(): React.ReactNode {
+    const headerContent = <h1>Connect with a messaging tool</h1>;
+    const bodyContent = <p>Receive alerts and digests right where you work.</p>;
+    const providerKeys = ['slack', 'discord', 'msteams'];
     const {organization} = this.props;
     const {detailedProject} = this.state;
     // don't render anything if we don't have the project yet or if an alert integration
@@ -69,15 +72,27 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
             size="sm"
             icon={
               <IconWrapper>
-                <PluginIcon pluginId="slack" size={16} />
-                <PluginIcon pluginId="msteams" size={16} />
-                <PluginIcon pluginId="discord" size={16} />
+                {providerKeys.map((value: string) => {
+                  return <PluginIcon key={value} pluginId={value} size={16} />;
+                })}
               </IconWrapper>
             }
             onClick={() =>
-              openModal(deps => <SetupAlertIntegrationModal {...deps} />, {
-                closeEvents: 'escape-key',
-              })
+              openModal(
+                deps => (
+                  <MessagingIntegrationModal
+                    {...deps}
+                    headerContent={headerContent}
+                    bodyContent={bodyContent}
+                    providerKeys={providerKeys}
+                    organization={organization}
+                    project={detailedProject}
+                  />
+                ),
+                {
+                  closeEvents: 'escape-key',
+                }
+              )
             }
           >
             {t('Connect to messaging')}
