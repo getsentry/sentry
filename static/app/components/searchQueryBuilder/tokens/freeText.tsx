@@ -24,6 +24,7 @@ import type {
 import {
   InvalidReason,
   type ParseResultToken,
+  parseSearch,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -498,7 +499,16 @@ function SearchQueryBuilderInputInternal({
         token={token}
         inputLabel={t('Add a search term')}
         onInputChange={e => {
-          if (e.target.value.includes('(') || e.target.value.includes(')')) {
+          // Parse text to see if this keystroke would have created any tokens.
+          // Add a trailing quote in case the user wants to wrap with quotes.
+          const parsedText = parseSearch(e.target.value + '"');
+
+          if (
+            parsedText?.some(
+              textToken =>
+                textToken.type === Token.L_PAREN || textToken.type === Token.R_PAREN
+            )
+          ) {
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
@@ -509,14 +519,36 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (e.target.value.includes(':')) {
+          if (
+            parsedText?.some(
+              textToken =>
+                textToken.type === Token.FILTER && textToken.key.text === filterValue
+            )
+          ) {
+            const filterKey = filterValue;
+            const key = filterKeys[filterKey];
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
-              text: e.target.value,
+              text: replaceFocusedWordWithFilter(
+                inputValue,
+                selectionIndex,
+                filterKey,
+                getFieldDefinition
+              ),
               focusOverride: calculateNextFocusForFilter(state),
             });
             resetInputValue();
+            trackAnalytics('search.key_manually_typed', {
+              organization,
+              search_type: savedSearchType === 0 ? 'issues' : 'events',
+              search_source: searchSource,
+              item_name: filterKey,
+              item_kind: key?.kind ?? FieldKind.FIELD,
+              item_value_type:
+                getFieldDefinition(filterKey)?.valueType ?? FieldValueType.STRING,
+              new_experience: true,
+            });
             return;
           }
 
