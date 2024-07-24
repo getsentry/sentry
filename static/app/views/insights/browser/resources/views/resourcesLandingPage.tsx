@@ -22,7 +22,7 @@ import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
