@@ -194,8 +194,11 @@ export class VirtualizedViewManager {
     const distance = event.clientX - this.dividerStartVec[0];
     const distancePercentage = distance / this.view.trace_container_physical_space.width;
 
-    this.columns.list.width = this.columns.list.width + distancePercentage;
-    this.columns.span_list.width = this.columns.span_list.width - distancePercentage;
+    const list = clamp(this.columns.list.width + distancePercentage, 0.1, 0.9);
+    const span_list = clamp(this.columns.span_list.width - distancePercentage, 0.1, 0.9);
+
+    this.columns.list.width = list;
+    this.columns.span_list.width = span_list;
 
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
@@ -218,17 +221,27 @@ export class VirtualizedViewManager {
     const distance = event.clientX - this.dividerStartVec[0];
     const distancePercentage = distance / this.view.trace_container_physical_space.width;
 
+    const list = clamp(this.columns.list.width + distancePercentage, 0, 1);
+    const span_list = clamp(this.columns.span_list.width - distancePercentage, 0, 1);
+
+    if (span_list * this.view.trace_container_physical_space.width <= 100) {
+      return;
+    }
+    if (list * this.view.trace_container_physical_space.width <= 100) {
+      return;
+    }
+
     this.view.trace_physical_space.width =
-      (this.columns.span_list.width - distancePercentage) *
-      this.view.trace_container_physical_space.width;
+      span_list * this.view.trace_container_physical_space.width;
 
     this.scheduler.dispatch('set trace view', {
       x: this.view.trace_view.x,
       width: this.view.trace_view.width,
     });
+
     this.scheduler.dispatch('divider resize', {
-      list: this.columns.list.width + distancePercentage,
-      span_list: this.columns.span_list.width - distancePercentage,
+      list,
+      span_list,
     });
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
