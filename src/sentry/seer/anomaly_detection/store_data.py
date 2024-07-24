@@ -12,7 +12,12 @@ from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.models.user import User
 from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.types import ADConfig, Alert, StoreDataRequest, TimeSeriesPoint
+from sentry.seer.anomaly_detection.types import (
+    AlertInSeer,
+    AnomalyDetectionConfig,
+    StoreDataRequest,
+    TimeSeriesPoint,
+)
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
@@ -115,13 +120,13 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
         )
         return base_error_response
 
-    anomaly_detection_config = ADConfig(
+    anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
         sensitivity=rule.sensitivity,
         direction=translate_direction(rule.threshold_type),
         expected_seasonality=rule.seasonality,
     )
-    alert = Alert(id=rule.id)
+    alert = AlertInSeer(id=rule.id)
     body = StoreDataRequest(
         organization_id=rule.organization.id,
         project_id=project_id,

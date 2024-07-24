@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 
-class Alert(TypedDict):
+class AlertInSeer(TypedDict):
     id: int
 
 
@@ -10,7 +10,7 @@ class TimeSeriesPoint(TypedDict):
     value: float
 
 
-class ADConfig(TypedDict):
+class AnomalyDetectionConfig(TypedDict):
     time_period: int
     sensitivity: str
     direction: str
@@ -20,6 +20,6 @@ class ADConfig(TypedDict):
 class StoreDataRequest(TypedDict):
     organization_id: int
     project_id: int
-    alert: Alert
-    config: ADConfig
+    alert: AlertInSeer
+    config: AnomalyDetectionConfig
     timeseries: list[TimeSeriesPoint]
