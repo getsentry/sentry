@@ -1,10 +1,10 @@
-import {Project} from 'sentry/types/project';
-import {Organization} from 'sentry/types/organization';
-import {IntegrationProvider} from 'sentry/types/integrations';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
-import {Button} from 'sentry/components/button';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import Access from 'sentry/components/acl/access';
+import {Button} from 'sentry/components/button';
+import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
   onAddIntegration: () => void;

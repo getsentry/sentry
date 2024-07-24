@@ -3,9 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {IntegrationProvider} from 'sentry/types';
-import {Organization} from 'sentry/types/organization';
 
+import type {IntegrationProvider} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 
 describe('AddIntegrationButton', function () {
