@@ -70,7 +70,7 @@ export function BreadcrumbsDrawerContent({
 
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-    BreadcrumbTimeDisplay.RELATIVE
+    BreadcrumbTimeDisplay.ABSOLUTE
   );
   const filterOptions = useMemo(
     () => getBreadcrumbFilterOptions(breadcrumbs),

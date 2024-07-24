@@ -69,14 +69,14 @@ export function applyBreadcrumbSearch(
   search: string,
   crumbs: EnhancedCrumb[]
 ): EnhancedCrumb[] {
-  if (search === '') {
+  if (!search.trim()) {
     return crumbs;
   }
   return crumbs.filter(
     ({breadcrumb: c}) =>
       c.type.includes(search) ||
-      c.message?.includes(search) ||
       c.category?.includes(search) ||
+      c.message?.includes(search) ||
       (c.data && JSON.stringify(c.data)?.includes(search))
   );
 }
@@ -153,7 +153,7 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   // Add display props
   return allCrumbs.map(ec => ({
     ...ec,
-    title: getBreadcrumbTitle(ec.breadcrumb.category),
+    title: getBreadcrumbTitle(ec.breadcrumb),
     colorConfig: getBreadcrumbColorConfig(ec.breadcrumb.type),
     filter: getBreadcrumbFilter(ec.breadcrumb.type),
     iconComponent: <BreadcrumbIcon type={ec.breadcrumb.type} />,
@@ -163,22 +163,24 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   }));
 }
 
-function getBreadcrumbTitle(category: RawCrumb['category']) {
-  switch (category) {
+function getBreadcrumbTitle(crumb: RawCrumb) {
+  if (crumb?.type === BreadcrumbType.DEFAULT) {
+    return crumb?.category;
+  }
+
+  switch (crumb?.category) {
     case 'http':
     case 'xhr':
-      return category.toUpperCase();
-    case 'httplib':
-      return t('httplib');
+      return crumb?.category.toUpperCase();
     case 'ui.click':
       return t('UI Click');
     case 'ui.input':
       return t('UI Input');
     case null:
     case undefined:
-      return BREADCRUMB_TITLE_PLACEHOLDER;
+      return BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
     default:
-      const titleCategory = category.split('.').join(' ');
+      const titleCategory = crumb?.category.split('.').join(' ');
       return toTitleCase(titleCategory, {allowInnerUpperCase: true});
   }
 }
@@ -240,7 +242,7 @@ function getBreadcrumbFilter(type?: BreadcrumbType) {
     case BreadcrumbType.NETWORK:
       return t('Network');
     default:
-      return t('Default');
+      return BREADCRUMB_TITLE_PLACEHOLDER;
   }
 }
 

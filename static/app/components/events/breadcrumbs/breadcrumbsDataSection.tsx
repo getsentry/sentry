@@ -54,7 +54,7 @@ export default function BreadcrumbsDataSection({
   // Use the local storage preferences, but allow the drawer to do updates
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-    BreadcrumbTimeDisplay.RELATIVE
+    BreadcrumbTimeDisplay.ABSOLUTE
   );
 
   const enhancedCrumbs = useMemo(() => getEnhancedBreadcrumbs(event), [event]);
@@ -206,7 +206,7 @@ function BreadcrumbsFeedback() {
       icon={<IconMegaphone />}
       size={'xs'}
     >
-      {t('Feedback')}
+      {t('Give Feedback')}
     </Button>
   );
 }
