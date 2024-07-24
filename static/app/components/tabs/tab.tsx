@@ -175,21 +175,23 @@ const DraggableTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp}
   &[aria-selected='true'] {
     ${p =>
       `
-        border-radius: 6px 6px 1px 1px;
         border-top: 1px ${p.borderStyle} ${p.theme.border};
         border-left: 1px ${p.borderStyle} ${p.theme.border};
         border-right: 1px ${p.borderStyle} ${p.theme.border};
-        background-color: ${p.theme.white};
+        background-color: ${p.theme.background};
         font-weight: ${p.theme.fontWeightBold};
       `}
+    border-radius: 6px 6px 1px 1px;
+    padding: ${space(0.5)} ${space(1)};
   }
 
   &[aria-selected='false'] {
     border-top: 1px solid transparent;
+    padding-top: ${space(0.5)};
+    padding-bottom: ${space(0.5)};
   }
 
   transform: translateY(1px);
-  padding: 5px 10px;
 
   cursor: pointer;
 
