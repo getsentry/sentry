@@ -28,7 +28,7 @@ def get_actions(group, request):
 
 
 @register.filter
-def get_annotations(group, request=None):
+def get_annotations(group, request=None) -> list[dict[str, str]]:
     project = group.project
 
     annotation_list = []
