@@ -263,6 +263,7 @@ def convert_query_values(
     user: User | RpcUser | None,
     environments: Sequence[Environment] | None,
     value_converters=value_converters,
+    allow_aggregate_filters=False,
 ) -> list[SearchFilter]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
@@ -302,7 +303,7 @@ def convert_query_values(
                 value=SearchValue(new_value),
                 operator=operator,
             )
-        elif isinstance(search_filter, AggregateFilter):
+        elif isinstance(search_filter, AggregateFilter) and not allow_aggregate_filters:
             raise InvalidSearchQuery(
                 f"Aggregate filters ({search_filter.key.name}) are not supported in issue searches."
             )

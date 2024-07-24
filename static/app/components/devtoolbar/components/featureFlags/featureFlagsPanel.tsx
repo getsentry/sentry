@@ -6,6 +6,7 @@ import {
   panelScrollableCss,
 } from 'sentry/components/devtoolbar/styles/infiniteList';
 import Input from 'sentry/components/input';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 
@@ -17,7 +18,7 @@ import PanelLayout from '../panelLayout';
 
 export default function FeatureFlagsPanel() {
   const featureFlags = useEnabledFeatureFlags();
-  const {organizationSlug} = useConfiguration();
+  const {organizationSlug, featureFlagTemplateUrl, trackAnalytics} = useConfiguration();
   const [searchTerm, setSearchTerm] = useState('');
   const searchInput = useRef<HTMLInputElement>(null);
 
@@ -42,7 +43,22 @@ export default function FeatureFlagsPanel() {
           .map(flag => {
             return (
               <Cell key={flag} style={{alignItems: 'flex-start'}}>
-                {flag}
+                {featureFlagTemplateUrl?.(flag) ? (
+                  <ExternalLink
+                    style={{textDecoration: 'inherit', color: 'inherit'}}
+                    href={featureFlagTemplateUrl(flag)}
+                    onClick={() => {
+                      trackAnalytics?.({
+                        eventKey: `devtoolbar.feature-flag-list.item.click`,
+                        eventName: `devtoolbar: Click feature-flag-list item`,
+                      });
+                    }}
+                  >
+                    {flag}
+                  </ExternalLink>
+                ) : (
+                  <span>{flag}</span>
+                )}
               </Cell>
             );
           })}
