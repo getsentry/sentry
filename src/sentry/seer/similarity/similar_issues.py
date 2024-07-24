@@ -3,12 +3,7 @@ import logging
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import options
-from sentry.conf.server import (
-    SEER_MAX_GROUPING_DISTANCE,
-    SEER_SIMILAR_ISSUES_URL,
-    SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
-)
+from sentry.conf.server import SEER_MAX_GROUPING_DISTANCE, SEER_SIMILAR_ISSUES_URL
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -20,7 +15,6 @@ from sentry.seer.similarity.types import (
 )
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
-from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.json import JSONDecodeError, apply_key_filter
 
 logger = logging.getLogger(__name__)
@@ -34,11 +28,6 @@ SIMILARITY_REQUEST_METRIC_SAMPLE_RATE = 1.0
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
     timeout=settings.SEER_GROUPING_TIMEOUT,
-)
-
-seer_similarity_circuit_breaker = CircuitBreaker(
-    SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
-    options.get("seer.similarity.circuit-breaker-config"),
 )
 
 
@@ -122,7 +111,6 @@ def get_similarity_data_from_seer(
             sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
-        seer_similarity_circuit_breaker.record_error()
         return []
 
     metric_tags["response_status"] = response.status
@@ -148,9 +136,6 @@ def get_similarity_data_from_seer(
                 "error": "Redirect" if redirect else "RequestError",
             },
         )
-
-        if response.status >= 500:
-            seer_similarity_circuit_breaker.record_error()
 
         return []
 

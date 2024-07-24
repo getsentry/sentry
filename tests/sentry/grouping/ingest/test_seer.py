@@ -138,18 +138,6 @@ class ShouldCallSeerTest(TestCase):
                 )
 
     @with_feature("projects:similarity-embeddings-grouping")
-    def test_obeys_circuit_breaker(self):
-        for request_allowed, expected_result in [(True, True), (False, False)]:
-            with patch(
-                "sentry.grouping.ingest.seer.seer_similarity_circuit_breaker.should_allow_request",
-                return_value=request_allowed,
-            ):
-                assert (
-                    should_call_seer_for_grouping(self.event, self.primary_hashes)
-                    is expected_result
-                )
-
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_customized_fingerprint_check(self):
         default_fingerprint_event = Event(
             project_id=self.project.id,

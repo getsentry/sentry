@@ -96,17 +96,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
             tags={"response_status": 200, "outcome": "no_similar_groups"},
         )
 
-    @mock.patch(
-        "sentry.seer.similarity.similar_issues.seer_similarity_circuit_breaker.record_error"
-    )
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_bad_response_data(
-        self,
-        mock_seer_request: MagicMock,
-        mock_metrics_incr: MagicMock,
-        mock_record_circuit_breaker_error: MagicMock,
-    ):
+    def test_bad_response_data(self, mock_seer_request: MagicMock, mock_metrics_incr: MagicMock):
         cases: list[tuple[Any, str]] = [
             (None, "AttributeError"),
             ([], "AttributeError"),
@@ -147,22 +139,14 @@ class GetSimilarityDataFromSeerTest(TestCase):
                 sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
                 tags={"response_status": 200, "outcome": "error", "error": expected_error},
             )
-            assert mock_record_circuit_breaker_error.call_count == 0
 
             mock_metrics_incr.reset_mock()
 
-    @mock.patch(
-        "sentry.seer.similarity.similar_issues.seer_similarity_circuit_breaker.record_error"
-    )
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_redirect(
-        self,
-        mock_seer_request: MagicMock,
-        mock_logger: MagicMock,
-        mock_metrics_incr: MagicMock,
-        mock_record_circuit_breaker_error: MagicMock,
+        self, mock_seer_request: MagicMock, mock_logger: MagicMock, mock_metrics_incr: MagicMock
     ):
         mock_seer_request.return_value = HTTPResponse(
             status=308, headers={"location": "/new/and/improved/endpoint/"}
@@ -177,20 +161,12 @@ class GetSimilarityDataFromSeerTest(TestCase):
             sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
             tags={"response_status": 308, "outcome": "error", "error": "Redirect"},
         )
-        assert mock_record_circuit_breaker_error.call_count == 0
 
-    @mock.patch(
-        "sentry.seer.similarity.similar_issues.seer_similarity_circuit_breaker.record_error"
-    )
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_request_error(
-        self,
-        mock_seer_request: MagicMock,
-        mock_logger: MagicMock,
-        mock_metrics_incr: MagicMock,
-        mock_record_circuit_breaker_error: MagicMock,
+        self, mock_seer_request: MagicMock, mock_logger: MagicMock, mock_metrics_incr: MagicMock
     ):
         for request_error, expected_error_tag in [
             (TimeoutError, "TimeoutError"),
@@ -216,44 +192,25 @@ class GetSimilarityDataFromSeerTest(TestCase):
                 sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
                 tags={"outcome": "error", "error": expected_error_tag},
             )
-            assert mock_record_circuit_breaker_error.call_count == 1
 
-            mock_logger.warning.reset_mock()
-            mock_metrics_incr.reset_mock()
-            mock_record_circuit_breaker_error.reset_mock()
-
-    @mock.patch(
-        "sentry.seer.similarity.similar_issues.seer_similarity_circuit_breaker.record_error"
-    )
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_error_status(
-        self,
-        mock_seer_request: MagicMock,
-        mock_logger: MagicMock,
-        mock_metrics_incr: MagicMock,
-        mock_record_circuit_breaker_error: MagicMock,
+        self, mock_seer_request: MagicMock, mock_logger: MagicMock, mock_metrics_incr: MagicMock
     ):
-        for response, status, counts_for_circuit_breaker in [
-            ("No soup for you", 403, False),
-            ("No soup, period", 500, True),
-        ]:
-            mock_seer_request.return_value = HTTPResponse(response, status=status)
+        mock_seer_request.return_value = HTTPResponse("No soup for you", status=403)
 
-            assert get_similarity_data_from_seer(self.request_params) == []
-            mock_logger.error.assert_called_with(
-                f"Received {status} when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}.",
-                extra={"response_data": response},
-            )
-            mock_metrics_incr.assert_any_call(
-                "seer.similar_issues_request",
-                sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
-                tags={"response_status": status, "outcome": "error", "error": "RequestError"},
-            )
-            assert mock_record_circuit_breaker_error.call_count == (
-                1 if counts_for_circuit_breaker else 0
-            )
+        assert get_similarity_data_from_seer(self.request_params) == []
+        mock_logger.error.assert_called_with(
+            f"Received 403 when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}.",
+            extra={"response_data": "No soup for you"},
+        )
+        mock_metrics_incr.assert_any_call(
+            "seer.similar_issues_request",
+            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            tags={"response_status": 403, "outcome": "error", "error": "RequestError"},
+        )
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_returns_sorted_results(self, mock_seer_request: MagicMock):
