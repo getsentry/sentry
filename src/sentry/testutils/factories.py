@@ -2014,8 +2014,7 @@ class Factories:
             display_type = DashboardWidgetDisplayTypes.AREA_CHART
         if title is None:
             title = petname.generate(2, " ", letters=10).title()
-        if order is None:
-            order = hash(title) % 1000
+
         return DashboardWidget.objects.create(
             dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
         )
