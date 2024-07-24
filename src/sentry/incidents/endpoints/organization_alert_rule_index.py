@@ -123,7 +123,7 @@ class AlertRuleIndexMixin(Endpoint):
             else:
                 alert_rule = serializer.save()
                 if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-                    resp = send_historical_data_to_seer(rule=alert_rule, user=request.user)
+                    resp = send_historical_data_to_seer(alert_rule=alert_rule, user=request.user)
                     if resp.status != 200:
                         alert_rule.delete()
                         return Response({"detail": resp.reason}, status=status.HTTP_400_BAD_REQUEST)

@@ -61,21 +61,7 @@ def translate_direction(direction: int) -> str:
     return direction_map[AlertRuleThresholdType(direction)]
 
 
-def get_project_id_from_rule(rule: AlertRule) -> int | None:
-    project = None
-    subscriptions = rule.snuba_query.subscriptions.all()
-    if subscriptions:
-        project = subscriptions[0].project
-        if not project:
-            return None
-
-    if project:
-        return project.id
-
-    return None
-
-
-def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPResponse:
+def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPResponse:
     """
     Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert
     """
@@ -87,49 +73,56 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
         decode_content=True,
         request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
     )
-    if not features.has("organizations:anomaly-detection-alerts", rule.organization, actor=user):
+    if not features.has(
+        "organizations:anomaly-detection-alerts", alert_rule.organization, actor=user
+    ):
         base_error_response.reason = "You do not have the anomaly detection alerts feature enabled."
         return base_error_response
 
-    project_id = get_project_id_from_rule(rule)
-    if not project_id:
+    project = alert_rule.projects.get()
+    if not project:
         logger.error(
-            "No project associated with rule. Skipping sending historical data to Seer",
+            "No project associated with alert_rule. Skipping sending historical data to Seer",
             extra={
-                "rule_id": rule.id,
-                "project_id": project_id,
+                "rule_id": alert_rule.id,
             },
         )
-        base_error_response.reason = "No project associated with rule. Cannot create rule."
+        base_error_response.reason = (
+            "No project associated with alert_rule. Cannot create alert_rule."
+        )
         return base_error_response
 
-    snuba_query = SnubaQuery.objects.get(id=rule.snuba_query_id)
+    snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
-    historical_data = fetch_historical_data(rule, snuba_query)
+    historical_data = fetch_historical_data(alert_rule, snuba_query)
 
     if not historical_data:
-        base_error_response.reason = "No historical data available. Cannot create rule."
+        base_error_response.reason = "No historical data available. Cannot create alert_rule."
         return base_error_response
 
     formatted_data = format_historical_data(historical_data)
 
-    if not rule.sensitivity or not rule.seasonality or rule.threshold_type is None:
+    if (
+        not alert_rule.sensitivity
+        or not alert_rule.seasonality
+        or alert_rule.threshold_type is None
+    ):
         # this won't happen because we've already gone through the serializer, but mypy insists
         base_error_response.reason = (
-            "Cannot create rule - missing expected configuration for a dynamic alert."
+            "Cannot create alert_rule - missing expected configuration for a dynamic alert."
         )
         return base_error_response
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
-        sensitivity=rule.sensitivity,
-        direction=translate_direction(rule.threshold_type),
-        expected_seasonality=rule.seasonality,
+        sensitivity=alert_rule.sensitivity,
+        direction=translate_direction(alert_rule.threshold_type),
+        expected_seasonality=alert_rule.seasonality,
     )
-    alert = AlertInSeer(id=rule.id)
+    alert = AlertInSeer(id=alert_rule.id)
     body = StoreDataRequest(
-        organization_id=rule.organization.id,
-        project_id=project_id,
+        organization_id=alert_rule.organization.id,
+        project_id=project.id,
         alert=alert,
         config=anomaly_detection_config,
         timeseries=formatted_data,
@@ -146,8 +139,8 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
         logger.warning(
             timeout_text,
             extra={
-                "rule_id": rule.id,
-                "project_id": project_id,
+                "rule_id": alert_rule.id,
+                "project_id": project.id,
             },
         )
         base_error_response.reason = timeout_text
@@ -158,7 +151,7 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
     return resp
 
 
-def fetch_historical_data(rule: AlertRule, snuba_query: SnubaQuery) -> SnubaTSResult | None:
+def fetch_historical_data(alert_rule: AlertRule, snuba_query: SnubaQuery) -> SnubaTSResult | None:
     """
     Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
     """
@@ -174,16 +167,16 @@ def fetch_historical_data(rule: AlertRule, snuba_query: SnubaQuery) -> SnubaTSRe
         # DATSET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
     dataset = get_dataset(dataset_label)
-    project_id = get_project_id_from_rule(rule)
-    if not project_id or not dataset:
+    project = alert_rule.projects.get()
+    if not project or not dataset:
         return None
 
     historical_data = dataset.timeseries_query(
         selected_columns=[snuba_query.aggregate],
         query=snuba_query.query,
         params={
-            "organization_id": rule.organization.id,
-            "project_id": [project_id],
+            "organization_id": alert_rule.organization.id,
+            "project_id": [project.id],
             "granularity": granularity,
             "start": start,
             "end": end,
