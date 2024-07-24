@@ -9,7 +9,7 @@ from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry.constants import UPTIME_AUTODETECTION
-from sentry.utils import redis
+from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -63,6 +63,7 @@ def add_base_url_to_rank(project: Project, base_url: str):
         pipeline.zremrangebyrank(rank_key, 0, -(RANKED_MAX_SIZE + 1))
     project_incr_result = pipeline.execute()[0]
     if project_incr_result == 1:
+        metrics.incr("uptime.detectors.added_project")
         pipeline = cluster.pipeline()
         # Avoid adding the org to this set constantly, and instead just do it once per project
         bucket_key = get_organization_bucket_key(project.organization)
