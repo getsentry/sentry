@@ -15,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 const Context = createContext<{
+  getCondition: (mri: MRI, conditionId: number) => MetricsExtractionCondition | null;
   getConditions: (mri: MRI) => MetricsExtractionCondition[];
   getExtractionRule: (mri: MRI) => MetricsExtractionRule | null;
   getTags: (mri: MRI) => MetricTag[];
@@ -41,6 +42,7 @@ const Context = createContext<{
     throw new Error('Not implemented');
   },
   getConditions: () => [],
+  getCondition: () => null,
   getExtractionRule: () => null,
   getTags: () => [],
   getVirtualMRIQuery: () => null,
@@ -142,6 +144,14 @@ export function VirtualMetricsContextProvider({children}: Props) {
     [virtualMRIToRuleMap]
   );
 
+  const getCondition = useCallback(
+    (mri: MRI, conditionId: number) => {
+      const rule = virtualMRIToRuleMap.get(mri);
+      return rule?.conditions.find(c => c.id === conditionId) || null;
+    },
+    [virtualMRIToRuleMap]
+  );
+
   const getTags = useCallback(
     (mri: MRI): MetricTag[] => {
       const rule = virtualMRIToRuleMap.get(mri);
@@ -229,6 +239,7 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMRI,
       getVirtualMeta,
       getConditions,
+      getCondition,
       getExtractionRule,
       getTags,
       getVirtualMRIQuery,
@@ -240,6 +251,7 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMRI,
       getVirtualMeta,
       getConditions,
+      getCondition,
       getExtractionRule,
       getTags,
       getVirtualMRIQuery,
