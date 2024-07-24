@@ -102,10 +102,12 @@ export function fetchTagValues({
   projectIds,
   search,
   sort,
+  dataset,
 }: {
   api: Client;
   orgSlug: string;
   tagKey: string;
+  dataset?: Dataset;
   endpointParams?: Query;
   includeReplays?: boolean;
   includeSessions?: boolean;
@@ -149,6 +151,10 @@ export function fetchTagValues({
 
   if (sort) {
     query.sort = sort;
+  }
+
+  if (dataset) {
+    query.dataset = dataset;
   }
 
   return api.requestPromise(url, {
