@@ -1528,6 +1528,13 @@ def _save_aggregate(
                 seer_matched_group = None
 
                 if should_call_seer_for_grouping(event, primary_hashes):
+                    metrics.incr(
+                        "grouping.similarity.did_call_seer",
+                        # TODO: Consider lowering this (in all the spots this metric is
+                        # collected) once we roll Seer grouping out more widely
+                        sample_rate=1.0,
+                        tags={"call_made": True, "blocker": "none"},
+                    )
                     try:
                         # If the `projects:similarity-embeddings-grouping` feature is disabled,
                         # we'll still get back result metadata, but `seer_matched_group` will be None
@@ -1543,21 +1550,8 @@ def _save_aggregate(
                                 "seer_similarity"
                             ] = seer_response_data
 
-                        metrics.incr(
-                            "grouping.similarity.did_call_seer",
-                            # TODO: Consider lowering this (in all the spots this metric is
-                            # collected) once we roll Seer grouping out more widely
-                            sample_rate=1.0,
-                            tags={"call_made": True, "blocker": "none"},
-                        )
-
                     # Insurance - in theory we shouldn't ever land here
                     except Exception as e:
-                        metrics.incr(
-                            "grouping.similarity.did_call_seer",
-                            sample_rate=1.0,
-                            tags={"call_made": True, "blocker": "none"},
-                        )
                         sentry_sdk.capture_exception(
                             e, tags={"event": event.event_id, "project": project.id}
                         )
