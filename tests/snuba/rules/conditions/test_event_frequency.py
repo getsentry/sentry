@@ -206,6 +206,7 @@ class EventFrequencyPercentConditionQueryTest(
         assert batch_query == {
             self.event.group_id: percent_of_sessions,
             self.event2.group_id: percent_of_sessions,
+            self.perf_event.group_id: 0,
         }
         batch_query = self.condition_inst2.batch_query_hook(
             group_ids=[self.event3.group_id],
