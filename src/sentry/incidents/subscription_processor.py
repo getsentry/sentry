@@ -549,7 +549,7 @@ class SubscriptionProcessor:
                     # NOTE: There should only be one anomaly in the list
                     for potential_anomaly in potential_anomalies:
                         if self.has_anomaly(
-                            potential_anomaly, trigger
+                            potential_anomaly, trigger.label
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
                             incident_trigger = self.trigger_alert_threshold(
@@ -561,7 +561,7 @@ class SubscriptionProcessor:
                             self.trigger_alert_counts[trigger.id] = 0
 
                         if (
-                            not self.has_anomaly(potential_anomaly, trigger)
+                            not self.has_anomaly(potential_anomaly, trigger.label)
                             and self.active_incident
                             and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                         ):
@@ -621,7 +621,7 @@ class SubscriptionProcessor:
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def has_anomaly(self, anomaly, trigger: AlertRuleTrigger) -> bool:
+    def has_anomaly(self, anomaly, label: str) -> bool:
         """
         Helper function to determine whether we care about an anomaly based on the
         anomaly type and trigger type.
@@ -630,7 +630,7 @@ class SubscriptionProcessor:
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
         if anomaly_type == "anomaly_high" or (
-            trigger.label == WARNING_TRIGGER_LABEL and anomaly_type == "anomaly_low"
+            label == WARNING_TRIGGER_LABEL and anomaly_type == "anomaly_low"
         ):
             return True
         return False

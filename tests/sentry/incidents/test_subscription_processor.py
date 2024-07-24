@@ -573,16 +573,17 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         }
 
         warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
+        warning_label = warning_trigger.label
 
-        trigger = self.trigger
+        label = self.trigger.label
 
         processor = SubscriptionProcessor(self.sub)
-        assert processor.has_anomaly(anomaly1, trigger)
-        assert processor.has_anomaly(anomaly1, warning_trigger)
-        assert not processor.has_anomaly(anomaly2, trigger)
-        assert processor.has_anomaly(anomaly2, warning_trigger)
-        assert not processor.has_anomaly(not_anomaly, trigger)
-        assert not processor.has_anomaly(not_anomaly, warning_trigger)
+        assert processor.has_anomaly(anomaly1, label)
+        assert processor.has_anomaly(anomaly1, warning_label)
+        assert not processor.has_anomaly(anomaly2, label)
+        assert processor.has_anomaly(anomaly2, warning_label)
+        assert not processor.has_anomaly(not_anomaly, label)
+        assert not processor.has_anomaly(not_anomaly, warning_label)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @mock.patch(
