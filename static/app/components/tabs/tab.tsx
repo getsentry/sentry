@@ -98,7 +98,7 @@ export const BaseTab = forwardRef(
     );
     if (variant === 'filled') {
       return (
-        <DraggableTabWrap
+        <FilledTabWrap
           {...mergeProps(tabProps, additionalProps)}
           hidden={hidden}
           overflowing={overflowing}
@@ -106,7 +106,7 @@ export const BaseTab = forwardRef(
           ref={ref}
         >
           {props.children}
-        </DraggableTabWrap>
+        </FilledTabWrap>
       );
     }
 
@@ -168,7 +168,7 @@ export const Tab = forwardRef(
   }
 );
 
-const DraggableTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   borderStyle: 'dashed' | 'solid';
   overflowing: boolean;
 }>`
@@ -182,14 +182,13 @@ const DraggableTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp}
         font-weight: ${p.theme.fontWeightBold};
       `}
     border-radius: 6px 6px 1px 1px;
-    padding: ${space(0.5)} ${space(1)};
   }
 
   &[aria-selected='false'] {
     border-top: 1px solid transparent;
-    padding-top: ${space(0.5)};
-    padding-bottom: ${space(0.5)};
   }
+
+  padding: ${space(0.5)} ${space(1)};
 
   transform: translateY(1px);
 

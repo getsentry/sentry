@@ -129,7 +129,7 @@ function BaseTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
-  variant,
+  variant = 'flat',
   ...props
 }: BaseTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -210,6 +210,7 @@ function BaseTabList({
         hideBorder={hideBorder}
         className={className}
         ref={tabListRef}
+        variant={variant}
       >
         {[...state.collection].map(item => (
           <Tab
@@ -282,6 +283,7 @@ const TabListOuterWrap = styled('div')`
 const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
   hideBorder: boolean;
   orientation: Orientation;
+  variant: BaseTabProps['variant'];
 }>`
   position: relative;
   display: grid;
@@ -295,7 +297,7 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
       ? `
         grid-auto-flow: column;
         justify-content: start;
-        gap: ${space(2)};
+        gap: ${p.variant === 'filled' ? space(0) : space(2)};
         ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
       `
       : `
