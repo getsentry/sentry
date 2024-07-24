@@ -12,6 +12,7 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
 from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
@@ -61,7 +62,7 @@ class GitLabSetupApiClient(IntegrationProxyClient):
         return self.get(path)
 
 
-class GitLabApiClient(IntegrationProxyClient):
+class GitLabApiClient(IntegrationProxyClient, RepositoryClient):
     integration_name = "gitlab"
 
     def __init__(self, installation: GitlabIntegration):
