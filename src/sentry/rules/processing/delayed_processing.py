@@ -458,9 +458,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
 
     # STEP 3: Fetch the Rule models we need to check
     alert_rules_queryset = Rule.objects.filter(id__in=list(rules_to_groups.keys())).exclude(
-        id__in=Subquery(
-            RuleSnooze.objects.filter(rule_id=OuterRef("id"), user_id=None).values("rule_id")
-        )
+        id__in=Subquery(RuleSnooze.objects.filter(rule_id=OuterRef("id")).values("rule_id"))
     )
     alert_rules = list(alert_rules_queryset)
 
