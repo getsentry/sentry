@@ -238,9 +238,11 @@ function isBrowserRequestSpan(value: TraceTree.Span): boolean {
 function childParentSwap({
   parent,
   child,
+  reason,
 }: {
   child: TraceTreeNode<TraceTree.NodeValue>;
   parent: TraceTreeNode<TraceTree.NodeValue>;
+  reason: TraceTreeNode['reparent_reason'];
 }) {
   const parentOfParent = parent.parent!;
 
@@ -251,6 +253,9 @@ function childParentSwap({
   // We need to remove the portion of the tree that was previously a child, else we will have a circular reference
   parent.parent = child;
   child.children.push(parent.filter(parent, n => n !== child));
+
+  child.reparent_reason = reason;
+  parent.reparent_reason = reason;
 }
 
 function measurementToTimestamp(
@@ -595,7 +600,7 @@ export class TraceTree {
       ) {
         // The swap can occur at a later point when new transactions are fetched,
         // which means we need to invalidate the tree and re-render the UI.
-        childParentSwap({parent, child: node});
+        childParentSwap({parent, child: node, reason: 'pageload server handler'});
         parent.invalidate(parent);
         node.invalidate(node);
       }
@@ -903,7 +908,7 @@ export class TraceTree {
     let firstTransaction: TraceTreeNode<TraceTree.Transaction> | null = null;
     for (const child of parent.children) {
       if (isTransactionNode(child)) {
-        firstTransaction = firstTransaction || child;
+        firstTransaction = firstTransaction ?? child;
         // keep track of the transaction nodes that should be reparented under the newly fetched spans.
         const key =
           'parent_span_id' in child.value &&
@@ -934,6 +939,7 @@ export class TraceTree {
       // was the parent of the browser request span which likely served the document.
       if (
         firstTransaction &&
+        firstTransaction.reparent_reason === 'pageload server handler' &&
         !childTransactions.length &&
         isBrowserRequestSpan(spanNodeValue) &&
         isServerRequestHandlerTransactionNode(firstTransaction)
@@ -1734,6 +1740,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   canFetch: boolean = false;
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode | null = null;
+  reparent_reason: 'pageload server handler' | null = null;
   value: T;
   expanded: boolean = false;
   zoomedIn: boolean = false;
