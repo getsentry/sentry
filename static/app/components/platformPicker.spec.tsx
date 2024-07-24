@@ -67,4 +67,43 @@ describe('PlatformPicker', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
     expect(props.setPlatform).toHaveBeenCalledWith(null);
   });
+
+  it('platforms shall be sorted alphabetically', function () {
+    render(<PlatformPicker setPlatform={jest.fn()} defaultCategory="popular" />);
+
+    const alphabeticallyOrderedPlatformNames = [
+      'Android',
+      'Angular',
+      'ASP.NET Core',
+      'Browser JavaScript',
+      'Django',
+      'Express',
+      'FastAPI',
+      'Flask',
+      'Flutter',
+      'Go',
+      'iOS',
+      'Java',
+      'Laravel',
+      'Nest.js',
+      'Next.js',
+      'Node.js',
+      'PHP',
+      'Python',
+      'Rails',
+      'React',
+      'React Native',
+      'Ruby',
+      'Spring Boot',
+      'Unity',
+      'Vue',
+      '.NET',
+    ];
+
+    const platformNames = screen.getAllByRole('heading', {level: 3});
+
+    platformNames.forEach((platform, index) => {
+      expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]);
+    });
+  });
 });

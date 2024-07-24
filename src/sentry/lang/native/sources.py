@@ -718,8 +718,10 @@ def capture_apple_symbol_stats(json):
             and module.get("unwind_status", "unused") == "unused"
         ):
             continue
+
         if module["type"] != "macho":
             continue
+
         eligible_symbols += 1
 
         old_has_this_symbol = False
@@ -732,7 +734,6 @@ def capture_apple_symbol_stats(json):
                 elif source_id.startswith("sentry:") and source_id.endswith("os-source"):
                     old_has_this_symbol = True
 
-        # again, I miss a good Rust `match`
         if symx_has_this_symbol:
             if old_has_this_symbol:
                 both_have_symbol += 1
@@ -742,37 +743,38 @@ def capture_apple_symbol_stats(json):
             old_has_symbol += 1
         else:
             neither_has_symbol += 1
-
-            # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is supposed
-            # to be a system symbol, and maybe also log those cases specifically as internal messages.
-            # For now, we are only interested in rough numbers.
+            # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is
+            # supposed to be a system symbol, and maybe also log those cases specifically as internal messages. For
+            # now, we are only interested in rough numbers.
 
     if eligible_symbols:
-        # This metric was added to test some discrepancy between internal metrics. We want to remove this after the
-        # investigation is done.
-        metrics.incr("symbol_test_metric", amount=1, sample_rate=1.0)
-
         metrics.incr(
-            "apple_symbol_availability",
+            "apple_symbol_availability_v2",
             amount=neither_has_symbol,
             tags={"availability": "neither"},
             sample_rate=1.0,
         )
-        metrics.incr(
-            "apple_symbol_availability",
-            amount=both_have_symbol,
-            tags={"availability": "both"},
-            sample_rate=1.0,
-        )
-        metrics.incr(
-            "apple_symbol_availability",
-            amount=old_has_symbol,
-            tags={"availability": "old"},
-            sample_rate=1.0,
-        )
-        metrics.incr(
-            "apple_symbol_availability",
-            amount=symx_has_symbol,
-            tags={"availability": "symx"},
-            sample_rate=1.0,
-        )
+
+        # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
+        # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
+        # that matched both.
+        if both_have_symbol:
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=both_have_symbol,
+                tags={"availability": "both"},
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=old_has_symbol,
+                tags={"availability": "old"},
+                sample_rate=1.0,
+            )
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=symx_has_symbol,
+                tags={"availability": "symx"},
+                sample_rate=1.0,
+            )

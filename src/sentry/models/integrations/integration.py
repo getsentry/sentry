@@ -55,7 +55,7 @@ class Integration(DefaultFieldsModel):
     # metadata might be used to store things like credentials, but it should NOT
     # be used to store organization-specific information, as an Integration
     # instance can be shared by multiple organizations
-    metadata = JSONField(default=dict)
+    metadata: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )

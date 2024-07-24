@@ -2740,4 +2740,148 @@ describe('TraceTree', () => {
       expect(mockedResponse3).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('SSR', () => {
+    it('makes pageload transaction a parent of server handler transaction', () => {
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'SSR',
+              ['transaction.op']: 'http.server',
+              children: [
+                makeTransaction({
+                  transaction: 'pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+              ],
+            }),
+          ],
+        }),
+        null
+      );
+
+      const root = tree.root.children[0];
+      expect(root?.children?.[0]?.value?.['transaction.op']).toBe('pageload');
+      expect(root?.children?.[0]?.children?.[0]?.value?.['transaction.op']).toBe(
+        'http.server'
+      );
+    });
+
+    it('skips reparenting if server handler has multiple direct transaction children', () => {
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'SSR',
+              ['transaction.op']: 'http.server',
+              children: [
+                makeTransaction({
+                  transaction: 'first pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+                makeTransaction({
+                  transaction: 'second pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+              ],
+            }),
+          ],
+        }),
+        null
+      );
+
+      const transaction = tree.list[1];
+      assertTransactionNode(transaction);
+      expect(transaction.value.transaction).toBe('SSR');
+
+      const firstPageload = tree.list[2];
+      assertTransactionNode(firstPageload);
+      expect(firstPageload.value.transaction).toBe('first pageload');
+
+      const secondPageload = tree.list[3];
+      assertTransactionNode(secondPageload);
+      expect(secondPageload.value.transaction).toBe('second pageload');
+    });
+    describe('expanded', () => {
+      it('server handler transaction becomes a child of browser request span if present', async () => {
+        const tree: TraceTree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                transaction: 'SSR',
+                event_id: 'ssr',
+                project_slug: 'js',
+                ['transaction.op']: 'http.server',
+                children: [
+                  makeTransaction({
+                    transaction: 'pageload',
+                    ['transaction.op']: 'pageload',
+                  }),
+                ],
+              }),
+            ],
+          }),
+          null
+        );
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/js:ssr/?averageColumn=span.self_time&averageColumn=span.duration',
+          method: 'GET',
+          body: makeEvent({}, [makeSpan({description: 'request', op: 'browser'})]),
+        });
+
+        tree.zoomIn(tree.list[1], true, {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        });
+
+        await waitFor(() => tree.list.length === 4);
+        const browserRequestSpan = tree.list[1].children[0];
+        const ssrTransaction = browserRequestSpan.children[0];
+
+        assertSpanNode(browserRequestSpan);
+        assertTransactionNode(ssrTransaction);
+        expect(ssrTransaction.value.transaction).toBe('SSR');
+      });
+      it('server handler transaction becomes a direct child if there is no matching browser request span', async () => {
+        const tree: TraceTree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                transaction: 'SSR',
+                event_id: 'ssr',
+                project_slug: 'js',
+                ['transaction.op']: 'http.server',
+                children: [
+                  makeTransaction({
+                    transaction: 'pageload',
+                    ['transaction.op']: 'pageload',
+                  }),
+                ],
+              }),
+            ],
+          }),
+          null
+        );
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/js:ssr/?averageColumn=span.self_time&averageColumn=span.duration',
+          method: 'GET',
+          body: makeEvent({}, [makeSpan({description: 'request', op: 'almost-browser'})]),
+        });
+
+        tree.zoomIn(tree.list[1], true, {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        });
+
+        await waitFor(() => tree.list.length === 4);
+
+        const transaction = tree.list[tree.list.length - 1];
+        assertTransactionNode(transaction);
+        expect(transaction.value.transaction).toBe('SSR');
+      });
+    });
+  });
 });

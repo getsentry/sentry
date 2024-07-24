@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
+const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 export const getQuerySymbol = (index: number) => {
   let result = '';
@@ -20,6 +20,7 @@ export const getQuerySymbol = (index: number) => {
 export const DeprecatedSymbol = styled('span')<{
   isHidden?: boolean;
 }>`
+  text-transform: lowercase;
   display: flex;
   width: 38px;
   height: 38px;
@@ -47,7 +48,7 @@ export const Symbol = styled(DeprecatedSymbol)`
   border: 1px solid ${p => p.theme.purple200};
   background: ${p => p.theme.purple100};
   text-transform: uppercase;
-  font-weight: 500;
+  font-weight: 600;
 `;
 
 interface QuerySymbolProps extends React.ComponentProps<typeof Symbol> {
