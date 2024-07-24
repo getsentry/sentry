@@ -161,6 +161,18 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the new issue stream search bar UI
     manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    # Enable the new search bar UI in other pages
+    manager.add("organizations:search-query-builder-releases", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-traces", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-profiles", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-replays", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-discover", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-user-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-dashboards", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-project-details", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-alerts", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:search-query-builder-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable v8 support for the Loader Script
     manager.add("organizations:js-sdk-loader-v8", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
