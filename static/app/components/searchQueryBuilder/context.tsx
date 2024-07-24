@@ -23,7 +23,7 @@ interface ContextData {
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement>;
   placeholder?: string;
-  savedSearchType?: SavedSearchType;
+  recentSearches?: SavedSearchType;
 }
 
 export function useSearchQueryBuilder() {
