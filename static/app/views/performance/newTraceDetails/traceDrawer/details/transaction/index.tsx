@@ -10,6 +10,7 @@ import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
+import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -23,6 +24,7 @@ import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {CacheMetrics} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/cacheMetrics';
+import {TraceBreadcrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/traceBreadcrumbs';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {
   TraceTree,
@@ -97,6 +99,8 @@ export function TransactionNodeDetails({
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const location = useLocation();
   const {projects} = useProjects();
+  const hasNewTimelineUI = useHasNewTimelineUI();
+
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
@@ -183,8 +187,11 @@ export function TransactionNodeDetails({
       {project ? <EventEvidence event={event} project={project} /> : null}
 
       {replayRecord ? null : <ReplayPreview event={event} organization={organization} />}
-
-      <BreadCrumbs event={event} organization={organization} />
+      {hasNewTimelineUI ? (
+        <TraceBreadcrumbs event={event} organization={organization} />
+      ) : (
+        <BreadCrumbs event={event} organization={organization} />
+      )}
 
       {event.projectSlug ? (
         <EventAttachments event={event} projectSlug={event.projectSlug} />

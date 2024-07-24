@@ -20,6 +20,10 @@ interface BreadcrumbsTimelineProps {
   /**
    * If false, expands the contents of the breadcrumb's data payload, adds padding.
    */
+  fixedHeight?: number;
+  /**
+   * If false, expands the contents of the breadcrumb's data payload, adds padding.
+   */
   isCompact?: boolean;
   /**
    * Shows the line after the last breadcrumbs icon.
@@ -36,6 +40,7 @@ export default function BreadcrumbsTimeline({
   breadcrumbs,
   startTimeString,
   isCompact = false,
+  fixedHeight,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +58,7 @@ export default function BreadcrumbsTimeline({
   }
 
   const virtualItems = virtualizer.getVirtualItems();
+
   const items = virtualItems.map(virtualizedRow => {
     const {breadcrumb, raw, title, meta, iconComponent, colorConfig, levelComponent} =
       breadcrumbs[virtualizedRow.index];
@@ -114,11 +120,21 @@ export default function BreadcrumbsTimeline({
     <div
       ref={containerRef}
       style={{
-        height: virtualizer.getTotalSize(),
-        contain: 'layout size',
+        height: fixedHeight,
+        overflowY: fixedHeight ? 'auto' : undefined,
+        paddingRight: fixedHeight ? space(2) : undefined,
       }}
     >
-      <Timeline.Container>{items}</Timeline.Container>
+      <div
+        style={{
+          height: virtualizer.getTotalSize(),
+          contain: 'layout size',
+        }}
+      >
+        <VirtualOffset offset={virtualItems[0]?.start ?? 0}>
+          <Timeline.Container>{items}</Timeline.Container>
+        </VirtualOffset>
+      </div>
     </div>
   );
 }
@@ -142,3 +158,19 @@ const Timestamp = styled('div')`
 const ContentWrapper = styled('div')<{isCompact: boolean}>`
   padding-bottom: ${p => space(p.isCompact ? 0.5 : 1.0)};
 `;
+
+function VirtualOffset(p: {children: React.ReactNode; offset: number}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        transform: `translateY(${p.offset}px)`,
+      }}
+    >
+      {p.children}
+    </div>
+  );
+}

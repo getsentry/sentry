@@ -58,6 +58,7 @@ export type IssueEventParameters = {
   'breadcrumbs.drawer.action': {control: string; value?: string};
   'breadcrumbs.issue_details.change_time_display': {value: string};
   'breadcrumbs.issue_details.drawer_opened': {control: string};
+  'breadcrumbs.trace_view.action': {control: string; value?: string};
   'device.classification.high.end.android.device': {
     processor_count: number;
     processor_frequency: number;
@@ -300,6 +301,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
+  'breadcrumbs.trace_view.action': 'Breadcrumb Trace View Action Taken',
   'event_cause.viewed': null,
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
