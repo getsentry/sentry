@@ -197,7 +197,7 @@ function SpanMetricField({field, project, onChange}: Props) {
       <SelectControl
         searchable
         isDisabled={isLoading || !selectedRule}
-        placeholder={t('Select a query')}
+        placeholder={t('Select a filter')}
         options={conditionOptions}
         value={selectedCondition?.id}
         onChange={handleConditionChange}

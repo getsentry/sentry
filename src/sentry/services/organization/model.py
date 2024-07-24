@@ -13,8 +13,8 @@ class OrganizationOptions(pydantic.BaseModel):
 
 
 class PostProvisionOptions(pydantic.BaseModel):
-    sentry_options: Any | None  # Placeholder for any sentry post-provisioning data
-    getsentry_options: Any | None  # Reserved for getsentry post-provisioning data
+    sentry_options: Any | None = None  # Placeholder for any sentry post-provisioning data
+    getsentry_options: Any | None = None  # Reserved for getsentry post-provisioning data
 
 
 class OrganizationProvisioningOptions(pydantic.BaseModel):

@@ -19,6 +19,7 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
@@ -414,13 +415,41 @@ describe('SearchQueryBuilder', function () {
   describe('new search tokens', function () {
     it('can add an unsupported filter key and value', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
-      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(getLastInput());
+
+      // Typing "foo", then " a:b" should add the "foo" text followed by a new token "a:b"
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
-        'a:b{enter}'
+        'foo a:b{enter}'
       );
-
+      expect(screen.getByRole('row', {name: 'foo'})).toBeInTheDocument();
       expect(screen.getByRole('row', {name: 'a:b'})).toBeInTheDocument();
+    });
+
+    it('adds default value for filter when typing <filter>:', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      // Typing `is:` and escaping should result in `is:unresolved`
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'is:{escape}'
+      );
+      expect(await screen.findByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
+    });
+
+    it('does not automatically create a filter if the user intends to wrap in quotes', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      // Starting with an opening quote and typing out Error: should stay as raw text
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        '"Error: foo"'
+      );
+      await waitFor(() => {
+        expect(getLastInput()).toHaveValue('"Error: foo"');
+      });
     });
 
     it('breaks keys into sections', async function () {
@@ -2049,6 +2078,29 @@ describe('SearchQueryBuilder', function () {
       expect(
         await screen.findByText('Invalid key. "foo" is not a supported search key.')
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('invalidMessages', function () {
+    it('should customize invalid messages', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="foo:"
+          invalidMessages={{
+            [InvalidReason.FILTER_MUST_HAVE_VALUE]: 'foo bar baz',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'foo:'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(await screen.findByText('foo bar baz')).toBeInTheDocument();
     });
   });
 });

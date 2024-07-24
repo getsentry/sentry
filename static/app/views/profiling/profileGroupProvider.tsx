@@ -71,8 +71,17 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
     if (!props.input) {
       return LOADING_PROFILE_GROUP;
     }
+    const qs = new URLSearchParams(window.location.search);
+    const threadId = qs.get('tid');
+
     try {
-      return importProfile(props.input, props.traceID, props.type, props.frameFilter);
+      return importProfile(
+        props.input,
+        props.traceID,
+        threadId,
+        props.type,
+        props.frameFilter
+      );
     } catch (err) {
       Sentry.captureException(err);
       return LOADING_PROFILE_GROUP;
