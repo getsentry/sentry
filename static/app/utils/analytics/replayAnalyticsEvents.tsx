@@ -57,6 +57,9 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
+  'replay.frame-after-background': {
+    frame: string;
+  };
   // similar purpose as "replay.details-viewed", however we're capturing the navigation action
   // in order to also include a project platform
   'replay.list-navigate-to-details': {
@@ -130,6 +133,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-resource-docs-clicked': 'Replay Details Resource Docs Clicked',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
+  'replay.frame-after-background': 'Replay Frame Following Background Frame',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',
