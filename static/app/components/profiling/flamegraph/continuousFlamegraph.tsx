@@ -61,6 +61,7 @@ import {
   fromNanoJoulesToWatts,
   type ProfilingFormatterUnit,
 } from 'sentry/utils/profiling/units/units';
+import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {
@@ -97,10 +98,27 @@ function collectAllSpanEntriesFromTransaction(
   return allSpans;
 }
 
-function getMaxConfigSpace(profileGroup: ContinuousProfileGroup): Rect {
-  // We have a transaction, so we should do our best to align the profile
-  // with the transaction's timeline.
+function getMaxConfigSpace(
+  profileGroup: ContinuousProfileGroup,
+  transaction: EventTransaction | null,
+  unit: ProfilingFormatterUnit | string
+): Rect {
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
+  if (transaction) {
+    // TODO: Adjust the alignment based on the profile's timestamp if it does
+    // not match the transaction's start timestamp
+    const transactionDuration = transaction.endTimestamp - transaction.startTimestamp;
+    // On most platforms, profile duration < transaction duration, however
+    // there is one beloved platform where that is not true; android.
+    // Hence, we should take the max of the two to ensure both the transaction
+    // and profile are fully visible to the user.
+    const duration = Math.max(
+      formatTo(transactionDuration, 'seconds', unit),
+      maxProfileDuration
+    );
+    return new Rect(0, 0, duration, 0);
+  }
+
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
   return new Rect(0, 0, maxProfileDuration, 0);
@@ -268,9 +286,13 @@ export function ContinuousFlamegraph(): ReactElement {
 
     return new SpanChart(spanTree, {
       unit: profile.unit,
-      configSpace: getMaxConfigSpace(profileGroup),
+      configSpace: getMaxConfigSpace(
+        profileGroup,
+        segment.type === 'resolved' ? segment.data : null,
+        profile.unit
+      ),
     });
-  }, [spanTree, profile, profileGroup]);
+  }, [spanTree, profile, profileGroup, segment]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
@@ -297,13 +319,17 @@ export function ContinuousFlamegraph(): ReactElement {
     const newFlamegraph = new FlamegraphModel(profile, {
       inverted: view === 'bottom up',
       sort: sorting,
-      configSpace: getMaxConfigSpace(profileGroup),
+      configSpace: getMaxConfigSpace(
+        profileGroup,
+        segment.type === 'resolved' ? segment.data : null,
+        profile.unit
+      ),
     });
 
     span?.end();
 
     return newFlamegraph;
-  }, [profile, profileGroup, sorting, flamegraphProfiles.threadId, view]);
+  }, [profile, profileGroup, sorting, flamegraphProfiles.threadId, view, segment]);
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
