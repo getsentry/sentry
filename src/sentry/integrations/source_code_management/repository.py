@@ -8,14 +8,19 @@ import sentry_sdk
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
 class RepositoryIntegration(ABC):
+    repo_search = False
+    model: RpcIntegration | Integration
+
     # @abstractmethod
     @property
     def codeowners_locations(self) -> Sequence[str] | None:
@@ -35,7 +40,7 @@ class RepositoryIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         """Formats the source code url used for stack trace linking."""
         raise NotImplementedError
 
@@ -49,7 +54,7 @@ class RepositoryIntegration(ABC):
         """Extracts the source path from the source code url."""
         raise NotImplementedError
 
-    def check_file(self, repo: Repository, filepath: str, branch: str) -> str | None:
+    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
         Calls the client's `check_file` method to see if the file exists.
         Returns the link to the file if it's exists, otherwise return `None`.
@@ -181,11 +186,15 @@ class RepositoryIntegration(ABC):
 
 class RepositoryClient(ABC):
     @abstractmethod
-    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+    def check_file(
+        self, repo: Repository, path: str, version: str | None
+    ) -> BaseApiResponseX | None:
         """Check if the file exists. Currently used for CODEOWNERS."""
         raise NotImplementedError
 
     # @abstractmethod (VSTS, Bitbucket missing)
-    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         """Get the file contents. Currently used for CODEOWNERS."""
         raise NotImplementedError

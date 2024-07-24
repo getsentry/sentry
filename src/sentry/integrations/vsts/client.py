@@ -421,7 +421,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             api_preview=True,
         )
 
-    def check_file(self, repo: Repository, path: str, version: str) -> Response:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> Response:
         return self.get_cached(
             path=VstsApiPath.items.format(
                 instance=repo.config["instance"],

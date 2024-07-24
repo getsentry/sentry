@@ -166,7 +166,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixi
     ) -> str | None:
         pass
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
 
 

@@ -197,7 +197,7 @@ class GitHubIntegration(IntegrationInstallation, RepositoryIntegration, CommitCo
     def source_url_matches(self, url: str) -> bool:
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"

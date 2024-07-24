@@ -639,10 +639,14 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
-    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+    def check_file(
+        self, repo: Repository, path: str, version: str | None
+    ) -> BaseApiResponseX | None:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
-    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         """Get the contents of a file
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content
