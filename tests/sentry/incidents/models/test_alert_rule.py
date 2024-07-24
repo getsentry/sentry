@@ -211,6 +211,21 @@ class AlertRuleTest(TestCase):
             assert current_activation.query_subscription == sub
             assert current_activation.is_complete() is False
 
+    def test_get_for_metrics(self):
+        self.create_alert_rule(organization=self.organization, aggregate="count(c:foo/1)")
+        self.create_alert_rule(organization=self.organization, aggregate="count(c:bar/2)")
+        self.create_alert_rule(organization=self.organization, aggregate="count(c:baz/2)")
+
+        assert (
+            AlertRule.objects.get_for_metrics(self.organization, ["c:foo/1", "c:bar/2"]).count()
+            == 2
+        )
+        assert set(
+            AlertRule.objects.get_for_metrics(
+                self.organization, ["c:foo/1", "c:bar/2"]
+            ).values_list("snuba_query__aggregate", flat=True)
+        ) == {"count(c:foo/1)", "count(c:bar/2)"}
+
 
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
