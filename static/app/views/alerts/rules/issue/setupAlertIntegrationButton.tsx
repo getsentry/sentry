@@ -51,6 +51,9 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
   }
 
   renderBody(): React.ReactNode {
+    const headerContent = <h1>Connect with a messaging tool</h1>;
+    const bodyContent = <p>Receive alerts and digests right where you work.</p>;
+    const providerKeys = ['slack', 'discord', 'msteams'];
     const {organization} = this.props;
     const {detailedProject} = this.state;
     // don't render anything if we don't have the project yet or if an alert integration
@@ -79,6 +82,9 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
                 deps => (
                   <MessagingIntegrationModal
                     {...deps}
+                    headerContent={headerContent}
+                    bodyContent={bodyContent}
+                    providerKeys={providerKeys}
                     organization={organization}
                     project={detailedProject}
                   />

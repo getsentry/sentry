@@ -27,12 +27,12 @@ describe('AddIntegrationRow', function () {
       providerKey={integrationSlug}
       organization={org}
       project={project}
-      closeModal={jest.fn()}
+      onClickHandler={jest.fn()}
       setHasError={jest.fn()}
     />
   );
 
-  it('renders', async function () {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=${integrationSlug}`,
       body: {
@@ -42,18 +42,17 @@ describe('AddIntegrationRow', function () {
 
     render(getComponent());
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', {name: /add integration/i})).toBeInTheDocument();
-    });
+    const button = await screen.findByRole('button', {name: /add integration/i});
+    expect(button).toBeInTheDocument();
   });
 
-  it('opens the setup dialog on click', async function () {
+  it('opens the setup dialog on click', async () => {
     const focus = jest.fn();
     const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
     // any is needed here because getSentry has different types for global
     (global as any).open = open;
 
-    MockApiClient.addMockResponse({
+    const mock1 = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=${integrationSlug}`,
       body: {
         providers: providers,
@@ -62,17 +61,17 @@ describe('AddIntegrationRow', function () {
 
     render(getComponent());
 
-    await waitFor(() => {
-      userEvent.click(screen.getByRole('button', {name: /add integration/i}));
-      expect(open.mock.calls).toHaveLength(1);
-      expect(focus.mock.calls).toHaveLength(1);
-      expect(open.mock.calls[0][2]).toBe(
-        'scrollbars=yes,width=100,height=100,top=334,left=462'
-      );
-    });
+    expect(mock1).toHaveBeenCalled();
+    const button = await screen.findByRole('button', {name: /add integration/i});
+    await userEvent.click(button);
+    expect(open.mock.calls).toHaveLength(1);
+    expect(focus.mock.calls).toHaveLength(1);
+    expect(open.mock.calls[0][2]).toBe(
+      'scrollbars=yes,width=100,height=100,top=334,left=462'
+    );
   });
 
-  it('handles API error', async function () {
+  it('handles API error', async () => {
     const setHasError = jest.fn();
 
     MockApiClient.addMockResponse({
@@ -86,7 +85,7 @@ describe('AddIntegrationRow', function () {
         providerKey={integrationSlug}
         organization={org}
         project={project}
-        closeModal={jest.fn()}
+        onClickHandler={jest.fn()}
         setHasError={setHasError}
       />
     );

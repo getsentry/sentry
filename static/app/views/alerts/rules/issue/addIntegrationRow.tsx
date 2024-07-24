@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {IntegrationProvider, Project} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 type Props = {
-  closeModal: () => void;
+  onClickHandler: () => void;
   organization: Organization;
   project: Project;
   providerKey: string;
@@ -21,7 +22,7 @@ function AddIntegrationRow({
   providerKey,
   organization,
   project,
-  closeModal,
+  onClickHandler,
   setHasError,
 }: Props) {
   const [provider, setProvider] = useState<IntegrationProvider | null>(null);
@@ -61,11 +62,13 @@ function AddIntegrationRow({
     organization,
   };
 
+  const close = () => onClickHandler;
+
   // TODO(Mia): show request installation button if user does not have necessary permissions
   const integrationButton = metadata.aspects.externalInstall ? (
     <Button
       href={metadata.aspects.externalInstall.url}
-      onClick={() => closeModal()}
+      onClick={() => close}
       external
       {...buttonProps}
     >
@@ -74,7 +77,7 @@ function AddIntegrationRow({
   ) : (
     <AddIntegrationButton
       provider={provider}
-      onAddIntegration={() => closeModal}
+      onAddIntegration={close}
       analyticsParams={{view: 'onboarding', already_installed: false}}
       modalParams={{projectId: project.id}}
       {...buttonProps}

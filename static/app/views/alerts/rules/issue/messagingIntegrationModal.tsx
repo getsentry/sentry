@@ -10,19 +10,24 @@ import type {Organization} from 'sentry/types/organization';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 
 type Props = ModalRenderProps & {
+  headerContent: React.ReactElement<any, any>;
   organization: Organization;
   project: Project;
+  providerKeys: string[];
+  bodyContent?: React.ReactElement<any, any>;
 };
 
 function MessagingIntegrationModal({
   closeModal,
   Header,
   Body,
+  headerContent,
+  bodyContent,
+  providerKeys,
   organization,
   project,
 }: Props) {
   const [hasError, setHasError] = useState(false);
-  const integrationValues = ['slack', 'discord', 'msteams'];
 
   useEffect(() => {
     if (hasError) {
@@ -33,20 +38,18 @@ function MessagingIntegrationModal({
 
   return (
     <Fragment>
-      <Header closeButton>
-        <h1>Connect with a messaging tool</h1>
-      </Header>
+      <Header closeButton>{headerContent}</Header>
       <Body>
-        <p>Receive alerts and digests right where you work.</p>
+        {bodyContent}
         <IntegrationsWrapper>
-          {integrationValues.map((value: string) => {
+          {providerKeys.map((value: string) => {
             return (
               <AddIntegrationRow
                 key={value}
                 providerKey={value}
                 organization={organization}
                 project={project}
-                closeModal={closeModal}
+                onClickHandler={closeModal}
                 setHasError={setHasError}
               />
             );

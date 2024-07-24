@@ -17,7 +17,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('MessagingIntegrationModal', function () {
   let project, org;
-  const integrationSlugs = ['slack', 'discord', 'msteams'];
+  const providerKeys = ['slack', 'discord', 'msteams'];
   const providers = [GitHubIntegrationProviderFixture()];
 
   beforeEach(function () {
@@ -31,60 +31,65 @@ describe('MessagingIntegrationModal', function () {
     jest.clearAllMocks();
   });
 
-  const getComponent = (props = {}) => (
+  const getComponent = (closeModal?, props = {}) => (
     <MessagingIntegrationModal
       Header={makeClosableHeader(() => {})}
       Body={ModalBody}
+      headerContent={<h1>Connect with a messaging tool</h1>}
+      bodyContent={<p>Receive alerts and digests right where you work.</p>}
+      providerKeys={providerKeys}
       organization={org}
       project={project}
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}
-      closeModal={jest.fn()}
+      closeModal={closeModal ? closeModal : jest.fn()}
       {...props}
     />
   );
 
   it('renders', async function () {
-    integrationSlugs.forEach(value => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/config/integrations/?provider_key=${value}`,
-        body: {providers: providers},
-      });
+    const mockResponses: jest.Mock<any>[] = [];
+    providerKeys.forEach(providerKey => {
+      mockResponses.push(
+        MockApiClient.addMockResponse({
+          url: `/organizations/${org.slug}/config/integrations/?provider_key=${providerKey}`,
+          body: {providers: providers},
+        })
+      );
     });
-
     render(getComponent());
 
-    await waitFor(() => {
-      expect(screen.getByText('Connect with a messaging tool')).toBeInTheDocument();
-      const buttons = screen.getAllByRole('button', {name: /add integration/i});
-      expect(buttons).toHaveLength(3);
+    mockResponses.forEach(mock => {
+      expect(mock).toHaveBeenCalled();
     });
+    const heading = await screen.findByRole('heading', {
+      name: /connect with a messaging tool/i,
+    });
+    expect(heading).toBeInTheDocument();
+    const buttons = await screen.findAllByRole('button', {name: /add integration/i});
+    expect(buttons).toHaveLength(providerKeys.length);
   });
 
   it('closes on error', async function () {
     const closeModal = jest.fn();
     jest.spyOn(indicators, 'addErrorMessage');
 
-    integrationSlugs.forEach(value => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/config/integrations/?provider_key=${value}`,
-        statusCode: 400,
-        body: {error: 'internal error'},
-      });
+    const mockResponses: jest.Mock<any>[] = [];
+    providerKeys.forEach(value => {
+      mockResponses.push(
+        MockApiClient.addMockResponse({
+          url: `/organizations/${org.slug}/config/integrations/?provider_key=${value}`,
+          statusCode: 400,
+          body: {error: 'internal error'},
+        })
+      );
     });
 
-    render(
-      <MessagingIntegrationModal
-        Header={() => <div />}
-        Body={ModalBody}
-        organization={org}
-        project={project}
-        CloseButton={makeCloseButton(() => {})}
-        Footer={ModalFooter}
-        closeModal={closeModal}
-      />
-    );
+    render(getComponent(closeModal));
 
+    mockResponses.forEach(mock => {
+      expect(mock).toHaveBeenCalled();
+    });
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
       expect(indicators.addErrorMessage).toHaveBeenCalled();
