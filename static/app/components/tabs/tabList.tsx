@@ -19,7 +19,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {TabsContext} from './index';
 import type {TabListItemProps} from './item';
 import {Item} from './item';
-import {Tab} from './tab';
+import {type BaseTabProps, Tab} from './tab';
 import {tabsShouldForwardProp} from './utils';
 
 /**
@@ -117,16 +117,19 @@ export interface TabListProps
   className?: string;
   hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
+  variant?: BaseTabProps['variant'];
 }
 
 interface BaseTabListProps extends TabListProps {
   items: TabListItemProps[];
+  variant?: BaseTabProps['variant'];
 }
 
 function BaseTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
+  variant,
   ...props
 }: BaseTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -216,6 +219,7 @@ function BaseTabList({
             orientation={orientation}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
             ref={element => (tabItemsRef.current[item.key] = element)}
+            variant={variant}
           />
         ))}
       </TabListWrap>
@@ -237,7 +241,7 @@ const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nod
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function TabList({items, ...props}: TabListProps) {
+export function TabList({items, variant, ...props}: TabListProps) {
   /**
    * Initial, unfiltered list of tab items.
    */
@@ -258,7 +262,12 @@ export function TabList({items, ...props}: TabListProps) {
   );
 
   return (
-    <BaseTabList items={parsedItems} disabledKeys={disabledKeys} {...props}>
+    <BaseTabList
+      items={parsedItems}
+      disabledKeys={disabledKeys}
+      variant={variant}
+      {...props}
+    >
       {item => <Item {...item} />}
     </BaseTabList>
   );

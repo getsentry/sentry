@@ -28,6 +28,7 @@ interface TabProps extends AriaTabProps {
    */
   overflowing: boolean;
   state: TabListState<any>;
+  variant?: BaseTabProps['variant'];
 }
 
 /**
@@ -42,7 +43,7 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   }
 }
 
-interface BaseTabProps {
+export interface BaseTabProps {
   children: React.ReactNode;
   hidden: boolean;
   isSelected: boolean;
@@ -134,7 +135,7 @@ export const BaseTab = forwardRef(
  */
 export const Tab = forwardRef(
   (
-    {item, state, orientation, overflowing}: TabProps,
+    {item, state, orientation, overflowing, variant}: TabProps,
     forwardedRef: React.ForwardedRef<HTMLLIElement>
   ) => {
     const ref = useObjectRef(forwardedRef);
@@ -155,6 +156,7 @@ export const Tab = forwardRef(
         orientation={orientation}
         overflowing={overflowing}
         ref={ref}
+        variant={variant}
       >
         {rendered}
       </BaseTab>
