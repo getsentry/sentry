@@ -64,7 +64,9 @@ class ProcessResultTest(UptimeTestCase):
 
     def test(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -81,12 +83,33 @@ class ProcessResultTest(UptimeTestCase):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
+    def test_no_create_issues_feature(self):
+        result = self.create_uptime_result(self.subscription.subscription_id)
+        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                    ),
+                ]
+            )
+
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.get(grouphash__hash=hashed_fingerprint)
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+
     def test_resolve(self):
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -109,7 +132,9 @@ class ProcessResultTest(UptimeTestCase):
             status=CHECKSTATUS_SUCCESS,
             scheduled_check_time=datetime.now() - timedelta(minutes=4),
         )
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -127,7 +152,9 @@ class ProcessResultTest(UptimeTestCase):
     def test_no_subscription(self):
         subscription_id = uuid.uuid4().hex
         result = self.create_uptime_result(subscription_id)
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls([call("uptime.result_processor.subscription_not_found")])
 
@@ -137,7 +164,9 @@ class ProcessResultTest(UptimeTestCase):
             build_last_update_key(self.project_subscription),
             int(result["scheduled_check_time_ms"]),
         )
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -163,6 +192,7 @@ class ProcessResultTest(UptimeTestCase):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature("organizations:uptime-create-issues"),
         ):
             self.send_result(result)
             metrics.incr.assert_called_once_with(
@@ -189,7 +219,9 @@ class ProcessResultTest(UptimeTestCase):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -216,6 +248,7 @@ class ProcessResultTest(UptimeTestCase):
                 "sentry.uptime.consumers.results_consumer.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
+            self.feature("organizations:uptime-create-issues"),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -251,7 +284,9 @@ class ProcessResultTest(UptimeTestCase):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -284,7 +319,7 @@ class ProcessResultTest(UptimeTestCase):
         assert redis.get(key) is None
         with mock.patch(
             "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.tasks():
+        ) as metrics, self.tasks(), self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [

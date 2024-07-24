@@ -5,6 +5,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
+import sentry_sdk
+
 from sentry import buffer, nodestore
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
@@ -232,10 +234,11 @@ def _passes_comparison(
         query_values = [
             condition_group_results[unique_query][group_id] for unique_query in unique_queries
         ]
-    except KeyError as e:
+    except KeyError as exception:
+        sentry_sdk.capture_exception(exception)
         logger.exception(
             "delayed_processing.missing_query_results",
-            extra={"exception": e, "group_id": group_id, "project_id": project_id},
+            extra={"exception": exception, "group_id": group_id, "project_id": project_id},
         )
         return False
 
@@ -271,11 +274,8 @@ def get_rules_to_fire(
                     if action_match == "any":
                         rules_to_fire[alert_rule].add(group_id)
                         break
-                    conditions_matched += 1
-                else:
-                    if action_match == "all":
-                        # We failed to match all conditions for this group, skip
-                        break
+                    elif action_match == "all":
+                        conditions_matched += 1
             if action_match == "all" and conditions_matched == len(slow_conditions):
                 rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire

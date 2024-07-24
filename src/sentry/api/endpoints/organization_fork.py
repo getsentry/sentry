@@ -18,6 +18,7 @@ from sentry.api.endpoints.relocations.index import (
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.models.organization import OrganizationStatus
 from sentry.models.relocation import Relocation
 from sentry.organizations.services.organization import organization_service
 from sentry.tasks.relocation import uploading_start
@@ -30,6 +31,9 @@ ERR_DUPLICATE_ORGANIZATION_FORK = Template(
 ERR_ORGANIZATION_NOT_FOUND = Template("The target organization `$pointer` could not be found.")
 ERR_ORGANIZATION_MAPPING_NOT_FOUND = Template(
     "The target organization `$slug` has no region mapping."
+)
+ERR_ORGANIZATION_INACTIVE = Template(
+    "The target organization `$slug` has status `$status`; status can only be `ACTIVE`."
 )
 ERR_CANNOT_FORK_INTO_SAME_REGION = Template(
     "The organization already lives in region `$region`, so it cannot be forked into that region."
@@ -64,16 +68,11 @@ class OrganizationForkEndpoint(Endpoint):
 
         logger.info("relocations.fork.post.start", extra={"caller": request.user.id})
 
-        org_retrieval_args = {
-            "only_visible": True,
-            "include_projects": False,
-            "include_teams": False,
-        }
         org_context = (
             organization_service.get_organization_by_id(id=organization_id_or_slug)
             if str(organization_id_or_slug).isdecimal()
             else organization_service.get_organization_by_slug(
-                slug=organization_id_or_slug, **org_retrieval_args
+                slug=organization_id_or_slug, only_visible=False  # Check for visibility below
             )
         )
         if not org_context:
@@ -88,11 +87,22 @@ class OrganizationForkEndpoint(Endpoint):
 
         organization = org_context.organization
         org_slug = organization.slug
+        if org_context.organization.status != OrganizationStatus.ACTIVE:
+            return Response(
+                {
+                    "detail": ERR_ORGANIZATION_INACTIVE.substitute(
+                        slug=org_slug,
+                        status=str(OrganizationStatus(organization.status).name),
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         org_mapping = organization_mapping_service.get(organization_id=organization.id)
         if not org_mapping:
             return Response(
                 {
-                    "detail": ERR_ORGANIZATION_NOT_FOUND.substitute(
+                    "detail": ERR_ORGANIZATION_MAPPING_NOT_FOUND.substitute(
                         slug=org_slug,
                     )
                 },

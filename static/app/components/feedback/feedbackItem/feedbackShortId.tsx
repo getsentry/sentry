@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
@@ -36,12 +37,17 @@ const hideDropdown = css`
 
 export default function FeedbackShortId({className, feedbackItem, style}: Props) {
   const organization = useOrganization();
+  const projectSlug = useCurrentFeedbackProject();
 
   const feedbackUrl =
     window.location.origin +
-    normalizeUrl(
-      `/organizations/${organization.slug}/feedback/?feedbackSlug=${feedbackItem.project.slug}:${feedbackItem.id}&project=${feedbackItem.project.id}`
-    );
+    normalizeUrl({
+      pathname: `/organizations/${organization.slug}/feedback/`,
+      query: {
+        feedbackSlug: `${projectSlug}:${feedbackItem.id}`,
+        project: feedbackItem.project?.id,
+      },
+    });
 
   const {onClick: handleCopyUrl} = useCopyToClipboard({
     successMessage: t('Copied Feedback URL to clipboard'),
@@ -62,12 +68,14 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
       css={hideDropdown}
     >
       <Flex gap={space(0.75)} align="center">
-        <ProjectBadge
-          project={feedbackItem.project}
-          avatarSize={16}
-          hideName
-          avatarProps={{hasTooltip: true, tooltip: feedbackItem.project.slug}}
-        />
+        {feedbackItem.project ? (
+          <ProjectBadge
+            project={feedbackItem.project}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: feedbackItem.project.slug}}
+          />
+        ) : null}
         <ShortId>{feedbackItem.shortId}</ShortId>
       </Flex>
       <DropdownMenu

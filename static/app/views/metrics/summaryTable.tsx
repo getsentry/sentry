@@ -16,6 +16,7 @@ import type {MetricAggregation} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   type FocusedMetricsSeries,
@@ -25,6 +26,31 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+function SeriesName({
+  seriesName,
+  isSingleSeries,
+}: {
+  isSingleSeries: boolean;
+  seriesName: string;
+}) {
+  const organization = useOrganization();
+
+  const prefix = seriesName.split(':')[0];
+  const sufix = seriesName.split(':')[1] ?? null;
+
+  return (
+    <TextOverflow>
+      <SerieNamePrefix
+        uppercaseText={hasMetricsNewInputs(organization) && !isSingleSeries}
+      >
+        {prefix}
+        {sufix && ':'}
+      </SerieNamePrefix>
+      {sufix}
+    </TextOverflow>
+  );
+}
 
 export const SummaryTable = memo(function SummaryTable({
   series,
@@ -238,7 +264,10 @@ export const SummaryTable = memo(function SummaryTable({
                     delay={500}
                     overlayStyle={{maxWidth: '80vw'}}
                   >
-                    <TextOverflow>{row.seriesName}</TextOverflow>
+                    <SeriesName
+                      isSingleSeries={rows.length === 1}
+                      seriesName={row.seriesName}
+                    />
                   </Tooltip>
                 </TextOverflowCell>
                 {totalColumns.map(aggregate => (
@@ -556,4 +585,8 @@ const Row = styled('div')`
       background-color: ${p => p.theme.bodyBackground};
     }
   }
+`;
+
+const SerieNamePrefix = styled('span')<{uppercaseText: boolean}>`
+  text-transform: ${p => (p.uppercaseText ? 'uppercase' : 'lowercase')};
 `;

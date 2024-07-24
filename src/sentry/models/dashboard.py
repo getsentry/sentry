@@ -41,7 +41,7 @@ class Dashboard(Model):
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
-    filters = JSONField(null=True)
+    filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
 
     MAX_WIDGETS = 30
 

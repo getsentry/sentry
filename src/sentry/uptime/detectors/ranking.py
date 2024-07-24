@@ -8,6 +8,7 @@ from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
+from sentry.constants import UPTIME_AUTODETECTION
 from sentry.utils import redis
 
 if TYPE_CHECKING:
@@ -162,7 +163,8 @@ def delete_organization_bucket(bucket: datetime) -> None:
 
 
 def should_detect_for_organization(organization: Organization) -> bool:
-    # TODO: Check setting here
+    if not organization.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION):
+        return False
     return True
 
 

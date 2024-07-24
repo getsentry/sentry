@@ -6,6 +6,7 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard import Dashboard, DashboardTombstone
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -215,6 +216,93 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert iso_format(response.data["start"].replace(second=0)) == iso_format(
             expected_adjusted_retention_start.replace(second=0)
         )
+
+    def test_dashboard_widget_type_returns_split_decision(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Split Widgets",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=1,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=2,
+            title="no split",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
+        with self.feature({"organizations:performance-discover-dataset-selector": True}):
+            response = self.do_request(
+                "get",
+                self.url(dashboard.id),
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["widgetType"] == "error-events"
+        assert response.data["widgets"][1]["widgetType"] == "transaction-like"
+        assert response.data["widgets"][2]["widgetType"] == "discover"
+
+    def test_dashboard_widget_returns_dataset_source(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            dataset_source=DatasetSourcesTypes.INFERRED.value,
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["datasetSource"] == "inferred"
+
+    def test_dashboard_widget_default_dataset_source_is_unknown(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard Without",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["datasetSource"] == "unknown"
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -1938,6 +2026,76 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         assert mock_get_specs.call_count == 0
+
+    def test_add_widget_with_split_widget_type_writes_to_split_decision(self):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Errors per project",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                    "widgetType": "error-events",
+                },
+                {
+                    "title": "Transaction Op Count",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Transaction Op Count",
+                            "fields": ["count()", "transaction.op"],
+                            "columns": ["transaction.op"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                    "widgetType": "transaction-like",
+                },
+                {
+                    "title": "Irrelevant widget type",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Issues",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                    "widgetType": "issue",
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.dashboard.dashboardwidget_set.all()
+        assert widgets[0].widget_type == DashboardWidgetTypes.get_id_for_type_name("error-events")
+        assert widgets[0].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
+            "error-events"
+        )
+
+        assert widgets[1].widget_type == DashboardWidgetTypes.get_id_for_type_name(
+            "transaction-like"
+        )
+        assert widgets[1].discover_widget_split == DashboardWidgetTypes.get_id_for_type_name(
+            "transaction-like"
+        )
+
+        assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
+        assert widgets[2].discover_widget_split is None
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):

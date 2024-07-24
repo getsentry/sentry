@@ -32,7 +32,7 @@ export default function FeedbackPanel() {
     query: `url:*${transactionName}`,
   });
 
-  const estimateSize = 108;
+  const estimateSize = 89;
   const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
 
   return (
