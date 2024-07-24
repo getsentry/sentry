@@ -93,7 +93,7 @@ function ReplayPreview({
   if (fetchError) {
     trackAnalytics('replay.render-missing-replay-alert', {
       organization,
-      location: 'issue details - old preview',
+      surface: 'issue details - old preview',
     });
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }

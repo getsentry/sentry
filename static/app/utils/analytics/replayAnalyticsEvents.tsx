@@ -93,7 +93,7 @@ export type ReplayEventParameters = {
     project_id: string | undefined;
   };
   'replay.render-missing-replay-alert': {
-    location: string;
+    surface: string;
   };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
