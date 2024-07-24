@@ -21,6 +21,7 @@ from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
+    BulkCreateGroupingRecordsResponse,
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
     delete_project_grouping_records,
@@ -358,33 +359,59 @@ def get_events_from_nodestore(
     )
 
 
-@sentry_sdk.tracing.trace
-@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
-def send_group_and_stacktrace_to_seer(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
-):
-    seer_response = post_bulk_grouping_records(
-        CreateGroupingRecordsRequest(
-            group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-            data=nodestore_results["data"],
-            stacktrace_list=nodestore_results["stacktrace_list"],
+def _make_seer_call(
+    create_grouping_records_request: CreateGroupingRecordsRequest, project_id: int
+) -> BulkCreateGroupingRecordsResponse | None:
+    try:
+        seer_response = _retry_operation(
+            post_bulk_grouping_records,
+            create_grouping_records_request,
+            retries=3,
+            delay=2,
+            exceptions=ServiceUnavailable,
         )
-    )
+    except ServiceUnavailable:
+        logger.exception(
+            "tasks.backfill_seer_grouping_records.seer_service_unavailable",
+            extra={"project_id": project_id},
+        )
+        raise
+
     return seer_response
 
 
 @sentry_sdk.tracing.trace
 @metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
+def send_group_and_stacktrace_to_seer(
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+    nodestore_results,
+    project_id,
+):
+    return _make_seer_call(
+        CreateGroupingRecordsRequest(
+            group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            data=nodestore_results["data"],
+            stacktrace_list=nodestore_results["stacktrace_list"],
+        ),
+        project_id,
+    )
+
+
+@sentry_sdk.tracing.trace
+@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
 def send_group_and_stacktrace_to_seer_multithreaded(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+    nodestore_results,
+    project_id,
 ):
     def process_chunk(chunk_data, chunk_stacktrace):
-        return post_bulk_grouping_records(
+        return _make_seer_call(
             CreateGroupingRecordsRequest(
                 group_id_list=chunk_data["group_ids"],
                 data=chunk_data["data"],
                 stacktrace_list=chunk_stacktrace,
-            )
+            ),
+            project_id,
         )
 
     chunk_size = options.get("similarity.backfill_seer_chunk_size")
