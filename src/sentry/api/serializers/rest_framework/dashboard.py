@@ -753,7 +753,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
-        required=True, max_length=255, help_text="The user defined title for this Dashboard."
+        required=True, max_length=255, help_text="The user defined title for this dashboard."
     )
 
 
