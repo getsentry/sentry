@@ -1,15 +1,13 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
-  BreadcrumbsDrawerContent,
-} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawerContent';
+  BreadcrumbsDrawer,
+} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -38,7 +36,6 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -85,31 +82,14 @@ export default function BreadcrumbsDataSection({
         organization,
       });
       openDrawer(
-        ({Header, Body}) => (
-          <Fragment>
-            <Header>
-              <NavigationCrumbs
-                crumbs={[
-                  {
-                    label: (
-                      <CrumbContainer>
-                        <ProjectAvatar project={project} />
-                        <ShortId>{group.shortId}</ShortId>
-                      </CrumbContainer>
-                    ),
-                  },
-                  {label: getShortEventId(event.id)},
-                  {label: t('Breadcrumbs')},
-                ]}
-              />
-            </Header>
-            <Body>
-              <BreadcrumbsDrawerContent
-                breadcrumbs={enhancedCrumbs}
-                focusControl={focusControl}
-              />
-            </Body>
-          </Fragment>
+        () => (
+          <BreadcrumbsDrawer
+            breadcrumbs={enhancedCrumbs}
+            focusControl={focusControl}
+            project={project}
+            event={event}
+            group={group}
+          />
         ),
         {ariaLabel: 'breadcrumb drawer'}
       );
@@ -244,21 +224,4 @@ const VerticalEllipsis = styled(IconEllipsis)`
 
 const ViewAllButton = styled(Button)`
   padding: ${space(0.75)} ${space(1)};
-`;
-
-const NavigationCrumbs = styled(NavigationBreadcrumbs)`
-  margin: 0;
-  padding: 0;
-`;
-
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 `;

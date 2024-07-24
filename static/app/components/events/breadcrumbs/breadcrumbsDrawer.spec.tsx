@@ -26,7 +26,7 @@ async function renderBreadcrumbDrawer() {
   return within(screen.getByRole('complementary', {name: 'breadcrumb drawer'}));
 }
 
-describe('BreadcrumbsDrawerContent', function () {
+describe('BreadcrumbsDrawer', function () {
   it('renders the drawer as expected', async function () {
     const drawerScreen = await renderBreadcrumbDrawer();
     expect(drawerScreen.getByRole('button', {name: 'Close Drawer'})).toBeInTheDocument();
