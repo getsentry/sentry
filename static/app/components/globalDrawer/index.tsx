@@ -44,14 +44,6 @@ export interface DrawerOptions {
 
 interface DrawerRenderProps {
   /**
-   * Body container for the drawer
-   */
-  Body: typeof DrawerComponents.DrawerBody;
-  /**
-   * Header with a close button for the drawer
-   */
-  Header: typeof DrawerComponents.DrawerHeader;
-  /**
    * Close the drawer
    */
   closeDrawer: () => void;
@@ -120,8 +112,6 @@ export function GlobalDrawer({children}) {
 
   const renderedChild = currentDrawerConfig?.renderer
     ? currentDrawerConfig.renderer({
-        Body: DrawerComponents.DrawerBody,
-        Header: DrawerComponents.DrawerHeader,
         closeDrawer: handleClose,
       })
     : null;
@@ -156,7 +146,7 @@ export function GlobalDrawer({children}) {
  * The `openDrawer` function accepts a renderer, and options. By default, the drawer will close
  * on outside clicks, and 'Escape' key presses. For example:
  * ```
- * openDrawer((Body) => <Body><MyComponent /></Body>, {closeOnOutsideClick: false})
+ * openDrawer(() => <DrawerBody><MyComponent /></DrawerBody>, {closeOnOutsideClick: false})
  * ```
  *
  * The `closeDrawer` function accepts no parameters and closes the drawer, unmounting its contents.

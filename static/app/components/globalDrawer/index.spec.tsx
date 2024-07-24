@@ -10,6 +10,7 @@ import {
 
 import type {DrawerConfig} from 'sentry/components/globalDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
@@ -38,8 +39,8 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body}) => (
-            <Body data-test-id="drawer-test-content">useDrawer hook</Body>
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">useDrawer hook</DrawerBody>
           ),
           options: {ariaLabel},
         }}
@@ -72,10 +73,10 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body, Header}) => (
+          renderer: () => (
             <Fragment>
-              <Header />
-              <Body data-test-id="drawer-test-content">onClose button</Body>
+              <DrawerHeader />
+              <DrawerBody data-test-id="drawer-test-content">onClose button</DrawerBody>
             </Fragment>
           ),
           options: {onClose: closeSpy, ariaLabel},
@@ -100,8 +101,10 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body}) => (
-            <Body data-test-id="drawer-test-content">onClose outside click</Body>
+          renderer: () => (
+            <DrawerBody data-test-id="drawer-test-content">
+              onClose outside click
+            </DrawerBody>
           ),
           options: {onClose: closeSpy, ariaLabel},
         }}
@@ -153,10 +156,12 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body, Header}) => (
+          renderer: () => (
             <Fragment>
-              <Header />
-              <Body data-test-id="drawer-test-content">ignore close events</Body>
+              <DrawerHeader />
+              <DrawerBody data-test-id="drawer-test-content">
+                ignore close events
+              </DrawerBody>
             </Fragment>
           ),
           options: {
@@ -196,10 +201,10 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body, Header}) => (
+          renderer: () => (
             <Fragment>
-              <Header>{customHeader}</Header>
-              <Body data-test-id="drawer-test-content">custom header</Body>
+              <DrawerHeader>{customHeader}</DrawerHeader>
+              <DrawerBody data-test-id="drawer-test-content">custom header</DrawerBody>
             </Fragment>
           ),
           options: {ariaLabel, onClose: closeSpy},
