@@ -6,14 +6,14 @@ import type {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface UseTransactionProps {
-  node: TraceTreeNode<TraceTree.Transaction>;
+  node: TraceTreeNode<TraceTree.Transaction> | null;
   organization: Organization;
 }
 
 export function useTransaction(props: UseTransactionProps) {
   return useApiQuery<EventTransaction>(
     [
-      `/organizations/${props.organization.slug}/events/${props.node.value.project_slug}:${props.node.value.event_id}/`,
+      `/organizations/${props.organization.slug}/events/${props.node?.value?.project_slug}:${props?.node?.value.event_id}/`,
       {
         query: {
           referrer: 'trace-details-summary',

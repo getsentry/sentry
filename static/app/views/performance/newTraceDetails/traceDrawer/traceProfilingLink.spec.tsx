@@ -37,6 +37,7 @@ describe('traceProfilingLink', () => {
           projectSlug: 'project',
           orgSlug: '',
           traceId: '',
+          threadId: '0',
         })
       ).toBeNull();
     });
@@ -47,6 +48,7 @@ describe('traceProfilingLink', () => {
           projectSlug: '',
           orgSlug: 'sentry',
           traceId: '',
+          threadId: '0',
         })
       ).toBeNull();
     });
@@ -84,6 +86,7 @@ describe('traceProfilingLink', () => {
         projectSlug: 'project',
         orgSlug: 'sentry',
         traceId: 'trace',
+        threadId: '0',
       }
     );
 
