@@ -55,7 +55,6 @@ function AddIntegrationRow({
   const {metadata} = provider;
 
   const buttonProps = {
-    style: {margin: 0},
     size: 'sm' as const,
     priority: 'primary' as const,
     'data-test-id': 'install-button',
@@ -66,16 +65,16 @@ function AddIntegrationRow({
 
   // TODO(Mia): show request installation button if user does not have necessary permissions
   const integrationButton = metadata.aspects.externalInstall ? (
-    <Button
+    <ExternalButton
       href={metadata.aspects.externalInstall.url}
       onClick={() => close}
       external
       {...buttonProps}
     >
       Add Installation
-    </Button>
+    </ExternalButton>
   ) : (
-    <AddIntegrationButton
+    <InternalButton
       provider={provider}
       onAddIntegration={close}
       analyticsParams={{view: 'onboarding', already_installed: false}}
@@ -111,6 +110,14 @@ const IconTextWrapper = styled('div')`
 `;
 
 const NameHeader = styled('h6')`
+  margin: 0;
+`;
+
+const ExternalButton = styled(Button)`
+  margin: 0;
+`;
+
+const InternalButton = styled(AddIntegrationButton)`
   margin: 0;
 `;
 
