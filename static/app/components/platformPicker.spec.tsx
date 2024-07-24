@@ -106,4 +106,19 @@ describe('PlatformPicker', function () {
       expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]);
     });
   });
+
+  it('"other" platform shall be rendered if filter contains it', async function () {
+    render(<PlatformPicker setPlatform={jest.fn()} />);
+
+    expect(screen.queryByTestId('platform-other')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox'), 'Oth');
+
+    expect(screen.queryByTestId('platform-other')).not.toBeInTheDocument();
+
+    // complete the word 'other'
+    await userEvent.type(screen.getByRole('textbox'), 'er');
+
+    expect(screen.getByTestId('platform-other')).toBeInTheDocument();
+  });
 });
