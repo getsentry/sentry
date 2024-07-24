@@ -1,6 +1,7 @@
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import queryString from 'query-string';
 
 import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -39,10 +40,14 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
   const organization = useOrganization();
   const projectSlug = useCurrentFeedbackProject();
 
+  // we need the stringifyUrl part so that the whole item is a string
+  // for the copy url button below. normalizeUrl can return an object if `query`
+  // or other options are passed, which breaks the copy-paste.
   const feedbackUrl =
     window.location.origin +
-    normalizeUrl({
-      pathname: `/organizations/${organization.slug}/feedback/`,
+    normalizeUrl(`/organizations/${organization.slug}/feedback/`) +
+    queryString.stringifyUrl({
+      url: '?',
       query: {
         feedbackSlug: `${projectSlug}:${feedbackItem.id}`,
         project: feedbackItem.project?.id,
