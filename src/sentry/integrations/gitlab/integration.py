@@ -123,7 +123,7 @@ class GitlabIntegration(
     def source_url_matches(self, url: str) -> bool:
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]
         repo_name = repo.config["path"]
 

@@ -184,7 +184,7 @@ class GitHubEnterpriseIntegration(
         else:
             return ERR_INTERNAL
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
         return f"{repo.url}/blob/{branch}/{filepath}"
