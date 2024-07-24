@@ -72,9 +72,9 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
             size="sm"
             icon={
               <IconWrapper>
-                <PluginIcon pluginId="slack" size={16} />
-                <PluginIcon pluginId="msteams" size={16} />
-                <PluginIcon pluginId="discord" size={16} />
+                {providerKeys.map((value: string) => {
+                  return <PluginIcon key={value} pluginId={value} size={16} />;
+                })}
               </IconWrapper>
             }
             onClick={() =>
