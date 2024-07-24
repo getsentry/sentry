@@ -840,7 +840,6 @@ function WidgetBuilder({
     if (widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateWidgetIndex = getUpdateWidgetIndex();
-      // TODO: Ensure set here
       const nextWidgetData = {
         ...widgetData,
         id: widgetToBeUpdated.id,
@@ -868,7 +867,6 @@ function WidgetBuilder({
       return;
     }
 
-    // Ensure set here
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
