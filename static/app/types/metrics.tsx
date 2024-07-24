@@ -10,6 +10,7 @@ export type MetricAggregation =
   | 'min'
   | 'p50'
   | 'p75'
+  | 'p90'
   | 'p95'
   | 'p99';
 

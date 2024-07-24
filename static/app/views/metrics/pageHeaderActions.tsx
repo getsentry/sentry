@@ -150,7 +150,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
             onClick={() => openExtractionRuleCreateModal({})}
             size="sm"
           >
-            {t('Add New Metric')}
+            {t('Create metric')}
           </Button>
         ) : (
           <Button priority="primary" onClick={() => addCustomMetric()} size="sm">

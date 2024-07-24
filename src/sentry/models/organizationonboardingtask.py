@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.core.cache import cache
@@ -101,9 +101,10 @@ class AbstractOnboardingTask(Model):
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
-    data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
+    # INVITE_MEMBER { invited_member: user.id }
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
-    # fields for typing
+    # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
     SKIPPABLE_TASKS: frozenset[int]
 

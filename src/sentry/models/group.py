@@ -565,7 +565,9 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
+        blank=True, null=True
+    )
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
     priority = models.PositiveSmallIntegerField(null=True)

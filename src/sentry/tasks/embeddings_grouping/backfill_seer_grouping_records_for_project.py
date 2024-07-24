@@ -49,7 +49,8 @@ def backfill_seer_grouping_records_for_project(
     last_processed_group_id_input: int | None,
     cohort: str | list[int] | None = None,
     last_processed_project_index_input: int | None = None,
-    only_delete=False,
+    only_delete: bool = False,
+    enable_ingestion: bool = False,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -105,6 +106,7 @@ def backfill_seer_grouping_records_for_project(
             last_processed_project_index=last_processed_project_index_input,
             cohort=cohort,
             only_delete=only_delete,
+            enable_ingestion=enable_ingestion,
         )
         return
 
@@ -121,13 +123,14 @@ def backfill_seer_grouping_records_for_project(
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             only_delete=only_delete,
+            enable_ingestion=enable_ingestion,
         )
         return
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
     (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
-        project, last_processed_group_id, batch_size
+        project, last_processed_group_id, batch_size, enable_ingestion
     )
 
     if len(groups_to_backfill_with_no_embedding) == 0:
@@ -137,6 +140,7 @@ def backfill_seer_grouping_records_for_project(
             redis_client=redis_client,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
+            enable_ingestion=enable_ingestion,
         )
         return
 
@@ -154,6 +158,7 @@ def backfill_seer_grouping_records_for_project(
             redis_client=redis_client,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
+            enable_ingestion=enable_ingestion,
         )
         return
 
@@ -167,6 +172,7 @@ def backfill_seer_grouping_records_for_project(
             redis_client=redis_client,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
+            enable_ingestion=enable_ingestion,
         )
         return
 
@@ -193,6 +199,7 @@ def backfill_seer_grouping_records_for_project(
             extra={
                 "current_project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
+                "reason": seer_response.get("reason"),
             },
         )
         sentry_sdk.capture_exception(Exception("Seer failed during backfill"))
@@ -217,6 +224,7 @@ def backfill_seer_grouping_records_for_project(
         redis_client=redis_client,
         last_processed_project_index=last_processed_project_index,
         cohort=cohort,
+        enable_ingestion=enable_ingestion,
     )
 
 
@@ -228,6 +236,7 @@ def call_next_backfill(
     last_processed_project_index: int,
     cohort: str | list[int] | None = None,
     only_delete: bool = False,
+    enable_ingestion: bool = False,
 ):
     if last_processed_group_id is not None:
         redis_client.set(
@@ -249,6 +258,7 @@ def call_next_backfill(
                 cohort,
                 last_processed_project_index,
                 only_delete,
+                enable_ingestion,
             ],
             headers={"sentry-propagate-traces": False},
         )
@@ -295,6 +305,7 @@ def call_next_backfill(
                 cohort,
                 last_processed_project_index,
                 only_delete,
+                enable_ingestion,
             ],
             headers={"sentry-propagate-traces": False},
         )

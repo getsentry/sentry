@@ -5,6 +5,7 @@ import LoadingTriangle from 'sentry/components/loadingTriangle';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 import usePlacementCss from '../hooks/usePlacementCss';
+import useVisibility from '../hooks/useVisibility';
 import {fixedContainerBaseCss} from '../styles/fixedContainer';
 import {avatarCss, globalCss, loadingIndicatorCss} from '../styles/global';
 import {resetFlexColumnCss} from '../styles/reset';
@@ -15,8 +16,12 @@ import PanelRouter from './panelRouter';
 
 export default function App() {
   const placement = usePlacementCss();
-  const [isHidden, setIsHidden] = useSessionStorage('hide_employee_devtoolbar', false);
-  if (isHidden) {
+  const [visibility] = useVisibility();
+  const [isDisabled, setIsDisabled] = useSessionStorage(
+    'hide_employee_devtoolbar',
+    false
+  );
+  if (isDisabled) {
     return null;
   }
 
@@ -25,10 +30,10 @@ export default function App() {
       <Global styles={globalCss} />
       <Global styles={loadingIndicatorCss} />
       <Global styles={avatarCss} />
-      <div css={[fixedContainerBaseCss, placement.fixedContainer.css]}>
-        {isHidden ? null : (
+      <div css={[fixedContainerBaseCss, placement.fixedContainer.css, {visibility}]}>
+        {isDisabled ? null : (
           <Fragment>
-            <Navigation setIsHidden={setIsHidden} />
+            <Navigation setIsDisabled={setIsDisabled} />
             <Suspense fallback={<LoadingPanel />}>
               <PanelRouter />
             </Suspense>

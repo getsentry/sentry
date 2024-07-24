@@ -41,9 +41,21 @@ export interface SearchQueryBuilderProps {
   searchSource: string;
   className?: string;
   /**
+   * When true, free text will be marked as invalid.
+   */
+  disallowFreeText?: boolean;
+  /**
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
+  /**
+   * When true, unsupported filter keys will be highlighted as invalid.
+   */
+  disallowUnsupportedFilters?: boolean;
+  /**
+   * When true, the wildcard (*) in filter values or free text will be marked as invalid.
+   */
+  disallowWildcard?: boolean;
   /**
    * The lookup strategy for field definitions.
    * Each SearchQueryBuilder instance can support a different list of fields and
@@ -92,6 +104,9 @@ function ActionButtons() {
 export function SearchQueryBuilder({
   className,
   disallowLogicalOperators,
+  disallowFreeText,
+  disallowUnsupportedFilters,
+  disallowWildcard,
   label,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -112,10 +127,21 @@ export function SearchQueryBuilder({
   const parsedQuery = useMemo(
     () =>
       parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        disallowFreeText,
         disallowLogicalOperators,
+        disallowUnsupportedFilters,
+        disallowWildcard,
         filterKeys,
       }),
-    [disallowLogicalOperators, fieldDefinitionGetter, filterKeys, state.query]
+    [
+      disallowFreeText,
+      disallowLogicalOperators,
+      disallowWildcard,
+      fieldDefinitionGetter,
+      filterKeys,
+      disallowUnsupportedFilters,
+      state.query,
+    ]
   );
 
   useEffectAfterFirstRender(() => {

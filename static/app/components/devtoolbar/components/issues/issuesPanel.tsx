@@ -32,7 +32,7 @@ export default function FeedbackPanel() {
     query: `url:*${transactionName}`,
   });
 
-  const estimateSize = 108;
+  const estimateSize = 89;
   const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
 
   return (
@@ -111,7 +111,7 @@ function IssueListItem({item}: {item: Group}) {
         <TextOverflow css={[smallCss]}>{item.metadata.value}</TextOverflow>
       </div>
 
-      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'project'}}>
+      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'owner'}}>
         <ProjectBadge
           css={css({'&& img': {boxShadow: 'none'}})}
           project={item.project}

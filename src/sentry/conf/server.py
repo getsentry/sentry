@@ -2470,7 +2470,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.7.0"
+SELF_HOSTED_STABLE_VERSION = "24.7.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2973,10 +2973,6 @@ SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 # Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
 SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
-# If this is turned on, then sentry will perform automatic grouping updates.
-# This is enabled in production
-SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
-
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
 
@@ -3427,6 +3423,7 @@ SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
+SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 

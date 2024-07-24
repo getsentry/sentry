@@ -12,6 +12,7 @@ import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 import useConfiguration from '../../hooks/useConfiguration';
 import useCurrentTransactionName from '../../hooks/useCurrentTransactionName';
 import {useSDKFeedbackButton} from '../../hooks/useSDKFeedbackButton';
+import useVisibility from '../../hooks/useVisibility';
 import {
   badgeWithLabelCss,
   gridFlexEndCss,
@@ -34,7 +35,17 @@ import SentryAppLink from '../sentryAppLink';
 import useInfiniteFeedbackList from './useInfiniteFeedbackList';
 
 export default function FeedbackPanel() {
-  const buttonRef = useSDKFeedbackButton();
+  const [, setVisible] = useVisibility();
+
+  const buttonRef = useSDKFeedbackButton(
+    useMemo(
+      () => ({
+        onFormOpen: () => setVisible('hidden'),
+        onFormClose: () => setVisible('visible'),
+      }),
+      [setVisible]
+    )
+  );
   const transactionName = useCurrentTransactionName();
   const queryResult = useInfiniteFeedbackList({
     query: `url:*${transactionName}`,
@@ -142,14 +153,16 @@ function FeedbackListItem({item}: {item: FeedbackIssueListItem}) {
         </TextOverflow>
       </div>
 
-      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'project'}}>
-        <ProjectBadge
-          css={css({'&& img': {boxShadow: 'none'}})}
-          project={item.project}
-          avatarSize={16}
-          hideName
-          avatarProps={{hasTooltip: false}}
-        />
+      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'owner'}}>
+        {item.project ? (
+          <ProjectBadge
+            css={css({'&& img': {boxShadow: 'none'}})}
+            project={item.project}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: false}}
+          />
+        ) : null}
         <TextOverflow>{item.shortId}</TextOverflow>
       </div>
 
