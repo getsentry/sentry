@@ -71,6 +71,9 @@ def get_project_id_from_rule(rule: AlertRule) -> int | None:
 
 
 def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPResponse:
+    """
+    Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert
+    """
     base_error_response = BaseHTTPResponse(
         status=status.HTTP_400_BAD_REQUEST,
         reason="Something went wrong!",
@@ -96,7 +99,7 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
         return base_error_response
 
     snuba_query = SnubaQuery.objects.get(id=rule.snuba_query_id)
-    time_period = int(snuba_query.time_window / 60)
+    window_min = int(snuba_query.time_window / 60)
     historical_data = fetch_historical_data(rule, snuba_query)
 
     if not historical_data:
@@ -112,8 +115,8 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
         )
         return base_error_response
 
-    ad_config = ADConfig(
-        time_period=time_period,
+    anomaly_detection_config = ADConfig(
+        time_period=window_min,
         sensitivity=rule.sensitivity,
         direction=translate_direction(rule.threshold_type),
         expected_seasonality=rule.seasonality,
@@ -123,7 +126,7 @@ def send_historical_data_to_seer(rule: AlertRule, user: User) -> BaseHTTPRespons
         organization_id=rule.organization.id,
         project_id=project_id,
         alert=alert,
-        config=ad_config,
+        config=anomaly_detection_config,
         timeseries=formatted_data,
     )
     try:
