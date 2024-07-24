@@ -331,23 +331,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_annotations(self, group, **kwargs):
-        """
-        Return a list of annotations to append to this aggregate.
-
-        An example of an annotation might be "Needs Fix" or "Task #123".
-
-        The properties of each tag must match the constructor for
-        :class:`sentry.plugins.Annotation`
-
-        >>> def get_annotations(self, group, **kwargs):
-        >>>     task_id = GroupMeta.objects.get_value(group, 'myplugin:tid')
-        >>>     if not task_id:
-        >>>         return []
-        >>>     return [{'label': '#%s' % (task_id,)}]
-        """
-        return []
-
     def get_tags(self, event, **kwargs):
         """
         Return a list of additional tags to add to this instance.

@@ -1,13 +1,6 @@
-__all__ = ("Annotation", "Notification")
-
 import warnings
 
-
-class Annotation:
-    def __init__(self, label, url=None, description=None):
-        self.label = label
-        self.url = url
-        self.description = description
+__all__ = ("Notification",)
 
 
 class Notification:

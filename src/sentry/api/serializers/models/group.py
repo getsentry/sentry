@@ -15,7 +15,6 @@ from django.db.models import Min, prefetch_related_objects
 from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.services.auth import AuthenticatedToken
@@ -296,9 +295,7 @@ class GroupSerializerBase(Serializer, ABC):
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
-                "annotations": self._resolve_and_extend_plugin_annotation(
-                    item, annotations_by_group_id[item.id]
-                ),
+                "annotations": annotations_by_group_id[item.id],
                 "ignore_until": ignore_item,
                 "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
                 "resolution": resolution,
@@ -677,27 +674,6 @@ class GroupSerializerBase(Serializer, ABC):
             integration_annotations.append(local_annotations_by_group_id)
 
         return integration_annotations
-
-    @staticmethod
-    def _resolve_and_extend_plugin_annotation(
-        item: Group, current_annotations: list[Any]
-    ) -> Sequence[Any]:
-        from sentry.plugins.base import plugins
-
-        annotations_for_group = []
-        annotations_for_group.extend(current_annotations)
-
-        # add the annotations for plugins
-        # note that the model GroupMeta(where all the information is stored) is already cached at the start of
-        # `get_attrs`, so these for loops doesn't make a bunch of queries
-        for plugin in plugins.for_project(project=item.project, version=1):
-            if is_plugin_deprecated(plugin, item.project):
-                continue
-            safe_execute(plugin.tags, None, item, annotations_for_group)
-        for plugin in plugins.for_project(project=item.project, version=2):
-            annotations_for_group.extend(safe_execute(plugin.get_annotations, group=item) or ())
-
-        return annotations_for_group
 
     @staticmethod
     def _is_authorized(user, organization_id: int):
