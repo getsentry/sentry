@@ -109,9 +109,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     except ObjectDoesNotExist:
         return None
 
-    if isinstance(assigned_actor, Team):
+    if actor.is_team and isinstance(assigned_actor, Team):
         assignee_text = f"#{assigned_actor.slug}"
-    elif isinstance(assigned_actor, RpcUser):
+    elif actor.is_user and isinstance(assigned_actor, RpcUser):
         assignee_identity = identity_service.get_identity(
             filter={
                 "provider_id": identity.idp_id,
@@ -285,12 +285,13 @@ def get_suggested_assignees(
 
         for assignee in suggested_assignees:
             # skip over any suggested assignees that are the current assignee of the issue, if there is any
-            if current_assignee and assignee.id != current_assignee.id:
-                continue
-
-            if assignee.is_team and not (isinstance(current_assignee, Team)):
+            if assignee.is_team and not (
+                isinstance(current_assignee, Team) and assignee.id == current_assignee.id
+            ):
                 assignee_texts.append(f"#{assignee.slug}")
-            elif assignee.is_user and not (isinstance(current_assignee, RpcUser)):
+            elif assignee.is_user and not (
+                isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
+            ):
                 assignee_as_user = assignee.resolve()
                 if isinstance(assignee_as_user, RpcUser):
                     assignee_texts.append(assignee_as_user.get_display_name())

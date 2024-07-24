@@ -85,7 +85,7 @@ def build_test_message_blocks(
         {
             "type": "section",
             "text": {"type": "mrkdwn", "text": title_text},
-            "block_id": f'{{"issue":{group.id}}}',
+            "block_id": {"issue": group.id},
         },
     ]
     if group.culprit:
