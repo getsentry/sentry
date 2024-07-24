@@ -17,7 +17,7 @@ from sentry.integrations.slack.message_builder.issues import (
     build_actions,
     format_release_tag,
     get_context,
-    get_option_groups_block_kit,
+    get_option_groups,
     get_tags,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
@@ -423,10 +423,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
     @patch(
-        "sentry.integrations.slack.message_builder.issues.get_option_groups_block_kit",
-        wraps=get_option_groups_block_kit,
+        "sentry.integrations.slack.message_builder.issues.get_option_groups",
+        wraps=get_option_groups,
     )
-    def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups_block_kit):
+    def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups):
         user2 = self.create_user()
         self.create_member(user=user2, organization=self.organization)
         team2 = self.create_team(organization=self.organization, members=[self.user, user2])
@@ -434,9 +434,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = self.create_group(project=project2)
 
         SlackIssuesMessageBuilder(group).build()
-        assert mock_get_option_groups_block_kit.called
+        assert mock_get_option_groups.called
 
-        team_option_groups, member_option_groups = mock_get_option_groups_block_kit(group)
+        team_option_groups, member_option_groups = mock_get_option_groups(group)
         assert len(team_option_groups["options"]) == 2
         assert len(member_option_groups["options"]) == 2
 
