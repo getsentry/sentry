@@ -27,8 +27,9 @@ export default function FeedbackScreenshot({
   onClick,
 }: Props) {
   const [isLoading, setIsLoading] = useState(true);
-  const isImage =
-    screenshot.mimetype.includes('image') || screenshot.mimetype.includes('png');
+  // since we can't trust mimetype, we'll try to load all attachments as images
+  // if it fails, then set that here, and render a default preview instead.
+  const [imgLoadError, setImgLoadError] = useState(false);
 
   const img = (
     <StyledImageVisualization
@@ -36,12 +37,17 @@ export default function FeedbackScreenshot({
       orgId={organization.slug}
       projectSlug={projectSlug}
       eventId={screenshot.event_id}
-      onLoad={() => setIsLoading(false)}
-      onError={() => setIsLoading(false)}
+      onLoad={() => {
+        setIsLoading(false);
+      }}
+      onError={() => {
+        setIsLoading(false);
+        setImgLoadError(true);
+      }}
     />
   );
 
-  return isImage ? (
+  return !imgLoadError ? (
     <StyledPanel className={className}>
       {isLoading && (
         <StyledLoadingIndicator>
