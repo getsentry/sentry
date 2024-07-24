@@ -20,6 +20,7 @@ export const getQuerySymbol = (index: number) => {
 export const DeprecatedSymbol = styled('span')<{
   isHidden?: boolean;
 }>`
+  text-transform: lowercase;
   display: flex;
   width: 38px;
   height: 38px;
