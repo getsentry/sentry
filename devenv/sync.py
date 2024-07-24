@@ -222,6 +222,8 @@ def main(context: dict[str, str]) -> int:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
+    colima.start(reporoot)
+
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
         (
