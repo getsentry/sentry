@@ -41,13 +41,9 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
 
   const feedbackUrl =
     window.location.origin +
-    normalizeUrl({
-      pathname: `/organizations/${organization.slug}/feedback/`,
-      query: {
-        feedbackSlug: `${projectSlug}:${feedbackItem.id}`,
-        project: feedbackItem.project?.id,
-      },
-    });
+    normalizeUrl(
+      `/organizations/${organization.slug}/feedback/?feedbackSlug=${projectSlug}:${feedbackItem.id}&project=${feedbackItem.project?.id}`
+    );
 
   const {onClick: handleCopyUrl} = useCopyToClipboard({
     successMessage: t('Copied Feedback URL to clipboard'),
