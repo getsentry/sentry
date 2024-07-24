@@ -269,28 +269,30 @@ export default function UpdatedGroupHeader({
                 )}
               />
             </Wrapper>
-            <Wrapper>
-              {t('Participants')}
-              {participants.length && (
-                <StyledAvatarList
-                  users={userParticipants}
-                  teams={teamParticipants}
-                  avatarSize={28}
-                  maxVisibleAvatars={2}
-                  typeAvatars="participants"
-                />
-              )}
-            </Wrapper>
-            <Wrapper>
-              {t('Viewers')}
-              {displayUsers.length && (
+            {participants.length > 0 && (
+              <Wrapper>
+                {t('Participants')}
+                <div>
+                  <StyledAvatarList
+                    users={userParticipants}
+                    teams={teamParticipants}
+                    avatarSize={16}
+                    maxVisibleAvatars={2}
+                    typeAvatars="participants"
+                  />
+                </div>
+              </Wrapper>
+            )}
+            {displayUsers.length > 0 && (
+              <Wrapper>
+                {t('Viewers')}
                 <StyledAvatarList
                   users={displayUsers}
-                  avatarSize={28}
+                  avatarSize={16}
                   maxVisibleAvatars={2}
                 />
-              )}
-            </Wrapper>
+              </Wrapper>
+            )}
           </PriorityAssignee>
         </InfoWrapper>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />

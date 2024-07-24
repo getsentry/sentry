@@ -364,7 +364,7 @@ export function Actions(props: Props) {
         <ResolvedActionWapper>
           <ResolvedWrapper>
             <IconCheckmark />
-            {t('Resolved')}
+            {isResolved ? t('Resolved') : t('Archived')}
           </ResolvedWrapper>
           <Divider />
           <ActionButton

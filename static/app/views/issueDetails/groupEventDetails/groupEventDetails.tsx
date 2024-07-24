@@ -37,6 +37,7 @@ import {
   getGroupMostRecentActivity,
   ReprocessingStatus,
   useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
 } from '../utils';
 
 const EscalatingIssuesFeedback = HookOrDefault({
@@ -72,6 +73,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
+
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -183,7 +186,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           ) : (
             <Fragment>
               <StyledLayoutMain>
-                {renderGroupStatusBanner()}
+                {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
                 {eventWithMeta && issueTypeConfig.stats.enabled && (
                   <GroupEventHeader
