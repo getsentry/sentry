@@ -75,7 +75,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def get(self, request: Request, organization, dashboard) -> Response:
         """
-        Return details on an individual organization's custom dashboard.
+        Return details about an organization's custom dashboard.
         """
         if not features.has(READ_FEATURE, organization, actor=request.user):
             return Response(status=404)
@@ -96,7 +96,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def delete(self, request: Request, organization, dashboard) -> Response:
         """
-        Delete an individual organization's custom dashboard, or tombstone
+        Delete an organization's custom dashboard, or tombstone
         a pre-built dashboard which effectively deletes it.
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
@@ -135,9 +135,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def put(self, request: Request, organization, dashboard) -> Response:
         """
-        Edit an individual organization's custom dashboard as well as
-        bulk edits on widgets (i.e. rearranging widget order, updating
-        queries and fields, changing display types, etc).
+        Edit an organization's custom dashboard as well as any bulk
+        edits on widgets that may have been made. (For example, widgets
+        that have been rearranged, updated queries and fields, specific
+        display types, and so on.)
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
