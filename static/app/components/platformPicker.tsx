@@ -35,6 +35,10 @@ const selectablePlatforms = platforms.filter(platform =>
   createablePlatforms.has(platform.id)
 );
 
+function startsWithPunctuation(name: string) {
+  return /^[\p{P}]/u.test(name);
+}
+
 export type Category = (typeof categoryList)[number]['id'];
 
 export type Platform = PlatformIntegration & {
@@ -100,7 +104,15 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
     const filtered = tempSelectablePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
-      .sort((a, b) => a.id.localeCompare(b.id));
+      .sort((a, b) => {
+        if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
+          return 1;
+        }
+        if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
+          return -1;
+        }
+        return a.name.localeCompare(b.name);
+      });
 
     return this.props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
   }
