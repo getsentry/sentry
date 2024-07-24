@@ -38,6 +38,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
@@ -329,6 +330,21 @@ const ValueTd = styled('td')`
   position: relative;
 `;
 
+function getThreadIdFromNode(
+  node: TraceTreeNode<TraceTree.NodeValue>,
+  transaction: EventTransaction | undefined
+): string | undefined {
+  if (isSpanNode(node) && node.value.data?.['thread.id']) {
+    return node.value.data['thread.id'];
+  }
+
+  if (transaction) {
+    return transaction.context?.trace?.data?.['thread.id'];
+  }
+
+  return undefined;
+}
+
 function NodeActions(props: {
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
@@ -409,12 +425,17 @@ function NodeActions(props: {
     return '';
   }, [props]);
 
-  const params = useParams<{traceSlug?: string}>();
+  const {data: transaction} = useTransaction({
+    node: isTransactionNode(props.node) ? props.node : null,
+    organization,
+  });
 
+  const params = useParams<{traceSlug?: string}>();
   const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
     orgSlug: props.organization.slug,
     projectSlug: props.node.metadata.project_slug ?? '',
     traceId: params.traceSlug ?? '',
+    threadId: getThreadIdFromNode(props.node, transaction),
   });
 
   return (
