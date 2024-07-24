@@ -7,6 +7,7 @@ import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import useReactPortalTarget from 'sentry/components/react/useReactPortalTarget';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -247,6 +248,8 @@ function DetailsOverlay({
 
   const popper = usePopper(itemRef.current, overlayElement, POPPER_OPTIONS);
 
+  const portalTarget = useReactPortalTarget();
+
   return createPortal(
     <StyledPositionWrapper
       {...popper.attributes.popper}
@@ -261,7 +264,7 @@ function DetailsOverlay({
     // Safari will clip the overlay if it is inside a scrollable container, even though it is positioned fixed.
     // See https://bugs.webkit.org/show_bug.cgi?id=160953
     // To work around this, we append the overlay to the body
-    document.body
+    portalTarget
   );
 }
 

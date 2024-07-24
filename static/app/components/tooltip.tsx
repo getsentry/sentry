@@ -6,11 +6,12 @@ import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import useReactPortalTarget from 'sentry/components/react/useReactPortalTarget';
 import {space} from 'sentry/styles/space';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
-interface TooltipProps extends UseHoverOverlayProps {
+export interface TooltipProps extends UseHoverOverlayProps {
   /**
    * The content to show in the tooltip popover
    */
@@ -26,7 +27,7 @@ interface TooltipProps extends UseHoverOverlayProps {
   overlayStyle?: React.CSSProperties | SerializedStyles;
 }
 
-function Tooltip({
+export function Tooltip({
   children,
   overlayStyle,
   title,
@@ -43,6 +44,8 @@ function Tooltip({
       reset();
     }
   }, [reset, disabled]);
+
+  const portalTarget = useReactPortalTarget();
 
   if (disabled || !title) {
     return <Fragment>{children}</Fragment>;
@@ -65,7 +68,7 @@ function Tooltip({
   return (
     <Fragment>
       {wrapTrigger(children)}
-      {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, document.body)}
+      {createPortal(<AnimatePresence>{tooltipContent}</AnimatePresence>, portalTarget)}
     </Fragment>
   );
 }
@@ -79,6 +82,3 @@ const TooltipContent = styled(Overlay)`
   line-height: 1.2;
   text-align: center;
 `;
-
-export type {TooltipProps};
-export {Tooltip};

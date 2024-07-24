@@ -7,6 +7,7 @@ import {Item, Section} from '@react-stately/collections';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
+import useReactPortalTarget from 'sentry/components/react/useReactPortalTarget';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -153,6 +154,8 @@ function DropdownMenu({
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
+  const portalTarget = useReactPortalTarget();
+
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const {
     isOpen,
@@ -248,7 +251,7 @@ function DropdownMenu({
       </DropdownMenuList>
     );
 
-    return usePortal ? createPortal(menu, document.body) : menu;
+    return usePortal ? createPortal(menu, portalTarget) : menu;
   }
 
   return (
