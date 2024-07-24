@@ -334,12 +334,12 @@ function getThreadIdFromNode(
   node: TraceTreeNode<TraceTree.NodeValue>,
   transaction: EventTransaction | undefined
 ): string | undefined {
-  if (isSpanNode(node) && node.value.data['thread.id']) {
+  if (isSpanNode(node) && node.value.data?.['thread.id']) {
     return node.value.data['thread.id'];
   }
 
   if (transaction) {
-    return transaction.context?.trace?.data?.['thread.id'];
+    return transaction.contexts?.trace?.data?.['thread.id'];
   }
 
   return undefined;
