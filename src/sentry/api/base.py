@@ -221,8 +221,8 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: RateLimitConfig | dict[
-        str, dict[RateLimitCategory, RateLimit]
+    rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]] | Callable[
+        ..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     snuba_methods: list[HTTP_METHOD_NAME] = []

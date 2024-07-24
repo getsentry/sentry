@@ -288,7 +288,8 @@ class CallableRateLimitConfigEndpoint(Endpoint):
     permission_classes = (AllowAny,)
     enforce_rate_limit = True
 
-    def rate_limits(request):
+    @staticmethod
+    def rate_limits(*a, **k):
         return {
             "GET": {
                 RateLimitCategory.IP: RateLimit(limit=20, window=1),
