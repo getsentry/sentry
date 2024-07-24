@@ -44,6 +44,7 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
+  DatasetSource,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
@@ -152,6 +153,7 @@ export class Results extends Component<Props, State> {
     needConfirmation: false,
     confirmedQuery: false,
     tips: [],
+    showForcedDatasetAlert: true,
   };
 
   componentDidMount() {
@@ -575,12 +577,16 @@ export class Results extends Component<Props, State> {
   }
 
   renderForcedDatasetBanner() {
-    const {organization} = this.props;
+    const {organization, savedQuery} = this.props;
     if (
       organization.features.includes('performance-discover-dataset-selector') &&
       this.state.showForcedDatasetAlert &&
-      this.state.splitDecision
+      (this.state.splitDecision || savedQuery?.datasetSource === DatasetSource.FORCED)
     ) {
+      const splitDecision = this.state.splitDecision ?? savedQuery?.queryDataset;
+      if (!splitDecision) {
+        return null;
+      }
       return (
         <Alert
           type="warning"
@@ -599,7 +605,7 @@ export class Results extends Component<Props, State> {
         >
           {tct(
             "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-            {splitDecision: DATASET_LABEL_MAP[this.state.splitDecision]}
+            {splitDecision: DATASET_LABEL_MAP[splitDecision]}
           )}
         </Alert>
       );
@@ -766,7 +772,6 @@ export class Results extends Component<Props, State> {
                       value !== savedQuery?.dataset
                     ) {
                       this.setSplitDecision(value);
-                      this.setState({showForcedDatasetAlert: true});
                     }
                   }}
                   dataset={
