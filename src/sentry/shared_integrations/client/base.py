@@ -173,14 +173,14 @@ class BaseApiClient(TrackResponseMixin):
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
-        auth: str | None = None,
+        auth: tuple[str, str] | str | None = None,
         json: bool = True,
         allow_text: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
-        raw_response: bool = False,
+        raw_response: Literal[True] | bool = False,
     ) -> BaseApiResponseX:
         if allow_text is None:
             allow_text = self.allow_text
@@ -231,15 +231,12 @@ class BaseApiClient(TrackResponseMixin):
                     verify=self.verify_ssl,
                     cert=None,
                 )
-                send_kwargs = {
+                send_kwargs: dict[str, Any] = {
                     "timeout": timeout,
                     "allow_redirects": allow_redirects,
                     **environment_settings,
                 }
-                resp: Response = session.send(
-                    finalized_request,
-                    **send_kwargs,
-                )
+                resp: Response = session.send(finalized_request, **send_kwargs)
                 if raw_response:
                     return resp
                 resp.raise_for_status()
@@ -268,7 +265,7 @@ class BaseApiClient(TrackResponseMixin):
                 self.record_error(e)
                 raise ApiError("Internal Error", url=full_url) from e
 
-            self.track_response_data(error_resp.status_code, e, resp=error_resp, extra=extra)
+            self.track_response_data(error_resp.status_code, e, extra=extra)
             self.record_error(e)
             raise ApiError.from_response(error_resp, url=full_url) from e
 
@@ -292,7 +289,7 @@ class BaseApiClient(TrackResponseMixin):
             # If it's not something we recognize, let the caller deal with it
             raise
 
-        self.track_response_data(resp.status_code, None, resp, extra=extra)
+        self.track_response_data(resp.status_code, None, extra=extra)
 
         self.record_response_for_disabling_integration(resp)
 
