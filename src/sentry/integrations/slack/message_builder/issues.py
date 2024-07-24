@@ -243,24 +243,6 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
-def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
-    """Get teams and users that can be issue assignees for block kit"""
-    all_members = group.project.get_members_as_rpc_users()
-    members = list({m.id: m for m in all_members}.values())
-    teams = group.project.teams.all()
-
-    option_groups = []
-    if teams:
-        for team in teams:
-            option_groups.append({"label": team.slug, "value": f"team:{team.id}"})
-
-    if members:
-        for member in members:
-            option_groups.append({"label": member.email, "value": f"user:{member.id}"})
-
-    return option_groups
-
-
 def get_suggested_assignees(
     project: Project, event: GroupEvent, current_assignee: RpcUser | Team | None
 ) -> list[str]:
