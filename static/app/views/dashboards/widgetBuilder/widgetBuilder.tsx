@@ -218,7 +218,17 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const dataSet = dataset ? dataset : DataSet.EVENTS;
+  const defaultWidgetType = organization.features.includes(
+    'performance-discover-dataset-selector'
+  )
+    ? WidgetType.ERRORS
+    : WidgetType.DISCOVER;
+  const defaultDataset = organization.features.includes(
+    'performance-discover-dataset-selector'
+  )
+    ? DataSet.ERRORS
+    : DataSet.EVENTS;
+  const dataSet = dataset ? dataset : defaultDataset;
 
   const api = useApi();
 
@@ -315,7 +325,7 @@ function WidgetBuilder({
         queries = normalizeQueries({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
-          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
         }).map(query => ({
           ...query,
           // Use the last aggregate because that's where the y-axis is stored
@@ -327,7 +337,7 @@ function WidgetBuilder({
         queries = normalizeQueries({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
-          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
         });
       }
 
@@ -344,7 +354,7 @@ function WidgetBuilder({
         thresholds: widgetFromDashboard.thresholds ?? defaultThresholds,
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
-          : DataSet.EVENTS,
+          : defaultDataset,
         limit: newLimit,
         prebuiltWidgetId: null,
         queryConditionsValid: true,
@@ -420,12 +430,12 @@ function WidgetBuilder({
           'queries',
           normalizeQueries({
             displayType: newDisplayType,
-            queries: [{...getDatasetConfig(WidgetType.DISCOVER).defaultWidgetQuery}],
-            widgetType: WidgetType.DISCOVER,
+            queries: [{...getDatasetConfig(defaultWidgetType).defaultWidgetQuery}],
+            widgetType: defaultWidgetType,
           })
         );
-        set(newState, 'dataSet', DataSet.EVENTS);
-        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
+        set(newState, 'dataSet', defaultDataset);
+        setDataSetConfig(getDatasetConfig(defaultWidgetType));
         return {...newState, errors: undefined};
       }
 
@@ -720,7 +730,7 @@ function WidgetBuilder({
         newQuery.orderby = '';
       } else if (!newQuery.orderby) {
         const orderOptions = generateOrderOptions({
-          widgetType: widgetType ?? WidgetType.DISCOVER,
+          widgetType: widgetType ?? defaultWidgetType,
           columns: query.columns,
           aggregates: query.aggregates,
         });
@@ -852,7 +862,7 @@ function WidgetBuilder({
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
       trackAnalytics('dashboards_views.widget_builder.save', {
         organization,
-        data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+        data_set: widgetData.widgetType ?? defaultWidgetType,
         new_widget: false,
       });
       return;
@@ -864,7 +874,7 @@ function WidgetBuilder({
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
     trackAnalytics('dashboards_views.widget_builder.save', {
       organization,
-      data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+      data_set: widgetData.widgetType ?? defaultWidgetType,
       new_widget: true,
     });
   }
@@ -1282,7 +1292,7 @@ function WidgetBuilder({
                                   setLatestLibrarySelectionTitle(prebuiltWidget.title);
                                   setDataSetConfig(
                                     getDatasetConfig(
-                                      prebuiltWidget.widgetType || WidgetType.DISCOVER
+                                      prebuiltWidget.widgetType || defaultWidgetType
                                     )
                                   );
                                   const {id, ...prebuiltWidgetProps} = prebuiltWidget;
@@ -1291,7 +1301,7 @@ function WidgetBuilder({
                                     ...prebuiltWidgetProps,
                                     dataSet: prebuiltWidget.widgetType
                                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
-                                      : DataSet.EVENTS,
+                                      : defaultDataset,
                                     userHasModified: false,
                                     prebuiltWidgetId: id || null,
                                   });
