@@ -27,6 +27,31 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+function SeriesName({
+  seriesName,
+  isSingleSeries,
+}: {
+  isSingleSeries: boolean;
+  seriesName: string;
+}) {
+  const organization = useOrganization();
+
+  const prefix = seriesName.split(':')[0];
+  const sufix = seriesName.split(':')[1] ?? null;
+
+  return (
+    <TextOverflow>
+      <SerieNamePrefix
+        uppercaseText={hasMetricsNewInputs(organization) && !isSingleSeries}
+      >
+        {prefix}
+        {sufix && ':'}
+      </SerieNamePrefix>
+      {sufix}
+    </TextOverflow>
+  );
+}
+
 export const SummaryTable = memo(function SummaryTable({
   series,
   onRowClick,
@@ -239,16 +264,10 @@ export const SummaryTable = memo(function SummaryTable({
                     delay={500}
                     overlayStyle={{maxWidth: '80vw'}}
                   >
-                    <TextOverflow>
-                      <SerieNamePrefix
-                        uppercaseText={
-                          hasMetricsNewInputs(organization) && rows.length > 1
-                        }
-                      >
-                        {row.seriesName.split(':')[0]}:
-                      </SerieNamePrefix>
-                      {row.seriesName.split(':')[1]}
-                    </TextOverflow>
+                    <SeriesName
+                      isSingleSeries={rows.length === 1}
+                      seriesName={row.seriesName}
+                    />
                   </Tooltip>
                 </TextOverflowCell>
                 {totalColumns.map(aggregate => (
