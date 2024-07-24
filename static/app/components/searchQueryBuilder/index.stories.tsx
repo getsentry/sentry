@@ -436,6 +436,18 @@ export default storyBook(SearchQueryBuilder, story => {
     );
   });
 
+  story('Disabled', () => {
+    return (
+      <SearchQueryBuilder
+        initialQuery="is:unresolved assigned:me"
+        filterKeys={FILTER_KEYS}
+        getTagValues={getTagValues}
+        searchSource="storybook"
+        disabled
+      />
+    );
+  });
+
   story('Migrating from SmartSearchBar', () => {
     return (
       <Fragment>
