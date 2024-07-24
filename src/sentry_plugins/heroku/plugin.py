@@ -215,5 +215,5 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         <pre class="clippy">heroku webhooks:add -i api:release -l notify -u {hook_url} -a YOUR_APP_NAME</pre>
         """
 
-    def get_release_hook(self):
+    def get_release_hook(self) -> type[HerokuReleaseHook]:
         return HerokuReleaseHook
