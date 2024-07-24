@@ -111,7 +111,8 @@ def build_test_message_blocks(
     if tags:
         for k, v in tags.items():
             if k == "release":
-                v = format_release_tag(v, group)
+                event_for_tags = event or group.get_latest_event()
+                v = format_release_tag(v, event_for_tags)
             v = v.replace("`", "")
             tags_text += f"{k}: `{v}`  "
 
@@ -696,7 +697,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert has_actions
 
-    def test_team_recipient_block_kit_already_assigned(self):
+    def test_team_recipient_already_assigned(self):
         issue_alert_group = self.create_group(project=self.project)
         GroupAssignee.objects.create(
             project=self.project, group=issue_alert_group, user_id=self.user.id
@@ -789,7 +790,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
-    def test_block_kit_truncates_long_query(self):
+    def test_truncates_long_query(self):
         event = self.store_event(
             data={"message": "a" * 5000, "level": "error"}, project_id=self.project.id
         )
