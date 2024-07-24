@@ -111,7 +111,7 @@ def build_test_message_blocks(
     if tags:
         for k, v in tags.items():
             if k == "release":
-                event_for_tags = event or group.get_latest_event()
+                event_for_tags = group.get_latest_event()
                 v = format_release_tag(v, event_for_tags)
             v = v.replace("`", "")
             tags_text += f"{k}: `{v}`  "
