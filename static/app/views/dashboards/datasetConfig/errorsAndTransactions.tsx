@@ -688,15 +688,16 @@ export function filterAggregateParams(
 }
 
 const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
-  return organization.features.includes('performance-discover-widget-split-ui');
+  return organization.features.includes('performance-discover-dataset-selector');
 };
 
 const getQueryExtraForSplittingDiscover = (
   widget: Widget,
   organization: Organization,
-  useOnDemandMetrics: boolean
+  _useOnDemandMetrics: boolean
 ) => {
-  if (!useOnDemandMetrics || !shouldSendWidgetForSplittingDiscover(organization)) {
+  // TODO: What's the correct condition here for sending the split?
+  if (!shouldSendWidgetForSplittingDiscover(organization)) {
     return {};
   }
   if (widget.id) {

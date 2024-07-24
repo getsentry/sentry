@@ -1,6 +1,7 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -484,6 +485,23 @@ class DashboardDetail extends Component<Props, State> {
       // `updateDashboard` does its own error handling
       () => undefined
     );
+  };
+
+  // TODO: this function updates the widget list without triggering any side-effects
+  // be aware: we do lazy loading, so make sure we merge dashboard and modifiedDashboard
+  handleUpdateWidgetSplitDecision = (widget: Widget, splitDecision: WidgetType) => {
+    const {dashboard, onDashboardUpdate} = this.props;
+
+    const updatedDashboard = cloneDeep(dashboard);
+
+    // ! Keep in mind that there may not be a widget with the given ID, i.e. new widgets
+    // TODO: Might need to update modified dashboard too
+    const widgetIndex = updatedDashboard.widgets.findIndex(w => w.id === widget.id);
+
+    if (widgetIndex >= 0) {
+      updatedDashboard.widgets[widgetIndex].widgetType = splitDecision;
+      onDashboardUpdate?.(updatedDashboard);
+    }
   };
 
   handleAddCustomWidget = (widget: Widget) => {
@@ -992,6 +1010,9 @@ class DashboardDetail extends Component<Props, State> {
                                   newWidget={newWidget}
                                   onSetNewWidget={onSetNewWidget}
                                   isPreview={this.isPreview}
+                                  onWidgetSplitDecision={
+                                    this.handleUpdateWidgetSplitDecision
+                                  }
                                 />
                               </WidgetViewerContext.Provider>
                             </MEPSettingProvider>

@@ -19,7 +19,7 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 
-import type {DashboardFilters, Widget, WidgetType} from '../types';
+import {type DashboardFilters, type Widget, WidgetType} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 import type {
@@ -119,6 +119,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: OnDataFetchedProps) => void;
+  onWidgetSplitDecision?: (widget: Widget, splitDecision: WidgetType) => void;
 };
 
 function WidgetQueries({
@@ -131,6 +132,7 @@ function WidgetQueries({
   cursor,
   limit,
   onDataFetched,
+  onWidgetSplitDecision,
 }: Props) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
@@ -207,6 +209,16 @@ function WidgetQueries({
       isTableMetricsExtractedDataResults.every(Boolean) &&
         isTableMetricsExtractedDataResults.some(Boolean)
     );
+
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
+        rawResults?.meta?.discoverSplitDecision
+      )
+    ) {
+      // Update the dashboard state with the split decision
+      onWidgetSplitDecision(widget, rawResults?.meta?.discoverSplitDecision);
+    }
   };
 
   return (
