@@ -1302,6 +1302,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=900,
         )
 
         updated_rule = update_alert_rule(
@@ -1355,6 +1356,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=900,
         )
 
         updated_rule = update_alert_rule(rule, detection_type=AlertRuleDetectionType.STATIC)
@@ -1426,7 +1428,7 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
 
-class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
+class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
@@ -1490,6 +1492,17 @@ class CreateAlertRuleTriggerTest(TestCase):
         with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             create_alert_rule_trigger(self.alert_rule, name, 100)
 
+    def test_invalid_threshold_dynamic_alert(self):
+        rule = self.create_alert_rule(
+            time_window=900,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        create_alert_rule_trigger(rule, "yay", 0)
+        with pytest.raises(ValidationError):
+            create_alert_rule_trigger(rule, "no", 10)
+
 
 class UpdateAlertRuleTriggerTest(TestCase):
     @cached_property
@@ -1543,6 +1556,17 @@ class UpdateAlertRuleTriggerTest(TestCase):
 
         with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
+
+    def test_invalid_threshold_dynamic_alert(self):
+        rule = self.create_alert_rule(
+            time_window=900,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        trigger = create_alert_rule_trigger(rule, "yay", 0)
+        with pytest.raises(ValidationError):
+            update_alert_rule_trigger(trigger, alert_threshold=10)
 
 
 class DeleteAlertRuleTriggerTest(TestCase):

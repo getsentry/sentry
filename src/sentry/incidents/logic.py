@@ -566,6 +566,8 @@ def create_alert_rule(
     if detection_type == AlertRuleDetectionType.DYNAMIC:
         if not (sensitivity and seasonality):
             raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
+        if time_window not in {15 * 60, 30 * 60, 60 * 60}:
+            raise ValidationError("Invalid time window for dynamic alert")
     else:
         if sensitivity or seasonality:
             raise ValidationError(
@@ -1074,6 +1076,9 @@ def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_proje
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
         raise AlertRuleTriggerLabelAlreadyUsedError()
 
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
+        raise ValidationError("Dynamic alerts cannot have a nonzero alert threshold")
+
     excluded_subs = []
     if excluded_projects:
         excluded_subs = get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
@@ -1109,6 +1114,9 @@ def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, exclude
         .exists()
     ):
         raise AlertRuleTriggerLabelAlreadyUsedError()
+
+    if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
+        raise ValidationError("Dynamic alerts cannot have a nonzero alert threshold")
 
     updated_fields = {}
     if label is not None:

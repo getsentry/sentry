@@ -296,8 +296,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             sensitivity=AlertRuleSensitivity.HIGH,
             threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=900,
         )
-        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        trigger = self.create_alert_rule_trigger(rule, "hi", 0)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.detection_type == resp.data.get("detection_type")
@@ -306,7 +307,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
         ):
             self.create_alert_rule(
-                seasonality=AlertRuleSeasonality.AUTO, detection_type=AlertRuleDetectionType.DYNAMIC
+                seasonality=AlertRuleSeasonality.AUTO,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=900,
             )  # Require both seasonality and sensitivity
 
         with pytest.raises(
@@ -315,13 +318,15 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(
                 sensitivity=AlertRuleSensitivity.MEDIUM,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=900,
             )  # Require both seasonality and sensitivity
 
         with pytest.raises(
             ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
         ):
             self.create_alert_rule(
-                detection_type=AlertRuleDetectionType.DYNAMIC
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=900,
             )  # DYNAMIC detection type requires seasonality and sensitivity
 
         with pytest.raises(
@@ -333,6 +338,16 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 sensitivity=AlertRuleSensitivity.HIGH,
                 comparison_delta=60,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=900,
+            )
+
+        with pytest.raises(ValidationError, match="Invalid time window for dynamic alert"):
+            rule = self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=60,
             )
 
     @responses.activate
