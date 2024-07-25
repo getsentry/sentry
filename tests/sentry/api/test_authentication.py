@@ -500,6 +500,8 @@ class TestAuthTokens(TestCase):
     def test_api_tokens_organization_scoped(self):
         application = ApiApplication.objects.create(owner_id=self.user.id)
 
+        organization = self.create_organization()
+
         api_token = ApiToken.objects.create(
             token_type=AuthTokenType.USER,
             user=self.user,
@@ -525,3 +527,7 @@ class TestAuthTokens(TestCase):
             assert auth_token.allowed_origins == token.get_allowed_origins()
             assert auth_token.scopes == token.get_scopes()
             assert auth_token.audit_log_data == token.get_audit_log_data()
+
+            # Assert org scope is limited.
+            assert auth_token.token_has_org_access(self.organization.id)
+            assert not auth_token.token_has_org_access(organization.id)

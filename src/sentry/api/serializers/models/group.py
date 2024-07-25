@@ -711,23 +711,17 @@ class GroupSerializerBase(Serializer, ABC):
             token = AuthenticatedToken.from_token(request.auth)
 
             if getattr(request.user, "is_sentry_app", False):
-                # This is an app, we exit early if we're able. I have a feeling this is
-                # wrong because a Sentry App probably shouldn't have cross-organization
-                # access (as is implied by the fall-through). But this was the behavior
-                # I encountered while extending this section and I didn't have clear
-                # indications that it was actually wrong. If you know better fix it.
+                # This code implies that if the token does not have org access we should
+                # continue execution. This is how it was when I found it. Is this correct?
+                # Should Sentry Apps always be organization scoped?
                 if token.token_has_org_access(organization_id):
                     return True
             else:
-                # Presumably if this is not an app and the token was explicitly scoped
-                # to the organization then membership was pre-determined. However, we
-                # don't assume here. If you know better fix it.
-                return (
-                    token.token_has_org_access(organization_id)
-                    and OrganizationMember.objects.filter(
-                        user_id=user.id, organization_id=organization_id
-                    ).exists()
-                )
+                # We only evaluate organization access if an organization_id is present
+                # on the token. Otherwise we fall-through to the default authorization
+                # flow.
+                if token.organization_id:
+                    return token.token_has_org_access(organization_id)
 
         if (
             request
