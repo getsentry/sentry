@@ -79,9 +79,9 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         obj: RpcIntegration | Integration,
         attrs: Mapping[str, Any],
         user: User,
+        include_config: bool = True,
         **kwargs: Any,
     ) -> MutableMapping[str, Any]:
-        include_config = kwargs.get("include_config", True)
         data = super().serialize(obj, attrs, user)
 
         if not include_config:
@@ -135,6 +135,7 @@ class OrganizationIntegrationSerializer(Serializer):
         obj: RpcOrganizationIntegration,
         attrs: Mapping[str, Any],
         user: User,
+        include_config: bool = True,
         **kwargs: Any,
     ) -> MutableMapping[str, Any]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
@@ -142,7 +143,6 @@ class OrganizationIntegrationSerializer(Serializer):
         # integration installation config object which very well may be making
         # API request for config options.
         integration: RpcIntegration = attrs.get("integration")  # type: ignore[assignment]
-        include_config = kwargs.get("include_config", True)
         serialized_integration: MutableMapping[str, Any] = serialize(
             objects=integration,
             user=user,
