@@ -22,7 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
-import {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 interface Props {
   event: Event;
