@@ -85,17 +85,19 @@ def process_relocation_reply_with_export(payload: Any, **kwds):
     relocation_storage = get_relocation_storage()
     path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
     try:
-        encrypted_contents = relocation_storage.open(path)
+        encrypted_bytes = relocation_storage.open(path)
     except Exception:
         raise FileNotFoundError(
             "Could not open SaaS -> SaaS export in export-side relocation bucket."
         )
 
-    with encrypted_contents:
+    with encrypted_bytes:
         control_relocation_export_service.reply_with_export(
             relocation_uuid=uuid,
             requesting_region_name=payload["requesting_region_name"],
             replying_region_name=payload["replying_region_name"],
             org_slug=slug,
-            encrypted_contents=[int(byte) for byte in encrypted_contents.read()],
+            # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+            encrypted_contents=None,
+            encrypted_bytes=[int(byte) for byte in encrypted_bytes.read()],
         )
