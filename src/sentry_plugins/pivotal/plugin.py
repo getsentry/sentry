@@ -57,7 +57,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return all(self.get_option(k, project) for k in ("token", "project"))
 
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
@@ -146,7 +146,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         }
         return safe_urlopen(_url, json=json_data, headers=req_headers, allow_redirects=True)
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         json_data = {
             "story_type": "bug",
             "name": force_str(form_data["title"], encoding="utf-8", errors="replace"),
@@ -187,7 +187,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         json_resp = json.loads(body)
         return json_resp["name"]
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         token = self.get_option("token", project)
         helptext = (
             "Enter your API Token (found on "

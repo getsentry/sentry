@@ -23,7 +23,11 @@ export default function useDevToolbar({enabled}: {enabled: boolean}) {
         environment: ['prod'],
         organizationSlug: 'sentry',
         projectId: 11276,
+        projectPlatform: 'javascript',
         projectSlug: 'javascript',
+        featureFlags: organization.features,
+        featureFlagTemplateUrl: flag =>
+          `https://github.com/search?q=repo%3Agetsentry%2Fsentry-options-automator+OR+repo%3Agetsentry%2Fsentry+${flag}&type=code`,
 
         trackAnalytics: (props: {eventKey: string; eventName: string}) =>
           rawTrackAnalyticsEvent({...props, organization}),

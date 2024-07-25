@@ -82,10 +82,10 @@ class WebHooksPlugin(notify.NotificationPlugin):
         )
     ]
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("urls", project))
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             {
                 "name": "urls",

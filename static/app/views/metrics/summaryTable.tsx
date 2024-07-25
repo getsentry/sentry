@@ -16,6 +16,7 @@ import type {MetricAggregation} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   type FocusedMetricsSeries,
@@ -26,6 +27,29 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+function SeriesName({
+  seriesName,
+  singleQuery,
+}: {
+  seriesName: string;
+  singleQuery: boolean;
+}) {
+  const organization = useOrganization();
+
+  const prefix = seriesName.split(':')[0];
+  const sufix = seriesName.split(':')[1] ?? null;
+
+  return (
+    <TextOverflow>
+      <SerieNamePrefix uppercaseText={hasMetricsNewInputs(organization) && !singleQuery}>
+        {prefix}
+        {sufix && ':'}
+      </SerieNamePrefix>
+      {sufix}
+    </TextOverflow>
+  );
+}
+
 export const SummaryTable = memo(function SummaryTable({
   series,
   onRowClick,
@@ -34,10 +58,12 @@ export const SummaryTable = memo(function SummaryTable({
   sort = DEFAULT_SORT_STATE as SortState,
   onRowHover,
   onRowFilter,
+  singleQuery,
 }: {
   onRowClick: (series: FocusedMetricsSeries) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
+  singleQuery: boolean;
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
   onRowFilter?: (
     index: number,
@@ -238,7 +264,7 @@ export const SummaryTable = memo(function SummaryTable({
                     delay={500}
                     overlayStyle={{maxWidth: '80vw'}}
                   >
-                    <TextOverflow>{row.seriesName}</TextOverflow>
+                    <SeriesName singleQuery={singleQuery} seriesName={row.seriesName} />
                   </Tooltip>
                 </TextOverflowCell>
                 {totalColumns.map(aggregate => (
@@ -556,4 +582,8 @@ const Row = styled('div')`
       background-color: ${p => p.theme.bodyBackground};
     }
   }
+`;
+
+const SerieNamePrefix = styled('span')<{uppercaseText: boolean}>`
+  text-transform: ${p => (p.uppercaseText ? 'uppercase' : 'lowercase')};
 `;

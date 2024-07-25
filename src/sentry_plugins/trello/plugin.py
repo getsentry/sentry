@@ -49,14 +49,14 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
         ),
     ]
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         """
         Return the configuration of the plugin.
         Pull the value out of our the arguments to this function or from the DB
         """
 
         def get_value(field):
-            initial_values = kwargs.get("initial", {})
+            initial_values = initial or {}
             return initial_values.get(field) or self.get_option(field, project)
 
         token_config: dict[str, object] = {
@@ -87,7 +87,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         config = [key_config, token_config]
         org_value = get_value("organization")
-        include_org = kwargs.get("add_additial_fields", org_value)
+        include_org = add_additional_fields or org_value
         if api_key and token_val and include_org:
             trello_client = TrelloApiClient(api_key, token_val)
             try:
@@ -132,7 +132,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             ),
         ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return all(self.get_option(key, project) for key in ("token", "key"))
 
     # used for boards and lists but not cards (shortLink used as ID for cards)
@@ -204,7 +204,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             return " ".join(e["message"] for e in errors)
         return "unknown error"
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         client = self.get_client(group.project)
 
         try:

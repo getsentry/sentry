@@ -43,7 +43,7 @@ URL_MIN_PERCENT = 0.05
 # Default value for how often we should run these subscriptions when onboarding them
 ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=60).total_seconds())
 # Default timeout for subscriptions when we're onboarding them
-ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 1000
+ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 logger = logging.getLogger("sentry.uptime-url-autodetection")
 
@@ -79,6 +79,7 @@ def schedule_detections():
                 (timezone.now() - last_processed) / timedelta(minutes=1)
             )
             for _ in range(minutes_since_last_processed):
+                metrics.incr("uptime.detectors.scheduler.scheduled_bucket")
                 last_processed = last_processed + timedelta(minutes=1)
                 process_detection_bucket.delay(last_processed)
 
@@ -98,6 +99,7 @@ def process_detection_bucket(bucket: datetime.datetime):
     Schedules url detection for all projects in this time bucket that saw promising urls.
     """
     for organization_id in get_organization_bucket(bucket):
+        metrics.incr("uptime.detectors.scheduler.scheduled_organization")
         process_organization_url_ranking.delay(organization_id)
     delete_organization_bucket(bucket)
 
@@ -112,7 +114,6 @@ def process_organization_url_ranking(organization_id: int):
         "uptime.process_organization",
         extra={"organization_id": org.id},
     )
-    # TODO: Check quota available for org
     should_detect = should_detect_for_organization(org)
 
     for project_id, project_count in get_candidate_projects_for_org(org):
@@ -122,6 +123,7 @@ def process_organization_url_ranking(organization_id: int):
             delete_candidate_urls_for_project(project)
         else:
             if process_project_url_ranking(project, project_count):
+                metrics.incr("uptime.detectors.scheduler.detected_url_for_organization")
                 should_detect = False
 
     delete_candidate_projects_for_org(org)
@@ -139,6 +141,7 @@ def process_project_url_ranking(project: Project, project_url_count: int) -> boo
         },
     )
     if not should_detect_for_project(project):
+        metrics.incr("uptime.detectors.project_detection_skipped")
         return False
 
     found_url = False
@@ -182,20 +185,24 @@ def process_candidate_url(
     # The url has to be seen a minimum number of times, and make up at least
     # a certain percentage of all urls seen in this project
     if url_count < URL_MIN_TIMES_SEEN or url_count / project_url_count < URL_MIN_PERCENT:
+        metrics.incr("uptime.detectors.candidate_url.failed", tags={"reason": "below_thresholds"})
         return False
 
     # See if we're already auto monitoring this url on this project
     if is_url_auto_monitored_for_project(project, url):
         # Just mark this successful so `process_project_url_ranking` will choose to not process urls for this project
         # for a week
+        metrics.incr("uptime.detectors.candidate_url.failed", tags={"reason": "already_monitored"})
         return True
 
     # Check whether we've recently attempted to monitor this url recently and failed.
     if is_failed_url(url):
+        metrics.incr("uptime.detectors.candidate_url.failed", tags={"reason": "previously_failed"})
         return False
 
     # Check robots.txt to see if it's ok for us to attempt to monitor this url
     if not check_url_robots_txt(url):
+        metrics.incr("uptime.detectors.candidate_url.failed", tags={"reason": "robots_txt"})
         logger.info(
             "uptime.url_failed_robots_txt_check",
             extra={
@@ -219,6 +226,7 @@ def process_candidate_url(
         # Disable auto-detection on this project now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
 
+    metrics.incr("uptime.detectors.candidate_url.succeeded")
     return True
 
 
@@ -242,6 +250,7 @@ def monitor_url_for_project(project: Project, url: str):
     create_project_uptime_subscription(
         project, subscription, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
     )
+    metrics.incr("uptime.detectors.candidate_url.monitor_created")
 
 
 def is_failed_url(url: str) -> bool:

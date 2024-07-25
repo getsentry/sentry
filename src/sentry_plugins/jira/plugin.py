@@ -55,7 +55,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         )
         return _patterns
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         if not self.get_option("default_project", project):
             return False
         return True
@@ -414,7 +414,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         cleaned_data = {}
 
         # protect against mis-configured plugin submitting a form without an
@@ -524,7 +524,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return config
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         instance = self.get_option("instance_url", project)
         username = self.get_option("username", project)
         pw = self.get_option("password", project)

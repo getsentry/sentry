@@ -18,7 +18,7 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
     conf_title = title
     conf_key = "example-issue"
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("repo", project))
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
@@ -28,7 +28,7 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
             *fields,
         ]
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         return "1"
 
     def get_issue_label(self, group, issue_id, **kwargs):

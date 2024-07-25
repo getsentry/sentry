@@ -38,11 +38,11 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
 
         return message
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("service_key", project))
 
-    def get_config(self, **kwargs):
-        service_key = self.get_option("service_key", kwargs["project"])
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
+        service_key = self.get_option("service_key", project)
         secret_field = get_secret_field_config(
             service_key, "PagerDuty's Sentry service Integration Key", include_prefix=True
         )

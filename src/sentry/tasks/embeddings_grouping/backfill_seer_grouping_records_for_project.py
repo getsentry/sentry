@@ -186,11 +186,13 @@ def backfill_seer_grouping_records_for_project(
         seer_response = send_group_and_stacktrace_to_seer_multithreaded(
             groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             nodestore_results,
+            project.id,
         )
     else:
         seer_response = send_group_and_stacktrace_to_seer(
             groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             nodestore_results,
+            project.id,
         )
 
     if not seer_response.get("success"):
@@ -199,6 +201,7 @@ def backfill_seer_grouping_records_for_project(
             extra={
                 "current_project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
+                "reason": seer_response.get("reason"),
             },
         )
         sentry_sdk.capture_exception(Exception("Seer failed during backfill"))

@@ -32,7 +32,7 @@ cssselect==1.0.3
 cssutils==2.9.0
 datadog==0.49.1
 distro==1.8.0
-django==5.0.6
+django==5.0.7
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.13
@@ -127,7 +127,7 @@ sentry-kafka-schemas==0.1.101
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.0
-sentry-sdk==2.9.0
+sentry-sdk==2.11.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
@@ -156,4 +156,4 @@ xmlsec==1.3.13
 zstandard==0.18.0
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==68.2.2
+setuptools==70.0.0

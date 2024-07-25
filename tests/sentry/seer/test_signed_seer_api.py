@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
@@ -67,3 +67,18 @@ def test_uses_shared_secret():
                 "Authorization": "Rpcsignature rpc0:96f23d5b3df807a9dc91f090078a46c00e17fe8b0bc7ef08c9391fa8b37a66b5",
             },
         )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("path", [PATH, f"{PATH}?dogs=great"])
+@patch("sentry.seer.signed_seer_api.metrics.timer")
+def test_times_request(mock_metrics_timer: MagicMock, path: str):
+    run_test_case(path=path)
+    mock_metrics_timer.assert_called_with(
+        "seer.request_to_seer",
+        sample_rate=1.0,
+        tags={
+            # In both cases the path is the same, because query params are stripped
+            "endpoint": PATH,
+        },
+    )

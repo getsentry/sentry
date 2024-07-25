@@ -15,6 +15,7 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
 )
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
+from sentry.integrations.slack.views import SALT
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
 from sentry.integrations.slack.views.link_team import SlackLinkTeamView
 from sentry.integrations.slack.views.unlink_identity import SlackUnlinkIdentityView
@@ -114,7 +115,7 @@ class SlackRequestParser(BaseRequestParser):
 
         elif self.view_class in self.django_views:
             # Parse the signed params to identify the associated integration
-            params = unsign(self.match.kwargs.get("signed_params"))
+            params = unsign(self.match.kwargs.get("signed_params"), salt=SALT)
             return Integration.objects.filter(id=params.get("integration_id")).first()
 
         return None

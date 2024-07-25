@@ -120,7 +120,6 @@ DETAILED_PROJECT = {
         "version": "backend@3e90a5d9e767ebcfa70e921d7a7ff6c037461168",
     },
     "options": {
-        "sentry:grouping_auto_update": False,
         "sentry:span_description_cluster_rules": [],
         "sentry:transaction_name_cluster_rules": [],
         "digests:mail:maximum_delay": 600,
@@ -174,7 +173,6 @@ DETAILED_PROJECT = {
     "groupingEnhancementsBase": None,
     "secondaryGroupingExpiry": 1687010243,
     "secondaryGroupingConfig": "newstyle:2019-10-29",
-    "groupingAutoUpdate": False,
     "fingerprintingRules": "",
     "uptimeAutodetection": True,
     "organization": {

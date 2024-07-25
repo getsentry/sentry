@@ -72,7 +72,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             token=self.get_option("token", project),
         )
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         token = self.get_option("token", project)
         helptext = "You may generate a Conduit API Token from your account settings in Phabricator."
         secret_field = get_secret_field_config(token, helptext, include_prefix=True)
@@ -159,7 +159,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def validate_config(self, project, config, actor):
+    def validate_config(self, project, config, actor=None):
         projectPHIDs = config.get("projectPHIDs")
         if projectPHIDs:
             try:
@@ -185,7 +185,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 raise PluginError(f"Unhandled error from Phabricator: {e}")
         return config
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         if not self.get_option("host", project):
             return False
         if self.get_option("token", project):
@@ -227,7 +227,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
         return Response({field: results})
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(

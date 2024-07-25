@@ -119,11 +119,12 @@ import {TraceType} from '../traceType';
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export declare namespace TraceTree {
+  interface RawSpan extends RawSpanType {}
   interface Transaction extends TraceFullDetailed {
     profiler_id: string;
     sdk_name: string;
   }
-  interface Span extends RawSpanType {
+  interface Span extends RawSpan {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
     measurements?: Record<string, Measurement>;
@@ -138,14 +139,14 @@ export declare namespace TraceTree {
     timestamp: number;
     type: 'missing_instrumentation';
   }
-  interface SiblingAutogroup extends RawSpanType {
+  interface SiblingAutogroup extends RawSpan {
     autogrouped_by: {
       description: string;
       op: string;
     };
   }
 
-  interface ChildrenAutogroup extends RawSpanType {
+  interface ChildrenAutogroup extends RawSpan {
     autogrouped_by: {
       op: string;
     };
@@ -216,6 +217,46 @@ function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean
   return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
     transaction.sdk_name
   );
+}
+
+function isPageloadTransactionNode(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
+  return isTransactionNode(node) && node.value['transaction.op'] === 'pageload';
+}
+
+function isServerRequestHandlerTransactionNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): boolean {
+  return isTransactionNode(node) && node.value['transaction.op'] === 'http.server';
+}
+
+function isBrowserRequestSpan(value: TraceTree.Span): boolean {
+  return value.op === 'browser' && value.description === 'request';
+}
+
+/**
+ * Swaps the two nodes in the graph.
+ */
+function childParentSwap({
+  parent,
+  child,
+  reason,
+}: {
+  child: TraceTreeNode<TraceTree.NodeValue>;
+  parent: TraceTreeNode<TraceTree.NodeValue>;
+  reason: TraceTreeNode['reparent_reason'];
+}) {
+  const parentOfParent = parent.parent!;
+
+  const parentIndex = parentOfParent.children.indexOf(parent);
+  parentOfParent.children[parentIndex] = child;
+  child.parent = parentOfParent;
+
+  // We need to remove the portion of the tree that was previously a child, else we will have a circular reference
+  parent.parent = child;
+  child.children.push(parent.filter(parent, n => n !== child));
+
+  child.reparent_reason = reason;
+  parent.reparent_reason = reason;
 }
 
 function measurementToTimestamp(
@@ -490,7 +531,8 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError
+      value: TraceTree.Transaction | TraceTree.TraceError,
+      childrenCount: number
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug:
@@ -552,9 +594,21 @@ export class TraceTree {
         );
       }
 
+      if (
+        childrenCount === 1 &&
+        isPageloadTransactionNode(node) &&
+        isServerRequestHandlerTransactionNode(parent)
+      ) {
+        // The swap can occur at a later point when new transactions are fetched,
+        // which means we need to invalidate the tree and re-render the UI.
+        childParentSwap({parent, child: node, reason: 'pageload server handler'});
+        parent.invalidate(parent);
+        node.invalidate(node);
+      }
+
       if (value && 'children' in value) {
         for (const child of value.children) {
-          visit(node, child);
+          visit(node, child, value.children.length);
         }
       }
 
@@ -580,17 +634,17 @@ export class TraceTree {
           typeof orphan.timestamp === 'number' &&
           transaction.start_timestamp <= orphan.timestamp
         ) {
-          visit(traceNode, transaction);
+          visit(traceNode, transaction, transaction.children.length);
           tIdx++;
         } else {
-          visit(traceNode, orphan);
+          visit(traceNode, orphan, 0);
           oIdx++;
         }
       } else if (transaction) {
-        visit(traceNode, transaction);
+        visit(traceNode, transaction, transaction.children.length);
         tIdx++;
       } else if (orphan) {
-        visit(traceNode, orphan);
+        visit(traceNode, orphan, 0);
         oIdx++;
       }
     }
@@ -813,7 +867,7 @@ export class TraceTree {
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
     data: Event,
-    spans: RawSpanType[],
+    spans: TraceTree.RawSpan[],
     options: {sdk: string | undefined} | undefined
   ): [TraceTreeNode<TraceTree.NodeValue>, [number, number] | null] {
     parent.invalidate(parent);
@@ -824,7 +878,7 @@ export class TraceTree {
 
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
-      RawSpanType['span_id'],
+      TraceTree.RawSpan['span_id'],
       TraceTreeNode<TraceTree.Span | TraceTree.Transaction>
     > = {};
 
@@ -852,8 +906,10 @@ export class TraceTree {
       TraceTreeNode<TraceTree.Transaction>[]
     >();
 
+    let firstTransaction: TraceTreeNode<TraceTree.Transaction> | null = null;
     for (const child of parent.children) {
       if (isTransactionNode(child)) {
+        firstTransaction = firstTransaction ?? child;
         // keep track of the transaction nodes that should be reparented under the newly fetched spans.
         const key =
           'parent_span_id' in child.value &&
@@ -871,12 +927,29 @@ export class TraceTree {
     const remappedTransactionParents = new Set<TraceTreeNode<TraceTree.NodeValue>>();
 
     for (const span of spans) {
-      const childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
+      let childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
+
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
         childTransactions,
       };
+
+      // If we have a browser request span and a server request handler transaction, we want to
+      // reparent the transaction under the span. This is because the server request handler
+      // was the parent of the browser request span which likely served the document.
+      if (
+        firstTransaction &&
+        firstTransaction.reparent_reason === 'pageload server handler' &&
+        !childTransactions.length &&
+        isBrowserRequestSpan(spanNodeValue) &&
+        isServerRequestHandlerTransactionNode(firstTransaction)
+      ) {
+        childTransactions = [firstTransaction];
+        spanNodeValue.childTransactions = childTransactions;
+        transactionsToSpanMap.delete(`unreachable-${firstTransaction.value.event_id}`);
+      }
+
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: parent.metadata.event_id,
         project_slug: parent.metadata.project_slug,
@@ -1668,6 +1741,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   canFetch: boolean = false;
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode | null = null;
+  reparent_reason: 'pageload server handler' | null = null;
   value: T;
   expanded: boolean = false;
   zoomedIn: boolean = false;
@@ -1831,6 +1905,26 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     }
 
     return clone;
+  }
+
+  filter(
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    predicate: (node: TraceTreeNode) => boolean
+  ): TraceTreeNode<TraceTree.NodeValue> {
+    const queue = [node];
+
+    while (queue.length) {
+      const next = queue.pop()!;
+      for (let i = 0; i < next.children.length; i++) {
+        if (!predicate(next.children[i])) {
+          next.children.splice(i, 1);
+        } else {
+          queue.push(next.children[i]);
+        }
+      }
+    }
+
+    return node;
   }
 
   get isOrphaned() {
@@ -2397,7 +2491,7 @@ export function computeAutogroupedBarSegments(
 
 // Returns a list of errors related to the txn with ids matching the span id
 function getRelatedSpanErrorsFromTransaction(
-  span: RawSpanType,
+  span: TraceTree.RawSpan,
   node?: TraceTreeNode<TraceTree.NodeValue>
 ): TraceErrorType[] {
   if (!node || !node.value || !isTransactionNode(node)) {
@@ -2419,7 +2513,7 @@ function getRelatedSpanErrorsFromTransaction(
 
 // Returns a list of performance errors related to the txn with ids matching the span id
 function getRelatedPerformanceIssuesFromTransaction(
-  span: RawSpanType,
+  span: TraceTree.RawSpan,
   node?: TraceTreeNode<TraceTree.NodeValue>
 ): TraceTree.TracePerformanceIssue[] {
   if (!node || !node.value || !isTransactionNode(node)) {

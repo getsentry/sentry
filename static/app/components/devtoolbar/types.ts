@@ -8,9 +8,12 @@ export type Configuration = {
   organizationSlug: string;
   placement: 'right-edge' | 'bottom-right-corner';
   projectId: number;
+  projectPlatform: string;
   projectSlug: string;
   SentrySDK?: typeof SentrySDK;
   domId?: string;
+  featureFlagTemplateUrl?: undefined | ((flag: string) => string | undefined);
+  featureFlags?: string[];
   trackAnalytics?: (props: {eventKey: string; eventName: string}) => void;
 };
 

@@ -43,15 +43,15 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
         ),
     ]
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("api_key", project))
 
-    def get_config(self, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             get_secret_field_config(
                 name="api_key",
                 label="API Key",
-                secret=self.get_option("api_key", kwargs["project"]),
+                secret=self.get_option("api_key", project),
                 help_text="VictorOps's Sentry API Key",
                 include_prefix=True,
             ),

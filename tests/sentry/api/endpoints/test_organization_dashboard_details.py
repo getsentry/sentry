@@ -6,6 +6,7 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard import Dashboard, DashboardTombstone
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -261,6 +262,47 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["widgetType"] == "error-events"
         assert response.data["widgets"][1]["widgetType"] == "transaction-like"
         assert response.data["widgets"][2]["widgetType"] == "discover"
+
+    def test_dashboard_widget_returns_dataset_source(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            dataset_source=DatasetSourcesTypes.INFERRED.value,
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["datasetSource"] == "inferred"
+
+    def test_dashboard_widget_default_dataset_source_is_unknown(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard Without",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
+        response = self.do_request("get", self.url(dashboard.id))
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["datasetSource"] == "unknown"
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
