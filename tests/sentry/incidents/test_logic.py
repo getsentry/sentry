@@ -1290,6 +1290,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
         )
 
         assert updated_rule.comparison_delta is None
@@ -1332,6 +1333,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
         )
 
         assert updated_rule.sensitivity == AlertRuleSensitivity.HIGH

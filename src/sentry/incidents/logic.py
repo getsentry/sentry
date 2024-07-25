@@ -736,8 +736,8 @@ def update_alert_rule(
     comparison_delta=NOT_SET,
     monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
-    sensitivity: AlertRuleSensitivity | None = None,
-    seasonality: AlertRuleSeasonality | None = None,
+    sensitivity: AlertRuleSensitivity | None | object = NOT_SET,
+    seasonality: AlertRuleSeasonality | None | object = NOT_SET,
     detection_type: AlertRuleDetectionType | None = None,
     **kwargs,
 ):
@@ -778,9 +778,9 @@ def update_alert_rule(
         updated_fields["name"] = name
     if description:
         updated_fields["description"] = description
-    if sensitivity:
+    if sensitivity is not NOT_SET:
         updated_fields["sensitivity"] = sensitivity
-    if seasonality:
+    if seasonality is not NOT_SET:
         updated_fields["seasonality"] = seasonality
     if query is not None:
         updated_query_fields["query"] = query
@@ -815,16 +815,34 @@ def update_alert_rule(
 
         updated_fields["comparison_delta"] = comparison_delta
 
-    # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
-    if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
+    # if we're updating these fields, then we may be changing the detection type
+    # print("COMPARISON DELTA:", comparison_delta)
+    # print("SEASONALITY:", seasonality)
+    # print("SENSITIVITY:", sensitivity)
+
+    # TODO: it seems that we can't check for all of these conditions. We may need to separate the seasonality and sensitivity checks
+    if "comparison_delta" in updated_fields:  # some value changed -> update type if necessary
         if comparison_delta is not None:
             detection_type = AlertRuleDetectionType.PERCENT
         else:
-            if seasonality:
-                detection_type = AlertRuleDetectionType.DYNAMIC
-            else:
-                detection_type = AlertRuleDetectionType.STATIC
+            detection_type = AlertRuleDetectionType.STATIC
 
+    if "seasonality" in updated_fields or "sensitivity" in updated_fields:
+        if seasonality is not None or seasonality is not None:
+            detection_type = AlertRuleDetectionType.DYNAMIC
+            # if the alert wasn't a dynamic alert, ensure that both seasonality and sensitivity are present
+            if alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC and not (
+                "seasonality" in updated_fields and "sensitivity" in updated_fields
+            ):
+                raise ValidationError(
+                    "Dynamic alert rules must be defined with both sensitivity and seasonality"
+                )
+        else:
+            detection_type = AlertRuleDetectionType.STATIC
+
+    # print("NEW DETECTION TYPE:", detection_type)
+    # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
+    if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
         window = int(
             updated_query_fields.get(
                 "time_window", timedelta(seconds=alert_rule.snuba_query.time_window)
@@ -856,6 +874,12 @@ def update_alert_rule(
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
             updated_fields["comparison_delta"] = None
+            if (
+                time_window not in {15, 30, 60}
+                or time_window is None
+                and alert_rule.snuba_query.time_window not in {15 * 60, 30 * 60, 60 * 60}
+            ):
+                raise ValidationError("Invalid time window for dynamic alert")
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
