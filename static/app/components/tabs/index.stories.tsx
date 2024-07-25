@@ -187,4 +187,28 @@ export default storyBook(Tabs, story => {
       </div>
     </SideBySide>
   ));
+
+  story('Variants', () => (
+    <div>
+      <p>
+        Use the variant prop to control which tab design to use. The default, "flat", is
+        used in the above examples, but you can also use "filled" variant, as shown below.
+        Note that the "filled" variant does not work when the oritentation is vertical
+      </p>
+      <SizingWindow>
+        <Tabs>
+          <TabList variant={'filled'}>
+            {TABS.map(tab => (
+              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {TABS.map(tab => (
+              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Tabs>
+      </SizingWindow>
+    </div>
+  ));
 });
