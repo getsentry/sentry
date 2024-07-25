@@ -64,7 +64,6 @@ settings.CELERY_IMPORTS += (
     "sentry.integrations.tasks.vsts.kickoff_subscription_check",
     "sentry.integrations.tasks.vsts.subscription_check",
     "sentry.integrations.github.tasks.pr_comment",
-    "sentry.integrations.github.tasks.open_pr_comment",
 )
 
 from sentry.integrations.tasks.create_comment import create_comment

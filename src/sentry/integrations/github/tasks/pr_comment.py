@@ -239,7 +239,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.pr_comment.github_comment_reactions",
+    name="sentry.integrations.github.tasks.github_comment_reactions",
     silo_mode=SiloMode.REGION,
 )
 def github_comment_reactions():
