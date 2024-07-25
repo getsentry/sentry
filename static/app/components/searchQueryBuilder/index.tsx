@@ -41,6 +41,7 @@ export interface SearchQueryBuilderProps {
    */
   searchSource: string;
   className?: string;
+  disabled?: boolean;
   /**
    * When true, free text will be marked as invalid.
    */
@@ -88,7 +89,11 @@ export interface SearchQueryBuilderProps {
 }
 
 function ActionButtons() {
-  const {dispatch, handleSearch} = useSearchQueryBuilder();
+  const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
+
+  if (disabled) {
+    return null;
+  }
 
   return (
     <ButtonsWrapper>
@@ -108,6 +113,7 @@ function ActionButtons() {
 
 export function SearchQueryBuilder({
   className,
+  disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
   disallowUnsupportedFilters,
@@ -128,7 +134,11 @@ export function SearchQueryBuilder({
   queryInterface = QueryInterfaceType.TOKENIZED,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const {state, dispatch} = useQueryBuilderState({initialQuery});
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+  });
 
   const parsedQuery = useMemo(
     () =>
@@ -172,6 +182,7 @@ export function SearchQueryBuilder({
   const contextValue = useMemo(() => {
     return {
       ...state,
+      disabled,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeys,
@@ -188,6 +199,7 @@ export function SearchQueryBuilder({
     };
   }, [
     state,
+    disabled,
     parsedQuery,
     filterKeySections,
     filterKeys,
@@ -209,6 +221,7 @@ export function SearchQueryBuilder({
           className={className}
           onBlur={() => onBlur?.(state.query)}
           ref={wrapperRef}
+          aria-disabled={disabled}
         >
           {size !== 'small' && <PositionedSearchIcon size="sm" />}
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
