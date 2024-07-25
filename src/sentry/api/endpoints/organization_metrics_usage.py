@@ -44,10 +44,7 @@ class MetricsUsageWidgetSerializer(serializers.Serializer):
         widget_queries = obj.dashboardwidgetquery_set.all()
         # collects all aggregates from all widget queries into a single list
         all_aggregates = [
-            agg
-            for query in widget_queries
-            for agg in query.aggregates
-            if query.aggregates is not None
+            agg for query in widget_queries for agg in query.aggregates  # type: ignore[union-attr]
         ]
         for metric_mri in self.context["metric_mris"]:
             for aggregate in all_aggregates:
