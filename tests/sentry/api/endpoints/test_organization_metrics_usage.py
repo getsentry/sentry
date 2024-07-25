@@ -18,20 +18,33 @@ class TestOrganizationMetricsUsage(APITestCase):
         )
         dashboard = self.create_dashboard(organization=self.organization)
         self.dashboard_widget1 = self.create_dashboard_widget(dashboard=dashboard, order=0)
-        self.create_dashboard_widget_query(
+        self.query1 = self.create_dashboard_widget_query(
             widget=self.dashboard_widget1, aggregates=[self.mri1], order=1
         )
         self.dashboard_widget2 = self.create_dashboard_widget(dashboard=dashboard, order=2)
-        self.create_dashboard_widget_query(
+        self.query1 = self.create_dashboard_widget_query(
             widget=self.dashboard_widget2, aggregates=[self.mri2], order=2
         )
+
+    def _get_response_data_without_queries(self, response):
+        """Deletes 'queries' field from widgets in the response data"""
+
+        response_data_without_query = response.data.copy()
+        if "widgets" not in response_data_without_query:
+            # No widgets in the response, no need to delete queries
+            return response_data_without_query
+        for widget in response_data_without_query["widgets"]:
+            del widget["queries"]
+        return response_data_without_query
 
     def test_get_connected_dashboard_widgets_and_alerts_to_metric(self):
         response = self.get_success_response(
             self.organization.slug, metricMRIs=[self.mri1, self.mri2]
         )
 
-        assert response.data == {
+        # queries use a different serializer, there is no need to test that here
+        response_data_without_query = self._get_response_data_without_queries(response)
+        assert response_data_without_query == {
             "alerts": [
                 {
                     "metricMRI": self.mri1,
@@ -90,7 +103,9 @@ class TestOrganizationMetricsUsage(APITestCase):
             self.organization.slug, metricMRIs=[self.mri1, self.mri2]
         )
 
-        assert response.data == {
+        # queries use a different serializer, there is no need to test that here
+        response_data_without_query = self._get_response_data_without_queries(response)
+        assert response_data_without_query == {
             "alerts": [],
             "widgets": [
                 {

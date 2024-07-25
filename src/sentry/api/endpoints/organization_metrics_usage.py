@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.serializers.rest_framework.dashboard import DashboardWidgetQuerySerializer
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.dashboard_widget import DashboardWidget
 from sentry.models.organization import Organization
@@ -23,7 +24,7 @@ class MetricsUsageAlertSerializer(serializers.Serializer):
             if metric_mri in obj.snuba_query.aggregate:
                 return metric_mri
 
-        # This should never happen
+        # this should never happen
         raise Exception("Metric MRI not found in alert rule")
 
 
@@ -32,6 +33,9 @@ class MetricsUsageWidgetSerializer(serializers.Serializer):
     widgetId = serializers.IntegerField(read_only=True, source="id")
     dashboardId = serializers.IntegerField(read_only=True, source="dashboard_id")
     title = serializers.CharField(read_only=True)
+    queries = DashboardWidgetQuerySerializer(
+        many=True, read_only=True, source="dashboardwidgetquery_set"
+    )
 
     def get_metricMRI(self, obj: DashboardWidget) -> str:
         """Associates a widget with a metric MRI which it uses"""
@@ -44,7 +48,7 @@ class MetricsUsageWidgetSerializer(serializers.Serializer):
                 if metric_mri in aggregate:
                     return metric_mri
 
-        # This should never happen
+        # this should never happen
         raise Exception("Metric MRI not found in widget")
 
 
