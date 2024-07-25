@@ -10,7 +10,7 @@ import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/consta
 import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
-import {t, tct} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -69,9 +69,10 @@ export function ReplayClipSection({event, group, replayId}: Props) {
     seeAllReplaysButton && replayCount && replayCount > 1 ? (
       <Fragment>
         <div>
-          {tct('Replay captured [replayCount] users experiencing this issue', {
-            replayCount,
-          })}
+          {t(
+            'Replay captured %s with this issue.',
+            tn('%s replay', '%s replays', replayCount ?? 0)
+          )}
         </div>
         {seeAllReplaysButton}
       </Fragment>
