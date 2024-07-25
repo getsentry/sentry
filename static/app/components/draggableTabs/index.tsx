@@ -1,6 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import type {Key} from '@react-types/shared';
 
 import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
@@ -19,17 +19,7 @@ export interface DragAndDropTabBarProps {
 }
 
 export function DraggableTabBar(props: DragAndDropTabBarProps) {
-  const [tabs, setTabs] = useState<Tab[]>([
-    ...props.tabs,
-    {key: 'temporary-tab', label: 'Unsaved', content: props.tempTabContent},
-  ]);
-
-  useEffect(() => {
-    setTabs([
-      ...props.tabs,
-      {key: 'temporary-tab', label: 'Unsaved', content: props.tempTabContent},
-    ]);
-  }, [props.tabs, props.tempTabContent]);
+  const [tabs, setTabs] = useState<Tab[]>([...props.tabs]);
 
   return (
     <Tabs>
