@@ -36,7 +36,7 @@ django==5.0.7
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.13
-djangorestframework==3.15.1
+djangorestframework==3.15.2
 drf-spectacular==0.26.3
 email-reply-parser==0.5.12
 fastjsonschema==2.16.2
