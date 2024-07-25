@@ -121,7 +121,7 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
     const {organization} = this.props;
     this.setState({
       savedQuery: organization.features.includes('performance-discover-dataset-selector')
-        ? getSavedQueryWithDataset(newSavedQuery)
+        ? (getSavedQueryWithDataset(newSavedQuery) as SavedQuery)
         : newSavedQuery,
     });
   };
