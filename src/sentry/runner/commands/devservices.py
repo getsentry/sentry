@@ -67,9 +67,9 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                     click.echo("Attempting to start colima...")
                     subprocess.check_call(
                         (
-                            "python3",
-                            "-uS",
-                            f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
+                            "devenv",
+                            "colima",
+                            "start",
                         )
                     )
                 elif USE_DOCKER_DESKTOP:
