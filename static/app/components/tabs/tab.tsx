@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
-import {mergeProps, useObjectRef} from '@react-aria/utils';
+import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
 import type {
   DOMAttributes,
@@ -51,11 +51,6 @@ export interface BaseTabProps {
   overflowing: boolean;
   tabProps: DOMAttributes<FocusableElement>;
   /**
-   * Additional props to be merged with `tabProps`. This is used
-   * by <DraggableTab> to pass in props used for drag-and-drop functionality.
-   */
-  additionalProps?: React.HTMLAttributes<HTMLElement>;
-  /**
    * This controls the border style of the tab. Only active when
    * `variant=filled` since other variants do not have a border
    */
@@ -73,7 +68,6 @@ export const BaseTab = forwardRef(
       tabProps,
       hidden,
       isSelected,
-      additionalProps,
       variant = 'flat',
       borderStyle = 'solid',
     } = props;
@@ -99,7 +93,7 @@ export const BaseTab = forwardRef(
     if (variant === 'filled') {
       return (
         <FilledTabWrap
-          {...mergeProps(tabProps, additionalProps)}
+          {...tabProps}
           hidden={hidden}
           overflowing={overflowing}
           borderStyle={borderStyle}
@@ -114,7 +108,7 @@ export const BaseTab = forwardRef(
 
     return (
       <TabWrap
-        {...mergeProps(tabProps, additionalProps)}
+        {...tabProps}
         hidden={hidden}
         selected={isSelected}
         overflowing={overflowing}
