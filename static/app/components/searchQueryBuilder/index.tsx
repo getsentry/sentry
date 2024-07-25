@@ -85,7 +85,10 @@ export interface SearchQueryBuilderProps {
   onSearch?: (query: string) => void;
   placeholder?: string;
   queryInterface?: QueryInterfaceType;
-  savedSearchType?: SavedSearchType;
+  /**
+   * If provided, saves and displays recent searches of the given type.
+   */
+  recentSearches?: SavedSearchType;
 }
 
 function ActionButtons() {
@@ -129,9 +132,9 @@ export function SearchQueryBuilder({
   onSearch,
   onBlur,
   placeholder,
-  searchSource,
-  savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
+  recentSearches,
+  searchSource,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const {state, dispatch} = useQueryBuilderState({
@@ -172,7 +175,7 @@ export function SearchQueryBuilder({
 
   const handleSearch = useHandleSearch({
     parsedQuery,
-    savedSearchType,
+    recentSearches,
     searchSource,
     onSearch,
   });
@@ -193,7 +196,7 @@ export function SearchQueryBuilder({
       wrapperRef,
       handleSearch,
       placeholder,
-      savedSearchType,
+      recentSearches,
       searchSource,
       size,
     };
@@ -207,9 +210,9 @@ export function SearchQueryBuilder({
     fieldDefinitionGetter,
     dispatch,
     onSearch,
-    placeholder,
     handleSearch,
-    savedSearchType,
+    placeholder,
+    recentSearches,
     searchSource,
     size,
   ]);

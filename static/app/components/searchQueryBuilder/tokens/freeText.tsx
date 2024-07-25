@@ -21,6 +21,7 @@ import type {
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
+import {recentSearchTypeToLabel} from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
   type ParseResultToken,
@@ -354,7 +355,7 @@ function SearchQueryBuilderInputInternal({
     handleSearch,
     placeholder,
     searchSource,
-    savedSearchType,
+    recentSearches,
   } = useSearchQueryBuilder();
 
   const items = useSortItems({filterValue});
@@ -467,7 +468,7 @@ function SearchQueryBuilderInputInternal({
           const selectedKey = filterKeys[value];
           trackAnalytics('search.key_autocompleted', {
             organization,
-            search_type: savedSearchType === 0 ? 'issues' : 'events',
+            search_type: recentSearchTypeToLabel(recentSearches),
             search_source: searchSource,
             item_name: value,
             item_kind: selectedKey?.kind ?? FieldKind.FIELD,
@@ -541,7 +542,7 @@ function SearchQueryBuilderInputInternal({
             resetInputValue();
             trackAnalytics('search.key_manually_typed', {
               organization,
-              search_type: savedSearchType === 0 ? 'issues' : 'events',
+              search_type: recentSearchTypeToLabel(recentSearches),
               search_source: searchSource,
               item_name: filterKey,
               item_kind: key?.kind ?? FieldKind.FIELD,

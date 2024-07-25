@@ -18,7 +18,10 @@ import {
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
-import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  isDateToken,
+  recentSearchTypeToLabel,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   TermOperator,
@@ -722,7 +725,7 @@ export function SearchQueryBuilderValueCombobox({
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const {getFieldDefinition, filterKeys, dispatch, searchSource, savedSearchType} =
+  const {getFieldDefinition, filterKeys, dispatch, searchSource, recentSearches} =
     useSearchQueryBuilder();
   const fieldDefinition = getFieldDefinition(token.key.text);
   const canSelectMultipleValues = tokenSupportsMultipleValues(
@@ -779,7 +782,7 @@ export function SearchQueryBuilderValueCombobox({
   const analyticsData = useMemo(
     () => ({
       organization,
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: recentSearchTypeToLabel(recentSearches),
       search_source: searchSource,
       filter_key: token.key.text,
       filter_operator: token.operator,
@@ -789,7 +792,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       fieldDefinition?.valueType,
       organization,
-      savedSearchType,
+      recentSearches,
       searchSource,
       token.key.text,
       token.operator,
