@@ -136,9 +136,6 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-# from sentry.db.postgres.lookups.
-
-
 @region_silo_model
 class DashboardWidgetQuery(Model):
     """
