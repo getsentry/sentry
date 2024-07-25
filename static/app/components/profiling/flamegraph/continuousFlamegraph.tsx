@@ -133,7 +133,7 @@ function getProfileOffset(
     return Rect.Empty();
   }
 
-  return new Rect(startedAtMs - profile.startedAt * 1e3, 0, 0, 0);
+  return new Rect(profile.startedAt * 1e3 - startedAtMs, 0, 0, 0);
 }
 
 function getTransactionOffset(
@@ -144,7 +144,7 @@ function getTransactionOffset(
     return Rect.Empty();
   }
 
-  return new Rect(startedAtMs - transaction.startTimestamp * 1e3, 0, 0, 0);
+  return new Rect(transaction.startTimestamp * 1e3 - startedAtMs, 0, 0, 0);
 }
 
 function convertContinuousProfileMeasurementsToUIFrames(
