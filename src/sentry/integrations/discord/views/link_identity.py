@@ -18,7 +18,7 @@ def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
     return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
 
 
-class DiscordLinkingView(ABC, LinkingView):
+class DiscordLinkingView(LinkingView, ABC):
     @property
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
         from sentry.integrations.discord import DiscordMessagingSpec

@@ -28,7 +28,7 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
     )
 
 
-class MsTeamsLinkingView(ABC, LinkingView):
+class MsTeamsLinkingView(LinkingView, ABC):
     @property
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
         from sentry.integrations.msteams import MsTeamsMessagingSpec
