@@ -5,13 +5,16 @@ import type {ApiEndpointQueryKey, ApiResult} from '../types';
 
 import useApiEndpoint from './useApiEndpoint';
 
-export default function useFetchApiData<Data extends Array<unknown>>(
-  props: UseQueryOptions<ApiEndpointQueryKey, Error, Data, ApiEndpointQueryKey>
+export default function useFetchApiData<
+  QueryFnData,
+  SelectFnData = ApiResult<QueryFnData>,
+>(
+  props: UseQueryOptions<ApiResult<QueryFnData>, Error, SelectFnData, ApiEndpointQueryKey>
 ) {
   const {fetchFn} = useApiEndpoint();
 
-  const infiniteQueryResult = useQuery<ApiEndpointQueryKey, Error, ApiResult<Data>, any>({
-    queryFn: fetchFn<Data>,
+  const infiniteQueryResult = useQuery<ApiEndpointQueryKey, Error, SelectFnData, any>({
+    queryFn: fetchFn<QueryFnData>,
     ...props,
   });
 

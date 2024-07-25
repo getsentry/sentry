@@ -8,10 +8,7 @@ from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.seer.similarity.similar_issues import (
-    get_similarity_data_from_seer,
-    seer_similarity_circuit_breaker,
-)
+from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     event_content_is_seer_eligible,
@@ -48,20 +45,19 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     # (Checking the rate limit for calling Seer also increments the counter of how many times we've
     # tried to call it, and if we fail any of the other checks, it shouldn't count as an attempt.
     # Thus we only want to run the rate limit check if every other check has already succeeded.)
-    if (
-        killswitch_enabled(project.id, event)
-        or _circuit_breaker_broken(event, project)
-        or _ratelimiting_enabled(event, project)
-    ):
+    #
+    # Note: The circuit breaker check which might naturally be here alongside its killswitch
+    # and rate limiting friends instead happens in the `with_circuit_breaker` helper used where
+    # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
+    # errors arising from that call.)
+    if killswitch_enabled(project.id, event) or _ratelimiting_enabled(event, project):
         return False
 
     return True
 
 
 def _project_has_similarity_grouping_enabled(project: Project) -> bool:
-    has_either_seer_grouping_feature = features.has(
-        "projects:similarity-embeddings-metadata", project
-    ) or features.has("projects:similarity-embeddings-grouping", project)
+    has_seer_grouping_flag_on = features.has("projects:similarity-embeddings-grouping", project)
 
     # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
     # the backfill script completes, we turn on this option, enabling ingest immediately rather than
@@ -69,7 +65,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     # projects have been backfilled, the option (and this check) can go away.
     has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
 
-    return has_either_seer_grouping_feature or has_been_backfilled
+    return has_seer_grouping_flag_on or has_been_backfilled
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
@@ -159,30 +155,6 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     return False
 
 
-def _circuit_breaker_broken(event: Event, project: Project) -> bool:
-    circuit_broken = not seer_similarity_circuit_breaker.should_allow_request()
-
-    if circuit_broken:
-        logger.warning(
-            "should_call_seer_for_grouping.circuit_breaker_tripped",
-            extra={
-                "event_id": event.event_id,
-                "project_id": project.id,
-                **options.get("seer.similarity.circuit-breaker-config"),
-            },
-        )
-        metrics.incr(
-            "grouping.similarity.circuit_breaker_tripped",
-        )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={"call_made": False, "blocker": "circuit-breaker"},
-        )
-
-    return circuit_broken
-
-
 def get_seer_similar_issues(
     event: Event,
     primary_hashes: CalculatedHashes,
@@ -225,11 +197,7 @@ def get_seer_similar_issues(
     )
     parent_group = (
         Group.objects.filter(id=seer_results[0].parent_group_id).first()
-        if (
-            seer_results
-            and seer_results[0].should_group
-            and features.has("projects:similarity-embeddings-grouping", event.project)
-        )
+        if seer_results and seer_results[0].should_group
         else None
     )
 
