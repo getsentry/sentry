@@ -148,9 +148,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     description: tct(
       'Alert on custom [link:span metrics] that you have configured, such as number of sign-ups or duration of your login.',
       {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />
-        ),
+        link: <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />,
       }
     ),
     examples: [
