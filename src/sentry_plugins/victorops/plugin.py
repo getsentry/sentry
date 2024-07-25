@@ -84,7 +84,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
 
         return "\n\n".join((f"{k}\n-----------\n\n{v}" for k, v in interface_list))
 
-    def notify_users(self, group, event, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         if not self.is_configured(group.project):
             return
 

@@ -62,7 +62,9 @@ class NotificationPlugin(Plugin):
         event = notification.event
         try:
             self.notify_users(
-                event.group, event, triggering_rules=[r.label for r in notification.rules]
+                group=event.group,
+                event=event,
+                triggering_rules=[r.label for r in notification.rules],
             )
         except (
             ApiError,
@@ -102,7 +104,7 @@ class NotificationPlugin(Plugin):
         self.notify(notification)
         self.logger.info("notification.dispatched", extra=extra)
 
-    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         raise NotImplementedError
 
     def notify_about_activity(self, activity):

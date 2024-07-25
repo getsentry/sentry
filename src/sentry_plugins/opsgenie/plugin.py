@@ -96,7 +96,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
             "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
         }
 
-    def notify_users(self, group, event, fail_silently=False, triggering_rules=None, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         if not self.is_configured(group.project):
             return
 

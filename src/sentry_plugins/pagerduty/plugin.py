@@ -65,7 +65,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             },
         ]
 
-    def notify_users(self, group, event, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         if not self.is_configured(group.project):
             return
 
