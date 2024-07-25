@@ -186,7 +186,8 @@ function GroupReplaysTable({
     organization,
     queryReferrer: 'issueReplays',
   });
-  const {replays} = replayListData;
+
+  const {replays, isFetching} = replayListData;
   const {allMobileProj} = useAllMobileProj();
 
   const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
@@ -208,6 +209,10 @@ function GroupReplaysTable({
   const selectedReplay = replays?.[selectedReplayIndex];
 
   const replayCount = getReplayCountForIssue(group.id, group.issueCategory);
+  const userCount =
+    replays?.reduce((resultSet, item) => resultSet.add(item.user.id), new Set()).size ??
+    0;
+
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
     ? `${nextReplay.user.display_name || t('Anonymous User')}`
@@ -269,10 +274,14 @@ function GroupReplaysTable({
     <StyledLayoutPage withPadding>
       <ReplayCountHeader>
         <IconUser size="sm" />
-        {t(
-          'Replay captured %s experiencing this issue across %s.',
-          tn('%s user', '%s users', replayCount ?? 0),
-          tn('%s event', '%s events', group.count)
+        {isFetching ? (
+          <Placeholder height="18px" width="400px" />
+        ) : (
+          t(
+            'Replay captured %s experiencing this issue across %s.',
+            tn('%s user', '%s users', userCount),
+            tn('%s event', '%s events', group.count)
+          )
         )}
       </ReplayCountHeader>
       {inner}
