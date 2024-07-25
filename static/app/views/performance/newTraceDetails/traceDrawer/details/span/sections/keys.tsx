@@ -57,6 +57,12 @@ function partitionSizes(data: RawSpanType['data']): {
   nonSizeKeys: {[key: string]: unknown};
   sizeKeys: {[key: string]: number};
 } {
+  if (!data) {
+    return {
+      sizeKeys: {},
+      nonSizeKeys: {},
+    };
+  }
   const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
     if (data.hasOwnProperty(key) && defined(data[key])) {
       try {

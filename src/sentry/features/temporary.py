@@ -83,6 +83,8 @@ def register_temporary_features(manager: FeatureManager):
     # Enable release health widget in dashboards
     manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
+    # Enable data secrecy
+    manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the dev toolbar PoC code for employees
     manager.add("organizations:devtoolbar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Delightful Developer Metrics (DDM):
@@ -149,7 +151,7 @@ def register_temporary_features(manager: FeatureManager):
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     manager.add("organizations:issue-search-group-attributes-side-query", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable custom views features in the issue stream
-    manager.add("organizations:issue-stream-custom-views", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
+    manager.add("organizations:issue-stream-custom-views", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the updated empty state for issues
     manager.add("organizations:issue-stream-empty-state", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable additional platforms for issue stream empty state
@@ -159,6 +161,18 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the new issue stream search bar UI
     manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    # Enable the new search bar UI in other pages
+    manager.add("organizations:search-query-builder-releases", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-traces", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-profiles", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-replays", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-discover", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-user-feedback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-project-details", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:search-query-builder-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable v8 support for the Loader Script
     manager.add("organizations:js-sdk-loader-v8", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
@@ -229,7 +243,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-database-view-percentiles", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     manager.add("organizations:performance-db-main-thread-detector", OrganizationFeature, api_expose=False)
     # Enable Discover Saved Query dataset selector
-    manager.add("organizations:performance-discover-dataset-selector", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:performance-discover-dataset-selector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable backend overriding and always making a fresh split decision
     manager.add("organizations:performance-discover-widget-split-override-save", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable UI sending a discover split for widget
@@ -353,6 +367,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:scim-team-roles", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable priority alerts using the Seer calculations. This flag will move to a permanent flag before we release.
+    manager.add("organizations:seer-based-priority", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the Replay Details > Accessibility tab
     manager.add("organizations:session-replay-a11y-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable the accessibility issues endpoint
@@ -398,13 +414,15 @@ def register_temporary_features(manager: FeatureManager):
     # Enable improvements to Slack notifications
     manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Feature flags for migrating to the Slack SDK WebClient
-    # Use new Slack SDK Client in get_channel_id_with_timeout
-    manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Use new Slack SDK Client for spike protection message
+    manager.add("organizations:slack-sdk-spike-protection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("organizations:email-performance-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("organizations:stacktrace-processing-caching", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable SAML2 Single-logout
+    manager.add("organizations:sso-saml2-slo", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Show links and upsells to Insights modules
     manager.add("organizations:insights-entry-points", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable access to initial Insights modules (Queries, Requests, Vitals, App Starts, Page Loads, Resources)

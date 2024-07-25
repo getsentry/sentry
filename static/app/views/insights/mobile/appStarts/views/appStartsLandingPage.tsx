@@ -24,7 +24,11 @@ export function InitializationModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="app_start" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="app_start"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.app_start"
+    >
       <InitializationModule />
     </ModulePageProviders>
   );

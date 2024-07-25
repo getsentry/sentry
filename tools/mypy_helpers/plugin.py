@@ -17,8 +17,6 @@ from mypy.types import (
     NoneType,
     Type,
     TypeOfAny,
-    TypeType,
-    TypeVarType,
     UnionType,
 )
 
@@ -116,23 +114,6 @@ def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type
         return member
 
 
-def _resolve_objects_for_typevars(ctx: AttributeContext) -> Type:
-    # XXX: hack around python/mypy#17395
-
-    # self: type[<TypeVar>]
-    # default_attr_type: BaseManager[ConcreteTypeVarBound]
-    if (
-        isinstance(ctx.type, TypeType)
-        and isinstance(ctx.type.item, TypeVarType)
-        and isinstance(ctx.default_attr_type, Instance)
-        and ctx.default_attr_type.type.fullname == "sentry.db.models.manager.base.BaseManager"
-    ):
-        tvar = ctx.type.item
-        return ctx.default_attr_type.copy_modified(args=(tvar,))
-    else:
-        return ctx.default_attr_type
-
-
 class SentryMypyPlugin(Plugin):
     def get_function_signature_hook(
         self, fullname: str
@@ -143,12 +124,6 @@ class SentryMypyPlugin(Plugin):
         # XXX: this is a hack -- I don't know if there's a better callback to modify a class
         if fullname == "io.BytesIO":
             return _adjust_http_request_members
-        else:
-            return None
-
-    def get_class_attribute_hook(self, fullname: str) -> Callable[[AttributeContext], Type] | None:
-        if fullname.startswith("sentry.") and fullname.endswith(".objects"):
-            return _resolve_objects_for_typevars
         else:
             return None
 

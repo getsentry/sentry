@@ -616,6 +616,7 @@ module = [
     "sentry.utils.urls",
     "sentry.utils.uwsgi",
     "sentry.utils.zip",
+    "sentry.web.frontend.csv",
     "sentry_plugins.base",
     "tests.sentry.api.endpoints.issues.*",
     "tests.sentry.event_manager.test_event_manager",
