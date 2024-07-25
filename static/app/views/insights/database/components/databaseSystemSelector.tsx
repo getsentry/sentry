@@ -14,7 +14,8 @@ export function DatabaseSystemSelector() {
       onChange={handleChange}
       options={options}
       title="ffdfd"
-      triggerLabel={t('DB System')}
+      triggerProps={{prefix: t('DB System')}}
+      defaultValue={options[0].value}
     />
   );
 }
