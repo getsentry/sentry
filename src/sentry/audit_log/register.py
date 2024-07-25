@@ -544,3 +544,30 @@ default_manager.add(
         template="Created project template {name} for organization {organization_id}",
     )
 )
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=191,
+        name="ORGANIZATION_APIAPPLICATION_ADD",
+        api_name="organization-api-application.create",
+        template="added api application",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=192,
+        name="ORGANIZATION_APIAPPLICATION_UPDATE",
+        api_name="organization-api-application.update",
+        template="updated api application",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=193,
+        name="ORGANIZATION_APIAPPLICATION_DELETE",
+        api_name="organization-api-application.delete",
+        template="deleted api application",
+    )
+)
