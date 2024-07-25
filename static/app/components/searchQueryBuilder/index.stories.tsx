@@ -478,6 +478,10 @@ export default storyBook(SearchQueryBuilder, story => {
           Some props have been removed:
           <ul>
             <li>
+              <code>maxQueryLength</code> is no longer necessary. The component will
+              maintain a maximum query length of 400 characters by default.
+            </li>
+            <li>
               <code>excludedTags</code> is no longer supported. If a filter key should not
               be shown, do not include it in <code>filterKeys</code>.
             </li>

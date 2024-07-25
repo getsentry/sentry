@@ -124,6 +124,22 @@ describe('SearchQueryBuilder', function () {
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
   });
 
+  it('enforces a max query length of 400 characters', async function () {
+    const mockOnChange = jest.fn();
+
+    render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
+
+    await userEvent.click(getLastInput());
+    await userEvent.paste('a'.repeat(500));
+    await userEvent.keyboard('{enter}');
+
+    await waitFor(() => {
+      expect(mockOnChange).toHaveBeenCalledWith('a'.repeat(400));
+    });
+
+    expect(getLastInput()).toHaveValue('a'.repeat(400));
+  });
+
   describe('callbacks', function () {
     it('calls onChange, onBlur, and onSearch with the query string', async function () {
       const mockOnChange = jest.fn();

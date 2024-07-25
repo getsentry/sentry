@@ -18,6 +18,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {MAX_QUERY_LENGTH} from 'sentry/constants';
 
 type QueryBuilderState = {
   focusOverride: FocusOverride | null;
@@ -93,6 +94,10 @@ export type QueryBuilderActions =
   | UpdateTokenValueAction
   | MultiSelectFilterValueAction
   | DeleteLastMultiSelectFilterValueAction;
+
+function truncateQuery(query: string): string {
+  return query.slice(0, MAX_QUERY_LENGTH);
+}
 
 function removeQueryToken(query: string, token: TokenResult<Token>): string {
   return removeExcessWhitespaceFromParts(
@@ -268,7 +273,7 @@ function updateFreeText(
 
   return {
     ...state,
-    query: newQuery,
+    query: truncateQuery(newQuery),
     focusOverride:
       action.focusOverride === undefined ? state.focusOverride : action.focusOverride,
   };
@@ -291,7 +296,7 @@ function replaceTokensWithText(
 
   return {
     ...state,
-    query: newQuery,
+    query: truncateQuery(newQuery),
     focusOverride: focusedItemKey ? {itemKey: focusedItemKey} : null,
   };
 }
@@ -317,7 +322,10 @@ function updateFilterMultipleValues(
     new Set(values.filter(value => value.length > 0))
   );
   if (uniqNonEmptyValues.length === 0) {
-    return {...state, query: replaceQueryToken(state.query, token.value, '""')};
+    return {
+      ...state,
+      query: truncateQuery(replaceQueryToken(state.query, token.value, '""')),
+    };
   }
 
   const newValue =
@@ -325,7 +333,10 @@ function updateFilterMultipleValues(
       ? `[${uniqNonEmptyValues.join(',')}]`
       : uniqNonEmptyValues[0];
 
-  return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
+  return {
+    ...state,
+    query: truncateQuery(replaceQueryToken(state.query, token.value, newValue)),
+  };
 }
 
 function multiSelectTokenValue(
@@ -401,7 +412,7 @@ export function useQueryBuilderState({
         case 'UPDATE_QUERY':
           return {
             ...state,
-            query: action.query,
+            query: truncateQuery(action.query),
             focusOverride: action.focusOverride ?? null,
           };
         case 'RESET_FOCUS_OVERRIDE':
@@ -412,7 +423,7 @@ export function useQueryBuilderState({
         case 'DELETE_TOKEN':
           return {
             ...state,
-            query: removeQueryToken(state.query, action.token),
+            query: truncateQuery(removeQueryToken(state.query, action.token)),
           };
         case 'DELETE_TOKENS':
           return deleteQueryTokens(state, action);
@@ -423,12 +434,16 @@ export function useQueryBuilderState({
         case 'UPDATE_FILTER_OP':
           return {
             ...state,
-            query: modifyFilterOperator(state.query, action.token, action.op),
+            query: truncateQuery(
+              modifyFilterOperator(state.query, action.token, action.op)
+            ),
           };
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
-            query: modifyFilterValue(state.query, action.token, action.value),
+            query: truncateQuery(
+              modifyFilterValue(state.query, action.token, action.value)
+            ),
           };
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
