@@ -67,10 +67,14 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """
         Returns a time series of release health session statistics for projects bound to an organization.
-        \n\nThe interval and date range are subject to certain restrictions and rounding
-        rules.\n\nThe date range is rounded to align with the interval, and is rounded to at least one
+
+        The interval and date range are subject to certain restrictions and rounding rules.
+
+        The date range is rounded to align with the interval, and is rounded to at least one
         hour. The interval can at most be one day and at least one hour currently. It has to cleanly
-        divide one day, for rounding reasons.\n\nBecause of technical limitations, this endpoint returns
+        divide one day, for rounding reasons.
+
+        Because of technical limitations, this endpoint returns
         at most 10000 data points. For example, if you select a 90 day window grouped by releases,
         you will see at most `floor(10k / (90 + 1)) = 109` releases. To get more results, reduce the
         `statsPeriod`."
