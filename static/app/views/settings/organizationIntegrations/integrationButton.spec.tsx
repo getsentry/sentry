@@ -30,10 +30,10 @@ describe('AddIntegrationButton', function () {
         organization={org}
         project={project}
         provider={provider}
+        buttonProps={null}
       />
     );
-
-    await userEvent.click(screen.getByLabelText('Add Installation'));
+    await userEvent.click(screen.getByText(/add installation/i));
     expect(open.mock.calls).toHaveLength(1);
     expect(focus.mock.calls).toHaveLength(1);
     expect(open.mock.calls[0][2]).toBe(
@@ -41,7 +41,7 @@ describe('AddIntegrationButton', function () {
     );
   });
 
-  it.only('Renders request button when user does not have access', async function () {
+  it('Renders request button when user does not have access', async function () {
     org.access = ['org:read'];
     const newOrg = OrganizationFixture({access: ['org:read']});
 
@@ -52,10 +52,11 @@ describe('AddIntegrationButton', function () {
         organization={newOrg}
         project={project}
         provider={provider}
+        buttonProps={null}
       />
     );
 
-    await userEvent.click(screen.getByLabelText('Request Installation'));
+    await userEvent.click(screen.getByText('Request Installation'));
   });
 
   it('Handles external installations', async function () {
@@ -75,10 +76,11 @@ describe('AddIntegrationButton', function () {
         organization={org}
         project={project}
         provider={provider}
+        buttonProps={null}
       />
     );
 
     console.log(org.access);
-    await userEvent.click(screen.getByLabelText('Add Installation'));
+    await userEvent.click(screen.getByText(/add installation/i));
   });
 });

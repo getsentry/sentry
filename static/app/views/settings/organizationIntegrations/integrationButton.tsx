@@ -12,7 +12,15 @@ type Props = {
   organization: Organization;
   project: Project;
   provider: IntegrationProvider;
+  buttonProps: buttonProps;
 };
+
+type buttonProps = {
+  style?;
+  size?;
+  priority?;
+  disabled?;
+} | null;
 
 function IntegrationButton({
   onAddIntegration,
@@ -20,18 +28,19 @@ function IntegrationButton({
   organization,
   project,
   provider,
+  buttonProps,
 }: Props) {
   const {metadata} = provider;
 
-  const buttonProps = {
-    size: 'sm' as const,
-    priority: 'primary' as const,
-    'data-test-id': 'install-button',
-    // disabled: disabledFromFeatures,
-    organization,
-  };
+  // const buttonProps = {
+  //   size: 'sm' as const,
+  //   priority: 'primary' as const,
+  //   'data-test-id': 'install-button',
+  //   // disabled: disabledFromFeatures,
+  //   organization,
+  // };
   return (
-    <Access access={['org:integrations']}>
+    <Access access={['org:integrations']} organization={organization}>
       {({hasAccess}) => {
         if (!hasAccess) {
           return (
@@ -61,6 +70,7 @@ function IntegrationButton({
             onAddIntegration={onAddIntegration}
             analyticsParams={{view: 'onboarding', already_installed: false}}
             modalParams={{projectId: project.id}}
+            organization={organization}
             {...buttonProps}
           />
         );
