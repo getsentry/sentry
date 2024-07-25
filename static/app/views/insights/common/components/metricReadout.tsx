@@ -7,6 +7,7 @@ import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange, type Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   type CountUnit,
@@ -19,7 +20,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {Block} from 'sentry/views/insights/common/views/spanSummaryPage/block';
 
 type Unit =
   | DurationUnit.MILLISECOND
@@ -34,7 +34,6 @@ interface Props {
   title: string;
   unit: Unit;
   value: ReactText | undefined;
-  align?: 'left' | 'right';
   isLoading?: boolean;
   preferredPolarity?: Polarity;
   tooltip?: React.ReactNode;
@@ -42,23 +41,19 @@ interface Props {
 
 export function MetricReadout(props: Props) {
   return (
-    <Block title={props.title} alignment={props.align}>
-      <ReadoutContent {...props} />
-    </Block>
+    <ReadoutWrapper>
+      <ReadoutTitle alignment={'left'}>{props.title}</ReadoutTitle>
+      <ReadoutContentWrapper alignment={'left'}>
+        <ReadoutContent {...props} />
+      </ReadoutContentWrapper>
+    </ReadoutWrapper>
   );
 }
 
-function ReadoutContent({
-  unit,
-  value,
-  tooltip,
-  align = 'right',
-  isLoading,
-  preferredPolarity,
-}: Props) {
+function ReadoutContent({unit, value, tooltip, isLoading, preferredPolarity}: Props) {
   if (isLoading) {
     return (
-      <LoadingContainer align={align}>
+      <LoadingContainer align="left">
         <LoadingIndicator mini />
       </LoadingContainer>
     );
@@ -72,7 +67,7 @@ function ReadoutContent({
 
   if (isARateUnit(unit)) {
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit, {
           minimumValue: MINIMUM_RATE_VALUE,
         })}
@@ -83,7 +78,7 @@ function ReadoutContent({
   if (unit === DurationUnit.MILLISECOND) {
     // TODO: Implement other durations
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         <Duration
           seconds={typeof value === 'string' ? parseFloat(value) : value / 1000}
           fixedDigits={2}
@@ -96,7 +91,7 @@ function ReadoutContent({
   if (unit === SizeUnit.BYTE) {
     // TODO: Implement other sizes
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         <FileSize bytes={typeof value === 'string' ? parseInt(value, 10) : value} />
       </NumberContainer>
     );
@@ -104,7 +99,7 @@ function ReadoutContent({
 
   if (unit === 'count') {
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         {formatAbbreviatedNumber(typeof value === 'string' ? parseInt(value, 10) : value)}
       </NumberContainer>
     );
@@ -114,11 +109,11 @@ function ReadoutContent({
     const numericValue = typeof value === 'string' ? parseFloat(value) : value;
     if (numericValue <= 1) {
       renderedValue = (
-        <NumberContainer align={align}>US ${numericValue.toFixed(3)}</NumberContainer>
+        <NumberContainer align="left">US ${numericValue.toFixed(3)}</NumberContainer>
       );
     } else {
       renderedValue = (
-        <NumberContainer align={align}>
+        <NumberContainer align="left">
           US ${formatAbbreviatedNumber(numericValue)}
         </NumberContainer>
       );
@@ -127,7 +122,7 @@ function ReadoutContent({
 
   if (unit === 'percentage') {
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         {formatPercentage(
           typeof value === 'string' ? parseFloat(value) : value,
           undefined,
@@ -139,7 +134,7 @@ function ReadoutContent({
 
   if (unit === 'percent_change') {
     renderedValue = (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         <PercentChange
           value={typeof value === 'string' ? parseFloat(value) : value}
           minimumValue={MINIMUM_PERCENTAGE_VALUE}
@@ -151,7 +146,7 @@ function ReadoutContent({
 
   if (tooltip) {
     return (
-      <NumberContainer align={align}>
+      <NumberContainer align="left">
         <Tooltip title={tooltip} isHoverable showUnderline>
           {renderedValue}
         </Tooltip>
@@ -159,7 +154,7 @@ function ReadoutContent({
     );
   }
 
-  return <NumberContainer align={align}>{renderedValue}</NumberContainer>;
+  return <NumberContainer align="left">{renderedValue}</NumberContainer>;
 }
 
 const MINIMUM_RATE_VALUE = 0.01;
@@ -179,3 +174,24 @@ const LoadingContainer = styled('div')<{align: 'left' | 'right'}>`
 function isARateUnit(unit: string): unit is RateUnit {
   return (Object.values(RateUnit) as string[]).includes(unit);
 }
+
+const ReadoutWrapper = styled('div')`
+  flex-grow: 0;
+  min-width: 0;
+  word-break: break-word;
+`;
+
+const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0;
+  white-space: nowrap;
+  height: ${space(3)};
+  text-align: ${p => p.alignment};
+`;
+
+const ReadoutContentWrapper = styled('h4')<{alignment: 'left' | 'right'}>`
+  margin: 0;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  text-align: ${p => p.alignment};
+`;

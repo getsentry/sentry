@@ -56,7 +56,7 @@ class EmailAuthBackendTest(TestCase):
 
 @control_silo_test
 class GetLoginRedirectTest(TestCase):
-    def make_request(self, next=None):
+    def _make_request(self, next=None):
         request = HttpRequest()
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = "80"
@@ -67,67 +67,67 @@ class GetLoginRedirectTest(TestCase):
         return request
 
     def test_schema_uses_default(self):
-        result = get_login_redirect(self.make_request("http://example.com"))
+        result = get_login_redirect(self._make_request("http://example.com"))
         assert result == reverse("sentry-login")
 
-        result = get_login_redirect(self.make_request("ftp://testserver"))
+        result = get_login_redirect(self._make_request("ftp://testserver"))
         assert result == reverse("sentry-login")
 
     def test_next(self):
-        result = get_login_redirect(self.make_request("http://testserver/foobar/"))
+        result = get_login_redirect(self._make_request("http://testserver/foobar/"))
         assert result == "http://testserver/foobar/"
 
-        result = get_login_redirect(self.make_request("ftp://testserver/foobar/"))
+        result = get_login_redirect(self._make_request("ftp://testserver/foobar/"))
         assert result == reverse("sentry-login")
 
-        request = self.make_request("/foobar/")
+        request = self._make_request("/foobar/")
         request.subdomain = "orgslug"
         result = get_login_redirect(request)
         assert result == "http://orgslug.testserver/foobar/"
 
-        request = self.make_request("http://testserver/foobar/")
+        request = self._make_request("http://testserver/foobar/")
         request.subdomain = "orgslug"
         result = get_login_redirect(request)
         assert result == "http://testserver/foobar/"
 
-        request = self.make_request("ftp://testserver/foobar/")
+        request = self._make_request("ftp://testserver/foobar/")
         request.subdomain = "orgslug"
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
     def test_after_2fa(self):
-        request = self.make_request()
+        request = self._make_request()
         request.session["_after_2fa"] = "http://testserver/foobar/"
         result = get_login_redirect(request)
         assert result == "http://testserver/foobar/"
 
-        request = self.make_request()
+        request = self._make_request()
         request.subdomain = "orgslug"
         request.session["_after_2fa"] = "/foobar/"
         result = get_login_redirect(request)
         assert result == "http://orgslug.testserver/foobar/"
 
     def test_pending_2fa(self):
-        request = self.make_request()
+        request = self._make_request()
         request.session["_pending_2fa"] = [1234, 1234, 1234]
         result = get_login_redirect(request)
         assert result == reverse("sentry-2fa-dialog")
 
-        request = self.make_request()
+        request = self._make_request()
         request.subdomain = "orgslug"
         request.session["_pending_2fa"] = [1234, 1234, 1234]
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-2fa-dialog')}"
 
     def test_login_uses_default(self):
-        result = get_login_redirect(self.make_request(reverse("sentry-login")))
+        result = get_login_redirect(self._make_request(reverse("sentry-login")))
         assert result == reverse("sentry-login")
 
     def test_no_value_uses_default(self):
-        result = get_login_redirect(self.make_request())
+        result = get_login_redirect(self._make_request())
         assert result == reverse("sentry-login")
 
-        request = self.make_request()
+        request = self._make_request()
         request.subdomain = "orgslug"
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
@@ -135,7 +135,7 @@ class GetLoginRedirectTest(TestCase):
 
 @control_silo_test
 class LoginTest(TestCase):
-    def make_request(self, next=None):
+    def _make_request(self, next=None):
         request = HttpRequest()
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.session = self.session
@@ -145,14 +145,14 @@ class LoginTest(TestCase):
         return request
 
     def test_simple(self):
-        request = self.make_request()
+        request = self._make_request()
         assert login(request, self.user)
         assert request.user == self.user
         assert "_nonce" not in request.session
 
     def test_with_organization(self):
         org = self.create_organization(name="foo", owner=self.user)
-        request = self.make_request()
+        request = self._make_request()
         assert login(request, self.user, organization_id=org.id)
         assert request.user == self.user
         assert f"{SsoSession.SSO_SESSION_KEY}:{org.id}" in request.session
@@ -161,7 +161,7 @@ class LoginTest(TestCase):
         self.user.refresh_session_nonce()
         self.user.save()
         assert self.user.session_nonce is not None
-        request = self.make_request()
+        request = self._make_request()
         assert login(request, self.user)
         assert request.user == self.user
         assert request.session["_nonce"] == self.user.session_nonce

@@ -18,8 +18,8 @@ from sentry.api.endpoints.relocations.index import (
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.models.organization import OrganizationStatus
 from sentry.models.relocation import Relocation
-from sentry.organizations.services.organization import organization_service
 from sentry.tasks.relocation import uploading_start
 from sentry.types.region import get_local_region
 from sentry.utils.db import atomic_transaction
@@ -28,8 +28,8 @@ ERR_DUPLICATE_ORGANIZATION_FORK = Template(
     "This organization is already in the process of being forked, relocation id: $uuid"
 )
 ERR_ORGANIZATION_NOT_FOUND = Template("The target organization `$pointer` could not be found.")
-ERR_ORGANIZATION_MAPPING_NOT_FOUND = Template(
-    "The target organization `$slug` has no region mapping."
+ERR_ORGANIZATION_INACTIVE = Template(
+    "The target organization `$slug` has status `$status`; status can only be `ACTIVE`."
 )
 ERR_CANNOT_FORK_INTO_SAME_REGION = Template(
     "The organization already lives in region `$region`, so it cannot be forked into that region."
@@ -64,19 +64,12 @@ class OrganizationForkEndpoint(Endpoint):
 
         logger.info("relocations.fork.post.start", extra={"caller": request.user.id})
 
-        org_retrieval_args = {
-            "only_visible": True,
-            "include_projects": False,
-            "include_teams": False,
-        }
-        org_context = (
-            organization_service.get_organization_by_id(id=organization_id_or_slug)
+        org_mapping = (
+            organization_mapping_service.get(organization_id=organization_id_or_slug)
             if str(organization_id_or_slug).isdecimal()
-            else organization_service.get_organization_by_slug(
-                slug=organization_id_or_slug, **org_retrieval_args
-            )
+            else organization_mapping_service.get_by_slug(slug=organization_id_or_slug)
         )
-        if not org_context:
+        if not org_mapping:
             return Response(
                 {
                     "detail": ERR_ORGANIZATION_NOT_FOUND.substitute(
@@ -85,18 +78,15 @@ class OrganizationForkEndpoint(Endpoint):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        organization = org_context.organization
-        org_slug = organization.slug
-        org_mapping = organization_mapping_service.get(organization_id=organization.id)
-        if not org_mapping:
+        if org_mapping.status != OrganizationStatus.ACTIVE:
             return Response(
                 {
-                    "detail": ERR_ORGANIZATION_NOT_FOUND.substitute(
-                        slug=org_slug,
+                    "detail": ERR_ORGANIZATION_INACTIVE.substitute(
+                        slug=org_mapping.slug,
+                        status=str(OrganizationStatus(org_mapping.status or 0).name),
                     )
                 },
-                status=status.HTTP_404_NOT_FOUND,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Figure out which region the organization being forked lives in.
@@ -116,7 +106,7 @@ class OrganizationForkEndpoint(Endpoint):
         # this one until that one resolves.
         duplicate_relocation = Relocation.objects.filter(
             provenance=Relocation.Provenance.SAAS_TO_SAAS.value,
-            want_org_slugs=[organization.slug],
+            want_org_slugs=[org_mapping.slug],
             status__in={Relocation.Status.IN_PROGRESS.value, Relocation.Status.PAUSE.value},
         ).first()
         if duplicate_relocation is not None:
@@ -131,7 +121,7 @@ class OrganizationForkEndpoint(Endpoint):
 
         # Identify who will be the owner of the newly forked organization, and ensure that they
         # don't already have relocations in flight.
-        owners = organization.get_owners()
+        owners = organization_mapping_service.get_owners(organization_id=org_mapping.id)
         owner = owners[0] if len(owners) > 0 else request.user
         err = validate_relocation_uniqueness(owner)
         if err is not None:
@@ -147,14 +137,14 @@ class OrganizationForkEndpoint(Endpoint):
                 step=Relocation.Step.UPLOADING.value,
                 scheduled_pause_at_step=get_autopause_value(),
                 provenance=Relocation.Provenance.SAAS_TO_SAAS,
-                want_org_slugs=[organization.slug],
+                want_org_slugs=[org_mapping.slug],
             )
 
         # Kick off the asynchronous process of exporting the relocation from the partner region.
         # When we received this back (via RPC call), we'll be able to continue with the usual
         # relocation flow, picking up from the `uploading_complete` task.
         uploading_start.apply_async(
-            args=[new_relocation.uuid, replying_region_name, organization.slug]
+            args=[new_relocation.uuid, replying_region_name, org_mapping.slug]
         )
 
         try:
@@ -163,7 +153,7 @@ class OrganizationForkEndpoint(Endpoint):
                 creator_id=request.user.id,
                 owner_id=owner.id,
                 uuid=str(new_relocation.uuid),
-                from_org_slug=organization.slug,
+                from_org_slug=org_mapping.slug,
                 requesting_region_name=requesting_region_name,
                 replying_region_name=replying_region_name,
             )

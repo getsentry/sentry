@@ -36,7 +36,13 @@ export function useDifferentialFlamegraphModel(
       return null;
     }
 
-    const profile = importProfile(props.before.data, '', 'flamegraph', props.frameFilter);
+    const profile = importProfile(
+      props.before.data,
+      '',
+      null,
+      'flamegraph',
+      props.frameFilter
+    );
     return new Flamegraph(profile.profiles[0], {
       sort: flamegraphPreferences.sorting,
       inverted: flamegraphPreferences.view === 'bottom up',
@@ -56,6 +62,7 @@ export function useDifferentialFlamegraphModel(
     return importProfile(
       props.after.data,
       '',
+      null,
       'flamegraph',
       props.frameFilter
     ) as ProfileGroup;

@@ -67,19 +67,24 @@ export function parseQueryBuilderValue(
     filterKeys: TagCollection;
     disallowFreeText?: boolean;
     disallowLogicalOperators?: boolean;
+    disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
+    invalidMessages?: SearchConfig['invalidMessages'];
   }
 ): ParseResult | null {
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
       disallowFreeText: options?.disallowFreeText,
+      validateKeys: options?.disallowUnsupportedFilters,
       disallowWildcard: options?.disallowWildcard,
       disallowedLogicalOperators: options?.disallowLogicalOperators
         ? new Set([BooleanOperator.AND, BooleanOperator.OR])
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
+      invalidMessages: options?.invalidMessages,
+      supportedTags: options?.filterKeys,
     })
   );
 }

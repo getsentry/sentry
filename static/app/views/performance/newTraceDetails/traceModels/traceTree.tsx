@@ -119,11 +119,12 @@ import {TraceType} from '../traceType';
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export declare namespace TraceTree {
+  interface RawSpan extends RawSpanType {}
   interface Transaction extends TraceFullDetailed {
     profiler_id: string;
     sdk_name: string;
   }
-  interface Span extends RawSpanType {
+  interface Span extends RawSpan {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
     measurements?: Record<string, Measurement>;
@@ -138,14 +139,14 @@ export declare namespace TraceTree {
     timestamp: number;
     type: 'missing_instrumentation';
   }
-  interface SiblingAutogroup extends RawSpanType {
+  interface SiblingAutogroup extends RawSpan {
     autogrouped_by: {
       description: string;
       op: string;
     };
   }
 
-  interface ChildrenAutogroup extends RawSpanType {
+  interface ChildrenAutogroup extends RawSpan {
     autogrouped_by: {
       op: string;
     };
@@ -238,9 +239,11 @@ function isBrowserRequestSpan(value: TraceTree.Span): boolean {
 function childParentSwap({
   parent,
   child,
+  reason,
 }: {
   child: TraceTreeNode<TraceTree.NodeValue>;
   parent: TraceTreeNode<TraceTree.NodeValue>;
+  reason: TraceTreeNode['reparent_reason'];
 }) {
   const parentOfParent = parent.parent!;
 
@@ -251,6 +254,9 @@ function childParentSwap({
   // We need to remove the portion of the tree that was previously a child, else we will have a circular reference
   parent.parent = child;
   child.children.push(parent.filter(parent, n => n !== child));
+
+  child.reparent_reason = reason;
+  parent.reparent_reason = reason;
 }
 
 function measurementToTimestamp(
@@ -595,7 +601,7 @@ export class TraceTree {
       ) {
         // The swap can occur at a later point when new transactions are fetched,
         // which means we need to invalidate the tree and re-render the UI.
-        childParentSwap({parent, child: node});
+        childParentSwap({parent, child: node, reason: 'pageload server handler'});
         parent.invalidate(parent);
         node.invalidate(node);
       }
@@ -861,7 +867,7 @@ export class TraceTree {
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
     data: Event,
-    spans: RawSpanType[],
+    spans: TraceTree.RawSpan[],
     options: {sdk: string | undefined} | undefined
   ): [TraceTreeNode<TraceTree.NodeValue>, [number, number] | null] {
     parent.invalidate(parent);
@@ -872,7 +878,7 @@ export class TraceTree {
 
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
-      RawSpanType['span_id'],
+      TraceTree.RawSpan['span_id'],
       TraceTreeNode<TraceTree.Span | TraceTree.Transaction>
     > = {};
 
@@ -903,7 +909,7 @@ export class TraceTree {
     let firstTransaction: TraceTreeNode<TraceTree.Transaction> | null = null;
     for (const child of parent.children) {
       if (isTransactionNode(child)) {
-        firstTransaction = firstTransaction || child;
+        firstTransaction = firstTransaction ?? child;
         // keep track of the transaction nodes that should be reparented under the newly fetched spans.
         const key =
           'parent_span_id' in child.value &&
@@ -934,6 +940,7 @@ export class TraceTree {
       // was the parent of the browser request span which likely served the document.
       if (
         firstTransaction &&
+        firstTransaction.reparent_reason === 'pageload server handler' &&
         !childTransactions.length &&
         isBrowserRequestSpan(spanNodeValue) &&
         isServerRequestHandlerTransactionNode(firstTransaction)
@@ -1734,6 +1741,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   canFetch: boolean = false;
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode | null = null;
+  reparent_reason: 'pageload server handler' | null = null;
   value: T;
   expanded: boolean = false;
   zoomedIn: boolean = false;
@@ -2483,7 +2491,7 @@ export function computeAutogroupedBarSegments(
 
 // Returns a list of errors related to the txn with ids matching the span id
 function getRelatedSpanErrorsFromTransaction(
-  span: RawSpanType,
+  span: TraceTree.RawSpan,
   node?: TraceTreeNode<TraceTree.NodeValue>
 ): TraceErrorType[] {
   if (!node || !node.value || !isTransactionNode(node)) {
@@ -2505,7 +2513,7 @@ function getRelatedSpanErrorsFromTransaction(
 
 // Returns a list of performance errors related to the txn with ids matching the span id
 function getRelatedPerformanceIssuesFromTransaction(
-  span: RawSpanType,
+  span: TraceTree.RawSpan,
   node?: TraceTreeNode<TraceTree.NodeValue>
 ): TraceTree.TracePerformanceIssue[] {
   if (!node || !node.value || !isTransactionNode(node)) {

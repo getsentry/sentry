@@ -51,6 +51,7 @@ export function makeTraceContinuousProfilingLink(
   options: {
     orgSlug: string;
     projectSlug: string;
+    threadId: string | undefined;
     traceId: string;
   },
   query: Location['query'] = {}
@@ -94,15 +95,19 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
-  const queryWithSpanIdAndTraceId: Record<string, string> = {
+  const queryWithEventData: Record<string, string> = {
     ...query,
     eventId,
     traceId: options.traceId,
   };
 
+  if (typeof options.threadId === 'string') {
+    queryWithEventData.tid = options.threadId;
+  }
+
   const spanId = getNodeId(node);
   if (spanId) {
-    queryWithSpanIdAndTraceId.spanId = spanId;
+    queryWithEventData.spanId = spanId;
   }
 
   return generateContinuousProfileFlamechartRouteWithQuery(
@@ -111,6 +116,6 @@ export function makeTraceContinuousProfilingLink(
     profilerId,
     start.toISOString(),
     end.toISOString(),
-    queryWithSpanIdAndTraceId
+    queryWithEventData
   );
 }

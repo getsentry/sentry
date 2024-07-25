@@ -127,7 +127,10 @@ export function PipelinesTable() {
   const {data: tokensUsedData, isLoading: tokensUsedLoading} = useSpanMetrics(
     {
       search: new MutableSearch(
-        `span.category:ai span.ai.pipeline.group:[${(data as Row[])?.map(x => x['span.group']).join(',')}]`
+        `span.category:ai span.ai.pipeline.group:[${(data as Row[])
+          ?.map(x => x['span.group'])
+          ?.filter(x => !!x)
+          .join(',')}]`
       ),
       fields: ['span.ai.pipeline.group', 'sum(ai.total_tokens.used)'],
     },
