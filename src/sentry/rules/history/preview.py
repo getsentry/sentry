@@ -41,6 +41,8 @@ ISSUE_STATE_CONDITIONS = [
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
 ]
 FREQUENCY_CONDITIONS = [
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
