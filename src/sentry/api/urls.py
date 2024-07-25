@@ -18,6 +18,7 @@ from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
+from sentry.api.endpoints.organization_metrics_usage import OrganizationMetricsUsageEndpoint
 from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -1501,6 +1502,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
         OrganizationMetricsExtractionRulesEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-extraction-rules",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/metrics-usage/$",
+        OrganizationMetricsUsageEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-usage",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
