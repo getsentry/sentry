@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import Tag from 'sentry/components/badge/tag';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -15,10 +14,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  hasCustomMetrics,
-  hasCustomMetricsExtractionRules,
-} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -46,6 +42,12 @@ function AddWidget({onAddWidget}: Props) {
   });
 
   const organization = useOrganization();
+
+  const defaultDataset = organization.features.includes(
+    'performance-discover-dataset-selector'
+  )
+    ? DataSet.ERRORS
+    : DataSet.EVENTS;
 
   return (
     <Feature features="dashboards-edit">
@@ -78,7 +80,7 @@ function AddWidget({onAddWidget}: Props) {
             />
           </InnerWrapper>
         ) : (
-          <InnerWrapper onClick={() => onAddWidget(DataSet.EVENTS)}>
+          <InnerWrapper onClick={() => onAddWidget(defaultDataset)}>
             <AddButton
               data-test-id="widget-add"
               icon={<IconAdd size="lg" isCircled color="inactive" />}
@@ -118,19 +120,33 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
   );
 
   const items = useMemo(() => {
-    const menuItems: MenuItemProps[] = [
-      {
+    const menuItems: MenuItemProps[] = [];
+
+    if (organization.features.includes('performance-discover-dataset-selector')) {
+      menuItems.push({
+        key: DataSet.ERRORS,
+        label: t('Errors'),
+        onAction: () => handleAction(DataSet.ERRORS),
+      });
+      menuItems.push({
+        key: DataSet.TRANSACTIONS,
+        label: t('Transactions'),
+        onAction: () => handleAction(DataSet.TRANSACTIONS),
+      });
+    } else {
+      menuItems.push({
         key: DataSet.EVENTS,
         label: t('Errors and Transactions'),
         onAction: () => handleAction(DataSet.EVENTS),
-      },
-      {
-        key: DataSet.ISSUES,
-        label: t('Issues'),
-        details: t('States, Assignment, Time, etc.'),
-        onAction: () => handleAction(DataSet.ISSUES),
-      },
-    ];
+      });
+    }
+
+    menuItems.push({
+      key: DataSet.ISSUES,
+      label: t('Issues'),
+      details: t('States, Assignment, Time, etc.'),
+      onAction: () => handleAction(DataSet.ISSUES),
+    });
 
     if (organization.features.includes('dashboards-rh-widget')) {
       menuItems.push({
@@ -144,13 +160,9 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
     if (hasCustomMetrics(organization)) {
       menuItems.push({
         key: DataSet.METRICS,
-        label: t('Custom Metrics'),
+        label: t('Metrics'),
         onAction: () => handleAction(DataSet.METRICS),
-        trailingItems: hasCustomMetricsExtractionRules(organization) ? (
-          <Tag type="warning">{t('deprecated')}</Tag>
-        ) : (
-          <FeatureBadge type="beta" />
-        ),
+        trailingItems: <FeatureBadge type="beta" />,
       });
     }
 

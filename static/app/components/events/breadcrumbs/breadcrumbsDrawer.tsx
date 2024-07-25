@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -19,11 +21,16 @@ import {
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -48,15 +55,21 @@ function useFocusControl(initialFocusControl?: BreadcrumbControlOptions) {
   return {getFocusProps};
 }
 
-interface BreadcrumbsDrawerContentProps {
+interface BreadcrumbsDrawerProps {
   breadcrumbs: EnhancedCrumb[];
+  event: Event;
+  group: Group;
+  project: Project;
   focusControl?: BreadcrumbControlOptions;
 }
 
-export function BreadcrumbsDrawerContent({
+export function BreadcrumbsDrawer({
   breadcrumbs,
+  event,
+  project,
+  group,
   focusControl: initialFocusControl,
-}: BreadcrumbsDrawerContentProps) {
+}: BreadcrumbsDrawerProps) {
   const organization = useOrganization();
   const theme = useTheme();
 
@@ -198,36 +211,54 @@ export function BreadcrumbsDrawerContent({
 
   return (
     <Fragment>
-      <HeaderGrid>
-        <Header>{t('Breadcrumbs')}</Header>
-        {actions}
-      </HeaderGrid>
-      <TimelineContainer>
-        {displayCrumbs.length === 0 ? (
-          <EmptyMessage>
-            {t('No breadcrumbs found.')}
-            <Button
-              priority="link"
-              onClick={() => {
-                setFilterSet(new Set());
-                setSearch('');
-                trackAnalytics('breadcrumbs.drawer.action', {
-                  control: 'clear_filters',
-                  organization,
-                });
-              }}
-            >
-              {t('Clear Filters?')}
-            </Button>
-          </EmptyMessage>
-        ) : (
-          <BreadcrumbsTimeline
-            breadcrumbs={displayCrumbs}
-            startTimeString={startTimeString}
-            fullyExpanded
-          />
-        )}
-      </TimelineContainer>
+      <DrawerHeader>
+        <NavigationCrumbs
+          crumbs={[
+            {
+              label: (
+                <CrumbContainer>
+                  <ProjectAvatar project={project} />
+                  <ShortId>{group.shortId}</ShortId>
+                </CrumbContainer>
+              ),
+            },
+            {label: getShortEventId(event.id)},
+            {label: t('Breadcrumbs')},
+          ]}
+        />
+      </DrawerHeader>
+      <DrawerBody>
+        <HeaderGrid>
+          <Header>{t('Breadcrumbs')}</Header>
+          {actions}
+        </HeaderGrid>
+        <TimelineContainer>
+          {displayCrumbs.length === 0 ? (
+            <EmptyMessage>
+              {t('No breadcrumbs found.')}
+              <Button
+                priority="link"
+                onClick={() => {
+                  setFilterSet(new Set());
+                  setSearch('');
+                  trackAnalytics('breadcrumbs.drawer.action', {
+                    control: 'clear_filters',
+                    organization,
+                  });
+                }}
+              >
+                {t('Clear Filters?')}
+              </Button>
+            </EmptyMessage>
+          ) : (
+            <BreadcrumbsTimeline
+              breadcrumbs={displayCrumbs}
+              startTimeString={startTimeString}
+              fullyExpanded
+            />
+          )}
+        </TimelineContainer>
+      </DrawerBody>
     </Fragment>
   );
 }
@@ -269,4 +300,21 @@ const EmptyMessage = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   padding: ${space(3)} ${space(1)};
+`;
+
+const NavigationCrumbs = styled(NavigationBreadcrumbs)`
+  margin: 0;
+  padding: 0;
+`;
+
+const CrumbContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const ShortId = styled('div')`
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1;
 `;

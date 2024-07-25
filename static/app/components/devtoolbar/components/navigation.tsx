@@ -1,6 +1,13 @@
 import type {ReactNode} from 'react';
 
-import {IconClose, IconFlag, IconIssues, IconMegaphone, IconSiren} from 'sentry/icons';
+import {
+  IconClose,
+  IconFlag,
+  IconIssues,
+  IconMegaphone,
+  IconReleases,
+  IconSiren,
+} from 'sentry/icons';
 
 import useConfiguration from '../hooks/useConfiguration';
 import usePlacementCss from '../hooks/usePlacementCss';
@@ -47,6 +54,7 @@ export default function Navigation({
         <AlertCountBadge />
       </NavButton>
       <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />} />
+      <NavButton panelName="releases" label="Releases" icon={<IconReleases />} />
     </dialog>
   );
 }

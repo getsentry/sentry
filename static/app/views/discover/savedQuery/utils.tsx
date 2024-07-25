@@ -267,8 +267,8 @@ export function getSavedQueryDataset(
 }
 
 export function getSavedQueryWithDataset(
-  savedQuery?: SavedQuery
-): SavedQuery | undefined {
+  savedQuery?: SavedQuery | NewQuery
+): SavedQuery | NewQuery | undefined {
   if (!savedQuery) {
     return undefined;
   }
@@ -278,7 +278,7 @@ export function getSavedQueryWithDataset(
       undefined,
       savedQuery?.queryDataset
     ),
-  } as SavedQuery;
+  };
 }
 
 export function getDatasetFromLocationOrSavedQueryDataset(
