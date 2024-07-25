@@ -67,3 +67,29 @@ class TestMRIUtils(TestCase):
             format_mri_field_value(f"avg(c:custom/span_attribute_{condition_id}@none)", "1000")
             == "1 s"
         )
+
+    def test_span_metric_does_not_exist(self):
+        config = {
+            "spanAttribute": "my_duration",
+            "aggregates": ["avg", "min", "max", "sum"],
+            "unit": "millisecond",
+            "tags": [],
+            "conditions": [
+                {"value": "browser.name:Chrome or browser.name:Firefox"},
+            ],
+        }
+        project = self.create_project(organization=self.organization, name="my new project")
+        self.create_span_attribute_extraction_config(
+            dictionary=config, user_id=self.user.id, project=project
+        )
+        non_existent_id = 65537
+
+        assert (
+            format_mri_field_value(f"avg(c:custom/span_attribute_{non_existent_id}@none)", "1000")
+            == "1000"
+        )
+
+        assert (
+            format_mri_field(f"avg(c:custom/span_attribute_{non_existent_id}@none)")
+            == f"avg(c:custom/span_attribute_{non_existent_id}@none)"
+        )
