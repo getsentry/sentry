@@ -38,6 +38,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
+import sentry_sdk
 from sentry_kafka_schemas.codecs import ValidationError
 
 from sentry.exceptions import InvalidParams
@@ -264,9 +265,17 @@ def format_mri_field(field: str) -> str:
 
         if parsed:
             if condition_id := parsed.mri.span_attribute_rule_id:
-                condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
-                config = condition.config
-                return f'{parsed.op}({config.span_attribute}) filtered by "{condition.value}"'
+                try:
+                    condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
+                    config = condition.config
+                    return f'{parsed.op}({config.span_attribute}) filtered by "{condition.value}"'
+                except SpanAttributeExtractionRuleCondition.DoesNotExist:
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_tag("field", field)
+                        sentry_sdk.capture_message(
+                            "Trying to format MRI field for non-existent span metric."
+                        )
+                    return field
 
             return str(parsed)
 
@@ -291,8 +300,17 @@ def format_mri_field_value(field: str, value: str) -> str:
             return value
 
         if condition_id := parsed_mri_field.mri.span_attribute_rule_id:
-            condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
-            unit = cast(MetricUnit, condition.config.unit)
+            try:
+                condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
+                unit = cast(MetricUnit, condition.config.unit)
+            except SpanAttributeExtractionRuleCondition.DoesNotExist:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("field", field)
+                    sentry_sdk.capture_message(
+                        "Trying to format MRI field for non-existent span metric."
+                    )
+                return value
+
         else:
             unit = cast(MetricUnit, parsed_mri_field.mri.unit)
 
