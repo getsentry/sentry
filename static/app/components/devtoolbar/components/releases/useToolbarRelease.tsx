@@ -1,24 +1,28 @@
+import {useMemo} from 'react';
+
+import type {ApiEndpointQueryKey} from 'sentry/components/devtoolbar/types';
 import type {Release} from 'sentry/types/release';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
 import useConfiguration from '../../hooks/useConfiguration';
+import useFetchApiData from '../../hooks/useFetchApiData';
 
 export default function useToolbarRelease() {
   const {organizationSlug, projectSlug} = useConfiguration();
 
-  return useApiQuery<Release[]>(
-    [
-      `/organizations/${organizationSlug}/releases/`,
-      {
-        query: {
-          queryReferrer: 'devtoolbar',
-          projectSlug,
+  return useFetchApiData<Release[]>({
+    queryKey: useMemo(
+      (): ApiEndpointQueryKey => [
+        'io.sentry.toolbar',
+        `/organizations/${organizationSlug}/releases/`,
+        {
+          query: {
+            queryReferrer: 'devtoolbar',
+            projectSlug,
+          },
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+      ],
+      [organizationSlug, projectSlug]
+    ),
+    cacheTime: Infinity,
+  });
 }

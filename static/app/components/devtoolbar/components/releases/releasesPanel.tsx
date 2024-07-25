@@ -125,7 +125,7 @@ export default function ReleasesPanel() {
             </span>
           </div>
           <div style={{alignItems: 'start'}}>
-            <ReleaseHeader release={data[0]} orgSlug={organizationSlug} />
+            <ReleaseHeader release={data.json[0]} orgSlug={organizationSlug} />
           </div>
         </Fragment>
       )}
