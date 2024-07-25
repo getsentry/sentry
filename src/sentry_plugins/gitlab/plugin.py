@@ -109,7 +109,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return GitLabClient(url, token)
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         repo = self.get_option("gitlab_repo", group.project)
 
         client = self.get_client(group.project)

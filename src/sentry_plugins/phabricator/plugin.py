@@ -227,7 +227,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
         return Response({field: results})
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(

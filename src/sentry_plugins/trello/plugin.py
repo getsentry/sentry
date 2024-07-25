@@ -204,7 +204,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             return " ".join(e["message"] for e in errors)
         return "unknown error"
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         client = self.get_client(group.project)
 
         try:

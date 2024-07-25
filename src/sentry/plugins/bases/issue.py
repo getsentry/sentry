@@ -143,7 +143,7 @@ class IssueTrackingPlugin(Plugin):
         """
         return "#%s" % issue_id
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
