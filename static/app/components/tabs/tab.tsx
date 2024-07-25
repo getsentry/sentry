@@ -56,7 +56,7 @@ export interface BaseTabProps {
    */
   borderStyle?: 'solid' | 'dashed';
   to?: string;
-  variant?: 'flat' | 'filled';
+  variant?: 'flat' | 'filled' | 'issue-details';
 }
 
 export const BaseTab = forwardRef(
@@ -99,10 +99,26 @@ export const BaseTab = forwardRef(
           borderStyle={borderStyle}
           ref={ref}
         >
-          <FilledStyledInteractionStateLayer hasSelectedBackground={false} />
-          <FilledFocusLayer />
+          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          <VariantFocusLayer />
           {props.children}
         </FilledTabWrap>
+      );
+    }
+
+    if (variant === 'issue-details') {
+      return (
+        <IssueDetailsTabWrap
+          {...tabProps}
+          hidden={hidden}
+          overflowing={overflowing}
+          borderStyle={borderStyle}
+          ref={ref}
+        >
+          <VariantStyledInteractionStateLayer />
+          <VariantFocusLayer />
+          {props.children}
+        </IssueDetailsTabWrap>
       );
     }
 
@@ -163,6 +179,44 @@ export const Tab = forwardRef(
     );
   }
 );
+
+const IssueDetailsTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+  borderStyle: 'dashed' | 'solid';
+  overflowing: boolean;
+}>`
+  &[aria-selected='true'] {
+    ${p =>
+      `
+        color: ${p.theme.purple400};
+        font-weight: ${p.theme.fontWeightBold};
+    `}
+  }
+
+  &[aria-selected='false'] {
+    border-top: 1px solid transparent;
+  }
+
+  color: ${p => p.theme.gray300};
+
+  border-radius: 6px;
+
+  padding: ${space(0.5)} ${space(1)};
+
+  transform: translateY(1px);
+
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+  }
+
+  ${p =>
+    p.overflowing &&
+    `
+      opacity: 0;
+      pointer-events: none;
+    `}
+`;
 
 const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   borderStyle: 'dashed' | 'solid';
@@ -289,7 +343,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
   bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
 `;
 
-const FilledStyledInteractionStateLayer = styled(InteractionStateLayer)`
+const VariantStyledInteractionStateLayer = styled(InteractionStateLayer)`
   position: absolute;
   width: auto;
   height: auto;
@@ -319,7 +373,7 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
   }
 `;
 
-const FilledFocusLayer = styled('div')`
+const VariantFocusLayer = styled('div')`
   position: absolute;
   left: 0;
   right: 0;

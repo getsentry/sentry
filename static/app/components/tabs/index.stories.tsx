@@ -209,6 +209,22 @@ export default storyBook(Tabs, story => {
           </TabPanels>
         </Tabs>
       </SizingWindow>
+      <br />
+      <p>You can also use the "issue-details" variant, which is used below</p>
+      <SizingWindow>
+        <Tabs>
+          <TabList variant="issue-details" hideBorder>
+            {TABS.map(tab => (
+              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {TABS.map(tab => (
+              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Tabs>
+      </SizingWindow>
     </div>
   ));
 });
