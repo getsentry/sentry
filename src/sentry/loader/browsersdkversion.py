@@ -101,6 +101,6 @@ def get_available_sdk_versions_for_project(project):
     versions = project.get_option("sentry:loader_available_sdk_versions")
 
     if features.has("organizations:js-sdk-loader-v8", project.organization, actor=None):
-        return versions + ["8.x"]
+        return ["8.x"] + versions
 
     return versions
