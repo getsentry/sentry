@@ -185,7 +185,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 raise PluginError(f"Unhandled error from Phabricator: {e}")
         return config
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         if not self.get_option("host", project):
             return False
         if self.get_option("token", project):

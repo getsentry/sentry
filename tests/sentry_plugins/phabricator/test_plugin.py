@@ -36,16 +36,16 @@ class PhabricatorPluginTest(PluginTestCase):
         assert self.plugin.get_issue_url(group, "1") == "http://secure.phabricator.org/T1"
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("host", "http://secure.phabricator.org", self.project)
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("token", "12345678-1234-1234-1234-1234567890AB", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
         self.plugin.unset_option("token", self.project)
         self.plugin.set_option("username", "a-user", self.project)
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("certificate", "a-certificate", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     @override_blocklist("127.0.0.1")
     def test_invalid_url(self):

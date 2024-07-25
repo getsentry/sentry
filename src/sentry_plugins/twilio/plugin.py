@@ -135,7 +135,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
         ),
     ]
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return all(
             [
                 self.get_option(o, project)

@@ -132,7 +132,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             ),
         ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return all(self.get_option(key, project) for key in ("token", "key"))
 
     # used for boards and lists but not cards (shortLink used as ID for cards)

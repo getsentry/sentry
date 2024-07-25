@@ -32,7 +32,7 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
     for project in Project.objects.filter(organization_id=organization_id):
         plugin = None
         for p in plugins.for_project(project):
-            if isinstance(p, JiraPlugin) and p.is_configured(None, project):
+            if isinstance(p, JiraPlugin) and p.is_configured(project):
                 plugin = p
                 break
 

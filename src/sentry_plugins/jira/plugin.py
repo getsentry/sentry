@@ -55,7 +55,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         )
         return _patterns
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         if not self.get_option("default_project", project):
             return False
         return True

@@ -70,7 +70,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
 
     logger = logging.getLogger("sentry.plugins.opsgenie")
 
-    def is_configured(self, project):
+    def is_configured(self, project) -> bool:
         return all(self.get_option(k, project) for k in ("api_key", "alert_url"))
 
     def get_form_initial(self, project=None):
