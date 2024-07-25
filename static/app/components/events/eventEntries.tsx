@@ -62,7 +62,6 @@ function EventEntries({
 }: Props) {
   const orgSlug = organization.slug;
   const projectSlug = project.slug;
-  const orgFeatures = organization?.features ?? [];
 
   if (!event) {
     return (
@@ -131,14 +130,7 @@ function EventEntries({
         />
       )}
       {!isShare && event.groupID && (
-        <EventGroupingInfo
-          projectSlug={projectSlug}
-          event={event}
-          showGroupingConfig={
-            orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
-          }
-          group={group}
-        />
+        <EventGroupingInfo projectSlug={projectSlug} event={event} group={group} />
       )}
       {!isShare && (
         <EventRRWebIntegration event={event} orgId={orgSlug} projectSlug={projectSlug} />

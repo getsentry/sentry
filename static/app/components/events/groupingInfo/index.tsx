@@ -14,7 +14,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 
-import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
 
 const groupingFeedbackTypes = [
@@ -26,7 +25,6 @@ const groupingFeedbackTypes = [
 type GroupingInfoProps = {
   event: Event;
   projectSlug: string;
-  showGroupingConfig: boolean;
   group?: Group;
 };
 
@@ -70,30 +68,6 @@ function generatePerformanceGroupInfo({
     : null;
 }
 
-function GroupConfigSelect({
-  event,
-  configOverride,
-  setConfigOverride,
-}: {
-  configOverride: string | null;
-  event: Event;
-  setConfigOverride: (value: string) => void;
-}) {
-  if (!event.groupingConfig) {
-    return null;
-  }
-
-  const configId = configOverride ?? event.groupingConfig?.id;
-
-  return (
-    <GroupingConfigSelect
-      eventConfigId={event.groupingConfig.id}
-      configId={configId}
-      onSelect={selection => setConfigOverride(selection.value)}
-    />
-  );
-}
-
 function GroupInfoSummary({groupInfo}: {groupInfo: EventGroupingInfoResponse | null}) {
   const groupedBy = groupInfo
     ? Object.values(groupInfo)
@@ -110,15 +84,9 @@ function GroupInfoSummary({groupInfo}: {groupInfo: EventGroupingInfoResponse | n
   );
 }
 
-export function EventGroupingInfo({
-  event,
-  projectSlug,
-  showGroupingConfig,
-  group,
-}: GroupingInfoProps) {
+export function EventGroupingInfo({event, projectSlug, group}: GroupingInfoProps) {
   const organization = useOrganization();
   const [isOpen, setIsOpen] = useState(false);
-  const [configOverride, setConfigOverride] = useState<string | null>(null);
 
   const hasPerformanceGrouping =
     event.occurrence &&
@@ -126,10 +94,7 @@ export function EventGroupingInfo({
     event.type === 'transaction';
 
   const {data, isLoading, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
-    [
-      `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`,
-      {query: configOverride ? {config: configOverride} : {}},
-    ],
+    [`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`],
     {enabled: !hasPerformanceGrouping, staleTime: Infinity}
   );
 
@@ -157,19 +122,10 @@ export function EventGroupingInfo({
       {isOpen ? (
         <Fragment>
           <ConfigHeader>
-            <div>
-              {showGroupingConfig && (
-                <GroupConfigSelect
-                  event={event}
-                  configOverride={configOverride}
-                  setConfigOverride={setConfigOverride}
-                />
-              )}
-            </div>
             <FeatureFeedback
               featureName="grouping"
               feedbackTypes={groupingFeedbackTypes}
-              buttonProps={{size: 'sm'}}
+              buttonProps={{size: 'xs'}}
             />
           </ConfigHeader>
           {isError ? (
@@ -179,11 +135,7 @@ export function EventGroupingInfo({
           {hasPerformanceGrouping || isSuccess
             ? variants.map((variant, index) => (
                 <Fragment key={variant.key}>
-                  <GroupVariant
-                    event={event}
-                    variant={variant}
-                    showGroupingConfig={showGroupingConfig}
-                  />
+                  <GroupVariant event={event} variant={variant} />
                   {index < variants.length - 1 && <VariantDivider />}
                 </Fragment>
               ))
@@ -196,8 +148,7 @@ export function EventGroupingInfo({
 
 const ConfigHeader = styled('div')`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;

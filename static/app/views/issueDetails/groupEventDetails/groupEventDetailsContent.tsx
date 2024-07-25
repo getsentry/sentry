@@ -285,15 +285,7 @@ function DefaultGroupEventDetailsContent({
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event.groupID && (
-        <EventGroupingInfo
-          projectSlug={project.slug}
-          event={event}
-          showGroupingConfig={
-            organization.features.includes('set-grouping-config') &&
-            'groupingConfig' in event
-          }
-          group={group}
-        />
+        <EventGroupingInfo projectSlug={project.slug} event={event} group={group} />
       )}
 
       {!hasReplay && (

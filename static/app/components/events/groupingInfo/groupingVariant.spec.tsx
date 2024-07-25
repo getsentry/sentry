@@ -52,13 +52,7 @@ describe('Grouping Variant', () => {
   };
 
   it('renders the span hashes for performance issues from event data', () => {
-    render(
-      <GroupingVariant
-        showGroupingConfig={false}
-        variant={performanceIssueVariant}
-        event={event}
-      />
-    );
+    render(<GroupingVariant variant={performanceIssueVariant} event={event} />);
 
     expect(
       within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
@@ -78,13 +72,7 @@ describe('Grouping Variant', () => {
   });
 
   it('renders grouping details for occurrence-backed performance issues', () => {
-    render(
-      <GroupingVariant
-        showGroupingConfig={false}
-        variant={performanceIssueVariant}
-        event={occurrenceEvent}
-      />
-    );
+    render(<GroupingVariant variant={performanceIssueVariant} event={occurrenceEvent} />);
 
     expect(
       within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
