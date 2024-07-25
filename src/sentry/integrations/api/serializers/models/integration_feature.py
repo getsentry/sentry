@@ -1,4 +1,4 @@
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer, register
@@ -10,18 +10,21 @@ from sentry.models.user import User
 class IntegrationFeatureSerializer(Serializer):
     def get_attrs(
         self,
-        item_list: list[IntegrationFeature],
+        item_list: Sequence[IntegrationFeature],
         user: User,
         has_target: bool = True,
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
         # Perform DB calls for description field in bulk
         description_attrs = (
-            IntegrationFeature.objects.get_descriptions_as_dict(item_list) if has_target else {}
+            IntegrationFeature.objects.get_descriptions_as_dict(list(item_list))
+            if has_target
+            else {}
         )
         return {item: {"description": description_attrs.get(item.id)} for item in item_list}
 
-    def serialize(self, obj: IntegrationFeature, attrs, user: User, has_target: bool = True):
+    def serialize(self, obj: IntegrationFeature, attrs: Mapping[Any, Any], user: User, **kwargs):
+        has_target = kwargs.get("has_target", True)
         data = {
             "featureId": obj.feature,
             # feature gating work done in getsentry expects the format 'featureGate'
