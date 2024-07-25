@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry.search.events.types import ParamsType
 from sentry.snuba import metrics_enhanced_performance
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -21,7 +22,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.params = {
+        self.params: ParamsType = {
             "organization_id": self.organization.id,
             "project_id": [self.project.id],
             "start": before_now(days=1),
