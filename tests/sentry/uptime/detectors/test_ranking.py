@@ -184,3 +184,10 @@ class ShouldDetectForOrgTest(TestCase):
         assert not should_detect_for_organization(self.organization)
         self.organization.update_option("sentry:uptime_autodetection", True)
         assert should_detect_for_organization(self.organization)
+
+    def test_quota(self):
+        assert should_detect_for_organization(self.organization)
+        uptime_monitor = self.create_project_uptime_subscription()
+        assert not should_detect_for_organization(self.organization)
+        uptime_monitor.delete()
+        assert should_detect_for_organization(self.organization)

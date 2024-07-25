@@ -6,7 +6,7 @@ import responses
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.messaging import MessagingActionHandler
-from sentry.integrations.msteams import MsTeamsMessagingSpec
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode

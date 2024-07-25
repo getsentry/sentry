@@ -74,12 +74,15 @@ class MessagingIntegrationSpec(ABC):
         which require additional boilerplate.
         """
 
-        AlertRuleTriggerAction.register_factory(_MessagingHandlerFactory(self))
+        AlertRuleTriggerAction.register_factory(self.get_incident_handler_factory())
 
         if self.notify_service_action:
             rules.add(self.notify_service_action)
         if self.notification_sent:
             analytics.register(self.notification_sent)
+
+    def get_incident_handler_factory(self) -> ActionHandlerFactory:
+        return _MessagingHandlerFactory(self)
 
     @property
     @abstractmethod

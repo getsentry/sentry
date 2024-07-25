@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Never
 from unittest import mock
 
 import pytest
@@ -64,7 +64,7 @@ class LeakyBucketRateLimiterTest(TestCase):
 
     def test_decorator(self) -> None:
         @self.limiter("foo")
-        def foo() -> None:
+        def foo() -> Never:
             assert False, "This should not be executed when limited"
 
         with freeze_time("2077-09-13"):
@@ -75,7 +75,7 @@ class LeakyBucketRateLimiterTest(TestCase):
             assert foo() is None
 
         @self.limiter("bar", raise_exception=True)
-        def bar() -> None:
+        def bar() -> Never:
             assert False, "This should not be executed when limited"
 
         with freeze_time("2077-09-13"):
@@ -88,23 +88,23 @@ class LeakyBucketRateLimiterTest(TestCase):
 
         last_info: list[LeakyBucketLimitInfo] = []
 
-        def callback(info: LeakyBucketLimitInfo, context: dict[str, Any]) -> LeakyBucketLimitInfo:
+        def callback(info: LeakyBucketLimitInfo, context: dict[str, Any]) -> str:
             last_info.append(info)
-            return info
+            return "rate limited"
 
         @self.limiter("baz", limited_handler=callback)
-        def baz() -> bool:
-            return True
+        def baz() -> str:
+            return "normal value"
 
         with freeze_time("2077-09-13"):
             for i in range(5):
-                assert baz() is True
+                assert baz() == "normal value"
                 assert len(last_info) == 0
 
-            info = baz()
-            assert info
+            baz_rv = baz()
+            assert baz_rv == "rate limited"
             assert len(last_info) == 1
-            assert last_info[0] == info
+            info = last_info[0]
             assert info.wait_time > 0
             assert info.current_level == 5
 
@@ -114,7 +114,7 @@ class LeakyBucketRateLimiterTest(TestCase):
         with mock.patch.object(limiter, "_redis_key", wraps=limiter._redis_key) as _redis_key_spy:
 
             @limiter()
-            def foo() -> None:
+            def foo() -> Any:
                 pass
 
             foo()

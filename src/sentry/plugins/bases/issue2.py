@@ -392,9 +392,6 @@ class IssueTrackingPlugin2(Plugin):
 
     def get_config(self, *args, **kwargs):
         # TODO(dcramer): update existing plugins to just use get_config
-        # TODO(dcramer): remove request kwarg after sentry-plugins has been
-        # updated
-        kwargs.setdefault("request", None)
         return self.get_configure_plugin_fields(*args, **kwargs)
 
     def check_config_and_auth(self, request: Request, group):

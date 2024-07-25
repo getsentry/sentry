@@ -23,6 +23,7 @@ def detect_base_url_for_project(project: Project, url: str) -> None:
         or not should_detect_for_project(project)
         or not should_detect_for_organization(project.organization)
     ):
+        metrics.incr("uptime.detectors.url_add_skipped_due_to_feature_flag")
         return
 
     base_url = extract_base_url(url)
@@ -30,4 +31,4 @@ def detect_base_url_for_project(project: Project, url: str) -> None:
         return
 
     add_base_url_to_rank(project, base_url)
-    metrics.incr("uptime.url_added_to_rank")
+    metrics.incr("uptime.detectors.url_added_to_rank")

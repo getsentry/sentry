@@ -34,7 +34,27 @@ export const globalCss = css`
     --blue200: rgba(60, 116, 221, 0.5);
     --blue100: rgba(60, 116, 221, 0.09);
 
-    --z-index: 100000;
+    --green400: #207964;
+    --green300: #2ba185;
+    --green200: rgba(43, 161, 133, 0.55);
+    --green100: rgba(43, 161, 133, 0.11);
+
+    --yellow400: #856c00;
+    --yellow300: #ebc000;
+    --yellow200: rgba(235, 192, 0, 0.7);
+    --yellow100: rgba(235, 192, 0, 0.14);
+
+    --red400: #cf2126;
+    --red300: #f55459;
+    --red200: rgba(245, 84, 89, 0.5);
+    --red100: rgba(245, 84, 89, 0.1);
+
+    --pink400: #d1056b;
+    --pink300: #f14499;
+    --pink200: rgba(249, 26, 138, 0.5);
+    --pink100: rgba(249, 26, 138, 0.09);
+
+    --z-index: 10000;
 
     color: var(--gray400);
     font-family: system-ui, 'Helvetica Neue', Arial, sans-serif;

@@ -2640,7 +2640,7 @@ class PostProcessGroupAggregateEventTest(
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
 ):
-    def create_event(self, data, project_id):
+    def create_event(self, data, project_id, assert_no_errors=True):
         group = self.create_group(
             type=PerformanceP95EndpointRegressionGroupType.type_id,
         )

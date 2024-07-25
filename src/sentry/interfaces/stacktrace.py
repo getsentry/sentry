@@ -325,7 +325,7 @@ class Frame(Interface):
         # queries and JSON data)
         return self.function.startswith(("lambda$", "[Anonymous"))
 
-    def to_string(self, event):
+    def to_string(self, event) -> str:
         if event.platform is not None:
             choices = [event.platform]
         else:
@@ -525,7 +525,7 @@ class Stacktrace(Interface):
             }
         )
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
 
     def get_stacktrace(

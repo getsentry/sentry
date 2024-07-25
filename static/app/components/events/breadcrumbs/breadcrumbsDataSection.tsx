@@ -1,41 +1,41 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
-  BreadcrumbsDrawerContent,
-} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawerContent';
+  BreadcrumbsDrawer,
+} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
   getEnhancedBreadcrumbs,
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {
+  BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+  BreadcrumbSort,
+} from 'sentry/components/events/interfaces/breadcrumbs';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import useDrawer from 'sentry/components/globalDrawer';
 import {
   IconClock,
   IconEllipsis,
-  IconFilter,
   IconMegaphone,
   IconSearch,
-  IconSort,
   IconTimer,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -52,23 +52,27 @@ export default function BreadcrumbsDataSection({
 }: BreadcrumbsDataSectionProps) {
   const {openDrawer} = useDrawer();
   const organization = useOrganization();
-  // Use the local storage preferences, but allow the drawer to do updates
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-    BreadcrumbTimeDisplay.RELATIVE
+    BreadcrumbTimeDisplay.ABSOLUTE
+  );
+  // Use the local storage preferences, but allow the drawer to do updates
+  const [sort, _setSort] = useLocalStorageState<BreadcrumbSort>(
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
   );
 
   const enhancedCrumbs = useMemo(() => getEnhancedBreadcrumbs(event), [event]);
   const summaryCrumbs = useMemo(
-    () => getSummaryBreadcrumbs(enhancedCrumbs),
-    [enhancedCrumbs]
+    () => getSummaryBreadcrumbs(enhancedCrumbs, sort),
+    [enhancedCrumbs, sort]
   );
   const startTimeString = useMemo(
     () =>
       timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-        ? enhancedCrumbs?.at(-1)?.breadcrumb?.timestamp
+        ? summaryCrumbs?.at(0)?.breadcrumb?.timestamp
         : undefined,
-    [enhancedCrumbs, timeDisplay]
+    [summaryCrumbs, timeDisplay]
   );
 
   const onViewAllBreadcrumbs = useCallback(
@@ -78,36 +82,16 @@ export default function BreadcrumbsDataSection({
         organization,
       });
       openDrawer(
-        ({Header, Body}) => (
-          <Fragment>
-            <Header>
-              <BreadcrumbHeader>
-                <NavigationCrumbs
-                  crumbs={[
-                    {
-                      label: (
-                        <CrumbContainer>
-                          <ProjectAvatar project={project} />
-                          <ShortId>{group.shortId}</ShortId>
-                        </CrumbContainer>
-                      ),
-                    },
-                    {label: getShortEventId(event.id)},
-                    {label: t('Breadcrumbs')},
-                  ]}
-                />
-                <BreadcrumbsFeedback />
-              </BreadcrumbHeader>
-            </Header>
-            <Body>
-              <BreadcrumbsDrawerContent
-                breadcrumbs={enhancedCrumbs}
-                focusControl={focusControl}
-              />
-            </Body>
-          </Fragment>
+        () => (
+          <BreadcrumbsDrawer
+            breadcrumbs={enhancedCrumbs}
+            focusControl={focusControl}
+            project={project}
+            event={event}
+            group={group}
+          />
         ),
-        {ariaLabel: 'breadcrumb drawer', closeOnOutsideClick: false}
+        {ariaLabel: 'breadcrumb drawer'}
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -117,28 +101,26 @@ export default function BreadcrumbsDataSection({
     return null;
   }
 
+  const nextTimeDisplay =
+    timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
+      ? BreadcrumbTimeDisplay.RELATIVE
+      : BreadcrumbTimeDisplay.ABSOLUTE;
+
   const actions = (
     <ButtonBar gap={1}>
+      <BreadcrumbsFeedback />
       <Button
-        aria-label={t('Search Breadcrumbs')}
+        aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
         size="xs"
+        title={t('Open Search')}
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
       />
       <Button
-        aria-label={t('Filter Breadcrumbs')}
-        icon={<IconFilter size="xs" />}
-        size="xs"
-        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.FILTER)}
-      />
-      <Button
-        aria-label={t('Sort Breadcrumbs')}
-        icon={<IconSort size="xs" />}
-        size="xs"
-        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SORT)}
-      />
-      <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
+        title={tct('Use [format] Timestamps', {
+          format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
+        })}
         icon={
           timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
             <IconClock size="xs" />
@@ -147,10 +129,6 @@ export default function BreadcrumbsDataSection({
           )
         }
         onClick={() => {
-          const nextTimeDisplay =
-            timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
-              ? BreadcrumbTimeDisplay.RELATIVE
-              : BreadcrumbTimeDisplay.ABSOLUTE;
           setTimeDisplay(nextTimeDisplay);
           trackAnalytics('breadcrumbs.issue_details.change_time_display', {
             value: nextTimeDisplay,
@@ -178,7 +156,6 @@ export default function BreadcrumbsDataSection({
           startTimeString={startTimeString}
           // We want the timeline to appear connected to the 'View All' button
           showLastLine={hasViewAll}
-          isCompact
         />
         {hasViewAll && (
           <ViewAllContainer>
@@ -217,16 +194,10 @@ function BreadcrumbsFeedback() {
       icon={<IconMegaphone />}
       size={'xs'}
     >
-      {t('Feedback')}
+      {t('Give Feedback')}
     </Button>
   );
 }
-
-const BreadcrumbHeader = styled('div')`
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-`;
 
 const ViewAllContainer = styled('div')`
   position: relative;
@@ -253,21 +224,4 @@ const VerticalEllipsis = styled(IconEllipsis)`
 
 const ViewAllButton = styled(Button)`
   padding: ${space(0.75)} ${space(1)};
-`;
-
-const NavigationCrumbs = styled(NavigationBreadcrumbs)`
-  margin: 0;
-  padding: 0;
-`;
-
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 `;
