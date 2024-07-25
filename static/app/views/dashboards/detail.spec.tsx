@@ -515,7 +515,7 @@ describe('Dashboards > Detail', function () {
         'Errors',
         'Transactions',
         'Issues',
-        'Custom Metrics',
+        'Metrics',
       ]);
     });
 
@@ -551,7 +551,7 @@ describe('Dashboards > Detail', function () {
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Errors and Transactions',
         'Issues',
-        'Custom Metrics',
+        'Metrics',
       ]);
     });
 
