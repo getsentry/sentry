@@ -29,11 +29,7 @@ describe('Nest.js onboarding docs', function () {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          /SentryModule\.forRoot\(\)/
-        )
-      )
+      screen.getByText(textWithMarkupMatcher(/SentryModule\.forRoot\(\)/))
     ).toBeInTheDocument();
   });
 
