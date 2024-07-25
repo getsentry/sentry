@@ -54,7 +54,7 @@ import { AppService } from "./app.service";
   providers: [AppService],
 })
 export class AppModule {}
-`
+`;
 
 const getVerifySnippet = () => `
 @Get("/debug-sentry")
