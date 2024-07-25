@@ -265,7 +265,7 @@ class BaseApiClient(TrackResponseMixin):
                 self.record_error(e)
                 raise ApiError("Internal Error", url=full_url) from e
 
-            self.track_response_data(error_resp.status_code, e, extra=extra)
+            self.track_response_data(error_resp.status_code, e, resp=error_resp, extra=extra)
             self.record_error(e)
             raise ApiError.from_response(error_resp, url=full_url) from e
 
@@ -289,7 +289,7 @@ class BaseApiClient(TrackResponseMixin):
             # If it's not something we recognize, let the caller deal with it
             raise
 
-        self.track_response_data(resp.status_code, None, extra=extra)
+        self.track_response_data(resp.status_code, None, resp, extra=extra)
 
         self.record_response_for_disabling_integration(resp)
 
