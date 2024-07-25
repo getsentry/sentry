@@ -1,6 +1,6 @@
 from django.urls import re_path
 
-from sentry.integrations.discord import DiscordMessagingSpec
+from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
 
 from .webhooks.base import DiscordInteractionsEndpoint

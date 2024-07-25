@@ -9,12 +9,12 @@ from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.integrations.messaging import MessagingActionHandler
-from sentry.integrations.slack import SlackMessagingSpec
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.metrics import (
     SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
 )
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.helpers.datetime import freeze_time
