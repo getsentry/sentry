@@ -6,11 +6,12 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from snuba_sdk import Column, Condition
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.events.types import EventsResponse, ParamsType
+from sentry.search.events.types import EventsResponse, ParamsType, SnubaParams
 from sentry.snuba import discover, transactions
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
@@ -21,27 +22,31 @@ from sentry.utils.snuba import SnubaTSResult
 
 
 def query(
-    selected_columns,
-    query,
-    params,
-    snuba_params=None,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    referrer=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    use_aggregate_conditions=False,
-    allow_metric_aggregates=True,
-    conditions=None,
-    functions_acl=None,
-    transform_alias_to_input_format=False,
-    has_metrics: bool = True,
+    selected_columns: list[str],
+    query: str,
+    params: ParamsType,
+    snuba_params: SnubaParams | None = None,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int | None = None,
+    limit: int = 50,
+    referrer: str | None = None,
+    auto_fields: bool = False,
+    auto_aggregations: bool = False,
+    include_equation_fields: bool = False,
+    allow_metric_aggregates: bool = False,
+    use_aggregate_conditions: bool = False,
+    conditions: list[Condition] | None = None,
+    functions_acl: list[str] | None = None,
+    transform_alias_to_input_format: bool = False,
+    sample: float | None = None,
+    has_metrics: bool = False,
     use_metrics_layer: bool = False,
+    skip_tag_resolution: bool = False,
+    extra_columns: list[Column] | None = None,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type=None,
-    fallback_to_transactions=False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions: bool = False,
 ):
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
@@ -94,6 +99,7 @@ def query(
             selected_columns,
             query,
             params,
+            snuba_params=snuba_params,
             equations=equations,
             orderby=orderby,
             offset=offset,
@@ -122,6 +128,7 @@ def timeseries_query(
     params: ParamsType,
     rollup: int,
     referrer: str,
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -138,6 +145,9 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if metrics_compatible:
         try:
             return metrics_timeseries_query(
@@ -145,11 +155,12 @@ def timeseries_query(
                 query,
                 params,
                 rollup,
-                referrer,
-                zerofill_results,
-                allow_metric_aggregates,
-                comparison_delta,
-                functions_acl,
+                snuba_params=snuba_params,
+                referrer=referrer,
+                zerofill_results=zerofill_results,
+                allow_metric_aggregates=allow_metric_aggregates,
+                comparison_delta=comparison_delta,
+                functions_acl=functions_acl,
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
@@ -169,11 +180,12 @@ def timeseries_query(
             selected_columns,
             query,
             params,
-            rollup,
-            referrer,
-            zerofill_results,
-            comparison_delta,
-            functions_acl,
+            snuba_params=snuba_params,
+            rollup=rollup,
+            referrer=referrer,
+            zerofill_results=zerofill_results,
+            comparison_delta=comparison_delta,
+            functions_acl=functions_acl,
             has_metrics=has_metrics,
         )
     return SnubaTSResult(
@@ -197,6 +209,7 @@ def top_events_timeseries(
     rollup: int,
     limit: int,
     organization: Organization,
+    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
     referrer: str | None = None,
     top_events: EventsResponse | None = None,
@@ -212,6 +225,9 @@ def top_events_timeseries(
     if not equations:
         metrics_compatible = True
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if metrics_compatible:
         try:
             return metrics_top_events_timeseries(
@@ -223,6 +239,7 @@ def top_events_timeseries(
                 rollup,
                 limit,
                 organization,
+                snuba_params,
                 equations,
                 referrer,
                 top_events,
@@ -253,6 +270,7 @@ def top_events_timeseries(
             rollup,
             limit,
             organization,
+            snuba_params,
             equations,
             referrer,
             top_events,
@@ -278,6 +296,7 @@ def histogram_query(
     user_query,
     params,
     num_buckets,
+    snuba_params=None,
     precision=0,
     min_value=None,
     max_value=None,
@@ -306,6 +325,7 @@ def histogram_query(
                 user_query,
                 params,
                 num_buckets,
+                snuba_params,
                 precision,
                 min_value,
                 max_value,
@@ -335,6 +355,7 @@ def histogram_query(
             user_query,
             params,
             num_buckets,
+            snuba_params,
             precision,
             min_value,
             max_value,
