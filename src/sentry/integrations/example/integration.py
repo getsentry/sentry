@@ -72,7 +72,10 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixi
     outbound_assignee_key = "sync_assignee_outbound"
     inbound_assignee_key = "sync_assignee_inbound"
 
-    def get_issue_url(self, key: str) -> str:
+    def get_client(self):
+        pass
+
+    def get_issue_url(self, key):
         return f"https://example/issues/{key}"
 
     def create_comment(self, issue_id, user_id, group_note):
