@@ -1687,6 +1687,100 @@ describe('WidgetBuilder', function () {
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
   });
 
+  describe('discover dataset split', function () {
+    describe('events', function () {
+      it('selects the error discover split type as the dataset when the events request completes', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.ERRORS},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+      });
+
+      it('selects the transaction discover split type as the dataset when the events request completes', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.TRANSACTIONS},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+      });
+    });
+
+    describe('events-stats', function () {
+      it('selects the error discover split type as the dataset when the request completes', async function () {
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.ERRORS},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          // Triggers an events-stats request because line charts are for timeseries
+          query: {displayType: 'line'},
+        });
+
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+      });
+
+      it('selects the transaction discover split type as the dataset when the request completes', async function () {
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.TRANSACTIONS},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          // Triggers an events-stats request because line charts are for timeseries
+          query: {displayType: 'line'},
+        });
+
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+      });
+    });
+  });
+
   describe('Widget Library', function () {
     it('only opens the modal when the query data is changed', async function () {
       const mockModal = jest.spyOn(modals, 'openWidgetBuilderOverwriteModal');

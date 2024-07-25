@@ -131,6 +131,12 @@ function Controls({
     );
   }
 
+  const defaultDataset = organization.features.includes(
+    'performance-discover-dataset-selector'
+  )
+    ? DataSet.ERRORS
+    : DataSet.EVENTS;
+
   return (
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
@@ -190,7 +196,7 @@ function Controls({
                       trackAnalytics('dashboards_views.widget_library.opened', {
                         organization,
                       });
-                      onAddWidget(DataSet.EVENTS);
+                      onAddWidget(defaultDataset);
                     }}
                   >
                     {t('Add Widget')}

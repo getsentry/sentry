@@ -43,6 +43,7 @@ import {
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -65,6 +66,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
 };

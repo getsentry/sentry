@@ -43,7 +43,9 @@ export function DataSetStep({
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
   }
 
-  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
+  if (!organization.features.includes('performance-discover-dataset-selector')) {
+    datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
+  }
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
 
   if (hasReleaseHealthFeature) {
