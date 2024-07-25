@@ -33,7 +33,6 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -56,8 +55,6 @@ export function WebVitalsLandingPage() {
     isProjectScoresLoading || isLoading
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
-
-  useHasDataTrackAnalytics(ModuleName.VITAL, 'insight.page_loads.vital');
 
   const crumbs = useModuleBreadcrumbs('vital');
 
@@ -155,7 +152,11 @@ export function WebVitalsLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="vital" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="vital"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.vital"
+    >
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );
