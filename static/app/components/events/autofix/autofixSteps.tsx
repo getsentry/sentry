@@ -28,6 +28,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import usePrevious from 'sentry/utils/usePrevious';
 
 function StepIcon({step}: {step: AutofixStep}) {
@@ -114,7 +115,11 @@ function Progress({
     return (
       <Fragment>
         <DateTime date={progress.timestamp} format="HH:mm:ss:SSS" />
-        <div>{progress.message}</div>
+        <div
+          dangerouslySetInnerHTML={{
+            __html: marked(progress.message),
+          }}
+        />
       </Fragment>
     );
   }
@@ -182,7 +187,11 @@ export function ExpandableStep({
           <StepIconContainer>
             <StepIcon step={step} />
           </StepIconContainer>
-          <StepTitle>{step.title}</StepTitle>
+          <StepTitle
+            dangerouslySetInnerHTML={{
+              __html: singleLineRenderer(step.title),
+            }}
+          />
           {activeLog && !isExpanded && (
             <StepHeaderDescription>{activeLog}</StepHeaderDescription>
           )}
