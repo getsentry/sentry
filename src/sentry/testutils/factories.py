@@ -2005,7 +2005,7 @@ class Factories:
         order: int,
         dashboard: Dashboard | None = None,
         title: str | None = None,
-        display_type: DashboardWidgetDisplayTypes | None = None,
+        display_type: int | None = None,
         **kwargs,
     ):
         if dashboard is None:
@@ -2028,7 +2028,7 @@ class Factories:
         **kwargs,
     ):
         if widget is None:
-            widget = Factories.create_dashboard_widget()
+            widget = Factories.create_dashboard_widget(order=order)
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)

@@ -42,7 +42,13 @@ class MetricsUsageWidgetSerializer(serializers.Serializer):
 
         # this won't hit the database since it was prefetched
         widget_queries = obj.dashboardwidgetquery_set.all()
-        all_aggregates = [agg for query in widget_queries for agg in query.aggregates]
+        # collects all aggregates from all widget queries into a single list
+        all_aggregates = [
+            agg
+            for query in widget_queries
+            for agg in query.aggregates
+            if query.aggregates is not None
+        ]
         for metric_mri in self.context["metric_mris"]:
             for aggregate in all_aggregates:
                 if metric_mri in aggregate:
