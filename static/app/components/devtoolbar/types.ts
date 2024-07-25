@@ -8,6 +8,7 @@ export type Configuration = {
   organizationSlug: string;
   placement: 'right-edge' | 'bottom-right-corner';
   projectId: number;
+  projectPlatform: string;
   projectSlug: string;
   SentrySDK?: typeof SentrySDK;
   domId?: string;

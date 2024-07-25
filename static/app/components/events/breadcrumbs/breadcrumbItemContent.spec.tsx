@@ -42,7 +42,8 @@ describe('BreadcrumbItemContent', function () {
       screen.getByText(`${breadcrumb.data?.method}: [${breadcrumb.data?.status_code}]`)
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: breadcrumb.data?.url})).toBeInTheDocument();
-    expect(screen.getByText('2 items')).toBeInTheDocument();
+    expect(screen.getByText('123')).toBeInTheDocument();
+    expect(screen.getByText('15080')).toBeInTheDocument();
   });
 
   it('renders SQL crumbs with all data', function () {

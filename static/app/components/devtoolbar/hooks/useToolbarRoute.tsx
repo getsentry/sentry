@@ -1,7 +1,7 @@
 import {createContext, useCallback, useContext, useState} from 'react';
 
 type State = {
-  activePanel: null | 'alerts' | 'feedback' | 'issues' | 'featureFlags';
+  activePanel: null | 'alerts' | 'feedback' | 'issues' | 'featureFlags' | 'releases';
 };
 
 const context = createContext<{

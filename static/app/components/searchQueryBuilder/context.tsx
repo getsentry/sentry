@@ -10,6 +10,7 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import type {FieldDefinition} from 'sentry/utils/fields';
 
 interface ContextData {
+  disabled: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
@@ -43,4 +44,5 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   handleSearch: () => {},
   searchSource: '',
   size: 'normal',
+  disabled: false,
 });

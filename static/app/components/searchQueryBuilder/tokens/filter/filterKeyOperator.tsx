@@ -196,15 +196,18 @@ export function FilterKeyOperator({
   onOpenChange,
 }: FilterOperatorProps) {
   const organization = useOrganization();
-  const {dispatch, searchSource, query, recentSearches} = useSearchQueryBuilder();
+  const {dispatch, searchSource, query, recentSearches, disabled} =
+    useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
 
   return (
     <CompactSelect
+      disabled={disabled}
       trigger={triggerProps => (
         <OpButton
+          disabled={disabled}
           aria-label={t('Edit operator for filter: %s', token.key.text)}
           {...mergeProps(triggerProps, filterButtonProps)}
         >

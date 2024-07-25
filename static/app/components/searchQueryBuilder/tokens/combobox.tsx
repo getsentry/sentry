@@ -486,6 +486,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
+  const {disabled} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -519,6 +520,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onSelectionChange,
     allowsCustomValue: true,
     disabledKeys,
+    isDisabled: disabled,
   };
 
   const state = useComboBoxState<T>({
@@ -673,6 +675,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         onChange={onInputChange}
         tabIndex={tabIndex}
         onPaste={onPaste}
+        disabled={disabled}
       />
       <StyledPositionWrapper {...overlayProps} visible={isOpen}>
         <OverlayContent

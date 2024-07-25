@@ -11,6 +11,7 @@ from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import Response
 from sentry.plugins.config import PluginConfigMixin
+from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.plugins.status import PluginStatusMixin
 from sentry.utils.hashlib import md5_text
 
@@ -331,7 +332,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_annotations(self, group, **kwargs):
+    def get_annotations(self, group) -> list[dict[str, str]]:
         """
         Return a list of annotations to append to this aggregate.
 
@@ -340,7 +341,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         The properties of each tag must match the constructor for
         :class:`sentry.plugins.Annotation`
 
-        >>> def get_annotations(self, group, **kwargs):
+        >>> def get_annotations(self, group):
         >>>     task_id = GroupMeta.objects.get_value(group, 'myplugin:tid')
         >>>     if not task_id:
         >>>         return []
@@ -411,7 +412,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_release_hook(self, **kwargs):
+    def get_release_hook(self) -> type[ReleaseHook] | None:
         """
         Return an implementation of ``ReleaseHook``.
 
@@ -421,10 +422,10 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>>     def handle(self, request: Request) -> Response:
         >>>         self.finish_release(version=request.POST['version'])
 
-        >>> def get_release_hook(self, **kwargs):
+        >>> def get_release_hook(self):
         >>>     return MyReleaseHook
         """
-        return []
+        return None
 
     def get_custom_contexts(self):
         """Return a list of of context types.
