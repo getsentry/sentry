@@ -47,7 +47,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         ]
 
         # in bulk
-        for m in (
+        for m1 in (
             Activity,
             AlertRuleProjects,
             EnvironmentProject,
@@ -81,7 +81,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             DiscoverSavedQueryProject,
             IncidentProject,
         ):
-            relations.append(ModelRelation(m, {"project_id": instance.id}, BulkModelDeletionTask))
+            relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
         relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
         relations.append(ModelRelation(Group, {"project_id": instance.id}))
@@ -95,11 +95,11 @@ class ProjectDeletionTask(ModelDeletionTask):
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
-        for m in (
+        for m2 in (
             ReleaseProject,
             ReleaseProjectEnvironment,
             EventAttachment,
             ProjectDebugFile,
         ):
-            relations.append(ModelRelation(m, {"project_id": instance.id}, ModelDeletionTask))
+            relations.append(ModelRelation(m2, {"project_id": instance.id}, ModelDeletionTask))
         return relations
