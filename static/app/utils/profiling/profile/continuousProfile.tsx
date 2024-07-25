@@ -9,11 +9,7 @@ export class ContinuousProfile extends Profile {
   static FromProfile(
     chunk: Profiling.ContinuousProfile,
     frameIndex: ReturnType<typeof createContinuousProfileFrameIndex>
-  ): Profile {
-    if (chunk.samples.length <= 1) {
-      return Profile.Empty;
-    }
-
+  ): ContinuousProfile {
     const firstSample = chunk.samples[0];
     const lastSample = chunk.samples[chunk.samples.length - 1];
 

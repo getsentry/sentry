@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 import type {Span} from '@sentry/types';
 
 import type {Image} from 'sentry/types/debugImage';
-import {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
 
 import type {Frame} from '../frame';
 import {
@@ -15,6 +14,7 @@ import {
   isSentrySampledProfile,
 } from '../guards/profile';
 
+import {ContinuousProfile} from './continuousProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import type {Profile} from './profile';
@@ -53,7 +53,7 @@ export interface ContinuousProfileGroup {
   measurements: Partial<Profiling.ContinuousMeasurements>;
   metadata: Partial<Profiling.Schema['metadata']>;
   name: string;
-  profiles: Profile[];
+  profiles: ContinuousProfile[];
   traceID: string;
   transactionID: string | null;
   type: 'continuous' | 'loading';
@@ -278,7 +278,7 @@ export function importSentryContinuousProfileChunk(
     samplesByThread[key].sort((a, b) => a.timestamp - b.timestamp);
   }
 
-  const profiles: Profile[] = [];
+  const profiles: ContinuousProfile[] = [];
   let activeProfileIndex = 0;
 
   for (const key in samplesByThread) {
