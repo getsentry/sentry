@@ -1,29 +1,36 @@
+from __future__ import annotations
+
 from django.http import Http404
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.models.environment import Environment
+from sentry.tagstore.types import GroupTagValue
 from sentry.web.frontend.base import ProjectView, region_silo_view
-from sentry.web.frontend.mixins.csv import CsvMixin
+from sentry.web.frontend.csv import CsvResponder
+
+
+class GroupTagCsvResponder(CsvResponder[GroupTagValue]):
+    def __init__(self, key: str) -> None:
+        self.key = key
+
+    def get_header(self) -> tuple[str, ...]:
+        return tuple(IssuesByTagProcessor.get_header_fields(self.key))
+
+    def get_row(self, item: GroupTagValue) -> tuple[str, ...]:
+        fields = IssuesByTagProcessor.get_header_fields(self.key)
+        item_dict = IssuesByTagProcessor.serialize_row(item, self.key)
+        return tuple(item_dict[field] for field in fields)
 
 
 @region_silo_view
-class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
+class GroupTagExportView(ProjectView, EnvironmentMixin):
     required_scope = "event:read"
 
-    def get_header(self, key):
-        return tuple(IssuesByTagProcessor.get_header_fields(key))
-
-    def get_row(self, item, key):
-        fields = IssuesByTagProcessor.get_header_fields(key)
-        item_dict = IssuesByTagProcessor.serialize_row(item, key)
-        return (item_dict[field] for field in fields)
-
-    def get(self, request: Request, organization, project, group_id, key) -> Response:
-
+    def get(self, request: Request, organization, project, group_id, key) -> HttpResponseBase:
         # If the environment doesn't exist then the tag can't possibly exist
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
@@ -43,4 +50,4 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
 
         filename = f"{processor.group.qualified_short_id or processor.group.id}-{key}"
 
-        return self.to_csv_response(processor.get_raw_data(), filename, key=key)
+        return GroupTagCsvResponder(key).respond(processor.get_raw_data(), filename)
