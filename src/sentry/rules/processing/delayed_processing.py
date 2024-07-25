@@ -445,7 +445,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rulegroup_to_event_data = buffer.backend.get_hash(
         model=Project, field={"project_id": project.id}
     )
-    num_groups = len(rulegroup_to_event_data.keys())
+    num_groups = len(rulegroup_to_event_data)
     num_groups_bucketed = bucket_num_groups(num_groups)
     metrics.incr("delayed_processing.num_groups", tags={"num_groups": num_groups_bucketed})
     if num_groups >= 10000:
