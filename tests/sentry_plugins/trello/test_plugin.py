@@ -37,9 +37,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
 
     def test_get_issue_url(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        # test new and old format
         assert self.plugin.get_issue_url(group, "rPPDb") == "https://trello.com/c/rPPDb"
-        assert self.plugin.get_issue_url(group, {"id": "rPPDb"}) == "https://trello.com/c/rPPDb"
         assert (
             self.plugin.get_issue_url(group, "5dafd/https://trello.com/c/rPPDb/75-title")
             == "https://trello.com/c/rPPDb/75-title"

@@ -109,7 +109,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         response = client.create_issue(issue_dict)
         return response["issue"]["id"]
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         host = self.get_option("host", group.project)
         return "{}/issues/{}".format(host.rstrip("/"), issue_id)
 
