@@ -111,7 +111,7 @@ function Progress({
   progress: AutofixProgressItem | AutofixStep;
   runId: string;
 }) {
-  function replaceHeadersWithBold(markdown) {
+  function replaceHeadersWithBold(markdown: string) {
     const headerRegex = /^(#{1,6})\s+(.*)$/gm;
     const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
       return ` **${content}** `;
