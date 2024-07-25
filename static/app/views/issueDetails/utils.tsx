@@ -271,6 +271,9 @@ export function getGroupEventDetailsQueryData({
 export function useHasStreamlinedUI() {
   const location = useLocation();
   const organization = useOrganization();
+  if (location.query.streamline === '0') {
+    return false;
+  }
   return (
     location.query.streamline === '1' ||
     organization.features.includes('issue-details-streamline')
