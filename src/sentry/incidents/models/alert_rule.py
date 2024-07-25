@@ -552,8 +552,8 @@ class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
 
 class _FactoryRegistry:
     def __init__(self) -> None:
-        self.by_action_service = {}
-        self.by_slug = {}
+        self.by_action_service: dict[ActionService, ActionHandlerFactory] = {}
+        self.by_slug: dict[str, ActionHandlerFactory] = {}
 
     def register(self, factory: ActionHandlerFactory) -> None:
         if factory.service_type in self.by_action_service:
@@ -631,9 +631,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     def build_handler(
         self, action: AlertRuleTriggerAction, incident: Incident, project: Project
     ) -> ActionHandler | None:
-        type = AlertRuleTriggerAction.Type(self.type)
-        if type in self._factory_registrations:
-            factory = self._factory_registrations[type]
+        service_type = AlertRuleTriggerAction.Type(self.type)
+        factory = self._factory_registrations.by_action_service.get(service_type)
+        if factory is not None:
             return factory.build_handler(action, incident, project)
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
