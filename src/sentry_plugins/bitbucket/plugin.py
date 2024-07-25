@@ -130,7 +130,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
             return ERR_404
         return super().message_from_error(exc)
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         client = self.get_client(request.user)
 
         try:
