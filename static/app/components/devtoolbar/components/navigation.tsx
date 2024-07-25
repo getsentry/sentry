@@ -1,15 +1,23 @@
+import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 
-import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconClose, IconFlag, IconIssues, IconMegaphone, IconSiren} from 'sentry/icons';
 
+import useConfiguration from '../hooks/useConfiguration';
 import usePlacementCss from '../hooks/usePlacementCss';
 import useToolbarRoute from '../hooks/useToolbarRoute';
 import {navigationButtonCss, navigationCss} from '../styles/navigation';
 import {resetButtonCss, resetDialogCss} from '../styles/reset';
+import {buttonCss} from '../styles/typography';
 
-export default function Navigation({setIsHidden}: {setIsHidden: (val: boolean) => void}) {
+import AlertCountBadge from './alerts/alertCountBadge';
+
+export default function Navigation({
+  setIsDisabled,
+}: {
+  setIsDisabled: (val: boolean) => void;
+}) {
   const {trackAnalytics} = useConfiguration();
   const placement = usePlacementCss();
 
@@ -24,11 +32,13 @@ export default function Navigation({setIsHidden}: {setIsHidden: (val: boolean) =
     >
       <NavButton panelName="issues" label="Issues" icon={<IconIssues />} />
       <NavButton panelName="feedback" label="User Feedback" icon={<IconMegaphone />} />
-      <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />} />
+      <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />}>
+        <AlertCountBadge />
+      </NavButton>
       <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />} />
       <HideButton
         onClick={() => {
-          setIsHidden(true);
+          setIsDisabled(true);
           trackAnalytics?.({
             eventKey: `devtoolbar.nav.hide.click`,
             eventName: `devtoolbar: Hide devtoolbar`,
@@ -40,13 +50,15 @@ export default function Navigation({setIsHidden}: {setIsHidden: (val: boolean) =
 }
 
 function NavButton({
+  children,
   icon,
   label,
   panelName,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   panelName: ReturnType<typeof useToolbarRoute>['state']['activePanel'];
+  children?: ReactNode;
 }) {
   const {trackAnalytics} = useConfiguration();
   const {state, setActivePanel} = useToolbarRoute();
@@ -69,6 +81,7 @@ function NavButton({
     >
       <InteractionStateLayer />
       {icon}
+      {children}
     </button>
   );
 }
@@ -94,7 +107,7 @@ function HideButton({onClick}: {onClick: () => void}) {
   return (
     <button
       aria-label="Hide for this session"
-      css={[resetButtonCss, hideButtonCss]}
+      css={[resetButtonCss, buttonCss, hideButtonCss]}
       onClick={onClick}
       title="Hide for this session"
     >

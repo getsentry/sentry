@@ -76,12 +76,12 @@ export function SpanNodeDetails({
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const location = useLocation();
   const {projects} = useProjects();
-  const {event} = node.value;
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileId = event?.contexts?.profile?.profile_id ?? null;
+
+  const project = projects.find(proj => proj.slug === node.value.event?.projectSlug);
+  const profileId = node.value.event?.contexts?.profile?.profile_id ?? null;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -91,10 +91,10 @@ export function SpanNodeDetails({
         project={project}
         onTabScrollToNode={onTabScrollToNode}
       />
-      {event.projectSlug ? (
+      {node.value.event.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
-          projectSlug={event.projectSlug}
+          projectSlug={node.value.event.projectSlug}
           profileId={profileId || ''}
         >
           <ProfileContext.Consumer>
@@ -129,9 +129,9 @@ export function SpanNodeDetails({
                     startTimestamp={node.value.start_timestamp}
                   />
                 </TraceDrawerComponents.SectionCardGroup>
-                <EventContexts event={event} />
+                <EventContexts event={node.value.event} />
                 {organization.features.includes('profiling') ? (
-                  <SpanProfileDetails span={node.value} event={event} />
+                  <SpanProfileDetails span={node.value} event={node.value.event} />
                 ) : null}
               </ProfileGroupProvider>
             )}

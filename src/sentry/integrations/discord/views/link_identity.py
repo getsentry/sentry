@@ -15,6 +15,8 @@ from sentry.utils.signing import sign, unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
+from .constants import SALT
+
 
 def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
     endpoint = "sentry-integration-discord-link-identity"
@@ -34,7 +36,7 @@ class DiscordLinkIdentityView(BaseView):
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, signed_params: str) -> HttpResponse:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=SALT)
         except (SignatureExpired, BadSignature):
             return render_to_response("sentry/integrations/discord/expired-link.html")
 

@@ -49,6 +49,8 @@ class OrganizationMapping(Model):
     disable_new_visibility_features = models.BooleanField(default=False)
     require_email_verification = models.BooleanField(default=False)
     codecov_access = models.BooleanField(default=False)
+    disable_member_project_creation = models.BooleanField(default=False)
+    prevent_superuser_access = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"
