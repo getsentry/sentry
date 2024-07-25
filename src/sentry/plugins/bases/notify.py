@@ -160,7 +160,7 @@ class NotificationPlugin(Plugin):
             project=group.project, key=self.get_conf_key(), limit=10
         )
 
-    def is_configured(self, project):
+    def is_configured(self, project) -> bool:
         raise NotImplementedError
 
     def should_notify(self, group, event):

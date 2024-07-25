@@ -79,7 +79,7 @@ class IssueTrackingPlugin2(Plugin):
     def get_group_title(self, request: Request, group, event):
         return event.title
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         raise NotImplementedError
 
     def get_group_urls(self):
@@ -371,7 +371,7 @@ class IssueTrackingPlugin2(Plugin):
         return Response({"message": "No issues to unlink."}, status=400)
 
     def plugin_issues(self, request: Request, group, plugin_issues, **kwargs) -> None:
-        if not self.is_configured(request=request, project=group.project):
+        if not self.is_configured(project=group.project):
             return
 
         item = {
@@ -398,7 +398,7 @@ class IssueTrackingPlugin2(Plugin):
 
     def check_config_and_auth(self, request: Request, group):
         has_auth_configured = self.has_auth_configured()
-        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+        if not (has_auth_configured and self.is_configured(project=group.project)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
@@ -421,7 +421,7 @@ class IssueTrackingPlugin2(Plugin):
 
     # TODO: should we get rid of this (move it to react?)
     def tags(self, request: Request, group, tag_list, **kwargs):
-        if not self.is_configured(request=request, project=group.project):
+        if not self.is_configured(project=group.project):
             return tag_list
 
         issue = self.build_issue(group)

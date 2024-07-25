@@ -57,7 +57,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return all(self.get_option(k, project) for k in ("token", "project"))
 
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
