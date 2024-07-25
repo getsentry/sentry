@@ -25,7 +25,6 @@ import {
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionSelector} from 'sentry/views/insights/common/views/spans/selectors/transactionSelector';
 import {SpanTimeCharts} from 'sentry/views/insights/common/views/spans/spanTimeCharts';
@@ -54,8 +53,6 @@ function ResourceView() {
   };
 
   const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
-
-  useHasDataTrackAnalytics(ModuleName.RESOURCE, 'insight.page_loads.assets');
 
   return (
     <Fragment>
