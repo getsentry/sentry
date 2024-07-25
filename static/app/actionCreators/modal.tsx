@@ -97,20 +97,6 @@ export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type RemoteConfigCreateFeatureModalProps = {
-  createFeature: (key: string, value: string) => void;
-  isValid: (key: string) => boolean;
-};
-
-export async function openRemoteConfigCreateFeatureModal(
-  options: RemoteConfigCreateFeatureModalProps
-) {
-  const mod = await import('sentry/components/modals/remoteConfigCreateFeatureModal');
-  const {default: Modal} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />);
-}
-
 type CreateOwnershipRuleModalOptions = {
   issueId: string;
   /**
