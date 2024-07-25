@@ -18,11 +18,11 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.tasks import link_slack_user_identities
 from sentry.models.integrations.integration import Integration
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
 
 from .notifications import SlackNotifyBasicMixin

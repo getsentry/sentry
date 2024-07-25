@@ -8,15 +8,15 @@ import responses
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
-from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.integrations.slack.utils.channel import SlackChannelIdData
-from sentry.models.rule import Rule
-from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
-from sentry.tasks.integrations.slack import (
+from sentry.integrations.slack.tasks import (
     find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
     post_message,
 )
+from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
+from sentry.models.rule import Rule
+from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.skips import requires_snuba

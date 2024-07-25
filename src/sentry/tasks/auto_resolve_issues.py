@@ -8,6 +8,7 @@ from typing import Any
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
+from sentry.integrations.tasks import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -18,7 +19,6 @@ from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 
 ONE_HOUR = 3600

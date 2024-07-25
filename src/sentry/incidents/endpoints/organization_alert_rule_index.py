@@ -41,6 +41,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
+from sentry.integrations.slack.tasks import find_channel_id_for_alert_rule
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -49,7 +50,6 @@ from sentry.models.team import Team
 from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
 from sentry.utils.cursors import Cursor, StringCursor
 

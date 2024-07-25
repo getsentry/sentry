@@ -28,6 +28,7 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.tasks import migrate_repo
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models.apitoken import generate_token
 from sentry.models.integrations.integration import Integration as IntegrationModel
@@ -42,7 +43,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
 )
 from sentry.silo.base import SiloMode
-from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 

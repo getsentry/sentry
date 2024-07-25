@@ -7,8 +7,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.tasks import sync_metadata
 from sentry.integrations.utils import authenticate_asymmetric_jwt, verify_claims
-from sentry.tasks.integrations import sync_metadata
 from sentry.utils import jwt
 
 from ..integration import JiraIntegrationProvider

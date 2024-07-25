@@ -1,12 +1,12 @@
-from sentry import analytics, features
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.tasks.sync_assignee_outbound_impl import (
+    sync_assignee_outbound as new_sync_assignee_outbound,
+)
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.users.services.user.service import user_service
 
 
 @instrumented_task(
@@ -25,23 +25,4 @@ from sentry.users.services.user.service import user_service
     )
 )
 def sync_assignee_outbound(external_issue_id: int, user_id: int | None, assign: bool) -> None:
-    # Sync Sentry assignee to an external issue.
-    external_issue = ExternalIssue.objects.get(id=external_issue_id)
-
-    organization = Organization.objects.get(id=external_issue.organization_id)
-    has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
-    if not has_issue_sync:
-        return
-    integration = integration_service.get_integration(integration_id=external_issue.integration_id)
-
-    # Assume unassign if None.
-    user = user_service.get_user(user_id) if user_id else None
-    installation = integration.get_installation(organization_id=external_issue.organization_id)
-    if installation.should_sync("outbound_assignee"):
-        installation.sync_assignee_outbound(external_issue, user, assign=assign)
-        analytics.record(
-            "integration.issue.assignee.synced",
-            provider=integration.provider,
-            id=integration.id,
-            organization_id=external_issue.organization_id,
-        )
+    new_sync_assignee_outbound(external_issue_id, user_id, assign)

@@ -24,12 +24,12 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.tasks import migrate_repo
 from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
 
 from .client import BitbucketServerClient, BitbucketServerSetupClient

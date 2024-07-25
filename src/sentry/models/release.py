@@ -657,6 +657,7 @@ class Release(Model):
         commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
         # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
+        from sentry.integrations.tasks import kick_off_status_syncs
         from sentry.models.commit import Commit
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.group import Group, GroupStatus
@@ -667,7 +668,6 @@ class Release(Model):
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
         from sentry.models.repository import Repository
         from sentry.plugins.providers.repository import RepositoryProvider
-        from sentry.tasks.integrations import kick_off_status_syncs
 
         # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [

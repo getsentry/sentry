@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.slack.service import SlackService
+from sentry.integrations.slack.tasks.post_message import post_message as new_post_message
+from sentry.integrations.slack.tasks.post_message import (
+    post_message_control as new_post_message_control,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
-logger = logging.getLogger("sentry.integrations.slack.tasks")
 
-
-# TODO: add retry logic
 @instrumented_task(
     name="sentry.integrations.slack.post_message",
     queue="integrations",
@@ -24,16 +23,9 @@ def post_message(
     log_error_message: str,
     log_params: Mapping[str, Any],
 ) -> None:
-    service = SlackService.default()
-    service.send_message_to_slack_channel(
-        integration_id=integration_id,
-        payload=payload,
-        log_error_message=log_error_message,
-        log_params=log_params,
-    )
+    new_post_message(integration_id, payload, log_error_message, log_params)
 
 
-# TODO: add retry logic
 @instrumented_task(
     name="sentry.integrations.slack.post_message_control",
     queue="integrations.control",
@@ -46,10 +38,4 @@ def post_message_control(
     log_error_message: str,
     log_params: Mapping[str, Any],
 ) -> None:
-    service = SlackService.default()
-    service.send_message_to_slack_channel(
-        integration_id=integration_id,
-        payload=payload,
-        log_error_message=log_error_message,
-        log_params=log_params,
-    )
+    new_post_message_control(integration_id, payload, log_error_message, log_params)

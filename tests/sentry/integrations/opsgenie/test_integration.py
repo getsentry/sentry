@@ -6,14 +6,14 @@ import responses
 from rest_framework.serializers import ValidationError
 
 from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
+from sentry.integrations.tasks.migrate_opsgenie_plugins import (
+    ALERT_LEGACY_INTEGRATIONS,
+    ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
+)
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
-from sentry.tasks.integrations.migrate_opsgenie_plugins import (
-    ALERT_LEGACY_INTEGRATIONS,
-    ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
-)
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -243,7 +243,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
-    @patch("sentry.tasks.integrations.migrate_opsgenie_plugins.metrics")
+    @patch("sentry.integrations.tasks.migrate_opsgenie_plugins.metrics")
     def test_migrate_plugin(self, mock_metrics):
         """
         Test that 2 projects with the Opsgenie plugin activated that have one alert rule each
