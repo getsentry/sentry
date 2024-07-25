@@ -334,7 +334,15 @@ class ScoreClause(Func):
         # This is used within create_or_update and friends
         return self.group.get_score() if self.group else 0
 
-    def as_sql(self, compiler, connection, function=None, template=None):
+    def as_sql(
+        self,
+        compiler,
+        connection,
+        function=None,
+        template=None,
+        arg_joiner: str | None = None,
+        **extra_context,
+    ) -> tuple[str, list[str | int]]:
         has_values = self.last_seen is not None and self.times_seen is not None
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
