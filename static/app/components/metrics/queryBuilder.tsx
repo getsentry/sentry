@@ -234,11 +234,27 @@ export const QueryBuilder = memo(function QueryBuilder({
         </GuideAnchor>
       )}
       <FlexBlock>
-        {/* <FlexBlock>
-          <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
-            {hasMetricsNewInputs(organization) ? (
-              <QueryFieldGroup>
-                <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
+        {!hasMetricsNewInputs(organization) && (
+          <FlexBlock>
+            <GuideAnchor
+              target="metrics_selector"
+              position="bottom"
+              disabled={index !== 0}
+            >
+              {hasMetricsNewInputs(organization) ? (
+                <QueryFieldGroup>
+                  <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
+                  <MRISelect
+                    onChange={handleMRIChange}
+                    onTagClick={handleMetricTagClick}
+                    onOpenMenu={handleOpenMetricsMenu}
+                    isLoading={isMetaLoading}
+                    metricsMeta={meta}
+                    projects={projectIds}
+                    value={metricsQuery.mri}
+                  />
+                </QueryFieldGroup>
+              ) : (
                 <MRISelect
                   onChange={handleMRIChange}
                   onTagClick={handleMetricTagClick}
@@ -248,29 +264,19 @@ export const QueryBuilder = memo(function QueryBuilder({
                   projects={projectIds}
                   value={metricsQuery.mri}
                 />
-              </QueryFieldGroup>
-            ) : (
-              <MRISelect
-                onChange={handleMRIChange}
-                onTagClick={handleMetricTagClick}
-                onOpenMenu={handleOpenMetricsMenu}
-                isLoading={isMetaLoading}
-                metricsMeta={meta}
-                projects={projectIds}
-                value={metricsQuery.mri}
-              />
-            )}
-          </GuideAnchor>
-          {!hasMetricsNewInputs(organization) &&
-            (selectedMeta?.type === 'v' ? (
-              <MetricQuerySelect
-                mri={metricsQuery.mri}
-                onChange={value => {
-                  onChange({condition: value});
-                }}
-              />
-            ) : null)}
-        </FlexBlock> */}
+              )}
+            </GuideAnchor>
+            {!hasMetricsNewInputs(organization) &&
+              (selectedMeta?.type === 'v' ? (
+                <MetricQuerySelect
+                  mri={metricsQuery.mri}
+                  onChange={value => {
+                    onChange({condition: value});
+                  }}
+                />
+              ) : null)}
+          </FlexBlock>
+        )}
         <FlexBlock>
           <GuideAnchor
             target="metrics_aggregate"
