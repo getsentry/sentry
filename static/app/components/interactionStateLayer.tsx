@@ -7,6 +7,10 @@ import {defined} from 'sentry/utils';
 interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   as?: React.ElementType;
   color?: string;
+  /**
+   * Controls if the opacity is increased when the element is in a
+   * selected or expanded state (aria-selected='true' or aria-expanded='true')
+   */
   hasSelectedBackground?: boolean;
   higherOpacity?: boolean;
   isHovered?: boolean;
