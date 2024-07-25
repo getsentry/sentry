@@ -808,7 +808,6 @@ CELERY_IMPORTS = (
     "sentry.middleware.integrations.tasks",
     "sentry.replays.usecases.ingest.issue_creation",
     "sentry.integrations.slack.tasks",
-    "sentry.integrations.vsts.tasks",
     "sentry.integrations.github.tasks",
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.subscriptions.tasks",
