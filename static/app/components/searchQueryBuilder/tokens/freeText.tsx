@@ -542,7 +542,7 @@ function SearchQueryBuilderInputInternal({
             resetInputValue();
             trackAnalytics('search.key_manually_typed', {
               organization,
-              search_type: recentSearches === 0 ? 'issues' : 'events',
+              search_type: recentSearchTypeToLabel(recentSearches),
               search_source: searchSource,
               item_name: filterKey,
               item_kind: key?.kind ?? FieldKind.FIELD,
