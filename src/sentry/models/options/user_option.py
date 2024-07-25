@@ -128,7 +128,7 @@ class UserOptionManager(OptionManager["UserOption"]):
 
         return self._option_cache.get(metakey, {})
 
-    def post_save(self, instance: UserOption, **kwargs: Any) -> None:
+    def post_save(self, *, instance: UserOption, created: bool, **kwargs: object) -> None:
         self.get_all_values(
             instance.user, instance.project_id, instance.organization_id, force_reload=True
         )

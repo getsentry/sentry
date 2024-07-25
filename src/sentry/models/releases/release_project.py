@@ -59,7 +59,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             activator=release.version,
         )
 
-    def post_save(self, instance, created, **kwargs):
+    def post_save(self, *, instance: ReleaseProject, created: bool, **kwargs: object) -> None:
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
         if created:
             self.subscribe_project_to_alert_rule(

@@ -42,7 +42,7 @@ class ProjectKeyStatus:
 
 
 class ProjectKeyManager(BaseManager["ProjectKey"]):
-    def post_save(self, instance, **kwargs):
+    def post_save(self, *, instance: ProjectKey, created: bool, **kwargs: object) -> None:
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
         )

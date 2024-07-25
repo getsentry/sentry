@@ -193,6 +193,6 @@ def test_key_saved_projconfig_invalidated(inv_proj_config, default_project):
 
     key = ProjectKey.objects.get(project=default_project)
     manager = ProjectKeyManager()
-    manager.post_save(key)
+    manager.post_save(instance=key, created=False)
 
     assert inv_proj_config.call_count == 1

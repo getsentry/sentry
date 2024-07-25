@@ -482,7 +482,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
         cache.delete(cache_key, version=self.cache_version)
 
-    def post_save(self, instance: M, **kwargs: Any) -> None:  # type: ignore[misc]  # python/mypy#6178
+    def post_save(self, *, instance: M, created: bool, **kwargs: object) -> None:  # type: ignore[misc]  # python/mypy#6178
         """
         Triggered when a model bound to this manager is saved.
         """

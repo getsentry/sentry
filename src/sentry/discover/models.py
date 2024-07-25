@@ -162,7 +162,7 @@ class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
                 schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
-    def post_save(self, instance, **kwargs):
+    def post_save(self, *, instance: TeamKeyTransaction, created: bool, **kwargs: object) -> None:
         # this hook may be called from model hooks during an
         # open transaction. In that case, wait until the current transaction has
         # been committed or rolled back to ensure we don't read stale data in the
