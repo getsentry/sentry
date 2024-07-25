@@ -24,21 +24,22 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Upload to codecov
-      uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
-      with:
-        token: ${{ inputs.token }}
-        flags: ${{ inputs.type }}
-        files: ${{ inputs.files }}
-        override_commit: ${{ inputs.commit_sha}}
-        plugin: noop
-        verbose: true
+    - name: Download and Verify Codecov CLI
+      shell: bash
+      run: |
+        curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import # One-time step
+        curl -Os https://cli.codecov.io/latest/linux/codecov
+        curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+        curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+        gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+        shasum -a 256 -c codecov.SHA256SUM
+        chmod +x codecov
+    - name: Upload Coverage
+      shell: bash
       continue-on-error: true
-    - name: Upload test results to codecov
-      uses: codecov/test-results-action@2b4994ec0ffe80e6c5f8fd5a2e3cfe48994b3680 # v1
-      with:
-        token: ${{ inputs.token }}
-        files: ${{ inputs.files }}
-        override_commit: ${{ inputs.commit_sha}}
-        verbose: true
-      continue-on-error: true
+      run: |
+        files=$(echo ${{ inputs.files }} | sed 's/^/--file /;s/,/ --file /')
+        test_result_files=$(echo ${{ inputs.test_result_files }} | sed 's/^/--file /;s/,/ --file /')
+        ./codecov --verbose upload-process -t ${{ inputs.token }} --commit-sha ${{ inputs.commit_sha }} --plugin noop --flag ${{ inputs.type }} $files &
+        ./codecov --verbose do-upload --report-type test_results -t ${{ inputs.token }} --commit-sha ${{ inputs.commit_sha }} --plugin noop --flag ${{ inputs.type }} $test_result_files  &
+        wait
