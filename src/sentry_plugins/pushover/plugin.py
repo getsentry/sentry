@@ -1,5 +1,6 @@
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -106,7 +107,7 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
             return " ".join(errors)
         return "unknown error"
 
-    def notify(self, notification, **kwargs):
+    def notify(self, notification: Notification, raise_exception: bool = False) -> None:
         event = notification.event
         group = event.group
         project = group.project

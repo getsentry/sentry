@@ -3,7 +3,7 @@ from rest_framework import status
 from sentry import tagstore
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
-from sentry.plugins.base import Notification
+from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases import notify
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json

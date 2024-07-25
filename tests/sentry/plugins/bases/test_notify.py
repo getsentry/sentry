@@ -56,7 +56,7 @@ class NotifyPlugin(TestCase):
             notification = Notification(event)
 
             with mock.patch.object(DummyNotificationPlugin, "notify_users", side_effect=err):
-                assert n.notify(notification) is False
+                n.notify(notification)  # does not raise!
 
     def test_test_configuration_and_get_test_results(self):
         errors = (
