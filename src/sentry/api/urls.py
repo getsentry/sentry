@@ -5,6 +5,8 @@ from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
+from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
 )
@@ -117,10 +119,6 @@ from sentry.integrations.api.endpoints.codeowners.external_actor import (
     ExternalUserDetailsEndpoint,
     ExternalUserEndpoint,
 )
-from sentry.integrations.api.endpoints.group_integration_details import (
-    GroupIntegrationDetailsEndpoint,
-)
-from sentry.integrations.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.integrations.api.endpoints.integrations import (
     DocIntegrationDetailsEndpoint,
