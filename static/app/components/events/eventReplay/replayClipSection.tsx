@@ -16,9 +16,13 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
+import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 interface Props {
   event: Event;
@@ -32,6 +36,7 @@ const REPLAY_CLIP_OFFSETS = {
 };
 
 const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
+const locationForFetching = {query: {}} as Location<ReplayListLocationQuery>;
 
 export function ReplayClipSection({event, group, replayId}: Props) {
   const organization = useOrganization();
@@ -65,12 +70,33 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   ) : undefined;
 
   const replayCount = group ? getReplayCountForIssue(group.id, group.issueCategory) : -1;
+  if (group) {
+    const location = useLocation();
+    const {eventView} = useReplaysFromIssue({
+      group,
+      location,
+      organization,
+    });
+    if (eventView) {
+      const replayListData = useReplayList({
+        eventView,
+        location: locationForFetching,
+        organization,
+        queryReferrer: 'issueReplays',
+      });
+      const {replays} = replayListData;
+
+      const userCount =
+        replays?.reduce((resultSet, item) => resultSet.add(item.user.id), new Set())
+          .size ?? 0;
+    }
+  }
   const overlayContent =
     seeAllReplaysButton && replayCount && replayCount > 1 ? (
       <Fragment>
         <div>
-          {tct('Replay captured [replayCount] users experiencing this issue', {
-            replayCount,
+          {tct('Replay captured [userCount] users experiencing this issue', {
+            userCount,
           })}
         </div>
         {seeAllReplaysButton}
