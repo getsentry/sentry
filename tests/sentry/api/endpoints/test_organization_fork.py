@@ -5,7 +5,6 @@ from sentry.api.endpoints.organization_fork import (
     ERR_CANNOT_FORK_INTO_SAME_REGION,
     ERR_DUPLICATE_ORGANIZATION_FORK,
     ERR_ORGANIZATION_INACTIVE,
-    ERR_ORGANIZATION_MAPPING_NOT_FOUND,
     ERR_ORGANIZATION_NOT_FOUND,
 )
 from sentry.models.organization import OrganizationStatus
@@ -274,7 +273,7 @@ class OrganizationForkTest(APITestCase):
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
-        response = response = self.get_error_response("does-not-exist", status_code=404)
+        response = self.get_error_response("does-not-exist", status_code=404)
 
         assert response.data.get("detail") == ERR_ORGANIZATION_NOT_FOUND.substitute(
             pointer="does-not-exist"
@@ -297,10 +296,10 @@ class OrganizationForkTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationMapping.objects.filter(slug=self.existing_org.slug).delete()
 
-        response = response = self.get_error_response(self.existing_org.slug, status_code=404)
+        response = self.get_error_response(self.existing_org.slug, status_code=404)
 
-        assert response.data.get("detail") == ERR_ORGANIZATION_MAPPING_NOT_FOUND.substitute(
-            slug=self.existing_org.slug
+        assert response.data.get("detail") == ERR_ORGANIZATION_NOT_FOUND.substitute(
+            pointer=self.existing_org.slug
         )
         assert uploading_start_mock.call_count == 0
         assert analytics_record_mock.call_count == 0
@@ -319,10 +318,15 @@ class OrganizationForkTest(APITestCase):
         self.existing_org.status = OrganizationStatus.DELETION_IN_PROGRESS
         self.existing_org.save()
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_mapping = OrganizationMapping.objects.get(slug=self.existing_org.slug)
+            org_mapping.status = OrganizationStatus.DELETION_IN_PROGRESS
+            org_mapping.save()
+
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
-        response = response = self.get_error_response(self.existing_org.slug, status_code=400)
+        response = self.get_error_response(self.existing_org.slug, status_code=400)
 
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_ORGANIZATION_INACTIVE.substitute(
@@ -346,7 +350,7 @@ class OrganizationForkTest(APITestCase):
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 
-        response = response = self.get_error_response(self.existing_org.slug, status_code=400)
+        response = self.get_error_response(self.existing_org.slug, status_code=400)
 
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_CANNOT_FORK_INTO_SAME_REGION.substitute(

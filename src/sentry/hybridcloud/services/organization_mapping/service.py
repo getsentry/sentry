@@ -11,6 +11,7 @@ from sentry.hybridcloud.services.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.silo.base import SiloMode
+from sentry.users.services.user.model import RpcUser
 
 
 class OrganizationMappingService(RpcService):
@@ -28,6 +29,16 @@ class OrganizationMappingService(RpcService):
     @rpc_method
     @abstractmethod
     def get(self, *, organization_id: int) -> RpcOrganizationMapping | None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_by_slug(self, *, slug: str) -> RpcOrganizationMapping | None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_owners(self, *, organization_id: int) -> list[RpcUser]:
         pass
 
     @rpc_method
