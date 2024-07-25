@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
+import useReleaseSessions from 'sentry/components/devtoolbar/components/releases/useReleaseSessions';
 import useToolbarRelease from 'sentry/components/devtoolbar/components/releases/useToolbarRelease';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
 import {listItemPlaceholderWrapperCss} from 'sentry/components/devtoolbar/styles/listItem';
@@ -12,8 +13,10 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
+import {getCrashFreeRate} from 'sentry/utils/sessions';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   PackageName,
@@ -64,8 +67,28 @@ function ReleaseHeader({release, orgSlug}: {orgSlug: string; release: Release}) 
   );
 }
 
+function CrashFreeRate({releaseVersion}: {releaseVersion: string}) {
+  const {
+    data: sessionData,
+    isLoading: _isSessionDataLoading,
+    isError: _isSessionDataError,
+  } = useReleaseSessions({releaseVersion});
+
+  const crashFreeRate = getCrashFreeRate(
+    sessionData?.json.groups,
+    SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
+  );
+
+  return <p>Crash Free Rate is {crashFreeRate}</p>;
+}
+
 export default function ReleasesPanel() {
-  const {data, isLoading, isError} = useToolbarRelease();
+  const {
+    data: releaseData,
+    isLoading: isReleaseDataLoading,
+    isError: isReleaseDataError,
+  } = useToolbarRelease();
+
   const {organizationSlug, projectSlug, projectId, projectPlatform, trackAnalytics} =
     useConfiguration();
 
@@ -74,7 +97,7 @@ export default function ReleasesPanel() {
 
   return (
     <PanelLayout title="Latest Release">
-      {isLoading || isError ? (
+      {isReleaseDataLoading || isReleaseDataError ? (
         <div
           css={[
             resetFlexColumnCss,
@@ -125,7 +148,8 @@ export default function ReleasesPanel() {
             </span>
           </div>
           <div style={{alignItems: 'start'}}>
-            <ReleaseHeader release={data.json[0]} orgSlug={organizationSlug} />
+            <ReleaseHeader release={releaseData.json[0]} orgSlug={organizationSlug} />
+            <CrashFreeRate releaseVersion={releaseData.json[0].version} />
           </div>
         </Fragment>
       )}
