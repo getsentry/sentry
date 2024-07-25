@@ -200,6 +200,34 @@ describe('SearchQueryBuilder', function () {
     });
   });
 
+  describe('disabled', function () {
+    it('disables all interactable elements', function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+          disabled
+        />
+      );
+
+      expect(getLastInput()).toBeDisabled();
+      expect(
+        screen.queryByRole('button', {name: 'Clear search query'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Remove filter: browser.name'})
+      ).toBeDisabled();
+      expect(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      ).toBeDisabled();
+      expect(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).toBeDisabled();
+    });
+  });
+
   describe('plain text interface', function () {
     beforeEach(() => {
       localStorageWrapper.setItem(

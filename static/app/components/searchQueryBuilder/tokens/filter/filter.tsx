@@ -85,7 +85,7 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
 function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValueProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {dispatch, focusOverride} = useSearchQueryBuilder();
+  const {dispatch, focusOverride, disabled} = useSearchQueryBuilder();
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -142,6 +142,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
         setIsEditing(true);
         onActiveChange(true);
       }}
+      disabled={disabled}
       {...filterButtonProps}
     >
       <InteractionStateLayer />
@@ -151,13 +152,14 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
 }
 
 function FilterDelete({token, state, item}: SearchQueryTokenProps) {
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch, disabled} = useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', token.key.text)}
       onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
+      disabled={disabled}
       {...filterButtonProps}
     >
       <InteractionStateLayer />

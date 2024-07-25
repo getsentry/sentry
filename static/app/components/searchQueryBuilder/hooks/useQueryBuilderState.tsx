@@ -1,6 +1,5 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import type {
   FieldDefinitionGetter,
@@ -373,12 +372,23 @@ function deleteLastMultiSelectTokenValue(
   }
 }
 
-export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
+export function useQueryBuilderState({
+  initialQuery,
+  getFieldDefinition,
+  disabled,
+}: {
+  disabled: boolean;
+  getFieldDefinition: FieldDefinitionGetter;
+  initialQuery: string;
+}) {
   const initialState: QueryBuilderState = {query: initialQuery, focusOverride: null};
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
+      if (disabled) {
+        return state;
+      }
+
       switch (action.type) {
         case 'CLEAR':
           return {
@@ -428,7 +438,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           return state;
       }
     },
-    [getFieldDefinition]
+    [disabled, getFieldDefinition]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);
