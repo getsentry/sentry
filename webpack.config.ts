@@ -269,8 +269,8 @@ const appConfig: webpack.Configuration = {
         },
       },
       {
-        test: /\.pegjs/,
-        use: {loader: 'pegjs-loader'},
+        test: /\.pegjs$/,
+        use: ['pegjs-loader?cache=false&optimize=speed'],
       },
       {
         test: /\.css/,
