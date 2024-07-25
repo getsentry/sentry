@@ -25,11 +25,11 @@ export function ExtrapolationField({project}: ExtrapolationFieldProps) {
   const organization = useOrganization();
   const api = useApi();
 
-  const [isToggleEnabled, setIsToggleEnabled] = useState(!!project.extrapolateMetrics);
+  const [isToggleEnabled, setIsToggleEnabled] = useState(!project.extrapolateMetrics);
 
   // Reload from props if new project state is received
   useEffect(() => {
-    setIsToggleEnabled(!!project.extrapolateMetrics);
+    setIsToggleEnabled(!project.extrapolateMetrics);
   }, [project.extrapolateMetrics]);
 
   const {mutate: handleToggleChange} = useMutation<Project, RequestError, boolean>({
@@ -37,7 +37,7 @@ export function ExtrapolationField({project}: ExtrapolationFieldProps) {
       return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
         method: 'PUT',
         data: {
-          extrapolateMetrics: value,
+          extrapolateMetrics: !value,
         },
       });
     },
