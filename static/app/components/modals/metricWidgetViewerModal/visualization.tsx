@@ -332,7 +332,6 @@ function MetricChartVisualization({
         height={200}
       />
       <SummaryTable
-        singleQuery={queries.length === 1}
         series={chartSeries}
         onSortChange={setTableSort}
         sort={tableSort}
