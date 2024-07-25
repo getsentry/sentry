@@ -158,7 +158,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   }
 
   if (key === 'trace') {
-    const traceId = getShortEventId(props.dataRow[key] ?? '');
+    const traceId = props.dataRow[key] ?? '';
     if (!traceId) {
       return <Container>{t('n/a')}</Container>;
     }
@@ -178,7 +178,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
             location: props.baggage.location,
           })}
         >
-          {traceId}
+          {getShortEventId(traceId)}
         </Link>
       </Container>
     );
