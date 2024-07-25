@@ -115,7 +115,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.base",
-
     "sentry.api.bases.organization_events",
     "sentry.api.bases.organization_request_change",
     "sentry.api.bases.organizationmember",
@@ -256,7 +255,6 @@ module = [
     "sentry.incidents.logic",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
-    "sentry.integrations.api.bases.external_actor",
     "sentry.integrations.api.bases.integration",
     "sentry.integrations.aws_lambda.integration",
     "sentry.integrations.base",
