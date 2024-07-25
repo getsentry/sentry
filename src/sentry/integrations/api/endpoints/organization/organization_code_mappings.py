@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
@@ -42,6 +44,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         required=True,
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
+    instance: RepositoryProjectPathConfig | None
 
     class Meta:
         model = RepositoryProjectPathConfig
@@ -52,7 +55,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             "source_root",
             "default_branch",
         ]
-        extra_kwargs = {}
+        extra_kwargs: dict[str, Any] = {}
 
     @property
     def org_integration(self):
@@ -105,9 +108,10 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     def update(self, instance, validated_data):
         if "id" in validated_data:
             validated_data.pop("id")
-        for key, value in validated_data.items():
-            setattr(self.instance, key, value)
-        self.instance.save()
+        if self.instance:
+            for key, value in validated_data.items():
+                setattr(self.instance, key, value)
+            self.instance.save()
         return self.instance
 
 

@@ -12,7 +12,9 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.mixins.repositories import RepositoryMixin
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
@@ -69,12 +71,12 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
                 limit=None,
             )
 
-            repos = []
-
+            repos: list[RpcRepository] = []
             for i in integrations:
                 try:
                     installation = i.get_installation(organization_id=organization.id)
-                    repos.extend(installation.get_unmigratable_repositories())
+                    if isinstance(installation, RepositoryMixin):
+                        repos.extend(installation.get_unmigratable_repositories())
                 except Exception:
                     capture_exception()
                     # Don't rely on the Integration's API being available. If
@@ -83,10 +85,8 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
             return Response(serialize(repos, request.user))
 
-        elif status:
+        else:
             queryset = queryset.none()
-        elif status is None:
-            queryset = queryset.exclude(status=ObjectStatus.HIDDEN)
 
         return self.paginate(
             request=request,

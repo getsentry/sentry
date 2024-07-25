@@ -61,8 +61,8 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         :param string message: Optional message from the requester to the owners.
         """
 
-        provider_type = request.data.get("providerType")
-        provider_slug = request.data.get("providerSlug")
+        provider_type = str(request.data.get("providerType"))
+        provider_slug = str(request.data.get("providerSlug"))
         message_option = request.data.get("message", "").strip()
 
         requester = request.user

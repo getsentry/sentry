@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.integrations.mixins.repositories import RepositoryMixin
 from sentry.integrations.services.integration import integration_service
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
@@ -18,8 +19,11 @@ def get_codeowner_contents(config):
         raise NotFound(detail="No associated integration")
 
     integration = integration_service.get_integration(integration_id=config.integration_id)
+    if not integration:
+        return None
     install = integration.get_installation(organization_id=config.project.organization_id)
-    return install.get_codeowner_file(config.repository, ref=config.default_branch)
+    if isinstance(install, RepositoryMixin):
+        return install.get_codeowner_file(config.repository, ref=config.default_branch)
 
 
 @region_silo_endpoint
