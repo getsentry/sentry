@@ -518,7 +518,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return fields
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key: str) -> str:
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:

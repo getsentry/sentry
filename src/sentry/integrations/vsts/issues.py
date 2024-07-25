@@ -161,7 +161,7 @@ class VstsIssueSync(IssueSyncMixin):
                 field["type"] = "select"
         return fields
 
-    def get_issue_url(self, key: str, **kwargs: Any) -> str:
+    def get_issue_url(self, key: str) -> str:
         return f"{self.instance}_workitems/edit/{key}"
 
     def create_issue(self, data: Mapping[str, str], **kwargs: Any) -> Mapping[str, Any]:

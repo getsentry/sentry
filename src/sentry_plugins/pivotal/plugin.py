@@ -173,10 +173,10 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
 
         return json_resp["id"]
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return "#%s" % issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         return "https://www.pivotaltracker.com/story/show/%s" % issue_id
 
     def get_issue_title_by_id(self, request: Request, group, issue_id):

@@ -197,10 +197,10 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
     def get_new_issue_title(self, **kwargs):
         return "Create Maniphest Task"
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return "T%s" % issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         host = self.get_option("host", group.project)
         return urljoin(host, "T%s" % issue_id)
 

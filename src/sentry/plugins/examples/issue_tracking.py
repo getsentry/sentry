@@ -31,10 +31,10 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
     def create_issue(self, request: Request, group, form_data):
         return "1"
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return "Example-%s" % issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         tracker_url = self.get_option("tracker_url", group.project)
 
         return f"{tracker_url}?issueID={issue_id}"

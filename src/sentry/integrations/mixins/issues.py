@@ -63,7 +63,7 @@ class IssueBasicMixin:
     def get_group_title(self, group, event, **kwargs):
         return get_notification_group_title(group, event, **kwargs)
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         """
         Given the key of the external_issue return the external issue link.
         """

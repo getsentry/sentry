@@ -146,32 +146,20 @@ class IssueTrackingPlugin2(Plugin):
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return []
 
-    def _get_issue_url_compat(self, group, issue, **kwargs):
-        if self.issue_fields is None:
-            return self.get_issue_url(group, issue["id"])
-        return self.get_issue_url(group, issue)
-
-    def _get_issue_label_compat(self, group, issue, **kwargs):
-        if self.issue_fields is None:
-            return self.get_issue_label(group, issue["id"])
-        return self.get_issue_label(group, issue)
-
-    def get_issue_url(self, group, issue, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         """
-        Given an issue context (issue_id string or issue dict) return an absolute URL to the issue's details
+        Given an issue context (issue_id string) return an absolute URL to the issue's details
         page.
         """
         raise NotImplementedError
 
-    def get_issue_label(self, group, issue, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         """
-        Given an issue context (issue_id string or issue dict) return a string representing the issue.
+        Given an issue context (issue_id string) return a string representing the issue.
 
         e.g. GitHub represents issues as GH-XXX
         """
-        if isinstance(issue, dict):
-            return "#{}".format(issue["id"])
-        return f"#{issue}"
+        return f"#{issue_id}"
 
     def create_issue(self, request: Request, group, form_data):
         """
@@ -274,8 +262,8 @@ class IssueTrackingPlugin2(Plugin):
             or request.data.get("title")
             or self._get_issue_label_compat(group, issue),
             "provider": self.get_title(),
-            "location": self._get_issue_url_compat(group, issue),
-            "label": self._get_issue_label_compat(group, issue),
+            "location": self.get_issue_url(group, issue["id"]),
+            "label": self.get_issue_label(group, issue["id"]),
         }
         Activity.objects.create(
             project=group.project,
@@ -290,9 +278,9 @@ class IssueTrackingPlugin2(Plugin):
         )
         return Response(
             {
-                "issue_url": self.get_issue_url(group, issue),
-                "link": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "issue_url": self.get_issue_url(group, issue["id"]),
+                "link": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
                 "id": issue["id"],
             }
         )
@@ -341,8 +329,8 @@ class IssueTrackingPlugin2(Plugin):
         issue_information = {
             "title": issue.get("title") or self._get_issue_label_compat(group, issue),
             "provider": self.get_title(),
-            "location": self._get_issue_url_compat(group, issue),
-            "label": self._get_issue_label_compat(group, issue),
+            "location": self.get_issue_url(group, issue["id"]),
+            "label": self.get_issue_label(group, issue["id"]),
         }
         Activity.objects.create(
             project=group.project,
@@ -354,8 +342,8 @@ class IssueTrackingPlugin2(Plugin):
         return Response(
             {
                 "message": "Successfully linked issue.",
-                "link": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "link": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
                 "id": issue["id"],
             }
         )
@@ -383,8 +371,8 @@ class IssueTrackingPlugin2(Plugin):
         if issue:
             item["issue"] = {
                 "issue_id": issue.get("id"),
-                "url": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "url": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
             }
 
         item.update(PluginSerializer(group.project).serialize(self, None, request.user))
@@ -430,8 +418,8 @@ class IssueTrackingPlugin2(Plugin):
 
         tag_list.append(
             {
-                "url": self._get_issue_url_compat(group, issue),
-                "displayName": self._get_issue_label_compat(group, issue),
+                "url": self.get_issue_url(group, issue["id"]),
+                "displayName": self.get_issue_label(group, issue["id"]),
             }
         )
 

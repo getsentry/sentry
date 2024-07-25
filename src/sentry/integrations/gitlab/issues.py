@@ -20,7 +20,7 @@ class GitlabIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
         return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         match = ISSUE_EXTERNAL_KEY_FORMAT.match(key)
         project, issue_id = match.group(1), match.group(2)
         return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)

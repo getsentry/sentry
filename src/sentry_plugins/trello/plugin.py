@@ -233,27 +233,24 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         return {"title": card["name"], "id": card["shortLink"]}
 
-    def get_issue_label(self, group, issue, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         """
         Return label of the linked issue we show in the UI from the issue string
         """
         # the old version of the plugin stores the url in the issue
-        if LABLEX_REGEX.search(issue):
-            short_issue = issue.split("/", 1)[0]
+        if LABLEX_REGEX.search(issue_id):
+            short_issue = issue_id.split("/", 1)[0]
             return "Trello-%s" % short_issue
-        return "Trello-%s" % issue
+        return "Trello-%s" % issue_id
 
-    def get_issue_url(self, group, issue, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         """
         Return label of the url of card in Trello based off the issue object or issue ID
         """
-        # TODO(Steve): figure out why we sometimes get a string and sometimes a dict
-        if isinstance(issue, dict):
-            issue = issue["id"]
         # the old version of the plugin stores the url in the issue
-        if LABLEX_REGEX.search(issue):
-            return issue.split("/", 1)[1]
-        return "https://trello.com/c/%s" % issue
+        if LABLEX_REGEX.search(issue_id):
+            return issue_id.split("/", 1)[1]
+        return "https://trello.com/c/%s" % issue_id
 
     def view_options(self, request: Request, group, **kwargs):
         """

@@ -27,11 +27,6 @@ class PluginWithoutFields(IssueTrackingPlugin2):
 
 
 class IssueTrackingPlugin2Test(TestCase):
-    def test_issue_label_as_dict(self):
-        plugin = PluginWithFields()
-        result = plugin.get_issue_label(mock.Mock(), {"id": "1"})
-        assert result == "#1"
-
     def test_issue_label_legacy(self):
         plugin = PluginWithoutFields()
         result = plugin.get_issue_label(mock.Mock(), "1")
