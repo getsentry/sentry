@@ -35,9 +35,7 @@ export function DraggableTabBar(props: DragAndDropTabBarProps) {
     <Tabs>
       <DraggableTabList tabs={tabs} setTabs={setTabs} orientation="horizontal">
         {tabs.map(tab => (
-          <DraggableTabList.Item queryCount={tab.queryCount} key={tab.key}>
-            {tab.label}
-          </DraggableTabList.Item>
+          <DraggableTabList.Item key={tab.key}>{tab.label}</DraggableTabList.Item>
         ))}
       </DraggableTabList>
       <TabPanels>

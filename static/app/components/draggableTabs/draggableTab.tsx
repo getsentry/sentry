@@ -10,8 +10,6 @@ import type {Node, Orientation} from '@react-types/shared';
 import {BaseTab} from 'sentry/components/tabs/tab';
 
 interface DraggableTabProps extends AriaTabProps {
-  // dropState: DroppableCollectionState;
-  isChanged: boolean;
   item: Node<any>;
   orientation: Orientation;
   /**
@@ -23,11 +21,6 @@ interface DraggableTabProps extends AriaTabProps {
   state: TabListState<any>;
 }
 
-/**
- * Renders a single tab item. This should not be imported directly into any
- * page/view – it's only meant to be used by <TabsList />. See the correct
- * usage in tabs.stories.js
- */
 export const DraggableTab = forwardRef(
   (
     {item, state, orientation, overflowing}: DraggableTabProps,

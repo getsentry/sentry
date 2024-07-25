@@ -13,13 +13,13 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import type {Tab} from 'sentry/components/draggableTabs';
 import {TabsContext} from 'sentry/components/tabs';
 import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
+import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
 import {DraggableTab} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
-import {tabsShouldForwardProp} from './utils';
 
 interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
@@ -138,7 +138,6 @@ function BaseDraggableTabList({
                   orientation === 'horizontal' && overflowTabs.includes(item.key)
                 }
                 ref={element => (tabItemsRef.current[item.key] = element)}
-                isChanged
               />
               {state.selectedKey !== item.key &&
                 state.collection.getKeyAfter(item.key) !== state.selectedKey && (
