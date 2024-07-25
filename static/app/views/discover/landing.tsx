@@ -15,13 +15,14 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SavedQuery, SelectValue} from 'sentry/types';
+import type {NewQuery, Organization, SavedQuery, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import QueryList from './queryList';
 import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
@@ -96,7 +97,12 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
         const needleSearch = searchQuery.toLowerCase();
 
         const numOfPrebuiltQueries = views.reduce((sum, view) => {
-          const eventView = EventView.fromNewQueryWithLocation(view, location);
+          const newQuery = organization.features.includes(
+            'performance-discover-dataset-selector'
+          )
+            ? (getSavedQueryWithDataset(view) as NewQuery)
+            : view;
+          const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
           // if a search is performed on the list of queries, we filter
           // on the pre-built queries

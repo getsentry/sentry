@@ -11,13 +11,13 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   orderby: '-timestamp',
   version: 2,
   range: '24h',
-  queryDataset: SavedQueryDatasets.DISCOVER,
+  queryDataset: SavedQueryDatasets.ERRORS,
 };
 
 const DEFAULT_TRANSACTION_VIEW: Readonly<NewQuery> = {
   id: undefined,
   name: t('All Transactions'),
-  query: 'event.type:transaction',
+  query: '',
   projects: [],
   fields: ['title', 'project', 'user.display', 'timestamp'],
   orderby: '-timestamp',
@@ -29,7 +29,7 @@ const DEFAULT_TRANSACTION_VIEW: Readonly<NewQuery> = {
 const DEFAULT_ERROR_VIEW: Readonly<NewQuery> = {
   id: undefined,
   name: t('All Errors'),
-  query: 'event.type:error', // what about csp events etc
+  query: '',
   projects: [],
   fields: ['title', 'project', 'user.display', 'timestamp'],
   orderby: '-timestamp',
@@ -61,7 +61,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
     projects: [],
     version: 2,
     range: '24h',
-    queryDataset: SavedQueryDatasets.DISCOVER,
+    queryDataset: SavedQueryDatasets.TRANSACTIONS,
   },
 ];
 
@@ -84,7 +84,7 @@ export const WEB_VITALS_VIEWS: Readonly<Array<NewQuery>> = [
     version: 2,
     range: '24h',
     yAxis: ['epm()'],
-    queryDataset: SavedQueryDatasets.DISCOVER,
+    queryDataset: SavedQueryDatasets.TRANSACTIONS,
   },
 ];
 
@@ -100,7 +100,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     version: 2,
     range: '24h',
     display: 'top5',
-    queryDataset: SavedQueryDatasets.DISCOVER,
+    queryDataset: SavedQueryDatasets.ERRORS,
   },
   {
     id: undefined,
@@ -112,6 +112,6 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     version: 2,
     range: '24h',
     display: 'top5',
-    queryDataset: SavedQueryDatasets.DISCOVER,
+    queryDataset: SavedQueryDatasets.ERRORS,
   },
 ];

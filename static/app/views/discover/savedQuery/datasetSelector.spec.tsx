@@ -59,7 +59,7 @@ describe('Discover DatasetSelector', function () {
         query: expect.objectContaining({
           project: [],
           field: ['title', 'project', 'user.display', 'timestamp'],
-          query: 'event.type:transaction',
+          query: '',
           queryDataset: 'transaction-like',
         }),
       })
