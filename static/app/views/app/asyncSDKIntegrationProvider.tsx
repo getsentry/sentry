@@ -17,17 +17,11 @@ const context = createContext<Context>({
 
 export function AsyncSDKIntegrationContextProvider({
   children,
-  outerContext,
 }: {
   children: React.ReactNode;
-  outerContext?: Context;
 }) {
   const [state, setState] = useState<State>({});
-  return (
-    <context.Provider value={outerContext ?? {setState, state}}>
-      {children}
-    </context.Provider>
-  );
+  return <context.Provider value={{setState, state}}>{children}</context.Provider>;
 }
 
 export default function useAsyncSDKIntegrationStore(): Context {
