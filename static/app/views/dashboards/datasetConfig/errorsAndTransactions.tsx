@@ -62,7 +62,7 @@ import {
 } from 'sentry/views/performance/utils';
 
 import type {Widget, WidgetQuery} from '../types';
-import {DisplayType, WidgetType} from '../types';
+import {DisplayType} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
@@ -720,13 +720,7 @@ const getQueryExtraForSplittingDiscover = (
     return {};
   }
 
-  if (
-    isEditing &&
-    widget.id &&
-    ![WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
-      widget.widgetType ?? WidgetType.DISCOVER
-    )
-  ) {
+  if (isEditing && widget.id) {
     return {dashboardWidgetId: widget.id};
   }
 
