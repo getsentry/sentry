@@ -93,7 +93,7 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
 
         return config
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         account_email = self.get_option("account_email", project)
         api_token = self.get_option("api_token", project)
         website_id = self.get_option("website_id", project)

@@ -93,7 +93,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             "https://api.trello.com/1/members/me/organizations",
             json=[{"name": "team 1", "id": "2d8e"}, {"name": "team 2", "id": "d0cc"}],
         )
-        out = self.plugin.get_config(self.project, add_additial_fields=True)
+        out = self.plugin.get_config(self.project, add_additional_fields=True)
         assert out == [
             {
                 "default": "39g",
