@@ -89,17 +89,17 @@ const StyledButton = styled(Button)`
 
 const ComboBox = styled(_ComboBox)`
   width: 100%;
-  min-width: 200px;
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    max-width: min(500px, 100%);
-  }
   input {
-    width: 100% !important;
+    min-width: 100%;
     border-radius: 0;
     font-weight: 600;
   }
   :last-child input {
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    max-width: min(500px, 100%);
   }
 `;
 

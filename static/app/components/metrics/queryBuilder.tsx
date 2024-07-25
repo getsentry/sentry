@@ -216,7 +216,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
 
   return (
-    <QueryBuilderWrapper hasMetricsNewInputs={hasMetricsNewInputs(organization)}>
+    <QueryBuilderWrapper metricsNewInputs={hasMetricsNewInputs(organization)}>
       {hasMetricsNewInputs(organization) && (
         <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
           <QueryFieldGroup>
@@ -428,18 +428,14 @@ const TooltipIconWrapper = styled('span')`
   margin-top: ${space(0.25)};
 `;
 
-const QueryBuilderWrapper = styled('div')<{hasMetricsNewInputs: boolean}>`
+const QueryBuilderWrapper = styled('div')<{metricsNewInputs: boolean}>`
   display: flex;
   flex-grow: 1;
   gap: ${space(1)};
   flex-wrap: wrap;
   ${p =>
-    p.hasMetricsNewInputs &&
+    p.metricsNewInputs &&
     css`
-      flex-direction: column;
-      @media (min-width: ${p.theme.breakpoints.small}) {
-        flex-direction: row;
-      }
       @media (min-width: ${p.theme.breakpoints.xxlarge}) {
         > *:first-child {
           flex-grow: 0;
