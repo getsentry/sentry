@@ -1543,10 +1543,11 @@ describe('Results', function () {
         expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
       });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
-
-      expect(
-        screen.getByRole('button', {name: 'Dataset Transactions'})
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', {name: 'Dataset Transactions'})
+        ).toBeInTheDocument();
+      });
 
       expect(
         screen.getByText(
