@@ -2054,6 +2054,12 @@ register(
 )
 
 register(
+    "delightful_metrics.minimetrics_disable_legacy",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "delightful_metrics.enable_capture_envelope",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
