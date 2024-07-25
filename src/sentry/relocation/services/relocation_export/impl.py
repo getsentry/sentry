@@ -75,7 +75,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         requesting_region_name: str,
         replying_region_name: str,
         org_slug: str,
-        encrypted_contents: bytes,
+        encrypted_contents: list[int],
     ) -> None:
         from sentry.tasks.relocation import uploading_complete
 
@@ -102,7 +102,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
                 capture_exception(e)
                 return
 
-            fp = BytesIO(encrypted_contents)
+            fp = BytesIO(bytes(encrypted_contents))
             file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
             file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
             logger.info("SaaS -> SaaS relocation underlying File created", extra=logger_data)
@@ -167,7 +167,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         requesting_region_name: str,
         replying_region_name: str,
         org_slug: str,
-        encrypted_contents: bytes,
+        encrypted_contents: list[int],
     ) -> None:
         logger_data = {
             "uuid": relocation_uuid,
@@ -182,7 +182,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         # for temporary storage of `encrypted_contents` being shuffled between regions like this.
         path = f"runs/{relocation_uuid}/saas_to_saas_export/{org_slug}.tar"
         relocation_storage = get_relocation_storage()
-        fp = BytesIO(encrypted_contents)
+        fp = BytesIO(bytes(encrypted_contents))
         relocation_storage.save(path, fp)
         logger.info("SaaS -> SaaS export contents retrieved", extra=logger_data)
 

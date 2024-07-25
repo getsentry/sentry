@@ -172,5 +172,5 @@ def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):
             requesting_region_name=payload["requesting_region_name"],
             replying_region_name=payload["replying_region_name"],
             org_slug=payload["org_slug"],
-            encrypted_contents=encrypted_contents.read(),
+            encrypted_contents=[int(byte) for byte in encrypted_contents.read()],
         )
