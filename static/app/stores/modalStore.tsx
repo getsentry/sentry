@@ -38,10 +38,9 @@ const storeConfig: ModalStoreDefinition = {
 
   reset() {
     this.state = {
+      ...this.state,
       renderer: null,
       options: {},
-      pauseFocusTrap: null,
-      unpauseFocusTrap: null,
     };
   },
 

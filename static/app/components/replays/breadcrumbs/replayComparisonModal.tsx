@@ -36,7 +36,7 @@ export default function ReplayComparisonModal({
         <Header closeButton>
           <ModalHeader>
             <h4>
-              Hydration Error!!
+              Hydration Error
               <FeatureBadge type="beta" />
             </h4>
             <FeedbackPauseFocusButton />
