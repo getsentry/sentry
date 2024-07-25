@@ -16,7 +16,7 @@ from sentry.search.events.builder.errors import (
     ErrorsTopEventsQueryBuilder,
 )
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import OTHER_KEY, create_result_key, transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -92,7 +92,7 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, str],
+    params: ParamsType,
     rollup: int,
     snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
