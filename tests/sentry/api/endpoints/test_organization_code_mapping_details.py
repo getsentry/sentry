@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.api.serializers import serialize
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 

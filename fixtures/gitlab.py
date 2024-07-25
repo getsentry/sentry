@@ -1,8 +1,8 @@
 from time import time
 
 from sentry.integrations.gitlab.integration import GitlabIntegration
+from sentry.integrations.models.integration import Integration
 from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase

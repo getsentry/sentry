@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.metrics import (
     SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
@@ -14,7 +15,6 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils.users import get_slack_user_list
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,

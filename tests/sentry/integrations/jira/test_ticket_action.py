@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
-from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
