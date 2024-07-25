@@ -3,6 +3,7 @@ from typing import Any
 from django.db import router
 from sentry_sdk import capture_exception
 
+from sentry import roles
 from sentry.hybridcloud.services.organization_mapping import (
     OrganizationMappingService,
     RpcOrganizationMapping,
@@ -11,8 +12,11 @@ from sentry.hybridcloud.services.organization_mapping import (
 from sentry.hybridcloud.services.organization_mapping.model import CustomerId
 from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.silo.safety import unguarded_write
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 
 class OrganizationMappingConsistencyException(Exception):
@@ -26,6 +30,21 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         except OrganizationMapping.DoesNotExist:
             return None
         return serialize_organization_mapping(org_mapping)
+
+    def get_by_slug(self, *, slug: str) -> RpcOrganizationMapping | None:
+        try:
+            org_mapping = OrganizationMapping.objects.get(slug=slug)
+        except OrganizationMapping.DoesNotExist:
+            return None
+        return serialize_organization_mapping(org_mapping)
+
+    def get_owners(self, *, organization_id: int) -> list[RpcUser]:
+        owner_ids = list(
+            OrganizationMemberMapping.objects.filter(
+                organization_id=organization_id, role=roles.get_top_dog().id
+            ).values_list("user_id", flat=True)
+        )
+        return user_service.get_many_by_id(ids=owner_ids)
 
     def get_many(self, *, organization_ids: list[int]) -> list[RpcOrganizationMapping]:
         org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
