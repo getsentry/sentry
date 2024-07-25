@@ -42,7 +42,8 @@ export function useFormulaDependencies() {
       let tokens: TokenList = [];
 
       try {
-        tokens = parseFormula(unescapeMetricsFormula(formula));
+        const form = metricsNewInputs ? formula.toUpperCase() : formula;
+        tokens = parseFormula(unescapeMetricsFormula(form));
       } catch {
         // We should not end up here, but if we do, we should not crash the UI
         return {dependencies: [], isError: true};
@@ -53,7 +54,7 @@ export function useFormulaDependencies() {
 
       tokens.forEach(token => {
         if (token.type === TokenType.VARIABLE) {
-          const widget = queriesLookup.get(token.content.toUpperCase());
+          const widget = queriesLookup.get(token.content);
           if (widget) {
             dependencies.push(widget);
           } else {
@@ -64,7 +65,7 @@ export function useFormulaDependencies() {
 
       return {dependencies, isError};
     },
-    [queriesLookup]
+    [queriesLookup, metricsNewInputs]
   );
 
   const formulaDependencies = useMemo(() => {
