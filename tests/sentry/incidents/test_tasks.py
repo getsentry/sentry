@@ -35,6 +35,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.users.services.user.service import user_service
@@ -208,7 +209,8 @@ class HandleTriggerActionTest(TestCase):
         )
 
     def test(self):
-        with patch.object(AlertRuleTriggerAction, "_factory_registrations", new={}):
+        suspended_registrations = TemporaryAlertRuleTriggerActionRegistry.suspend()
+        try:
             mock_handler = Mock()
             AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
                 mock_handler
@@ -233,6 +235,8 @@ class HandleTriggerActionTest(TestCase):
             mock_handler.return_value.fire.assert_called_once_with(
                 metric_value, IncidentStatus.CRITICAL, str(activity.notification_uuid)
             )
+        finally:
+            suspended_registrations.restore()
 
 
 class TestHandleSubscriptionMetricsLogger(TestCase):
