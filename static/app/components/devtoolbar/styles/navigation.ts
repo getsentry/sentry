@@ -2,12 +2,26 @@ import {css} from '@emotion/react';
 
 export const navigationCss = css`
   align-items: center;
-  background: white;
-  border: 1px solid var(--gray200);
-  border-radius: var(--space150);
   display: flex;
   gap: var(--space50);
   padding: var(--space50);
+
+  background: rgb(58, 46, 93);
+  background: linear-gradient(41deg, rgba(58, 46, 93, 1) 61%, rgba(136, 81, 145, 1) 100%);
+  border-radius: var(--space150);
+  border: 1px solid var(--gray200);
+  color: white;
+
+  transition: opacity 2s ease-out 3s;
+
+  &[data-has-active='false'] {
+    opacity: 0.15;
+  }
+
+  &:hover {
+    transition: opacity 0.1s ease-in 0s;
+    opacity: 1;
+  }
 `;
 
 export const navigationRightEdgeCss = css`
@@ -18,19 +32,4 @@ export const navigationRightEdgeCss = css`
 
 export const navigationBottomRightCornerCss = css`
   flex-direction: row;
-`;
-
-export const navigationButtonCss = css`
-  border: 1px solid transparent;
-  background: none;
-  color: var(--gray400);
-  padding: var(--space100) var(--space150);
-  border-radius: var(--space100);
-  gap: var(--space50);
-
-  &[data-active-route='true'] {
-    color: var(--purple300);
-    background: var(--purple100);
-    border-color: var(--purple100);
-  }
 `;
