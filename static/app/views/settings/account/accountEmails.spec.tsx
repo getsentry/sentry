@@ -106,29 +106,30 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
+    const mockGetResponseBody = [
+      ...AccountEmailsFixture(),
+      {
+        email: 'test@example.com',
+        isPrimary: false,
+        isVerified: false,
+      },
+    ];
+
     const mockGet = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
       statusCode: 200,
-      body: [
-        ...AccountEmailsFixture(),
-        {
-          email: 'test@example.com',
-          isPrimary: false,
-          isVerified: false,
-        },
-      ],
+      body: mockGetResponseBody,
     });
 
     const textbox = await screen.findByRole('textbox');
-    const expectedSecondaryEmails = AccountEmailsFixture().length - 1;
     expect(screen.getAllByLabelText('Remove email')).toHaveLength(
-      expectedSecondaryEmails
+      AccountEmailsFixture().filter(email => !email.isPrimary).length
     );
 
     await userEvent.type(textbox, 'test@example.com{enter}');
     expect(screen.getAllByLabelText('Remove email')).toHaveLength(
-      expectedSecondaryEmails + 1
+      mockGetResponseBody.filter(email => !email.isPrimary).length
     );
 
     expect(mock).toHaveBeenCalledWith(
