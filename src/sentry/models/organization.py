@@ -257,10 +257,10 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
     def reserve_snowflake_id(cls):
         return generate_snowflake_id(cls.snowflake_redis_key)
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         if self.is_default:
             raise Exception("You cannot delete the default organization.")
-        return super().delete(**kwargs)
+        return super().delete(*args, **kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.organization_mapping.serial import (

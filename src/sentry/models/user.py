@@ -198,7 +198,7 @@ class User(Model, AbstractBaseUser):
     def class_name(self):
         return "User"
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
@@ -207,7 +207,7 @@ class User(Model, AbstractBaseUser):
                 avatar.delete()
             for outbox in self.outboxes_for_update(is_user_delete=True):
                 outbox.save()
-            return super().delete()
+            return super().delete(*args, **kwargs)
 
     def update(self, *args, **kwds):
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):

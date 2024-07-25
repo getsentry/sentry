@@ -233,7 +233,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             for region_name in find_all_region_names()
         ]
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
@@ -241,7 +241,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 outbox.save()
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
-        return super().delete()
+        return super().delete(*args, **kwargs)
 
     def _disable(self):
         self.events = []

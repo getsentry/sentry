@@ -63,7 +63,7 @@ class ExternalActor(ReplicatedRegionModel):
             ),
         ]
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         from sentry.integrations.services.integration import integration_service
 
         # TODO: Extract this out of the delete method into the endpoint / controller instead.
@@ -77,7 +77,7 @@ class ExternalActor(ReplicatedRegionModel):
                     team_id=team.id, provider=ExternalProviders(self.provider)
                 )
 
-        return super().delete(**kwargs)
+        return super().delete(*args, **kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.notifications.services.serial import serialize_external_actor
