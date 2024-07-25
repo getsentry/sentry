@@ -23,14 +23,18 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UserEmail} from 'sentry/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/emails/';
 
 function AccountEmails() {
+  const queryClient = useQueryClient();
+
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (_change, model, id) => {
+    queryClient.invalidateQueries(makeEmailsEndpointKey());
+
     if (id === undefined) {
       return;
     }
