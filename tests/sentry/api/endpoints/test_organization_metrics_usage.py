@@ -8,8 +8,8 @@ class TestOrganizationMetricsUsage(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-        self.mri1 = "c:foo/1"
-        self.mri2 = "c:bar/2"
+        self.mri1 = "c:custom/foo1@none"
+        self.mri2 = "c:custom/bar2@none"
         self.alert_rule1 = self.create_alert_rule(
             organization=self.organization, aggregate=self.mri1
         )
