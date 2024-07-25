@@ -104,23 +104,27 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     @staticmethod
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
-        get_range = functools.partial(
-            tsdb.backend.get_range,
-            environment_ids=environment_ids,
-            tenant_ids={"organization_id": group.project.organization_id},
-        )
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.backend.rollup(
-            get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
+            tsdb.backend.get_range(
+                model=model,
+                keys=[group.id],
+                end=now,
+                start=now - timedelta(days=1),
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
+            ),
             3600,
         )[group.id]
         daily_stats = tsdb.backend.rollup(
-            get_range(
+            tsdb.backend.get_range(
                 model=model,
                 keys=[group.id],
                 end=now,
                 start=now - timedelta(days=30),
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
             ),
             3600 * 24,
         )[group.id]
