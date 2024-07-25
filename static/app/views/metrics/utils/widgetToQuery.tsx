@@ -14,7 +14,7 @@ export function widgetToQuery({
 }): MetricsQueryApiQueryParams {
   return isMetricsEquationWidget(widget)
     ? {
-        name: getEquationSymbol(widget.id),
+        name: getEquationSymbol(widget.id, metricsNewInputs),
         formula: widget.formula,
       }
     : {

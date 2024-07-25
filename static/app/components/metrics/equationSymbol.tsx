@@ -9,9 +9,11 @@ interface EquationSymbolProps extends React.ComponentProps<typeof DeprecatedSymb
   equationId: number;
 }
 
-export function getEquationSymbol(equationId: number) {
-  const organization = useOrganization();
-  if (hasMetricsNewInputs(organization)) {
+export function getEquationSymbol(
+  equationId: number,
+  metricsNewInputs?: boolean
+): string {
+  if (metricsNewInputs) {
     return `Ƒ${equationId + 1}`;
   }
   return `ƒ${equationId + 1}`;

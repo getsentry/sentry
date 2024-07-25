@@ -207,7 +207,7 @@ export function useGenerateExpressionId(expressions: DashboardMetricsExpression[
 
 export function expressionsToApiQueries(
   expressions: DashboardMetricsExpression[],
-  metricNewInputs: boolean
+  metricsNewInputs: boolean
 ): MetricsQueryApiQueryParams[] {
   return expressions
     .filter(e => !(e.type === MetricExpressionType.EQUATION && e.isHidden))
@@ -216,9 +216,9 @@ export function expressionsToApiQueries(
         ? {
             alias: e.alias,
             formula: e.formula,
-            name: getEquationSymbol(e.id),
+            name: getEquationSymbol(e.id, metricsNewInputs),
           }
-        : {...e, name: getQuerySymbol(e.id, metricNewInputs), isQueryOnly: e.isHidden}
+        : {...e, name: getQuerySymbol(e.id, metricsNewInputs), isQueryOnly: e.isHidden}
     );
 }
 
