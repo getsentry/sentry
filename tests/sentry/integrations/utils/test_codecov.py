@@ -6,12 +6,12 @@ import responses
 from django.db import router
 
 from sentry import options
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils.codecov import (
     CodecovIntegrationError,
     get_codecov_data,
     has_codecov_integration,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
@@ -29,8 +29,9 @@ class TestCodecovIntegration(APITestCase):
         options.set("codecov.client-secret", "supersecrettoken")
 
     def test_no_github_integration(self):
-        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
-            using=router.db_for_write(Integration)
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            unguarded_write(using=router.db_for_write(Integration)),
         ):
             Integration.objects.all().delete()
 

@@ -1,6 +1,6 @@
 from django.db import IntegrityError, router, transaction
 
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 
 from . import Webhook
 

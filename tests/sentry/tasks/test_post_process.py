@@ -20,6 +20,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
+from sentry.integrations.models.integration import Integration
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -42,7 +43,6 @@ from sentry.models.groupowner import (
     GroupOwnerType,
 )
 from sentry.models.groupsnooze import GroupSnooze
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam

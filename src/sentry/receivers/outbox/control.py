@@ -16,10 +16,10 @@ from typing import Any
 from django.dispatch import receiver
 
 from sentry.hybridcloud.rpc.caching import region_caching_service
+from sentry.integrations.models.integration import Integration
 from sentry.issues.services.issue import issue_service
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmapping import OrganizationMapping

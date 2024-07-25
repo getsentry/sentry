@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.silo.base import SiloMode

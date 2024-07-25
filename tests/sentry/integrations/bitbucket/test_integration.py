@@ -4,7 +4,7 @@ import responses
 from django.urls import reverse
 
 from sentry.integrations.bitbucket import BitbucketIntegrationProvider
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase

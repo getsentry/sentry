@@ -2,8 +2,8 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.utils.providers import get_provider_string
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.user import User
 
 

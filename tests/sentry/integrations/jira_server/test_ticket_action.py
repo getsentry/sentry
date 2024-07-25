@@ -4,7 +4,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.eventstore.models import Event
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
-from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase

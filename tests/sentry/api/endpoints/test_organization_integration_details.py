@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError

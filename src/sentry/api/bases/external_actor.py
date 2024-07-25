@@ -16,9 +16,9 @@ from sentry.api.validators.external_actor import (
     validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_choices
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.organizations.services.organization import organization_service

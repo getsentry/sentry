@@ -5,8 +5,8 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
+from sentry.integrations.models.integration import Integration
 from sentry.middleware.integrations.parsers.bitbucket_server import BitbucketServerRequestParser
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase

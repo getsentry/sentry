@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TypeVar
 
 from sentry.integrations.base import IntegrationInstallation
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 
 T = TypeVar("T", bound=IntegrationInstallation)
 

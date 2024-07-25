@@ -2,8 +2,8 @@ from time import time
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.integrations.models.integration import Integration
 from sentry.models.apitoken import generate_token
-from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry

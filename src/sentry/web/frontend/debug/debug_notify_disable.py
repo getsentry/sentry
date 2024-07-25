@@ -1,8 +1,8 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import get_provider_type, get_url
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 
 from .mail import MailPreview

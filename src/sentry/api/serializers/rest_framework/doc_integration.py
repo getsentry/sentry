@@ -10,8 +10,8 @@ from sentry.api.fields.avatar import AvatarField
 from sentry.api.helpers.slugs import sentry_slugify
 from sentry.api.serializers.rest_framework.sentry_app import URLField
 from sentry.api.validators.doc_integration import validate_metadata_schema
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.integration_feature import (
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.integration_feature import (
     Feature,
     IntegrationFeature,
     IntegrationTypes,

@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
+from sentry.integrations.models.integration import Integration
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.integration import Integration
 from sentry.receivers.outbox.control import (
     process_api_application_updates,
     process_integration_updates,

@@ -15,8 +15,8 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
+    from sentry.integrations.models.external_issue import ExternalIssue
     from sentry.models.group import Group
-    from sentry.models.integrations.external_issue import ExternalIssue
 
 
 class VstsIssueSync(IssueSyncMixin):

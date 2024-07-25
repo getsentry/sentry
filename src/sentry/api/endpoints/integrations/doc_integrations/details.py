@@ -10,8 +10,8 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DocIntegrationSerializer
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 
 logger = logging.getLogger(__name__)
 

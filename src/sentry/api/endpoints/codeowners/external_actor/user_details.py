@@ -13,7 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalUserSerializer
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)

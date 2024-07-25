@@ -7,12 +7,12 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any, ClassVar
 
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import where_should_sync
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.notifications.utils import get_notification_group_title

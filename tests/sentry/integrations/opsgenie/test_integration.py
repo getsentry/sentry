@@ -5,9 +5,9 @@ import pytest
 import responses
 from rest_framework.serializers import ValidationError
 
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
 from sentry.tasks.integrations.migrate_opsgenie_plugins import (

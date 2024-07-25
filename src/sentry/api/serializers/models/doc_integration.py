@@ -2,9 +2,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
+from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.user import User
 
 

@@ -8,9 +8,9 @@ from django.http import HttpRequest
 from jwt import ExpiredSignatureError, InvalidSignatureError
 from rest_framework.request import Request
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri, percent_encode

@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.helpers.teams import is_team_admin
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.metrics import (
     SLACK_COMMANDS_ENDPOINT_FAILURE_DATADOG_METRIC,
@@ -21,7 +22,6 @@ from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.integrations.types import ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.utils import metrics

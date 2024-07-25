@@ -8,6 +8,8 @@ from django.utils.decorators import method_decorator
 from sentry.api.helpers.teams import is_team_admin
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_UNLINK_TEAM_FAILURE_DATADOG_METRIC,
@@ -15,8 +17,6 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.views.types import TeamUnlinkRequest
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.utils import metrics
 from sentry.utils.signing import unsign

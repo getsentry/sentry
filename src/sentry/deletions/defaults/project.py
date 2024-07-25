@@ -8,6 +8,9 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
         from sentry.incidents.models.incident import IncidentProject
+        from sentry.integrations.models.repository_project_path_config import (
+            RepositoryProjectPathConfig,
+        )
         from sentry.models.activity import Activity
         from sentry.models.artifactbundle import ProjectArtifactBundle
         from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
@@ -23,9 +26,6 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.models.groupseen import GroupSeen
         from sentry.models.groupshare import GroupShare
         from sentry.models.groupsubscription import GroupSubscription
-        from sentry.models.integrations.repository_project_path_config import (
-            RepositoryProjectPathConfig,
-        )
         from sentry.models.projectbookmark import ProjectBookmark
         from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectkey import ProjectKey

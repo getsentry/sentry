@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.api.helpers.autofix import AutofixCodebaseIndexingStatus
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase

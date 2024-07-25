@@ -10,9 +10,9 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
-from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
 from sentry.models.user import User
 from sentry.organizations.services.organization import organization_service
