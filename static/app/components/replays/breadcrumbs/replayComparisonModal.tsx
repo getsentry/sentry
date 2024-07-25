@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackPauseFocusButton from 'sentry/components/feedback/widget/feedbackPauseFocusButton';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -39,7 +39,7 @@ export default function ReplayComparisonModal({
               Hydration Error!!
               <FeatureBadge type="beta" />
             </h4>
-            <FeedbackWidgetButton />
+            <FeedbackPauseFocusButton />
           </ModalHeader>
         </Header>
         <Body>
