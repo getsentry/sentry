@@ -11,7 +11,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
   NumberOfPipelinesChart,
@@ -30,8 +29,6 @@ export function LLMMonitoringPage() {
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
-
-  useHasDataTrackAnalytics(ModuleName.AI, 'insight.page_loads.ai');
 
   return (
     <Layout.Page>
@@ -84,7 +81,11 @@ export function LLMMonitoringPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="ai" features="insights-addon-modules">
+    <ModulePageProviders
+      moduleName="ai"
+      features="insights-addon-modules"
+      analyticEventName="insight.page_loads.ai"
+    >
       <LLMMonitoringPage />
     </ModulePageProviders>
   );
