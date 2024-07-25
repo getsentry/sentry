@@ -1,6 +1,7 @@
 import {Fragment, lazy} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -36,7 +37,6 @@ const REPLAY_CLIP_OFFSETS = {
 };
 
 const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
-const locationForFetching = {query: {}} as Location<ReplayListLocationQuery>;
 
 export function ReplayClipSection({event, group, replayId}: Props) {
   const organization = useOrganization();
@@ -70,27 +70,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   ) : undefined;
 
   const replayCount = group ? getReplayCountForIssue(group.id, group.issueCategory) : -1;
-  if (group) {
-    const location = useLocation();
-    const {eventView} = useReplaysFromIssue({
-      group,
-      location,
-      organization,
-    });
-    if (eventView) {
-      const replayListData = useReplayList({
-        eventView,
-        location: locationForFetching,
-        organization,
-        queryReferrer: 'issueReplays',
-      });
-      const {replays} = replayListData;
-
-      const userCount =
-        replays?.reduce((resultSet, item) => resultSet.add(item.user.id), new Set())
-          .size ?? 0;
-    }
-  }
+  const userCount = getUserCountForReplays({group, organization});
   const overlayContent =
     seeAllReplaysButton && replayCount && replayCount > 1 ? (
       <Fragment>
@@ -140,6 +120,30 @@ export function ReplayClipSection({event, group, replayId}: Props) {
       </ErrorBoundary>
     </ReplaySectionMinHeight>
   );
+}
+
+function getUserCountForReplays({group, organization}) {
+  const location = useLocation<ReplayListLocationQuery>();
+  const {eventView} = useReplaysFromIssue({
+    group,
+    location,
+    organization,
+  });
+  if (eventView) {
+    const replayListData = useReplayList({
+      eventView,
+      location: {query: {}} as Location<ReplayListLocationQuery>,
+      organization,
+      queryReferrer: 'issueReplays',
+    });
+    const {replays} = replayListData;
+
+    const userCount =
+      replays?.reduce((resultSet, item) => resultSet.add(item.user.id), new Set()).size ??
+      0;
+    return userCount;
+  }
+  return 0;
 }
 
 // The min-height here is due to max-height that is set in replayPreview.tsx
