@@ -127,13 +127,13 @@ def generate_unique_queries(
 def get_condition_query_groups(
     alert_rules: list[Rule], rules_to_groups: DefaultDict[int, set[int]]
 ) -> dict[UniqueConditionQuery, DataAndGroups]:
-    condition_groups = {}
+    condition_groups: dict[UniqueConditionQuery, DataAndGroups] = {}
     for rule in alert_rules:
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
             for condition_query in generate_unique_queries(condition_data, rule.environment_id):
-                if condition_query in condition_groups:
-                    condition_groups[condition_query].group_ids.update(rules_to_groups[rule.id])
+                if data_and_groups := condition_groups.get(condition_query):
+                    data_and_groups.group_ids.update(rules_to_groups[rule.id])
                 else:
                     condition_groups[condition_query] = DataAndGroups(
                         condition_data, set(rules_to_groups[rule.id])
