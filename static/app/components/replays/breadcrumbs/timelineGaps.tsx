@@ -29,17 +29,17 @@ export default function TimelineGaps({durationMs, startTimestampMs, frames}: Pro
   let end = -1;
 
   for (const currFrame of frames) {
-    // only considered start of gap if background frame hasn't been found yet
-    if (start === -1 && isBackgroundFrame(currFrame)) {
-      start = currFrame.timestampMs - startTimestampMs;
-    }
-
     // add metrics for frame coming after a background frame to see how often we have bad data
     if (start !== -1) {
       trackAnalytics('replay.frame-after-background', {
         organization,
         frame: getFrameOpOrCategory(currFrame),
       });
+    }
+
+    // only considered start of gap if background frame hasn't been found yet
+    if (start === -1 && isBackgroundFrame(currFrame)) {
+      start = currFrame.timestampMs - startTimestampMs;
     }
 
     // gap only ends if a frame that's not a background frame or error frame has been found
