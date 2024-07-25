@@ -14,12 +14,13 @@ import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
 
 import type {AlertType} from './options';
 
 type PanelContent = {
-  description: string;
+  description: React.ReactNode;
   examples: string[];
   docsLink?: string;
   illustration?: string;
@@ -144,8 +145,11 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     illustration: diagramCustomMetrics,
   },
   span_metrics: {
-    description: t(
-      'Alert on custom span metrics that you have configured, such as number of sign-ups or duration of your login.'
+    description: tct(
+      'Alert on custom [link:span metrics] that you have configured, such as number of sign-ups or duration of your login.',
+      {
+        link: <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />,
+      }
     ),
     examples: [
       t('When the number of sign-ups dropped by 10% compared to the previous week.'),
