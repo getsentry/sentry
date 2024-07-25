@@ -10,6 +10,8 @@ from sentry.utils.signing import sign
 from sentry.web.decorators import EndpointFunc
 from sentry.web.helpers import render_to_response
 
+SALT = "sentry-slack-integration"
+
 
 def never_cache(view_func: EndpointFunc) -> EndpointFunc:
     """TODO(mgaeta): Remove cast once Django has a typed version."""

@@ -36,6 +36,7 @@ from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import is_valid_role
+from . import SALT
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
@@ -91,7 +92,7 @@ class SlackLinkTeamView(BaseView):
             return render_error_page(request, status=405, body_text="HTTP 405: Method not allowed")
 
         try:
-            converted = unsign(signed_params)
+            converted = unsign(signed_params, salt=SALT)
             link_team_request = TeamLinkRequest(**converted)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("handle.signature_error", exc_info=e)
