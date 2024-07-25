@@ -198,7 +198,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 ? t('Only available in SDK version 7.x and above')
                 : data.dynamicSdkLoaderOptions.hasPerformance
                   ? tct(
-                      'The default configurations are [codeTracesSampleRate:tracesSampleRate: 1.0] and distributed tracing to same-origin requests. [configDocs:Read the docs] to learn how to configure this.',
+                      'The default config is [codeTracesSampleRate:tracesSampleRate: 1.0] and distributed tracing to same-origin requests. [configDocs:Read the docs] to learn how to configure this.',
                       {
                         codeTracesSampleRate: <code />,
                         configDocs: (
@@ -236,7 +236,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 ? t('Only available in SDK version 7.x and above')
                 : data.dynamicSdkLoaderOptions.hasReplay
                   ? tct(
-                      `[es5Warning]The default configurations are [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.`,
+                      `[es5Warning]The default config is [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.`,
                       {
                         es5Warning:
                           // latest is deprecated but resolves to v7
