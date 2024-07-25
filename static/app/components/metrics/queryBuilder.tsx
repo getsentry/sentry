@@ -216,9 +216,25 @@ export const QueryBuilder = memo(function QueryBuilder({
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
 
   return (
-    <QueryBuilderWrapper>
+    <QueryBuilderWrapper hasMetricsNewInputs={hasMetricsNewInputs(organization)}>
+      {hasMetricsNewInputs(organization) && (
+        <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
+          <QueryFieldGroup>
+            <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
+            <MRISelect
+              onChange={handleMRIChange}
+              onTagClick={handleMetricTagClick}
+              onOpenMenu={handleOpenMetricsMenu}
+              isLoading={isMetaLoading}
+              metricsMeta={meta}
+              projects={projectIds}
+              value={metricsQuery.mri}
+            />
+          </QueryFieldGroup>
+        </GuideAnchor>
+      )}
       <FlexBlock>
-        <FlexBlock>
+        {/* <FlexBlock>
           <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
             {hasMetricsNewInputs(organization) ? (
               <QueryFieldGroup>
@@ -249,13 +265,12 @@ export const QueryBuilder = memo(function QueryBuilder({
             (selectedMeta?.type === 'v' ? (
               <MetricQuerySelect
                 mri={metricsQuery.mri}
-                conditionId={metricsQuery.condition}
                 onChange={value => {
                   onChange({condition: value});
                 }}
               />
             ) : null)}
-        </FlexBlock>
+        </FlexBlock> */}
         <FlexBlock>
           <GuideAnchor
             target="metrics_aggregate"
@@ -423,11 +438,24 @@ const TooltipIconWrapper = styled('span')`
   margin-top: ${space(0.25)};
 `;
 
-const QueryBuilderWrapper = styled('div')`
+const QueryBuilderWrapper = styled('div')<{hasMetricsNewInputs: boolean}>`
   display: flex;
   flex-grow: 1;
   gap: ${space(1)};
   flex-wrap: wrap;
+  ${p =>
+    p.hasMetricsNewInputs &&
+    css`
+      flex-direction: column;
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        flex-direction: row;
+      }
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        > *:first-child {
+          flex-grow: 0;
+        }
+      }
+    `}
 `;
 
 const FlexBlock = styled('div')`

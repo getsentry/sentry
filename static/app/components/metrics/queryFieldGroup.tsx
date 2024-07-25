@@ -88,7 +88,13 @@ const StyledButton = styled(Button)`
 `;
 
 const ComboBox = styled(_ComboBox)`
+  width: 100%;
+  min-width: 200px;
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    max-width: min(500px, 100%);
+  }
   input {
+    width: 100% !important;
     border-radius: 0;
     font-weight: 600;
   }
@@ -114,6 +120,7 @@ const FieldGroup = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-row-gap: ${space(1)};
+
   > *:nth-child(even) {
     margin-left: -1px;
   }
