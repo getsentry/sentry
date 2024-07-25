@@ -173,7 +173,7 @@ class IssueTrackingPlugin2(Plugin):
             return "#{}".format(issue["id"])
         return f"#{issue}"
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         """
         Creates the issue on the remote service and returns an issue ID.
 
@@ -390,9 +390,11 @@ class IssueTrackingPlugin2(Plugin):
         item.update(PluginSerializer(group.project).serialize(self, None, request.user))
         plugin_issues.append(item)
 
-    def get_config(self, *args, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         # TODO(dcramer): update existing plugins to just use get_config
-        return self.get_configure_plugin_fields(*args, **kwargs)
+        return self.get_configure_plugin_fields(
+            project=project, user=user, initial=initial, add_additional_fields=add_additional_fields
+        )
 
     def check_config_and_auth(self, request: Request, group):
         has_auth_configured = self.has_auth_configured()

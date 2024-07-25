@@ -1,5 +1,6 @@
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -38,9 +39,9 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
     def is_configured(self, project):
         return all(self.get_option(key, project) for key in ("userkey", "apikey"))
 
-    def get_config(self, **kwargs):
-        userkey = self.get_option("userkey", kwargs["project"])
-        apikey = self.get_option("apikey", kwargs["project"])
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
+        userkey = self.get_option("userkey", project)
+        apikey = self.get_option("apikey", project)
 
         userkey_field = get_secret_field_config(
             userkey, "Your user key. See https://pushover.net/", include_prefix=True
@@ -106,7 +107,7 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
             return " ".join(errors)
         return "unknown error"
 
-    def notify(self, notification, **kwargs):
+    def notify(self, notification: Notification, raise_exception: bool = False) -> None:
         event = notification.event
         group = event.group
         project = group.project

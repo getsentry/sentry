@@ -82,7 +82,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
             host=self.get_option("host", project), key=self.get_option("key", project)
         )
 
-    def create_issue(self, group, form_data, **kwargs):
+    def create_issue(self, request, group, form_data):
         """
         Create a Redmine issue
         """
@@ -180,10 +180,10 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
                 initial[field] = value
         return initial
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         self.client_errors = []
         self.fields = self.build_config()
-        initial_args = kwargs.get("initial") or {}
+        initial_args = initial or {}
         initial = self.build_initial(initial_args, project)
 
         has_credentials = all(initial.get(k) for k in ("host", "key"))

@@ -28,7 +28,7 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
             *fields,
         ]
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         return "1"
 
     def get_issue_label(self, group, issue_id, **kwargs):
