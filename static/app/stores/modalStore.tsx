@@ -54,14 +54,14 @@ const storeConfig: ModalStoreDefinition = {
     this.trigger(this.state);
   },
 
-  setPauseFocusTrap(fx: State['pauseFocusTrap'] | null) {
+  setPauseFocusTrap(fx: State['pauseFocusTrap']) {
     this.state = {
       ...this.state,
       pauseFocusTrap: fx,
     };
   },
 
-  setUnpauseFocusTrap(fx: State['unpauseFocusTrap'] | null) {
+  setUnpauseFocusTrap(fx: State['unpauseFocusTrap']) {
     this.state = {
       ...this.state,
       unpauseFocusTrap: fx,
