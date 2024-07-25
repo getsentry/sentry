@@ -6,13 +6,13 @@ from typing import Any
 
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import re_path
 from django.urls.resolvers import URLPattern
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.generic import View
-from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
@@ -25,6 +25,7 @@ from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations import Integration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
 from sentry.types.actor import ActorType
@@ -288,7 +289,9 @@ class LinkingView(BaseView, ABC):
         pass
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, signed_params) -> HttpResponse:
+    def handle(
+        self, request: HttpRequest, signed_params: Any, *args: Any, **kwargs: Any
+    ) -> HttpResponseBase:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
@@ -334,7 +337,7 @@ class LinkingView(BaseView, ABC):
 
     @abstractmethod
     def execute(
-        self, idp: IdentityProvider, params: Mapping[str, Any], request: Request
+        self, idp: IdentityProvider, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
         """Execute the operation on the Identity table.
 
@@ -350,11 +353,12 @@ class LinkIdentityView(LinkingView, ABC):
         return "sentry/auth-link-identity.html"
 
     def execute(
-        self, idp: IdentityProvider, params: Mapping[str, Any], request: Request
+        self, idp: IdentityProvider, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
-        Identity.objects.link_identity(
-            user=request.user, idp=idp, external_id=params[self.user_parameter]
-        )
+        user = request.user
+        if not isinstance(user, User):
+            raise TypeError("Cannot link identity without a logged-in user")
+        Identity.objects.link_identity(user=user, idp=idp, external_id=params[self.user_parameter])
         return None
 
 
@@ -369,7 +373,7 @@ class UnlinkIdentityView(LinkingView, ABC):
         return None
 
     def execute(
-        self, idp: IdentityProvider, params: Mapping[str, Any], request: Request
+        self, idp: IdentityProvider, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
         try:
             identities = Identity.objects.filter(idp=idp, external_id=params[self.user_parameter])
