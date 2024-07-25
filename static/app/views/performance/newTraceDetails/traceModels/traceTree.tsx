@@ -1600,10 +1600,17 @@ export class TraceTree {
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
 
         // Remove existing entries from the list
-        const index = this._list.indexOf(node);
+        let index = this._list.indexOf(node);
 
+        // Some nodes may have gotten cloned and their reference lost due to the fact
+        // that we are really maintaining a txn tree as well as a span tree. When this
+        // happens, we need to find the original reference in the list so that we can
+        // expand it at its new position
         if (index === -1) {
-          return data;
+          index = this._list.indexOf(node.cloneReference!);
+          if (index === -1) {
+            return data;
+          }
         }
 
         if (node.expanded) {
@@ -1738,6 +1745,7 @@ export class TraceTree {
 }
 
 export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
+  cloneReference: TraceTreeNode<TraceTree.NodeValue> | null = null;
   canFetch: boolean = false;
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode | null = null;
@@ -1904,6 +1912,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       }
     }
 
+    this.cloneReference = clone;
     return clone;
   }
 
