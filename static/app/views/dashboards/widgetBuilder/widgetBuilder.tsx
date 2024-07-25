@@ -137,6 +137,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
+  updateDashboardSplitDecision?: (widgetId: string, splitDecision: WidgetType) => void;
 }
 
 interface State {
@@ -173,6 +174,7 @@ function WidgetBuilder({
   route,
   router,
   tags,
+  updateDashboardSplitDecision,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit, dataset} = location.query;
@@ -1015,6 +1017,12 @@ function WidgetBuilder({
     setState(prevState => {
       return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[splitDecision]};
     });
+
+    if (currentWidget.id) {
+      // Update the dashboard state with the split decision, in case
+      // the user cancels editing the widget after the decision was made
+      updateDashboardSplitDecision?.(currentWidget.id, splitDecision);
+    }
   }
 
   function isFormInvalid() {
