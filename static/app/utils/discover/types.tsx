@@ -29,6 +29,13 @@ export enum SavedQueryDatasets {
   TRANSACTIONS = 'transaction-like',
 }
 
+export enum DatasetSource {
+  USER = 'user',
+  UNKNOWN = 'unknown',
+  INFERRED = 'inferred',
+  FORCED = 'forced',
+}
+
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
 
 // The modes that support the interval selector

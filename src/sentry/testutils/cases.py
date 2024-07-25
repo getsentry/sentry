@@ -1521,9 +1521,12 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
+            "organization_id": 1,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
+            "start_timestamp_precise": timestamp.timestamp(),
+            "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "exclusive_time_ms": int(exclusive_time),
             "is_segment": True,
             "received": timezone.now().timestamp(),
@@ -1585,6 +1588,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
+            "organization_id": 1,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
@@ -1592,6 +1596,8 @@ class BaseSpansTestCase(SnubaTestCase):
             "is_segment": False,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "start_timestamp_precise": timestamp.timestamp(),
+            "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "sentry_tags": {
                 "transaction": transaction or "/hello",
                 "op": op or "http",
@@ -2757,11 +2763,13 @@ class TestMigrations(TransactionTestCase):
 
 
 class SCIMTestCase(APITestCase):
-    def setUp(self, provider="dummy"):
+    provider = "dummy"
+
+    def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_provider_inst = AuthProviderModel(
-                organization_id=self.organization.id, provider=provider
+                organization_id=self.organization.id, provider=self.provider
             )
             self.auth_provider_inst.enable_scim(self.user)
             self.auth_provider_inst.save()
@@ -2772,9 +2780,11 @@ class SCIMTestCase(APITestCase):
 
 
 class SCIMAzureTestCase(SCIMTestCase):
+    provider = ACTIVE_DIRECTORY_PROVIDER_NAME
+
     def setUp(self):
         auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
-        super().setUp(provider=ACTIVE_DIRECTORY_PROVIDER_NAME)
+        super().setUp()
         self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
 
 
@@ -3334,6 +3344,8 @@ class SpanTestCase(BaseTestCase):
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts.timestamp() * 1000),
+                "start_timestamp_precise": start_ts.timestamp(),
+                "end_timestamp_precise": start_ts.timestamp() + duration / 1000,
                 "timestamp": int(start_ts.timestamp() * 1000),
                 "received": start_ts.timestamp(),
                 "duration_ms": duration,

@@ -54,7 +54,7 @@ export const globalCss = css`
     --pink200: rgba(249, 26, 138, 0.5);
     --pink100: rgba(249, 26, 138, 0.09);
 
-    --z-index: 100000;
+    --z-index: 10000;
 
     color: var(--gray400);
     font-family: system-ui, 'Helvetica Neue', Arial, sans-serif;

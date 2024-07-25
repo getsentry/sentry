@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -16,7 +15,6 @@ import {useParams} from 'sentry/utils/useParams';
 import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
 import ResourceInfo from 'sentry/views/insights/browser/resources/components/resourceInfo';
-import {FilterOptionsContainer} from 'sentry/views/insights/browser/resources/components/resourceView';
 import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
 import ResourceSummaryTable from 'sentry/views/insights/browser/resources/components/tables/resourceSummaryTable';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/insights/browser/resources/constants';
@@ -24,8 +22,10 @@ import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -113,16 +113,17 @@ function ResourceSummary() {
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <HeaderContainer>
-                <FilterOptionsContainer columnCount={2}>
+                <ToolRibbon>
                   <PageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
                     <DatePageFilter />
                   </PageFilterBar>
+
                   <RenderBlockingSelector
                     value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
                   />
-                </FilterOptionsContainer>
+                </ToolRibbon>
                 <ResourceInfo
                   isLoading={isLoading}
                   avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
@@ -179,9 +180,3 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-`;
