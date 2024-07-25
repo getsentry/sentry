@@ -301,8 +301,8 @@ describe('parseDashboard', () => {
 
     const queries = widgets[0].queries;
     expect(queries.length).toEqual(5);
-    expect(queries[2].aggregates[0]).toEqual('equation|2 * $b');
-    expect(queries[3].aggregates[0]).toEqual('equation|$a + $b');
-    expect(queries[4].aggregates[0]).toEqual('equation|($b + $b) - $a');
+    expect(queries[2].aggregates[0]).toEqual('equation|2 * $B');
+    expect(queries[3].aggregates[0]).toEqual('equation|$A + $B');
+    expect(queries[4].aggregates[0]).toEqual('equation|($B + $B) - $A');
   });
 });

@@ -83,7 +83,8 @@ class SlackActionHandlerTest(FireTest):
     ) -> MessagingActionHandler:
         return MessagingActionHandler(action, incident, self.project, self.spec)
 
-    def run_test(self, incident, method, chart_url=None):
+    def run_test(self, incident, method, **kwargs):
+        chart_url = kwargs.get("chart_url")
         handler = self._build_action_handler(self.action, incident)
         metric_value = 1000
         status = IncidentStatus(incident.status)

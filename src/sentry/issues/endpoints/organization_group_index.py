@@ -170,12 +170,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             else:
 
                 def use_group_snuba_dataset() -> bool:
+                    # if useGroupSnubaDataset is present, override the flag so we can test the new dataset
+                    if request.GET.get("useGroupSnubaDataset"):
+                        return True
+
                     if not features.has("organizations:issue-search-snuba", organization):
                         return False
 
-                    # if useGroupSnubaDataset we consider using the snuba dataset
-                    if not request.GET.get("useGroupSnubaDataset"):
-                        return False
                     # haven't migrated trends
                     if query_kwargs["sort_by"] == "trends":
                         return False

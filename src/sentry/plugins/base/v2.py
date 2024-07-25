@@ -316,7 +316,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_actions(self, request, group, **kwargs):
+    def get_actions(self, request, group) -> list[tuple[str, str]]:
         """
         Return a list of available actions to append this aggregate.
 
@@ -326,12 +326,12 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
             ('Action Label', '/uri/to/action/')
 
-        >>> def get_actions(self, request, group, **kwargs):
+        >>> def get_actions(self, request, group):
         >>>     return [('Google', 'http://google.com')]
         """
         return []
 
-    def get_annotations(self, group, **kwargs):
+    def get_annotations(self, group) -> list[dict[str, str]]:
         """
         Return a list of annotations to append to this aggregate.
 
@@ -340,7 +340,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         The properties of each tag must match the constructor for
         :class:`sentry.plugins.Annotation`
 
-        >>> def get_annotations(self, group, **kwargs):
+        >>> def get_annotations(self, group):
         >>>     task_id = GroupMeta.objects.get_value(group, 'myplugin:tid')
         >>>     if not task_id:
         >>>         return []

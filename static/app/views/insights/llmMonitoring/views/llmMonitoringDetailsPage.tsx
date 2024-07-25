@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -9,16 +7,16 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {CurrencyUnit, DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
@@ -110,13 +108,16 @@ export function LLMMonitoringPage({params}: Props) {
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
-                <SpaceBetweenWrap>
-                  <PageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
-                  <Ribbon>
+                <HeaderContainer>
+                  <ToolRibbon>
+                    <PageFilterBar condensed>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter />
+                      <DatePageFilter />
+                    </PageFilterBar>
+                  </ToolRibbon>
+
+                  <ReadoutRibbon>
                     <MetricReadout
                       title={t('Total Tokens Used')}
                       value={tokenUsedMetric['sum(ai.total_tokens.used)']}
@@ -144,8 +145,8 @@ export function LLMMonitoringPage({params}: Props) {
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
                     />
-                  </Ribbon>
-                </SpaceBetweenWrap>
+                  </ReadoutRibbon>
+                </HeaderContainer>
               </ModuleLayout.Full>
               <ModuleLayout.Third>
                 <TotalTokensUsedChart groupId={groupId} />
@@ -180,10 +181,3 @@ function PageWithProviders({params}: Props) {
 }
 
 export default PageWithProviders;
-
-const SpaceBetweenWrap = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-`;

@@ -6,10 +6,7 @@ import uniqBy from 'lodash/uniqBy';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {
-  CardinalityWarningIcon,
-  MetricQuerySelect,
-} from 'sentry/components/metrics/metricQuerySelect';
+import {MetricQuerySelect} from 'sentry/components/metrics/metricQuerySelect';
 import {
   MetricSearchBar,
   type MetricSearchBarProps,
@@ -19,13 +16,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
+import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
@@ -52,7 +48,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   const pageFilters = usePageFilters();
   const {getConditions, getVirtualMeta, resolveVirtualMRI, getTags} =
     useVirtualMetricsContext();
-  const {data: cardinality} = useCardinalityLimitedMetricVolume(pageFilters.selection);
 
   const {
     data: meta,
@@ -220,19 +215,6 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
 
-  const isCardinalityLimited = (condition?: MetricsExtractionCondition): boolean => {
-    if (!cardinality || !condition) {
-      return false;
-    }
-    return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
-  };
-
-  const spanConditions = getConditions(metricsQuery.mri);
-
-  const istMetricQueryCardinalityLimited = isCardinalityLimited(
-    spanConditions.find(c => c.id === metricsQuery.condition)
-  );
-
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
@@ -266,8 +248,6 @@ export const QueryBuilder = memo(function QueryBuilder({
           {!hasMetricsNewInputs(organization) &&
             (selectedMeta?.type === 'v' ? (
               <MetricQuerySelect
-                isCardinalityLimited={istMetricQueryCardinalityLimited}
-                spanConditions={spanConditions}
                 mri={metricsQuery.mri}
                 conditionId={metricsQuery.condition}
                 onChange={value => {
@@ -370,18 +350,13 @@ export const QueryBuilder = memo(function QueryBuilder({
       {hasMetricsNewInputs(organization) ? (
         selectedMeta?.type === 'v' ? (
           <QueryFieldGroup>
-            <QueryFieldGroup.Label>
-              {istMetricQueryCardinalityLimited && <CardinalityWarningIcon />}
-              {t('Where')}
-            </QueryFieldGroup.Label>
+            <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
             <MetricQuerySelect
-              spanConditions={spanConditions}
               mri={metricsQuery.mri}
               conditionId={metricsQuery.condition}
               onChange={value => {
                 onChange({condition: value});
               }}
-              isCardinalityLimited={istMetricQueryCardinalityLimited}
             />
             <QueryFieldGroup.Label>{t('And')}</QueryFieldGroup.Label>
             <SearchBar

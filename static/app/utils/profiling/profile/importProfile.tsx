@@ -30,6 +30,7 @@ import {
 export interface ImportOptions {
   span: Span | undefined;
   type: 'flamegraph' | 'flamechart';
+  activeThreadId?: string | null;
   continuous?: boolean;
   frameFilter?: (frame: Frame) => boolean;
   profileIds?: Readonly<string[]>;
@@ -62,6 +63,7 @@ export interface ContinuousProfileGroup {
 export function importProfile(
   input: Readonly<Profiling.ProfileInput>,
   traceID: string,
+  activeThreadId: string | null,
   type: 'flamegraph' | 'flamechart',
   frameFilter?: (frame: Frame) => boolean
 ): ProfileGroup | ContinuousProfileGroup {
@@ -78,6 +80,7 @@ export function importProfile(
           span,
           type,
           frameFilter,
+          activeThreadId,
           continuous: true,
         });
       }
@@ -156,7 +159,6 @@ function importSentrySampledProfile(
   }
 
   let activeProfileIndex = 0;
-
   const profiles: Profile[] = [];
 
   for (const key in samplesByThread) {
@@ -259,13 +261,56 @@ export function importSentryContinuousProfileChunk(
     input.platform
   );
 
+  const samplesByThread: Record<
+    string,
+    Profiling.SentryContinousProfileChunk['profile']['samples']
+  > = {};
+
+  for (let i = 0; i < input.profile.samples.length; i++) {
+    const sample = input.profile.samples[i];
+    if (!samplesByThread[sample.thread_id]) {
+      samplesByThread[sample.thread_id] = [];
+    }
+    samplesByThread[sample.thread_id].push(sample);
+  }
+
+  for (const key in samplesByThread) {
+    samplesByThread[key].sort((a, b) => a.timestamp - b.timestamp);
+  }
+
+  const profiles: Profile[] = [];
+  let activeProfileIndex = 0;
+
+  for (const key in samplesByThread) {
+    const profile: Profiling.ContinuousProfile = {
+      ...input,
+      ...input.profile,
+      samples: samplesByThread[key],
+    };
+
+    if (options.activeThreadId && key === options.activeThreadId) {
+      activeProfileIndex = profiles.length;
+    }
+
+    profiles.push(
+      wrapWithSpan(
+        options.span,
+        () => ContinuousProfile.FromProfile(profile, frameIndex),
+        {
+          op: 'profile.import',
+          description: 'continuous',
+        }
+      )
+    );
+  }
+
   return {
     traceID,
     name: '',
     type: 'continuous',
     transactionID: null,
-    activeProfileIndex: 0,
-    profiles: [importSingleProfile(input.profile, frameIndex, options)],
+    activeProfileIndex,
+    profiles,
     measurements: input.measurements ?? {},
     metadata: {
       platform: input.platform,
