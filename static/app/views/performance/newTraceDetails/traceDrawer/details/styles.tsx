@@ -339,7 +339,7 @@ function getThreadIdFromNode(
   }
 
   if (transaction) {
-    return transaction.context?.trace?.data?.['thread.id'];
+    return transaction.contexts?.trace?.data?.['thread.id'];
   }
 
   return undefined;
