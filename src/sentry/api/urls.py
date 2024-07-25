@@ -156,6 +156,15 @@ from sentry.integrations.api.endpoints.organization.organization_integration_rep
 from sentry.integrations.api.endpoints.organization.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_repositories import (
+    OrganizationRepositoriesEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_repository_commits import (
+    OrganizationRepositoryCommitsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_repository_details import (
+    OrganizationRepositoryDetailsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
@@ -486,9 +495,6 @@ from .endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
     OrganizationReleasesStatsEndpoint,
 )
-from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
-from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
-from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_request_project_creation import OrganizationRequestProjectCreation
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
