@@ -3,17 +3,22 @@ import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {isMetricsEquationWidget, type MetricsWidget} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 
-export function widgetToQuery(
-  widget: MetricsWidget,
-  isQueryOnly = false
-): MetricsQueryApiQueryParams {
+export function widgetToQuery({
+  widget,
+  isQueryOnly = false,
+  metricsNewInputs = false,
+}: {
+  metricsNewInputs: boolean;
+  widget: MetricsWidget;
+  isQueryOnly?: boolean;
+}): MetricsQueryApiQueryParams {
   return isMetricsEquationWidget(widget)
     ? {
         name: getEquationSymbol(widget.id),
         formula: widget.formula,
       }
     : {
-        name: getQuerySymbol(widget.id),
+        name: getQuerySymbol(widget.id, metricsNewInputs),
         mri: widget.mri,
         aggregation: widget.aggregation,
         condition: widget.condition,

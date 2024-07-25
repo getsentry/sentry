@@ -5,9 +5,11 @@ import {space} from 'sentry/styles/space';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const indexToCharUppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const indexToCharLowercase = 'abcdefghijklmnopqrstuvwxyz';
 
-export const getQuerySymbol = (index: number) => {
+export const getQuerySymbol = (index: number, uppercaseChar?: boolean) => {
+  const indexToChar = uppercaseChar ? indexToCharUppercase : indexToCharLowercase;
   let result = '';
   let i = index;
   do {
@@ -20,7 +22,6 @@ export const getQuerySymbol = (index: number) => {
 export const DeprecatedSymbol = styled('span')<{
   isHidden?: boolean;
 }>`
-  text-transform: lowercase;
   display: flex;
   width: 38px;
   height: 38px;
@@ -47,7 +48,6 @@ export const Symbol = styled(DeprecatedSymbol)`
   color: ${p => p.theme.purple300};
   border: 1px solid ${p => p.theme.purple200};
   background: ${p => p.theme.purple100};
-  text-transform: uppercase;
   font-weight: 600;
 `;
 
@@ -63,12 +63,18 @@ export const QuerySymbol = forwardRef<HTMLSpanElement, QuerySymbolProps>(
       return null;
     }
 
-    const Component = hasMetricsNewInputs(organization) ? Symbol : DeprecatedSymbol;
+    if (hasMetricsNewInputs(organization)) {
+      return (
+        <Symbol ref={ref} {...props}>
+          <span>{getQuerySymbol(queryId, true)}</span>
+        </Symbol>
+      );
+    }
 
     return (
-      <Component ref={ref} {...props}>
-        <span>{getQuerySymbol(queryId)}</span>
-      </Component>
+      <DeprecatedSymbol ref={ref} {...props}>
+        <span>{getQuerySymbol(queryId, false)}</span>
+      </DeprecatedSymbol>
     );
   }
 );
