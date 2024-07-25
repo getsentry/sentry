@@ -27,8 +27,8 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet('esm')}
 
 // All other imports below
-import { NestFactory } from "@nestjs/core";
-import { AppModule } from "./app.module";
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -39,10 +39,10 @@ bootstrap();
 `;
 
 const getAppModuleSnippet = () => `
-import { Module } from "@nestjs/common";
-import { SentryModule } from "@sentry/nestjs/setup";
-import { AppController } from "./app.controller";
-import { AppService } from "./app.service";
+import { Module } from '@nestjs/common';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
