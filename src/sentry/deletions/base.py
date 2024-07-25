@@ -75,7 +75,7 @@ class BaseDeletionTask:
             self.actor_id,
         )
 
-    def chunk(self):
+    def chunk(self) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if the entity has been removed.
@@ -115,7 +115,7 @@ class BaseDeletionTask:
             rel for rel in child_relations if rel.params.get("model") not in self.skip_models
         )
 
-    def delete_bulk(self, instance_list):
+    def delete_bulk(self, instance_list) -> bool:
         """
         Delete a batch of objects bound to this task.
 
@@ -190,7 +190,7 @@ class ModelDeletionTask(BaseDeletionTask):
             rel(obj_list) for rel in default_manager.bulk_dependencies[self.model]
         ]
 
-    def chunk(self, num_shards=None, shard_id=None):
+    def chunk(self) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if all matching entities have been removed.
@@ -203,11 +203,6 @@ class ModelDeletionTask(BaseDeletionTask):
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
 
-            if num_shards:
-                assert num_shards > 1
-                assert shard_id < num_shards
-                queryset = queryset.extra(where=[f"id %% {num_shards} = {shard_id}"])
-
             queryset = list(queryset[:query_limit])
             # If there are no more rows we are all done.
             if not queryset:
@@ -217,11 +212,6 @@ class ModelDeletionTask(BaseDeletionTask):
             remaining = remaining - query_limit
         # We have more work to do as we didn't run out of rows to delete.
         return True
-
-    def delete_instance_bulk(self, instance_list):
-        # slow, but ensures Django cascades are handled
-        for instance in instance_list:
-            self.delete_instance(instance)
 
     def delete_instance(self, instance):
         instance_id = instance.id
@@ -268,10 +258,10 @@ class BulkModelDeletionTask(ModelDeletionTask):
 
         self.partition_key = partition_key
 
-    def chunk(self):
-        return self.delete_instance_bulk()
+    def chunk(self) -> bool:
+        return self._delete_instance_bulk()
 
-    def delete_instance_bulk(self):
+    def _delete_instance_bulk(self) -> bool:
         try:
             return bulk_delete_objects(
                 model=self.model,
