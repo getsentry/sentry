@@ -198,10 +198,8 @@ class IntegrationProviderSerializer(Serializer):
     def serialize(
         self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, Any]:
-        metadata: Any
-
         org_slug = kwargs.pop("organization").slug
-        metadata = obj.metadata
+        metadata: Any = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
         return {
