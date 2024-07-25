@@ -21,7 +21,7 @@ def never_cache(view_func: EndpointFunc) -> EndpointFunc:
 
 def build_linking_url(endpoint: str, **kwargs: Any) -> str:
     """TODO(mgaeta): Remove cast once sentry/utils/http.py is typed."""
-    url: str = absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
+    url: str = absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
     return url
 
 
