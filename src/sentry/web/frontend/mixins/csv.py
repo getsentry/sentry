@@ -11,6 +11,8 @@ class Echo:
 
 
 class CsvMixin:
+    """deprecated: will be removed! use sentry.web.csv.CsvResponder instead!"""
+
     def get_header(self, **kwargs):
         return ()
 
