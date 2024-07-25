@@ -28,26 +28,39 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet('esm')}
 
 // All other imports below
-${getSentryImportSnippet('nestjs', 'esm')}
-import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  const { httpAdapter } = app.get(HttpAdapterHost);
-  Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
-
   await app.listen(3000);
 }
 
 bootstrap();
 `;
 
+const getAppModuleSnippet = () => `
+import { Module } from "@nestjs/common";
+import { SentryModule } from "@sentry/nestjs/setup";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+
+@Module({
+  imports: [
+    SentryModule.forRoot(),
+    // ...other modules
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+`
+
 const getVerifySnippet = () => `
-app.use(async function () {
+@Get("/debug-sentry")
+getError() {
   throw new Error("My first Sentry error!");
-});
+}
 `;
 
 const onboarding: OnboardingConfig = {
@@ -84,11 +97,10 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Make sure to import [code1:instrument.js/mjs] at the top of your [code2:main.ts/js] file. Set up the error handler by passing the [code3:BaseExceptionFilter].',
+            'Make sure to import [code1:instrument.js/mjs] at the top of your [code2:main.ts/js] file.',
             {
               code1: <code />,
               code2: <code />,
-              code3: <code />,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
               ),
@@ -101,6 +113,27 @@ const onboarding: OnboardingConfig = {
               language: 'javascript',
               filename: 'main.(js|ts)',
               code: getSdkSetupSnippet(),
+            },
+          ],
+        },
+        {
+          description: tct(
+            'Then you can add the [code1:SentryModule] as a root module. The [code2:SentryModule] needs to be registered before any other module that should be instrumented by Sentry.',
+            {
+              code1: <code />,
+              code2: <code />,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
+              ),
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'app.module.(js|ts)',
+              code: getAppModuleSnippet(),
             },
           ],
         },
