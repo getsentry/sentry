@@ -1,17 +1,11 @@
-import pytest
-
 from sentry.models.dashboard_widget import DashboardWidget
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-@pytest.fixture
-def organization():
-    return Factories.create_organization()
-
-
 @django_db_all
-def test_get_for_metrics(organization):
+def test_get_for_metrics():
+    organization = Factories.create_organization()
     dashboard = Factories.create_dashboard(organization=organization)
     dashboard_widget = Factories.create_dashboard_widget(dashboard=dashboard, order=0)
     Factories.create_dashboard_widget_query(
