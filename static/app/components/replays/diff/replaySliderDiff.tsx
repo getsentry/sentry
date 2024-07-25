@@ -5,6 +5,8 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import ReplayIFrameRoot from 'sentry/components/replays/player/replayIFrameRoot';
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
@@ -25,21 +27,35 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
 
   const width = toPixels(viewDimensions.width);
   return (
-    <WithPadding>
-      <Positioned ref={positionedRef}>
-        {viewDimensions.width ? (
-          <DiffSides
-            leftOffsetMs={leftOffsetMs}
-            replay={replay}
-            rightOffsetMs={rightOffsetMs}
-            viewDimensions={viewDimensions}
-            width={width}
-          />
-        ) : (
-          <div />
-        )}
-      </Positioned>
-    </WithPadding>
+    <Fragment>
+      <Header>
+        <Tooltip title={t('How the initial server-rendered page looked.')}>
+          <div style={{color: 'red'}}>{t('Before')}</div>
+        </Tooltip>
+        <Tooltip
+          title={t(
+            'How React re-rendered the page on your browser, after detecting a hydration error.'
+          )}
+        >
+          <div style={{color: 'green'}}>{t('After')}</div>
+        </Tooltip>
+      </Header>
+      <WithPadding>
+        <Positioned ref={positionedRef}>
+          {viewDimensions.width ? (
+            <DiffSides
+              leftOffsetMs={leftOffsetMs}
+              replay={replay}
+              rightOffsetMs={rightOffsetMs}
+              viewDimensions={viewDimensions}
+              width={width}
+            />
+          ) : (
+            <div />
+          )}
+        </Positioned>
+      </WithPadding>
+    </Fragment>
   );
 }
 
@@ -182,4 +198,10 @@ const Divider = styled('div')`
     bottom: 0;
     transform: translate(calc(var(--handle-size) / -2 + var(--line-width) / 2), 100%);
   }
+`;
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
