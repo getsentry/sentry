@@ -153,7 +153,17 @@ class TestOrganizationMetricsUsage(APITestCase):
             "non_existent_span_attribute",
         )
 
-    def test_permission(self):
+    def test_access_to_a_span_attribute_from_different_project(self):
+        new_project = self.create_project(organization=self.organization)
+        response = self.get_response(
+            self.organization.slug,
+            new_project.slug,
+            self.span_attribute_extraction_rule.span_attribute,
+        )
+
+        assert response.status_code == 404  # attribute doesn't exist in the project
+
+    def test_permission_as_unauthenticated_user(self):
         new_organization = self.create_organization()
         new_project = self.create_project(organization=new_organization)
         new_user = self.create_user()
