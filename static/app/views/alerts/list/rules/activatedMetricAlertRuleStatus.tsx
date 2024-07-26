@@ -19,7 +19,7 @@ interface Props {
   rule: MetricAlert;
 }
 
-export default function AlertRuleStatus({rule}: Props): ReactNode {
+export default function ActivatedMetricAlertRuleStatus({rule}: Props): ReactNode {
   if (rule.snooze) {
     return (
       <IssueAlertStatusWrapper>
