@@ -343,7 +343,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
     if (props.trace) {
       const trace = TraceTree.FromTrace(props.trace, props.replayRecord);
-      if (trace.list.length < 3) {
+      // Root frame + 2 nodes
+      if (trace.list.length < 4) {
         for (const c of trace.list) {
           if (c.canFetch) {
             trace.zoomIn(c, true, {api, organization}).then(rerender);
