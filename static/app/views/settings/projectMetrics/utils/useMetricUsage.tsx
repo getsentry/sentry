@@ -20,7 +20,7 @@ export function useMetricUsage(
     {
       staleTime: 0,
       retry: false,
-      enabled: !!projectId,
+      enabled: !!projectId && !!spanAttribute,
     }
   );
 }
