@@ -584,7 +584,9 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.SPAN_MODULE]: {
-    desc: t('The group ID of the span'),
+    desc: t(
+      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
