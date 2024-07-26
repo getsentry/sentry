@@ -2,6 +2,7 @@ import logging
 import math
 import uuid
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
@@ -221,19 +222,30 @@ def get_group_to_groupevent(
 ) -> dict[Group, GroupEvent]:
     groups = Group.objects.filter(id__in=group_ids)
     group_id_to_group = {group.id: group for group in groups}
-    event_ids = {
-        instance_data.get("event_id")
-        for instance_data in parsed_rulegroup_to_event_data.values()
-        if instance_data.get("event_id")
-    }
-    occurrence_ids = [
-        instance_data.get("occurrence_id")
-        for instance_data in parsed_rulegroup_to_event_data.values()
-        if instance_data.get("occurrence_id")
+
+    # Use a list comprehension for event_ids
+    event_ids: list[str] = [
+        event_id
+        for event_id in (
+            instance_data.get("event_id")
+            for instance_data in parsed_rulegroup_to_event_data.values()
+        )
+        if event_id is not None
     ]
 
-    bulk_event_id_to_events = bulk_fetch_events(list(event_ids), project_id)
+    # Use a list comprehension for occurrence_ids
+    occurrence_ids: Sequence[str] = [
+        occurrence_id
+        for occurrence_id in (
+            instance_data.get("occurrence_id")
+            for instance_data in parsed_rulegroup_to_event_data.values()
+        )
+        if occurrence_id is not None
+    ]
+
+    bulk_event_id_to_events = bulk_fetch_events(event_ids, project_id)
     bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
+
     bulk_occurrence_id_to_occurrence = {
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
     }
@@ -247,32 +259,39 @@ def get_group_to_groupevent(
     )
 
 
+COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
+
+
 def get_condition_group_results(
     condition_groups: dict[UniqueConditionQuery, DataAndGroups], project: Project
 ) -> dict[UniqueConditionQuery, dict[int, int]] | None:
     condition_group_results = {}
     current_time = datetime.now(tz=timezone.utc)
+    project_id = project.id
+
     for unique_condition, data_and_groups in condition_groups.items():
-        condition_cls = rules.get(unique_condition.cls_id)
+        cls_id = unique_condition.cls_id
+        condition_cls = rules.get(cls_id)
         if condition_cls is None:
             logger.warning(
                 "Unregistered condition %r",
-                unique_condition.cls_id,
-                extra={"project_id": project.id},
+                cls_id,
+                extra={"project_id": project_id},
             )
             continue
 
         condition_inst = condition_cls(project=project, data=data_and_groups.data)  # type: ignore[arg-type]
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
-            logger.warning(
-                "Unregistered condition %r", condition_cls.id, extra={"project_id": project.id}
-            )
+            logger.warning("Unregistered condition %r", cls_id, extra={"project_id": project_id})
             continue
 
         _, duration = condition_inst.intervals[unique_condition.interval]
-        comparison_interval = COMPARISON_INTERVALS.get(
-            unique_condition.comparison_interval, (None, None)
-        )[1]
+
+        comparison_interval: timedelta | None = None
+        if unique_condition.comparison_interval is not None:
+            comparison_interval = COMPARISON_INTERVALS_VALUES.get(
+                unique_condition.comparison_interval
+            )
 
         result = safe_execute(
             condition_inst.get_rate_bulk,
@@ -283,6 +302,7 @@ def get_condition_group_results(
             comparison_interval=comparison_interval,
         )
         condition_group_results[unique_condition] = result or {}
+
     return condition_group_results
 
 
