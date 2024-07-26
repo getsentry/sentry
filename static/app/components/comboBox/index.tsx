@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
 import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combobox';
+import type {Key} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -278,7 +279,7 @@ function ControlledComboBox<Value extends string>({
   valueRef.current = value;
 
   const handleChange = useCallback(
-    (key: string | number) => {
+    (key: Key | null) => {
       // Prevent calling onChange on closing the menu without selecting a different value
       if (getEscapedKey(valueRef.current) === key) {
         return;
