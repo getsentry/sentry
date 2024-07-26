@@ -5,9 +5,6 @@ import {space} from 'sentry/styles/space';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const indexToCharUppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const indexToCharLowercase = 'abcdefghijklmnopqrstuvwxyz';
-
 const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
 
 export const getQuerySymbol = (index: number, uppercaseChar?: boolean) => {
@@ -18,14 +15,6 @@ export const getQuerySymbol = (index: number, uppercaseChar?: boolean) => {
     i = Math.floor(i / indexToChar.length) - 1;
   } while (i >= 0);
   return uppercaseChar ? result.toUpperCase() : result;
-};
-  let result = '';
-  let i = index;
-  do {
-    result = indexToChar[i % indexToChar.length] + result;
-    i = Math.floor(i / indexToChar.length) - 1;
-  } while (i >= 0);
-  return result;
 };
 
 export const DeprecatedSymbol = styled('span')<{
