@@ -56,7 +56,7 @@ export interface BaseTabProps {
    */
   borderStyle?: 'solid' | 'dashed';
   to?: string;
-  variant?: 'flat' | 'filled' | 'issue-details';
+  variant?: 'flat' | 'filled' | 'floating';
 }
 
 export const BaseTab = forwardRef(
@@ -106,7 +106,7 @@ export const BaseTab = forwardRef(
       );
     }
 
-    if (variant === 'issue-details') {
+    if (variant === 'floating') {
       return (
         <IssueDetailsTabWrap
           {...tabProps}

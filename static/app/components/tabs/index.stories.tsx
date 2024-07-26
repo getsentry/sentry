@@ -210,10 +210,10 @@ export default storyBook(Tabs, story => {
         </Tabs>
       </SizingWindow>
       <br />
-      <p>You can also use the "issue-details" variant, which is used below</p>
+      <p>You can also use the "floating" variant, which is used below</p>
       <SizingWindow>
         <Tabs>
-          <TabList variant="issue-details" hideBorder>
+          <TabList variant="floating" hideBorder>
             {TABS.map(tab => (
               <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
             ))}
