@@ -55,7 +55,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         )
         return _patterns
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         if not self.get_option("default_project", project):
             return False
         return True
@@ -263,10 +263,10 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return {"title": issue["fields"]["summary"]}
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         instance = self.get_option("instance_url", group.project)
         return f"{instance}/browse/{issue_id}"
 

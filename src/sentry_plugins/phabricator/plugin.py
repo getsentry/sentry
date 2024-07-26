@@ -185,7 +185,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 raise PluginError(f"Unhandled error from Phabricator: {e}")
         return config
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         if not self.get_option("host", project):
             return False
         if self.get_option("token", project):
@@ -197,10 +197,10 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
     def get_new_issue_title(self, **kwargs):
         return "Create Maniphest Task"
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return "T%s" % issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         host = self.get_option("host", group.project)
         return urljoin(host, "T%s" % issue_id)
 

@@ -8,11 +8,11 @@ from django.core import mail
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase

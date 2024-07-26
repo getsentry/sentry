@@ -43,7 +43,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
         ),
     ]
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("api_key", project))
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
@@ -84,7 +84,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
 
         return "\n\n".join((f"{k}\n-----------\n\n{v}" for k, v in interface_list))
 
-    def notify_users(self, group, event, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         if not self.is_configured(group.project):
             return
 

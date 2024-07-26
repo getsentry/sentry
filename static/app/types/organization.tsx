@@ -5,6 +5,7 @@ import type {
   DiscoverDatasets,
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -293,6 +294,7 @@ export type EventsStats = {
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;
+    discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
   order?: number;

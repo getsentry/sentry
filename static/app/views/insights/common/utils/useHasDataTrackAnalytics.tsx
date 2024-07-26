@@ -7,9 +7,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-export function useHasDataTrackAnalytics(module: ModuleName, analyticEvent: string) {
+export function useHasDataTrackAnalytics(module: ModuleName, analyticEvent?: string) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+
   const hasEverSentData = useHasFirstSpan(module);
 
   Sentry.setTag(`insights.${module}.hasEverSentData`, hasEverSentData);
@@ -17,9 +18,11 @@ export function useHasDataTrackAnalytics(module: ModuleName, analyticEvent: stri
   const projects = JSON.stringify(pageFilters.selection.projects);
 
   useEffect(() => {
-    trackAnalytics(analyticEvent, {
-      organization,
-      has_ever_sent_data: hasEverSentData,
-    });
-  }, [organization, hasEverSentData, analyticEvent, projects]);
+    if (pageFilters.isReady && analyticEvent) {
+      trackAnalytics(analyticEvent, {
+        organization,
+        has_ever_sent_data: hasEverSentData,
+      });
+    }
+  }, [organization, hasEverSentData, analyticEvent, projects, pageFilters.isReady]);
 }

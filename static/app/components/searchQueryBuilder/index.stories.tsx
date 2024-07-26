@@ -436,6 +436,18 @@ export default storyBook(SearchQueryBuilder, story => {
     );
   });
 
+  story('Disabled', () => {
+    return (
+      <SearchQueryBuilder
+        initialQuery="is:unresolved assigned:me"
+        filterKeys={FILTER_KEYS}
+        getTagValues={getTagValues}
+        searchSource="storybook"
+        disabled
+      />
+    );
+  });
+
   story('Migrating from SmartSearchBar', () => {
     return (
       <Fragment>
@@ -457,6 +469,9 @@ export default storyBook(SearchQueryBuilder, story => {
               <code>highlightUnsupportedTags</code> {'->'}{' '}
               <code>disallowUnsupportedFilters</code>
             </li>
+            <li>
+              <code>savedSearchType</code> {'->'} <code>recentSearches</code>
+            </li>
           </ul>
         </p>
         <p>
@@ -474,6 +489,10 @@ export default storyBook(SearchQueryBuilder, story => {
               <code>projectIds</code> was used to add <code>is_multi_project</code> to
               some of the analytics events. If your use case requires this, you can record
               these events manually with the <code>onSearch</code> callback.
+            </li>
+            <li>
+              <code>hasRecentSearches</code> is no longer required. Saved searches will be
+              saved and displayed when <code>recentSearches</code> is provided.
             </li>
           </ul>
         </p>

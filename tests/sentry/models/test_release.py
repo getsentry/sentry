@@ -7,6 +7,7 @@ from django.utils import timezone
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.environment import Environment
@@ -15,7 +16,6 @@ from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment

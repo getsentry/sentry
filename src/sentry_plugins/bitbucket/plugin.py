@@ -72,7 +72,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
     def get_url_module(self):
         return "sentry_plugins.bitbucket.urls"
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("repo", project))
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
@@ -159,10 +159,10 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
 
         return {"title": issue["title"]}
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return "Bitbucket-%s" % issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         repo = self.get_option("repo", group.project)
         return f"https://bitbucket.org/{repo}/issue/{issue_id}/"
 

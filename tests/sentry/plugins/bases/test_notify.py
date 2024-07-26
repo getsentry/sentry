@@ -15,7 +15,7 @@ pytestmark = [requires_snuba]
 
 
 class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):
-    def is_configured(self, project):
+    def is_configured(self, project) -> bool:
         return True
 
 

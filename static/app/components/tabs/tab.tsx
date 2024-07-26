@@ -5,7 +5,12 @@ import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
 import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {
+  DOMAttributes,
+  FocusableElement,
+  Node,
+  Orientation,
+} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -23,6 +28,7 @@ interface TabProps extends AriaTabProps {
    */
   overflowing: boolean;
   state: TabListState<any>;
+  variant?: BaseTabProps['variant'];
 }
 
 /**
@@ -37,64 +43,165 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   }
 }
 
+export interface BaseTabProps {
+  children: React.ReactNode;
+  hidden: boolean;
+  isSelected: boolean;
+  orientation: Orientation;
+  overflowing: boolean;
+  tabProps: DOMAttributes<FocusableElement>;
+  /**
+   * This controls the border style of the tab. Only active when
+   * `variant=filled` since other variants do not have a border
+   */
+  borderStyle?: 'solid' | 'dashed';
+  to?: string;
+  variant?: 'flat' | 'filled';
+}
+
+export const BaseTab = forwardRef(
+  (props: BaseTabProps, forwardedRef: React.ForwardedRef<HTMLLIElement>) => {
+    const {
+      to,
+      orientation,
+      overflowing,
+      tabProps,
+      hidden,
+      isSelected,
+      variant = 'flat',
+      borderStyle = 'solid',
+    } = props;
+
+    const ref = useObjectRef(forwardedRef);
+    const InnerWrap = useCallback(
+      ({children}) =>
+        to ? (
+          <TabLink
+            to={to}
+            onMouseDown={handleLinkClick}
+            onPointerDown={handleLinkClick}
+            orientation={orientation}
+            tabIndex={-1}
+          >
+            {children}
+          </TabLink>
+        ) : (
+          <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
+        ),
+      [to, orientation]
+    );
+    if (variant === 'filled') {
+      return (
+        <FilledTabWrap
+          {...tabProps}
+          hidden={hidden}
+          overflowing={overflowing}
+          borderStyle={borderStyle}
+          ref={ref}
+        >
+          <FilledStyledInteractionStateLayer hasSelectedBackground={false} />
+          <FilledFocusLayer />
+          {props.children}
+        </FilledTabWrap>
+      );
+    }
+
+    return (
+      <TabWrap
+        {...tabProps}
+        hidden={hidden}
+        selected={isSelected}
+        overflowing={overflowing}
+        ref={ref}
+      >
+        <InnerWrap>
+          <StyledInteractionStateLayer
+            orientation={orientation}
+            higherOpacity={isSelected}
+          />
+          <FocusLayer orientation={orientation} />
+          {props.children}
+          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        </InnerWrap>
+      </TabWrap>
+    );
+  }
+);
+
 /**
  * Renders a single tab item. This should not be imported directly into any
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-function BaseTab(
-  {item, state, orientation, overflowing}: TabProps,
-  forwardedRef: React.ForwardedRef<HTMLLIElement>
-) {
-  const ref = useObjectRef(forwardedRef);
+export const Tab = forwardRef(
+  (
+    {item, state, orientation, overflowing, variant}: TabProps,
+    forwardedRef: React.ForwardedRef<HTMLLIElement>
+  ) => {
+    const ref = useObjectRef(forwardedRef);
 
-  const {
-    key,
-    rendered,
-    props: {to, hidden},
-  } = item;
-  const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
+    const {
+      key,
+      rendered,
+      props: {to, hidden},
+    } = item;
+    const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
 
-  const InnerWrap = useCallback(
-    ({children}) =>
-      to ? (
-        <TabLink
-          to={to}
-          onMouseDown={handleLinkClick}
-          onPointerDown={handleLinkClick}
-          orientation={orientation}
-          tabIndex={-1}
-        >
-          {children}
-        </TabLink>
-      ) : (
-        <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
-      ),
-    [to, orientation]
-  );
-
-  return (
-    <TabWrap
-      {...tabProps}
-      hidden={hidden}
-      selected={isSelected}
-      overflowing={overflowing}
-      ref={ref}
-    >
-      <InnerWrap>
-        <StyledInteractionStateLayer
-          orientation={orientation}
-          higherOpacity={isSelected}
-        />
-        <FocusLayer orientation={orientation} />
+    return (
+      <BaseTab
+        tabProps={tabProps}
+        isSelected={isSelected}
+        to={to}
+        hidden={hidden}
+        orientation={orientation}
+        overflowing={overflowing}
+        ref={ref}
+        variant={variant}
+      >
         {rendered}
-        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
-      </InnerWrap>
-    </TabWrap>
-  );
-}
+      </BaseTab>
+    );
+  }
+);
 
-export const Tab = forwardRef(BaseTab);
+const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+  borderStyle: 'dashed' | 'solid';
+  overflowing: boolean;
+}>`
+  &[aria-selected='true'] {
+    ${p =>
+      `
+        border-top: 1px ${p.borderStyle} ${p.theme.border};
+        border-left: 1px ${p.borderStyle} ${p.theme.border};
+        border-right: 1px ${p.borderStyle} ${p.theme.border};
+        background-color: ${p.theme.background};
+        font-weight: ${p.theme.fontWeightBold};
+    `}
+  }
+
+  border-radius: 6px 6px 1px 1px;
+
+  &[aria-selected='false'] {
+    border-top: 1px solid transparent;
+  }
+
+  padding: ${space(0.5)} ${space(1)};
+
+  transform: translateY(1px);
+
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+  }
+
+  ${p =>
+    p.overflowing &&
+    `
+      opacity: 0;
+      pointer-events: none;
+    `}
+`;
 
 const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
@@ -182,12 +289,42 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
   bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
 `;
 
+const FilledStyledInteractionStateLayer = styled(InteractionStateLayer)`
+  position: absolute;
+  width: auto;
+  height: auto;
+  transform: none;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+`;
+
 const FocusLayer = styled('div')<{orientation: Orientation}>`
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
   bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
+
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+  transition: box-shadow 0.1s ease-out;
+
+  li:focus-visible & {
+    box-shadow:
+      ${p => p.theme.focusBorder} 0 0 0 1px,
+      inset ${p => p.theme.focusBorder} 0 0 0 1px;
+  }
+`;
+
+const FilledFocusLayer = styled('div')`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 
   pointer-events: none;
   border-radius: inherit;

@@ -53,7 +53,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("workspace", project))
 
     def has_workspace_access(self, workspace, choices):
@@ -171,10 +171,10 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
 
         return {"title": issue["name"]}
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return "Asana Issue"
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         return "https://app.asana.com/0/0/%s" % issue_id
 
     def validate_config(self, project, config, actor=None):

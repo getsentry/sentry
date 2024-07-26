@@ -230,7 +230,7 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
         onBlur={props.onBlur}
         onChange={onChange}
         searchSource={props.searchSource ?? 'issues'}
-        savedSearchType={SavedSearchType.ISSUE}
+        recentSearches={SavedSearchType.ISSUE}
         disallowLogicalOperators
         placeholder={props.placeholder}
       />
