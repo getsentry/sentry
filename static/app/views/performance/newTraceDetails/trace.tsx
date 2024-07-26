@@ -217,6 +217,7 @@ export function Trace({
     const onTraceViewChange: TraceEvents['set trace view'] = () => {
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
+      manager.syncResetZoomButton();
       manager.draw();
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {

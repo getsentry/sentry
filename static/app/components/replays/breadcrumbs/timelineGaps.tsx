@@ -1,88 +1,99 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
-import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import toPercent from 'sentry/utils/number/toPercent';
 import {
+  getFrameOpOrCategory,
   isBackgroundFrame,
-  isForegroundFrame,
+  isErrorFrame,
   type ReplayFrame,
 } from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   durationMs: number;
   frames: ReplayFrame[];
-  totalFrames: number;
-  width: number;
+  startTimestampMs: number;
 }
 
 // create gaps in the timeline by finding all columns between a background frame and foreground frame
 // or background frame to end of replay
-export default function TimelineGaps({durationMs, frames, totalFrames, width}: Props) {
-  const markerWidth = totalFrames < 200 ? 4 : totalFrames < 500 ? 6 : 10;
-  const totalColumns = Math.floor(width / markerWidth);
-  const framesByCol = getFramesByColumn(durationMs, frames, totalColumns);
+export default function TimelineGaps({durationMs, startTimestampMs, frames}: Props) {
+  const organization = useOrganization();
+  const ranges: Array<{left: string; width: string}> = [];
 
-  // returns all numbers in the range, exclusive of start and inclusive of stop
-  const range = (start, stop) =>
-    Array.from({length: stop - start}, (_, i) => start + i + 1);
+  let start = -1;
+  let end = -1;
 
-  const gapCol: number[] = [];
-
-  const gapFrames = framesByCol.entries();
-  let currFrame = gapFrames.next();
-
-  while (!currFrame.done) {
-    let start = -1;
-    let end = -1;
-
-    // iterate through all frames until we have a start (background frame) and end (foreground frame) of gap or no more frames
-    while ((start === -1 || end === -1) && !currFrame.done) {
-      const [column, colFrame] = currFrame.value;
-      for (const frame of colFrame) {
-        // only considered start of gap if background frame hasn't been found yet
-        if (start === -1 && isBackgroundFrame(frame)) {
-          start = column;
-        }
-        // gap only ends if background frame has been found
-        if (start !== -1 && isForegroundFrame(frame)) {
-          end = column;
-        }
-      }
-      currFrame = gapFrames.next();
+  for (const currFrame of frames) {
+    // add metrics for frame coming after a background frame to see how often we have bad data
+    if (start !== -1) {
+      trackAnalytics('replay.frame-after-background', {
+        organization,
+        frame: getFrameOpOrCategory(currFrame),
+      });
     }
 
-    // create gap if we found have start (background frame) and end (foreground frame)
+    // only considered start of gap if background frame hasn't been found yet
+    if (start === -1 && isBackgroundFrame(currFrame)) {
+      start = currFrame.timestampMs - startTimestampMs;
+    }
+
+    // gap only ends if a frame that's not a background frame or error frame has been found
+    if (start !== -1 && !isBackgroundFrame(currFrame) && !isErrorFrame(currFrame)) {
+      end = currFrame.timestampMs - startTimestampMs;
+    }
+
+    // create gap if we found have start (background frame) and end (another frame)
     if (start !== -1 && end !== -1) {
-      gapCol.push(...range(start, end));
-    }
-    // if we have start but no end, that means we have a gap until end of replay
-    if (start !== -1 && end === -1) {
-      gapCol.push(...range(start, totalColumns));
+      ranges.push({
+        left: toPercent(start / durationMs),
+        width: toPercent((end - start) / durationMs),
+      });
+      start = -1;
+      end = -1;
     }
   }
 
+  // create gap if we still have start (background frame) until end of replay
+  if (start !== -1) {
+    ranges.push({
+      left: toPercent(start / durationMs),
+      width: toPercent((durationMs - start) / durationMs),
+    });
+  }
+
+  // TODO: Fix tooltip position to follow mouse (it currently goes off the timeline when zoomed too much)
   return (
-    <Timeline.Columns totalColumns={totalColumns} remainder={0}>
-      {gapCol.map(column => (
-        <Column key={column} column={column}>
-          <Tooltip title={t('App is suspended')} isHoverable containerDisplayMode="grid">
-            <Gap style={{width: `${markerWidth}px`}} />
-          </Tooltip>
-        </Column>
-      ))}
-    </Timeline.Columns>
+    <Fragment>
+      {ranges.map(rangeCss => {
+        return (
+          <Range key={`${rangeCss.left}-${rangeCss.width}`} style={rangeCss}>
+            <Tooltip
+              title={t('App is suspended')}
+              isHoverable
+              containerDisplayMode="block"
+              position="top"
+            >
+              <Gap />
+            </Tooltip>
+          </Range>
+        );
+      })}
+    </Fragment>
   );
 }
 
-const Column = styled(Timeline.Col)<{column: number}>`
-  grid-column: ${p => p.column};
-  line-height: 14px;
+const Range = styled('div')`
+  position: absolute;
 `;
 
-const Gap = styled('span')`
+const Gap = styled('div')`
   background: ${p => p.theme.gray400};
   opacity: 16%;
   height: 20px;
+  width: 100%;
 `;

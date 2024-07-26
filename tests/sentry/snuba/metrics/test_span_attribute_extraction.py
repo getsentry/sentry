@@ -19,7 +19,7 @@ def test_convert_to_spec():
 
     expected_spec = {
         "category": "span",
-        "mri": "d:custom/span_attribute_1@millisecond",
+        "mri": "d:custom/span_attribute_1@none",
         "field": "span.duration",
         "tags": [
             {"key": "region", "field": "span.data.region"},
@@ -227,6 +227,29 @@ def test_numeric_conditions():
             },
         ],
     }
+
+
+def test_greater_than_conditions():
+    rule = MetricsExtractionRule(
+        span_attribute="foobar",
+        type="d",
+        unit="none",
+        tags=set(),
+        condition="foo:>123 and bar:<=456",
+        id=1,
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert metric_spec["condition"] == {
+        "op": "and",
+        "inner": [
+            {"op": "gt", "name": "span.data.foo", "value": 123},
+            {"op": "lte", "name": "span.data.bar", "value": 456},
+        ],
+    }
+    tags = [tag["key"] for tag in metric_spec["tags"]]
+    assert "foo" not in tags
 
 
 def test_mixed_conditions():

@@ -42,6 +42,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -57,6 +58,19 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
@@ -66,7 +80,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
@@ -82,18 +95,6 @@ from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.integration_feature import (
-    Feature,
-    IntegrationFeature,
-    IntegrationTypes,
-)
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
@@ -151,11 +152,13 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
 )
 from sentry.users.services.user import RpcUser
@@ -1548,6 +1551,9 @@ class Factories:
         monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
+        sensitivity=None,
+        seasonality=None,
+        detection_type=AlertRuleDetectionType.STATIC,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1577,6 +1583,9 @@ class Factories:
             monitor_type=monitor_type,
             activation_condition=activation_condition,
             description=description,
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            detection_type=detection_type,
         )
 
         if date_added is not None:
@@ -1755,7 +1764,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity_provider(
         integration: Integration | None = None,
-        config: Mapping[str, Any] | None = None,
+        config: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> IdentityProvider:
         if integration is not None:
@@ -1943,9 +1952,24 @@ class Factories:
         project: Project,
         uptime_subscription: UptimeSubscription,
         mode: ProjectUptimeSubscriptionMode,
+        name: str,
+        owner: Actor | None,
+        uptime_status: UptimeStatus,
     ):
+        owner_team_id = None
+        owner_user_id = None
+        if owner:
+            if owner.is_team:
+                owner_team_id = owner.id
+            elif owner.is_user:
+                owner_user_id = owner.id
+
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
             mode=mode,
+            name=name,
+            owner_team_id=owner_team_id,
+            owner_user_id=owner_user_id,
+            uptime_status=uptime_status,
         )

@@ -6,9 +6,9 @@ from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification

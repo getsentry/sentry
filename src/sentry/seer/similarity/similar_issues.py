@@ -3,7 +3,12 @@ import logging
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry.conf.server import SEER_MAX_GROUPING_DISTANCE, SEER_SIMILAR_ISSUES_URL
+from sentry import options
+from sentry.conf.server import (
+    SEER_MAX_GROUPING_DISTANCE,
+    SEER_SIMILAR_ISSUES_URL,
+    SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
+)
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -13,7 +18,9 @@ from sentry.seer.similarity.types import (
     SimilarGroupNotFoundError,
     SimilarIssuesEmbeddingsRequest,
 )
+from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.json import JSONDecodeError, apply_key_filter
 
 logger = logging.getLogger(__name__)
@@ -94,6 +101,11 @@ def get_similarity_data_from_seer(
         )
         return []
 
+    circuit_breaker = CircuitBreaker(
+        SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
+        options.get("seer.similarity.circuit-breaker-config"),
+    )
+
     try:
         response = make_signed_seer_api_request(
             seer_grouping_connection_pool,
@@ -110,6 +122,7 @@ def get_similarity_data_from_seer(
             sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
+        circuit_breaker.record_error()
         return []
 
     metric_tags["response_status"] = response.status
@@ -135,6 +148,9 @@ def get_similarity_data_from_seer(
                 "error": "Redirect" if redirect else "RequestError",
             },
         )
+
+        if response.status >= 500:
+            circuit_breaker.record_error()
 
         return []
 
@@ -200,19 +216,19 @@ def get_similarity_data_from_seer(
                 },
             )
         except SimilarGroupNotFoundError:
-            # This will similarly mark the entire request as errored even if it's only one group
-            # that we can't find, but again, we're okay with that because a group being missing
-            # implies there's something wrong with our deletion logic, which is a problem to which
-            # we want to pay attention.
-            #
-            # TODO: The deletion logic (tell Seer to delete hashes as soon as they're deleted on the
-            # Sentry side) comes with an inherent slight delay - the request to Seer happens async, and
-            # requests between services aren't instantaneous. It's therefore possible for us to land
-            # in a race condition, where Seer recommends a hash it doesn't know it's about to be
-            # asked to delete, and we come up empty because on the Sentry side the hash has already
-            # been deleted.
             parent_hash = raw_similar_issue_data.get("parent_hash")
 
+            # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
+            # which doesn't exist
+            delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
+
+            # As with the `IncompleteSeerDataError` above, this will mark the entire request as
+            # errored even if it's only one group that we can't find. The extent to which that's
+            # inaccurate will be quite small, though, as the vast majority of calls to this function
+            # come from ingest (where we're only requesting one matching group, making "one's
+            # missing" the same thing as "they're all missing"). We should also almost never land
+            # here in any case, since deleting the group on the Sentry side should already have
+            # triggered a request to Seer to delete the corresponding hashes.
             metric_tags.update({"outcome": "error", "error": "SimilarGroupNotFoundError"})
             logger.warning(
                 "get_similarity_data_from_seer.parent_group_not_found",

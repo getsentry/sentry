@@ -442,44 +442,53 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     self.query_warnings["columns"][
                         field
                     ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+
+        widget_type = data.get("widget_type")
+        if widget_type and widget_type in {
+            DashboardWidgetTypes.ERROR_EVENTS,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+        }:
+            data["discover_widget_split"] = widget_type
+
         return data
 
 
 class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
-    id = serializers.CharField(required=False, help_text="The unique id of the Dashboard.")
+    id = serializers.CharField(required=False, help_text="A dashboard's unique id.")
     title = serializers.CharField(
-        required=False, max_length=255, help_text="The user defined title for this Dashboard."
+        required=False, max_length=255, help_text="The user-defined dashboard title."
     )
     widgets = DashboardWidgetSerializer(
-        many=True, required=False, help_text="A json list of widgets saved in this Dashboard."
+        many=True, required=False, help_text="A json list of widgets saved in this dashboard."
     )
     projects = serializers.ListField(
         child=serializers.IntegerField(),
         required=False,
         default=[],
-        help_text="The saved projects filter for this Dashboard.",
+        help_text="The saved projects filter for this dashboard.",
     )
     environment = serializers.ListField(
         child=serializers.CharField(),
         required=False,
         allow_null=True,
-        help_text="The saved environment filter for this Dashboard.",
+        help_text="The saved environment filter for this dashboard.",
     )
     period = serializers.CharField(
-        required=False, allow_null=True, help_text="The saved time range period for this Dashboard."
+        required=False, allow_null=True, help_text="The saved time range period for this dashboard."
     )
     start = serializers.DateTimeField(
-        required=False, allow_null=True, help_text="The saved start time for this Dashboard."
+        required=False, allow_null=True, help_text="The saved start time for this dashboard."
     )
     end = serializers.DateTimeField(
-        required=False, allow_null=True, help_text="The saved end time for this Dashboard."
+        required=False, allow_null=True, help_text="The saved end time for this dashboard."
     )
     filters = serializers.DictField(
-        required=False, help_text="The saved filters for this Dashboard."
+        required=False, help_text="The saved filters for this dashboard."
     )
     utc = serializers.BooleanField(
-        required=False, help_text="Setting for the saved time range of the Dashboard to be in UTC."
+        required=False,
+        help_text="Setting that lets you display saved time range for this dashboard in UTC.",
     )
     validate_id = validate_id
 
@@ -537,7 +546,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         bad things will happen
         """
         self.instance = Dashboard.objects.create(
-            organization=self.context.get("organization"),
+            organization=self.context["organization"],
             title=validated_data["title"],
             created_by_id=self.context["request"].user.id,
         )
@@ -744,7 +753,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
-        required=True, max_length=255, help_text="The user defined title for this Dashboard."
+        required=True, max_length=255, help_text="The user defined title for this dashboard."
     )
 
 

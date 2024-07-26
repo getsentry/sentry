@@ -11,17 +11,18 @@ from django.utils.functional import cached_property
 from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import IncidentActivityType
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.organizations.services.organization import RpcOrganization
@@ -34,9 +35,11 @@ from sentry.testutils.silo import assume_test_silo_mode
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
 )
 from sentry.users.services.user import RpcUser
@@ -593,7 +596,7 @@ class Fixtures:
     def create_identity_provider(
         self,
         integration: Integration | None = None,
-        config: Mapping[str, Any] | None = None,
+        config: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> IdentityProvider:
         return Factories.create_identity_provider(integration=integration, config=config, **kwargs)
@@ -647,13 +650,23 @@ class Fixtures:
         project: Project | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        name="Test Name",
+        owner: User | Team | None = None,
+        uptime_status=UptimeStatus.OK,
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription()
-        return Factories.create_project_uptime_subscription(project, uptime_subscription, mode)
+        return Factories.create_project_uptime_subscription(
+            project,
+            uptime_subscription,
+            mode,
+            name,
+            Actor.from_object(owner) if owner else None,
+            uptime_status,
+        )
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

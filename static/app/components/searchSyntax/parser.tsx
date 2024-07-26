@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';

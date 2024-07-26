@@ -391,9 +391,9 @@ class GroupManager(BaseManager["Group"]):
         organizations: Sequence[Organization],
         external_issue_key: str,
     ) -> QuerySet[Group]:
+        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.services.integration import integration_service
         from sentry.models.grouplink import GroupLink
-        from sentry.models.integrations.external_issue import ExternalIssue
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key
@@ -497,7 +497,7 @@ class GroupManager(BaseManager["Group"]):
 
     def get_issues_mapping(
         self,
-        group_ids: Sequence[int],
+        group_ids: Iterable[int],
         project_ids: Sequence[int],
         organization: Organization,
     ) -> Mapping[int, str | None]:
@@ -565,7 +565,9 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
+        blank=True, null=True
+    )
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
     priority = models.PositiveSmallIntegerField(null=True)

@@ -3,9 +3,14 @@ import {useMemo} from 'react';
 import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
-import {isExtractedCustomMetric, unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
-import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
+import {
+  formatMRIField,
+  isExtractedCustomMetric,
+  MRIToField,
+  parseField,
+} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {
@@ -201,7 +206,8 @@ export function useGenerateExpressionId(expressions: DashboardMetricsExpression[
 }
 
 export function expressionsToApiQueries(
-  expressions: DashboardMetricsExpression[]
+  expressions: DashboardMetricsExpression[],
+  metricsNewInputs: boolean
 ): MetricsQueryApiQueryParams[] {
   return expressions
     .filter(e => !(e.type === MetricExpressionType.EQUATION && e.isHidden))
@@ -210,9 +216,9 @@ export function expressionsToApiQueries(
         ? {
             alias: e.alias,
             formula: e.formula,
-            name: getEquationSymbol(e.id),
+            name: getEquationSymbol(e.id, metricsNewInputs),
           }
-        : {...e, name: getQuerySymbol(e.id), isQueryOnly: e.isHidden}
+        : {...e, name: getQuerySymbol(e.id, metricsNewInputs), isQueryOnly: e.isHidden}
     );
 }
 

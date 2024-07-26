@@ -96,6 +96,7 @@ class RelocationSerializer(Serializer):
             "owner": owner,
             "status": Relocation.Status(obj.status).name,
             "step": Relocation.Step(obj.step).name,
+            "provenance": Relocation.Provenance(obj.provenance).name,
             "failureReason": obj.failure_reason,
             "scheduledPauseAtStep": scheduled_at_pause_step,
             "scheduledCancelAtStep": scheduled_at_cancel_step,

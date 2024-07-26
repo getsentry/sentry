@@ -91,6 +91,7 @@ type Props = WithRouterProps & {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onUpdate?: (widget: Widget | null) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
@@ -236,6 +237,7 @@ class WidgetCard extends Component<Props, State> {
       dashboardFilters,
       isWidgetInvalid,
       location,
+      onWidgetSplitDecision,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -385,6 +387,7 @@ class WidgetCard extends Component<Props, State> {
                     onDataFetched={this.setData}
                     dashboardFilters={dashboardFilters}
                     chartGroup={DASHBOARD_CHART_GROUP}
+                    onWidgetSplitDecision={onWidgetSplitDecision}
                   />
                 ) : (
                   <LazyRender containerHeight={200} withoutContainer>
@@ -401,6 +404,7 @@ class WidgetCard extends Component<Props, State> {
                       onDataFetched={this.setData}
                       dashboardFilters={dashboardFilters}
                       chartGroup={DASHBOARD_CHART_GROUP}
+                      onWidgetSplitDecision={onWidgetSplitDecision}
                     />
                   </LazyRender>
                 )}

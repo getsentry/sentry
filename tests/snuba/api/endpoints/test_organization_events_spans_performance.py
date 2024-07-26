@@ -870,7 +870,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 self.url,
                 data={
                     "project": self.project.id,
-                    "spanGroup": "cd",
+                    "spanGroup": "foo",
                 },
                 format="json",
             )
@@ -1189,7 +1189,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id, "span": ["http.server:ab"]},
+                data={"project": self.project.id, "span": ["http.server:foo"]},
                 format="json",
             )
 
@@ -1816,7 +1816,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": self.project.id, "span": ["http.server:ab"]},
+                data={"project": self.project.id, "span": ["http.server:foo"]},
                 format="json",
             )
 

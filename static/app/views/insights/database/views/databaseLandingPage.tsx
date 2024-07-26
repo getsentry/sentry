@@ -1,19 +1,13 @@
-import React, {Fragment} from 'react';
-import styled from '@emotion/styled';
+import React from 'react';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -22,13 +16,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
@@ -48,7 +43,6 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
@@ -139,8 +133,6 @@ export function DatabaseLandingPage() {
     'api.starfish.span-landing-page-metrics-chart'
   );
 
-  useHasDataTrackAnalytics(ModuleName.DB, 'insight.page_loads.db');
-
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
 
@@ -187,67 +179,43 @@ export function DatabaseLandingPage() {
             )}
 
             <ModuleLayout.Full>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
+              <ModulePageFilterBar moduleName={ModuleName.DB} />
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
-              {onboardingProject && (
-                <ModuleLayout.Full>
-                  <Onboarding organization={organization} project={onboardingProject} />
-                </ModuleLayout.Full>
-              )}
-              {!onboardingProject && (
-                <Fragment>
-                  <ModuleLayout.Half>
-                    <ThroughputChart
-                      series={throughputData['spm()']}
-                      isLoading={isThroughputDataLoading}
-                      error={throughputError}
-                    />
-                  </ModuleLayout.Half>
+              <ModuleLayout.Half>
+                <ThroughputChart
+                  series={throughputData['spm()']}
+                  isLoading={isThroughputDataLoading}
+                  error={throughputError}
+                />
+              </ModuleLayout.Half>
 
-                  <ModuleLayout.Half>
-                    <DurationChart
-                      series={[durationData[`${selectedAggregate}(span.self_time)`]]}
-                      isLoading={isDurationDataLoading}
-                      error={durationError}
-                    />
-                  </ModuleLayout.Half>
+              <ModuleLayout.Half>
+                <DurationChart
+                  series={[durationData[`${selectedAggregate}(span.self_time)`]]}
+                  isLoading={isDurationDataLoading}
+                  error={durationError}
+                />
+              </ModuleLayout.Half>
 
-                  <ModuleLayout.Full>
-                    <FilterOptionsContainer>
-                      <SelectorContainer>
-                        <ActionSelector
-                          moduleName={moduleName}
-                          value={spanAction ?? ''}
-                        />
-                      </SelectorContainer>
+              <ModuleLayout.Full>
+                <ToolRibbon>
+                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                </ToolRibbon>
+              </ModuleLayout.Full>
 
-                      <SelectorContainer>
-                        <DomainSelector
-                          moduleName={moduleName}
-                          value={spanDomain ?? ''}
-                        />
-                      </SelectorContainer>
-                    </FilterOptionsContainer>
-                  </ModuleLayout.Full>
+              <ModuleLayout.Full>
+                <SearchBar
+                  query={spanDescription}
+                  placeholder={t('Search for more Queries')}
+                  onSearch={handleSearch}
+                />
+              </ModuleLayout.Full>
 
-                  <ModuleLayout.Full>
-                    <SearchBar
-                      query={spanDescription}
-                      placeholder={t('Search for more Queries')}
-                      onSearch={handleSearch}
-                    />
-                  </ModuleLayout.Full>
-
-                  <ModuleLayout.Full>
-                    <QueriesTable response={queryListResponse} sort={sort} />
-                  </ModuleLayout.Full>
-                </Fragment>
-              )}
+              <ModuleLayout.Full>
+                <QueriesTable response={queryListResponse} sort={sort} />
+              </ModuleLayout.Full>
             </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -269,29 +237,15 @@ function AlertBanner(props) {
   );
 }
 
-const FilterOptionsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    flex-wrap: nowrap;
-  }
-`;
-
-const SelectorContainer = styled('div')`
-  flex-basis: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    flex-basis: auto;
-  }
-`;
-
 const LIMIT: number = 25;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="db" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="db"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.db"
+    >
       <DatabaseLandingPage />
     </ModulePageProviders>
   );

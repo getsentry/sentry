@@ -43,13 +43,13 @@ export interface MetricsSummary {
 }
 
 export type RawSpanType = {
-  data: SpanSourceCodeAttributes & SpanDatabaseAttributes & Record<string, any>;
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
   _metrics_summary?: MetricsSummary;
+  data?: SpanSourceCodeAttributes & SpanDatabaseAttributes & Record<string, any>;
   description?: string;
   exclusive_time?: number;
   hash?: string;

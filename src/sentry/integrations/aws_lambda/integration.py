@@ -19,8 +19,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.pipeline import PipelineView
@@ -289,9 +289,9 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         def render_response(error=None):
             serialized_organization = organization_service.serialize_organization(
                 id=pipeline.organization.id,
-                as_user=serialize_rpc_user(request.user)
-                if isinstance(request.user, User)
-                else None,
+                as_user=(
+                    serialize_rpc_user(request.user) if isinstance(request.user, User) else None
+                ),
             )
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {

@@ -3,10 +3,12 @@ import {useMemo} from 'react';
 import type {Project} from 'sentry/types/project';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {UseProfileEventsOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {
+  getProfilesTableFields,
+  useProfileEvents,
+} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
 interface UseProfilingTransactionQuickSummaryOptions {
   project: Project;

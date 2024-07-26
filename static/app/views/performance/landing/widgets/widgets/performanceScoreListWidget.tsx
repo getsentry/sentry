@@ -115,7 +115,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
           <GrowLink
             to={{
               pathname: `${moduleURL}/overview/`,
-              query: {...location.query, transaction},
+              query: {...location.query, transaction, project: listItem['project.id']},
             }}
           >
             <Truncate value={transaction} maxLength={40} />

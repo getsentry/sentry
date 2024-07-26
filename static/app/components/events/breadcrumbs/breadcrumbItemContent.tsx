@@ -19,7 +19,6 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 const DEFAULT_STRUCTURED_DATA_PROPS = {
-  depth: 0,
   maxDefaultDepth: 2,
   withAnnotatedText: true,
   withOnlyFormattedText: true,
@@ -38,16 +37,15 @@ export default function BreadcrumbItemContent({
 }: BreadcrumbItemContentProps) {
   const structuredDataProps = {
     ...DEFAULT_STRUCTURED_DATA_PROPS,
-    forceDefaultExpand: fullyExpanded,
     maxDefaultDepth: fullyExpanded
       ? 10000
       : DEFAULT_STRUCTURED_DATA_PROPS.maxDefaultDepth,
   };
 
   const defaultMessage = defined(bc.message) ? (
-    <Timeline.Text>
+    <BreadcrumbText>
       <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
-    </Timeline.Text>
+    </BreadcrumbText>
   ) : null;
   const defaultData = defined(bc.data) ? (
     <Timeline.Data>
@@ -111,7 +109,7 @@ function HTTPCrumbContent({
   return (
     <Fragment>
       {children}
-      <Timeline.Text>
+      <BreadcrumbText>
         {defined(method) && `${method}: `}
         {isValidUrl ? (
           <Link
@@ -124,7 +122,7 @@ function HTTPCrumbContent({
           <AnnotatedText value={url} meta={meta?.data?.url?.['']} />
         )}
         {defined(statusCode) && ` [${statusCode}]`}
-      </Timeline.Text>
+      </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
           <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
@@ -176,10 +174,10 @@ function ExceptionCrumbContent({
   const {type, value, ...otherData} = breadcrumb?.data ?? {};
   return (
     <Fragment>
-      <Timeline.Text>
+      <BreadcrumbText>
         {type && type}
         {type ? value && `: ${value}` : value && value}
-      </Timeline.Text>
+      </BreadcrumbText>
       {children}
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
@@ -191,7 +189,7 @@ function ExceptionCrumbContent({
 }
 
 const Link = styled('a')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
   text-decoration: underline;
   text-decoration-style: dotted;
   word-break: break-all;
@@ -204,4 +202,11 @@ const LightenTextColor = styled('pre')`
     padding: ${space(0.25)} 0;
     font-size: ${p => p.theme.fontSizeSmall};
   }
+`;
+
+const BreadcrumbText = styled(Timeline.Text)`
+  white-space: pre-wrap;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  color: ${p => p.theme.textColor};
 `;

@@ -64,7 +64,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Dashboard",
+        operation_id="Retrieve an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         responses={
             200: DashboardDetailsModelSerializer,
@@ -75,7 +75,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def get(self, request: Request, organization, dashboard) -> Response:
         """
-        Return details on an individual organization's dashboard.
+        Return details about an organization's custom dashboard.
         """
         if not features.has(READ_FEATURE, organization, actor=request.user):
             return Response(status=404)
@@ -86,7 +86,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(serialize(dashboard, request.user))
 
     @extend_schema(
-        operation_id="Delete an Organization's Dashboard",
+        operation_id="Delete an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -96,7 +96,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def delete(self, request: Request, organization, dashboard) -> Response:
         """
-        Delete an individual organization's dashboard, or tombstone
+        Delete an organization's custom dashboard, or tombstone
         a pre-built dashboard which effectively deletes it.
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
@@ -122,7 +122,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(status=204)
 
     @extend_schema(
-        operation_id="Edit an Organization's Dashboard",
+        operation_id="Edit an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         request=DashboardDetailsSerializer,
         responses={
@@ -135,8 +135,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def put(self, request: Request, organization, dashboard) -> Response:
         """
-        Edit an individual organization's dashboard as well as
-        bulk edits on widgets (i.e. rearranging widget order).
+        Edit an organization's custom dashboard as well as any bulk
+        edits on widgets that may have been made. (For example, widgets
+        that have been rearranged, updated queries and fields, specific
+        display types, and so on.)
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)

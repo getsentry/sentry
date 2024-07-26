@@ -2,7 +2,7 @@ import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';

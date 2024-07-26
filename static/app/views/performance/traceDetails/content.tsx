@@ -289,7 +289,7 @@ class TraceDetailsContent extends Component<Props, State> {
     if (roots === 0 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
             )}
@@ -299,7 +299,7 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots === 1 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
             )}
