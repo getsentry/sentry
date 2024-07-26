@@ -343,8 +343,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
     if (props.trace) {
       const trace = TraceTree.FromTrace(props.trace, props.replayRecord);
-
-      if (props.trace.transactions.length < 3) {
+      if (trace.list.length < 3) {
         for (const c of trace.list) {
           if (c.canFetch) {
             trace.zoomIn(c, true, {api, organization}).then(rerender);
@@ -358,8 +357,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     props.traceSlug,
     props.trace,
     props.status,
-    projects,
     props.replayRecord,
+    projects,
     api,
     organization,
   ]);
