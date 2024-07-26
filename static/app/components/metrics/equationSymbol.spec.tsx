@@ -25,11 +25,11 @@ describe('EquationSymbol', () => {
     render(<EquationSymbol equationId={0} />, {
       organization: {features: ['metrics-new-inputs']},
     });
-    expect(screen.getByText(textWithMarkupMatcher('ƒ1'))).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('Ƒ1'))).toBeInTheDocument();
 
     render(<EquationSymbol equationId={5} />, {
       organization: {features: ['metrics-new-inputs']},
     });
-    expect(screen.getByText(textWithMarkupMatcher('ƒ6'))).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('Ƒ6'))).toBeInTheDocument();
   });
 });
