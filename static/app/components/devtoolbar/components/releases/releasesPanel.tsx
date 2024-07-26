@@ -5,17 +5,22 @@ import useReleaseSessions from 'sentry/components/devtoolbar/components/releases
 import useToolbarRelease from 'sentry/components/devtoolbar/components/releases/useToolbarRelease';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
 import {listItemPlaceholderWrapperCss} from 'sentry/components/devtoolbar/styles/listItem';
-import {infoHeaderCss} from 'sentry/components/devtoolbar/styles/releasesPanel';
+import {
+  infoHeaderCss,
+  subtextCss,
+} from 'sentry/components/devtoolbar/styles/releasesPanel';
 import {
   resetFlexColumnCss,
   resetFlexRowCss,
 } from 'sentry/components/devtoolbar/styles/reset';
+import type {ApiResult} from 'sentry/components/devtoolbar/types';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons/iconArrow';
+import type {SessionApiResponse} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
@@ -25,7 +30,6 @@ import {
   type ReleaseComparisonRow,
 } from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 import {
-  PackageName,
   ReleaseInfoHeader,
   ReleaseInfoSubheader,
   VersionWrapper,
@@ -37,32 +41,39 @@ import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
 import {smallCss} from '../../styles/typography';
 import PanelLayout from '../panelLayout';
 
-function getCrashFreeRate(data) {
-  return ((data?.json.groups[0].totals['crash_free_rate(session)'] ?? 1) * 100).toFixed(
-    2
+const estimateSize = 85;
+const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
+
+function getCrashFreeRate(data: ApiResult<SessionApiResponse>): number {
+  // if `crash_free_rate(session)` is undefined
+  // (sometimes the case for brand new releases),
+  // assume it is 100%.
+  // round to 2 decimal points
+  return parseFloat(
+    ((data?.json.groups[0].totals['crash_free_rate(session)'] ?? 1) * 100).toFixed(2)
   );
 }
 
-function getChartDiff(
+function getDiff(
   diff: string,
   diffColor: ReleaseComparisonRow['diffColor'],
   diffDirection: 'up' | 'down' | undefined
 ) {
-  return diff ? (
+  return (
     <Change
       color={defined(diffColor) ? diffColor : 'black'}
-      css={[resetFlexRowCss, `align-items: center; gap: 3px`]}
+      css={[resetFlexRowCss, {alignItems: 'center', gap: 'var(--space25)'}]}
     >
       {diff}
       {defined(diffDirection) ? <IconArrow direction={diffDirection} size="xs" /> : null}
     </Change>
-  ) : null;
+  );
 }
 
-function ReleaseHeader({release, orgSlug}: {orgSlug: string; release: Release}) {
+function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release}) {
   return (
-    <PanelItem style={{width: '100%', alignItems: 'flex-start'}}>
-      <ReleaseInfoHeader css={[infoHeaderCss]}>
+    <PanelItem css={{width: '100%', alignItems: 'flex-start'}}>
+      <ReleaseInfoHeader css={infoHeaderCss}>
         <SentryAppLink
           to={{
             url: `/organizations/${orgSlug}/releases/${encodeURIComponent(release.version)}/`,
@@ -76,21 +87,9 @@ function ReleaseHeader({release, orgSlug}: {orgSlug: string; release: Release}) 
         )}
       </ReleaseInfoHeader>
       <ReleaseInfoSubheader
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          fontSize: '14px',
-        }}
+        css={[resetFlexColumnCss, subtextCss, {alignItems: 'flex-start'}]}
       >
-        {release.versionInfo?.package && (
-          <PackageName>
-            <TextOverflow ellipsisDirection="left">
-              {release.versionInfo.package}
-            </TextOverflow>
-          </PackageName>
-        )}
-        <span style={{display: 'flex', flexDirection: 'row', gap: '3px'}}>
+        <span css={[resetFlexRowCss, {gap: 'var(--space25)'}]}>
           <TimeSince date={release.lastDeploy?.dateFinished || release.dateCreated} />
           {release.lastDeploy?.dateFinished &&
             ` \u007C ${release.lastDeploy.environment}`}
@@ -105,45 +104,68 @@ function CrashFreeRate({
   currReleaseVersion,
 }: {
   currReleaseVersion: string;
-  prevReleaseVersion: string;
+  prevReleaseVersion: string | undefined;
 }) {
-  const {data: currSessionData, isLoading: isCurrLoading} = useReleaseSessions({
+  const {
+    data: currSessionData,
+    isLoading: isCurrLoading,
+    isError: isCurrError,
+  } = useReleaseSessions({
     releaseVersion: currReleaseVersion,
   });
-  const {data: prevSessionData, isLoading: isPrevLoading} = useReleaseSessions({
+  const {
+    data: prevSessionData,
+    isLoading: isPrevLoading,
+    isError: isPrevError,
+  } = useReleaseSessions({
     releaseVersion: prevReleaseVersion,
   });
 
+  if (isCurrError || isPrevError) {
+    return null;
+  }
+
+  if (isCurrLoading || isPrevLoading) {
+    return (
+      <PanelItem css={{width: '100%', padding: 'var(--space100)'}}>
+        <Placeholder
+          height={placeholderHeight}
+          css={[
+            resetFlexColumnCss,
+            panelSectionCss,
+            panelInsetContentCss,
+            listItemPlaceholderWrapperCss,
+          ]}
+        />
+      </PanelItem>
+    );
+  }
+
   const currCrashFreeRate = getCrashFreeRate(currSessionData);
   const prevCrashFreeRate = getCrashFreeRate(prevSessionData);
-  const diff = (parseFloat(currCrashFreeRate) - parseFloat(prevCrashFreeRate)).toFixed(2);
-  const diffIsZero = parseFloat(diff) === 0;
-  const posDiff = parseFloat(diff) > 0;
+  const diff = (currCrashFreeRate - prevCrashFreeRate).toFixed(2);
+  const sign = Math.sign(parseFloat(diff));
 
   return (
     <PanelItem>
-      <div css={[infoHeaderCss]}>Crash Free Session Rate</div>
-      <ReleaseInfoSubheader style={{fontSize: '14px'}}>
-        {isPrevLoading || isCurrLoading ? (
-          <Placeholder width="252px" height="40px" />
-        ) : (
-          <span style={{display: 'flex', gap: '16px', flexDirection: 'row'}}>
-            <span css={[resetFlexColumnCss]}>
-              <span>This release</span> {currCrashFreeRate}%
-            </span>
-            <span css={[resetFlexColumnCss]}>
-              <span>Prev release</span> {prevCrashFreeRate}%
-            </span>
-            <span css={[resetFlexColumnCss]}>
-              <span>Change</span>
-              {getChartDiff(
-                Math.abs(parseFloat(diff)) + '%',
-                diffIsZero ? 'black' : posDiff ? 'green400' : 'red400',
-                diffIsZero ? undefined : posDiff ? 'up' : 'down'
-              )}
-            </span>
+      <div css={infoHeaderCss}>Crash free session rate</div>
+      <ReleaseInfoSubheader css={subtextCss}>
+        <span css={[resetFlexRowCss, {gap: 'var(--space200)'}]}>
+          <span css={resetFlexColumnCss}>
+            <span>This release</span> {currCrashFreeRate}%
           </span>
-        )}
+          <span css={resetFlexColumnCss}>
+            <span>Prev release</span> {prevCrashFreeRate}%
+          </span>
+          <span css={resetFlexColumnCss}>
+            Change
+            {getDiff(
+              Math.abs(parseFloat(diff)) + '%',
+              sign === 0 ? 'black' : sign === 1 ? 'green400' : 'red400',
+              sign === 0 ? undefined : sign === 1 ? 'up' : 'down'
+            )}
+          </span>
+        </span>
       </ReleaseInfoSubheader>
     </PanelItem>
   );
@@ -159,8 +181,9 @@ export default function ReleasesPanel() {
   const {organizationSlug, projectSlug, projectId, projectPlatform, trackAnalytics} =
     useConfiguration();
 
-  const estimateSize = 100;
-  const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
+  if (isReleaseDataError) {
+    return <EmptyStateWarning small>No data to show</EmptyStateWarning>;
+  }
 
   return (
     <PanelLayout title="Latest Release">
@@ -207,7 +230,7 @@ export default function ReleasesPanel() {
           </div>
         </SentryAppLink>
       </span>
-      {isReleaseDataLoading || isReleaseDataError ? (
+      {isReleaseDataLoading ? (
         <div
           css={[
             resetFlexColumnCss,
@@ -222,10 +245,12 @@ export default function ReleasesPanel() {
       ) : (
         <Fragment>
           <div style={{alignItems: 'start'}}>
-            <ReleaseHeader release={releaseData.json[0]} orgSlug={organizationSlug} />
+            <ReleaseSummary release={releaseData.json[0]} orgSlug={organizationSlug} />
             <CrashFreeRate
               currReleaseVersion={releaseData.json[0].version}
-              prevReleaseVersion={releaseData.json[1].version}
+              prevReleaseVersion={
+                releaseData.json.length > 1 ? releaseData.json[1].version : undefined
+              }
             />
           </div>
         </Fragment>
