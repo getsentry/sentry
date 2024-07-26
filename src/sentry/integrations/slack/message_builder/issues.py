@@ -109,9 +109,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     except ObjectDoesNotExist:
         return None
 
-    if actor.is_team and isinstance(assigned_actor, Team):
+    if isinstance(assigned_actor, Team):
         assignee_text = f"#{assigned_actor.slug}"
-    elif actor.is_user and isinstance(assigned_actor, RpcUser):
+    elif isinstance(assigned_actor, RpcUser):
         assignee_identity = identity_service.get_identity(
             filter={
                 "provider_id": identity.idp_id,
