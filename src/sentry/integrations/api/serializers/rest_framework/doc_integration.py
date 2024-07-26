@@ -19,7 +19,7 @@ from sentry.integrations.models.integration_feature import (
 
 
 class MetadataField(serializers.JSONField):
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         if data is None:
             return
 

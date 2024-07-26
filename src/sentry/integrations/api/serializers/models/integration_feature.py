@@ -23,8 +23,14 @@ class IntegrationFeatureSerializer(Serializer):
         )
         return {item: {"description": description_attrs.get(item.id)} for item in item_list}
 
-    def serialize(self, obj: IntegrationFeature, attrs: Mapping[Any, Any], user: User, **kwargs):
-        has_target = kwargs.get("has_target", True)
+    def serialize(
+        self,
+        obj: IntegrationFeature,
+        attrs: Mapping[Any, Any],
+        user: User,
+        has_target: bool = True,
+        **kwargs,
+    ):
         data = {
             "featureId": obj.feature,
             # feature gating work done in getsentry expects the format 'featureGate'
