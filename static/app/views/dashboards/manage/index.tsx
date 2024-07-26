@@ -33,7 +33,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {DASHBOARDS_TEMPLATES} from '../data';
+import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
 
@@ -149,9 +149,10 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   }
 
   renderTemplates() {
+    const {organization} = this.props;
     return (
       <TemplateContainer>
-        {DASHBOARDS_TEMPLATES.map(dashboard => (
+        {getDashboardTemplates(organization).map(dashboard => (
           <TemplateCard
             title={dashboard.title}
             description={dashboard.description}
