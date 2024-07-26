@@ -110,6 +110,7 @@ export enum FieldKey {
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
   TRACE_SPAN = 'trace.span',
+  TRACE_CLIENT_SAMPLE_RATE = 'trace.client_sample_rate',
   TRANSACTION = 'transaction',
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
@@ -999,6 +1000,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.TRACE_CLIENT_SAMPLE_RATE]: {
+    desc: t('Sample rate of the trace in the SDK between 0 and 1'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
   [FieldKey.TRANSACTION]: {
     desc: t('Error or transaction name identifier'),
     kind: FieldKind.FIELD,
@@ -1241,6 +1247,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE,
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE_PARENT_SPAN,
+  FieldKey.TRACE_CLIENT_SAMPLE_RATE,
 
   FieldKey.PROFILE_ID,
 
