@@ -20,6 +20,9 @@ const getInstallSnippet = (
   params: Params
 ) => `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"
 gem "sentry-rails"
+
+bin/rails generate sentry
+
 bundle install`;
 
 const getConfigureSnippet = (params: Params) => `
@@ -61,7 +64,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add [sentryRubyCode:sentry-ruby] and [sentryRailsCode:sentry-rails] to your [sentryGemfileCode:Gemfile]:',
+        'Add [sentryRubyCode:sentry-ruby] and [sentryRailsCode:sentry-rails] and generate your [sentryGemfileCode:Gemfile]:',
         {
           sentryRubyCode: <code />,
           sentryRailsCode: <code />,
