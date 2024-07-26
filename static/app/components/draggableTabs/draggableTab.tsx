@@ -7,9 +7,15 @@ import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
+import Badge from 'sentry/components/badge/badge';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import QueryCount from 'sentry/components/queryCount';
 import {BaseTab} from 'sentry/components/tabs/tab';
+import {space} from 'sentry/styles/space';
+import {DraggableTabMenuButton} from 'sentry/views/issueList/draggableTabMenuButton';
 
 interface DraggableTabProps extends AriaTabProps {
+  count: number;
   item: Node<any>;
   orientation: Orientation;
   /**
@@ -19,11 +25,25 @@ interface DraggableTabProps extends AriaTabProps {
    */
   overflowing: boolean;
   state: TabListState<any>;
+  hasUnsavedChanges?: boolean;
+  onDelete?: (key: MenuItemProps['key']) => void;
+  onDiscard?: (key: MenuItemProps['key']) => void;
+  onDuplicate?: (key: MenuItemProps['key']) => void;
+  onRename?: (key: MenuItemProps['key']) => void;
+  onSave?: (key: MenuItemProps['key']) => void;
 }
 
 export const DraggableTab = forwardRef(
   (
-    {item, state, orientation, overflowing}: DraggableTabProps,
+    {
+      count,
+      item,
+      state,
+      orientation,
+      overflowing,
+      hasUnsavedChanges = false,
+      ...onActionProps
+    }: DraggableTabProps,
     forwardedRef: React.ForwardedRef<HTMLLIElement>
   ) => {
     const ref = useObjectRef(forwardedRef);
@@ -46,7 +66,18 @@ export const DraggableTab = forwardRef(
         ref={ref}
         variant="filled"
       >
-        <TabContentWrap>{rendered}</TabContentWrap>
+        <TabContentWrap>
+          {rendered}
+          <StyledBadge>
+            <QueryCount hideParens count={count} max={1000} />
+          </StyledBadge>
+          {state.selectedKey === item.key && (
+            <DraggableTabMenuButton
+              hasUnsavedChanges={hasUnsavedChanges}
+              {...onActionProps}
+            />
+          )}
+        </TabContentWrap>
       </StyledBaseTab>
     );
   }
@@ -65,4 +96,16 @@ const TabContentWrap = styled('span')`
   align-items: center;
   flex-direction: row;
   gap: 6px;
+`;
+
+const StyledBadge = styled(Badge)`
+  display: flex;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid ${p => p.theme.gray200};
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(0)};
 `;

@@ -4,7 +4,9 @@ import type {LocationDescriptor} from 'history';
 
 export interface DraggableTabListItemProps extends ItemProps<any> {
   key: string | number;
+  count?: number;
   disabled?: boolean;
+  hasUnsavedChanges?: boolean;
   hidden?: boolean;
   to?: LocationDescriptor;
 }

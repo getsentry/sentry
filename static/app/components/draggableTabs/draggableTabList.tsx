@@ -125,12 +125,14 @@ function BaseDraggableTabList({
               <DraggableTab
                 key={item.key}
                 item={item}
+                count={item.value ? item.value.count ?? 0 : 0}
                 state={state}
                 orientation={orientation}
                 overflowing={
                   orientation === 'horizontal' && overflowTabs.includes(item.key)
                 }
                 ref={element => (tabItemsRef.current[item.key] = element)}
+                hasUnsavedChanges={item.value ? item.value.hasUnsavedChanges : false}
               />
               {state.selectedKey !== item.key &&
                 state.collection.getKeyAfter(item.key) !== state.selectedKey && (
@@ -210,7 +212,7 @@ const TabDivider = styled('div')`
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
-  margin: 9px auto;
+  margin: 8px 4px;
 `;
 
 const TabListOuterWrap = styled('div')`
@@ -236,7 +238,6 @@ const TabListWrap = styled('ul', {
       ? `
         grid-auto-flow: column;
         justify-content: start;
-        gap: ${space(0.5)};
         ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
         stroke-dasharray: 4, 3;
       `

@@ -10,6 +10,7 @@ export interface Tab {
   content: React.ReactNode;
   key: Key;
   label: string;
+  hasUnsavedChanges?: boolean;
   queryCount?: number;
 }
 
@@ -25,7 +26,13 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
     <Tabs>
       <DraggableTabList tabs={tabs} setTabs={setTabs} orientation="horizontal">
         {tabs.map(tab => (
-          <DraggableTabList.Item key={tab.key}>{tab.label}</DraggableTabList.Item>
+          <DraggableTabList.Item
+            key={tab.key}
+            count={tab.queryCount}
+            hasUnsavedChanges={tab.hasUnsavedChanges}
+          >
+            {tab.label}
+          </DraggableTabList.Item>
         ))}
       </DraggableTabList>
       <TabPanels>
