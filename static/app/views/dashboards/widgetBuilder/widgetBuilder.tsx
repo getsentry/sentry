@@ -220,16 +220,14 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const defaultWidgetType = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? WidgetType.ERRORS
-    : WidgetType.DISCOVER;
-  const defaultDataset = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? DataSet.ERRORS
-    : DataSet.EVENTS;
+  const defaultWidgetType =
+    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
+      ? WidgetType.ERRORS
+      : WidgetType.DISCOVER;
+  const defaultDataset =
+    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
+      ? DataSet.ERRORS
+      : DataSet.EVENTS;
   const dataSet = dataset ? dataset : defaultDataset;
 
   const api = useApi();
