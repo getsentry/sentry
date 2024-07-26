@@ -62,9 +62,6 @@ export type ReplayEventParameters = {
   };
 
   'replay.hydration-error.issue-details-opened': {};
-  'replay.hydration-modal.opened': {
-    surface: string;
-  };
   'replay.hydration-modal.slider-interaction': {};
   'replay.hydration-modal.tab-change': {
     tabKey: string;
@@ -145,7 +142,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.frame-after-background': 'Replay Frame Following Background Frame',
   'replay.hydration-error.issue-details-opened': 'Hydration Issue Details Opened',
-  'replay.hydration-modal.opened': 'Hydration Modal Opened',
   'replay.hydration-modal.slider-interaction': 'Hydration Modal Slider Clicked',
   'replay.hydration-modal.tab-change': 'Hydration Modal Tab Changed',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
