@@ -1003,7 +1003,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   [FieldKey.TRACE_CLIENT_SAMPLE_RATE]: {
     desc: t('Sample rate of the trace in the SDK between 0 and 1'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.NUMBER,
+    valueType: FieldValueType.STRING,
   },
   [FieldKey.TRANSACTION]: {
     desc: t('Error or transaction name identifier'),

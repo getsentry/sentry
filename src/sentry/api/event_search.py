@@ -1207,7 +1207,6 @@ default_config = SearchConfig(
         "stack.lineno",
         "stack.stack_level",
         "transaction.duration",
-        "trace.client_sample_rate",
     },
     date_keys={
         "start",
