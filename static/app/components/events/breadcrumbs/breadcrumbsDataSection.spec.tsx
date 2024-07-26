@@ -1,6 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForDrawerToHide,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {
@@ -54,6 +60,18 @@ describe('BreadcrumbsDataSection', function () {
     for (const crumbTitle of [...summaryCrumbTitles, ...hiddenCrumbTitles]) {
       expect(within(drawer).getByText(crumbTitle)).toBeInTheDocument();
     }
+  });
+
+  it('toggles the drawer when view all is clicked', async function () {
+    render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
+
+    // When expanded, all should be visible
+    const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
+    await userEvent.click(viewAllButton);
+    const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
+    expect(drawer).toBeInTheDocument();
+    await userEvent.click(viewAllButton);
+    await waitForDrawerToHide('breadcrumb drawer');
   });
 
   it('can switch between display time formats', async function () {
