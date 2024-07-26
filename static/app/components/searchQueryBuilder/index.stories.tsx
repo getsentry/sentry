@@ -257,7 +257,7 @@ export default storyBook(SearchQueryBuilder, story => {
               </ul>
             </li>
             <li>
-              <strong>Aync</strong>: If the filter key does not have{' '}
+              <strong>Async</strong>: If the filter key does not have{' '}
               <code>predefined: true</code>, it will use the <code>getTagValues</code>{' '}
               function to fetch suggestions. The filter key and query are provided, and it
               is up to the consumer to return the suggestions.
