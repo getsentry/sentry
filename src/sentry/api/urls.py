@@ -1504,11 +1504,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-extraction-rules",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/metrics-usage/(?P<span_attribute>[^\/]+)/$",
-        ProjectMetricsUsageEndpoint.as_view(),
-        name="sentry-api-0-project-metrics-usage",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
         OrganizationMissingMembersEndpoint.as_view(),
         name="sentry-api-0-organization-missing-members",
@@ -2410,6 +2405,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/extraction-rules/$",
         ProjectMetricsExtractionRulesEndpoint.as_view(),
         name="sentry-api-0-project-metrics-extraction-rules",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/metrics-usage/(?P<span_attribute>[^\/]+)/$",
+        ProjectMetricsUsageEndpoint.as_view(),
+        name="sentry-api-0-project-metrics-usage",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
