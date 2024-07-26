@@ -885,7 +885,7 @@ class Release(Model):
             (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
         ]
 
-        user_by_author: dict[str | None, RpcUser | None] = {None: None}
+        user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
         commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
 
