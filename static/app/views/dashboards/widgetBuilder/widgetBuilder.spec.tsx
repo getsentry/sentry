@@ -1742,6 +1742,11 @@ describe('WidgetBuilder', function () {
           '1',
           WidgetType.ERRORS
         );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
       });
 
       it('selects the transaction discover split type as the dataset when the events request completes', async function () {
@@ -1773,6 +1778,46 @@ describe('WidgetBuilder', function () {
           '1',
           WidgetType.TRANSACTIONS
         );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Transactions. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+      it('does not show the alert if the widget type is already split', async function () {
+        widget = {
+          displayType: DisplayType.TABLE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'errors',
+          id: '1',
+          widgetType: 'error-events',
+        };
+
+        dashboard = mockDashboard({widgets: [widget]});
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await waitFor(() => {
+          expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        });
+        expect(
+          screen.queryByText(/we're splitting our datasets/i)
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -1825,6 +1870,11 @@ describe('WidgetBuilder', function () {
           '1',
           WidgetType.ERRORS
         );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
       });
 
       it('selects the transaction discover split type as the dataset when the request completes', async function () {
@@ -1856,6 +1906,55 @@ describe('WidgetBuilder', function () {
           '1',
           WidgetType.TRANSACTIONS
         );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Transactions. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+      it('does not show the alert if the widget type is already split', async function () {
+        widget = {
+          displayType: DisplayType.LINE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+          widgetType: 'transaction-like',
+        };
+
+        dashboard = mockDashboard({widgets: [widget]});
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await waitFor(() => {
+          expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        });
+        expect(
+          screen.queryByText(/we're splitting our datasets/i)
+        ).not.toBeInTheDocument();
       });
     });
   });
