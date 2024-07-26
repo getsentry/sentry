@@ -203,10 +203,7 @@ export function useMetricsQuery(
       queries
         .map(query => {
           if (isMetricFormula(query)) {
-            return {
-              ...query,
-              formula: query.formula.toUpperCase(),
-            };
+            return query;
           }
           if (!isVirtualMetric(query)) {
             return query;
