@@ -44,10 +44,10 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             only_delete = True
 
         if request.data.get("enable_ingestion"):
-            enable_ingestion = request.data["enable_ingestion"] == "true"
+            enable_ingestion = True
 
         if request.data.get("skip_processed_projects"):
-            skip_processed_projects = request.data["skip_processed_projects"] == "true"
+            skip_processed_projects = True
 
         if request.data.get("skip_project_ids"):
             skip_project_ids = request.data["skip_project_ids"]
