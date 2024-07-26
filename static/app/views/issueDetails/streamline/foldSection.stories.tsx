@@ -6,15 +6,18 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
-import {FoldSection, SectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {
+  FoldSection,
+  FoldSectionKey,
+} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export default storyBook('FoldSection', story => {
   story('Usage', () => (
     <Fragment>
       <CodeSnippet language="jsx">
-        {`import {FoldSection, SectionKey} from 'sentry/views/issueDetails/section';
+        {`import {FoldSection, FoldSectionKey} from 'sentry/views/issueDetails/section';
 
-<FoldSection title="My Section" sectionKey={SectionKey.MY_SECTION}>
+<FoldSection title="My Section" sectionKey={FoldSectionKey.MY_SECTION}>
   <MySectionComponent />
 </FoldSection>`}
       </CodeSnippet>
@@ -28,11 +31,11 @@ export default storyBook('FoldSection', story => {
   story('Default example', () => {
     return (
       <Fragment>
-        <FoldSection title="Default Section" sectionKey={SectionKey.HIGHLIGHTS}>
+        <FoldSection title="Default Section" sectionKey={FoldSectionKey.HIGHLIGHTS}>
           <Lorem />
         </FoldSection>
         <CodeSnippet language="jsx">
-          {`<FoldSection title="Default Section" sectionKey={SectionKey.MY_SECTION}>
+          {`<FoldSection title="Default Section" sectionKey={FoldSectionKey.MY_SECTION}>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
         </CodeSnippet>
@@ -45,13 +48,13 @@ export default storyBook('FoldSection', story => {
       <Fragment>
         <FoldSection
           title="Prevent Collapse Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
+          sectionKey={FoldSectionKey.HIGHLIGHTS}
           preventCollapse
         >
           <Lorem />
         </FoldSection>
         <CodeSnippet language="jsx">
-          {`<FoldSection title="Prevent Collapse Section" sectionKey={SectionKey.MY_SECTION} preventCollapse>
+          {`<FoldSection title="Prevent Collapse Section" sectionKey={FoldSectionKey.MY_SECTION} preventCollapse>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
         </CodeSnippet>
@@ -64,7 +67,7 @@ export default storyBook('FoldSection', story => {
       <Fragment>
         <FoldSection
           title={<span style={{color: 'rebeccapurple'}}>Custom Title</span>}
-          sectionKey={SectionKey.HIGHLIGHTS}
+          sectionKey={FoldSectionKey.HIGHLIGHTS}
         >
           <Lorem />
         </FoldSection>
@@ -85,12 +88,12 @@ export default storyBook('FoldSection', story => {
               </ButtonBar>
             </Title>
           }
-          sectionKey={SectionKey.HIGHLIGHTS}
+          sectionKey={FoldSectionKey.HIGHLIGHTS}
         >
           <Lorem />
         </FoldSection>
         <CodeSnippet language="jsx">
-          {`<FoldSection title={<CustomTitle />} sectionKey={SectionKey.MY_SECTION}>
+          {`<FoldSection title={<CustomTitle />} sectionKey={FoldSectionKey.MY_SECTION}>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
         </CodeSnippet>
@@ -108,13 +111,13 @@ export default storyBook('FoldSection', story => {
         </p>
         <FoldSection
           title="Initially Collapsed Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
+          sectionKey={FoldSectionKey.HIGHLIGHTS}
           initialCollapse
         >
           <Lorem />
         </FoldSection>
         <CodeSnippet language="jsx">
-          {`<FoldSection title="Initially Collapsed Section" sectionKey={SectionKey.MY_SECTION} initialCollapse>
+          {`<FoldSection title="Initially Collapsed Section" sectionKey={FoldSectionKey.MY_SECTION} initialCollapse>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
         </CodeSnippet>

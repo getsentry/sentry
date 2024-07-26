@@ -379,7 +379,7 @@ function ProfilingDurationRegressionIssueDetailsContent({
   );
 }
 
-function GroupEventDetailsContent({
+export default function GroupEventDetailsContent({
   group,
   event,
   project,
@@ -436,5 +436,3 @@ const StyledDataSection = styled(DataSection)`
     display: none;
   }
 `;
-
-export default GroupEventDetailsContent;

@@ -1,23 +1,24 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-const LOCAL_STORAGE_PREFIX = 'issue-details-collapse-';
-export const enum SectionKey {
-  HIGHLIGHTS = 'highlights',
-  STACK_TRACE = 'stack-trace',
-  BREADCRUMBS = 'breadcrumbs',
-  TAGS = 'tags',
-  CONTEXTS = 'contexts',
+const LOCAL_STORAGE_PREFIX = 'fold-section-collapse-';
+export const enum FoldSectionKey {
+  HIGHLIGHTS = 'issue-details-highlights',
+  STACK_TRACE = 'issue-details-stack-trace',
+  BREADCRUMBS = 'issue-details-breadcrumbs',
+  TAGS = 'issue-details-tags',
+  CONTEXTS = 'issue-details-contexts',
 }
 
 interface FoldSectionProps {
   children: React.ReactNode;
-  sectionKey: SectionKey;
+  sectionKey: FoldSectionKey;
   title: React.ReactNode;
   initialCollapse?: boolean;
   preventCollapse?: boolean;
@@ -57,7 +58,7 @@ export function FoldSection({
             <IconChevron direction={isCollapsed ? 'up' : 'down'} size="xs" />
           </IconWrapper>
         </Summary>
-        {children}
+        <ErrorBoundary mini>{children}</ErrorBoundary>
       </Details>
     </section>
   );
