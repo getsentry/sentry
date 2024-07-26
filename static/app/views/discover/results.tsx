@@ -875,7 +875,7 @@ class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
       organization.features.includes('performance-discover-dataset-selector') &&
       savedQuery
     ) {
-      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery);
+      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery) as SavedQuery;
     }
     return (
       <Results

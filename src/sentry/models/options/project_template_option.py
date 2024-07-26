@@ -83,7 +83,9 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
         cache.set(cache_key, result)
         self._option_cache[cache_key] = result
 
-    def post_save(self, instance: ProjectTemplateOption, **kwargs: Any) -> None:
+    def post_save(
+        self, *, instance: ProjectTemplateOption, created: bool, **kwargs: object
+    ) -> None:
         self.reload_cache(instance.project_template_id, "projecttemplateoption.post_save")
 
     def post_delete(self, instance: ProjectTemplateOption, **kwargs: Any) -> None:

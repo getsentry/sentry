@@ -8,8 +8,8 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
+    from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration.model import RpcIntegration
-    from sentry.models.integrations.integration import Integration
     from sentry.models.integrations.sentry_app import SentryApp
     from sentry.sentry_apps.services.app.model import RpcSentryApp
 

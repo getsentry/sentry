@@ -49,7 +49,7 @@ function findNearestFreeTextKey(
  */
 export const SelectionKeyHandler = forwardRef(
   ({state, undo}: SelectionKeyHandlerProps, ref: ForwardedRef<HTMLInputElement>) => {
-    const {dispatch} = useSearchQueryBuilder();
+    const {dispatch, disabled} = useSearchQueryBuilder();
 
     const selectedTokens = Array.from(state.selectionManager.selectedKeys)
       .map(key => state.collection.getItem(key)?.value)
@@ -175,6 +175,7 @@ export const SelectionKeyHandler = forwardRef(
           tabIndex={-1}
           onPaste={onPaste}
           onKeyDown={onKeyDown}
+          disabled={disabled}
         />
       </VisuallyHidden>
     );

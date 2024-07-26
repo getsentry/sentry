@@ -48,6 +48,7 @@ import {
   initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
+import type {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
 import type {ContinuousProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
@@ -61,6 +62,7 @@ import {
   fromNanoJoulesToWatts,
   type ProfilingFormatterUnit,
 } from 'sentry/utils/profiling/units/units';
+import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {
@@ -97,13 +99,52 @@ function collectAllSpanEntriesFromTransaction(
   return allSpans;
 }
 
-function getMaxConfigSpace(profileGroup: ContinuousProfileGroup): Rect {
-  // We have a transaction, so we should do our best to align the profile
-  // with the transaction's timeline.
+function getMaxConfigSpace(
+  profileGroup: ContinuousProfileGroup,
+  transaction: EventTransaction | null,
+  unit: ProfilingFormatterUnit | string
+): Rect {
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
+  if (transaction) {
+    // TODO: Adjust the alignment based on the profile's timestamp if it does
+    // not match the transaction's start timestamp
+    const transactionDuration = transaction.endTimestamp - transaction.startTimestamp;
+    // On most platforms, profile duration < transaction duration, however
+    // there is one beloved platform where that is not true; android.
+    // Hence, we should take the max of the two to ensure both the transaction
+    // and profile are fully visible to the user.
+    const duration = Math.max(
+      formatTo(transactionDuration, 'seconds', unit),
+      maxProfileDuration
+    );
+    return new Rect(0, 0, duration, 0);
+  }
+
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
   return new Rect(0, 0, maxProfileDuration, 0);
+}
+
+function getProfileOffset(
+  profile: ContinuousProfile | undefined,
+  startedAtMs: number | null
+): Rect {
+  if (!profile || !startedAtMs) {
+    return Rect.Empty();
+  }
+
+  return new Rect(profile.startedAt * 1e3 - startedAtMs, 0, 0, 0);
+}
+
+function getTransactionOffset(
+  transaction: EventTransaction | null,
+  startedAtMs: number | null
+): Rect {
+  if (!transaction || !startedAtMs) {
+    return Rect.Empty();
+  }
+
+  return new Rect(transaction.startTimestamp * 1e3 - startedAtMs, 0, 0, 0);
 }
 
 function convertContinuousProfileMeasurementsToUIFrames(
@@ -191,6 +232,15 @@ export function ContinuousFlamegraph(): ReactElement {
   const {highlightFrames} = useFlamegraphSearch();
   const flamegraphProfiles = useFlamegraphProfiles();
 
+  const start: number | null = useMemo(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const startedAt = qs.get('start');
+    if (!startedAt) return null;
+
+    const sinceEpoch = new Date(startedAt).getTime();
+    return isNaN(sinceEpoch) ? null : sinceEpoch;
+  }, []);
+
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
@@ -268,9 +318,13 @@ export function ContinuousFlamegraph(): ReactElement {
 
     return new SpanChart(spanTree, {
       unit: profile.unit,
-      configSpace: getMaxConfigSpace(profileGroup),
+      configSpace: getMaxConfigSpace(
+        profileGroup,
+        segment.type === 'resolved' ? segment.data : null,
+        profile.unit
+      ),
     });
-  }, [spanTree, profile, profileGroup]);
+  }, [spanTree, profile, profileGroup, segment]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
@@ -297,13 +351,17 @@ export function ContinuousFlamegraph(): ReactElement {
     const newFlamegraph = new FlamegraphModel(profile, {
       inverted: view === 'bottom up',
       sort: sorting,
-      configSpace: getMaxConfigSpace(profileGroup),
+      configSpace: getMaxConfigSpace(
+        profileGroup,
+        segment.type === 'resolved' ? segment.data : null,
+        profile.unit
+      ),
     });
 
     span?.end();
 
     return newFlamegraph;
-  }, [profile, profileGroup, sorting, flamegraphProfiles.threadId, view]);
+  }, [profile, profileGroup, sorting, flamegraphProfiles.threadId, view, segment]);
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
@@ -538,7 +596,7 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileOffset(profile, start),
         },
       });
 
@@ -614,7 +672,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, profile, segment, start]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -632,7 +690,7 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: uiFrames.minFrameDuration,
           barHeight: 10,
           depthOffset: 0,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileOffset(profile, start),
         },
       });
 
@@ -644,7 +702,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames]
+    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames, profile, start]
   );
 
   const batteryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
@@ -666,7 +724,7 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: batteryChart.configSpace.height,
           minHeight: batteryChart.configSpace.height,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileOffset(profile, start),
         },
       });
 
@@ -687,6 +745,8 @@ export function ContinuousFlamegraph(): ReactElement {
       batteryChart,
       uiFrames.minFrameDuration,
       batteryChartCanvas,
+      profile,
+      start,
     ]
   );
 
@@ -709,7 +769,7 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: CPUChart.configSpace.height,
           minHeight: CPUChart.configSpace.height,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileOffset(profile, start),
         },
       });
 
@@ -730,6 +790,8 @@ export function ContinuousFlamegraph(): ReactElement {
       CPUChart,
       uiFrames.minFrameDuration,
       cpuChartCanvas,
+      profile,
+      start,
     ]
   );
 
@@ -752,7 +814,7 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: memoryChart.configSpace.height,
           minHeight: memoryChart.configSpace.height,
-          configSpaceTransform: new Rect(0, 0, 0, 0),
+          configSpaceTransform: getProfileOffset(profile, start),
         },
       });
 
@@ -773,6 +835,8 @@ export function ContinuousFlamegraph(): ReactElement {
       memoryChart,
       uiFrames.minFrameDuration,
       memoryChartCanvas,
+      profile,
+      start,
     ]
   );
 
@@ -790,6 +854,10 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
+          configSpaceTransform: getTransactionOffset(
+            segment.type === 'resolved' ? segment.data : null,
+            start
+          ),
         },
       });
 
@@ -801,7 +869,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES]
+    [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES, start, segment]
   );
 
   // We want to make sure that the views have the same min zoom levels so that

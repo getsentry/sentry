@@ -28,6 +28,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import usePrevious from 'sentry/utils/usePrevious';
 
 function StepIcon({step}: {step: AutofixStep}) {
@@ -110,11 +111,35 @@ function Progress({
   progress: AutofixProgressItem | AutofixStep;
   runId: string;
 }) {
+  function replaceHeadersWithBold(markdown: string) {
+    const headerRegex = /^(#{1,6})\s+(.*)$/gm;
+    const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
+      return ` **${content}** `;
+    });
+
+    return boldMarkdown;
+  }
+
   if (isProgressLog(progress)) {
+    const html = progress.message.includes('\n')
+      ? marked(replaceHeadersWithBold(progress.message), {
+          breaks: true,
+          gfm: true,
+        })
+      : singleLineRenderer(replaceHeadersWithBold(progress.message), {
+          breaks: true,
+          gfm: true,
+        });
+
     return (
       <Fragment>
         <DateTime date={progress.timestamp} format="HH:mm:ss:SSS" />
-        <div>{progress.message}</div>
+        <div
+          style={{overflowX: 'scroll', overflowY: 'hidden'}}
+          dangerouslySetInnerHTML={{
+            __html: html,
+          }}
+        />
       </Fragment>
     );
   }
@@ -182,7 +207,11 @@ export function ExpandableStep({
           <StepIconContainer>
             <StepIcon step={step} />
           </StepIconContainer>
-          <StepTitle>{step.title}</StepTitle>
+          <StepTitle
+            dangerouslySetInnerHTML={{
+              __html: singleLineRenderer(step.title),
+            }}
+          />
           {activeLog && !isExpanded && (
             <StepHeaderDescription>{activeLog}</StepHeaderDescription>
           )}

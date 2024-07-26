@@ -32,7 +32,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
         ),
     ]
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(
             self.get_option("gitlab_repo", project)
             and self.get_option("gitlab_token", project)
@@ -109,7 +109,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return GitLabClient(url, token)
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         repo = self.get_option("gitlab_repo", group.project)
 
         client = self.get_client(group.project)
@@ -146,14 +146,14 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return {"title": issue["title"]}
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return f"GL-{issue_id}"
 
-    def get_issue_url(self, group, issue_iid, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         url = self.get_option("gitlab_url", group.project).rstrip("/")
         repo = self.get_option("gitlab_repo", group.project)
 
-        return f"{url}/{repo}/issues/{issue_iid}"
+        return f"{url}/{repo}/issues/{issue_id}"
 
     def get_configure_plugin_fields(self, project, **kwargs):
         gitlab_token = self.get_option("gitlab_token", project)

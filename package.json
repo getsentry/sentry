@@ -139,7 +139,7 @@
     "moment-timezone": "0.5.44",
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
-    "pegjs-loader": "^0.5.6",
+    "pegjs-loader": "^0.5.8",
     "platformicons": "^6.0.1",
     "po-catalog-loader": "2.0.0",
     "prettier": "3.3.2",
@@ -263,7 +263,9 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": ["current node"]
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "extends": ".volta.json"

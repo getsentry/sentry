@@ -4,8 +4,8 @@ from collections.abc import Iterable
 from typing import Any
 
 from sentry import features
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -26,7 +26,7 @@ def update_code_owners_schema(
     projects: Iterable[Project | int] | None = None,
     **kwargs: Any,
 ) -> None:
-    from sentry.models.integrations.repository_project_path_config import (
+    from sentry.integrations.models.repository_project_path_config import (
         RepositoryProjectPathConfig,
     )
     from sentry.models.projectcodeowners import ProjectCodeOwners
