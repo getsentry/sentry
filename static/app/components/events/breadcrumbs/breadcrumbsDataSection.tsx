@@ -50,7 +50,8 @@ export default function BreadcrumbsDataSection({
   group,
   project,
 }: BreadcrumbsDataSectionProps) {
-  const {openDrawer} = useDrawer();
+  const viewAllButtonRef = useRef(null);
+  const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -91,7 +92,7 @@ export default function BreadcrumbsDataSection({
             group={group}
           />
         ),
-        {ariaLabel: 'breadcrumb drawer'}
+        {ariaLabel: 'breadcrumb drawer', exemptOutsideRefs: [viewAllButtonRef]}
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -163,8 +164,9 @@ export default function BreadcrumbsDataSection({
             <div>
               <ViewAllButton
                 size="sm"
-                onClick={() => onViewAllBreadcrumbs()}
+                onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
                 aria-label={t('View All Breadcrumbs')}
+                ref={viewAllButtonRef}
               >
                 {t('View All')}
               </ViewAllButton>

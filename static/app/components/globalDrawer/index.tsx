@@ -13,7 +13,7 @@ import DrawerComponents from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import useOnClickOutsideMany from 'sentry/utils/useOnClickOutsideMany';
 
 export interface DrawerOptions {
   /**
@@ -28,6 +28,10 @@ export interface DrawerOptions {
    * If true (default), closes the drawer when anywhere else is clicked
    */
   closeOnOutsideClick?: boolean;
+  /**
+   * If closeOnOutsideClick is not set to false, these elements will not close the drawer.
+   */
+  exemptOutsideRefs?: React.RefObject<HTMLElement>[];
   /**
    * Custom content for the header of the drawer
    */
@@ -58,6 +62,7 @@ export interface DrawerConfig {
 
 interface DrawerContextType {
   closeDrawer: () => void;
+  isDrawerOpen: boolean;
   openDrawer: (
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
@@ -66,6 +71,7 @@ interface DrawerContextType {
 
 const DrawerContext = createContext<DrawerContextType>({
   openDrawer: () => {},
+  isDrawerOpen: false,
   closeDrawer: () => {},
 });
 
@@ -100,7 +106,8 @@ export function GlobalDrawer({children}) {
       handleClose();
     }
   }, [currentDrawerConfig, handleClose]);
-  useOnClickOutside(panelRef, handleClickOutside);
+  const extraRefs = currentDrawerConfig?.options?.exemptOutsideRefs ?? [];
+  useOnClickOutsideMany([panelRef, ...extraRefs], handleClickOutside);
 
   // Close the drawer when escape is pressed and options allow it.
   const handleEscapePress = useCallback(() => {
@@ -117,7 +124,7 @@ export function GlobalDrawer({children}) {
     : null;
 
   return (
-    <DrawerContext.Provider value={{openDrawer, closeDrawer}}>
+    <DrawerContext.Provider value={{closeDrawer, isDrawerOpen, openDrawer}}>
       <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
         <AnimatePresence>
           {isDrawerOpen && (
