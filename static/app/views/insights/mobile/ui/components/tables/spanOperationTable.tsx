@@ -69,10 +69,10 @@ export function SpanOperationTable({
       SPAN_OP,
       SPAN_GROUP,
       SPAN_DESCRIPTION,
-      `avg_if(mobile.slow_frames,release,${primaryRelease})`,
-      `avg_if(mobile.slow_frames,release,${secondaryRelease})`,
-      `avg_if(mobile.frozen_frames,release,${primaryRelease})`,
-      `avg_if(mobile.frozen_frames,release,${secondaryRelease})`,
+      `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
+      `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
+      `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
+      `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
       `avg_if(mobile.frames_delay,release,${primaryRelease})`,
       `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
       `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
@@ -97,22 +97,16 @@ export function SpanOperationTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    [`avg_if(mobile.slow_frames,release,${primaryRelease})`]: t(
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
       'Slow (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(mobile.slow_frames,release,${secondaryRelease})`]: t(
-      'Slow (%s)',
-      SECONDARY_RELEASE_ALIAS
-    ),
-    [`avg_if(mobile.frozen_frames,release,${primaryRelease})`]: t(
-      'Frozen (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`avg_if(mobile.frozen_frames,release,${secondaryRelease})`]: t(
-      'Frozen (%s)',
-      SECONDARY_RELEASE_ALIAS
-    ),
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`]:
+      t('Slow (%s)', SECONDARY_RELEASE_ALIAS),
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`]:
+      t('Frozen (%s)', PRIMARY_RELEASE_ALIAS),
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`]:
+      t('Frozen (%s)', SECONDARY_RELEASE_ALIAS),
     [`avg_if(mobile.frames_delay,release,${primaryRelease})`]: t(
       'Delay (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -123,6 +117,28 @@ export function SpanOperationTable({
     ),
     [`avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`]:
       t('Change'),
+  };
+
+  const columnTooltipMap = {
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
+      'The number of slow frames divided by total frames (%s)',
+      PRIMARY_RELEASE_ALIAS
+    ),
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`]:
+      t(
+        'The number of slow frames divided by total frames (%s)',
+        SECONDARY_RELEASE_ALIAS
+      ),
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`]:
+      t(
+        'The number of frozen frames divided by total frames (%s)',
+        PRIMARY_RELEASE_ALIAS
+      ),
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`]:
+      t(
+        'The number of frozen frames divided by total frames (%s)',
+        SECONDARY_RELEASE_ALIAS
+      ),
   };
 
   function renderBodyCell(column, row) {
@@ -163,6 +179,7 @@ export function SpanOperationTable({
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
+      columnTooltipMap={columnTooltipMap}
       data={data}
       eventView={eventView}
       isLoading={isLoading}
@@ -170,10 +187,10 @@ export function SpanOperationTable({
       columnOrder={[
         String(SPAN_OP),
         String(SPAN_DESCRIPTION),
-        `avg_if(mobile.slow_frames,release,${primaryRelease})`,
-        `avg_if(mobile.slow_frames,release,${secondaryRelease})`,
-        `avg_if(mobile.frozen_frames,release,${primaryRelease})`,
-        `avg_if(mobile.frozen_frames,release,${secondaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
         `avg_if(mobile.frames_delay,release,${primaryRelease})`,
         `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
         `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
