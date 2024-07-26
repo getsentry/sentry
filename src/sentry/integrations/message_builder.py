@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import features
@@ -19,39 +19,29 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
 
-def format_actor_options(
-    actors: Sequence[Team | RpcUser], use_block_kit: bool = False
-) -> Sequence[Mapping[str, str]]:
-    sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
-    if use_block_kit:
-        sort_func = lambda actor: actor["text"]["text"]
-    return sorted((format_actor_option(actor, use_block_kit) for actor in actors), key=sort_func)
+def format_actor_options(actors: Sequence[Team | RpcUser]) -> Sequence[Mapping[str, str]]:
+    sort_func = lambda actor: actor["text"]["text"]
+    return sorted((format_actor_option(actor) for actor in actors), key=sort_func)
 
 
-def format_actor_option(actor: Team | RpcUser, use_block_kit: bool = False) -> Mapping[str, str]:
+def format_actor_option(actor: Team | RpcUser) -> Mapping[str, str]:
     if isinstance(actor, RpcUser):
-        if use_block_kit:
-            return {
-                "text": {
-                    "type": "plain_text",
-                    "text": actor.get_display_name(),
-                },
-                "value": f"user:{actor.id}",
-            }
+        return {
+            "text": {
+                "type": "plain_text",
+                "text": actor.get_display_name(),
+            },
+            "value": f"user:{actor.id}",
+        }
 
-        return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
-        if use_block_kit:
-            return {
-                "text": {
-                    "type": "plain_text",
-                    "text": f"#{actor.slug}",
-                },
-                "value": f"team:{actor.id}",
-            }
-        return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
-
-    raise NotImplementedError
+        return {
+            "text": {
+                "type": "plain_text",
+                "text": f"#{actor.slug}",
+            },
+            "value": f"team:{actor.id}",
+        }
 
 
 def build_attachment_title(obj: Group | GroupEvent) -> str:
