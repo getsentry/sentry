@@ -3,7 +3,7 @@ from unittest.mock import patch
 from sentry.testutils.cases import APITestCase
 
 
-class OrganizationIntegrationAlertRulesTest(APITestCase):
+class OrganizationIntegrationMigrateOpsgenieTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
@@ -25,7 +25,7 @@ class OrganizationIntegrationAlertRulesTest(APITestCase):
         response = self.client.put(path, format="json")
         assert response.status_code == 400
 
-    @patch("sentry.api.endpoints.organization_integration_migrate_opsgenie.metrics")
+    @patch("sentry.integrations.api.endpoints.organization_integration_migrate_opsgenie.metrics")
     @patch(
         "sentry.integrations.opsgenie.integration.OpsgenieIntegration.schedule_migrate_opsgenie_plugin"
     )
