@@ -137,17 +137,9 @@ class ProjectCodeOwnersMixin:
 
 
 from .details import ProjectCodeOwnersDetailsEndpoint
-from .external_actor.team_details import ExternalTeamDetailsEndpoint
-from .external_actor.team_index import ExternalTeamEndpoint
-from .external_actor.user_details import ExternalUserDetailsEndpoint
-from .external_actor.user_index import ExternalUserEndpoint
 from .index import ProjectCodeOwnersEndpoint
 
 __all__ = (
-    "ExternalTeamEndpoint",
-    "ExternalTeamDetailsEndpoint",
-    "ExternalUserEndpoint",
-    "ExternalUserDetailsEndpoint",
     "ProjectCodeOwnersEndpoint",
     "ProjectCodeOwnersDetailsEndpoint",
 )

@@ -7,9 +7,9 @@ from django.http.request import HttpHeaders
 from django.test import RequestFactory, override_settings
 from requests import Response
 
-from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
+from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.integrations.client import ApiClient
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
