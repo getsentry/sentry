@@ -496,7 +496,7 @@ function getFilterOptions({
         label: t('Fastest Transactions'),
       },
       {
-        query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+        query: p95 > 0 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
         sort: {kind: 'desc', field: 'transaction.duration'},
         value: TransactionFilterOptions.SLOW,
         label: t('Slow Transactions (p95)'),
@@ -524,7 +524,7 @@ function getFilterOptions({
       label: t('Fastest %s Operations', operationName),
     },
     {
-      query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+      query: p95 > 0 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
       sort: {kind: 'desc', field},
       value: TransactionFilterOptions.SLOW,
       label: t('Slow %s Operations (p95)', operationName),
