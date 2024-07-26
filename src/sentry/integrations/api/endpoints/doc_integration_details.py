@@ -9,7 +9,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.doc_integrations import DocIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import DocIntegrationSerializer
+from sentry.integrations.api.serializers.rest_framework.doc_integration import (
+    DocIntegrationSerializer,
+)
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 

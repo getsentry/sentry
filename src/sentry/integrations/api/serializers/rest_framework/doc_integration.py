@@ -19,7 +19,7 @@ from sentry.integrations.models.integration_feature import (
 
 
 class MetadataField(serializers.JSONField):
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Any) -> Any:
         if data is None:
             return
 
@@ -48,7 +48,8 @@ class DocIntegrationSerializer(Serializer):
 
     def validate_name(self, value: str) -> str:
         slug = sentry_slugify(value)
-        if len(slug) > DocIntegration._meta.get_field("slug").max_length:
+        max_slug_length = DocIntegration._meta.get_field("slug").max_length or -1
+        if len(slug) > max_slug_length:
             raise ValidationError(
                 f"Generated slug '{slug}' is too long, please use a shorter name."
             )

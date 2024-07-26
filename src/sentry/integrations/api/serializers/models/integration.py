@@ -45,7 +45,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
         "canAdd": provider.can_add,
         "canDisable": provider.can_disable,
         "features": sorted(f.value for f in provider.features),
-        "aspects": provider.metadata.aspects,
+        "aspects": getattr(provider.metadata, "aspects", {}),
     }
 
 
@@ -76,7 +76,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
     def serialize(
         self,
-        obj: RpcIntegration,
+        obj: RpcIntegration | Integration,
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
@@ -136,6 +136,7 @@ class OrganizationIntegrationSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
+        **kwargs: Any,
     ) -> MutableMapping[str, Any]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
@@ -198,7 +199,7 @@ class IntegrationProviderSerializer(Serializer):
         self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, Any]:
         org_slug = kwargs.pop("organization").slug
-        metadata = obj.metadata
+        metadata: Any = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
         return {
