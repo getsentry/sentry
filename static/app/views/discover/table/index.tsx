@@ -37,6 +37,7 @@ type TableProps = {
   title: string;
   dataset?: DiscoverDatasets;
   isHomepage?: boolean;
+  queryDataset?: SavedQueryDatasets;
   setSplitDecision?: (value: SavedQueryDatasets) => void;
   setTips?: (tips: string[]) => void;
 };
@@ -251,7 +252,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, onCursor, dataset} = this.props;
+    const {eventView, onCursor, dataset, queryDataset} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -283,6 +284,7 @@ class Table extends PureComponent<TableProps, TableState> {
                       spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
                       dataset={dataset}
+                      queryDataset={queryDataset}
                     />
                   </VisuallyCompleteWithData>
                 )}

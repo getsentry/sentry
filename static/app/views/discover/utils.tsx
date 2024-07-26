@@ -699,7 +699,7 @@ export function handleAddQueryToDashboard({
     yAxis,
   });
 
-  const dataset = getSavedQueryDataset(location, query);
+  const dataset = getSavedQueryDataset(organization, location, query);
 
   const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
     eventView,
@@ -802,7 +802,7 @@ export function constructAddQueryToDashboardLink({
     displayType,
     yAxis,
   });
-  const dataset = getSavedQueryDataset(location, query);
+  const dataset = getSavedQueryDataset(organization, location, query);
 
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);

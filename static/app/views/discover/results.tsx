@@ -35,7 +35,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import type {NewQuery, Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -133,7 +133,13 @@ export class Results extends Component<Props, State> {
       nextProps.savedQuery,
       nextProps.location
     );
-    return {...prevState, eventView, savedQuery: nextProps.savedQuery};
+    const savedQueryDataset = getSavedQueryDataset(
+      nextProps.organization,
+      nextProps.location,
+      nextProps.savedQuery,
+      undefined
+    );
+    return {...prevState, eventView, savedQuery: nextProps.savedQuery, savedQueryDataset};
   }
 
   state: State = {
@@ -142,6 +148,7 @@ export class Results extends Component<Props, State> {
       this.props.location
     ),
     savedQueryDataset: getSavedQueryDataset(
+      this.props.organization,
       this.props.location,
       this.props.savedQuery,
       undefined
@@ -192,6 +199,14 @@ export class Results extends Component<Props, State> {
     const yAxisArray = getYAxis(location, eventView, savedQuery);
     const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
 
+    const savedQueryDataset =
+      decodeScalar(location.query.queryDataset) ?? savedQuery?.queryDataset;
+    const prevSavedQueryDataset =
+      decodeScalar(prevProps.location.query.queryDataset) ??
+      prevState.savedQuery?.queryDataset;
+
+    const datasetChanged = !isEqual(savedQueryDataset, prevSavedQueryDataset);
+
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
       this.hasChartParametersChanged(
@@ -199,7 +214,8 @@ export class Results extends Component<Props, State> {
         eventView,
         prevYAxisArray,
         yAxisArray
-      )
+      ) ||
+      datasetChanged
     ) {
       this.canLoadEvents();
     }
@@ -317,7 +333,7 @@ export class Results extends Component<Props, State> {
   }
 
   checkEventView() {
-    const {eventView, splitDecision} = this.state;
+    const {eventView, splitDecision, savedQueryDataset} = this.state;
     const {loading} = this.props;
     if (eventView.isValid() || loading) {
       return;
@@ -326,9 +342,9 @@ export class Results extends Component<Props, State> {
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
 
-    const value = getSavedQueryDataset(location, savedQuery, splitDecision);
+    const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
     const defaultEventView = hasDatasetSelector(organization)
-      ? DEFAULT_EVENT_VIEW_MAP[value]
+      ? (getSavedQueryWithDataset(DEFAULT_EVENT_VIEW_MAP[value]) as NewQuery)
       : DEFAULT_EVENT_VIEW;
 
     const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
@@ -351,7 +367,13 @@ export class Results extends Component<Props, State> {
       this.setState({savedQuery, eventView: nextEventView});
     }
     browserHistory.replace(
-      normalizeUrl(nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage))
+      normalizeUrl(
+        nextEventView.getResultsViewUrlTarget(
+          organization.slug,
+          isHomepage,
+          hasDatasetSelector(organization) ? savedQueryDataset : undefined
+        )
+      )
     );
   }
 
@@ -518,9 +540,13 @@ export class Results extends Component<Props, State> {
 
   generateTagUrl = (key: string, value: string) => {
     const {organization, isHomepage} = this.props;
-    const {eventView} = this.state;
+    const {eventView, savedQueryDataset} = this.state;
 
-    const url = eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
+    const url = eventView.getResultsViewUrlTarget(
+      organization.slug,
+      isHomepage,
+      hasDatasetSelector(organization) ? savedQueryDataset : undefined
+    );
     url.query = generateQueryWithTag(url.query, {
       key: formatTagKey(key),
       value,
@@ -656,6 +682,7 @@ export class Results extends Component<Props, State> {
       confirmedQuery,
       savedQuery,
       splitDecision,
+      savedQueryDataset,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
@@ -761,6 +788,7 @@ export class Results extends Component<Props, State> {
                   onCursor={this.handleCursor}
                   isHomepage={isHomepage}
                   setTips={this.setTips}
+                  queryDataset={savedQueryDataset}
                   setSplitDecision={(value?: SavedQueryDatasets) => {
                     if (
                       organization.features.includes(
