@@ -47,6 +47,12 @@ EVENT_LIMIT = 100
 
 
 class UniqueConditionQuery(NamedTuple):
+    """
+    Represents all the data that uniquely identifies a condition class and its
+    single respective Snuba query that must be made. Multiple instances of the
+    same condition class can share the single query.
+    """
+
     cls_id: str
     interval: str
     environment_id: int
