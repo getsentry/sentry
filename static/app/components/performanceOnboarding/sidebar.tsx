@@ -25,6 +25,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
@@ -48,6 +49,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
+  const location = useLocation();
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -62,7 +64,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     const queryParams = qs.parse(location.search);
     const decodedProjectIds = decodeProjectIds(queryParams.project);
     return decodedProjectIds === null ? null : new Set(decodedProjectIds);
-  }, []);
+  }, [location]);
 
   useEffect(() => {
     if (
