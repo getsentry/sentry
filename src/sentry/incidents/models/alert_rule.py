@@ -550,7 +550,7 @@ class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
         return self.trigger_action_class(action, incident, project)
 
 
-class FactoryRegistry:
+class _FactoryRegistry:
     def __init__(self) -> None:
         self.by_action_service: dict[ActionService, ActionHandlerFactory] = {}
         self.by_slug: dict[str, ActionHandlerFactory] = {}
@@ -578,7 +578,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     Type = ActionService
     TargetType = ActionTarget
 
-    factory_registrations = FactoryRegistry()
+    # As a test utility, TemporaryAlertRuleTriggerActionRegistry has privileged
+    # access to this otherwise private class variable
+    _factory_registrations = _FactoryRegistry()
 
     INTEGRATION_TYPES = frozenset(
         (
@@ -632,7 +634,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         self, action: AlertRuleTriggerAction, incident: Incident, project: Project
     ) -> ActionHandler | None:
         service_type = AlertRuleTriggerAction.Type(self.type)
-        factory = self.factory_registrations.by_action_service.get(service_type)
+        factory = self._factory_registrations.by_action_service.get(service_type)
         if factory is not None:
             return factory.build_handler(action, incident, project)
         else:
@@ -667,7 +669,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     @classmethod
     def register_factory(cls, factory: ActionHandlerFactory) -> None:
-        cls.factory_registrations.register(factory)
+        cls._factory_registrations.register(factory)
 
     @classmethod
     def register_type(
@@ -702,19 +704,19 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     @classmethod
     def get_registered_factory(cls, service_type: ActionService) -> ActionHandlerFactory:
-        return cls.factory_registrations.by_action_service[service_type]
+        return cls._factory_registrations.by_action_service[service_type]
 
     @classmethod
     def get_registered_factories(cls) -> list[ActionHandlerFactory]:
-        return list(cls.factory_registrations.by_action_service.values())
+        return list(cls._factory_registrations.by_action_service.values())
 
     @classmethod
     def look_up_factory_by_slug(cls, slug: str) -> ActionHandlerFactory | None:
-        return cls.factory_registrations.by_slug.get(slug)
+        return cls._factory_registrations.by_slug.get(slug)
 
     @classmethod
     def get_all_slugs(cls) -> list[str]:
-        return list(cls.factory_registrations.by_slug)
+        return list(cls._factory_registrations.by_slug)
 
 
 class AlertRuleActivityType(Enum):
