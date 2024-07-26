@@ -2835,7 +2835,6 @@ describe('TraceTree', () => {
       });
 
       await waitFor(() => tree.list.length === 4);
-      tree.print();
 
       const pageloadTransaction = tree.list[1];
       const serverHandlerTransaction = tree.list[3];
