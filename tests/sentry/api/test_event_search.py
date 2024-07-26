@@ -678,6 +678,7 @@ def test_search_value(raw, result):
         "transaction.duration:=1.0",
         "transaction.duration:<=1.0",
         "transaction.duration:<1.0",
+        "trace.client_sample_rate:<1.0",
     ],
 )
 def test_search_filter_to_query_string(query):
