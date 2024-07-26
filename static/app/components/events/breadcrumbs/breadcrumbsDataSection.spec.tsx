@@ -64,14 +64,13 @@ describe('BreadcrumbsDataSection', function () {
 
   it('toggles the drawer when view all is clicked', async function () {
     render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
-
-    // When expanded, all should be visible
     const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
     await userEvent.click(viewAllButton);
     const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
     expect(drawer).toBeInTheDocument();
     await userEvent.click(viewAllButton);
     await waitForDrawerToHide('breadcrumb drawer');
+    expect(drawer).not.toBeInTheDocument();
   });
 
   it('can switch between display time formats', async function () {
