@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -12,7 +11,6 @@ import type {Data, JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
@@ -20,10 +18,10 @@ import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 
 import type {Tab} from './abstractIntegrationDetailedView';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 // Show the features tab if the org has features for the integration
@@ -242,54 +240,31 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const {organization} = this.props;
     const provider = this.provider;
-    const {metadata} = provider;
-
-    const size = 'sm' as const;
-    const priority = 'primary' as const;
 
     const buttonProps = {
       style: {marginBottom: space(1)},
-      size,
-      priority,
+      size: 'sm' as const,
+      priority: 'primary' as const,
       'data-test-id': 'install-button',
       disabled: disabledFromFeatures,
-      organization,
     };
 
-    if (!userHasAccess) {
-      return this.renderRequestIntegrationButton();
-    }
-
-    if (provider.canAdd) {
-      return (
-        <AddIntegrationButton
-          provider={provider}
-          onAddIntegration={this.onInstall}
-          installStatus={this.installationStatus}
-          analyticsParams={{
-            view: 'integrations_directory_integration_detail',
-            already_installed: this.installationStatus !== 'Not Installed',
-          }}
-          {...buttonProps}
-        />
-      );
-    }
-    if (metadata.aspects.externalInstall) {
-      return (
-        <Button
-          icon={<IconOpen />}
-          href={metadata.aspects.externalInstall.url}
-          onClick={this.handleExternalInstall}
-          external
-          {...buttonProps}
-        >
-          {metadata.aspects.externalInstall.buttonText}
-        </Button>
-      );
-    }
-
-    // This should never happen but we can't return undefined without some refactoring.
-    return <Fragment />;
+    return (
+      <IntegrationButton
+        onAddIntegration={this.onInstall}
+        onExternalClick={this.handleExternalInstall}
+        organization={organization}
+        provider={provider}
+        type={this.integrationType}
+        userHasAccess={userHasAccess}
+        installStatus={this.installationStatus}
+        analyticsParams={{
+          view: 'integrations_directory_integration_detail',
+          already_installed: this.installationStatus !== 'Not Installed',
+        }}
+        buttonProps={buttonProps}
+      />
+    );
   }
 
   renderConfigurations() {

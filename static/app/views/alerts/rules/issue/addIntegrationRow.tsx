@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Access from 'sentry/components/acl/access';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
@@ -51,13 +52,10 @@ function AddIntegrationRow({
     return null;
   }
 
-  const {metadata} = provider;
-
   const buttonProps = {
     size: 'sm' as const,
     priority: 'primary' as const,
     'data-test-id': 'install-button',
-    organization,
   };
 
   return (
@@ -66,13 +64,28 @@ function AddIntegrationRow({
         <PluginIcon pluginId={providerKey} size={40} />
         <NameHeader>Connect {provider.name}</NameHeader>
       </IconTextWrapper>
-      <StyledButton
-        onAddIntegration={onClickHandler}
-        onExternalClick={onClickHandler}
-        organization={organization}
-        project={project}
-        provider={provider}
-      />
+      <Access access={['org:integrations']} organization={organization}>
+        {({hasAccess}) => {
+          return (
+            <StyledButton
+              onAddIntegration={onClickHandler}
+              onExternalClick={onClickHandler}
+              organization={organization}
+              provider={provider}
+              type="first_party"
+              userHasAccess={hasAccess}
+              installStatus="Not Installed"
+              analyticsParams={{
+                view: 'onboarding',
+                already_installed: false,
+              }}
+              externalInstallText="Add Installation"
+              modalParams={{project: project.id}}
+              buttonProps={buttonProps}
+            />
+          );
+        }}
+      </Access>
     </RowWrapper>
   );
 }

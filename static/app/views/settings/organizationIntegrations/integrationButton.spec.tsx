@@ -9,13 +9,37 @@ import type {Organization} from 'sentry/types/organization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 
 describe('AddIntegrationButton', function () {
-  let org: Organization, provider: IntegrationProvider;
+  let org: Organization,
+    provider: IntegrationProvider,
+    hasAccess: boolean,
+    externalInstallText: string | undefined;
   const project = ProjectFixture();
 
   beforeEach(function () {
     provider = GitHubIntegrationProviderFixture();
     org = OrganizationFixture();
+    hasAccess = true;
+    externalInstallText = undefined;
   });
+
+  const getComponent = () => (
+    <IntegrationButton
+      onAddIntegration={jest.fn()}
+      onExternalClick={jest.fn()}
+      organization={org}
+      provider={provider}
+      type="first_party"
+      userHasAccess={hasAccess}
+      installStatus="Not Installed"
+      analyticsParams={{
+        view: 'onboarding',
+        already_installed: false,
+      }}
+      externalInstallText={externalInstallText}
+      modalParams={{project: project.id}}
+      buttonProps={null}
+    />
+  );
 
   it('Opens the setup dialog on click', async function () {
     const focus = jest.fn();
@@ -23,16 +47,8 @@ describe('AddIntegrationButton', function () {
     // any is needed here because getSentry has different types for global
     (global as any).open = open;
 
-    render(
-      <IntegrationButton
-        onAddIntegration={jest.fn()}
-        onExternalClick={jest.fn()}
-        organization={org}
-        project={project}
-        provider={provider}
-        buttonProps={null}
-      />
-    );
+    render(getComponent());
+
     await userEvent.click(screen.getByText(/add installation/i));
     expect(open.mock.calls).toHaveLength(1);
     expect(focus.mock.calls).toHaveLength(1);
@@ -42,24 +58,15 @@ describe('AddIntegrationButton', function () {
   });
 
   it('Renders request button when user does not have access', async function () {
-    org.access = ['org:read'];
-    const newOrg = OrganizationFixture({access: ['org:read']});
+    hasAccess = false;
 
-    render(
-      <IntegrationButton
-        onAddIntegration={jest.fn()}
-        onExternalClick={jest.fn()}
-        organization={newOrg}
-        project={project}
-        provider={provider}
-        buttonProps={null}
-      />
-    );
+    render(getComponent());
 
     await userEvent.click(screen.getByText('Request Installation'));
   });
 
-  it('Handles external installations', async function () {
+  it('Handles external installations with default button text', async function () {
+    provider.canAdd = false;
     provider.metadata.aspects = {
       externalInstall: {
         url: 'https://teams.microsoft.com/l/app/',
@@ -69,18 +76,25 @@ describe('AddIntegrationButton', function () {
       },
     };
 
-    render(
-      <IntegrationButton
-        onAddIntegration={jest.fn()}
-        onExternalClick={jest.fn()}
-        organization={org}
-        project={project}
-        provider={provider}
-        buttonProps={null}
-      />
-    );
+    render(getComponent());
 
-    console.log(org.access);
-    await userEvent.click(screen.getByText(/add installation/i));
+    await userEvent.click(screen.getByText('Teams Marketplace'));
+  });
+
+  it('Handles external installations with custom button text', async function () {
+    provider.canAdd = false;
+    provider.metadata.aspects = {
+      externalInstall: {
+        url: 'https://teams.microsoft.com/l/app/',
+        buttonText: 'Teams Marketplace',
+        noticeText:
+          'Visit the Teams Marketplace to install this integration. After adding the integration to your team, you will get a welcome message in the General channel to complete installation.',
+      },
+    };
+    externalInstallText = 'Add Installation';
+
+    render(getComponent());
+
+    await userEvent.click(screen.getByText('Add Installation'));
   });
 });

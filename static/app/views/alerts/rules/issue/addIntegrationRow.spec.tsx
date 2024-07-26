@@ -71,6 +71,22 @@ describe('AddIntegrationRow', function () {
     );
   });
 
+  it('renders request buttons when user does not have access', async () => {
+    org.access = ['org:read'];
+
+    const mock1 = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/config/integrations/?provider_key=${integrationSlug}`,
+      body: {
+        providers: providers,
+      },
+    });
+
+    render(getComponent());
+
+    expect(mock1).toHaveBeenCalled();
+    await screen.findByRole('button', {name: /request installation/i});
+  });
+
   it('handles API error', async () => {
     const setHasError = jest.fn();
 

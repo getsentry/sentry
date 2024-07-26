@@ -1,82 +1,98 @@
-import Access from 'sentry/components/acl/access';
+import {Fragment} from 'react';
+
 import {Button} from 'sentry/components/button';
-import type {IntegrationProvider} from 'sentry/types/integrations';
+import {IconOpen} from 'sentry/icons';
+import type {
+  Integration,
+  IntegrationProvider,
+  IntegrationType,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
-  onAddIntegration: () => void;
+  analyticsParams: {
+    already_installed: boolean;
+    view:
+      | 'integrations_directory_integration_detail'
+      | 'integrations_directory'
+      | 'onboarding'
+      | 'project_creation';
+  };
+  buttonProps: ButtonProps;
+  installStatus: string;
+  onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;
   organization: Organization;
-  project: Project;
   provider: IntegrationProvider;
-  buttonProps: buttonProps;
+  type: IntegrationType;
+  userHasAccess: boolean;
+  externalInstallText?: string;
+  modalParams?: {[key: string]: string};
 };
 
-type buttonProps = {
-  style?;
-  size?;
-  priority?;
+type ButtonProps = {
   disabled?;
+  priority?;
+  size?;
+  style?;
 } | null;
 
 function IntegrationButton({
   onAddIntegration,
   onExternalClick,
   organization,
-  project,
   provider,
+  type,
+  userHasAccess,
+  installStatus,
+  analyticsParams,
+  externalInstallText,
+  modalParams = {},
   buttonProps,
 }: Props) {
   const {metadata} = provider;
 
-  // const buttonProps = {
-  //   size: 'sm' as const,
-  //   priority: 'primary' as const,
-  //   'data-test-id': 'install-button',
-  //   // disabled: disabledFromFeatures,
-  //   organization,
-  // };
-  return (
-    <Access access={['org:integrations']} organization={organization}>
-      {({hasAccess}) => {
-        if (!hasAccess) {
-          return (
-            <RequestIntegrationButton
-              organization={organization}
-              name={provider.name}
-              slug={provider.slug}
-              type={'sentry_app'}
-            />
-          );
-        }
-        if (metadata.aspects.externalInstall) {
-          return (
-            <Button
-              href={metadata.aspects.externalInstall.url}
-              onClick={() => onExternalClick}
-              external
-              {...buttonProps}
-            >
-              Add Installation
-            </Button>
-          );
-        }
-        return (
-          <AddIntegrationButton
-            provider={provider}
-            onAddIntegration={onAddIntegration}
-            analyticsParams={{view: 'onboarding', already_installed: false}}
-            modalParams={{projectId: project.id}}
-            organization={organization}
-            {...buttonProps}
-          />
-        );
-      }}
-    </Access>
-  );
+  if (!userHasAccess) {
+    return (
+      <RequestIntegrationButton
+        organization={organization}
+        name={provider.name}
+        slug={provider.slug}
+        type={type}
+      />
+    );
+  }
+  if (provider.canAdd) {
+    return (
+      <AddIntegrationButton
+        provider={provider}
+        onAddIntegration={onAddIntegration}
+        installStatus={installStatus}
+        analyticsParams={analyticsParams}
+        modalParams={modalParams}
+        organization={organization}
+        {...buttonProps}
+      />
+    );
+  }
+  if (metadata.aspects.externalInstall) {
+    return (
+      <Button
+        icon={externalInstallText ? null : <IconOpen />}
+        href={metadata.aspects.externalInstall.url}
+        onClick={() => onExternalClick}
+        external
+        {...buttonProps}
+      >
+        {externalInstallText
+          ? externalInstallText
+          : metadata.aspects.externalInstall.buttonText}
+      </Button>
+    );
+  }
+  return <Fragment />;
 }
 
 export default IntegrationButton;
