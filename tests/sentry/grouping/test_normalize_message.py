@@ -171,6 +171,11 @@ from sentry.testutils.helpers.options import override_options
             """[<int>,""]""",
         ),
         (
+            "Uniq ID - log messages ignored properly",
+            "Hard time limit (%ss) exceeded for %s[%s]",
+            "Hard time limit (%ss) exceeded for %s[%s]",
+        ),
+        (
             "Uniq ID - no change",
             """Blocked 'script' from 'wasm-eval:'""",
             """Blocked 'script' from 'wasm-eval:'""",

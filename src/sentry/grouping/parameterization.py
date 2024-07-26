@@ -240,11 +240,11 @@ class _UniqueId:
     def is_probably_uniq_id(token_str: str) -> bool:
         token_str = token_str.strip("\"'[]{}():;")
         if len(token_str) < _UniqueId.TOKEN_LENGTH_MINIMUM:
-            return False
-        if (
-            token_str[0] == "<" and token_str[-1] == ">"
-        ):  # Don't replace already-parameterized tokens
-            return False
+            return False  # Don't replace short tokens
+        if token_str[0] == "<" and token_str[-1] == ">":
+            return False  # Don't replace already-parameterized tokens
+        if "%s" in token_str:
+            return False  # Don't replace already-parameterized log messages
         token_length_ratio = _UniqueId.num_tokens_from_string(token_str) / len(token_str)
         if (
             len(token_str) > _UniqueId.TOKEN_LENGTH_LONG
