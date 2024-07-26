@@ -111,15 +111,6 @@ def backend():
         yield rv
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_code_locations": True,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
-    }
-)
 def test_incr_called_with_no_tags(backend, scope):
     backend.incr(key="foo", tags={"x": "y"})
     full_flush(scope)
@@ -137,15 +128,6 @@ def test_incr_called_with_no_tags(backend, scope):
     assert len(scope.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": False,
-        "delightful_metrics.enable_code_locations": True,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
-    }
-)
 def test_incr_called_with_no_tags_and_no_common_tags(backend, scope):
     backend.incr(key="foo", tags={"x": "y"})
     full_flush(scope)
@@ -163,15 +145,6 @@ def test_incr_called_with_no_tags_and_no_common_tags(backend, scope):
     assert len(scope.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_code_locations": True,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
-    }
-)
 def test_incr_called_with_tag_value_as_list(backend, scope):
     # The minimetrics backend supports the list type.
     backend.incr(key="foo", tags={"x": ["bar", "baz"]})
@@ -186,16 +159,6 @@ def test_incr_called_with_tag_value_as_list(backend, scope):
     assert len(scope.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.emit_gauges": False,
-        "delightful_metrics.enable_code_locations": True,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
-    }
-)
 def test_gauge_as_count(backend, scope):
     # The minimetrics backend supports the list type.
     backend.gauge(key="foo", value=42.0)
@@ -211,16 +174,6 @@ def test_gauge_as_count(backend, scope):
     assert len(scope.client.metrics_aggregator.buckets) == 0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.emit_gauges": True,
-        "delightful_metrics.enable_code_locations": True,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
-    }
-)
 def test_gauge(backend, scope):
     # The minimetrics backend supports the list type.
     backend.gauge(key="foo", value=42.0)
@@ -238,12 +191,7 @@ def test_gauge(backend, scope):
 
 @override_options(
     {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.enable_code_locations": True,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
     }
 )
 def test_composite_backend_does_not_recurse(scope):
@@ -280,8 +228,6 @@ def test_composite_backend_does_not_recurse(scope):
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
     }
 )
 @patch("sentry.metrics.minimetrics.sentry_sdk")
@@ -306,8 +252,6 @@ def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
     }
 )
 @patch("sentry.metrics.minimetrics.sentry_sdk")
@@ -328,9 +272,6 @@ def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.emit_gauges": True,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
     }
 )
 @patch("sentry.metrics.minimetrics.sentry_sdk")
@@ -351,8 +292,6 @@ def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit)
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.enable_span_attributes": False,
-        "delightful_metrics.minimetrics_disable_legacy": False,
     }
 )
 @patch("sentry.metrics.minimetrics.sentry_sdk")
@@ -384,15 +323,6 @@ def test_to_minimetrics_unit(unit, default, expected_result):
     assert result == expected_result
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_span_attributes": True,
-        "delightful_metrics.enable_code_locations": True,
-        "delightful_metrics.minimetrics_disable_legacy": False,
-    }
-)
 def test_span_attributes_if_there_is_no_active_span(backend, scope):
     backend.incr(key="metric_withspan", tags={"x": "bar"})
     full_flush(scope)
@@ -401,15 +331,6 @@ def test_span_attributes_if_there_is_no_active_span(backend, scope):
     assert not spans
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_span_attributes": True,
-        "delightful_metrics.enable_code_locations": True,
-        "delightful_metrics.minimetrics_disable_legacy": False,
-    }
-)
 def test_span_attribute_is_attached_if_span_exists(backend, scope):
     with scope.start_transaction():
         with scope.start_span(op="test.incr"):
