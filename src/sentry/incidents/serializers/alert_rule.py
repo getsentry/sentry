@@ -341,7 +341,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
 
     def _validate_snql_query(self, data, entity_subscription, projects):
         end = timezone.now()
-        start = end - timedelta(hours=2)
+        start = end - timedelta(minutes=10)
         try:
             query_builder = entity_subscription.build_query_builder(
                 query=data["query"],
