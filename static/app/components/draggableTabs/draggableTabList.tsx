@@ -108,14 +108,7 @@ function BaseDraggableTabList({
 
   return (
     <TabListOuterWrap style={outerWrapStyles}>
-      <Reorder.Group
-        axis="x"
-        values={tabs}
-        onReorder={newOrder => {
-          setTabs(newOrder);
-        }}
-        as="div"
-      >
+      <Reorder.Group axis="x" values={tabs} onReorder={setTabs} as="div">
         <TabListWrap
           {...tabListProps}
           orientation={orientation}
