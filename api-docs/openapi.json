@@ -117,9 +117,6 @@
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/stats/": {
       "$ref": "paths/projects/stats.json"
     },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/": {
-      "$ref": "paths/projects/user-feedback.json"
-    },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/": {
       "$ref": "paths/projects/service-hooks.json"
     },
