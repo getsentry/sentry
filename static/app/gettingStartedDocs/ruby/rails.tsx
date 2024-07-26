@@ -19,7 +19,8 @@ type Params = DocsParams;
 const getInstallSnippet = (
   params: Params
 ) => `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"
-gem "sentry-rails"`;
+gem "sentry-rails"
+bundle install`;
 
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
@@ -47,6 +48,9 @@ Sentry.init do |config|
       : ''
   }
 end`;
+
+const getVerifyRailsSnippet = () => `
+Sentry.capture_message("test message")`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -110,7 +114,26 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'ruby',
+              value: 'ruby',
+              language: 'ruby',
+              code: getVerifyRailsSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 
