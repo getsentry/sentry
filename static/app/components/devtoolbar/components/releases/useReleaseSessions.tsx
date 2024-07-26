@@ -21,7 +21,7 @@ export default function useReleaseSessions({
             queryReferrer: 'devtoolbar',
             project: [projectId],
             field: 'crash_free_rate(session)',
-            interval: '5m',
+            interval: '10m',
             statsPeriod: '24h',
             query: `release:${releaseVersion}`,
           },
