@@ -151,8 +151,7 @@ function GlobalModal({onClose}: Props) {
       escapeDeactivates: false,
       fallbackFocus: portal,
     });
-    ModalStore.setPauseFocusTrap(focusTrap.current.pause);
-    ModalStore.setUnpauseFocusTrap(focusTrap.current.unpause);
+    ModalStore.setFocusTrap(focusTrap.current);
   }, [portal]);
 
   useEffect(() => {

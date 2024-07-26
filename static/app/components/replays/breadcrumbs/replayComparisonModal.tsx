@@ -29,7 +29,7 @@ export default function ReplayComparisonModal({
 }: Props) {
   // Callbacks set by GlobalModal on-render.
   // We need these to interact with feedback opened while a modal is active.
-  const {pauseFocusTrap, unpauseFocusTrap} = useLegacyStore(ModalStore);
+  const {focusTrap} = useLegacyStore(ModalStore);
 
   return (
     <OrganizationContext.Provider value={organization}>
@@ -39,14 +39,14 @@ export default function ReplayComparisonModal({
             Hydration Error
             <FeatureBadge type="beta" />
           </h4>
-          {pauseFocusTrap && unpauseFocusTrap ? (
+          {focusTrap ? (
             <FeedbackWidgetButton
               optionOverrides={{
                 onFormOpen: () => {
-                  pauseFocusTrap();
+                  focusTrap.pause();
                 },
                 onFormClose: () => {
-                  unpauseFocusTrap();
+                  focusTrap.unpause();
                 },
               }}
             />

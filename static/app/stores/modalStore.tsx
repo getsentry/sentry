@@ -9,9 +9,8 @@ type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
 type State = {
   options: ModalOptions;
-  pauseFocusTrap: (() => FocusTrap) | null;
   renderer: Renderer | null;
-  unpauseFocusTrap: (() => FocusTrap) | null;
+  focusTrap?: FocusTrap;
 };
 
 interface ModalStoreDefinition extends StrictStoreDefinition<State> {
@@ -19,12 +18,11 @@ interface ModalStoreDefinition extends StrictStoreDefinition<State> {
   init(): void;
   openModal(renderer: Renderer, options: ModalOptions): void;
   reset(): void;
-  setPauseFocusTrap(fx: State['pauseFocusTrap'] | null): void;
-  setUnpauseFocusTrap(fx: State['unpauseFocusTrap'] | null): void;
+  setFocusTrap(focusTrap: FocusTrap): void;
 }
 
 const storeConfig: ModalStoreDefinition = {
-  state: {renderer: null, options: {}, pauseFocusTrap: null, unpauseFocusTrap: null},
+  state: {renderer: null, options: {}},
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
@@ -38,9 +36,9 @@ const storeConfig: ModalStoreDefinition = {
 
   reset() {
     this.state = {
-      ...this.state,
       renderer: null,
       options: {},
+      focusTrap: this.state.focusTrap,
     };
   },
 
@@ -50,21 +48,14 @@ const storeConfig: ModalStoreDefinition = {
   },
 
   openModal(renderer: Renderer, options: ModalOptions) {
-    this.state = {...this.state, renderer, options};
+    this.state = {renderer, options, focusTrap: this.state.focusTrap};
     this.trigger(this.state);
   },
 
-  setPauseFocusTrap(fx: State['pauseFocusTrap']) {
+  setFocusTrap(focusTrap: FocusTrap) {
     this.state = {
       ...this.state,
-      pauseFocusTrap: fx,
-    };
-  },
-
-  setUnpauseFocusTrap(fx: State['unpauseFocusTrap']) {
-    this.state = {
-      ...this.state,
-      unpauseFocusTrap: fx,
+      focusTrap,
     };
   },
 };
