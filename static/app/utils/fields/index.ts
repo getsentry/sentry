@@ -549,14 +549,14 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(
-      'The type of span action, i.e `SELECT` for a SQL span or `POST` for an HTTP span'
+      'The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP span'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.SPAN_CATEGORY]: {
     desc: t(
-      'The Insights module that the span is associated with, i.e `cache`, `db`, `http`, etc.'
+      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -589,7 +589,7 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.SPAN_OP]: {
-    desc: t('The operation of the span, i.e `http.client`, `middleware`'),
+    desc: t('The operation of the span, e.g `http.client`, `middleware`'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
