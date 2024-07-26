@@ -1570,7 +1570,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 extra={
                     "project_id": self.project.id,
                     "project_already_processed": True,
-                    "project_manually_skipped": False,
+                    "project_manually_skipped": None,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),

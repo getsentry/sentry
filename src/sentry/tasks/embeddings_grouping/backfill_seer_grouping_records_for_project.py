@@ -115,11 +115,10 @@ def backfill_seer_grouping_records_for_project(
                 "project_manually_skipped": is_project_skipped,
             },
         )
-        assert last_processed_project_index_input is not None
         call_next_backfill(
             last_processed_group_id=None,
             project_id=current_project_id,
-            last_processed_project_index=last_processed_project_index_input,
+            last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             only_delete=only_delete,
             enable_ingestion=enable_ingestion,
