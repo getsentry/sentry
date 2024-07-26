@@ -23,7 +23,6 @@ import {hasNonContributingComponent} from './utils';
 
 type Props = {
   event: Event;
-  showGroupingConfig: boolean;
   variant: EventGroupVariant;
 };
 
@@ -73,7 +72,7 @@ class GroupVariant extends Component<Props, State> {
   };
 
   getVariantData(): [VariantData, EventGroupComponent | undefined] {
-    const {event, variant, showGroupingConfig} = this.props;
+    const {event, variant} = this.props;
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
@@ -118,9 +117,6 @@ class GroupVariant extends Component<Props, State> {
             />
           </TextWithQuestionTooltip>,
         ]);
-        if (showGroupingConfig && variant.config?.id) {
-          data.push([t('Grouping Config'), variant.config.id]);
-        }
         break;
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
         data.push([
@@ -168,9 +164,6 @@ class GroupVariant extends Component<Props, State> {
           </TextWithQuestionTooltip>,
         ]);
         addFingerprintInfo(data, variant);
-        if (showGroupingConfig && variant.config?.id) {
-          data.push([t('Grouping Config'), variant.config.id]);
-        }
         break;
       case EventGroupVariantType.PERFORMANCE_PROBLEM:
         const spansToHashes = Object.fromEntries(
