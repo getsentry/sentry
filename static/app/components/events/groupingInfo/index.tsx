@@ -125,7 +125,7 @@ export function EventGroupingInfo({event, projectSlug, group}: GroupingInfoProps
             <FeatureFeedback
               featureName="grouping"
               feedbackTypes={groupingFeedbackTypes}
-              buttonProps={{size: 'xs'}}
+              buttonProps={{size: 'sm'}}
             />
           </ConfigHeader>
           {isError ? (
