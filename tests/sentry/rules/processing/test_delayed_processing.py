@@ -477,13 +477,13 @@ class GetRulesToFireTest(TestCase):
 
         # Mock passes_comparison function
         self.patcher = patch("sentry.rules.processing.delayed_processing.passes_comparison")
-        self.mockpasses_comparison = self.patcher.start()
+        self.mock_passes_comparison = self.patcher.start()
 
     def tearDown(self):
         self.patcher.stop()
 
     def test_comparison(self):
-        self.mockpasses_comparison.return_value = True
+        self.mock_passes_comparison.return_value = True
 
         result = get_rules_to_fire(
             self.condition_group_results,
@@ -495,7 +495,7 @@ class GetRulesToFireTest(TestCase):
         assert result[self.rule1] == {self.group1.id, self.group2.id}
 
     def test_comparison_fail_all(self):
-        self.mockpasses_comparison.return_value = False
+        self.mock_passes_comparison.return_value = False
 
         result = get_rules_to_fire(
             self.condition_group_results,
@@ -508,7 +508,7 @@ class GetRulesToFireTest(TestCase):
 
     def test_comparison_any(self):
         self.rule1.data["action_match"] = "any"
-        self.mockpasses_comparison.return_value = True
+        self.mock_passes_comparison.return_value = True
 
         result = get_rules_to_fire(
             self.condition_group_results,
@@ -521,7 +521,7 @@ class GetRulesToFireTest(TestCase):
 
     def test_comparison_any_fail(self):
         self.rule1.data["action_match"] = "any"
-        self.mockpasses_comparison.return_value = False
+        self.mock_passes_comparison.return_value = False
 
         result = get_rules_to_fire(
             self.condition_group_results,
