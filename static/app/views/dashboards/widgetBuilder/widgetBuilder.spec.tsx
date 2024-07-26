@@ -55,12 +55,14 @@ function renderTestComponent({
   orgFeatures,
   onSave,
   params,
+  updateDashboardSplitDecision,
 }: {
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
   params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
+  updateDashboardSplitDecision?: WidgetBuilderProps['updateDashboardSplitDecision'];
 } = {}) {
   const {organization, projects, router} = initializeOrg({
     organization: {
@@ -101,6 +103,7 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      updateDashboardSplitDecision={updateDashboardSplitDecision}
     />,
     {
       router,
@@ -1685,6 +1688,176 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
     expect(screen.getByText('Widget query condition is invalid.')).toBeInTheDocument();
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+  });
+
+  describe('discover dataset split', function () {
+    let widget, dashboard;
+    describe('events', function () {
+      beforeEach(function () {
+        widget = {
+          displayType: DisplayType.TABLE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+        };
+
+        dashboard = mockDashboard({widgets: [widget]});
+      });
+      it('selects the error discover split type as the dataset when the events request completes', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.ERRORS},
+            data: [],
+          },
+        });
+        const mockUpdateDashboardSplitDecision = jest.fn();
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.ERRORS
+        );
+      });
+
+      it('selects the transaction discover split type as the dataset when the events request completes', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.TRANSACTIONS},
+            data: [],
+          },
+        });
+        const mockUpdateDashboardSplitDecision = jest.fn();
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.TRANSACTIONS
+        );
+      });
+    });
+
+    describe('events-stats', function () {
+      beforeEach(function () {
+        widget = {
+          displayType: DisplayType.LINE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+        };
+
+        dashboard = mockDashboard({widgets: [widget]});
+      });
+      it('selects the error discover split type as the dataset when the request completes', async function () {
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.ERRORS},
+            data: [],
+          },
+        });
+        const mockUpdateDashboardSplitDecision = jest.fn();
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
+        });
+
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalled();
+        });
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.ERRORS
+        );
+      });
+
+      it('selects the transaction discover split type as the dataset when the request completes', async function () {
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.TRANSACTIONS},
+            data: [],
+          },
+        });
+        const mockUpdateDashboardSplitDecision = jest.fn();
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
+        });
+
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.TRANSACTIONS
+        );
+      });
+    });
   });
 
   describe('Widget Library', function () {

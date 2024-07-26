@@ -1,7 +1,9 @@
 import {Client} from 'sentry/api';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
+import type {Organization} from 'sentry/types';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -64,8 +66,9 @@ export type ParseResult = {
 export async function parseDashboard(
   dashboard: ImportDashboard,
   availableMetrics: MetricMeta[],
-  orgSlug: string
+  organization: Organization
 ): Promise<ParseResult> {
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const {widgets = []} = dashboard;
 
   const flatWidgets = widgets.flatMap(widget => {
@@ -78,7 +81,12 @@ export async function parseDashboard(
 
   const results = await Promise.all(
     flatWidgets.map(widget => {
-      const parser = new WidgetParser(widget, availableMetrics, orgSlug);
+      const parser = new WidgetParser(
+        widget,
+        availableMetrics,
+        organization.slug,
+        metricsNewInputs
+      );
       return parser.parse();
     })
   );
@@ -113,15 +121,18 @@ export class WidgetParser {
   private importedWidget: ImportWidget;
   private availableMetrics: MetricMeta[];
   private orgSlug: string;
+  private metricsNewInputs: boolean;
 
   constructor(
     importedWidget: ImportWidget,
     availableMetrics: MetricMeta[],
-    orgSlug: string
+    orgSlug: string,
+    metricsNewInputs: boolean
   ) {
     this.importedWidget = importedWidget;
     this.availableMetrics = availableMetrics;
     this.orgSlug = orgSlug;
+    this.metricsNewInputs = metricsNewInputs;
   }
 
   // Parsing functions
@@ -241,7 +252,7 @@ export class WidgetParser {
   private parseEquations(queries: any[], formulas: Formula[]) {
     const queryNames = queries.map(q => q.name);
     const queryNameMap = queries.reduce((acc, query, index) => {
-      acc[query.name] = getQuerySymbol(index);
+      acc[query.name] = getQuerySymbol(index, this.metricsNewInputs);
       return acc;
     }, {});
 

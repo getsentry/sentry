@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from typing import NamedTuple
 
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path

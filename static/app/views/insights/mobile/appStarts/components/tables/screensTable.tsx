@@ -64,6 +64,13 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
     'count_starts(measurements.app_start_warm)': t('Warm Start Count'),
   };
 
+  const columnTooltipMap = {
+    [`avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`]:
+      t('Average Cold Start difference'),
+    [`avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`]:
+      t('Average Warm Start difference'),
+  };
+
   function renderBodyCell(column, row): React.ReactNode {
     if (!data) {
       return null;
@@ -121,6 +128,7 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
+      columnTooltipMap={columnTooltipMap}
       data={data}
       eventView={eventView}
       isLoading={isLoading}

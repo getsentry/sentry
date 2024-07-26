@@ -23,7 +23,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor, Project} from 'sentry/types';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
+import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 
 import type {CombinedMetricIssueAlerts, MetricAlert} from '../../types';
 import {ActivationStatus, CombinedAlertType} from '../../types';
@@ -211,7 +211,7 @@ function ActivatedRuleListRow({
           </Tooltip>
         </FlexCenter>
         <MarginLeft>
-          <AlertRuleStatus rule={rule} />
+          <ActivatedMetricAlertRuleStatus rule={rule} />
         </MarginLeft>
       </FlexCenter>
       <FlexCenter>

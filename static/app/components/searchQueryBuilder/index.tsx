@@ -41,6 +41,7 @@ export interface SearchQueryBuilderProps {
    */
   searchSource: string;
   className?: string;
+  disabled?: boolean;
   /**
    * When true, free text will be marked as invalid.
    */
@@ -84,11 +85,18 @@ export interface SearchQueryBuilderProps {
   onSearch?: (query: string) => void;
   placeholder?: string;
   queryInterface?: QueryInterfaceType;
-  savedSearchType?: SavedSearchType;
+  /**
+   * If provided, saves and displays recent searches of the given type.
+   */
+  recentSearches?: SavedSearchType;
 }
 
 function ActionButtons() {
-  const {dispatch, handleSearch} = useSearchQueryBuilder();
+  const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
+
+  if (disabled) {
+    return null;
+  }
 
   return (
     <ButtonsWrapper>
@@ -108,6 +116,7 @@ function ActionButtons() {
 
 export function SearchQueryBuilder({
   className,
+  disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
   disallowUnsupportedFilters,
@@ -123,12 +132,16 @@ export function SearchQueryBuilder({
   onSearch,
   onBlur,
   placeholder,
-  searchSource,
-  savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
+  recentSearches,
+  searchSource,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const {state, dispatch} = useQueryBuilderState({initialQuery});
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+  });
 
   const parsedQuery = useMemo(
     () =>
@@ -162,7 +175,7 @@ export function SearchQueryBuilder({
 
   const handleSearch = useHandleSearch({
     parsedQuery,
-    savedSearchType,
+    recentSearches,
     searchSource,
     onSearch,
   });
@@ -172,6 +185,7 @@ export function SearchQueryBuilder({
   const contextValue = useMemo(() => {
     return {
       ...state,
+      disabled,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeys,
@@ -182,12 +196,13 @@ export function SearchQueryBuilder({
       wrapperRef,
       handleSearch,
       placeholder,
-      savedSearchType,
+      recentSearches,
       searchSource,
       size,
     };
   }, [
     state,
+    disabled,
     parsedQuery,
     filterKeySections,
     filterKeys,
@@ -195,9 +210,9 @@ export function SearchQueryBuilder({
     fieldDefinitionGetter,
     dispatch,
     onSearch,
-    placeholder,
     handleSearch,
-    savedSearchType,
+    placeholder,
+    recentSearches,
     searchSource,
     size,
   ]);
@@ -209,6 +224,7 @@ export function SearchQueryBuilder({
           className={className}
           onBlur={() => onBlur?.(state.query)}
           ref={wrapperRef}
+          aria-disabled={disabled}
         >
           {size !== 'small' && <PositionedSearchIcon size="sm" />}
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (

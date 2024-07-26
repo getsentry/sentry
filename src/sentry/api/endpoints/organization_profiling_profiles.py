@@ -63,7 +63,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        if request.GET.get("compat") != "1" or not features.has(
+        if not features.has(
             "organizations:continuous-profiling-compat", organization, actor=request.user
         ):
             params = self.get_snuba_params(request, organization)

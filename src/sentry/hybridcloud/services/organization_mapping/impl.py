@@ -134,6 +134,8 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             disable_new_visibility_features=update.disable_new_visibility_features,
             require_email_verification=update.require_email_verification,
             codecov_access=update.codecov_access,
+            disable_member_project_creation=update.disable_member_project_creation,
+            prevent_superuser_access=update.prevent_superuser_access,
         )
         if isinstance(update.customer_id, CustomerId):
             update_dict["customer_id"] = update.customer_id.value

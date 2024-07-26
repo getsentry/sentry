@@ -92,8 +92,9 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, str],
+    params: ParamsType,
     rollup: int,
+    snuba_params: SnubaParams | None = None,
     referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
@@ -104,12 +105,17 @@ def timeseries_query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
 ):
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     with sentry_sdk.start_span(op="errors", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = ErrorsTimeseriesQueryBuilder(
             Dataset.Events,
             params,
             rollup,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=columns,
             equations=equations,

@@ -12,9 +12,9 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.models.group import Group
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.project import Project
@@ -58,8 +58,9 @@ class DoNothingIntegrationModel(Model):
 
 @pytest.fixture(autouse=True)
 def batch_size_one():
-    with patch("sentry.deletions.base.ModelDeletionTask.DEFAULT_QUERY_LIMIT", new=1), patch(
-        "sentry.tasks.deletion.hybrid_cloud.get_batch_size", return_value=1
+    with (
+        patch("sentry.deletions.base.ModelDeletionTask.DEFAULT_QUERY_LIMIT", new=1),
+        patch("sentry.tasks.deletion.hybrid_cloud.get_batch_size", return_value=1),
     ):
         yield
 
@@ -392,8 +393,9 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
         assert Monitor.objects.filter(id=monitor.id).exists()
 
-        with pytest.raises(Exception) as exc, override_options(
-            {"hybrid_cloud.allow_cross_db_tombstones": False}
+        with (
+            pytest.raises(Exception) as exc,
+            override_options({"hybrid_cloud.allow_cross_db_tombstones": False}),
         ):
             with BurstTaskRunner() as burst:
                 schedule_hybrid_cloud_foreign_key_jobs()

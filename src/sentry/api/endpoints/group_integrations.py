@@ -11,14 +11,15 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
-from sentry.api.serializers import IntegrationSerializer, serialize
+from sentry.api.serializers import serialize
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs
+from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
 
 

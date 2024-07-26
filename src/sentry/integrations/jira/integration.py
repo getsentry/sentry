@@ -21,11 +21,11 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -338,7 +338,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["type"] = "select"
         return fields
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key: str) -> str:
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
