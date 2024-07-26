@@ -209,8 +209,7 @@ class HandleTriggerActionTest(TestCase):
         )
 
     def test(self):
-        suspended_registrations = TemporaryAlertRuleTriggerActionRegistry.suspend()
-        try:
+        with TemporaryAlertRuleTriggerActionRegistry.registry_patched():
             mock_handler = Mock()
             AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
                 mock_handler
@@ -235,8 +234,6 @@ class HandleTriggerActionTest(TestCase):
             mock_handler.return_value.fire.assert_called_once_with(
                 metric_value, IncidentStatus.CRITICAL, str(activity.notification_uuid)
             )
-        finally:
-            suspended_registrations.restore()
 
 
 class TestHandleSubscriptionMetricsLogger(TestCase):

@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction, _FactoryRegistry
@@ -15,3 +16,12 @@ class TemporaryAlertRuleTriggerActionRegistry:
 
     def restore(self) -> None:
         AlertRuleTriggerAction._factory_registrations = self._suspended_values
+
+    @classmethod
+    @contextmanager
+    def registry_patched(cls):
+        suspended = cls.suspend()
+        try:
+            yield
+        finally:
+            suspended.restore()
