@@ -486,7 +486,7 @@ export class TraceTree {
   vital_types: Set<'web' | 'mobile'> = new Set();
   eventsCount: number = 0;
   profiled_events: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
-  project_ids: Set<string> = new Set();
+  project_ids: Set<number> = new Set();
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
@@ -550,7 +550,7 @@ export class TraceTree {
 
       node.canFetch = true;
       tree.eventsCount += 1;
-      tree.project_ids.add(node.value.project_id.toString());
+      tree.project_ids.add(node.value.project_id);
 
       if (node.profiles.length > 0) {
         tree.profiled_events.add(node);

@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import qs from 'qs';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -49,7 +48,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
-  const location = useLocation();
+  const location = useLocation<{project: string | string[]}>();
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -61,10 +60,9 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     filterProjects(projects);
 
   const priorityProjectIds: Set<string> | null = useMemo(() => {
-    const queryParams = qs.parse(location.search);
-    const decodedProjectIds = decodeProjectIds(queryParams.project);
+    const decodedProjectIds = decodeProjectIds(location.query.project);
     return decodedProjectIds === null ? null : new Set(decodedProjectIds);
-  }, [location]);
+  }, [location.query.project]);
 
   useEffect(() => {
     if (
