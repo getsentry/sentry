@@ -643,16 +643,18 @@ def get_facets(
     per_page - The number of records to fetch.
     cursor - The number of records to skip.
     """
-    sample = len(params["project_id"]) > 2
-    fetch_projects = len(params["project_id"]) > 1
 
     if len(params) == 0 and snuba_params is not None:
         params = snuba_params.filter_params
+
+    sample = len(params["project_id"]) > 2
+    fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
             params,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],
@@ -698,6 +700,7 @@ def get_facets(
             project_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", "project_id"],
                 orderby=["-count()"],
@@ -736,6 +739,7 @@ def get_facets(
             tag_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=query,
                 selected_columns=["count()", tag],
                 orderby=["-count()"],
@@ -757,6 +761,7 @@ def get_facets(
             aggregate_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
+                snuba_params=snuba_params,
                 query=(query if query is not None else "")
                 + f" tags_key:[{','.join(aggregate_tags)}]",
                 selected_columns=["count()", "tags_key", "tags_value"],
