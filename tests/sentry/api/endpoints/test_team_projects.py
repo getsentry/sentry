@@ -241,7 +241,7 @@ class TeamProjectsCreateTest(APITestCase):
     def test_similarity_project_option_valid(self):
         """
         Test that project option for similarity grouping is created for EA organizations
-        where the project platform is python and seer eligible.
+        where the project platform is Seer-eligible.
         """
 
         self.organization.flags.early_adopter = True

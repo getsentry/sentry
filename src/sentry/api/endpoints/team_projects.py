@@ -218,11 +218,11 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             )
 
             # Create project option to turn on ML similarity feature for new EA projects
-            seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
+            is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
             if (
                 project.organization.flags
                 and project.organization.flags.early_adopter
-                and seer_eligible_platform
+                and is_seer_eligible_platform
             ):
                 project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
