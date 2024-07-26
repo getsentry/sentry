@@ -151,6 +151,7 @@ function GlobalModal({onClose}: Props) {
       escapeDeactivates: false,
       fallbackFocus: portal,
     });
+    ModalStore.setFocusTrap(focusTrap.current);
   }, [portal]);
 
   useEffect(() => {

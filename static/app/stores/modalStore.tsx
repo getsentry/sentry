@@ -1,3 +1,4 @@
+import type {FocusTrap} from 'focus-trap';
 import {createStore} from 'reflux';
 
 import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -9,6 +10,7 @@ type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 type State = {
   options: ModalOptions;
   renderer: Renderer | null;
+  focusTrap?: FocusTrap;
 };
 
 interface ModalStoreDefinition extends StrictStoreDefinition<State> {
@@ -16,6 +18,7 @@ interface ModalStoreDefinition extends StrictStoreDefinition<State> {
   init(): void;
   openModal(renderer: Renderer, options: ModalOptions): void;
   reset(): void;
+  setFocusTrap(focusTrap: FocusTrap): void;
 }
 
 const storeConfig: ModalStoreDefinition = {
@@ -35,6 +38,7 @@ const storeConfig: ModalStoreDefinition = {
     this.state = {
       renderer: null,
       options: {},
+      focusTrap: this.state.focusTrap,
     };
   },
 
@@ -44,8 +48,15 @@ const storeConfig: ModalStoreDefinition = {
   },
 
   openModal(renderer: Renderer, options: ModalOptions) {
-    this.state = {renderer, options};
+    this.state = {renderer, options, focusTrap: this.state.focusTrap};
     this.trigger(this.state);
+  },
+
+  setFocusTrap(focusTrap: FocusTrap) {
+    this.state = {
+      ...this.state,
+      focusTrap,
+    };
   },
 };
 

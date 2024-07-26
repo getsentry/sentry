@@ -14,7 +14,10 @@ export function useFeedback({
   formTitle,
   messagePlaceholder,
   tags,
-}: NonNullable<UseFeedbackOptions>) {
+}: NonNullable<UseFeedbackOptions>): {
+  feedback: FeedbackIntegration | undefined;
+  options: NonNullable<UseFeedbackOptions>;
+} {
   const config = useLegacyStore(ConfigStore);
   const {state} = useAsyncSDKIntegrationStore();
 
