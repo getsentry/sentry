@@ -502,8 +502,8 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   });
 
   const onSelectionChange = useCallback(
-    (key: Key) => {
-      const selectedOption = findItemInSections(items, key);
+    (key: Key | null) => {
+      const selectedOption = key ? findItemInSections(items, key) : null;
       if (selectedOption && 'textValue' in selectedOption && selectedOption.textValue) {
         onOptionSelected(selectedOption.textValue);
       } else if (key) {
