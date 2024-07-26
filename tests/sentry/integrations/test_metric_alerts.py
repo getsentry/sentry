@@ -214,6 +214,28 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         for _ in range(2):
             self.store_session(self.build_session(status="exited", started=self._5_min_ago))
 
+    def create_daily_incident_and_related_objects(self, field="sessions"):
+        self.daily_alert_rule = self.create_alert_rule(
+            query="",
+            aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
+            dataset=Dataset.Metrics,
+            time_window=1440,
+        )
+        self.daily_incident = self.create_incident(
+            self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=self.daily_alert_rule,
+            status=IncidentStatus.CLOSED.value,
+            date_started=self.now - timedelta(minutes=120),
+        )
+        trigger = self.create_alert_rule_trigger(self.daily_alert_rule, CRITICAL_TRIGGER_LABEL, 95)
+        self.daily_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=self.daily_incident
+        )
+        for _ in range(2):
+            self.store_session(self.build_session(status="exited", started=self._5_min_ago))
+
     def test_with_incident_trigger_sessions(self):
         self.create_incident_and_related_objects()
         data = incident_attachment_info(self.incident, IncidentStatus.CRITICAL, 92)
@@ -257,6 +279,18 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "100.0% users crash free rate in the last 60 minutes"
+        assert data["ts"] == self.date_started
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
+
+    def test_with_daily_incident_trigger_users_resolve(self):
+        self.create_daily_incident_and_related_objects(field="users")
+        data = incident_attachment_info(self.daily_incident, IncidentStatus.CLOSED)
+        assert data["title"] == f"Resolved: {self.daily_alert_rule.name}"
+        assert data["status"] == "Resolved"
+        assert data["text"] == "100.0% users crash free rate in the last 1 day"
         assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
