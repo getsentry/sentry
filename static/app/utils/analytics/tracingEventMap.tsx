@@ -6,6 +6,8 @@ export type TracingEventParameters = {
     shape: string;
     trace_duration_seconds: number;
   };
+  'trace.quality.performance_setup.checklist_triggered': {};
+  'trace.quality.performance_setup.learn_more_clicked': {};
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -82,6 +84,10 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.tab_view': 'Viewed Trace Tab',
   'trace.trace_layout.search_focus': 'Focused Trace Search',
   'trace.trace_layout.reset_zoom': 'Reset Trace Zoom',
+  'trace.quality.performance_setup.checklist_triggered':
+    'Triggered Performance Setup Checklist',
+  'trace.quality.performance_setup.learn_more_clicked':
+    'Clicked Learn More in Performance Setup Banner',
   'trace.trace_layout.view_shortcuts': 'Viewed Trace Shortcuts',
   'trace.trace_warning_type': 'Viewed Trace Warning Type',
   'trace.trace_layout.zoom_to_fill': 'Trace Zoom to Fill',
