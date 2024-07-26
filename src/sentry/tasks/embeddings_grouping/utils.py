@@ -357,7 +357,7 @@ def _make_seer_call(
     except Exception as e:
         logger.exception(
             "tasks.backfill_seer_grouping_records.seer_exception_after_retries",
-            extra={"project_id": project_id, "error": e.message},
+            extra={"project_id": project_id, "error": e},
         )
         raise
 

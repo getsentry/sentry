@@ -1560,6 +1560,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "tasks.backfill_seer_grouping_records.seer_exception_after_retries",
             extra={
                 "project_id": self.project.id,
-                "error": exception.message,
+                "error": exception,
             },
         )
