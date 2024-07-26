@@ -20,6 +20,7 @@ import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import withApi from 'sentry/utils/withApi';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import TableView from './tableView';
 
@@ -36,6 +37,7 @@ type TableProps = {
   title: string;
   dataset?: DiscoverDatasets;
   isHomepage?: boolean;
+  queryDataset?: SavedQueryDatasets;
   setSplitDecision?: (value: SavedQueryDatasets) => void;
   setTips?: (tips: string[]) => void;
 };
@@ -154,10 +156,7 @@ class Table extends PureComponent<TableProps, TableState> {
       apiPayload.field.push('timestamp');
     }
 
-    if (
-      organization.features.includes('performance-discover-dataset-selector') &&
-      eventView.id
-    ) {
+    if (hasDatasetSelector(organization) && eventView.id) {
       apiPayload.discoverSavedQueryId = eventView.id;
     }
 
@@ -253,7 +252,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, onCursor, dataset} = this.props;
+    const {eventView, onCursor, dataset, queryDataset} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -285,6 +284,7 @@ class Table extends PureComponent<TableProps, TableState> {
                       spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
                       dataset={dataset}
+                      queryDataset={queryDataset}
                     />
                   </VisuallyCompleteWithData>
                 )}

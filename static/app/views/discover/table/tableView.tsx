@@ -36,7 +36,12 @@ import {
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {type DiscoverDatasets, DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import {
+  type DiscoverDatasets,
+  DisplayModes,
+  type SavedQueryDatasets,
+  TOP_N,
+} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
@@ -46,6 +51,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
@@ -82,6 +88,7 @@ export type TableViewProps = {
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
   isHomepage?: boolean;
+  queryDataset?: SavedQueryDatasets;
   spanOperationBreakdownKeys?: string[];
 };
 
@@ -528,7 +535,8 @@ function TableView(props: TableViewProps) {
     column: TableColumn<keyof TableDataRow>
   ) {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, location, tableData, isHomepage} = props;
+      const {eventView, organization, location, tableData, isHomepage, queryDataset} =
+        props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -572,7 +580,13 @@ function TableView(props: TableViewProps) {
           });
 
           browserHistory.push(
-            normalizeUrl(nextView.getResultsViewUrlTarget(organization.slug, isHomepage))
+            normalizeUrl(
+              nextView.getResultsViewUrlTarget(
+                organization.slug,
+                isHomepage,
+                hasDatasetSelector(organization) ? queryDataset : undefined
+              )
+            )
           );
 
           return;
@@ -594,7 +608,11 @@ function TableView(props: TableViewProps) {
       }
       nextView.query = query.formatString();
 
-      const target = nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
+      const target = nextView.getResultsViewUrlTarget(
+        organization.slug,
+        isHomepage,
+        hasDatasetSelector(organization) ? queryDataset : undefined
+      );
       // Get yAxis from location
       target.query.yAxis = decodeList(location.query.yAxis);
       browserHistory.push(normalizeUrl(target));
@@ -602,7 +620,7 @@ function TableView(props: TableViewProps) {
   }
 
   function handleUpdateColumns(columns: Column[]): void {
-    const {organization, eventView, location, isHomepage} = props;
+    const {organization, eventView, location, isHomepage, queryDataset} = props;
 
     // metrics
     trackAnalytics('discover_v2.update_columns', {
@@ -612,7 +630,8 @@ function TableView(props: TableViewProps) {
     const nextView = eventView.withColumns(columns);
     const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
       organization.slug,
-      isHomepage
+      isHomepage,
+      hasDatasetSelector(organization) ? queryDataset : undefined
     );
     // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
     const previousYAxis = decodeList(location.query.yAxis);

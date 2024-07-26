@@ -38,6 +38,7 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
+  type SavedQueryDatasets,
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -1191,12 +1192,17 @@ class EventView {
 
   getResultsViewUrlTarget(
     slug: string,
-    isHomepage: boolean = false
+    isHomepage: boolean = false,
+    queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';
+    const query = this.generateQueryStringObject();
+    if (queryDataset) {
+      query.queryDataset = queryDataset;
+    }
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
-      query: this.generateQueryStringObject(),
+      query: query,
     };
   }
 
