@@ -114,7 +114,7 @@ export function fetchTagValues({
   includeTransactions?: boolean;
   projectIds?: string[];
   search?: string;
-  sort?: string;
+  sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
   const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
 
