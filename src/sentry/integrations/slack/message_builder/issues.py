@@ -228,7 +228,7 @@ class OptionGroup(TypedDict):
     options: Sequence[Mapping[str, Any]]
 
 
-def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
+def get_option_groups(group: Group) -> Sequence[OptionGroup]:
     all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
