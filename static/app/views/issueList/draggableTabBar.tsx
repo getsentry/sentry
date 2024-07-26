@@ -1,9 +1,10 @@
 import 'intersection-observer'; // polyfill
 
 import {useState} from 'react';
-import type {Key} from '@react-types/shared';
+import type {Key, Node} from '@react-types/shared';
 
 import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
+import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 
 export interface Tab {
@@ -22,9 +23,20 @@ export interface DraggableTabBarProps {
 export function DraggableTabBar(props: DraggableTabBarProps) {
   const [tabs, setTabs] = useState<Tab[]>([...props.tabs]);
 
+  const onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void = newOrder => {
+    let newTabOrder: Tab[] = [];
+    for (const node of newOrder) {
+      const foundTab = tabs.find(tab => tab.key === node.key);
+      if (foundTab) {
+        newTabOrder = [...newTabOrder, foundTab];
+      }
+    }
+    setTabs(newTabOrder);
+  };
+
   return (
     <Tabs>
-      <DraggableTabList tabs={tabs} setTabs={setTabs} orientation="horizontal">
+      <DraggableTabList onReorder={onReorder} orientation="horizontal">
         {tabs.map(tab => (
           <DraggableTabList.Item
             key={tab.key}

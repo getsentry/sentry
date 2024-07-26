@@ -15,7 +15,6 @@ import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type {Tab} from 'sentry/views/issueList/draggableTabBar';
 
 import {DraggableTab} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';
@@ -23,16 +22,13 @@ import {Item} from './item';
 
 interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
-  setTabs: (tabs: Tab[]) => void;
-  tabs: Tab[];
 }
 
 function BaseDraggableTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
-  tabs,
-  setTabs,
+  onReorder,
   ...props
 }: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -108,7 +104,12 @@ function BaseDraggableTabList({
 
   return (
     <TabListOuterWrap style={outerWrapStyles}>
-      <Reorder.Group axis="x" values={tabs} onReorder={setTabs} as="div">
+      <Reorder.Group
+        axis="x"
+        values={[...state.collection]}
+        onReorder={onReorder}
+        as="div"
+      >
         <TabListWrap
           {...tabListProps}
           orientation={orientation}
@@ -119,7 +120,7 @@ function BaseDraggableTabList({
           {[...state.collection].map(item => (
             <Reorder.Item
               key={item.key}
-              value={tabs.find(tab => tab.key === item.key)}
+              value={item}
               style={{display: 'flex', flexDirection: 'row'}}
             >
               <DraggableTab
@@ -159,8 +160,7 @@ const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nod
 export interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
-  setTabs: (tabs: Tab[]) => void;
-  tabs: Tab[];
+  onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
   className?: string;
   hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
@@ -170,12 +170,7 @@ export interface DraggableTabListProps
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DraggableTabList({
-  items,
-  tabs,
-  setTabs,
-  ...props
-}: DraggableTabListProps) {
+export function DraggableTabList({items, ...props}: DraggableTabListProps) {
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -193,13 +188,7 @@ export function DraggableTabList({
   );
 
   return (
-    <BaseDraggableTabList
-      tabs={tabs}
-      items={parsedItems}
-      disabledKeys={disabledKeys}
-      setTabs={setTabs}
-      {...props}
-    >
+    <BaseDraggableTabList items={parsedItems} disabledKeys={disabledKeys} {...props}>
       {item => <Item {...item} />}
     </BaseDraggableTabList>
   );
@@ -212,7 +201,7 @@ const TabDivider = styled('div')`
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
-  margin: 8px 4px;
+  margin: 8px auto;
 `;
 
 const TabListOuterWrap = styled('div')`
