@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from sentry import features
@@ -20,32 +20,36 @@ from sentry.utils.http import absolute_uri
 
 
 def format_actor_options(
-    actors: Iterable[Team | RpcUser], use_block_kit: bool = False
+    actors: Sequence[Team | RpcUser], is_slack: bool = False
 ) -> Sequence[Mapping[str, str]]:
     sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
-    if use_block_kit:
+    if is_slack:
         sort_func = lambda actor: actor["text"]["text"]
-    return sorted((format_actor_option(actor, use_block_kit) for actor in actors), key=sort_func)
+    return sorted((format_actor_option(actor, is_slack) for actor in actors), key=sort_func)
 
 
-def format_actor_option(actor: Team | RpcUser) -> Mapping[str, str]:
+def format_actor_option(actor: Team | RpcUser, is_slack: bool = False) -> Mapping[str, str]:
     if isinstance(actor, RpcUser):
-        return {
-            "text": {
-                "type": "plain_text",
-                "text": actor.get_display_name(),
-            },
-            "value": f"user:{actor.id}",
-        }
+        if is_slack:
+            return {
+                "text": {
+                    "type": "plain_text",
+                    "text": actor.get_display_name(),
+                },
+                "value": f"user:{actor.id}",
+            }
 
+        return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
-        return {
-            "text": {
-                "type": "plain_text",
-                "text": f"#{actor.slug}",
-            },
-            "value": f"team:{actor.id}",
-        }
+        if is_slack:
+            return {
+                "text": {
+                    "type": "plain_text",
+                    "text": f"#{actor.slug}",
+                },
+                "value": f"team:{actor.id}",
+            }
+        return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
 
 
 def build_attachment_title(obj: Group | GroupEvent) -> str:
