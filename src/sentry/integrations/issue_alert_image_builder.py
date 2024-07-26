@@ -43,7 +43,7 @@ class IssueAlertImageBuilder:
         }
         self.lock = locks.get(key=f"lock_{self.cache_key}", duration=10, name="issue_alert_image")
 
-        self.issue_type_to_image_builder: dict[GroupType, Callable[[], str | None]] = {
+        self.issue_type_to_image_builder: dict[type[GroupType], Callable[[], str | None]] = {
             PerformanceP95EndpointRegressionGroupType: self._get_endpoint_regression_image_url,
             ProfileFunctionRegressionType: self._get_function_regression_image_url,
         }
