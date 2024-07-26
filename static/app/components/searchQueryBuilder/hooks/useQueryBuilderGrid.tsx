@@ -88,8 +88,11 @@ export function useQueryBuilderGrid({
       onKeyDownCapture: noop,
       onKeyDown,
       onFocus: (e: FocusEvent) => {
-        // If this element gets focused and there is a selection, focus the SelectionKeyHandler instead
-        if (e.target === ref.current && state.selectionManager.selectedKeys.size > 0) {
+        // This element should never take focus from the SelectionKeyHandler
+        if (
+          e.target === ref.current &&
+          e.relatedTarget === selectionKeyHandlerRef.current
+        ) {
           selectionKeyHandlerRef.current?.focus();
           return;
         }
