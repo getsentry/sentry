@@ -48,10 +48,14 @@ import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-import type {WidgetQuery} from '../dashboards/types';
-import {DashboardWidgetSource, DisplayType} from '../dashboards/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  type WidgetQuery,
+  WidgetType,
+} from '../dashboards/types';
 import {transactionSummaryRouteWithQuery} from '../performance/transactionSummary/utils';
 
 import {displayModeToDisplayType, getSavedQueryDataset} from './savedQuery/utils';
@@ -730,8 +734,8 @@ export function handleAddQueryToDashboard({
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N
           : undefined,
-      widgetType: organization.features.includes('performance-discover-dataset-selector')
-        ? getWidgetDataset(dataset)
+      widgetType: hasDatasetSelector(organization)
+        ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[dataset]
         : undefined,
     },
     router,
@@ -815,8 +819,8 @@ export function constructAddQueryToDashboardLink({
       defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
-      dataset: organization.features.includes('performance-discover-dataset-selector')
-        ? getWidgetDataset(dataset)
+      dataset: hasDatasetSelector(organization)
+        ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[dataset]
         : undefined,
       limit:
         displayType === DisplayType.TOP_N
@@ -825,15 +829,8 @@ export function constructAddQueryToDashboardLink({
     },
   };
 }
-function getWidgetDataset(dataset: SavedQueryDatasets) {
-  switch (dataset) {
-    case SavedQueryDatasets.TRANSACTIONS:
-      return DataSet.TRANSACTIONS;
 
-    case SavedQueryDatasets.ERRORS:
-      return DataSet.ERRORS;
-
-    default:
-      return undefined;
-  }
-}
+export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
+  [SavedQueryDatasets.ERRORS]: WidgetType.ERRORS,
+  [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+};

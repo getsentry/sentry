@@ -17,6 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import Banner from './banner';
@@ -129,7 +130,11 @@ class ResultsHeader extends Component<Props, State> {
   renderBanner() {
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const to = eventView.getResultsViewUrlTarget(
+      organization.slug,
+      false,
+      hasDatasetSelector(organization) ? DEFAULT_EVENT_VIEW.queryDataset : undefined
+    );
     const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
     return (

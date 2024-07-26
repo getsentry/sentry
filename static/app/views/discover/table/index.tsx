@@ -20,6 +20,7 @@ import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import withApi from 'sentry/utils/withApi';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import TableView from './tableView';
 
@@ -154,10 +155,7 @@ class Table extends PureComponent<TableProps, TableState> {
       apiPayload.field.push('timestamp');
     }
 
-    if (
-      organization.features.includes('performance-discover-dataset-selector') &&
-      eventView.id
-    ) {
+    if (hasDatasetSelector(organization) && eventView.id) {
       apiPayload.discoverSavedQueryId = eventView.id;
     }
 

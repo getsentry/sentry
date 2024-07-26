@@ -68,6 +68,7 @@ import {
   getDashboardsMEPQueryParams,
   getNumEquations,
   getWidgetInterval,
+  hasDatasetSelector,
 } from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
@@ -635,7 +636,7 @@ function getEventsSeriesRequest(
     return doOnDemandMetricsRequest(api, requestData);
   }
 
-  if (organization.features.includes('performance-discover-dataset-selector')) {
+  if (hasDatasetSelector(organization)) {
     requestData.queryExtras = {
       ...requestData.queryExtras,
       ...getQueryExtraForSplittingDiscover(widget, organization, false),

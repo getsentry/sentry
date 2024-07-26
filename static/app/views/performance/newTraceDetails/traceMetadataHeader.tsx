@@ -12,8 +12,10 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import Tab from '../transactionSummary/tabs';
 
@@ -366,7 +368,13 @@ export function TraceMetadataHeader(props: TraceMetadataHeaderProps) {
         <ButtonBar gap={1}>
           <DiscoverButton
             size="sm"
-            to={props.traceEventView.getResultsViewUrlTarget(props.organization.slug)}
+            to={props.traceEventView.getResultsViewUrlTarget(
+              props.organization.slug,
+              false,
+              hasDatasetSelector(props.organization)
+                ? SavedQueryDatasets.TRANSACTIONS
+                : undefined
+            )}
             onClick={trackOpenInDiscover}
           >
             {t('Open in Discover')}

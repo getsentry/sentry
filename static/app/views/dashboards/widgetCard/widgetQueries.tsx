@@ -18,6 +18,7 @@ import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEn
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {type DashboardFilters, type Widget, WidgetType} from '../types';
 
@@ -193,7 +194,7 @@ function WidgetQueries({
     );
 
     const resultValues = Object.values(rawResults);
-    if (organization.features.includes('performance-discover-dataset-selector')) {
+    if (hasDatasetSelector(organization)) {
       let splitDecision: WidgetType | undefined = undefined;
       if (rawResults.meta) {
         splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
@@ -228,7 +229,7 @@ function WidgetQueries({
     );
 
     if (
-      organization.features.includes('performance-discover-dataset-selector') &&
+      hasDatasetSelector(organization) &&
       [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
         rawResults?.meta?.discoverSplitDecision
       )

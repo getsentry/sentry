@@ -6,6 +6,7 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
@@ -18,6 +19,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export function isQuickTraceEvent(
@@ -109,7 +111,11 @@ export function generateMultiTransactionsTarget(
     start,
     end,
   });
-  return traceEventView.getResultsViewUrlTarget(organization.slug);
+  return traceEventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+  );
 }
 
 const timestampsFieldCandidates = [
@@ -167,5 +173,9 @@ export function generateTraceTarget(
     version: 2,
     ...dateSelection,
   });
-  return eventView.getResultsViewUrlTarget(organization.slug);
+  return eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+  );
 }

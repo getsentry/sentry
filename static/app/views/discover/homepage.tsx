@@ -15,6 +15,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {Results} from './results';
@@ -120,7 +121,7 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
   setSavedQuery = (newSavedQuery?: SavedQuery) => {
     const {organization} = this.props;
     this.setState({
-      savedQuery: organization.features.includes('performance-discover-dataset-selector')
+      savedQuery: hasDatasetSelector(organization)
         ? (getSavedQueryWithDataset(newSavedQuery) as SavedQuery)
         : newSavedQuery,
     });

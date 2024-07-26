@@ -7,6 +7,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {DataSet} from '../utils';
 
@@ -37,13 +38,13 @@ export function DataSetStep({
 
   const datasetChoices = new Map<string, string>();
 
-  if (organization.features.includes('performance-discover-dataset-selector')) {
+  if (hasDatasetSelector(organization)) {
     // TODO: Finalize description copy
     datasetChoices.set(DataSet.ERRORS, t('Errors (TypeError, InvalidSearchQuery, etc)'));
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
   }
 
-  if (!organization.features.includes('performance-discover-dataset-selector')) {
+  if (!hasDatasetSelector(organization)) {
     datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
   }
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));

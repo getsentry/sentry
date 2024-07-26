@@ -33,6 +33,7 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
 } from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -112,6 +113,11 @@ export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.METRICS]: WidgetType.METRICS,
   [DataSet.ERRORS]: WidgetType.ERRORS,
   [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+};
+
+export const WIDGET_TYPE_TO_SAVED_QUERY_DATASET = {
+  [WidgetType.ERRORS]: SavedQueryDatasets.ERRORS,
+  [WidgetType.TRANSACTIONS]: SavedQueryDatasets.TRANSACTIONS,
 };
 
 interface RouteParams {

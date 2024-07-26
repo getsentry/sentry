@@ -25,7 +25,7 @@ const getTagTarget = (
   eventView: EventView,
   organization: Organization
 ) => {
-  const url = eventView.getResultsViewUrlTarget(organization.slug, false);
+  const url = eventView.getResultsViewUrlTarget(organization.slug);
   url.query = generateQueryWithTag(url.query, {
     key: formatTagKey(tagKey),
     value: tagValue,

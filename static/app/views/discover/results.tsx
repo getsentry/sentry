@@ -57,6 +57,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   DATASET_LABEL_MAP,
   DatasetSelector,
@@ -325,11 +326,8 @@ export class Results extends Component<Props, State> {
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
 
-    const hasDatasetSelector = organization.features.includes(
-      'performance-discover-dataset-selector'
-    );
     const value = getSavedQueryDataset(location, savedQuery, splitDecision);
-    const defaultEventView = hasDatasetSelector
+    const defaultEventView = hasDatasetSelector(organization)
       ? DEFAULT_EVENT_VIEW_MAP[value]
       : DEFAULT_EVENT_VIEW;
 
@@ -579,7 +577,7 @@ export class Results extends Component<Props, State> {
   renderForcedDatasetBanner() {
     const {organization, savedQuery} = this.props;
     if (
-      organization.features.includes('performance-discover-dataset-selector') &&
+      hasDatasetSelector(organization) &&
       this.state.showForcedDatasetAlert &&
       (this.state.splitDecision || savedQuery?.datasetSource === DatasetSource.FORCED)
     ) {
@@ -871,10 +869,7 @@ class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
     const {organization} = this.props;
     const {savedQuery, loading} = this.state;
     let savedQueryWithDataset = savedQuery;
-    if (
-      organization.features.includes('performance-discover-dataset-selector') &&
-      savedQuery
-    ) {
+    if (hasDatasetSelector(organization) && savedQuery) {
       savedQueryWithDataset = getSavedQueryWithDataset(savedQuery) as SavedQuery;
     }
     return (

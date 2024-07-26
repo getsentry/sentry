@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {DisplayType} from './types';
@@ -122,7 +123,7 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
   const items = useMemo(() => {
     const menuItems: MenuItemProps[] = [];
 
-    if (organization.features.includes('performance-discover-dataset-selector')) {
+    if (hasDatasetSelector(organization)) {
       menuItems.push({
         key: DataSet.ERRORS,
         label: t('Errors'),
