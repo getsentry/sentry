@@ -350,6 +350,23 @@ function Sidebar() {
     </Feature>
   );
 
+  const mobileVitals = hasOrganization && (
+    <Feature
+      key="mobile-vitals"
+      features={['insights-entry-points']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES['mobile-vitals']}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-vitals')}/`}
+        id="performance-mobile-vitals"
+        icon={<SubitemDot collapsed />}
+        isAlpha
+      />
+    </Feature>
+  );
+
   const resources = hasOrganization && (
     <Feature key="resource" features="insights-entry-points">
       <SidebarItem
@@ -564,6 +581,7 @@ function Sidebar() {
         {caches}
         {queues}
         {mobileUI}
+        {mobileVitals}
         {llmMonitoring}
       </SidebarAccordion>
     </Feature>

@@ -111,6 +111,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   resource: t('Resource'),
   other: t('Action'),
   'mobile-ui': t('Action'),
+  'mobile-vitals': t('Action'),
   ai: 'Action',
   '': t('Action'),
 };

@@ -30,7 +30,11 @@ type Query = {
   transaction: string;
 };
 
-function ScreenSummary() {
+type Props = {
+  showHeader: boolean | undefined;
+};
+
+export function ScreenSummary({showHeader}: Props) {
   const location = useLocation<Query>();
   const router = useRouter();
 
@@ -47,19 +51,21 @@ function ScreenSummary() {
   return (
     <Layout.Page>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
-            />
-            <Layout.Title>{transactionName}</Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
+        {showHeader && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  ...crumbs,
+                  {
+                    label: t('Screen Summary'),
+                  },
+                ]}
+              />
+              <Layout.Title>{transactionName}</Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
+        )}
 
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -120,7 +126,7 @@ function PageWithProviders() {
       pageTitle={t('Screen Summary')}
       features={['insights-addon-modules', 'starfish-mobile-ui-module']}
     >
-      <ScreenSummary />
+      <ScreenSummary showHeader />
     </ModulePageProviders>
   );
 }

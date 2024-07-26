@@ -48,9 +48,13 @@ import {
   MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screenload/settings';
 import {
-  MODULE_DOC_LINK as MODULE_MODULE_DOC_LINK,
+  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/ui/settings';
+import {
+  MODULE_DOC_LINK as MODULE_VITALS_DOC_LINK,
+  MODULE_TITLE as MOBILE_VITALS_MODULE_TITLE,
+} from 'sentry/views/insights/mobile/vitals/settings';
 import {
   DATA_TYPE as QUEUE_DATA_TYPE,
   DATA_TYPE_PLURAL as QUEUE_DATA_TYPE_PLURAL,
@@ -75,6 +79,7 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_MODULE_TITLE,
   [ModuleName.AI]: AI_MODULE_TITLE,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
+  [ModuleName.MOBILE_VITALS]: MOBILE_VITALS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
 };
@@ -90,6 +95,7 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE,
   [ModuleName.AI]: AI_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
+  [ModuleName.MOBILE_VITALS]: t('Mobile Vitals'),
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
 };
@@ -105,6 +111,7 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE_PLURAL,
   [ModuleName.AI]: AI_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
+  [ModuleName.MOBILE_VITALS]: t('Mobile Vitals'),
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
 };
@@ -119,7 +126,8 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.VITAL]: VITALS_MODULE_DOC_LINK,
   [ModuleName.RESOURCE]: RESOURCES_MODULE_DOC_LINK,
   [ModuleName.AI]: AI_MODULE_DOC_LINK,
-  [ModuleName.MOBILE_UI]: MODULE_MODULE_DOC_LINK,
+  [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
+  [ModuleName.MOBILE_VITALS]: MODULE_VITALS_DOC_LINK,
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
 };

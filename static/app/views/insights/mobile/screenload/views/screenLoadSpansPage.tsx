@@ -51,7 +51,11 @@ type Query = {
   spanDescription?: string;
 };
 
-function ScreenLoadSpans() {
+type Props = {
+  showHeader: boolean | undefined;
+};
+
+export function ScreenLoadSpans({showHeader}: Props) {
   const location = useLocation<Query>();
   const organization = useOrganization();
   const router = useRouter();
@@ -70,28 +74,30 @@ function ScreenLoadSpans() {
   return (
     <Layout.Page>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
-            />
-            <HeaderWrapper>
-              <Layout.Title>{transactionName}</Layout.Title>
-              {organization.features.includes('insights-initial-modules') &&
-                isProjectCrossPlatform && <PlatformSelector />}
-            </HeaderWrapper>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+        {showHeader && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  ...crumbs,
+                  {
+                    label: t('Screen Summary'),
+                  },
+                ]}
+              />
+              <HeaderWrapper>
+                <Layout.Title>{transactionName}</Layout.Title>
+                {organization.features.includes('insights-initial-modules') &&
+                  isProjectCrossPlatform && <PlatformSelector />}
+              </HeaderWrapper>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
@@ -216,7 +222,7 @@ function PageWithProviders() {
       pageTitle={t('Screen Summary')}
       features="insights-initial-modules"
     >
-      <ScreenLoadSpans />
+      <ScreenLoadSpans showHeader />
     </ModulePageProviders>
   );
 }

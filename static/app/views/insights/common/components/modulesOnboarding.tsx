@@ -289,6 +289,14 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
+  // Mobile vitals is not released yet
+  'mobile-vitals': {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
   cache: {
     heading: t('Bringing you one less hard problem in computer science'),
     description: t(
