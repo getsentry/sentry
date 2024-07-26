@@ -66,7 +66,7 @@ class ProjectMetricsUsageEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project, span_attribute: str) -> Response:
         """
-        Retrieve the metric usage inside the organization TODO
+        Retrieve the metrics usage inside the organization based on the span attribute extraction rule.
         """
 
         span_extraction_rule_config = get_object_or_404(
