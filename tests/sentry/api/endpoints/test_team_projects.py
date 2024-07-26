@@ -3,6 +3,7 @@ from unittest.mock import Mock
 from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
@@ -64,6 +65,14 @@ class TeamProjectsCreateTest(APITestCase):
         assert project.slug == "bar"
         assert project.platform == "python"
         assert project.teams.first() == self.team
+
+        # Assert project option is not set for non-EA organizations
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is None
+        )
 
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
@@ -228,3 +237,61 @@ class TeamProjectsCreateTest(APITestCase):
         }
         assert javascript_filter_states["web-crawlers"]
         assert javascript_filter_states["filtered-transaction"]
+
+    def test_similarity_project_option_valid(self):
+        """
+        Test that project option for similarity grouping is created for EA organizations
+        where the project platform is Seer-eligible.
+        """
+
+        self.organization.flags.early_adopter = True
+        self.organization.save()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "python"
+        assert project.teams.first() == self.team
+
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is not None
+        )
+
+    def test_similarity_project_option_invalid(self):
+        """
+        Test that project option for similarity grouping is not created for EA organizations
+        where the project platform is not seer eligible.
+        """
+
+        self.organization.flags.early_adopter = True
+        self.organization.save()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="foo",
+            slug="bar",
+            platform="php",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "php"
+        assert project.teams.first() == self.team
+
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is None
+        )
