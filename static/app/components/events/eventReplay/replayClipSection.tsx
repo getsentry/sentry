@@ -70,7 +70,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
       <Fragment>
         <div>
           {t(
-            'There are %s with this issue.',
+            'There are %s for this issue.',
             tn('%s replay', '%s replays', replayCount ?? 0)
           )}
         </div>
