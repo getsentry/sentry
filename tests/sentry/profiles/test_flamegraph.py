@@ -1,6 +1,7 @@
 from datetime import timedelta, timezone
 
 from sentry.profiles.flamegraph import get_profiles_with_function
+from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -69,12 +70,12 @@ class GetProfileWithFunctionTest(ProfilesSnubaTestCase):
             self.organization.id,
             self.project.id,
             self.function_fingerprint({"package": "foo", "function": "foo"}),
-            {
-                "organization_id": self.organization.id,
-                "project_id": [self.project.id],
-                "start": before_now(days=1),
-                "end": self.now,
-            },
+            SnubaParams(
+                organization=self.organization,
+                projects=[self.project],
+                start=before_now(days=1),
+                end=self.now,
+            ),
             "",
         )
         assert len(profile_ids["profile_ids"]) == 4, profile_ids
@@ -84,12 +85,12 @@ class GetProfileWithFunctionTest(ProfilesSnubaTestCase):
             self.organization.id,
             self.project.id,
             self.function_fingerprint({"package": "foo", "function": "foo"}),
-            {
-                "organization_id": self.organization.id,
-                "project_id": [self.project.id],
-                "start": before_now(days=1),
-                "end": self.now,
-            },
+            SnubaParams(
+                organization=self.organization,
+                projects=[self.project],
+                start=before_now(days=1),
+                end=self.now,
+            ),
             "transaction:foobar",
         )
         assert len(profile_ids["profile_ids"]) == 1, profile_ids
@@ -99,12 +100,12 @@ class GetProfileWithFunctionTest(ProfilesSnubaTestCase):
             self.organization.id,
             self.project.id,
             self.function_fingerprint({"package": "foo", "function": "foo"}),
-            {
-                "organization_id": self.organization.id,
-                "project_id": [self.project.id],
-                "start": before_now(days=1),
-                "end": self.now,
-            },
+            SnubaParams(
+                organization=self.organization,
+                projects=[self.project],
+                start=before_now(days=1),
+                end=self.now,
+            ),
             "transaction:foo",
         )
         assert len(profile_ids["profile_ids"]) == 0, profile_ids
