@@ -1,5 +1,3 @@
-from sentry.integrations.api.endpoints.codeowners.external_actor_team_details import (
-    ExternalTeamDetailsEndpoint,
-)
+from sentry.integrations.api.endpoints.external_team_details import ExternalTeamDetailsEndpoint
 
 __all__ = ("ExternalTeamDetailsEndpoint",)

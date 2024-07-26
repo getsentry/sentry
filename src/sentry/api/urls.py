@@ -19,6 +19,8 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
+from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
@@ -112,63 +114,55 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredIndexEndpoint,
     TeamAlertsTriggeredTotalsEndpoint,
 )
-from sentry.integrations.api.endpoints.codeowners import (
-    ExternalTeamDetailsEndpoint,
-    ExternalTeamEndpoint,
-    ExternalUserDetailsEndpoint,
-    ExternalUserEndpoint,
-)
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from sentry.integrations.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
 from sentry.integrations.api.endpoints.doc_integrations_index import DocIntegrationsEndpoint
+from sentry.integrations.api.endpoints.external_team_details import ExternalTeamDetailsEndpoint
+from sentry.integrations.api.endpoints.external_team_index import ExternalTeamEndpoint
+from sentry.integrations.api.endpoints.external_user_details import ExternalUserDetailsEndpoint
+from sentry.integrations.api.endpoints.external_user_index import ExternalUserEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.integrations.api.endpoints.integration_proxy import InternalIntegrationProxyEndpoint
-from sentry.integrations.api.endpoints.organization.organization_code_mapping_codeowners import (
+from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_code_mapping_details import (
+from sentry.integrations.api.endpoints.organization_code_mapping_details import (
     OrganizationCodeMappingDetailsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_code_mappings import (
+from sentry.integrations.api.endpoints.organization_code_mappings import (
     OrganizationCodeMappingsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_config_integrations import (
+from sentry.integrations.api.endpoints.organization_config_integrations import (
     OrganizationConfigIntegrationsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_integration_details import (
+from sentry.integrations.api.endpoints.organization_integration_details import (
     OrganizationIntegrationDetailsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_integration_issues import (
+from sentry.integrations.api.endpoints.organization_integration_issues import (
     OrganizationIntegrationIssuesEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_integration_migrate_opsgenie import (
+from sentry.integrations.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_integration_repos import (
+from sentry.integrations.api.endpoints.organization_integration_repos import (
     OrganizationIntegrationReposEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_integration_request import (
+from sentry.integrations.api.endpoints.organization_integration_request import (
     OrganizationIntegrationRequestEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_integration_serverless_functions import (
+from sentry.integrations.api.endpoints.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_integrations_index import (
+from sentry.integrations.api.endpoints.organization_integrations_index import (
     OrganizationIntegrationsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_plugins_configs import (
-    OrganizationPluginsConfigsEndpoint,
-)
-from sentry.integrations.api.endpoints.organization.organization_plugins_index import (
-    OrganizationPluginsEndpoint,
-)
-from sentry.integrations.api.endpoints.organization.organization_repositories import (
+from sentry.integrations.api.endpoints.organization_repositories import (
     OrganizationRepositoriesEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_repository_commits import (
+from sentry.integrations.api.endpoints.organization_repository_commits import (
     OrganizationRepositoryCommitsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization.organization_repository_details import (
+from sentry.integrations.api.endpoints.organization_repository_details import (
     OrganizationRepositoryDetailsEndpoint,
 )
 from sentry.issues.endpoints import (

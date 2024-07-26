@@ -1,4 +1,4 @@
-from sentry.integrations.api.endpoints.organization.organization_code_mapping_codeowners import (
+from sentry.integrations.api.endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
 
