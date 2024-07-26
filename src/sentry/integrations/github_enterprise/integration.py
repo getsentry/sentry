@@ -32,7 +32,7 @@ from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubEnterpriseAppsClient
+from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
@@ -141,7 +141,7 @@ class GitHubEnterpriseIntegration(
             raise IntegrationError("Organization Integration does not exist")
 
         base_url = self.model.metadata["domain_name"].split("/")[0]
-        return GitHubEnterpriseAppsClient(
+        return GitHubEnterpriseApiClient(
             base_url=base_url,
             integration=self.model,
             private_key=self.model.metadata["installation"]["private_key"],
