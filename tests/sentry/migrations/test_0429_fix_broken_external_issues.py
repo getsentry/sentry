@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.testutils.cases import TestMigrations
 
 

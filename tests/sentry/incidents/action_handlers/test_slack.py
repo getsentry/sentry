@@ -75,7 +75,8 @@ class SlackActionHandlerTest(FireTest):
         )
         self.alert_rule = self.create_alert_rule()
 
-    def run_test(self, incident, method, chart_url=None):
+    def run_test(self, incident, method, **kwargs):
+        chart_url = kwargs.get("chart_url")
         handler = SlackActionHandler(self.action, incident, self.project)
         metric_value = 1000
         status = IncidentStatus(incident.status)

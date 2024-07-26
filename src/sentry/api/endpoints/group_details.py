@@ -26,6 +26,7 @@ from sentry.api.serializers.models.platformexternalissue import PlatformExternal
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
@@ -37,7 +38,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
@@ -104,23 +104,27 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     @staticmethod
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
-        get_range = functools.partial(
-            tsdb.backend.get_range,
-            environment_ids=environment_ids,
-            tenant_ids={"organization_id": group.project.organization_id},
-        )
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.backend.rollup(
-            get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
+            tsdb.backend.get_range(
+                model=model,
+                keys=[group.id],
+                end=now,
+                start=now - timedelta(days=1),
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
+            ),
             3600,
         )[group.id]
         daily_stats = tsdb.backend.rollup(
-            get_range(
+            tsdb.backend.get_range(
                 model=model,
                 keys=[group.id],
                 end=now,
                 start=now - timedelta(days=30),
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
             ),
             3600 * 24,
         )[group.id]

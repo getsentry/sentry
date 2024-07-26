@@ -24,6 +24,7 @@ import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {getPrismLanguage} from 'sentry/utils/prism';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -173,7 +174,13 @@ function CauseSuggestedFix({
   return (
     <SuggestedFixWrapper>
       <SuggestedFixHeader>
-        <strong>{t('Suggested Fix #%s: %s', fixNumber, suggestedFix.title)}</strong>
+        <strong
+          dangerouslySetInnerHTML={{
+            __html: singleLineRenderer(
+              t('Suggested Fix #%s: %s', fixNumber, suggestedFix.title)
+            ),
+          }}
+        />
         <Button
           size="xs"
           onClick={() => handleSelectFix({causeId, fixId: suggestedFix.id})}
@@ -185,7 +192,11 @@ function CauseSuggestedFix({
           {t('Continue With This Fix')}
         </Button>
       </SuggestedFixHeader>
-      <p>{suggestedFix.description}</p>
+      <p
+        dangerouslySetInnerHTML={{
+          __html: marked(suggestedFix.description),
+        }}
+      />
       {suggestedFix.snippet && <SuggestedFixSnippet snippet={suggestedFix.snippet} />}
     </SuggestedFixWrapper>
   );
@@ -208,7 +219,11 @@ function CauseOption({
     <RootCauseOption selected={selected} onClick={() => setSelectedId(cause.id)}>
       {!selected && <InteractionStateLayer />}
       <RootCauseOptionHeader>
-        <Title>{cause.title}</Title>
+        <Title
+          dangerouslySetInnerHTML={{
+            __html: singleLineRenderer(cause.title),
+          }}
+        />
         <Button
           icon={<IconChevron size="xs" direction={selected ? 'down' : 'right'} />}
           aria-label={t('Select root cause')}
@@ -218,7 +233,11 @@ function CauseOption({
         />
       </RootCauseOptionHeader>
       <RootCauseContent selected={selected}>
-        <CauseDescription>{cause.description}</CauseDescription>
+        <CauseDescription
+          dangerouslySetInnerHTML={{
+            __html: marked(cause.description),
+          }}
+        />
         {cause.suggested_fixes?.map((fix, index) => (
           <CauseSuggestedFix
             causeId={cause.id}
@@ -243,13 +262,29 @@ function SelectedRootCauseOption({
 }) {
   return (
     <RootCauseOption selected>
-      <Title>{t('Selected Cause: %s', selectedCause.title)}</Title>
-      <CauseDescription>{selectedCause.description}</CauseDescription>
+      <Title
+        dangerouslySetInnerHTML={{
+          __html: singleLineRenderer(t('Selected Cause: %s', selectedCause.title)),
+        }}
+      />
+      <CauseDescription
+        dangerouslySetInnerHTML={{
+          __html: marked(selectedCause.description),
+        }}
+      />
       <SuggestedFixWrapper>
         <SuggestedFixHeader>
-          <strong>{t('Selected Fix: %s', selectedFix.title)}</strong>
+          <strong
+            dangerouslySetInnerHTML={{
+              __html: singleLineRenderer(t('Selected Fix: %s', selectedFix.title)),
+            }}
+          />
         </SuggestedFixHeader>
-        <p>{selectedFix.description}</p>
+        <p
+          dangerouslySetInnerHTML={{
+            __html: marked(selectedFix.description),
+          }}
+        />
         {selectedFix.snippet && <SuggestedFixSnippet snippet={selectedFix.snippet} />}
       </SuggestedFixWrapper>
     </RootCauseOption>
@@ -352,14 +387,30 @@ function AutofixRootCauseDisplay({
           <AutofixShowMore title={t('Show unselected causes')}>
             {otherCauses.map(cause => (
               <RootCauseOption selected key={cause.id}>
-                <Title>{t('Cause: %s', cause.title)}</Title>
-                <CauseDescription>{cause.description}</CauseDescription>
+                <Title
+                  dangerouslySetInnerHTML={{
+                    __html: singleLineRenderer(t('Cause: %s', cause.title)),
+                  }}
+                />
+                <CauseDescription
+                  dangerouslySetInnerHTML={{
+                    __html: marked(cause.description),
+                  }}
+                />
                 {cause.suggested_fixes?.map(fix => (
                   <SuggestedFixWrapper key={fix.id}>
                     <SuggestedFixHeader>
-                      <strong>{t('Fix: %s', fix.title)}</strong>
+                      <strong
+                        dangerouslySetInnerHTML={{
+                          __html: singleLineRenderer(t('Fix: %s', fix.title)),
+                        }}
+                      />
                     </SuggestedFixHeader>
-                    <p>{fix.description}</p>
+                    <p
+                      dangerouslySetInnerHTML={{
+                        __html: marked(fix.description),
+                      }}
+                    />
                     {fix.snippet && <SuggestedFixSnippet snippet={fix.snippet} />}
                   </SuggestedFixWrapper>
                 ))}

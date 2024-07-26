@@ -15,10 +15,11 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -73,14 +74,16 @@ function DestinationSummaryPage() {
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <HeaderContainer>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+                </ToolRibbon>
 
                 {!onboardingProject && (
-                  <Ribbon>
+                  <ReadoutRibbon>
                     <MetricReadout
                       title={t('Avg Time In Queue')}
                       value={data[0]?.['avg(messaging.message.receive.latency)']}
@@ -120,7 +123,7 @@ function DestinationSummaryPage() {
                       )}
                       isLoading={isLoading}
                     />
-                  </Ribbon>
+                  </ReadoutRibbon>
                 )}
               </HeaderContainer>
             </ModuleLayout.Full>
@@ -177,9 +180,4 @@ const Flex = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;

@@ -333,7 +333,6 @@ module = [
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.middleware.superuser",
-    "sentry.models.integrations.external_issue",
     "sentry.models.integrations.sentry_app_installation",
     "sentry.models.organizationaccessrequest",
     "sentry.monitors.consumers.monitor_consumer",

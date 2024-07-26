@@ -2,7 +2,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer, register
-from sentry.models.integrations.integration_feature import IntegrationFeature
+from sentry.integrations.models.integration_feature import IntegrationFeature
 from sentry.models.user import User
 
 

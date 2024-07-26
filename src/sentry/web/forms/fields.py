@@ -30,14 +30,13 @@ class CustomTypedChoiceField(TypedChoiceField):
 
 class UserField(CharField):
     class widget(TextInput):
-        def render(self, name, value, attrs=None):
+        def render(self, name, value, attrs=None, renderer=None):
             if not attrs:
                 attrs = {}
-            if "placeholder" not in attrs:
-                attrs["placeholder"] = "username"
+            attrs.setdefault("placeholder", "username")
             if isinstance(value, int):
                 value = User.objects.get(id=value).username
-            return super().render(name, value, attrs)
+            return super().render(name, value, attrs=attrs, renderer=renderer)
 
     def clean(self, value):
         value = super().clean(value)
@@ -50,7 +49,7 @@ class UserField(CharField):
 
 
 class ReadOnlyTextWidget(Widget):
-    def render(self, name, value, attrs):
+    def render(self, name, value, attrs=None, renderer=None):
         final_attrs = self.build_attrs(attrs)
         if not value:
             value = mark_safe("<em>%s</em>" % _("Not set"))

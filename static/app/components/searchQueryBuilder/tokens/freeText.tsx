@@ -21,9 +21,11 @@ import type {
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
+import {recentSearchTypeToLabel} from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
   type ParseResultToken,
+  parseSearch,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -285,7 +287,10 @@ function shouldHideInvalidTooltip({
   }
 }
 
-function InvalidText({
+// Because the text input may be larger than the actual text, we use a hidden div
+// with the same text content to measure the width of the text. This is used for
+// centering the invalid tooltip, as well as for placing the selection background.
+function HiddenText({
   token,
   state,
   item,
@@ -298,9 +303,6 @@ function InvalidText({
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FREE_TEXT>;
 }) {
-  // Because the text input may be larger than the actual text, we use a div
-  // with the same text contents to determine where the tooltip should be
-  // positioned.
   return (
     <PositionedTooltip
       state={state}
@@ -311,7 +313,9 @@ function InvalidText({
       }
       skipWrapper={false}
     >
-      <InvisibleText aria-hidden>{inputValue}</InvisibleText>
+      <InvisibleText aria-hidden data-hidden-text>
+        {inputValue}
+      </InvisibleText>
     </PositionedTooltip>
   );
 }
@@ -351,7 +355,7 @@ function SearchQueryBuilderInputInternal({
     handleSearch,
     placeholder,
     searchSource,
-    savedSearchType,
+    recentSearches,
   } = useSearchQueryBuilder();
 
   const items = useSortItems({filterValue});
@@ -437,6 +441,13 @@ function SearchQueryBuilderInputInternal({
 
   return (
     <Fragment>
+      <HiddenText
+        token={token}
+        state={state}
+        item={item}
+        inputValue={inputValue}
+        isOpen={isOpen}
+      />
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={items}
@@ -457,7 +468,7 @@ function SearchQueryBuilderInputInternal({
           const selectedKey = filterKeys[value];
           trackAnalytics('search.key_autocompleted', {
             organization,
-            search_type: savedSearchType === 0 ? 'issues' : 'events',
+            search_type: recentSearchTypeToLabel(recentSearches),
             search_source: searchSource,
             item_name: value,
             item_kind: selectedKey?.kind ?? FieldKind.FIELD,
@@ -489,7 +500,16 @@ function SearchQueryBuilderInputInternal({
         token={token}
         inputLabel={t('Add a search term')}
         onInputChange={e => {
-          if (e.target.value.includes('(') || e.target.value.includes(')')) {
+          // Parse text to see if this keystroke would have created any tokens.
+          // Add a trailing quote in case the user wants to wrap with quotes.
+          const parsedText = parseSearch(e.target.value + '"');
+
+          if (
+            parsedText?.some(
+              textToken =>
+                textToken.type === Token.L_PAREN || textToken.type === Token.R_PAREN
+            )
+          ) {
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
@@ -500,14 +520,36 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (e.target.value.includes(':')) {
+          if (
+            parsedText?.some(
+              textToken =>
+                textToken.type === Token.FILTER && textToken.key.text === filterValue
+            )
+          ) {
+            const filterKey = filterValue;
+            const key = filterKeys[filterKey];
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
-              text: e.target.value,
+              text: replaceFocusedWordWithFilter(
+                inputValue,
+                selectionIndex,
+                filterKey,
+                getFieldDefinition
+              ),
               focusOverride: calculateNextFocusForFilter(state),
             });
             resetInputValue();
+            trackAnalytics('search.key_manually_typed', {
+              organization,
+              search_type: recentSearchTypeToLabel(recentSearches),
+              search_source: searchSource,
+              item_name: filterKey,
+              item_kind: key?.kind ?? FieldKind.FIELD,
+              item_value_type:
+                getFieldDefinition(filterKey)?.valueType ?? FieldValueType.STRING,
+              new_experience: true,
+            });
             return;
           }
 
@@ -545,13 +587,6 @@ function SearchQueryBuilderInputInternal({
           )
         }
       </SearchQueryBuilderCombobox>
-      <InvalidText
-        token={token}
-        state={state}
-        item={item}
-        inputValue={inputValue}
-        isOpen={isOpen}
-      />
     </Fragment>
   );
 }
@@ -609,7 +644,7 @@ const Row = styled('div')`
   }
 
   &[aria-selected='true'] {
-    &::before {
+    [data-hidden-text='true']::before {
       content: '';
       position: absolute;
       left: ${space(0.5)};
@@ -667,15 +702,14 @@ const Details = styled('dd')``;
 
 const PositionedTooltip = styled(InvalidTokenTooltip)`
   position: absolute;
-  z-index: -1;
   top: 0;
   left: 0;
   height: 100%;
 `;
 
 const InvisibleText = styled('div')`
+  position: relative;
   color: transparent;
-  visibility: hidden;
   padding: 0 ${space(0.5)};
   min-width: 9px;
   height: 100%;

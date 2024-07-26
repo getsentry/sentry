@@ -12,8 +12,8 @@ from sentry.api.serializers import serialize
 from sentry.integrations.api.serializers.rest_framework.doc_integration import (
     DocIntegrationSerializer,
 )
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 
 logger = logging.getLogger(__name__)
 

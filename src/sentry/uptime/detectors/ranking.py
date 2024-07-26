@@ -9,7 +9,9 @@ from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry.constants import UPTIME_AUTODETECTION
-from sentry.utils import redis
+from sentry.uptime.models import get_active_monitor_count_for_org
+from sentry.uptime.subscriptions.subscriptions import MAX_SUBSCRIPTIONS_PER_ORG
+from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -63,6 +65,7 @@ def add_base_url_to_rank(project: Project, base_url: str):
         pipeline.zremrangebyrank(rank_key, 0, -(RANKED_MAX_SIZE + 1))
     project_incr_result = pipeline.execute()[0]
     if project_incr_result == 1:
+        metrics.incr("uptime.detectors.added_project")
         pipeline = cluster.pipeline()
         # Avoid adding the org to this set constantly, and instead just do it once per project
         bucket_key = get_organization_bucket_key(project.organization)
@@ -164,6 +167,9 @@ def delete_organization_bucket(bucket: datetime) -> None:
 
 def should_detect_for_organization(organization: Organization) -> bool:
     if not organization.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION):
+        return False
+
+    if get_active_monitor_count_for_org(organization) >= MAX_SUBSCRIPTIONS_PER_ORG:
         return False
     return True
 

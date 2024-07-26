@@ -36,11 +36,6 @@ seer_grouping_connection_pool = connection_from_url(
     timeout=settings.SEER_GROUPING_TIMEOUT,
 )
 
-seer_similarity_circuit_breaker = CircuitBreaker(
-    SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
-    options.get("seer.similarity.circuit-breaker-config"),
-)
-
 
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
@@ -106,6 +101,11 @@ def get_similarity_data_from_seer(
         )
         return []
 
+    circuit_breaker = CircuitBreaker(
+        SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
+        options.get("seer.similarity.circuit-breaker-config"),
+    )
+
     try:
         response = make_signed_seer_api_request(
             seer_grouping_connection_pool,
@@ -122,7 +122,7 @@ def get_similarity_data_from_seer(
             sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
-        seer_similarity_circuit_breaker.record_error()
+        circuit_breaker.record_error()
         return []
 
     metric_tags["response_status"] = response.status
@@ -150,7 +150,7 @@ def get_similarity_data_from_seer(
         )
 
         if response.status >= 500:
-            seer_similarity_circuit_breaker.record_error()
+            circuit_breaker.record_error()
 
         return []
 

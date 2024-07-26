@@ -8,8 +8,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 
 

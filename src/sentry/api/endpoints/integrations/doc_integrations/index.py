@@ -14,7 +14,7 @@ from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.integrations.api.serializers.rest_framework.doc_integration import (
     DocIntegrationSerializer,
 )
-from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.integrations.models.doc_integration import DocIntegration
 
 logger = logging.getLogger(__name__)
 
