@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
@@ -5,8 +6,14 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {
+  PageAlert,
+  PageAlertProvider,
+  usePageAlert,
+} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
+import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelector';
 
 import {DataSet} from '../utils';
 
@@ -17,6 +24,7 @@ interface Props {
   displayType: DisplayType;
   hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
+  splitDecision?: WidgetType;
 }
 
 export function DataSetStep({
@@ -24,9 +32,22 @@ export function DataSetStep({
   onChange,
   hasReleaseHealthFeature,
   displayType,
+  splitDecision,
 }: Props) {
+  const {setPageWarning} = usePageAlert();
   const organization = useOrganization();
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
+
+  useEffect(() => {
+    if (splitDecision) {
+      setPageWarning(
+        tct(
+          "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
+          {splitDecision: DATASET_LABEL_MAP[splitDecision]}
+        )
+      );
+    }
+  }, [setPageWarning, splitDecision]);
 
   if (displayType !== DisplayType.TABLE) {
     disabledChoices.push([
@@ -64,6 +85,7 @@ export function DataSetStep({
         }
       )}
     >
+      <PageAlert />
       <DataSetChoices
         label="dataSet"
         value={dataSet}
@@ -75,6 +97,26 @@ export function DataSetStep({
         orientInline
       />
     </BuildStep>
+  );
+}
+
+export default function WrappedDataSetStep({
+  dataSet,
+  onChange,
+  hasReleaseHealthFeature,
+  displayType,
+  splitDecision,
+}: Props) {
+  return (
+    <PageAlertProvider>
+      <DataSetStep
+        dataSet={dataSet}
+        onChange={onChange}
+        hasReleaseHealthFeature={hasReleaseHealthFeature}
+        displayType={displayType}
+        splitDecision={splitDecision}
+      />
+    </PageAlertProvider>
   );
 }
 

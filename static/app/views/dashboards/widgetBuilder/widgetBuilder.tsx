@@ -70,7 +70,7 @@ import {
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
-import {DataSetStep} from './buildSteps/dataSetStep';
+import DataSetStep from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
 import {SortByStep} from './buildSteps/sortByStep';
@@ -296,6 +296,8 @@ function WidgetBuilder({
   const [latestLibrarySelectionTitle, setLatestLibrarySelectionTitle] = useState<
     string | null
   >(null);
+
+  const [splitDecision, setSplitDecision] = useState<WidgetType | undefined>(undefined);
 
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.opened', {
@@ -1011,16 +1013,17 @@ function WidgetBuilder({
     });
   }
 
-  function handleUpdateWidgetSplitDecision(splitDecision: WidgetType) {
+  function handleUpdateWidgetSplitDecision(decision: WidgetType) {
     setState(prevState => {
-      return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[splitDecision]};
+      return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[decision]};
     });
 
     if (currentWidget.id) {
       // Update the dashboard state with the split decision, in case
       // the user cancels editing the widget after the decision was made
-      updateDashboardSplitDecision?.(currentWidget.id, splitDecision);
+      updateDashboardSplitDecision?.(currentWidget.id, decision);
     }
+    setSplitDecision(decision);
   }
 
   function isFormInvalid() {
@@ -1180,6 +1183,7 @@ function WidgetBuilder({
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}
+                                    splitDecision={splitDecision}
                                   />
                                   {isTabularChart && (
                                     <DashboardsMEPConsumer>
