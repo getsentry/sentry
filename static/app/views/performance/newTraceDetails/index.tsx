@@ -936,7 +936,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   return (
     <Fragment>
-      <PerformanceSetupWarning tree={tree} traceSlug={props.traceSlug} />
+      <PerformanceSetupWarning
+        tree={tree}
+        traceSlug={props.traceSlug}
+        organization={organization}
+      />
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceResetZoomButton

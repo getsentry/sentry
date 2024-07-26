@@ -15,14 +15,17 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useProjects from 'sentry/utils/useProjects';
 
+import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
 import {TraceType} from '../traceType';
 
 type OnlyOrphanErrorWarningsProps = {
+  organization: Organization;
   traceSlug: string | undefined;
   tree: TraceTree;
 };
@@ -45,7 +48,11 @@ function filterProjects(projects: Project[], tree: TraceTree) {
   return {projectsWithNoPerformance, projectsWithOnboardingChecklist};
 }
 
-export function PerformanceSetupWarning({traceSlug, tree}: OnlyOrphanErrorWarningsProps) {
+export function PerformanceSetupWarning({
+  traceSlug,
+  tree,
+  organization,
+}: OnlyOrphanErrorWarningsProps) {
   const {projects} = useProjects();
 
   const {projectsWithNoPerformance, projectsWithOnboardingChecklist} = useMemo(() => {
@@ -117,6 +124,7 @@ export function PerformanceSetupWarning({traceSlug, tree}: OnlyOrphanErrorWarnin
               priority="primary"
               onClick={event => {
                 event.preventDefault();
+                traceAnalytics.trackPerformanceSetupChecklistTriggered(organization);
                 browserHistory.replace({
                   pathname: location.pathname,
                   query: {
@@ -132,7 +140,13 @@ export function PerformanceSetupWarning({traceSlug, tree}: OnlyOrphanErrorWarnin
             </Button>
           </ActionButton>
           <ActionButton>
-            <Button href="https://docs.sentry.io/product/performance/" external>
+            <Button
+              onClick={() =>
+                traceAnalytics.trackPerformanceSetupLearnMoreClicked(organization)
+              }
+              href="https://docs.sentry.io/product/performance/"
+              external
+            >
               {t('Learn More')}
             </Button>
           </ActionButton>
