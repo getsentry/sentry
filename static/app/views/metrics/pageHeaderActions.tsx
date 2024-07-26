@@ -116,6 +116,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
             mri: widget.mri,
             groupBy: widget.groupBy,
             aggregation: widget.aggregation,
+            condition: widget.condition,
           });
           return {
             leadingItems: showQuerySymbols
