@@ -458,6 +458,7 @@ def process_delayed_alert_conditions() -> None:
 def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     project = fetch_project(project_id)
     if not project:
+        # Should we remove the project_id from the redis queue?
         return
 
     rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
@@ -474,6 +475,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 "organization_id": project.organization_id,
             },
         )
+        # TODO @saponifi3d - Split the processing from here into smaller groups
         return
 
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
