@@ -76,13 +76,13 @@ class SlackOptionsLoadEndpoint(Endpoint):
         if filtered_teams:
             team_options_group: OptionGroup = {
                 "label": {"type": "plain_text", "text": "Teams"},
-                "options": format_actor_options(filtered_teams),
+                "options": format_actor_options(filtered_teams, True),
             }
             option_groups.append(team_options_group)
         if filtered_members:
             member_options_group: OptionGroup = {
                 "label": {"type": "plain_text", "text": "People"},
-                "options": format_actor_options(filtered_members),
+                "options": format_actor_options(filtered_members, True),
             }
             option_groups.append(member_options_group)
         return option_groups

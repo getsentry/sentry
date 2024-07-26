@@ -237,14 +237,14 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     if teams:
         team_option_group: OptionGroup = {
             "label": {"type": "plain_text", "text": "Teams"},
-            "options": format_actor_options(teams),
+            "options": format_actor_options(teams, True),
         }
         option_groups.append(team_option_group)
 
     if members:
         member_option_group: OptionGroup = {
             "label": {"type": "plain_text", "text": "People"},
-            "options": format_actor_options(members),
+            "options": format_actor_options(members, True),
         }
         option_groups.append(member_option_group)
     return option_groups
@@ -388,7 +388,7 @@ def build_actions(
             name="assign",
             label="Select Assignee...",
             type="select",
-            selected_options=format_actor_options([assignee]) if assignee else [],
+            selected_options=format_actor_options([assignee], True) if assignee else [],
             option_groups=get_option_groups(group),
         )
         return assign_button
@@ -615,7 +615,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             elif action.name == "assign":
                 actions.append(
                     self.get_external_select_action(
-                        action, format_actor_option(assignee) if assignee else None
+                        action, format_actor_option(assignee, True) if assignee else None
                     )
                 )
 
