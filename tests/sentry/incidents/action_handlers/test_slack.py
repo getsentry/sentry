@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
 
 from sentry.constants import ObjectStatus
@@ -17,12 +18,28 @@ from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 from . import FireTest
 
 
 @freeze_time()
 class SlackActionHandlerTest(FireTest):
+    @pytest.fixture(autouse=True)
+    def mock_chat_postEphemeral(self):
+        with mock_slack_response(
+            "chat_scheduleMessage",
+            body={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
+        ) as self.mock_schedule:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_unfurl(self):
+        with mock_slack_response(
+            "chat_deleteScheduledMessage", body={"ok": True}
+        ) as self.mock_delete:
+            yield
+
     @responses.activate
     def setUp(self):
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -58,7 +75,8 @@ class SlackActionHandlerTest(FireTest):
         )
         self.alert_rule = self.create_alert_rule()
 
-    def run_test(self, incident, method, chart_url=None):
+    def run_test(self, incident, method, **kwargs):
+        chart_url = kwargs.get("chart_url")
         handler = SlackActionHandler(self.action, incident, self.project)
         metric_value = 1000
         status = IncidentStatus(incident.status)

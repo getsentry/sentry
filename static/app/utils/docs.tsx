@@ -70,7 +70,7 @@ export function getConfigurePerformanceDocsLink(
   const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
   return docsPlatform === null
     ? null // this platform does not support performance
-    : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
+    : `https://docs.sentry.io/platforms/${docsPlatform}/tracing/`;
 }
 
 export function getConfigureIntegrationsDocsLink(

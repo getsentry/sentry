@@ -6,12 +6,17 @@ from typing import Any
 
 from slack_sdk.errors import SlackApiError
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.slack.metrics import (
+    SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC,
+    SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.utils import metrics
 
 from ..utils import logger
 
@@ -62,12 +67,14 @@ def get_slack_user_list(
             if kwargs
             else sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
         )
+        metrics.incr(SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
 
         for page in users_list:
             users: dict[str, Any] = page.get("members")
 
             yield users
     except SlackApiError as e:
+        metrics.incr(SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC, sample_rate=1.0)
         logger.info(
             "slack.post_install.get_users.error",
             extra={

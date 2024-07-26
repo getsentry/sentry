@@ -1,5 +1,5 @@
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.utils.providers import get_provider_string
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import APITestCase
 
 

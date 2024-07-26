@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -27,11 +27,13 @@ import {
 import {useCreateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 interface Props {
+  initialData?: Partial<FormData>;
   projectId?: string | number;
 }
 
 const INITIAL_DATA: FormData = {
   spanAttribute: null,
+  unit: 'none',
   aggregates: ['count'],
   tags: ['release', 'environment'],
   conditions: [createCondition()],
@@ -42,10 +44,18 @@ export function MetricsExtractionRuleCreateModal({
   Body,
   closeModal,
   CloseButton,
+  initialData: initalDataProp = {},
   projectId: projectIdProp,
 }: Props & ModalRenderProps) {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+
+  const initialData = useMemo(() => {
+    return {
+      ...INITIAL_DATA,
+      ...initalDataProp,
+    };
+  }, [initalDataProp]);
 
   const initialProjectId = useMemo(() => {
     if (projectIdProp) {
@@ -99,7 +109,7 @@ export function MetricsExtractionRuleCreateModal({
   return (
     <Fragment>
       <Header>
-        <h4>{t('Configure Metric')}</h4>
+        <h4>{t('Create Metric')}</h4>
       </Header>
       <CloseButton />
       <Body>
@@ -112,10 +122,17 @@ export function MetricsExtractionRuleCreateModal({
               options={projectOptions}
               value={projectId}
               onChange={({value}) => setProjectId(value)}
+              stacked={false}
             />
           </ProjectSelectionWrapper>
         ) : null}
-        {projectId ? <FormWrapper projectId={projectId} closeModal={closeModal} /> : null}
+        {projectId ? (
+          <FormWrapper
+            initialData={initialData}
+            projectId={projectId}
+            closeModal={closeModal}
+          />
+        ) : null}
       </Body>
     </Fragment>
   );
@@ -124,8 +141,10 @@ export function MetricsExtractionRuleCreateModal({
 function FormWrapper({
   closeModal,
   projectId,
+  initialData,
 }: {
   closeModal: () => void;
+  initialData: FormData;
   projectId: string | number;
 }) {
   const organization = useOrganization();
@@ -134,7 +153,7 @@ function FormWrapper({
     projectId
   );
 
-  const {data: cardinality} = useMetricsCardinality({
+  const {data: cardinality} = useCardinalityLimitedMetricVolume({
     projects: [projectId],
   });
 
@@ -148,7 +167,7 @@ function FormWrapper({
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
-        unit: 'none',
+        unit: data.unit,
         conditions: data.conditions,
         projectId: Number(projectId),
         // Will be set by the backend
@@ -182,23 +201,23 @@ function FormWrapper({
   );
   return (
     <MetricsExtractionRuleForm
-      initialData={INITIAL_DATA}
+      initialData={initialData}
       projectId={projectId}
       submitLabel={t('Add Metric')}
       cancelLabel={t('Cancel')}
       onCancel={closeModal}
       onSubmit={handleSubmit}
       cardinality={cardinality}
-      requireChanges
+      submitDisabled={createExtractionRuleMutation.isLoading}
     />
   );
 }
 
 const ProjectSelectionWrapper = styled('div')`
   padding-bottom: ${space(2)};
-  padding-left: ${space(2)};
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  & > label {
+    color: ${p => p.theme.gray300};
   }
 `;
 

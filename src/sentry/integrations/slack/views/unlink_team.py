@@ -8,6 +8,8 @@ from django.utils.decorators import method_decorator
 from sentry.api.helpers.teams import is_team_admin
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_UNLINK_TEAM_FAILURE_DATADOG_METRIC,
@@ -15,8 +17,6 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.views.types import TeamUnlinkRequest
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
@@ -24,6 +24,7 @@ from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import is_valid_role
+from . import SALT
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
@@ -70,7 +71,7 @@ class SlackUnlinkTeamView(BaseView):
             return HttpResponse(status=405)
 
         try:
-            converted = unsign(signed_params)
+            converted = unsign(signed_params, salt=SALT)
             unlink_team_request = TeamUnlinkRequest(**converted)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("dispatch.signature_error", exc_info=e)

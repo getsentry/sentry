@@ -78,6 +78,7 @@ def timeseries_query(
     params: ParamsType,
     rollup: int,
     referrer: str = "",
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     comparison_delta: datetime | None = None,
     functions_acl: list[str] | None = None,
@@ -87,9 +88,14 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
 ) -> Any:
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     builder = ProfileFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
         params=params,
+        snuba_params=snuba_params,
         query=query,
         interval=rollup,
         selected_columns=selected_columns,
@@ -107,7 +113,7 @@ def timeseries_query(
                 params["start"],
                 params["end"],
                 rollup,
-                "time",
+                ["time"],
             )
             if zerofill_results
             else results["data"],
@@ -133,6 +139,7 @@ def top_events_timeseries(
     rollup,
     limit,
     organization,
+    snuba_params=None,
     equations=None,
     referrer=None,
     top_events=None,
@@ -152,6 +159,7 @@ def top_events_timeseries(
                 selected_columns,
                 query=user_query,
                 params=params,
+                snuba_params=snuba_params,
                 equations=equations,
                 orderby=orderby,
                 limit=limit,
@@ -163,6 +171,7 @@ def top_events_timeseries(
     top_functions_builder = ProfileTopFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
         params=params,
+        snuba_params=snuba_params,
         interval=rollup,
         top_events=top_events["data"],
         other=False,
@@ -186,6 +195,7 @@ def top_events_timeseries(
         top_functions_builder,
         params,
         rollup,
+        snuba_params=snuba_params,
         top_events=top_events,
         allow_empty=allow_empty,
         zerofill_results=zerofill_results,
@@ -198,6 +208,7 @@ def format_top_events_timeseries_results(
     query_builder,
     params,
     rollup,
+    snuba_params=None,
     top_events=None,
     allow_empty=True,
     zerofill_results=True,
@@ -206,10 +217,14 @@ def format_top_events_timeseries_results(
     if top_events is None:
         assert top_events, "Need to provide top events"  # TODO: support this use case
 
+    if snuba_params is not None and len(params) == 0:
+        # Compatibility so its easier to convert to SnubaParams
+        params = snuba_params.filter_params
+
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
             {
-                "data": zerofill([], params["start"], params["end"], rollup, "time")
+                "data": zerofill([], params["start"], params["end"], rollup, ["time"])
                 if zerofill_results
                 else [],
             },
@@ -248,7 +263,7 @@ def format_top_events_timeseries_results(
         return {
             key: SnubaTSResult(
                 {
-                    "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    "data": zerofill(item["data"], params["start"], params["end"], rollup, ["time"])
                     if zerofill_results
                     else item["data"],
                     "order": item["order"],

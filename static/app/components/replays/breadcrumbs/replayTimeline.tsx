@@ -40,7 +40,6 @@ export default function ReplayTimeline() {
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getStartTimestampMs();
   const chapterFrames = replay.getChapterFrames();
-  const appFrames = replay.getAppFrames();
 
   // timeline is in the middle
   const initialTranslate = 0.5 / timelineScale;
@@ -74,9 +73,8 @@ export default function ReplayTimeline() {
         {organization.features.includes('session-replay-timeline-gap') ? (
           <TimelineGaps
             durationMs={durationMs}
-            frames={appFrames}
-            totalFrames={chapterFrames.length}
-            width={width}
+            startTimestampMs={startTimestampMs}
+            frames={chapterFrames}
           />
         ) : null}
         <TimelineEventsContainer>

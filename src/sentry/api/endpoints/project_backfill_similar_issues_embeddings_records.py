@@ -31,17 +31,23 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
 
         # needs to either be a superuser or be in single org mode
 
-        last_processed_index = None
+        last_processed_id = None
         only_delete = False
-        if request.data.get("last_processed_index"):
-            last_processed_index = int(request.data["last_processed_index"])
+        enable_ingestion = False
+
+        if request.data.get("last_processed_id"):
+            last_processed_id = int(request.data["last_processed_id"])
 
         if request.data.get("only_delete"):
             only_delete = True
 
+        if request.data.get("enable_ingestion"):
+            enable_ingestion = request.data["enable_ingestion"] == "true"
+
         backfill_seer_grouping_records_for_project.delay(
             current_project_id=project.id,
-            last_processed_group_index_input=last_processed_index,
+            last_processed_group_id_input=last_processed_id,
             only_delete=only_delete,
+            enable_ingestion=enable_ingestion,
         )
         return Response(status=204)

@@ -11,7 +11,7 @@ INVALID_SPAN_ID = (
     "`{}` must be a valid 16 character hex (containing only digits, or a-f characters)"
 )
 
-HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{16}$")
+HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{1,16}$")
 
 
 def normalize_event_id(value):

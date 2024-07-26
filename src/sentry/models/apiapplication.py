@@ -75,11 +75,11 @@ class ApiApplication(Model):
     def __str__(self):
         return self.name
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         with outbox_context(transaction.atomic(router.db_for_write(ApiApplication)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
-            return super().delete(**kwargs)
+            return super().delete(*args, **kwargs)
 
     def outboxes_for_update(self) -> list[ControlOutbox]:
         return [

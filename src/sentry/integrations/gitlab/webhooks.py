@@ -31,6 +31,7 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 logger = logging.getLogger("sentry.webhooks")
 
 PROVIDER_NAME = "integrations:gitlab"
+GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
 
 
 class Webhook:
@@ -296,19 +297,12 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             },
         }
 
-        try:
-            if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
-                # Summary and potential workaround mentioned here:
-                # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
-                # This forces a stack trace to be produced
-                raise Exception("The webhook secrets do not match.")
-        except Exception:
+        if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
+            # Summary and potential workaround mentioned here:
+            # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
+            extra["reason"] = GITHUB_WEBHOOK_SECRET_INVALID_ERROR
             logger.info("gitlab.webhook.invalid-token-secret", extra=extra)
-            extra[
-                "reason"
-            ] = "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
-            logger.exception(extra["reason"])
-            return HttpResponse(status=409, reason=extra["reason"])
+            return HttpResponse(status=409, reason=GITHUB_WEBHOOK_SECRET_INVALID_ERROR)
 
         try:
             event = orjson.loads(request.body)

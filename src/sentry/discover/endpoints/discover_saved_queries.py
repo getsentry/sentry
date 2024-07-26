@@ -14,7 +14,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.search.utils import tokenize_query
 
 
@@ -135,6 +135,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
+        user_selected_dataset = (
+            features.has(
+                "organizations:performance-discover-dataset-selector",
+                organization,
+                actor=request.user,
+            )
+            and data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
+        )
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,
@@ -142,6 +150,11 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             query=data["query"],
             version=data["version"],
             dataset=data["query_dataset"],
+            dataset_source=(
+                DatasetSourcesTypes.USER.value
+                if user_selected_dataset
+                else DatasetSourcesTypes.UNKNOWN.value
+            ),
             created_by_id=request.user.id if request.user.is_authenticated else None,
         )
 

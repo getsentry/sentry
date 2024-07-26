@@ -1,12 +1,12 @@
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.integration import serialize_provider
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 
 
 @register(RepositoryProjectPathConfig)
 class RepositoryProjectPathConfigSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         integration = None
         if obj.organization_integration_id:
             integration = integration_service.get_integration(

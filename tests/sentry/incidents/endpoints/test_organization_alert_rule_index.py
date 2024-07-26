@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import timedelta
 from functools import cached_property
 from unittest.mock import patch
 
@@ -7,13 +8,19 @@ import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
 from rest_framework import status
+from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.serializers import serialize
+from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -23,6 +30,7 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
+from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
@@ -33,7 +41,8 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.factories import EventType
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -206,6 +215,99 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.description == resp.data.get("description")
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert(self, mock_seer_request):
+        data = {
+            **self.alert_rule_dict,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+        }
+        mock_seer_request.return_value = HTTPResponse(status=200)
+        day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "super duper bad",
+                    "timestamp": iso_format(day_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "super bad",
+                    "timestamp": iso_format(day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.seasonality == resp.data.get("seasonality")
+        assert alert_rule.sensitivity == resp.data.get("sensitivity")
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.store_data.logger")
+    def test_anomaly_detection_alert_seer_timeout_max_retry(self, mock_logger, mock_seer_request):
+        data = {
+            **self.alert_rule_dict,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+        }
+        mock_seer_request.side_effect = TimeoutError
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert mock_logger.warning.call_count == 1
+        assert resp.data["detail"] == "Timeout error when hitting Seer store data endpoint"
+        assert mock_seer_request.call_count == 1
+
+        mock_seer_request.reset_mock()
+        mock_logger.reset_mock()
+
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert mock_logger.warning.call_count == 1
+        assert resp.data["detail"] == "Timeout error when hitting Seer store data endpoint"
+        assert mock_seer_request.call_count == 1
 
     def test_monitor_type_with_condition(self):
         data = {
@@ -734,7 +836,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         side_effect=[
             SlackChannelIdData("#", "10", False),
             SlackChannelIdData("#", "10", False),

@@ -225,9 +225,30 @@ export enum AggregationKey {
   LAST_SEEN = 'last_seen',
 }
 
+export enum IsFieldValues {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+  ARCHIVED = 'archived',
+  ESCALATING = 'escalating',
+  NEW = 'new',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  ASSIGNED = 'assigned',
+  UNASSIGNED = 'unassigned',
+  FOR_REVIEW = 'for_review',
+  LINKED = 'linked',
+  UNLINKED = 'unlinked',
+}
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
+  /**
+   * Allow all comparison operators to be used with this field.
+   * Useful for fields like `release.version` which accepts text, but
+   * can also be used with operators like `>=` or `<`.
+   */
+  allowComparisonOperators?: boolean;
   /**
    * Is this field being deprecated
    */
@@ -847,21 +868,25 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_STAGE]: {
     desc: t('Stage of usage (i.e., adopted, replaced, low)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.REPLAY_ID]: {
     desc: t('The ID of an associated Session Replay'),
@@ -1046,7 +1071,6 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
 };
 
-//
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
   FieldKey.ASSIGNED_OR_SUGGESTED,

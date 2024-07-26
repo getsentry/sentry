@@ -8,6 +8,8 @@ export type Row = {
   'p75(measurements.inp)': number;
   'p75(measurements.lcp)': number;
   'p75(measurements.ttfb)': number;
+  project: string;
+  'project.id': number;
   transaction: string;
 };
 

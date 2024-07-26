@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
+from drf_spectacular.utils import extend_schema_serializer
+
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project, VersionInfo
 
 
@@ -20,9 +22,14 @@ class _Links(TypedDict):
     regionUrl: str
 
 
+class OrganizationSerializerResponseOptional(TypedDict, total=False):
+    features: list[str]  # Only included if include_feature_flags is True
+
+
 # Moved from serializers/models/organization.py to avoid a circular import between project and
 # organization serializers
-class OrganizationSerializerResponse(TypedDict):
+@extend_schema_serializer(exclude_fields=["requireEmailVerification"])
+class OrganizationSerializerResponse(OrganizationSerializerResponseOptional):
     id: str
     slug: str
     status: _Status
@@ -32,7 +39,6 @@ class OrganizationSerializerResponse(TypedDict):
     require2FA: bool
     requireEmailVerification: bool
     avatar: SerializedAvatarFields
-    features: list[str]
     links: _Links
     hasAuthProvider: bool
 

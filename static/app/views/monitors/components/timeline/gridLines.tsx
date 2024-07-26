@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {DateTime} from 'sentry/components/dateTime';

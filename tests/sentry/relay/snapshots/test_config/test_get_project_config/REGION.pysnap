@@ -1,5 +1,5 @@
 ---
-created: '2024-06-26T15:19:54.439402+00:00'
+created: '2024-07-19T07:45:13.262472+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -80,12 +80,6 @@ config:
       - hoholikik.club
       - smartlink.cool
       - promfflinkdev.com
-    errorMessages:
-      patterns:
-      - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
-      - '*https://react.dev/errors/{418,419,422,423,425}*'
-      - 'ChunkLoadError: Loading chunk *'
-      - '*Uncaught *: ChunkLoadError: Loading chunk *'
     ignoreTransactions:
       isEnabled: true
       patterns:
@@ -150,22 +144,22 @@ config:
       name: Chrome
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 900.0
         p50: 1600.0
         weight: 0.15
       - measurement: lcp
-        optional: false
+        optional: true
         p10: 1200.0
         p50: 2400.0
         weight: 0.3
       - measurement: cls
-        optional: false
+        optional: true
         p10: 0.1
         p50: 0.25
         weight: 0.15
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 200.0
         p50: 400.0
         weight: 0.1
@@ -176,7 +170,7 @@ config:
       name: Firefox
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 900.0
         p50: 1600.0
         weight: 0.15
@@ -191,7 +185,7 @@ config:
         p50: 0.25
         weight: 0.0
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 200.0
         p50: 400.0
         weight: 0.1
@@ -202,7 +196,7 @@ config:
       name: Safari
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 900.0
         p50: 1600.0
         weight: 0.15
@@ -217,7 +211,7 @@ config:
         p50: 0.25
         weight: 0.0
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 200.0
         p50: 400.0
         weight: 0.1
@@ -228,22 +222,22 @@ config:
       name: Edge
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 900.0
         p50: 1600.0
         weight: 0.15
       - measurement: lcp
-        optional: false
+        optional: true
         p10: 1200.0
         p50: 2400.0
         weight: 0.3
       - measurement: cls
-        optional: false
+        optional: true
         p10: 0.1
         p50: 0.25
         weight: 0.15
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 200.0
         p50: 400.0
         weight: 0.1
@@ -254,22 +248,22 @@ config:
       name: Opera
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 900.0
         p50: 1600.0
         weight: 0.15
       - measurement: lcp
-        optional: false
+        optional: true
         p10: 1200.0
         p50: 2400.0
         weight: 0.3
       - measurement: cls
-        optional: false
+        optional: true
         p10: 0.1
         p50: 0.25
         weight: 0.15
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 200.0
         p50: 400.0
         weight: 0.1
@@ -318,22 +312,22 @@ config:
       name: Chrome Mobile
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 1800.0
         p50: 3000.0
         weight: 0.15
       - measurement: lcp
-        optional: false
+        optional: true
         p10: 2500.0
         p50: 4000.0
         weight: 0.3
       - measurement: cls
-        optional: false
+        optional: true
         p10: 0.1
         p50: 0.25
         weight: 0.15
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 800.0
         p50: 1800.0
         weight: 0.1
@@ -344,7 +338,7 @@ config:
       name: Firefox Mobile
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 1800.0
         p50: 3000.0
         weight: 0.15
@@ -359,7 +353,7 @@ config:
         p50: 0.25
         weight: 0.0
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 800.0
         p50: 1800.0
         weight: 0.1
@@ -370,7 +364,7 @@ config:
       name: Safari Mobile
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 1800.0
         p50: 3000.0
         weight: 0.15
@@ -385,7 +379,7 @@ config:
         p50: 0.25
         weight: 0.0
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 800.0
         p50: 1800.0
         weight: 0.1
@@ -396,22 +390,22 @@ config:
       name: Edge Mobile
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 1800.0
         p50: 3000.0
         weight: 0.15
       - measurement: lcp
-        optional: false
+        optional: true
         p10: 2500.0
         p50: 4000.0
         weight: 0.3
       - measurement: cls
-        optional: false
+        optional: true
         p10: 0.1
         p50: 0.25
         weight: 0.15
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 800.0
         p50: 1800.0
         weight: 0.1
@@ -422,22 +416,22 @@ config:
       name: Opera Mobile
       scoreComponents:
       - measurement: fcp
-        optional: false
+        optional: true
         p10: 1800.0
         p50: 3000.0
         weight: 0.15
       - measurement: lcp
-        optional: false
+        optional: true
         p10: 2500.0
         p50: 4000.0
         weight: 0.3
       - measurement: cls
-        optional: false
+        optional: true
         p10: 0.1
         p50: 0.25
         weight: 0.15
       - measurement: ttfb
-        optional: false
+        optional: true
         p10: 800.0
         p50: 1800.0
         weight: 0.1
@@ -470,6 +464,41 @@ config:
         op: eq
         value: Opera Mobile
       name: Opera Mobile INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        inner: []
+        op: and
+      name: Default
+      scoreComponents:
+      - measurement: fcp
+        optional: true
+        p10: 900.0
+        p50: 1600.0
+        weight: 0.15
+      - measurement: lcp
+        optional: true
+        p10: 1200.0
+        p50: 2400.0
+        weight: 0.3
+      - measurement: cls
+        optional: true
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: true
+        p10: 200.0
+        p50: 400.0
+        weight: 0.1
+    - condition:
+        inner: []
+        op: and
+      name: Default INP
       scoreComponents:
       - measurement: inp
         optional: false

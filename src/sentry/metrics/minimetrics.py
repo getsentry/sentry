@@ -119,18 +119,10 @@ def _set_metric_on_span(key: str, value: float | int, op: str, tags: Tags | None
         return
 
     scope = sentry_sdk.Scope.get_current_scope()
-
     span_or_tx = getattr(scope, "_span", None)
 
-    if not span_or_tx:
-        with scope.start_transaction(op=f"minimetrics.{op}"):
-            with scope.start_span(op=f"minimetrics.{op}") as span:
-                return _add_metric_data_to_span(span, key, value, tags)
-    elif span_or_tx.parent_span_id is not None:
+    if span_or_tx and span_or_tx.parent_span_id is not None:
         return _add_metric_data_to_span(span_or_tx, key, value, tags)
-    else:
-        with scope.start_span(op=f"minimetrics.{op}") as span:
-            return _add_metric_data_to_span(span, key, value, tags)
 
 
 def _add_metric_data_to_span(
@@ -146,6 +138,10 @@ class MiniMetricsMetricsBackend(MetricsBackend):
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
         return random.random() < sample_rate
+
+    @staticmethod
+    def _legacy_enabled() -> bool:
+        return not options.get("delightful_metrics.minimetrics_disable_legacy")
 
     @staticmethod
     def _to_minimetrics_unit(unit: str | None, default: str | None = None) -> str:
@@ -168,13 +164,14 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
-            sentry_sdk.metrics.incr(
-                key=self._get_key(key),
-                value=amount,
-                tags=tags,
-                unit=self._to_minimetrics_unit(unit=unit),
-                stacklevel=stacklevel + 1,
-            )
+            if self._legacy_enabled():
+                sentry_sdk.metrics.incr(
+                    key=self._get_key(key),
+                    value=amount,
+                    tags=tags,
+                    unit=self._to_minimetrics_unit(unit=unit),
+                    stacklevel=stacklevel + 1,
+                )
 
             _set_metric_on_span(key=key, value=amount, op="incr", tags=tags)
 
@@ -188,14 +185,15 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
-            sentry_sdk.metrics.distribution(
-                key=self._get_key(key),
-                value=value,
-                tags=tags,
-                # Timing is defaulted to seconds.
-                unit="second",
-                stacklevel=stacklevel + 1,
-            )
+            if self._legacy_enabled():
+                sentry_sdk.metrics.distribution(
+                    key=self._get_key(key),
+                    value=value,
+                    tags=tags,
+                    # Timing is defaulted to seconds.
+                    unit="second",
+                    stacklevel=stacklevel + 1,
+                )
 
             _set_metric_on_span(key=key, value=value, op="timing", tags=tags)
 
@@ -210,22 +208,23 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
-            if options.get("delightful_metrics.emit_gauges"):
-                sentry_sdk.metrics.gauge(
-                    key=self._get_key(key),
-                    value=value,
-                    tags=tags,
-                    unit=self._to_minimetrics_unit(unit=unit),
-                    stacklevel=stacklevel + 1,
-                )
-            else:
-                sentry_sdk.metrics.incr(
-                    key=self._get_key(key),
-                    value=value,
-                    tags=tags,
-                    unit=self._to_minimetrics_unit(unit=unit),
-                    stacklevel=stacklevel + 1,
-                )
+            if self._legacy_enabled():
+                if options.get("delightful_metrics.emit_gauges"):
+                    sentry_sdk.metrics.gauge(
+                        key=self._get_key(key),
+                        value=value,
+                        tags=tags,
+                        unit=self._to_minimetrics_unit(unit=unit),
+                        stacklevel=stacklevel + 1,
+                    )
+                else:
+                    sentry_sdk.metrics.incr(
+                        key=self._get_key(key),
+                        value=value,
+                        tags=tags,
+                        unit=self._to_minimetrics_unit(unit=unit),
+                        stacklevel=stacklevel + 1,
+                    )
 
             _set_metric_on_span(key=key, value=value, op="gauge", tags=tags)
 
@@ -240,13 +239,14 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
-            sentry_sdk.metrics.distribution(
-                key=self._get_key(key),
-                value=value,
-                tags=tags,
-                unit=self._to_minimetrics_unit(unit=unit),
-                stacklevel=stacklevel + 1,
-            )
+            if self._legacy_enabled():
+                sentry_sdk.metrics.distribution(
+                    key=self._get_key(key),
+                    value=value,
+                    tags=tags,
+                    unit=self._to_minimetrics_unit(unit=unit),
+                    stacklevel=stacklevel + 1,
+                )
 
             _set_metric_on_span(key=key, value=value, op="distribution", tags=tags)
 

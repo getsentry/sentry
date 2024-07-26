@@ -81,7 +81,7 @@ export function useMetricsSamples<F extends Field>({
     query: {
       project: selection.projects,
       environment: selection.environments,
-      ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
+      ...normalizeDateTimeParams(datetime ?? selection.datetime),
       field: fields,
       max,
       min,

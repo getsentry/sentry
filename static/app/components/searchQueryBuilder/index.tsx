@@ -7,24 +7,27 @@ import {
   SearchQueryBuilerContext,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
+import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
+  type FieldDefinitionGetter,
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/useHandleSearch';
-import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
-interface SearchQueryBuilderProps {
+export interface SearchQueryBuilderProps {
   /**
    * A complete mapping of all possible filter keys.
    * Filter keys not included will not show up when typing and may be shown as invalid.
@@ -38,15 +41,38 @@ interface SearchQueryBuilderProps {
    */
   searchSource: string;
   className?: string;
+  disabled?: boolean;
+  /**
+   * When true, free text will be marked as invalid.
+   */
+  disallowFreeText?: boolean;
   /**
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
   /**
+   * When true, unsupported filter keys will be highlighted as invalid.
+   */
+  disallowUnsupportedFilters?: boolean;
+  /**
+   * When true, the wildcard (*) in filter values or free text will be marked as invalid.
+   */
+  disallowWildcard?: boolean;
+  /**
+   * The lookup strategy for field definitions.
+   * Each SearchQueryBuilder instance can support a different list of fields and
+   * tags, their definitions may not overlap.
+   */
+  fieldDefinitionGetter?: FieldDefinitionGetter;
+  /**
    * When provided, displays a tabbed interface for discovering filter keys.
    * Sections and filter keys are displayed in the order they are provided.
    */
   filterKeySections?: FilterKeySection[];
+  /**
+   * Allows for customization of the invalid token messages.
+   */
+  invalidMessages?: SearchConfig['invalidMessages'];
   label?: string;
   onBlur?: (query: string) => void;
   /**
@@ -57,12 +83,20 @@ interface SearchQueryBuilderProps {
    * Called when the user presses enter
    */
   onSearch?: (query: string) => void;
+  placeholder?: string;
   queryInterface?: QueryInterfaceType;
-  savedSearchType?: SavedSearchType;
+  /**
+   * If provided, saves and displays recent searches of the given type.
+   */
+  recentSearches?: SavedSearchType;
 }
 
 function ActionButtons() {
-  const {dispatch, handleSearch} = useSearchQueryBuilder();
+  const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
+
+  if (disabled) {
+    return null;
+  }
 
   return (
     <ButtonsWrapper>
@@ -82,25 +116,53 @@ function ActionButtons() {
 
 export function SearchQueryBuilder({
   className,
+  disabled = false,
   disallowLogicalOperators,
+  disallowFreeText,
+  disallowUnsupportedFilters,
+  disallowWildcard,
+  invalidMessages,
   label,
   initialQuery,
+  fieldDefinitionGetter = getFieldDefinition,
   filterKeys,
   filterKeySections,
   getTagValues,
   onChange,
   onSearch,
   onBlur,
-  searchSource,
-  savedSearchType,
+  placeholder,
   queryInterface = QueryInterfaceType.TOKENIZED,
+  recentSearches,
+  searchSource,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const {state, dispatch} = useQueryBuilderState({initialQuery});
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+  });
 
   const parsedQuery = useMemo(
-    () => parseQueryBuilderValue(state.query, {disallowLogicalOperators, filterKeys}),
-    [disallowLogicalOperators, filterKeys, state.query]
+    () =>
+      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        disallowFreeText,
+        disallowLogicalOperators,
+        disallowUnsupportedFilters,
+        disallowWildcard,
+        filterKeys,
+        invalidMessages,
+      }),
+    [
+      state.query,
+      fieldDefinitionGetter,
+      disallowFreeText,
+      disallowLogicalOperators,
+      disallowUnsupportedFilters,
+      disallowWildcard,
+      filterKeys,
+      invalidMessages,
+    ]
   );
 
   useEffectAfterFirstRender(() => {
@@ -113,7 +175,7 @@ export function SearchQueryBuilder({
 
   const handleSearch = useHandleSearch({
     parsedQuery,
-    savedSearchType,
+    recentSearches,
     searchSource,
     onSearch,
   });
@@ -123,28 +185,34 @@ export function SearchQueryBuilder({
   const contextValue = useMemo(() => {
     return {
       ...state,
+      disabled,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeys,
       getTagValues,
+      getFieldDefinition: fieldDefinitionGetter,
       dispatch,
       onSearch,
       wrapperRef,
       handleSearch,
-      savedSearchType,
+      placeholder,
+      recentSearches,
       searchSource,
       size,
     };
   }, [
     state,
+    disabled,
     parsedQuery,
     filterKeySections,
     filterKeys,
     getTagValues,
+    fieldDefinitionGetter,
     dispatch,
     onSearch,
     handleSearch,
-    savedSearchType,
+    placeholder,
+    recentSearches,
     searchSource,
     size,
   ]);
@@ -156,6 +224,7 @@ export function SearchQueryBuilder({
           className={className}
           onBlur={() => onBlur?.(state.query)}
           ref={wrapperRef}
+          aria-disabled={disabled}
         >
           {size !== 'small' && <PositionedSearchIcon size="sm" />}
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (

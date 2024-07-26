@@ -9,8 +9,10 @@ import type {
 import {parseFunction} from 'sentry/utils/discover/fields';
 
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
+export const DEFAULT_SPAN_MRI: MRI = 'c:custom/span_attribute_0@none';
 // This is a workaround as the alert builder requires a valid aggregate to be set
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
+export const DEFAULT_SPAN_METRIC_ALERT_FIELD = `sum(${DEFAULT_SPAN_MRI})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
   if (typeof mri !== 'string') {
@@ -123,7 +125,10 @@ export function getMRI(field: string): MRI {
 }
 
 export function formatMRIField(aggregate: string) {
-  if (aggregate === DEFAULT_METRIC_ALERT_FIELD) {
+  if (
+    aggregate === DEFAULT_METRIC_ALERT_FIELD ||
+    aggregate === DEFAULT_SPAN_METRIC_ALERT_FIELD
+  ) {
     return t('Select a metric to get started');
   }
 
@@ -135,4 +140,9 @@ export function formatMRIField(aggregate: string) {
   }
 
   return `${parsed.aggregation}(${formatMRI(parsed.mri)})`;
+}
+
+export function isExtractedCustomMetric({mri}: {mri: MRI}) {
+  // Extraced metrics are prefixed with `span_attribute_`
+  return mri.substring(1).startsWith(':custom/span_attribute_');
 }
