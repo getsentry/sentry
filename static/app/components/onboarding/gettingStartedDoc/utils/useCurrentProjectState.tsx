@@ -5,9 +5,8 @@ import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjects from 'sentry/utils/useProjects';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
 type Props = {
   allPlatforms: readonly PlatformKey[];
@@ -25,11 +24,8 @@ function useCurrentProjectState({
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
-  const {project: projectId} = useLocationQuery({
-    fields: {
-      project: decodeScalar,
-    },
-  });
+  const {getParamValue: projectIds} = useUrlParams('project');
+  const projectId = projectIds()?.split('&')[0];
   const isActive = currentPanel === targetPanel;
 
   // Projects with onboarding instructions
