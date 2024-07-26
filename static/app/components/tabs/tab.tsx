@@ -185,7 +185,7 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     border-top: 1px solid transparent;
   }
 
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(0.75)} ${space(1.5)};
 
   transform: translateY(1px);
 
