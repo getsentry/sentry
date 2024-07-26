@@ -40,7 +40,7 @@ def format_actor_option(actor: Team | RpcUser, is_slack: bool = False) -> Mappin
             }
 
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
-    if isinstance(actor, Team):
+    elif isinstance(actor, Team):
         if is_slack:
             return {
                 "text": {
