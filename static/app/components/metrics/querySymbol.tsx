@@ -8,8 +8,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 const indexToCharUppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const indexToCharLowercase = 'abcdefghijklmnopqrstuvwxyz';
 
+const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
+
 export const getQuerySymbol = (index: number, uppercaseChar?: boolean) => {
-  const indexToChar = uppercaseChar ? indexToCharUppercase : indexToCharLowercase;
+  let result = '';
+  let i = index;
+  do {
+    result = indexToChar[i % indexToChar.length] + result;
+    i = Math.floor(i / indexToChar.length) - 1;
+  } while (i >= 0);
+  return uppercaseChar ? result.toUpperCase() : result;
+};
   let result = '';
   let i = index;
   do {
