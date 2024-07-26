@@ -282,7 +282,6 @@ DETAILED_PROJECT = {
             "performance-slow-db-query-visible",
             "performance-n-plus-one-api-calls-visible",
             "profile-image-decode-main-thread-ingest",
-            "set-grouping-config",
             "event-attachments",
             "open-membership",
             "new-spike-protection",
