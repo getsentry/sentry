@@ -15,6 +15,7 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -104,6 +105,19 @@ class SnubaParams:
             from sentry.api.utils import get_datetime_from_stats_period
 
             self.start = get_datetime_from_stats_period(self.stats_period, self.end)
+
+    @property
+    def start_date(self) -> datetime:
+        # This and end_date are helper functions so callers don't have to check if either are defined for typing
+        if self.start is None:
+            raise InvalidSearchQuery("start is required")
+        return self.start
+
+    @property
+    def end_date(self) -> datetime:
+        if self.end is None:
+            raise InvalidSearchQuery("end is required")
+        return self.end
 
     @property
     def environment_names(self) -> Sequence[str]:
