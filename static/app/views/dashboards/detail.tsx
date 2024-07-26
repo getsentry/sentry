@@ -733,7 +733,7 @@ class DashboardDetail extends Component<Props, State> {
               splitDecision,
               dashboard,
               modifiedDashboard,
-              stateSetter: this.setState,
+              stateSetter: this.setState.bind(this),
               onDashboardUpdate,
             });
           },
