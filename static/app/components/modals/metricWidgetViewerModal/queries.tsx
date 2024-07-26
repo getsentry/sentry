@@ -293,7 +293,7 @@ function QueryContextMenu({
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'settings',
-      label: t('Metric Settings'),
+      label: t('Configure Metric'),
       disabled: !customMetric,
       onAction: () => {
         navigateTo(

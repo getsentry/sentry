@@ -27,7 +27,7 @@ describe('Metrics Page Header Actions', function () {
       expect(addCustomMetric).toHaveBeenCalled();
     });
 
-    it('display "Create metric" button', async function () {
+    it('display "Create Metric" button', async function () {
       render(
         <PageHeaderActions showAddMetricButton addCustomMetric={() => jest.fn()} />,
         {
@@ -41,7 +41,7 @@ describe('Metrics Page Header Actions', function () {
       );
       renderGlobalModal();
 
-      const button = screen.getByRole('button', {name: 'Create metric'});
+      const button = screen.getByRole('button', {name: 'Create Metric'});
 
       expect(button).toBeInTheDocument();
 
