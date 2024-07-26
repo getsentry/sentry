@@ -1129,7 +1129,7 @@ describe('trace view', () => {
       await searchToUpdate();
 
       expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '1/1'
+        '1/2'
       );
 
       const highlighted_row = value.container.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW);

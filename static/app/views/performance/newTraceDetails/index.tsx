@@ -324,6 +324,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       props.trace?.orphan_errors.length === 0
     ) {
       setTree(TraceTree.Empty());
+      return;
     }
 
     if (props.status === 'loading') {
@@ -344,15 +345,17 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     if (props.trace) {
       const trace = TraceTree.FromTrace(props.trace, props.replayRecord);
       // Root frame + 2 nodes
+      const promises: Promise<void>[] = [];
       if (trace.list.length < 4) {
         for (const c of trace.list) {
           if (c.canFetch) {
-            trace.zoomIn(c, true, {api, organization}).then(rerender);
+            promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));
           }
         }
       }
-
-      setTree(trace);
+      Promise.allSettled(promises).finally(() => {
+        setTree(trace);
+      });
     }
   }, [
     props.traceSlug,
