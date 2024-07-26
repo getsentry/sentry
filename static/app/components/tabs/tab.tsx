@@ -108,17 +108,16 @@ export const BaseTab = forwardRef(
 
     if (variant === 'floating') {
       return (
-        <IssueDetailsTabWrap
+        <FloatingTabWrap
           {...tabProps}
           hidden={hidden}
           overflowing={overflowing}
-          borderStyle={borderStyle}
           ref={ref}
         >
           <VariantStyledInteractionStateLayer />
           <VariantFocusLayer />
           {props.children}
-        </IssueDetailsTabWrap>
+        </FloatingTabWrap>
       );
     }
 
@@ -180,8 +179,7 @@ export const Tab = forwardRef(
   }
 );
 
-const IssueDetailsTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-  borderStyle: 'dashed' | 'solid';
+const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
 }>`
   &[aria-selected='true'] {
