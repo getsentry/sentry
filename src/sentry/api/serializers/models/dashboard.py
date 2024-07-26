@@ -63,11 +63,6 @@ class DashboardWidgetResponse(TypedDict):
     layout: dict[str, int]
 
 
-class ThresholdType(TypedDict):
-    max_values: dict[str, int]
-    unit: str
-
-
 @register(DashboardWidget)
 class DashboardWidgetSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
