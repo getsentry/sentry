@@ -1,6 +1,3 @@
-__all__ = ["timing", "incr"]
-
-
 import functools
 import logging
 import time

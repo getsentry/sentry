@@ -111,13 +111,33 @@ function Progress({
   progress: AutofixProgressItem | AutofixStep;
   runId: string;
 }) {
+  function replaceHeadersWithBold(markdown: string) {
+    const headerRegex = /^(#{1,6})\s+(.*)$/gm;
+    const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
+      return ` **${content}** `;
+    });
+
+    return boldMarkdown;
+  }
+
   if (isProgressLog(progress)) {
+    const html = progress.message.includes('\n')
+      ? marked(replaceHeadersWithBold(progress.message), {
+          breaks: true,
+          gfm: true,
+        })
+      : singleLineRenderer(replaceHeadersWithBold(progress.message), {
+          breaks: true,
+          gfm: true,
+        });
+
     return (
       <Fragment>
         <DateTime date={progress.timestamp} format="HH:mm:ss:SSS" />
         <div
+          style={{overflowX: 'scroll', overflowY: 'hidden'}}
           dangerouslySetInnerHTML={{
-            __html: marked(progress.message),
+            __html: html,
           }}
         />
       </Fragment>
