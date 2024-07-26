@@ -305,7 +305,9 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     null
   );
 
-  const tree = useMemo(() => {
+  const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
+
+  useEffect(() => {
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
         {
@@ -314,14 +316,14 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         },
         loadingTraceRef.current
       );
-      return errorTree;
+      setTree(errorTree);
     }
 
     if (
       props.trace?.transactions.length === 0 &&
       props.trace?.orphan_errors.length === 0
     ) {
-      return TraceTree.Empty();
+      setTree(TraceTree.Empty());
     }
 
     if (props.status === 'loading') {
@@ -336,15 +338,37 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         );
 
       loadingTraceRef.current = loadingTrace;
-      return loadingTrace;
+
+      setTree(loadingTrace);
     }
 
     if (props.trace) {
-      return TraceTree.FromTrace(props.trace, props.replayRecord);
-    }
+      const trace = TraceTree.FromTrace(props.trace, props.replayRecord);
 
-    throw new Error('Invalid trace state');
-  }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
+      // If the trace is small enough, we zoom the tree to make the view look fuller
+      // on load.
+      if (trace.list.length <= 3 && !scrollQueueRef.current) {
+        (async () => {
+          await trace.zoomTree(rerender, {
+            api,
+            organization,
+          });
+          setTree(trace);
+        })();
+      } else {
+        setTree(trace);
+      }
+    }
+  }, [
+    props.traceSlug,
+    props.trace,
+    props.status,
+    projects,
+    props.replayRecord,
+    scrollQueueRef,
+    api,
+    organization,
+  ]);
 
   useEffect(() => {
     if (!props.replayTraces?.length || tree.type !== 'trace') {

@@ -1539,6 +1539,21 @@ export class TraceTree {
     return recurseToRow();
   }
 
+  async zoomTree(
+    rerender: () => void,
+    options: {
+      api: Client;
+      organization: Organization;
+    }
+  ) {
+    for (const c of this.list) {
+      if (c.canFetch) {
+        await this.zoomIn(c, true, options);
+        rerender();
+      }
+    }
+  }
+
   zoomIn(
     node: TraceTreeNode<TraceTree.NodeValue>,
     zoomedIn: boolean,
