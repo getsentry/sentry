@@ -83,7 +83,7 @@ def fetch_rulegroup_to_event_data(project_id: int) -> dict[str, str]:
 
 
 def get_rules_to_groups(rulegroup_to_event_data: dict[str, str]) -> DefaultDict[int, set[int]]:
-    rules_to_groups = defaultdict(set)
+    rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
     for rule_group in rulegroup_to_event_data:
         rule_id, group_id = map(int, rule_group.split(":"))
         rules_to_groups[rule_id].add(group_id)
@@ -110,6 +110,12 @@ def get_slow_conditions(rule: Rule) -> list[EventFrequencyConditionData]:
 def generate_unique_queries(
     condition_data: EventFrequencyConditionData, environment_id: int
 ) -> list[UniqueConditionQuery]:
+    """
+    Returns a list of all unique condition queries that must be made for the
+    given condition instance.
+    Count comparison conditions will only have one unique query, while percent
+    comparison conditions will have two unique queries.
+    """
     unique_queries = [
         UniqueConditionQuery(
             cls_id=condition_data["id"],
@@ -118,6 +124,8 @@ def generate_unique_queries(
         )
     ]
     if condition_data.get("comparisonType") == ComparisonType.PERCENT:
+        # We will later compare the first query results against the second query to calculate
+        # a percentage for percentage comparison conditions.
         comparison_interval = condition_data.get("comparisonInterval", DEFAULT_COMPARISON_INTERVAL)
         second_query_data = unique_queries[0]._asdict()
         second_query_data["comparison_interval"] = comparison_interval
@@ -128,6 +136,11 @@ def generate_unique_queries(
 def get_condition_query_groups(
     alert_rules: list[Rule], rules_to_groups: DefaultDict[int, set[int]]
 ) -> dict[UniqueConditionQuery, DataAndGroups]:
+    """
+    Map unique condition queries to the group IDs that need to checked for that
+    query. We also store a pointer to that condition's JSON so we can
+    instantiate the class later.
+    """
     condition_groups: dict[UniqueConditionQuery, DataAndGroups] = {}
     for rule in alert_rules:
         slow_conditions = get_slow_conditions(rule)
@@ -313,6 +326,10 @@ def passes_comparison(
     environment_id: int,
     project_id: int,
 ) -> bool:
+    """
+    Checks if a specific condition instance has passed. Handles both the count
+    and percent comparison type conditions.
+    """
     unique_queries = generate_unique_queries(condition_data, environment_id)
     try:
         query_values = [
@@ -456,6 +473,9 @@ def process_delayed_alert_conditions() -> None:
     silo_mode=SiloMode.REGION,
 )
 def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
+    """
+    Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
+    """
     project = fetch_project(project_id)
     if not project:
         # Should we remove the project_id from the redis queue?
