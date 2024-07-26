@@ -10,12 +10,12 @@ import type {Node, Orientation} from '@react-types/shared';
 import {Reorder} from 'framer-motion';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
-import type {Tab} from 'sentry/components/draggableTabs';
 import {TabsContext} from 'sentry/components/tabs';
 import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import type {Tab} from 'sentry/views/issueList/draggableTabBar';
 
 import {DraggableTab} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';

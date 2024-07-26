@@ -13,12 +13,12 @@ export interface Tab {
   queryCount?: number;
 }
 
-export interface DragAndDropTabBarProps {
+export interface DraggableTabBarProps {
   tabs: Tab[];
   tempTabContent: React.ReactNode;
 }
 
-export function DraggableTabBar(props: DragAndDropTabBarProps) {
+export function DraggableTabBar(props: DraggableTabBarProps) {
   const [tabs, setTabs] = useState<Tab[]>([...props.tabs]);
 
   return (

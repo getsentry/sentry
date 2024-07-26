@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {DraggableTabBar} from 'sentry/components/draggableTabs';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
+import {DraggableTabBar} from 'sentry/views/issueList/draggableTabBar';
 
 const TabPanelContainer = styled('div')`
   width: 90%;

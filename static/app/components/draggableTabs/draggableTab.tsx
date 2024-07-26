@@ -44,7 +44,7 @@ export const DraggableTab = forwardRef(
         orientation={orientation}
         overflowing={overflowing}
         ref={ref}
-        variant={'filled'}
+        variant="filled"
       >
         <TabContentWrap>{rendered}</TabContentWrap>
       </StyledBaseTab>
