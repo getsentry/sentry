@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -10,7 +10,7 @@ from sentry.models.user import User
 
 @register(DocIntegration)
 class DocIntegrationSerializer(Serializer):
-    def get_attrs(self, item_list: list[DocIntegration], user: User, **kwargs: Any):
+    def get_attrs(self, item_list: Sequence[DocIntegration], user: User, **kwargs: Any):
         # Get associated IntegrationFeatures
         doc_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.DOC_INTEGRATION
@@ -36,6 +36,7 @@ class DocIntegrationSerializer(Serializer):
         user: User,
         **kwargs: Any,
     ) -> Any:
+        features = attrs.get("features")
         data = {
             "name": obj.name,
             "slug": obj.slug,
@@ -44,7 +45,7 @@ class DocIntegrationSerializer(Serializer):
             "url": obj.url,
             "popularity": obj.popularity,
             "isDraft": obj.is_draft,
-            "features": [serialize(x, user) for x in attrs.get("features")],
+            "features": ([serialize(x, user) for x in features] if features else []),
             "avatar": serialize(attrs.get("avatar"), user),
         }
 

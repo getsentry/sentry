@@ -13,7 +13,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import IntegrationSerializer, serialize
+from sentry.api.serializers import serialize
+from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs

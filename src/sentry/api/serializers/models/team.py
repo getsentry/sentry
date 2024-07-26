@@ -32,9 +32,9 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
     from sentry.api.serializers import SCIMMeta
-    from sentry.api.serializers.models.external_actor import ExternalActorResponse
     from sentry.api.serializers.models.project import ProjectSerializerResponse
     from sentry.api.serializers.types import OrganizationSerializerResponse
+    from sentry.integrations.api.serializers.models.external_actor import ExternalActorResponse
 
 
 def _get_team_memberships(

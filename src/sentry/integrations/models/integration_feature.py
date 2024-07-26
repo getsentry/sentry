@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from enum import Enum
 from typing import ClassVar
 
@@ -120,7 +121,7 @@ INTEGRATION_MODELS_BY_TYPE: dict[int, type[SentryApp] | type[DocIntegration]] = 
 
 class IntegrationFeatureManager(BaseManager["IntegrationFeature"]):
     def get_by_targets_as_dict(
-        self, targets: list[SentryApp | DocIntegration], target_type: IntegrationTypes
+        self, targets: Sequence[SentryApp | DocIntegration], target_type: IntegrationTypes
     ) -> dict[int, set[IntegrationFeature]]:
         """
         Returns a dict mapping target_id (key) to List[IntegrationFeatures] (value)

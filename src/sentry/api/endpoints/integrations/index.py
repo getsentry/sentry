@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.integration import IntegrationProviderSerializer
+from sentry.integrations.api.serializers.models.integration import IntegrationProviderSerializer
 from sentry.integrations.manager import default_manager as integrations
 
 
