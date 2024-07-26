@@ -34,6 +34,7 @@ config:
       - chromenull://*
       - data:text/html,chromewebdata
       - safari-extension://*
+      - safari-web-extension://*
       - mxaddon-pkg://*
       - jar://*
       - webviewprogressproxy://*
