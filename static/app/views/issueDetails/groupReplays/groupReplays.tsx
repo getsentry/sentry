@@ -270,7 +270,7 @@ function GroupReplaysTable({
       <ReplayCountHeader>
         <IconUser size="sm" />
         {t(
-          'There are %s with this issue across %s.',
+          'There are %s for this issue across %s.',
           tn('%s replay', '%s replays', replayCount ?? 0),
           tn('%s event', '%s events', group.count)
         )}
