@@ -41,7 +41,7 @@ import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
 import {smallCss} from '../../styles/typography';
 import PanelLayout from '../panelLayout';
 
-const estimateSize = 85;
+const estimateSize = 81;
 const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
 
 function getCrashFreeRate(data: ApiResult<SessionApiResponse>): number {
@@ -127,7 +127,7 @@ function CrashFreeRate({
 
   if (isCurrLoading || isPrevLoading) {
     return (
-      <PanelItem css={{width: '100%', padding: 'var(--space100)'}}>
+      <PanelItem css={{width: '100%', padding: 'var(--space150)'}}>
         <Placeholder
           height={placeholderHeight}
           css={[
