@@ -1,6 +1,8 @@
 import logging
 from dataclasses import asdict
 
+from django.conf import settings
+
 from sentry import features, options
 from sentry import ratelimits as ratelimiter
 from sentry.eventstore.models import Event
@@ -8,10 +10,7 @@ from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.seer.similarity.similar_issues import (
-    get_similarity_data_from_seer,
-    seer_similarity_circuit_breaker,
-)
+from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     event_content_is_seer_eligible,
@@ -20,6 +19,7 @@ from sentry.seer.similarity.utils import (
     killswitch_enabled,
 )
 from sentry.utils import metrics
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
@@ -59,9 +59,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
 
 
 def _project_has_similarity_grouping_enabled(project: Project) -> bool:
-    has_either_seer_grouping_feature = features.has(
-        "projects:similarity-embeddings-metadata", project
-    ) or features.has("projects:similarity-embeddings-grouping", project)
+    has_seer_grouping_flag_on = features.has("projects:similarity-embeddings-grouping", project)
 
     # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
     # the backfill script completes, we turn on this option, enabling ingest immediately rather than
@@ -69,7 +67,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     # projects have been backfilled, the option (and this check) can go away.
     has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
 
-    return has_either_seer_grouping_feature or has_been_backfilled
+    return has_seer_grouping_flag_on or has_been_backfilled
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
@@ -160,19 +158,21 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
 
 
 def _circuit_breaker_broken(event: Event, project: Project) -> bool:
-    circuit_broken = not seer_similarity_circuit_breaker.should_allow_request()
+    breaker_config = options.get("seer.similarity.circuit-breaker-config")
+    circuit_breaker = CircuitBreaker(settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY, breaker_config)
+    circuit_broken = not circuit_breaker.should_allow_request()
 
     if circuit_broken:
         logger.warning(
-            "should_call_seer_for_grouping.circuit_breaker_tripped",
+            "should_call_seer_for_grouping.broken_circuit_breaker",
             extra={
                 "event_id": event.event_id,
                 "project_id": project.id,
-                **options.get("seer.similarity.circuit-breaker-config"),
+                **breaker_config,
             },
         )
         metrics.incr(
-            "grouping.similarity.circuit_breaker_tripped",
+            "grouping.similarity.broken_circuit_breaker",
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
@@ -225,11 +225,7 @@ def get_seer_similar_issues(
     )
     parent_group = (
         Group.objects.filter(id=seer_results[0].parent_group_id).first()
-        if (
-            seer_results
-            and seer_results[0].should_group
-            and features.has("projects:similarity-embeddings-grouping", event.project)
-        )
+        if seer_results and seer_results[0].should_group
         else None
     )
 

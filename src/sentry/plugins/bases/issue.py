@@ -55,7 +55,7 @@ class IssueTrackingPlugin(Plugin):
     def _get_group_title(self, request: Request, group, event):
         return event.title
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         raise NotImplementedError
 
     def get_auth_for_user(self, user, **kwargs) -> RpcUserSocialAuth:
@@ -122,7 +122,7 @@ class IssueTrackingPlugin(Plugin):
             request.POST or None, initial=self.get_initial_link_form_data(request, group, event)
         )
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         """
         Given an issue_id (string) return an absolute URL to the issue's details
         page.
@@ -135,7 +135,7 @@ class IssueTrackingPlugin(Plugin):
         """
         raise NotImplementedError
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id) -> str:
         """
         Given an issue_id (string) return a string representing the issue.
 
@@ -143,7 +143,7 @@ class IssueTrackingPlugin(Plugin):
         """
         return "#%s" % issue_id
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
@@ -176,7 +176,7 @@ class IssueTrackingPlugin(Plugin):
 
     def view(self, request: Request, group, **kwargs):
         has_auth_configured = self.has_auth_configured()
-        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+        if not (has_auth_configured and self.is_configured(project=group.project)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
@@ -290,7 +290,7 @@ class IssueTrackingPlugin(Plugin):
         return self.render(self.create_issue_template, context)
 
     def actions(self, request: Request, group, action_list, **kwargs):
-        if not self.is_configured(request=request, project=group.project):
+        if not self.is_configured(project=group.project):
             return action_list
         prefix = self.get_conf_key()
         if not GroupMeta.objects.get_value(group, "%s:tid" % prefix, None):
@@ -302,7 +302,7 @@ class IssueTrackingPlugin(Plugin):
         return action_list
 
     def tags(self, request: Request, group, tag_list, **kwargs):
-        if not self.is_configured(request=request, project=group.project):
+        if not self.is_configured(project=group.project):
             return tag_list
 
         prefix = self.get_conf_key()

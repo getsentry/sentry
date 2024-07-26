@@ -58,6 +58,19 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
@@ -67,7 +80,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
@@ -83,18 +95,6 @@ from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.integration_feature import (
-    Feature,
-    IntegrationFeature,
-    IntegrationTypes,
-)
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (

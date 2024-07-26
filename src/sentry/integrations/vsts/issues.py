@@ -15,8 +15,8 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
+    from sentry.integrations.models.external_issue import ExternalIssue
     from sentry.models.group import Group
-    from sentry.models.integrations.external_issue import ExternalIssue
 
 
 class VstsIssueSync(IssueSyncMixin):
@@ -161,7 +161,7 @@ class VstsIssueSync(IssueSyncMixin):
                 field["type"] = "select"
         return fields
 
-    def get_issue_url(self, key: str, **kwargs: Any) -> str:
+    def get_issue_url(self, key: str) -> str:
         return f"{self.instance}_workitems/edit/{key}"
 
     def create_issue(self, data: Mapping[str, str], **kwargs: Any) -> Mapping[str, Any]:

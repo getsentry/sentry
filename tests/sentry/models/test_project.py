@@ -1,10 +1,10 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.project_template_option import ProjectTemplateOption

@@ -56,7 +56,9 @@ class ReleaseProjectEnvironmentManager(BaseManager["ReleaseProjectEnvironment"])
             activator=activator,
         )
 
-    def post_save(self, instance, created, **kwargs):
+    def post_save(
+        self, *, instance: ReleaseProjectEnvironment, created: bool, **kwargs: object
+    ) -> None:
         if created:
             release = instance.release
             project = instance.project

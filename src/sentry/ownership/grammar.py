@@ -11,7 +11,7 @@ from parsimonious.nodes import Node, NodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
 from sentry.types.actor import Actor, ActorType
 from sentry.users.services.user.service import user_service

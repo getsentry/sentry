@@ -81,10 +81,10 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import GroupStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset

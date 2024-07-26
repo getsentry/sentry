@@ -332,7 +332,15 @@ class ScoreClause(Func):
         # This is used within create_or_update and friends
         return self.group.get_score() if self.group else 0
 
-    def as_sql(self, compiler, connection, function=None, template=None):
+    def as_sql(
+        self,
+        compiler,
+        connection,
+        function=None,
+        template=None,
+        arg_joiner: str | None = None,
+        **extra_context,
+    ) -> tuple[str, list[str | int]]:
         has_values = self.last_seen is not None and self.times_seen is not None
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
@@ -2344,12 +2352,6 @@ def _get_severity_metadata_for_group(
     """
     from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
-    organization_supports_severity = features.has(
-        "organizations:seer-based-priority", event.project.organization, actor=None
-    )
-    if not organization_supports_severity:
-        return {}
-
     if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
         logger.warning(
             "get_severity_metadata_for_group.seer_killswitch_enabled",
@@ -2358,17 +2360,24 @@ def _get_severity_metadata_for_group(
         metrics.incr("issues.severity.seer_killswitch_enabled")
         return {}
 
+    seer_based_priority_enabled = features.has(
+        "organizations:seer-based-priority", event.project.organization, actor=None
+    )
     feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
-    if not feature_enabled:
+    if not seer_based_priority_enabled and not feature_enabled:
         return {}
 
-    is_supported_platform = (
-        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
-        if event.platform
-        else False
-    )
+    if not seer_based_priority_enabled:
+        is_supported_platform = (
+            any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
+            if event.platform
+            else False
+        )
+        if not is_supported_platform:
+            return {}
+
     is_error_group = group_type == ErrorGroupType.type_id if group_type else True
-    if not is_supported_platform or not is_error_group:
+    if not is_error_group:
         return {}
 
     passthrough_data = options.get(

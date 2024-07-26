@@ -14,6 +14,7 @@ from sentry.uptime.subscriptions.tasks import (
 logger = logging.getLogger(__name__)
 
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
+MAX_SUBSCRIPTIONS_PER_ORG = 1
 
 
 def create_uptime_subscription(
