@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
@@ -24,9 +23,10 @@ import {space} from 'sentry/styles/space';
 import type {Actor, Project} from 'sentry/types';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
+import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 
 import type {CombinedMetricIssueAlerts, MetricAlert} from '../../types';
-import {ActivationStatus, CombinedAlertType} from '../../types';
+import {CombinedAlertType} from '../../types';
 
 type Props = {
   hasEditAccess: boolean;
@@ -53,9 +53,6 @@ function ActivatedRuleListRow({
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
-  const isWaiting =
-    !rule.activations?.length ||
-    (rule.activations?.length && rule.activations[0].isComplete);
 
   function renderLatestActivation(): React.ReactNode {
     if (!rule.activations?.length) {
@@ -197,18 +194,7 @@ function ActivatedRuleListRow({
       </AlertNameWrapper>
       <FlexCenter>
         <FlexCenter>
-          <Tooltip
-            title={tct('Metric Alert Status: [status]', {
-              status: isWaiting ? 'Ready to monitor' : 'Monitoring',
-            })}
-          >
-            <AlertBadge
-              status={rule?.latestIncident?.status}
-              activationStatus={
-                isWaiting ? ActivationStatus.WAITING : ActivationStatus.MONITORING
-              }
-            />
-          </Tooltip>
+          <CombinedAlertBadge rule={rule} />
         </FlexCenter>
         <MarginLeft>
           <ActivatedMetricAlertRuleStatus rule={rule} />
