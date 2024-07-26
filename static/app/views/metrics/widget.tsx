@@ -558,7 +558,6 @@ const MetricWidgetBody = memo(
           />
         </GuideAnchor>
         <SummaryTable
-          singleQuery={queries.length === 1}
           series={chartSeries}
           onSortChange={handleSortChange}
           sort={tableSort}

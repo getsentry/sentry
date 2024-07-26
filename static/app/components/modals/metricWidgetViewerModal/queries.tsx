@@ -66,10 +66,12 @@ export const Queries = memo(function Queries({
   removeEquation,
 }: Props) {
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
 
   const availableVariables = useMemo(
-    () => new Set(metricQueries.map(query => getQuerySymbol(query.id))),
-    [metricQueries]
+    () => new Set(metricQueries.map(query => getQuerySymbol(query.id, metricsNewInputs))),
+    [metricQueries, metricsNewInputs]
   );
 
   const handleEditQueryAlias = useCallback(

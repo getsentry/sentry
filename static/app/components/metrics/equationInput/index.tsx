@@ -56,7 +56,7 @@ export function EquationInput({
 
   const validateVariable = useCallback(
     (variable: string): string | null => {
-      if (!availableVariables.has(variable.toUpperCase())) {
+      if (!availableVariables.has(variable)) {
         return t('Unknown query "%s"', variable);
       }
       return null;

@@ -19,7 +19,10 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetricsExtractionRules,
+  hasMetricsNewInputs,
+} from 'sentry/utils/metrics/features';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
@@ -39,6 +42,7 @@ interface Props {
 export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const formulaDependencies = useFormulaDependencies();
   const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols, isMultiChartMode} =
     useMetricsContext();
@@ -119,7 +123,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
           });
           return {
             leadingItems: showQuerySymbols
-              ? [<span key="symbol">{getQuerySymbol(widget.id)}:</span>]
+              ? [<span key="symbol">{getQuerySymbol(widget.id, metricsNewInputs)}:</span>]
               : [],
             key: `add-alert-${index}`,
             label: widget.mri
@@ -138,7 +142,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
             },
           };
         }),
-    [organization, showQuerySymbols, widgets]
+    [organization, showQuerySymbols, widgets, metricsNewInputs]
   );
 
   return (

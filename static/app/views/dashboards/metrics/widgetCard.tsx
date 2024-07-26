@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
@@ -65,15 +66,17 @@ export function MetricWidgetCard({
   renderErrorMessage,
   showContextMenu = true,
 }: Props) {
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const {getVirtualMRIQuery, isLoading: isLoadingVirtualMetrics} =
     useVirtualMetricsContext();
 
   const metricQueries = useMemo(
     () =>
       expressionsToApiQueries(
-        getMetricExpressions(widget, dashboardFilters, getVirtualMRIQuery)
+        getMetricExpressions(widget, dashboardFilters, getVirtualMRIQuery),
+        metricsNewInputs
       ),
-    [widget, dashboardFilters, getVirtualMRIQuery]
+    [widget, dashboardFilters, getVirtualMRIQuery, metricsNewInputs]
   );
   const hasSetMetric = useMemo(
     () =>
