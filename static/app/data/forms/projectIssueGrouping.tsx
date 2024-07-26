@@ -44,7 +44,6 @@ const groupingConfigField: Field = {
       </GroupingConfigItem>,
     ]),
   help: t('Sets the grouping algorithm to be used for new events.'),
-  visible: ({features}) => features.has('set-grouping-config'),
 };
 
 export const fields: Record<string, Field> = {
@@ -89,7 +88,6 @@ stack.function:malloc -> memory-allocation-error`}
         </RuleExample>
       </Fragment>
     ),
-    visible: true,
   },
   groupingEnhancements: {
     name: 'groupingEnhancements',
@@ -133,7 +131,6 @@ stack.function:mylibrary_* +app`}
       </Fragment>
     ),
     validate: () => [],
-    visible: true,
   },
   groupingConfig: groupingConfigField,
   secondaryGroupingConfig: {
