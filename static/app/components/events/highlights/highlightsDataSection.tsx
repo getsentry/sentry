@@ -9,7 +9,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   TreeColumn,
   TreeContainer,
@@ -36,6 +35,8 @@ import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface HighlightsDataSectionProps {
   event: Event;
@@ -261,7 +262,8 @@ export default function HighlightsDataSection({
   ) : null;
 
   return (
-    <EventDataSection
+    <InterimSection
+      sectionKey={FoldSectionKey.HIGHLIGHTS}
       key="event-highlights"
       type="event-highlights"
       title={t('Event Highlights')}
@@ -286,7 +288,7 @@ export default function HighlightsDataSection({
       <ErrorBoundary mini message={t('There was an error loading event highlights')}>
         <HighlightsData event={event} project={project} />
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

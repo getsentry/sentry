@@ -9,7 +9,18 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 const LOCAL_STORAGE_PREFIX = 'fold-section-collapse-';
 export const enum FoldSectionKey {
+  // Suspect Commits & Traces
+  USER_FEEDBACK = 'issue-details-user-feedback', // In development
+  LLM_MONITORING = 'issue-details-llm-monitoring',
+
+  UPTIME = 'issue-details-uptime', // Only Uptime issues
+  CRON = 'issue-details-cron-timeline', // Only Cron issues
+
   HIGHLIGHTS = 'issue-details-highlights',
+  RESOURCES = 'issue-details-resources', // Position controlled by flag
+
+  // -> Keep going from here
+
   STACK_TRACE = 'issue-details-stack-trace',
   BREADCRUMBS = 'issue-details-breadcrumbs',
   TAGS = 'issue-details-tags',
