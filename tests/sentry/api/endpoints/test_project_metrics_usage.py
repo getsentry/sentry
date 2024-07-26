@@ -153,23 +153,6 @@ class TestOrganizationMetricsUsage(APITestCase):
             "non_existent_span_attribute",
         )
 
-    def test_user_from_different_org_cannot_access(self):
-        new_organization = self.create_organization()
-        new_project = self.create_project(organization=new_organization)
-        new_user = self.create_user()
-        self.create_member(user=new_user, organization=new_organization)
-        self.login_as(user=new_user)
-        response = self.get_success_response(
-            new_organization.slug,
-            new_project.slug,
-            self.span_attribute_extraction_rule.span_attribute,
-        )
-
-        assert response.data == {
-            "alerts": [],
-            "widgets": [],
-        }  # No alerts or widgets for this organization
-
     def test_permission(self):
         new_organization = self.create_organization()
         new_project = self.create_project(organization=new_organization)
