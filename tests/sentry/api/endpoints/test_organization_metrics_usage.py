@@ -2,14 +2,29 @@ from sentry.testutils.cases import APITestCase
 
 
 class TestOrganizationMetricsUsage(APITestCase):
-    endpoint = "sentry-api-0-organization-metrics-usage"
+    endpoint = "sentry-api-0-project-metrics-usage"
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-        self.mri1 = "c:custom/foo1@none"
-        self.mri2 = "c:custom/bar2@none"
+        config = {
+            "spanAttribute": "count_clicks",
+            "aggregates": ["count", "p50", "p75", "p95", "p99"],
+            "unit": "none",
+            "tags": ["tag1", "tag2"],
+            "conditions": [
+                {"value": "foo:bar"},
+            ],
+        }
+
+        self.span_attribute_extraction_rule = self.create_span_attribute_extraction_config(
+            dictionary=config, user_id=self.user.id, project=self.project
+        )
+        self.condition1 = self.span_attribute_extraction_rule.conditions.first()
+        condition_mris = self.condition1.generate_mris()
+        self.mri1 = condition_mris[0]
+        self.mri2 = condition_mris[1]
         self.alert_rule1 = self.create_alert_rule(
             organization=self.organization, aggregate=self.mri1
         )
@@ -39,7 +54,9 @@ class TestOrganizationMetricsUsage(APITestCase):
 
     def test_get_connected_dashboard_widgets_and_alerts_to_metric(self):
         response = self.get_success_response(
-            self.organization.slug, metricMRIs=[self.mri1, self.mri2]
+            self.organization.slug,
+            self.project.slug,
+            self.span_attribute_extraction_rule.span_attribute,
         )
 
         # queries use a different serializer, there is no need to test that here
@@ -77,7 +94,9 @@ class TestOrganizationMetricsUsage(APITestCase):
         self.dashboard_widget1.delete()
         self.dashboard_widget2.delete()
         response = self.get_success_response(
-            self.organization.slug, metricMRIs=[self.mri1, self.mri2]
+            self.organization.slug,
+            self.project.slug,
+            self.span_attribute_extraction_rule.span_attribute,
         )
 
         assert response.data == {
@@ -100,7 +119,9 @@ class TestOrganizationMetricsUsage(APITestCase):
         self.alert_rule1.delete()
         self.alert_rule2.delete()
         response = self.get_success_response(
-            self.organization.slug, metricMRIs=[self.mri1, self.mri2]
+            self.organization.slug,
+            self.project.slug,
+            self.span_attribute_extraction_rule.span_attribute,
         )
 
         # queries use a different serializer, there is no need to test that here
@@ -123,29 +144,53 @@ class TestOrganizationMetricsUsage(APITestCase):
             ],
         }
 
-    def test_get_connected_dashboard_widgets_and_alerts_to_metric_with_no_metric_mris(self):
-        response = self.get_error_response(self.organization.slug, metricMRIs=[])
-        assert response.data == {"detail": "At least one metric_mri is required"}
-
-    def test_get_connected_dashboard_widgets_and_alerts_to_metric_with_non_existent_metric_mris(
+    def test_get_connected_dashboard_widgets_and_alerts_to_metric_with_non_existent_span_attribute(
         self,
     ):
-        response = self.get_success_response(self.organization.slug, metricMRIs=["non_existent"])
-        assert response.data == {
-            "alerts": [],
-            "widgets": [],
-        }
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            "non_existent_span_attribute",
+        )
 
     def test_user_from_different_org_cannot_access(self):
         new_organization = self.create_organization()
+        new_project = self.create_project(organization=new_organization)
         new_user = self.create_user()
         self.create_member(user=new_user, organization=new_organization)
         self.login_as(user=new_user)
         response = self.get_success_response(
-            new_organization.slug, metricMRIs=[self.mri1, self.mri2]
+            new_organization.slug,
+            new_project.slug,
+            self.span_attribute_extraction_rule.span_attribute,
         )
 
         assert response.data == {
             "alerts": [],
             "widgets": [],
         }  # No alerts or widgets for this organization
+
+    def test_permission(self):
+        new_organization = self.create_organization()
+        new_project = self.create_project(organization=new_organization)
+        new_user = self.create_user()
+
+        self.login_as(user=new_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            self.span_attribute_extraction_rule.span_attribute,
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            new_project.slug,
+            self.span_attribute_extraction_rule.span_attribute,
+        )
+
+        self.get_error_response(
+            new_organization.slug,
+            self.project.slug,
+            self.span_attribute_extraction_rule.span_attribute,
+        )

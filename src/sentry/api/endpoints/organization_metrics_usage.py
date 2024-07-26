@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -5,11 +6,12 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers.rest_framework.dashboard import DashboardWidgetQuerySerializer
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.dashboard_widget import DashboardWidget
-from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 
 
 class MetricsUsageAlertSerializer(serializers.Serializer):
@@ -56,23 +58,28 @@ class MetricsUsageWidgetSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationMetricsUsageEndpoint(OrganizationEndpoint):
+class ProjectMetricsUsageEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, project: Project, span_attribute: str) -> Response:
         """
-        Retrieve the metric usage inside the organization
+        Retrieve the metric usage inside the organization TODO
         """
 
-        metric_mris = request.GET.getlist("metricMRIs", [])
-        if not metric_mris:
-            return Response({"detail": "At least one metric_mri is required"}, status=400)
+        span_extraction_rule_config = get_object_or_404(
+            SpanAttributeExtractionRuleConfig,
+            span_attribute=span_attribute,
+            project=project,
+        )
+        metric_mris = []
+        for condition in span_extraction_rule_config.conditions.all():
+            metric_mris.extend(condition.generate_mris())
 
         alert_rules = (
-            AlertRule.objects.get_for_metrics(organization, metric_mris)
+            AlertRule.objects.get_for_metrics(project.organization, metric_mris)
             .order_by("id")
             .select_related("snuba_query")
         )
@@ -80,7 +87,7 @@ class OrganizationMetricsUsageEndpoint(OrganizationEndpoint):
             alert_rules, many=True, context={"metric_mris": metric_mris}
         )
         widgets = (
-            DashboardWidget.objects.get_for_metrics(organization, metric_mris)
+            DashboardWidget.objects.get_for_metrics(project.organization, metric_mris)
             .order_by("id")
             .prefetch_related("dashboardwidgetquery_set")
         )
