@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -37,10 +38,10 @@ export function FoldSection({
 
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
-      e.preventDefault();
-      setIsCollapsed(!isCollapsed);
+      e.preventDefault(); // Prevent browser summary/details behaviour
+      setIsCollapsed(collapsed => !collapsed);
     },
-    [isCollapsed, setIsCollapsed]
+    [setIsCollapsed]
   );
 
   return (
@@ -50,6 +51,7 @@ export function FoldSection({
           preventCollapse={preventCollapse}
           onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
         >
+          <InteractionStateLayer hidden={preventCollapse} />
           <div>{title}</div>
           <IconWrapper preventCollapse={preventCollapse}>
             <IconChevron direction={isCollapsed ? 'up' : 'down'} size="xs" />
@@ -75,6 +77,7 @@ const Summary = styled('summary')<{preventCollapse: boolean}>`
   padding: ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
+  position: relative;
 `;
 
 const IconWrapper = styled('div')<{preventCollapse: boolean}>`
