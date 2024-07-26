@@ -1,4 +1,5 @@
 import type {DateString} from 'sentry/types/core';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
 export type MetricAggregation =
   | 'sum'
@@ -143,4 +144,23 @@ export interface MetricsExtractionRule {
   spanAttribute: string;
   tags: string[];
   unit: string;
+}
+
+export interface MetricsUsageAlert {
+  alertRuleId: number;
+  metricMRI: string;
+  name: string;
+}
+
+export interface MetricsUsageWidget {
+  dashboardId: number;
+  metricMRI: string;
+  queries: WidgetQuery[];
+  title: string;
+  widgetId: number;
+}
+
+export interface MetricsUsage {
+  alerts: MetricsUsageAlert[];
+  widgets: MetricsUsageWidget[];
 }
