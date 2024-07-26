@@ -182,7 +182,7 @@ from sentry.testutils.helpers.options import override_options
         ),
     ],
 )
-def test_normalize_message(name, input, expected):
+def test_normalize_message(name: str, input: str, expected: str) -> None:
     event = Event(project_id=1, event_id="something")
     with override_options(
         {
@@ -215,7 +215,7 @@ def test_normalize_message(name, input, expected):
         ),
     ],
 )
-def test_fail_to_normalize_message(name, input, expected):
+def test_fail_to_normalize_message(name: str, input: str, expected: str) -> None:
     event = Event(project_id=1, event_id="something")
     with override_options(
         {

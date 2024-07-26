@@ -622,6 +622,7 @@ module = [
     "tests.sentry.api.endpoints.issues.*",
     "tests.sentry.event_manager.test_event_manager",
     "tests.sentry.grouping.test_fingerprinting",
+    "tests.sentry.grouping.test_normalize_message",
     "tests.sentry.hybridcloud.*",
     "tests.sentry.issues",
     "tests.sentry.issues.endpoints",
