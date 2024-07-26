@@ -1,4 +1,4 @@
-from sentry.integrations.api.endpoints.codeowners.external_actor.user_details import (
+from sentry.integrations.api.endpoints.codeowners.external_actor_user_details import (
     ExternalUserDetailsEndpoint,
 )
 
