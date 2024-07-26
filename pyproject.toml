@@ -308,7 +308,6 @@ module = [
     "sentry.integrations.pagerduty.integration",
     "sentry.integrations.pipeline",
     "sentry.integrations.slack.actions.form",
-    "sentry.integrations.slack.client",
     "sentry.integrations.slack.integration",
     "sentry.integrations.slack.message_builder.issues",
     "sentry.integrations.slack.message_builder.notifications.digest",
