@@ -819,26 +819,33 @@ def update_alert_rule(
     # print("COMPARISON DELTA:", comparison_delta)
     # print("SEASONALITY:", seasonality)
     # print("SENSITIVITY:", sensitivity)
+    # print(updated_fields["comparison_delta"])
+    # print(updated_fields["seasonality"])
+    # print(updated_fields["sensitivity"])
 
     # TODO: it seems that we can't check for all of these conditions. We may need to separate the seasonality and sensitivity checks
+    # problem: the UI always sends None when updating the values if the field is not selected for the alert type
+    # for percent alerts, for instance, comparison delta is always sent as a parameter (even if it isnt being updated) and sensitivity/seasonality are None
+    # but this isn't necessarily the behavior via the API
     if "comparison_delta" in updated_fields:  # some value changed -> update type if necessary
         if comparison_delta is not None:
             detection_type = AlertRuleDetectionType.PERCENT
         else:
             detection_type = AlertRuleDetectionType.STATIC
 
-    if "seasonality" in updated_fields or "sensitivity" in updated_fields:
-        if seasonality is not None or seasonality is not None:
-            detection_type = AlertRuleDetectionType.DYNAMIC
-            # if the alert wasn't a dynamic alert, ensure that both seasonality and sensitivity are present
-            if alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC and not (
-                "seasonality" in updated_fields and "sensitivity" in updated_fields
-            ):
-                raise ValidationError(
-                    "Dynamic alert rules must be defined with both sensitivity and seasonality"
-                )
-        else:
-            detection_type = AlertRuleDetectionType.STATIC
+    # this is broken currently
+    # if "seasonality" in updated_fields or "sensitivity" in updated_fields:
+    #     if seasonality is not None or seasonality is not None:
+    #         detection_type = AlertRuleDetectionType.DYNAMIC
+    #         # if the alert wasn't a dynamic alert, ensure that both seasonality and sensitivity are present
+    #         if alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC and not (
+    #             "seasonality" in updated_fields and "sensitivity" in updated_fields
+    #         ):
+    #             raise ValidationError(
+    #                 "Dynamic alert rules must be defined with both sensitivity and seasonality"
+    #             )
+    #     else:
+    #         detection_type = AlertRuleDetectionType.STATIC
 
     # print("NEW DETECTION TYPE:", detection_type)
     # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
