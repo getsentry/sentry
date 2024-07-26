@@ -1594,6 +1594,7 @@ export class TraceTree {
         // a cancellable promise and avoid this cumbersome heuristic.
         // Remove existing entries from the list
         let index = this._list.indexOf(node);
+        node.fetchStatus = 'resolved';
 
         // Some nodes may have gotten cloned and their reference lost due to the fact
         // that we are really maintaining a txn tree as well as a span tree. When this
@@ -1604,10 +1605,10 @@ export class TraceTree {
           if (index === -1) {
             return data;
           }
+          node = this._list[index];
+          node.fetchStatus = 'resolved';
         }
 
-        node = this._list[index];
-        node.fetchStatus = 'resolved';
         if (!node.expanded) {
           return data;
         }
