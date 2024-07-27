@@ -8,6 +8,7 @@ import usePlacementCss from '../hooks/usePlacementCss';
 import useVisibility from '../hooks/useVisibility';
 import {fixedContainerBaseCss} from '../styles/fixedContainer';
 import {avatarCss, globalCss, loadingIndicatorCss} from '../styles/global';
+import {radixUiGlobalCss} from '../styles/radixUiGlobal';
 import {resetFlexColumnCss} from '../styles/reset';
 
 import Navigation from './navigation';
@@ -30,6 +31,7 @@ export default function App() {
       <Global styles={globalCss} />
       <Global styles={loadingIndicatorCss} />
       <Global styles={avatarCss} />
+      <Global styles={radixUiGlobalCss} />
       <div css={[fixedContainerBaseCss, placement.fixedContainer.css, {visibility}]}>
         {isDisabled ? null : (
           <Fragment>

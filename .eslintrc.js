@@ -26,6 +26,21 @@ module.exports = {
       'error',
       {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
     ],
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['@radix-ui/*'],
+            message: '@radix-ui is intended for devtoolbar only',
+          },
+          {
+            group: ['sentry/components/devtoolbar/*'],
+            message: 'Do not depend on toolbar internals',
+          },
+        ],
+      },
+    ],
 
     // TODO(@anonrig): Remove this from eslint-sentry-config
     'space-infix-ops': 'off',
@@ -44,6 +59,23 @@ module.exports = {
   // and formatting these files.
   ignorePatterns: ['*.json'],
   overrides: [
+    {
+      files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: 'sentry/utils/queryClient',
+                message:
+                  'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
+              },
+            ],
+          },
+        ],
+      },
+    },
     {
       files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
       extends: ['plugin:testing-library/react', 'sentry-app/strict'],

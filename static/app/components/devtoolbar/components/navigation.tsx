@@ -1,10 +1,12 @@
 import type {ReactNode} from 'react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
+import usePortalContainerContext from 'sentry/components/devtoolbar/hooks/usePortalContainerContext';
 import {
-  IconClose,
   IconFlag,
   IconIssues,
   IconMegaphone,
+  IconMenu,
   IconReleases,
   IconSiren,
 } from 'sentry/icons';
@@ -23,30 +25,46 @@ export default function Navigation({
 }: {
   setIsDisabled: (val: boolean) => void;
 }) {
-  const {trackAnalytics} = useConfiguration();
+  const portalContainer = usePortalContainerContext();
   const placement = usePlacementCss();
 
+  const {trackAnalytics} = useConfiguration();
   const {state: route} = useToolbarRoute();
-  const isRouteActive = !!route.activePanel;
+  const hasActiveRoute = !!route.activePanel;
 
   return (
     <dialog
       css={[resetDialogCss, navigationCss, placement.navigation.css]}
-      data-has-active={isRouteActive}
+      data-has-active-route={hasActiveRoute || undefined}
     >
-      <IconButton
-        onClick={() => {
-          setIsDisabled(true);
-          trackAnalytics?.({
-            eventKey: `devtoolbar.nav.hide.click`,
-            eventName: `devtoolbar: Hide devtoolbar`,
-          });
-        }}
-        title="Hide for this session"
-        icon={<IconClose />}
-      />
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <IconButton title="Open Menu" icon={<IconMenu />} />
+        </DropdownMenu.Trigger>
 
-      <hr style={{margin: 0, width: '100%'}} />
+        <DropdownMenu.Portal container={portalContainer}>
+          <DropdownMenu.Content className="DropdownMenuContent" side="left" align="start">
+            <DropdownMenu.Item
+              className="DropdownMenuItem"
+              onClick={() => {
+                setIsDisabled(true);
+                trackAnalytics?.({
+                  eventKey: `devtoolbar.nav.hide.click`,
+                  eventName: `devtoolbar: Hide devtoolbar`,
+                });
+              }}
+            >
+              Hide toolbar
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator className="DropdownMenuSeparator" />
+            <DropdownMenu.Item className="DropdownMenuItem" disabled>
+              Sign out
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+
+      <hr css={{alignSelf: 'stretch', marginBlock: 'var(--space25)', marginInline: 0}} />
 
       <NavButton panelName="issues" label="Issues" icon={<IconIssues />} />
       <NavButton panelName="feedback" label="User Feedback" icon={<IconMegaphone />} />

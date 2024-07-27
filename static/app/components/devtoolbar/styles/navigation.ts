@@ -14,10 +14,10 @@ export const navigationCss = css`
 
   transition: opacity 2s ease-out 3s;
 
-  &[data-has-active='false'] {
-    opacity: 0.15;
+  opacity: 0.15;
+  &[data-has-active-route] {
+    opacity: 1;
   }
-
   &:hover {
     transition: opacity 0.1s ease-in 0s;
     opacity: 1;

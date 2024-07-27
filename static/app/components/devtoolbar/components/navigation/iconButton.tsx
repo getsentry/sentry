@@ -1,5 +1,5 @@
-import type {ButtonHTMLAttributes, ReactNode} from 'react';
-import {css, type Interpolation} from '@emotion/react';
+import {forwardRef, type HTMLAttributes, type ReactNode} from 'react';
+import {css} from '@emotion/react';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 
@@ -24,30 +24,25 @@ const iconButtonCss = css`
   }
 `;
 
-type BaseButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  css?: Interpolation<any>;
-};
+type BaseButtonProps = HTMLAttributes<HTMLButtonElement>;
 
-interface IconButtonProps extends BaseButtonProps {
+interface Props extends BaseButtonProps {
   icon: ReactNode;
   title: string;
   children?: ReactNode;
   onClick?: () => void;
 }
 
-export default function IconButton({
-  children,
-  icon,
-  onClick,
-  title,
-  ...props
-}: IconButtonProps) {
+export default forwardRef<HTMLButtonElement, Props>(function IconButton(
+  {children, icon, onClick, title, ...props}: Props,
+  forwardedRef
+) {
   return (
     <button
       aria-label={title}
       css={[resetButtonCss, buttonCss, iconButtonCss]}
       onClick={onClick}
-      title={title}
+      ref={forwardedRef}
       {...props}
     >
       <InteractionStateLayer />
@@ -55,4 +50,4 @@ export default function IconButton({
       {children}
     </button>
   );
-}
+});
