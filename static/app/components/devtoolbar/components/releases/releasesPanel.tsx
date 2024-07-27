@@ -143,8 +143,8 @@ function CrashFreeRate({
 
   const currCrashFreeRate = getCrashFreeRate(currSessionData);
   const prevCrashFreeRate = getCrashFreeRate(prevSessionData);
-  const diff = (currCrashFreeRate - prevCrashFreeRate).toFixed(2);
-  const sign = Math.sign(parseFloat(diff));
+  const diff = currCrashFreeRate - prevCrashFreeRate;
+  const sign = Math.sign(diff);
 
   return (
     <PanelItem>
@@ -160,7 +160,7 @@ function CrashFreeRate({
           <span css={resetFlexColumnCss}>
             Change
             {getDiff(
-              Math.abs(parseFloat(diff)) + '%',
+              Math.abs(diff).toFixed(2) + '%',
               sign === 0 ? 'black' : sign === 1 ? 'green400' : 'red400',
               sign === 0 ? undefined : sign === 1 ? 'up' : 'down'
             )}
