@@ -69,11 +69,7 @@ export function DataSetStep({
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
 
   useEffect(() => {
-    if (splitDecision) {
-      setShowSplitAlert(true);
-      return;
-    }
-    setShowSplitAlert(false);
+    setShowSplitAlert(!!splitDecision);
   }, [splitDecision]);
 
   if (displayType !== DisplayType.TABLE) {
