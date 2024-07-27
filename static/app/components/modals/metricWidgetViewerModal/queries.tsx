@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -11,6 +11,7 @@ import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAl
 import {EquationInput} from 'sentry/components/metrics/equationInput';
 import {EquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {QueryBuilder} from 'sentry/components/metrics/queryBuilder';
+import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {getQuerySymbol, QuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION, SLOW_TOOLTIP_DELAY} from 'sentry/constants';
@@ -27,7 +28,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import {hasMetricAlertFeature} from 'sentry/utils/metrics/features';
+import {hasMetricAlertFeature, hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -65,10 +66,12 @@ export const Queries = memo(function Queries({
   removeEquation,
 }: Props) {
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
 
   const availableVariables = useMemo(
-    () => new Set(metricQueries.map(query => getQuerySymbol(query.id))),
-    [metricQueries]
+    () => new Set(metricQueries.map(query => getQuerySymbol(query.id, metricsNewInputs))),
+    [metricQueries, metricsNewInputs]
   );
 
   const handleEditQueryAlias = useCallback(
@@ -290,7 +293,7 @@ function QueryContextMenu({
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'settings',
-      label: t('Metric Settings'),
+      label: t('Configure Metric'),
       disabled: !customMetric,
       onAction: () => {
         navigateTo(
@@ -446,26 +449,44 @@ function ExpressionAliasForm({
 }) {
   return (
     <ExpressionAliasWrapper hasOwnRow={hasContextMenu}>
-      <StyledLabel>as</StyledLabel>
-      <StyledDebouncedInput
-        type="text"
-        value={expression.alias}
-        onChange={e => onChange(e.target.value)}
-        placeholder={t('Add alias')}
-      />
-      <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
-        <StyledButton
-          icon={<IconDelete size="xs" />}
-          aria-label={t('Clear Alias')}
-          onClick={() => onChange(undefined)}
-        />
-      </Tooltip>
+      {hasMetricsNewInputs(useOrganization()) ? (
+        <QueryFieldGroup>
+          <QueryFieldGroup.Label>As</QueryFieldGroup.Label>
+          <QueryFieldGroup.DebouncedInput
+            type="text"
+            value={expression.alias}
+            onChange={e => onChange(e.target.value)}
+            placeholder={t('Add alias')}
+          />
+          <QueryFieldGroup.DeleteButton
+            title={t('Clear Alias')}
+            onClick={() => onChange(undefined)}
+          />
+        </QueryFieldGroup>
+      ) : (
+        <Fragment>
+          <StyledLabel>as</StyledLabel>
+          <StyledDebouncedInput
+            type="text"
+            value={expression.alias}
+            onChange={e => onChange(e.target.value)}
+            placeholder={t('Add alias')}
+          />
+          <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
+            <StyledButton
+              icon={<IconDelete size="xs" />}
+              aria-label={t('Clear Alias')}
+              onClick={() => onChange(undefined)}
+            />
+          </Tooltip>
+        </Fragment>
+      )}
     </ExpressionAliasWrapper>
   );
 }
 
 // TODO: Move this to a shared component
-function DebouncedInput({
+export function DebouncedInput({
   onChange,
   wait = DEFAULT_DEBOUNCE_DURATION,
   ...inputProps

@@ -191,6 +191,12 @@ export const performance: PlatformKey[] = [
 export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
   'javascript',
   'javascript-react',
+  'javascript-nextjs',
+  'python',
+  'python-django',
+  'python-flask',
+  'php',
+  'node',
 ]);
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
@@ -364,17 +370,23 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-vue',
 ];
 
+// These are the mobile platforms that can set up replay.
+export const replayMobilePlatforms: PlatformKey[] = [
+  'android',
+  'apple-ios',
+  'react-native',
+];
+
 // These are all the platforms that can set up replay.
 export const replayPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms,
   ...replayBackendPlatforms,
+  ...replayMobilePlatforms,
 ];
 
 /**
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `replayPlatforms`.
- * This should match sentry-docs: `/src/wizard/${platform}/replay-onboarding/${subPlatform}/`.
- * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms.filter(p => !['javascript-backbone'].includes(p)),

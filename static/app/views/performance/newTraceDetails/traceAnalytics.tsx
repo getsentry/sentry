@@ -83,6 +83,16 @@ const trackResetZoom = (organization: Organization) =>
     organization,
   });
 
+const trackPerformanceSetupChecklistTriggered = (organization: Organization) =>
+  trackAnalytics('trace.quality.performance_setup.checklist_triggered', {
+    organization,
+  });
+
+const trackPerformanceSetupLearnMoreClicked = (organization: Organization) =>
+  trackAnalytics('trace.quality.performance_setup.learn_more_clicked', {
+    organization,
+  });
+
 const trackViewShortcuts = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_shortcuts', {
     organization,
@@ -112,6 +122,9 @@ const traceAnalytics = {
   trackResetZoom,
   trackViewShortcuts,
   trackTraceWarningType,
+  // Trace Quality Improvement
+  trackPerformanceSetupChecklistTriggered,
+  trackPerformanceSetupLearnMoreClicked,
 };
 
 export {traceAnalytics};

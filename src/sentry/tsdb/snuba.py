@@ -710,7 +710,7 @@ class SnubaTSDB(BaseTSDB):
         start: datetime,
         end: datetime,
         rollup: int | None = None,
-        environment_ids: list[int] | None = None,
+        environment_ids: Sequence[int] | None = None,
         conditions=None,
         use_cache: bool = False,
         jitter_value: int | None = None,

@@ -4,10 +4,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -20,11 +16,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
@@ -145,8 +141,6 @@ export function HTTPLandingPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
-  useHasDataTrackAnalytics(ModuleName.HTTP, 'insight.page_loads.http');
-
   const crumbs = useModuleBreadcrumbs('http');
 
   return (
@@ -174,11 +168,7 @@ export function HTTPLandingPage() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
+              <ModulePageFilterBar moduleName={ModuleName.HTTP} />
             </ModuleLayout.Full>
 
             <ModulesOnboarding moduleName={ModuleName.HTTP}>
@@ -247,7 +237,11 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="http" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="http"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.http"
+    >
       <HTTPLandingPage />
     </ModulePageProviders>
   );

@@ -54,7 +54,7 @@ class ImportExportService(RpcService):
     def import_by_model(
         self,
         *,
-        model_name: str = "",
+        import_model_name: str = "",
         scope: RpcImportScope | None = None,
         flags: RpcImportFlags = DEFAULT_IMPORT_FLAGS,
         filter_by: list[RpcFilter],
@@ -87,7 +87,7 @@ class ImportExportService(RpcService):
     def export_by_model(
         self,
         *,
-        model_name: str = "",
+        export_model_name: str = "",
         from_pk: int = 0,
         scope: RpcExportScope | None = None,
         filter_by: list[RpcFilter],

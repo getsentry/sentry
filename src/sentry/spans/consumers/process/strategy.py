@@ -1,13 +1,13 @@
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import Commit, FilteredPayload, Message
+from arroyo.types import Commit, Message
 
 TPayload = TypeVar("TPayload")
 
 
-class CommitSpanOffsets(CommitOffsets):
+class CommitSpanOffsets(CommitOffsets, Generic[TPayload]):
     """
     Inherits from CommitOffsets so we can add a next step. We'd like to commit offsets for
     processed spans before carrying on the work to build segments and produce them since
@@ -15,9 +15,7 @@ class CommitSpanOffsets(CommitOffsets):
     should be committed once they are processed and put into redis.
     """
 
-    def __init__(
-        self, commit: Commit, next_step: ProcessingStrategy[FilteredPayload | TPayload]
-    ) -> None:
+    def __init__(self, commit: Commit, next_step: ProcessingStrategy[TPayload]) -> None:
         super().__init__(commit=commit)
         self.__next_step = next_step
 

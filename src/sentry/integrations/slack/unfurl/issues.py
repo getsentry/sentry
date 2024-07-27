@@ -5,10 +5,10 @@ import re
 from django.http.request import HttpRequest
 
 from sentry import eventstore
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.models.group import Group
-from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
 from sentry.models.user import User
 

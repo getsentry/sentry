@@ -243,9 +243,6 @@ const storeConfig: TagStoreDefinition = {
       ...eventTags,
       ...this.getIssueAttributes(org),
     };
-    if (!org.features.includes('device-classification')) {
-      delete issueTags[FieldKey.DEVICE_CLASS];
-    }
     return issueTags;
   },
 
