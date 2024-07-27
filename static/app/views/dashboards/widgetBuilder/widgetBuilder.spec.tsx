@@ -1745,7 +1745,7 @@ describe('WidgetBuilder', function () {
         );
         expect(
           await screen.findByText(
-            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
           )
         ).toBeInTheDocument();
       });
@@ -1781,7 +1781,7 @@ describe('WidgetBuilder', function () {
         );
         expect(
           await screen.findByText(
-            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Transactions. Edit as you see fit."
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Transactions. Edit as you see fit."
           )
         ).toBeInTheDocument();
       });
@@ -1839,7 +1839,7 @@ describe('WidgetBuilder', function () {
         );
         expect(
           await screen.findByText(
-            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
           )
         ).toBeInTheDocument();
       });
@@ -1875,7 +1875,7 @@ describe('WidgetBuilder', function () {
         );
         expect(
           await screen.findByText(
-            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Transactions. Edit as you see fit."
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Transactions. Edit as you see fit."
           )
         ).toBeInTheDocument();
       });
@@ -1970,7 +1970,7 @@ describe('WidgetBuilder', function () {
         });
         expect(
           await screen.findByText(
-            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
           )
         ).toBeInTheDocument();
       });

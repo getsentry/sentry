@@ -21,7 +21,7 @@ import {BuildStep} from './buildStep';
 function DiscoverSplitAlert({onDismiss, splitDecision}) {
   const splitAlertMessage = splitDecision
     ? tct(
-        "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
+        "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to [splitDecision]. Edit as you see fit.",
         {splitDecision: DATASET_LABEL_MAP[splitDecision]}
       )
     : null;
