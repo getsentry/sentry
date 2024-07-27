@@ -55,20 +55,22 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
       >
         {tabs.map(tab => (
           <DraggableTabList.Item key={tab.key}>
-            {tab.label}
-            <StyledBadge>
-              <QueryCount hideParens count={tab.queryCount} max={1000} />
-            </StyledBadge>
-            {selectedTabKey === tab.key && (
-              <DraggableTabMenuButton
-                hasUnsavedChanges={tab.hasUnsavedChanges}
-                onDelete={tab.onDelete}
-                onDiscard={tab.onDiscard}
-                onDuplicate={tab.onDuplicate}
-                onRename={tab.onRename}
-                onSave={tab.onSave}
-              />
-            )}
+            <TabContentWrap>
+              {tab.label}
+              <StyledBadge>
+                <QueryCount hideParens count={tab.queryCount} max={1000} />
+              </StyledBadge>
+              {selectedTabKey === tab.key && (
+                <DraggableTabMenuButton
+                  hasUnsavedChanges={tab.hasUnsavedChanges}
+                  onDelete={tab.onDelete}
+                  onDiscard={tab.onDiscard}
+                  onDuplicate={tab.onDuplicate}
+                  onRename={tab.onRename}
+                  onSave={tab.onSave}
+                />
+              )}
+            </TabContentWrap>
           </DraggableTabList.Item>
         ))}
       </DraggableTabList>
@@ -80,6 +82,14 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
     </Tabs>
   );
 }
+
+const TabContentWrap = styled('span')`
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  padding: ${space(0)} ${space(0)};
+  gap: 6px;
+`;
 
 const StyledBadge = styled(Badge)`
   display: flex;

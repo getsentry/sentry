@@ -11,12 +11,12 @@ import {Reorder} from 'framer-motion';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {TabsContext} from 'sentry/components/tabs';
+import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
-import {DraggableTab} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 
@@ -29,6 +29,7 @@ function BaseDraggableTabList({
   className,
   outerWrapStyles,
   onReorder,
+  tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -123,7 +124,7 @@ function BaseDraggableTabList({
               value={item}
               style={{display: 'flex', flexDirection: 'row'}}
             >
-              <DraggableTab
+              <Tab
                 key={item.key}
                 item={item}
                 state={state}
@@ -132,6 +133,7 @@ function BaseDraggableTabList({
                   orientation === 'horizontal' && overflowTabs.includes(item.key)
                 }
                 ref={element => (tabItemsRef.current[item.key] = element)}
+                variant={tabVariant}
               />
 
               {state.selectedKey !== item.key &&
@@ -163,6 +165,7 @@ export interface DraggableTabListProps
   className?: string;
   hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
+  tabVariant?: BaseTabProps['variant'];
 }
 
 /**
