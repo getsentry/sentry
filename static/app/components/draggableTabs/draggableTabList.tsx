@@ -126,14 +126,12 @@ function BaseDraggableTabList({
               <DraggableTab
                 key={item.key}
                 item={item}
-                count={item.value ? item.value.count ?? 0 : 0}
                 state={state}
                 orientation={orientation}
                 overflowing={
                   orientation === 'horizontal' && overflowTabs.includes(item.key)
                 }
                 ref={element => (tabItemsRef.current[item.key] = element)}
-                hasUnsavedChanges={item.value ? item.value.hasUnsavedChanges : false}
               />
               {state.selectedKey !== item.key &&
                 state.collection.getKeyAfter(item.key) !== state.selectedKey && (
