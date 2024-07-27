@@ -251,6 +251,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     ):
         """This can be removed once the discover dataset has been fully split"""
         decision = None
+        source = DashboardDatasetSourcesTypes.INFERRED.value
 
         if dataset_inferred_from_query:
             decision = dataset_inferred_from_query

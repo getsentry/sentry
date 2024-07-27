@@ -449,6 +449,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         dataset_inferred_from_query,
                         has_errors,
                         has_transactions,
+                        organization,
+                        request.user,
                     )
 
                     return result
