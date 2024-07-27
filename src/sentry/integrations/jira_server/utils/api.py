@@ -9,7 +9,7 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils import sync_group_assignee_inbound
 
 if TYPE_CHECKING:
-    from sentry.models.integrations.integration import Integration
+    from sentry.integrations.models.integration import Integration
 
 logger = logging.getLogger(__name__)
 

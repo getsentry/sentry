@@ -86,6 +86,7 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         params: ParamsType,
         interval: int,
         top_events: list[dict[str, Any]],
+        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -100,6 +101,7 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         super().__init__(
             dataset,
             params,
+            snuba_params=snuba_params,
             interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),

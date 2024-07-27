@@ -80,6 +80,10 @@ class _UserOptions(TypedDict):
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
+    # NOTE: There is a bug here where trying to move these fields to
+    # UserSerializerResponse and using NotRequired. "identities" is marked as
+    # required for places where UserSerializerResponse is used as a field (e.g
+    # OrganizationMemberResponse).
     identities: list[_Identity]
     avatar: SerializedAvatarFields
     authenticators: list[Any]  # TODO: find out what type this is

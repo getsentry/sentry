@@ -4,6 +4,7 @@ import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
@@ -91,20 +92,6 @@ type CreateTeamModalOptions = {
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   const mod = await import('sentry/components/modals/createTeamModal');
-  const {default: Modal} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />);
-}
-
-type RemoteConfigCreateFeatureModalProps = {
-  createFeature: (key: string, value: string) => void;
-  isValid: (key: string) => boolean;
-};
-
-export async function openRemoteConfigCreateFeatureModal(
-  options: RemoteConfigCreateFeatureModalProps
-) {
-  const mod = await import('sentry/components/modals/remoteConfigCreateFeatureModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
@@ -393,4 +380,11 @@ export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOpti
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
+}
+
+export async function openInsightChartModal(options: InsightChartModalOptions) {
+  const mod = await import('sentry/components/modals/insightChartModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

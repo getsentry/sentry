@@ -16,6 +16,7 @@ from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
@@ -233,6 +234,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         metrics_enhanced_performance,
                         spans_indexed,
                         spans_metrics,
+                        errors,
                     ]
                     else discover
                 )
@@ -423,7 +425,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
                     # TODO: Inferred decisions haven't been ported over to events-stats yet.
                     decision = self.save_dashboard_widget_split_decision(
-                        widget, None, has_errors, has_transactions
+                        widget, None, has_errors, has_transactions, organization, request.user
                     )
 
                     if decision == DashboardWidgetTypes.DISCOVER:

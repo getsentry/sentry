@@ -20,6 +20,7 @@ import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
+import {handleUpdateDashboardSplit} from 'sentry/views/dashboards/detail';
 import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -479,6 +480,80 @@ describe('Dashboards > Detail', function () {
       // Enter edit mode.
       await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
       expect(await screen.findByRole('button', {name: 'Add widget'})).toBeInTheDocument();
+    });
+
+    it('shows add widget option with dataset selector flag', async function () {
+      initialData = initializeOrg({
+        organization: OrganizationFixture({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'custom-metrics',
+            'performance-discover-dataset-selector',
+          ],
+        }),
+      });
+      render(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            {...RouteComponentPropsFixture()}
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          >
+            {null}
+          </ViewEditDashboard>
+        </OrganizationContext.Provider>,
+        {router: initialData.router}
+      );
+
+      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
+      expect(menuOptions.map(e => e.textContent)).toEqual([
+        'Errors',
+        'Transactions',
+        'Issues',
+        'Metrics',
+      ]);
+    });
+
+    it('shows add widget option without dataset selector flag', async function () {
+      initialData = initializeOrg({
+        organization: OrganizationFixture({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'custom-metrics',
+          ],
+        }),
+      });
+      render(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            {...RouteComponentPropsFixture()}
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          >
+            {null}
+          </ViewEditDashboard>
+        </OrganizationContext.Provider>,
+        {router: initialData.router}
+      );
+
+      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
+      expect(menuOptions.map(e => e.textContent)).toEqual([
+        'Errors and Transactions',
+        'Issues',
+        'Metrics',
+      ]);
     });
 
     it('shows top level release filter', async function () {
@@ -1553,6 +1628,61 @@ describe('Dashboards > Detail', function () {
       // Validate that after search is cleared, search result still appears
       expect(await screen.findByText('Latest Release(s)')).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
+    });
+
+    describe('discover split', function () {
+      it('calls the dashboard callbacks with the correct widgetType for discover split', function () {
+        const widget = {
+          displayType: types.DisplayType.TABLE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+          widgetType: types.WidgetType.DISCOVER,
+        };
+        const mockDashboard = DashboardFixture([widget], {
+          id: '1',
+          title: 'Custom Errors',
+        });
+        const mockModifiedDashboard = DashboardFixture([widget], {
+          id: '1',
+          title: 'Custom Errors',
+        });
+
+        const mockOnDashboardUpdate = jest.fn();
+        const mockStateSetter = jest
+          .fn()
+          .mockImplementation(fn => fn({modifiedDashboard: mockModifiedDashboard}));
+
+        handleUpdateDashboardSplit({
+          widgetId: '1',
+          splitDecision: types.WidgetType.ERRORS,
+          dashboard: mockDashboard,
+          modifiedDashboard: mockModifiedDashboard,
+          onDashboardUpdate: mockOnDashboardUpdate,
+          stateSetter: mockStateSetter,
+        });
+
+        expect(mockOnDashboardUpdate).toHaveBeenCalledWith({
+          ...mockDashboard,
+          widgets: [{...widget, widgetType: types.WidgetType.ERRORS}],
+        });
+        expect(mockStateSetter).toHaveReturnedWith({
+          modifiedDashboard: {
+            ...mockModifiedDashboard,
+            widgets: [{...widget, widgetType: types.WidgetType.ERRORS}],
+          },
+        });
+      });
     });
   });
 });

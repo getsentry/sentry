@@ -26,10 +26,10 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.utils.code_mapping import RepoTree
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.pipeline import Pipeline, PipelineView

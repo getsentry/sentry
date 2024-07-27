@@ -5,7 +5,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry.discover.models import TeamKeyTransaction
+from sentry.discover.models import DatasetSourcesTypes, TeamKeyTransaction
 from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -3649,61 +3649,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         self._assert_on_demand_response(response, expected_on_demand_query=True)
         assert response.data["data"] == [{"count_unique(user)": 2}]
 
-    @mock.patch("sentry.snuba.errors.query")
-    def test_errors_request_made_for_saved_error_dashboard_widget_type(self, mock_errors_query):
-        mock_errors_query.return_value = {
-            "data": [],
-            "meta": {},
-        }
-        _, widget, __ = create_widget(
-            ["count()"], "", self.project, discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS
-        )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "count()",
-                ],
-                "query": "",
-                "dataset": "metricsEnhanced",
-                "per_page": 50,
-                "dashboardWidgetId": widget.id,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        mock_errors_query.assert_called_once()
-
-    @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
-    def test_metrics_enhanced_request_made_for_saved_transaction_like_dashboard_widget_type(
-        self, mock_mep_query
-    ):
-        mock_mep_query.return_value = {
-            "data": [],
-            "meta": {},
-        }
-        _, widget, __ = create_widget(
-            ["count()"],
-            "",
-            self.project,
-            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
-        )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "count()",
-                ],
-                "query": "",
-                "dataset": "metricsEnhanced",
-                "per_page": 50,
-                "dashboardWidgetId": widget.id,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        mock_mep_query.assert_called_once()
-
     def test_split_decision_for_errors_widget(self):
         error_data = load_data("python", timestamp=before_now(minutes=1))
         self.store_event(
@@ -3734,6 +3679,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_split_decision_for_transactions_widget(self):
         transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -3766,6 +3712,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_split_decision_for_ambiguous_widget_without_data(self):
         _, widget, __ = create_widget(
@@ -3783,14 +3730,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 "dataset": "metricsEnhanced",
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
-            }
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content
-        assert response.data.get("meta").get("discoverSplitDecision") is None
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
         widget.refresh_from_db()
-        assert widget.discover_widget_split is None
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
     def test_split_decision_for_ambiguous_widget_with_data(self):
         # Store a transaction
@@ -3827,14 +3778,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 "dataset": "metricsEnhanced",
                 "per_page": 50,
                 "dashboardWidgetId": widget.id,
-            }
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
         )
 
         assert response.status_code == 200, response.content
-        assert response.data.get("meta").get("discoverSplitDecision") is None
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
         widget.refresh_from_db()
-        assert widget.discover_widget_split is DashboardWidgetTypes.DISCOVER
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
     @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
     def test_split_decision_can_be_inferred_from_fields(self, mock_mep_query):
