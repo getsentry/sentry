@@ -25,7 +25,7 @@ function useCurrentProjectState({
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
   const {getParamValue: projectIds} = useUrlParams('project');
-  const projectId = projectIds()?.split('&')[0];
+  const projectId = projectIds()?.split('&').at(0);
   const isActive = currentPanel === targetPanel;
 
   // Projects with onboarding instructions
