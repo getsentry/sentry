@@ -1,5 +1,5 @@
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks.update_comment import update_comment as new_update_comment
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 

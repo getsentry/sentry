@@ -4,9 +4,9 @@ from typing import Any
 
 import responses
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks.vsts import kickoff_vsts_subscription_check
 from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

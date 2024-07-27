@@ -1,8 +1,8 @@
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.tasks.migrate_opsgenie_plugins import (
     migrate_opsgenie_plugin as new_migrate_opsgenie_plugin,
 )
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.tasks.base import instrumented_task, retry
 
 

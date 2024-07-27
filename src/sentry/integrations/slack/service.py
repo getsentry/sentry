@@ -10,6 +10,7 @@ import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.notifications import get_context
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
@@ -33,7 +34,6 @@ from sentry.integrations.slack.threads.activity_notifications import (
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
-from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment

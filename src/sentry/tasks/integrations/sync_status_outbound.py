@@ -1,7 +1,7 @@
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks.sync_status_outbound import (
     sync_status_outbound as new_sync_status_outbound,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 

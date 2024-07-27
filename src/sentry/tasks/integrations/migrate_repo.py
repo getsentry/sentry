@@ -1,5 +1,5 @@
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks.migrate_repo import migrate_repo as new_migrate_repo
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode

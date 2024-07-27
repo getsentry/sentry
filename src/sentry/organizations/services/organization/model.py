@@ -173,6 +173,8 @@ class RpcOrganizationMappingFlags(RpcModel):
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
     codecov_access: bool = False
+    disable_member_project_creation: bool = False
+    prevent_superuser_access: bool = False
 
 
 class RpcOrganizationFlags(RpcOrganizationMappingFlags):
@@ -187,6 +189,8 @@ class RpcOrganizationFlags(RpcOrganizationMappingFlags):
             self.disable_new_visibility_features,
             self.require_email_verification,
             self.codecov_access,
+            self.disable_member_project_creation,
+            self.prevent_superuser_access,
         )
 
 

@@ -1,8 +1,8 @@
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks.sync_assignee_outbound_impl import (
     sync_assignee_outbound as new_sync_assignee_outbound,
 )
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.silo.base import SiloMode

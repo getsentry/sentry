@@ -1,7 +1,7 @@
 from sentry import analytics
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.tasks import should_comment_sync
 from sentry.models.activity import Activity
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.silo.base import SiloMode, region_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType

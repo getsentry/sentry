@@ -4,10 +4,9 @@ from datetime import UTC, datetime, timedelta
 from random import choice
 from string import ascii_uppercase
 from typing import Any
-from unittest.mock import ANY, call, patch
+from unittest.mock import call, patch
 
 import pytest
-from django.conf import settings
 from django.test import override_settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
@@ -30,7 +29,6 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_events_from_nodestore,
     lookup_event,
     lookup_group_data_stacktrace_bulk,
-    make_backfill_grouping_id_redis_key,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -38,7 +36,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json, redis
+from sentry.utils import json
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import RateLimitExceeded, bulk_snuba_queries
 
@@ -153,10 +151,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     def tearDown(self):
         super().tearDown()
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        redis_client.set(
-            f"{make_backfill_grouping_id_redis_key(self.project.id)}", 0, ex=60 * 60 * 24 * 7
-        )
 
     def test_lookup_event_success(self):
         """Test single event lookup is successful"""
@@ -486,11 +480,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                 "request_hash": self.group_hashes[group.id],
             }
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(
-            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
-        )
-        assert last_processed_id == sorted([group.id for group in groups])[0]
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
@@ -805,19 +794,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self, mock_lookup_event, mock_get_multi, mock_sleep
     ):
         """
-        Test that the group metadata and redis last processed id aren't updated on a failure.
+        Test that the group metadata isn't updated on a failure.
         """
         mock_lookup_event.side_effect = ServiceUnavailable(message="Service Unavailable")
         mock_get_multi.side_effect = ServiceUnavailable(message="Service Unavailable")
 
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id, None)
-
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(
-            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
-        )
-        assert last_processed_id == 0
 
         for group in Group.objects.filter(project_id=self.project.id):
             assert not group.data["metadata"].get("seer_similarity")
@@ -871,12 +854,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 }
             else:
                 assert group.data["metadata"].get("seer_similarity") is None
-
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(
-            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
-        )
-        assert last_processed_id == sorted([group.id for group in groups])[0]
 
     @pytest.mark.skip(
         "this test is flakey in production; trying to replicate locally and skipping it for now"
@@ -951,12 +928,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     ],
                 }
 
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(
-            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
-        )
-        assert last_processed_id == sorted([group.id for group in groups])[0]
-
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
@@ -1012,12 +983,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                         "parent_hash": "00000000000000000000000000000000",
                     },
                 )
-
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(
-            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
-        )
-        assert last_processed_id == sorted([group.id for group in groups])[0]
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
@@ -1325,11 +1290,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                 "request_hash": self.group_hashes[group.id],
             }
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(
-            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
-        )
-        assert last_processed_id == sorted([group.id for group in groups])[0]
 
         # Assert metadata was not set for groups that will be deleted
         for group in Group.objects.filter(project_id=self.project.id, id__in=deleted_group_ids):
@@ -1444,11 +1404,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                 "request_hash": self.group_hashes[group.id],
             }
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(
-            redis_client.get(make_backfill_grouping_id_redis_key(self.project.id)) or 0
-        )
-        assert last_processed_id == sorted([group.id for group in groups])[0]
 
         # Assert metadata was not set for groups that is 90 days old
         old_group = Group.objects.get(project_id=self.project.id, id=old_group_id)
@@ -1483,7 +1438,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_call_next_backfill.assert_called_with(
             last_processed_group_id=group_ids_sorted[-1],
             project_id=self.project.id,
-            redis_client=ANY,
             last_processed_project_index=0,
             cohort=None,
             enable_ingestion=False,

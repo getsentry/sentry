@@ -16,10 +16,10 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.tasks import migrate_repo
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView

@@ -1,14 +1,14 @@
 from django.db import IntegrityError, router, transaction
 
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.service import integration_service
-from sentry.integrations.tasks import logger
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
 from sentry.plugins.base import plugins
 from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.integrations import logger
 
 
 @instrumented_task(
@@ -32,7 +32,7 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
     for project in Project.objects.filter(organization_id=organization_id):
         plugin = None
         for p in plugins.for_project(project):
-            if isinstance(p, JiraPlugin) and p.is_configured(None, project):
+            if isinstance(p, JiraPlugin) and p.is_configured(project):
                 plugin = p
                 break
 

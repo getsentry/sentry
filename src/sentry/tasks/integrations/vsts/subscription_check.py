@@ -1,7 +1,7 @@
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks.vsts.subscription_check import (
     vsts_subscription_check as new_vsts_subscription_check,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry

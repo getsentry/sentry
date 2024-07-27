@@ -1,6 +1,6 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import type {SavedQuery} from 'sentry/types';
+import type {NewQuery, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -10,6 +10,7 @@ import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/data';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
+  getSavedQueryWithDataset,
 } from 'sentry/views/discover/savedQuery/utils';
 
 export const DATASET_PARAM = 'queryDataset';
@@ -33,7 +34,7 @@ export function DatasetSelector(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  const value = getSavedQueryDataset(location, savedQuery, splitDecision);
+  const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
 
   const options = [
     {
@@ -65,7 +66,9 @@ export function DatasetSelector(props: Props) {
             getDatasetFromLocationOrSavedQueryDataset(undefined, newValue.value)
           );
         } else {
-          const query = DEFAULT_EVENT_VIEW_MAP[newValue.value];
+          const query = getSavedQueryWithDataset(
+            DEFAULT_EVENT_VIEW_MAP[newValue.value]
+          ) as NewQuery;
           nextEventView = EventView.fromNewQueryWithLocation(query, location);
         }
         const nextLocation = nextEventView.getResultsViewUrlTarget(

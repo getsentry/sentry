@@ -37,7 +37,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 )
 from sentry.incidents.endpoints.utils import parse_team_params
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
@@ -47,6 +47,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
+from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
@@ -118,8 +119,15 @@ class AlertRuleIndexMixin(Endpoint):
                 }
                 find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)
+                # TODO handle slack channel lookup AND anomaly detection
             else:
                 alert_rule = serializer.save()
+                if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+                    resp = send_historical_data_to_seer(alert_rule=alert_rule, user=request.user)
+                    if resp.status != 200:
+                        alert_rule.delete()
+                        return Response({"detail": resp.reason}, status=status.HTTP_400_BAD_REQUEST)
+
                 referrer = request.query_params.get("referrer")
                 session_id = request.query_params.get("sessionId")
                 duplicate_rule = request.query_params.get("duplicateRule")

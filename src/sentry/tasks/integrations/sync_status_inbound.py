@@ -1,10 +1,10 @@
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as new_sync_status_inbound,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 

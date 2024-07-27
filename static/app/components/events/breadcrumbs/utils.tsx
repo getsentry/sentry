@@ -35,7 +35,7 @@ import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
-const BREADCRUMB_SUMMARY_COUNT = 3;
+const BREADCRUMB_SUMMARY_COUNT = 5;
 
 export const enum BreadcrumbTimeDisplay {
   RELATIVE = 'relative',

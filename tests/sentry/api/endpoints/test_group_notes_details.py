@@ -3,11 +3,11 @@ from unittest.mock import patch
 
 import responses
 
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
