@@ -12,7 +12,7 @@ from sentry.conf.server import (
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class CreateGroupingRecordsRequest(TypedDict):
 class BulkCreateGroupingRecordsResponse(TypedDict):
     success: bool
     groups_with_neighbor: NotRequired[dict[str, RawSeerSimilarIssueData]]
+    reason: NotRequired[str | None]
 
 
 seer_grouping_connection_pool = connection_from_url(
@@ -69,7 +70,7 @@ def post_bulk_grouping_records(
     except ReadTimeoutError:
         extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
         logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
-        return {"success": False}
+        return {"success": False, "reason": "ReadTimeoutError"}
 
     if response.status >= 200 and response.status < 300:
         logger.info("seer.post_bulk_grouping_records.success", extra=extra)
@@ -77,7 +78,7 @@ def post_bulk_grouping_records(
     else:
         extra.update({"reason": response.reason})
         logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
-        return {"success": False}
+        return {"success": False, "reason": response.reason}
 
 
 def delete_project_grouping_records(
@@ -103,11 +104,13 @@ def delete_project_grouping_records(
             "seer.delete_grouping_records.project.success",
             extra={"project_id": project_id},
         )
+        metrics.incr("grouping.similarity.delete_records_by_project", tags={"success": True})
         return True
     else:
         logger.error(
             "seer.delete_grouping_records.project.failure",
         )
+        metrics.incr("grouping.similarity.delete_records_by_project", tags={"success": False})
         return False
 
 
@@ -135,7 +138,9 @@ def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
             "seer.delete_grouping_records.hashes.success",
             extra=extra,
         )
+        metrics.incr("grouping.similarity.delete_records_by_hash", tags={"success": True})
         return True
     else:
         logger.error("seer.delete_grouping_records.hashes.failure", extra=extra)
+        metrics.incr("grouping.similarity.delete_records_by_hash", tags={"success": False})
         return False

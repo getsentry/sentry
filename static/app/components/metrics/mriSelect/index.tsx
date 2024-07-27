@@ -1,24 +1,28 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   isCustomMetric,
-  isExtractedCustomMetric,
   isSpanDuration,
   isSpanMeasurement,
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetricsExtractionRules,
+  hasMetricsNewInputs,
+} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -234,7 +238,7 @@ export const MRISelect = memo(function MRISelect({
               hideName
             />
           ) : (
-            <StyledIconProject key="generic-project" size="xs" />
+            <IconProject key="generic-project" size="xs" />
           );
         }
 
@@ -286,8 +290,31 @@ export const MRISelect = memo(function MRISelect({
     ]
   );
 
+  if (hasMetricsNewInputs(organization)) {
+    return (
+      <QueryFieldGroup.ComboBox
+        aria-label={t('Metric')}
+        filterOption={option => handleFilterOption(option as ComboBoxOption<MRI>)}
+        growingInput
+        isLoading={isLoading}
+        loadingMessage={t('Loading\u2026')}
+        menuSize="sm"
+        menuWidth="450px"
+        onChange={handleMRIChange}
+        onInputChange={setInputValue}
+        onOpenChange={onOpenMenu}
+        options={mriOptions}
+        placeholder={t('Select a metric')}
+        size="md"
+        sizeLimit={100}
+        value={value}
+        css={comboBoxCss}
+      />
+    );
+  }
+
   return (
-    <MetricComboBox
+    <ComboBox
       aria-label={t('Metric')}
       filterOption={handleFilterOption}
       growingInput
@@ -303,6 +330,7 @@ export const MRISelect = memo(function MRISelect({
       size="md"
       sizeLimit={100}
       value={value}
+      css={comboBoxCss}
     />
   );
 });
@@ -311,11 +339,7 @@ const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const MetricComboBox = styled(ComboBox<MRI>)`
+const comboBoxCss = css`
   min-width: 200px;
   max-width: min(500px, 100%);
-`;
-
-const StyledIconProject = styled(IconProject)`
-  margin-left: -4px;
 `;

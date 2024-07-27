@@ -30,6 +30,7 @@ from sentry.models.user import User
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.models import SnubaQueryEventType
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -53,6 +54,8 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     snooze: bool | None
     latestIncident: datetime | None
     errors: list[str] | None
+    sensitivity: str | None
+    seasonality: str | None
 
 
 @extend_schema_serializer(
@@ -66,6 +69,9 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "totalThisWeek",
         "latestIncident",
         "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
+        "sensitivity",  # For anomaly detection, which is behind a feature flag
+        "seasonality",  # For anomaly detection, which is behind a feature flag
+        "detection_type",  # For anomaly detection, which is behind a feature flag
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
@@ -91,6 +97,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     activations: list[dict]
     activationCondition: int | None
     description: str
+    detection_type: str
 
 
 @register(AlertRule)
@@ -212,7 +219,10 @@ class AlertRuleSerializer(Serializer):
             )
         }
         for rule_activity in rule_activities:
-            rpc_user = user_by_user_id.get(rule_activity.user_id)
+            if rule_activity.user_id is not None:
+                rpc_user = user_by_user_id.get(rule_activity.user_id)
+            else:
+                rpc_user = None
             if rpc_user:
                 created_by = dict(
                     id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
@@ -305,6 +315,9 @@ class AlertRuleSerializer(Serializer):
             "activationCondition": condition_type,
             "activations": attrs.get("activations", None),
             "description": obj.description if obj.description is not None else "",
+            "sensitivity": obj.sensitivity,
+            "seasonality": obj.seasonality,
+            "detection_type": obj.detection_type,
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
@@ -383,6 +396,14 @@ class CombinedRuleSerializer(Serializer):
             serialized_rule["id"]: serialized_rule for serialized_rule in serialized_issue_rules
         }
 
+        serialized_uptime_monitors = serialize(
+            [x for x in item_list if isinstance(x, ProjectUptimeSubscription)],
+            user=user,
+        )
+        serialized_uptime_monitor_map_by_id = {
+            item["id"]: item for item in serialized_uptime_monitors
+        }
+
         for item in item_list:
             item_id = str(item.id)
             if item_id in serialized_alert_rule_map_by_id:
@@ -406,6 +427,9 @@ class CombinedRuleSerializer(Serializer):
             elif item_id in serialized_issue_rule_map_by_id:
                 # This is an issue alert rule
                 results[item] = serialized_issue_rule_map_by_id[item_id]
+            elif item_id in serialized_uptime_monitor_map_by_id:
+                # This is an uptime monitor
+                results[item] = serialized_uptime_monitor_map_by_id[item_id]
             else:
                 logger.error(
                     "Alert Rule found but dropped during serialization",
@@ -420,18 +444,18 @@ class CombinedRuleSerializer(Serializer):
 
     def serialize(
         self,
-        obj: Rule | AlertRule,
+        obj: Rule | AlertRule | ProjectUptimeSubscription,
         attrs: Mapping[Any, Any],
         user: User | RpcUser,
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
+        updated_attrs = {**attrs}
         if isinstance(obj, AlertRule):
-            alert_rule_attrs: MutableMapping[Any, Any] = {**attrs}
-            alert_rule_attrs["type"] = "alert_rule"
-            return alert_rule_attrs
+            updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
-            rule_attrs: MutableMapping[Any, Any] = {**attrs}
-            rule_attrs["type"] = "rule"
-            return rule_attrs
+            updated_attrs["type"] = "rule"
+        elif isinstance(obj, ProjectUptimeSubscription):
+            updated_attrs["type"] = "uptime"
         else:
             raise AssertionError(f"Invalid rule to serialize: {type(obj)}")
+        return updated_attrs

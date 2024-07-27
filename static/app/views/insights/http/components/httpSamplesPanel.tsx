@@ -32,6 +32,7 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
@@ -354,9 +355,8 @@ export function HTTPSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <MetricsRibbon>
+            <ReadoutRibbon>
               <MetricReadout
-                align="left"
                 title={getThroughputTitle('http')}
                 value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
@@ -364,7 +364,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.avg}
                 value={
                   domainTransactionMetrics?.[0]?.[
@@ -376,7 +375,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('3XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
                 unit="percentage"
@@ -384,7 +382,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('4XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
                 unit="percentage"
@@ -392,7 +389,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('5XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
                 unit="percentage"
@@ -400,7 +396,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.timeSpent}
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
@@ -410,7 +405,7 @@ export function HTTPSamplesPanel() {
                 )}
                 isLoading={areDomainTransactionMetricsFetching}
               />
-            </MetricsRibbon>
+            </ReadoutRibbon>
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
@@ -631,12 +626,6 @@ const Title = styled('h4')`
   text-overflow: ellipsis;
   white-space: nowrap;
   margin: 0;
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;
 
 const PanelControls = styled('div')`

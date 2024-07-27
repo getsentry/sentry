@@ -16,6 +16,7 @@ from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
@@ -233,6 +234,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         metrics_enhanced_performance,
                         spans_indexed,
                         spans_metrics,
+                        errors,
                     ]
                     else discover
                 )
@@ -421,7 +423,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         )
                         has_transactions = self.check_if_results_have_data(transaction_results)
 
-                    decision = self.save_split_decision(widget, has_errors, has_transactions)
+                    decision = self.save_split_decision(
+                        widget, has_errors, has_transactions, organization, request.user
+                    )
 
                     if decision == DashboardWidgetTypes.DISCOVER:
                         # The user needs to be warned to split in this case.
@@ -435,8 +439,32 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             comparison_delta,
                         )
                     elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        for result in (
+                            original_results.values()
+                            if isinstance(original_results, dict)
+                            else [original_results]
+                        ):
+                            if not result.data.get("meta"):
+                                result.data["meta"] = {}
+                            result.data["meta"][
+                                "discoverSplitDecision"
+                            ] = DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                        for result in (
+                            error_results.values()
+                            if isinstance(error_results, dict)
+                            else [error_results]
+                        ):
+                            if not result.data.get("meta"):
+                                result.data["meta"] = {}
+                            result.data["meta"][
+                                "discoverSplitDecision"
+                            ] = DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.ERROR_EVENTS
+                            )
                         return error_results
                     else:
                         return original_results

@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -12,7 +11,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {
@@ -24,9 +22,11 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -208,12 +208,14 @@ export function HTTPDomainSummaryPage() {
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <HeaderContainer>
-                <PageFilterBar condensed>
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+                </ToolRibbon>
 
-                <MetricsRibbon>
+                <ReadoutRibbon>
                   <MetricReadout
                     title={getThroughputTitle('http')}
                     value={domainMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
@@ -261,7 +263,7 @@ export function HTTPDomainSummaryPage() {
                     )}
                     isLoading={areDomainMetricsLoading}
                   />
-                </MetricsRibbon>
+                </ReadoutRibbon>
               </HeaderContainer>
             </ModuleLayout.Full>
 
@@ -328,18 +330,6 @@ const DEFAULT_SORT = {
 };
 
 const TRANSACTIONS_TABLE_ROW_COUNT = 20;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
-`;
 
 function PageWithProviders() {
   return (

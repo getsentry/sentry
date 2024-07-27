@@ -9,7 +9,7 @@ from sentry.search.events.builder.spans_metrics import (
     TimeseriesSpansMetricsQueryBuilder,
     TopSpansMetricsQueryBuilder,
 )
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -79,6 +79,7 @@ def timeseries_query(
     params: dict[str, str],
     rollup: int,
     referrer: str,
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -93,9 +94,14 @@ def timeseries_query(
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
     """
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     metrics_query = TimeseriesSpansMetricsQueryBuilder(
         params,
         rollup,
+        snuba_params=snuba_params,
         dataset=Dataset.PerformanceMetrics,
         query=query,
         selected_columns=selected_columns,
@@ -144,6 +150,7 @@ def top_events_timeseries(
     rollup,
     limit,
     organization,
+    snuba_params=None,
     equations=None,
     referrer=None,
     top_events=None,
@@ -176,11 +183,16 @@ def top_events_timeseries(
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
     """
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     if top_events is None:
         top_events = query(
             selected_columns,
             query=user_query,
             params=params,
+            snuba_params=snuba_params,
             equations=equations,
             orderby=orderby,
             limit=limit,
@@ -196,6 +208,7 @@ def top_events_timeseries(
         params,
         rollup,
         top_events["data"],
+        snuba_params=snuba_params,
         other=False,
         query=user_query,
         selected_columns=selected_columns,
@@ -211,6 +224,7 @@ def top_events_timeseries(
             params,
             rollup,
             top_events["data"],
+            snuba_params=snuba_params,
             other=True,
             query=user_query,
             selected_columns=selected_columns,

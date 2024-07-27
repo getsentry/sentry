@@ -7,8 +7,8 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.endpoints.organization_events_spans_performance import Span
 from sentry.api.utils import handle_query_errors
+from sentry.search.events.types import Span
 from sentry.snuba import discover
 
 DATA_FILTERS = ["all", "exclude_outliers"]

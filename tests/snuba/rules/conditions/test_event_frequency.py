@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import (
@@ -149,6 +150,17 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         )
         assert batch_query == {self.event3.group_id: 1}
 
+    def test_get_error_and_generic_group_ids(self):
+        groups = Group.objects.filter(
+            id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
+        ).values("id", "type", "project__organization_id")
+        error_issue_ids, generic_issue_ids = self.condition_inst.get_error_and_generic_group_ids(
+            groups
+        )
+        assert self.event.group_id in error_issue_ids
+        assert self.event2.group_id in error_issue_ids
+        assert self.perf_event.group_id in generic_issue_ids
+
 
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
     rule_cls = EventUniqueUserFrequencyCondition
@@ -194,6 +206,7 @@ class EventFrequencyPercentConditionQueryTest(
         assert batch_query == {
             self.event.group_id: percent_of_sessions,
             self.event2.group_id: percent_of_sessions,
+            self.perf_event.group_id: 0,
         }
         batch_query = self.condition_inst2.batch_query_hook(
             group_ids=[self.event3.group_id],
@@ -202,6 +215,31 @@ class EventFrequencyPercentConditionQueryTest(
             environment_id=self.environment2.id,
         )
         assert batch_query == {self.event3.group_id: percent_of_sessions}
+
+    @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 100)
+    def test_batch_query_percent_no_avg_sessions_in_interval(self):
+        self._make_sessions(60, self.environment2.name)
+        self._make_sessions(60, self.environment.name)
+        batch_query = self.condition_inst.batch_query_hook(
+            group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+        percent = 0
+        assert batch_query == {
+            self.event.group_id: percent,
+            self.event2.group_id: percent,
+            self.perf_event.group_id: percent,
+        }
+
+        batch_query = self.condition_inst2.batch_query_hook(
+            group_ids=[self.event3.group_id],
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+        )
+        assert batch_query == {self.event3.group_id: percent}
 
 
 class ErrorEventMixin(SnubaTestCase):

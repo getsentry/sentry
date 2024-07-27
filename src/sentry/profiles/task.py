@@ -182,13 +182,14 @@ def process_profile_task(
     if not _push_profile_to_vroom(profile, project):
         return
 
-    with metrics.timer("process_profile.track_outcome.accepted"):
-        try:
-            _track_duration_outcome(profile=profile, project=project)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-        if profile.get("version") != "2":
-            _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+    if sampled:
+        with metrics.timer("process_profile.track_outcome.accepted"):
+            try:
+                _track_duration_outcome(profile=profile, project=project)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+            if profile.get("version") != "2":
+                _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -489,6 +490,7 @@ def symbolicate(
             modules=modules,
             release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
             apply_source_context=False,
+            classes=[],
         )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False

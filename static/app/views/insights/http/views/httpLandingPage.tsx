@@ -1,13 +1,9 @@
-import React, {Fragment} from 'react';
+import React from 'react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -20,12 +16,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
@@ -43,12 +38,10 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
-  const onboardingProject = useOnboardingProject();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -148,8 +141,6 @@ export function HTTPLandingPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
-  useHasDataTrackAnalytics(ModuleName.HTTP, 'insight.page_loads.http');
-
   const crumbs = useModuleBreadcrumbs('http');
 
   return (
@@ -177,72 +168,58 @@ export function HTTPLandingPage() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
+              <ModulePageFilterBar moduleName={ModuleName.HTTP} />
             </ModuleLayout.Full>
 
             <ModulesOnboarding moduleName={ModuleName.HTTP}>
-              {onboardingProject && (
-                <ModuleLayout.Full>
-                  <Onboarding organization={organization} project={onboardingProject} />
-                </ModuleLayout.Full>
-              )}
+              <ModuleLayout.Third>
+                <ThroughputChart
+                  series={throughputData['spm()']}
+                  isLoading={isThroughputDataLoading}
+                  error={throughputError}
+                />
+              </ModuleLayout.Third>
 
-              {!onboardingProject && (
-                <Fragment>
-                  <ModuleLayout.Third>
-                    <ThroughputChart
-                      series={throughputData['spm()']}
-                      isLoading={isThroughputDataLoading}
-                      error={throughputError}
-                    />
-                  </ModuleLayout.Third>
+              <ModuleLayout.Third>
+                <DurationChart
+                  series={[durationData[`avg(span.self_time)`]]}
+                  isLoading={isDurationDataLoading}
+                  error={durationError}
+                />
+              </ModuleLayout.Third>
 
-                  <ModuleLayout.Third>
-                    <DurationChart
-                      series={[durationData[`avg(span.self_time)`]]}
-                      isLoading={isDurationDataLoading}
-                      error={durationError}
-                    />
-                  </ModuleLayout.Third>
+              <ModuleLayout.Third>
+                <ResponseRateChart
+                  series={[
+                    {
+                      ...responseCodeData[`http_response_rate(3)`],
+                      seriesName: t('3XX'),
+                    },
+                    {
+                      ...responseCodeData[`http_response_rate(4)`],
+                      seriesName: t('4XX'),
+                    },
+                    {
+                      ...responseCodeData[`http_response_rate(5)`],
+                      seriesName: t('5XX'),
+                    },
+                  ]}
+                  isLoading={isResponseCodeDataLoading}
+                  error={responseCodeError}
+                />
+              </ModuleLayout.Third>
 
-                  <ModuleLayout.Third>
-                    <ResponseRateChart
-                      series={[
-                        {
-                          ...responseCodeData[`http_response_rate(3)`],
-                          seriesName: t('3XX'),
-                        },
-                        {
-                          ...responseCodeData[`http_response_rate(4)`],
-                          seriesName: t('4XX'),
-                        },
-                        {
-                          ...responseCodeData[`http_response_rate(5)`],
-                          seriesName: t('5XX'),
-                        },
-                      ]}
-                      isLoading={isResponseCodeDataLoading}
-                      error={responseCodeError}
-                    />
-                  </ModuleLayout.Third>
+              <ModuleLayout.Full>
+                <SearchBar
+                  query={query['span.domain']}
+                  placeholder={t('Search for more domains')}
+                  onSearch={handleSearch}
+                />
+              </ModuleLayout.Full>
 
-                  <ModuleLayout.Full>
-                    <SearchBar
-                      query={query['span.domain']}
-                      placeholder={t('Search for more domains')}
-                      onSearch={handleSearch}
-                    />
-                  </ModuleLayout.Full>
-
-                  <ModuleLayout.Full>
-                    <DomainsTable response={domainsListResponse} sort={sort} />
-                  </ModuleLayout.Full>
-                </Fragment>
-              )}
+              <ModuleLayout.Full>
+                <DomainsTable response={domainsListResponse} sort={sort} />
+              </ModuleLayout.Full>
             </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -260,7 +237,11 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="http" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="http"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.http"
+    >
       <HTTPLandingPage />
     </ModulePageProviders>
   );

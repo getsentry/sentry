@@ -72,7 +72,7 @@ class IncidentSerializer(Serializer):
 
         return results
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
         return {
             "id": str(obj.id),
@@ -119,7 +119,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
             results[item]["is_subscribed"] = item.id in subscribed_incidents
         return results
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         context = super().serialize(obj, attrs, user)
         context["isSubscribed"] = attrs["is_subscribed"]
         # The query we should use to get accurate results in Discover.

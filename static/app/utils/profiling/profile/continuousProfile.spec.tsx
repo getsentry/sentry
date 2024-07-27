@@ -99,10 +99,10 @@ describe('ContinuousProfile', () => {
     profile.forEach(open, close);
 
     expect(timings).toEqual([
-      ['foo', 'open'],
       ['bar', 'open'],
-      ['bar', 'close'],
+      ['foo', 'open'],
       ['foo', 'close'],
+      ['bar', 'close'],
     ]);
   });
 });

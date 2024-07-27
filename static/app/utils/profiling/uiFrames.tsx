@@ -8,18 +8,23 @@ import {
 export type UIFrameNode = {
   duration: number;
   end: number;
-  node: Profiling.MeasurementValue;
+  node: UIFrameMeasurement;
   start: number;
   type: 'slow' | 'frozen';
 };
 
-type FrameRenders = NonNullable<Profiling.Schema['measurements']>;
+export type UIFrameMeasurements = {
+  unit: string;
+  values: UIFrameMeasurement[];
+};
 
-function sortFramesByStartedTime(
-  a: Profiling.MeasurementValue,
-  b: Profiling.MeasurementValue
-) {
-  return a.elapsed_since_start_ns - a.value - (b.elapsed_since_start_ns - b.value);
+type UIFrameMeasurement = {
+  elapsed: number;
+  value: number;
+};
+
+function sortFramesByStartedTime(a: UIFrameMeasurement, b: UIFrameMeasurement) {
+  return a.elapsed - a.value - (b.elapsed - b.value);
 }
 
 class UIFrames {
@@ -33,8 +38,8 @@ class UIFrames {
 
   constructor(
     frames: {
-      frozen: FrameRenders['frozen_frame_renders'];
-      slow: FrameRenders['slow_frame_renders'];
+      frozen: UIFrameMeasurements | undefined;
+      slow: UIFrameMeasurements | undefined;
     },
     options: {unit: string},
     configSpace?: Rect
@@ -65,8 +70,8 @@ class UIFrames {
   }
 
   buildFramesIntervalTree(
-    slowFrames: NonNullable<FrameRenders['slow_frame_renders']>,
-    frozenFrames: NonNullable<FrameRenders['frozen_frame_renders']>
+    slowFrames: NonNullable<UIFrameMeasurements>,
+    frozenFrames: NonNullable<UIFrameMeasurements>
   ): ReadonlyArray<UIFrameNode> {
     const frames: UIFrameNode[] = [];
 
@@ -81,8 +86,8 @@ class UIFrames {
         ? 'frozen'
         : !frozenFramesQueue.length
           ? 'slow'
-          : slowFramesQueue[0].elapsed_since_start_ns - slowFramesQueue[0].value <
-              frozenFramesQueue[0].elapsed_since_start_ns - frozenFramesQueue[0].value
+          : slowFramesQueue[0].elapsed - slowFramesQueue[0].value <
+              frozenFramesQueue[0].elapsed - frozenFramesQueue[0].value
             ? 'slow'
             : 'frozen';
 
@@ -93,8 +98,8 @@ class UIFrames {
       const unitFn = nextType === 'slow' ? toSlowFinalUnit : toFrozenFinalUnit;
 
       frames.push({
-        start: unitFn(frame.elapsed_since_start_ns - frame.value),
-        end: unitFn(frame.elapsed_since_start_ns),
+        start: unitFn(frame.elapsed - frame.value),
+        end: unitFn(frame.elapsed),
         duration: unitFn(frame.value),
         node: frame,
         type: nextType,

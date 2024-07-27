@@ -14,7 +14,9 @@ from django.utils.functional import cached_property
 from bitfield import TypedClassBitField
 from sentry import features, roles
 from sentry.app import env
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -196,6 +198,9 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
         # Disable org-members from creating new projects
         disable_member_project_creation: bool
 
+        # Prevent superuser access to an organization
+        prevent_superuser_access: bool
+
         bitfield_default = 1
 
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
@@ -252,10 +257,10 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
     def reserve_snowflake_id(cls):
         return generate_snowflake_id(cls.snowflake_redis_key)
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         if self.is_default:
             raise Exception("You cannot delete the default organization.")
-        return super().delete(**kwargs)
+        return super().delete(*args, **kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.organization_mapping.serial import (
@@ -352,7 +357,7 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
                 organization_id__in=org_ids_to_query, role=roles.get_top_dog().id
             ).values_list("organization_id", "user_id")
 
-            for (org_id, user_id) in queried_owner_ids:
+            for org_id, user_id in queried_owner_ids:
                 # An org may have multiple owners. Here we mimic the behavior of
                 # `get_default_owner`, which is to use the first one in the query
                 # result's iteration order.
@@ -486,3 +491,13 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
 
     def delete_option(self, key: str) -> None:
         self.option_manager.unset_value(self, key)
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+        if flags.hide_organizations:
+            self.status = OrganizationStatus.RELOCATION_PENDING_APPROVAL
+        return old_pk

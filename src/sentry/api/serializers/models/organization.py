@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -13,7 +14,7 @@ from sentry_relay.exceptions import RelayError
 from sentry import features, onboarding_tasks, options, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.project import ProjectSerializerResponse
+from sentry.api.serializers.models.project import OrganizationProjectResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializer,
     OrganizationRoleSerializerResponse,
@@ -126,6 +127,14 @@ class BaseOrganizationSerializer(serializers.Serializer):
                 f'The slug "{value}" should not contain any whitespace.'
             )
         return value
+
+
+class TrustedRelaySerializerResponse(TypedDict):
+    name: str
+    description: str
+    publicKey: str
+    created: datetime
+    lastModified: datetime
 
 
 class TrustedRelaySerializer(serializers.Serializer):
@@ -245,12 +254,13 @@ class OrganizationSerializer(Serializer):
         self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> set[str]:
         from sentry import features
-        from sentry.features.base import OrganizationFeature
 
         # Retrieve all registered organization features
         org_features = [
             feature
-            for feature in features.all(feature_type=OrganizationFeature).keys()
+            for feature in features.all(
+                feature_type=features.OrganizationFeature, api_expose_only=True
+            ).keys()
             if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
         ]
         feature_set = set()
@@ -343,6 +353,7 @@ class OrganizationSerializer(Serializer):
             ),
             "avatar": avatar,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
+            "allowSuperuserAccess": not obj.flags.prevent_superuser_access,
             "links": {
                 "organizationUrl": generate_organization_url(obj.slug),
                 "regionUrl": generate_region_url(),
@@ -378,7 +389,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
     task: str  # TODO: literal/enum
     status: str  # TODO: literal/enum
     user: UserSerializerResponse | UserSerializerResponseSelf | None
-    completionSeen: datetime
+    completionSeen: datetime | None
     dateCompleted: datetime
     data: Any  # JSON object
 
@@ -417,11 +428,12 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     uptimeAutodetection: bool
 
 
+@extend_schema_serializer(exclude_fields=["availableRoles"])
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
     experiments: Any
     quota: Any
     isDefault: bool
-    defaultRole: bool
+    defaultRole: str  # TODO: replace with enum/literal
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
     orgRoleList: list[OrganizationRoleSerializerResponse]
     teamRoleList: list[TeamRoleSerializerResponse]
@@ -430,21 +442,21 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enhancedPrivacy: bool
     dataScrubber: bool
     dataScrubberDefaults: bool
-    sensitiveFields: list[Any]  # TODO
-    safeFields: list[Any]
-    storeCrashReports: Any  # TODO
-    attachmentsRole: Any  # TODO
-    debugFilesRole: str
+    sensitiveFields: list[str]
+    safeFields: list[str]
+    storeCrashReports: int
+    attachmentsRole: str  # TODO: replace with enum/literal
+    debugFilesRole: str  # TODO: replace with enum/literal
     eventsMemberAdmin: bool
     alertsMemberWrite: bool
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     allowJoinRequests: bool
     relayPiiConfig: str | None
-    trustedRelays: Any  # TODO
+    trustedRelays: list[TrustedRelaySerializerResponse]
     access: frozenset[str]
     pendingAccessRequests: int
-    onboardingTasks: OnboardingTasksSerializerResponse
+    onboardingTasks: list[OnboardingTasksSerializerResponse]
     codecovAccess: bool
     aiSuggestedSolution: bool
     githubPRBot: bool
@@ -645,11 +657,22 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         return context
 
 
+@extend_schema_serializer(
+    exclude_fields=[
+        "availableRoles",
+        "requireEmailVerification",
+        "genAIConsent",
+        "metricsActivatePercentiles",
+        "metricsActivateLastForGauges",
+        "extrapolateMetrics",
+        "quota",
+    ]
+)
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
     DetailedOrganizationSerializerResponse
 ):
     teams: list[TeamSerializerResponse]
-    projects: list[ProjectSerializerResponse]
+    projects: list[OrganizationProjectResponse]
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):

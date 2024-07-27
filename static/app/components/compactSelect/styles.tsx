@@ -153,7 +153,7 @@ export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 1em;
+  min-width: 1em;
   height: 1.4em;
   padding-bottom: 1px;
   pointer-events: none;

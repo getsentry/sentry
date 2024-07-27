@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';

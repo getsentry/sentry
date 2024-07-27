@@ -176,7 +176,7 @@ const onboarding: OnboardingConfig = {
       description: t(
         'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
       ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/performance/',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/tracing/',
     },
     {
       id: 'session-replay',

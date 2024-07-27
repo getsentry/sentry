@@ -16,6 +16,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
     METRIC_STRINGS = [
         "foo_transaction",
     ]
+    features = {"organizations:discover-basic": True}
 
     def setUp(self):
         super().setUp()
@@ -30,13 +31,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         self.features = {
             "organizations:performance-use-metrics": True,
         }
-
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     @pytest.mark.querybuilder

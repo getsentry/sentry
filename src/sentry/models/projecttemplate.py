@@ -28,3 +28,6 @@ class ProjectTemplate(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("name", "organization_id")
+
+    def get_audit_log_data(self):
+        return {"name": self.name, "organization_id": self.organization_id}

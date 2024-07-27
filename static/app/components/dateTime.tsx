@@ -1,5 +1,4 @@
-import moment from 'moment';
-import momentTimezone from 'moment-timezone';
+import moment from 'moment-timezone';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {getFormat} from 'sentry/utils/dates';
@@ -8,7 +7,7 @@ export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   /**
    * Input date.
    */
-  date: moment.MomentInput | momentTimezone.MomentInput;
+  date: moment.MomentInput;
   /**
    * If true, will only return the date part, e.g. "Jan 1".
    */
@@ -82,9 +81,7 @@ export function DateTime({
     <time {...props}>
       {utc
         ? moment.utc(date as moment.MomentInput).format(formatString)
-        : momentTimezone
-            .tz(date, forcedTimezone ?? options?.timezone ?? '')
-            .format(formatString)}
+        : moment.tz(date, forcedTimezone ?? options?.timezone ?? '').format(formatString)}
     </time>
   );
 }

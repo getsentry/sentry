@@ -156,7 +156,7 @@ export function EquationInput({
         monospace
         hasError={showErrors && errors.length > 0}
         defaultValue={value}
-        placeholder="e.g. (a / b) * 100"
+        placeholder="e.g. (A / B) * 100"
         onChange={e => {
           setValue(e.target.value);
           handleChange(e);

@@ -74,6 +74,27 @@ class FeatureManagerTest(TestCase):
             "projects:feature3",
         }
 
+    def test_feature_registry_api_expose(self):
+        manager = features.FeatureManager()
+        assert manager.all() == {}
+
+        manager.add("organizations:feature1", OrganizationFeature)
+        manager.add("organizations:feature2", OrganizationFeature, api_expose=True)
+        manager.add("organizations:feature3", OrganizationFeature, api_expose=False)
+        exposed = {"organizations:feature1", "organizations:feature2"}
+        hidden = {
+            "organizations:feature3",
+        }
+        assert set(manager.all(OrganizationFeature).keys()) == exposed | hidden
+        assert (
+            set(manager.all(feature_type=OrganizationFeature, api_expose_only=True).keys())
+            == exposed
+        )
+        assert (
+            set(manager.all(feature_type=OrganizationFeature, api_expose_only=False).keys())
+            == exposed | hidden
+        )
+
     def test_feature_register_default(self):
         manager = features.FeatureManager()
         manager.add("organizations:red-paint", OrganizationFeature, default=False)
@@ -101,7 +122,7 @@ class FeatureManagerTest(TestCase):
                 self.true_set = frozenset(true_set)
                 self.false_set = frozenset(false_set)
 
-            def has(self, feature, actor):
+            def has(self, feature, actor, skip_entity: bool | None = False):
                 assert actor == test_user
 
                 if feature.project in self.true_set:

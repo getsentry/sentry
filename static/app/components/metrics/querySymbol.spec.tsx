@@ -30,4 +30,16 @@ describe('QuerySymbol', () => {
     const {container} = render(<QuerySymbol queryId={-1} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('renders everything in uppercase', () => {
+    render(<QuerySymbol queryId={0} />, {
+      organization: {features: ['metrics-new-inputs']},
+    });
+    expect(screen.getByText('A')).toBeInTheDocument();
+
+    render(<QuerySymbol queryId={27} />, {
+      organization: {features: ['metrics-new-inputs']},
+    });
+    expect(screen.getByText('AB')).toBeInTheDocument();
+  });
 });
