@@ -199,7 +199,7 @@ const TabDivider = styled('div')`
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
-  margin: 8px auto;
+  margin: 8px 4px;
 `;
 
 const TabListOuterWrap = styled('div')`
