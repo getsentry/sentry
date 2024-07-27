@@ -1,16 +1,15 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  PageAlert,
-  PageAlertProvider,
-  usePageAlert,
-} from 'sentry/utils/performance/contexts/pageAlert';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
 import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelector';
@@ -19,11 +18,39 @@ import {DataSet} from '../utils';
 
 import {BuildStep} from './buildStep';
 
+function DiscoverSplitAlert({onDismiss, splitDecision}) {
+  const splitAlertMessage = splitDecision
+    ? tct(
+        "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
+        {splitDecision: DATASET_LABEL_MAP[splitDecision]}
+      )
+    : null;
+
+  return (
+    <Alert
+      type="warning"
+      showIcon
+      trailingItems={
+        <StyledCloseButton
+          icon={<IconClose size="sm" />}
+          aria-label={t('Close')}
+          onClick={onDismiss}
+          size="zero"
+          borderless
+        />
+      }
+    >
+      {splitAlertMessage}
+    </Alert>
+  );
+}
+
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
   hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
+  source?: DatasetSource;
   splitDecision?: WidgetType;
 }
 
@@ -33,21 +60,21 @@ export function DataSetStep({
   hasReleaseHealthFeature,
   displayType,
   splitDecision,
+  source,
 }: Props) {
-  const {setPageWarning} = usePageAlert();
+  const [showSplitAlert, setShowSplitAlert] = useState<boolean>(
+    source === DatasetSource.FORCED
+  );
   const organization = useOrganization();
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
 
   useEffect(() => {
     if (splitDecision) {
-      setPageWarning(
-        tct(
-          "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-          {splitDecision: DATASET_LABEL_MAP[splitDecision]}
-        )
-      );
+      setShowSplitAlert(true);
+      return;
     }
-  }, [setPageWarning, splitDecision]);
+    setShowSplitAlert(false);
+  }, [splitDecision]);
 
   if (displayType !== DisplayType.TABLE) {
     disabledChoices.push([
@@ -85,7 +112,12 @@ export function DataSetStep({
         }
       )}
     >
-      <PageAlert />
+      {showSplitAlert && (
+        <DiscoverSplitAlert
+          onDismiss={() => setShowSplitAlert(false)}
+          splitDecision={splitDecision}
+        />
+      )}
       <DataSetChoices
         label="dataSet"
         value={dataSet}
@@ -100,28 +132,19 @@ export function DataSetStep({
   );
 }
 
-export default function WrappedDataSetStep({
-  dataSet,
-  onChange,
-  hasReleaseHealthFeature,
-  displayType,
-  splitDecision,
-}: Props) {
-  return (
-    <PageAlertProvider>
-      <DataSetStep
-        dataSet={dataSet}
-        onChange={onChange}
-        hasReleaseHealthFeature={hasReleaseHealthFeature}
-        displayType={displayType}
-        splitDecision={splitDecision}
-      />
-    </PageAlertProvider>
-  );
-}
-
 const DataSetChoices = styled(RadioGroup)`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(2)};
+`;
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
 `;
