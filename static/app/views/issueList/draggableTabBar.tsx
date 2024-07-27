@@ -54,11 +54,7 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
         orientation="horizontal"
       >
         {tabs.map(tab => (
-          <DraggableTabList.Item
-            key={tab.key}
-            count={tab.queryCount}
-            hasUnsavedChanges={tab.hasUnsavedChanges}
-          >
+          <DraggableTabList.Item key={tab.key}>
             {tab.label}
             <StyledBadge>
               <QueryCount hideParens count={tab.queryCount} max={1000} />

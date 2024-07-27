@@ -133,6 +133,7 @@ function BaseDraggableTabList({
                 }
                 ref={element => (tabItemsRef.current[item.key] = element)}
               />
+
               {state.selectedKey !== item.key &&
                 state.collection.getKeyAfter(item.key) !== state.selectedKey && (
                   <TabDivider />
