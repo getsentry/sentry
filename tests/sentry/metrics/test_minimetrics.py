@@ -60,10 +60,17 @@ class DummyTransport(Transport):
         self.captured.append(envelope)
 
     def get_spans(self):
+        tx = self.get_transaction()
+        if tx is None:
+            return []
+
+        return tx["spans"]
+
+    def get_transaction(self):
         for envelope in self.captured:
             for item in envelope.items:
                 if item.headers.get("type") == "transaction":
-                    return item.payload.json["spans"]
+                    return item.payload.json
 
     def get_metrics(self):
         result = []
