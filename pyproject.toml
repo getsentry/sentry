@@ -551,6 +551,7 @@ module = [
     "sentry.users.*",
     "sentry.utils.arroyo",
     "sentry.utils.assets",
+    "sentry.utils.audit",
     "sentry.utils.celery",
     "sentry.utils.codeowners",
     "sentry.utils.colors",
