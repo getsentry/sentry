@@ -14,7 +14,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('PerformanceScoreBreakdownChart', function () {
   const organization = OrganizationFixture();
-  let eventsMock, eventsStatsMock;
+  let eventsStatsMock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -43,12 +43,6 @@ describe('PerformanceScoreBreakdownChart', function () {
       },
     });
 
-    eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
-    });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {},
@@ -71,35 +65,6 @@ describe('PerformanceScoreBreakdownChart', function () {
     });
     render(<PerformanceScoreBreakdownChart />, {organization});
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.objectContaining({
-          field: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.ttfb)',
-            'avg(measurements.score.total)',
-            'avg(measurements.score.weight.lcp)',
-            'avg(measurements.score.weight.fcp)',
-            'avg(measurements.score.weight.cls)',
-            'avg(measurements.score.weight.inp)',
-            'avg(measurements.score.weight.ttfb)',
-            'count()',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-            'count_scores(measurements.score.inp)',
-          ],
-        }),
-      })
-    );
 
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',

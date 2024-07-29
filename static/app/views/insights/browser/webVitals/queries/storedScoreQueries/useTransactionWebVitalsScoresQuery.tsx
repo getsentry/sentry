@@ -13,7 +13,6 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -43,10 +42,9 @@ export const useTransactionWebVitalsScoresQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const shouldUseStaticWeights = useStaticWeightsSetting();
 
   const sort = useWebVitalsSort({sortName, defaultSort});
-  if (sort !== undefined && shouldUseStaticWeights) {
+  if (sort !== undefined) {
     if (sort.field === 'avg(measurements.score.total)') {
       sort.field = 'performance_score(measurements.score.total)';
     }
@@ -80,9 +78,7 @@ export const useTransactionWebVitalsScoresQuery = ({
           ? [`performance_score(measurements.score.${webVital})`]
           : []),
         `opportunity_score(measurements.score.${webVital})`,
-        ...(shouldUseStaticWeights
-          ? ['performance_score(measurements.score.total)']
-          : ['avg(measurements.score.total)']),
+        'performance_score(measurements.score.total)',
         'count()',
         `count_scores(measurements.score.lcp)`,
         `count_scores(measurements.score.fcp)`,
@@ -117,10 +113,7 @@ export const useTransactionWebVitalsScoresQuery = ({
     !isLoading && data?.data.length
       ? data.data.map(row => {
           // Map back performance score key so we don't have to handle both keys in the UI
-          if (
-            shouldUseStaticWeights &&
-            row['performance_score(measurements.score.total)'] !== undefined
-          ) {
+          if (row['performance_score(measurements.score.total)'] !== undefined) {
             row['avg(measurements.score.total)'] =
               row['performance_score(measurements.score.total)'];
           }
@@ -159,7 +152,7 @@ export const useTransactionWebVitalsScoresQuery = ({
             inpScore: inpScore ?? 0,
             // Map back opportunity score key so we don't have to handle both keys in the UI
             opportunity: row[
-              shouldUseStaticWeights && webVital === 'total'
+              webVital === 'total'
                 ? 'total_opportunity_score()'
                 : `opportunity_score(measurements.score.${webVital})`
             ] as number,

@@ -25,13 +25,11 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
-import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -64,7 +62,6 @@ const DEFAULT_SORT: Sort = {
 export function PagePerformanceTable() {
   const location = useLocation();
   const organization = useOrganization();
-  const shouldUseStaticWeights = useStaticWeightsSetting();
 
   const columnOrder = COLUMN_ORDER;
 
@@ -72,8 +69,6 @@ export function PagePerformanceTable() {
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
   const sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
-  const {data: projectScoresData, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({browserTypes});
 
   const {
     data,
@@ -88,15 +83,9 @@ export function PagePerformanceTable() {
     browserTypes,
   });
 
-  const scoreCount = projectScoresData?.data?.[0]?.[
-    'count_scores(measurements.score.total)'
-  ] as number;
-
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity:
-      (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
-      (shouldUseStaticWeights ? 1 : scoreCount), // static weight keys are already normalized
+    opportunity: ((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -310,7 +299,7 @@ export function PagePerformanceTable() {
         />
         <StyledPagination
           pageLinks={pageLinks}
-          disabled={isProjectScoresLoading || isTransactionWebVitalsQueryLoading}
+          disabled={isTransactionWebVitalsQueryLoading}
           size="md"
         />
         {/* The Pagination component disappears if pageLinks is not defined,
@@ -336,7 +325,7 @@ export function PagePerformanceTable() {
       <GridContainer>
         <GridEditable
           aria-label={t('Pages')}
-          isLoading={isProjectScoresLoading || isTransactionWebVitalsQueryLoading}
+          isLoading={isTransactionWebVitalsQueryLoading}
           columnOrder={columnOrder}
           columnSortBy={[]}
           data={tableData}
