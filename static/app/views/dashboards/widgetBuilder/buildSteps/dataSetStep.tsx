@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelector';
 
 import {DataSet} from '../utils';
@@ -67,6 +68,7 @@ export function DataSetStep({
   );
   const organization = useOrganization();
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
+  const hasDatasetSelectorFeature = hasDatasetSelector(organization);
 
   useEffect(() => {
     setShowSplitAlert(!!splitDecision);
@@ -81,13 +83,13 @@ export function DataSetStep({
 
   const datasetChoices = new Map<string, string>();
 
-  if (organization.features.includes('performance-discover-dataset-selector')) {
+  if (hasDatasetSelectorFeature) {
     // TODO: Finalize description copy
     datasetChoices.set(DataSet.ERRORS, t('Errors (TypeError, InvalidSearchQuery, etc)'));
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
   }
 
-  if (!organization.features.includes('performance-discover-dataset-selector')) {
+  if (!hasDatasetSelectorFeature) {
     datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
   }
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
@@ -108,7 +110,7 @@ export function DataSetStep({
         }
       )}
     >
-      {showSplitAlert && (
+      {showSplitAlert && hasDatasetSelectorFeature && (
         <DiscoverSplitAlert
           onDismiss={() => setShowSplitAlert(false)}
           splitDecision={splitDecision}
