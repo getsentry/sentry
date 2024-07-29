@@ -1,14 +1,12 @@
 import {Fragment, useState} from 'react';
-import type {Orientation} from '@react-types/shared';
 import range from 'lodash/range';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
-import Matrix from 'sentry/components/stories/matrix';
+import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import type {TabListProps, TabsProps} from 'sentry/components/tabs';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import type {BaseTabProps} from 'sentry/components/tabs/tab';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook(Tabs, story => {
@@ -191,11 +189,7 @@ export default storyBook(Tabs, story => {
   ));
 
   story('Variants', () => {
-    const propMatrix: {
-      hideBorder: (boolean | undefined)[];
-      orientation: (Orientation | undefined)[];
-      variant: (BaseTabProps['variant'] | undefined)[];
-    } = {
+    const propMatrix: PropMatrix<TabsProps<string> & TabListProps> = {
       hideBorder: [undefined, false, true],
       orientation: [undefined, 'horizontal', 'vertical'],
       variant: [undefined, 'flat', 'filled', 'floating'],
