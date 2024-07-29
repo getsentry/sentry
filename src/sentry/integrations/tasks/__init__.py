@@ -50,7 +50,6 @@ settings.CELERY_IMPORTS += (
     "sentry.tasks.integrations.update_comment",
     "sentry.tasks.integrations.vsts.kickoff_subscription_check",
     "sentry.tasks.integrations.vsts.subscription_check",
-    "yolo",
     "sentry.integrations.tasks.create_comment",
     "sentry.integrations.tasks.kick_off_status_syncs_impl",
     "sentry.integrations.tasks.github.link_all_repos",
