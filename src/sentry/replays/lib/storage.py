@@ -99,14 +99,20 @@ class Blob(ABC):
 class FilestoreBlob(Blob):
     """Filestore service driver blob manager."""
 
+    def _segment_file(self, segment: RecordingSegmentStorageMeta) -> File:
+        if segment.file:
+            return segment.file
+        elif segment.file_id is not None:
+            return File.objects.get(pk=segment.file_id)
+        else:
+            raise ValueError("expected either segment.file or segment.file_id")
+
     def delete(self, segment: RecordingSegmentStorageMeta) -> None:
-        file = segment.file or File.objects.get(pk=segment.file_id)
-        file.delete()
+        self._segment_file(segment).delete()
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
-        file = segment.file or File.objects.get(pk=segment.file_id)
-        return file.getfile().read()
+        return self._segment_file(segment).getfile().read()
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
