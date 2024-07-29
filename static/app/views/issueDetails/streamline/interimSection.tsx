@@ -44,7 +44,7 @@ export function InterimSection({
 }
 
 const Divider = styled('hr')`
-  border: 1px solid ${p => p.theme.border};
+  border-color: ${p => p.theme.border};
   margin: ${space(1)} 0;
   &:last-child {
     display: none;
