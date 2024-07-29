@@ -35,6 +35,20 @@ export const MOCK_BREADCRUMBS = [
     type: BreadcrumbType.QUERY,
     timestamp: oneMinuteBeforeEventFixture,
   },
+  {
+    message: 'my logger',
+    category: 'custom.logger',
+    level: BreadcrumbLevelType.UNDEFINED,
+    type: BreadcrumbType.DEFAULT,
+    timestamp: oneMinuteBeforeEventFixture,
+  },
+  {
+    message: 'my analytics',
+    category: 'analytics.event',
+    level: BreadcrumbLevelType.INFO,
+    type: BreadcrumbType.DEFAULT,
+    timestamp: oneMinuteBeforeEventFixture,
+  },
 ];
 const MOCK_BREADCRUMB_ENTRY = {
   type: EntryType.BREADCRUMBS,

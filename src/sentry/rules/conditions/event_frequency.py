@@ -177,7 +177,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
         _, duration = self.intervals[interval]
         try:
-            current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[arg-type, union-attr]
+            current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[union-attr]
         # XXX(CEO): once inc-666 work is concluded, rm try/except
         except RateLimitExceeded:
             metrics.incr("rule.event_frequency.snuba_query_limit")

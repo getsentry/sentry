@@ -193,6 +193,10 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   }
 
   shouldUseNewDefaultSetting(): boolean {
+    if (this.props.organization.features.includes('seer-based-priority')) {
+      return true;
+    }
+
     return (
       this.props.organization.features.includes('default-high-priority-alerts') &&
       (this.props.platformLanguage === SupportedLanguages.PYTHON ||

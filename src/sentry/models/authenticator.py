@@ -191,7 +191,7 @@ class Authenticator(ControlOutboxProducingModel):
         if save:
             self.save()
 
-    def __repr__(self):
+    def __repr__(self) -> str:  # type: ignore[override]  # python/mypy#17562
         return f"<Authenticator user={self.user.email!r} interface={self.interface.interface_id!r}>"
 
     @classmethod
