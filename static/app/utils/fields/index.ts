@@ -533,7 +533,6 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
 
 type TraceFields =
   | SpanIndexedField.SPAN_ACTION
-  | SpanIndexedField.SPAN_CATEGORY
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.SPAN_DOMAIN
   | SpanIndexedField.SPAN_DURATION
@@ -550,13 +549,6 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(
       'The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP span'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanIndexedField.SPAN_CATEGORY]: {
-    desc: t(
-      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
