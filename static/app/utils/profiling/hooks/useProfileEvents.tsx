@@ -14,6 +14,7 @@ export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> 
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;
+  baseQuery?: string;
   cursor?: string;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
@@ -34,11 +35,12 @@ export function useProfileEvents<F extends string>({
   refetchOnMount = true,
   datetime,
   projects,
+  baseQuery = 'has:profile.id',
 }: UseProfileEventsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  query = `has:profile.id ${query ? `(${query})` : ''}`;
+  query = `${baseQuery} ${query ? `(${query})` : ''}`;
 
   const path = `/organizations/${organization.slug}/events/`;
   const endpointOptions = {

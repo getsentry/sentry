@@ -297,6 +297,10 @@ function ProfilingContent({location}: ProfilingContentProps) {
     query,
     sort,
     referrer: 'api.profiling.landing-table',
+    // TODO: this should move into the hook at some point
+    baseQuery: organization.features.includes('continuous-profiling-compat')
+      ? '(has:profile.id OR (has:profiler.id has:thread.id))'
+      : 'has:profile.id',
   });
 
   const transactionsError =
