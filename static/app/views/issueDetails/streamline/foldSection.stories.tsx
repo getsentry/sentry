@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -72,28 +71,26 @@ export default storyBook('FoldSection', story => {
           <Lorem />
         </FoldSection>
         <FoldSection
-          title={
-            <Title>
-              <div>Header with Actions</div>
-              <ButtonBar gap={1}>
-                <Button size="xs" icon={<IconAdd />}>
-                  Add
-                </Button>
-                <Button size="xs" icon={<IconSubtract />}>
-                  Remove
-                </Button>
-                <Button size="xs" icon={<IconCopy />}>
-                  Copy
-                </Button>
-              </ButtonBar>
-            </Title>
+          title="Header with Actions"
+          actions={
+            <ButtonBar gap={1}>
+              <Button size="xs" icon={<IconAdd />}>
+                Add
+              </Button>
+              <Button size="xs" icon={<IconSubtract />}>
+                Remove
+              </Button>
+              <Button size="xs" icon={<IconCopy />}>
+                Copy
+              </Button>
+            </ButtonBar>
           }
           sectionKey={FoldSectionKey.HIGHLIGHTS}
         >
           <Lorem />
         </FoldSection>
         <CodeSnippet language="jsx">
-          {`<FoldSection title={<CustomTitle />} sectionKey={FoldSectionKey.MY_SECTION}>
+          {`<FoldSection title={<CustomTitle />} actions={<ButtonBar />} sectionKey={FoldSectionKey.MY_SECTION}>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
         </CodeSnippet>
@@ -126,13 +123,6 @@ export default storyBook('FoldSection', story => {
   });
 });
 
-const Title = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  margin-right: 8px;
-  align-items: center;
-`;
-
 function Lorem() {
   return (
     <Fragment>
@@ -152,14 +142,6 @@ function Lorem() {
         adipisicing elit. Repellendus tempore optio architecto, dignissimos assumenda
         quasi reiciendis in earum hic quae quidem deserunt dolorum aut, sint impedit
         distinctio totam. Ullam, veniam?
-      </p>
-      <p>
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae suscipit nihil
-        eaque earum minus, optio officia, nam nemo error harum, cupiditate cum odio
-        debitis rerum quod maiores ipsa quia nobis? Lorem, ipsum dolor sit amet
-        consectetur adipisicing elit. Dignissimos, similique reiciendis aliquid eius
-        corrupti eum magni in dolores deleniti sequi maxime assumenda numquam blanditiis
-        magnam fuga quo tempore ipsum ducimus!
       </p>
     </Fragment>
   );
