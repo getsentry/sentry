@@ -242,7 +242,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
         assert data["title"] == f"Critical: {self.alert_rule.name}"
         assert data["status"] == "Critical"
-        assert data["text"] == "92% sessions crash free rate in the last 60 minutes"
+        assert data["text"] == "92% sessions crash free rate in the last hour"
         assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
@@ -254,7 +254,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         data = incident_attachment_info(self.incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "100.0% sessions crash free rate in the last 60 minutes"
+        assert data["text"] == "100.0% sessions crash free rate in the last hour"
         assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
@@ -266,7 +266,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         data = incident_attachment_info(self.incident, IncidentStatus.CRITICAL, 92)
         assert data["title"] == f"Critical: {self.alert_rule.name}"
         assert data["status"] == "Critical"
-        assert data["text"] == "92% users crash free rate in the last 60 minutes"
+        assert data["text"] == "92% users crash free rate in the last hour"
         assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
@@ -278,7 +278,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         data = incident_attachment_info(self.incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "100.0% users crash free rate in the last 60 minutes"
+        assert data["text"] == "100.0% users crash free rate in the last hour"
         assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
@@ -290,7 +290,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         data = incident_attachment_info(self.daily_incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {self.daily_alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "100.0% users crash free rate in the last 1 day"
+        assert data["text"] == "100.0% users crash free rate in the last day"
         assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
@@ -320,7 +320,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
 
         assert data["title"] == f"Critical: {alert_rule.name}"
         assert data["status"] == "Critical"
-        assert data["text"] == "No sessions crash free rate in the last 60 minutes"
+        assert data["text"] == "No sessions crash free rate in the last hour"
 
 
 @freeze_time(MOCK_NOW)
