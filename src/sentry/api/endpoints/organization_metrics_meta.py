@@ -32,10 +32,12 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
         }
         try:
             # This will be used on the perf homepage and contains preset queries, allow global views
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, _ = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response(data)
-        original_project_ids = params["project_id"].copy()
+        original_project_ids = snuba_params.project_ids[:]
 
         with handle_query_errors():
             count_has_txn = "count_has_transaction_name()"
@@ -46,7 +48,8 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
                     count_null,
                     count_has_txn,
                 ],
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 query=f"{count_null}:0 AND {count_has_txn}:>0",
                 referrer="api.organization-events-metrics-compatibility.compatible",
                 functions_acl=["count_null_transactions", "count_has_transaction_name"],
@@ -85,14 +88,17 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
         }
         try:
             # This will be used on the perf homepage and contains preset queries, allow global views
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, _ = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response(data)
 
         with handle_query_errors():
             sum_metrics = metrics_performance.query(
                 selected_columns=[COUNT_UNPARAM, COUNT_NULL, "count()"],
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 query="",
                 referrer="api.organization-events-metrics-compatibility.sum_metrics",
                 functions_acl=["count_unparameterized_transactions", "count_null_transactions"],
