@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
@@ -253,7 +254,9 @@ class OAuthAuthorizeView(AuthLoginView):
 
         op = request.POST.get("op")
         if op == "approve":
+            token_kwargs = {}
             if application.organization_id:
+                token_kwargs["expires_at"] = timezone.now() + timedelta(hours=12)
                 # Before granting access to an untrusted third-party application we must
                 # verify the user is a member of the organization. Failure to do so could
                 # allow malicious third-parties to access private customer data.
@@ -278,6 +281,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 state=payload["st"],
+                token_kwargs=token_kwargs,
             )
 
         elif op == "deny":
@@ -292,7 +296,7 @@ class OAuthAuthorizeView(AuthLoginView):
         else:
             raise NotImplementedError
 
-    def approve(self, request: HttpRequest, application, **params):
+    def approve(self, request: HttpRequest, application, token_kwargs=None, **params):
         try:
             with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
@@ -337,12 +341,14 @@ class OAuthAuthorizeView(AuthLoginView):
                 {"code": grant.code, "state": params["state"]},
             )
         elif params["response_type"] == "token":
+            token_kwargs = token_kwargs or {}
             token = ApiToken.objects.create(
                 application=application,
                 user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
                 scoping_organization_id=application.organization_id,
+                **token_kwargs,
             )
 
             logger.info(
