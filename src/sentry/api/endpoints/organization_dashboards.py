@@ -68,7 +68,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Dashboards",
+        operation_id="Retrieve an Organization's Custom Dashboards",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
         request=None,
         responses={
@@ -83,7 +83,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization) -> Response:
         """
-        Retrieve a list of dashboards that are associated with the given organization.
+        Retrieve a list of custom dashboards that are associated with the given organization.
         """
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
