@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
@@ -379,6 +380,7 @@ class OrganizationOAuthAuthorizeTokenTest(TestCase):
         assert token.application == self.application
         assert not token.get_scopes()
         assert not token.refresh_token
+        assert token.expires_at <= datetime.now(tz=timezone.utc) + timedelta(hours=12)
 
         # Client was redirected with OAuth2 credentials.
         assert resp.status_code == 302
