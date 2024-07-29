@@ -263,15 +263,25 @@ function SummaryContent({
   }
 
   if (
-    organization.features.includes('profiling') &&
-    project &&
     // only show for projects that already sent a profile
     // once we have a more compact design we will show this for
     // projects that support profiling as well
-    project.hasProfiles
+    project?.hasProfiles &&
+    (organization.features.includes('profiling') ||
+      organization.features.includes('continuous-profiling'))
   ) {
     transactionsListTitles.push(t('profile'));
-    fields.push({field: 'profile.id'});
+
+    if (organization.features.includes('profiling')) {
+      fields.push({field: 'profile.id'});
+    }
+
+    if (organization.features.includes('continuous-profiling')) {
+      fields.push({field: 'profiler.id'});
+      fields.push({field: 'thread.id'});
+      fields.push({field: 'precise.start_ts'});
+      fields.push({field: 'precise.finish_ts'});
+    }
   }
 
   // update search conditions

@@ -304,3 +304,20 @@ export function getDateWithTimezoneInUtc(date?: Date, utc?: boolean | null) {
     .utc()
     .toDate();
 }
+
+/**
+ * Converts a string or timestamp in milliseconds to a Date
+ */
+export function getDateFromTimestamp(value: unknown): Date | null {
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
+
+  const dateObj = new Date(value);
+
+  if (isNaN(dateObj.getTime())) {
+    return null;
+  }
+
+  return dateObj;
+}
