@@ -1563,7 +1563,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "error": exception,
             },
         )
-    
+
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     def test_backfill_seer_grouping_records_skip_project_already_processed(self, mock_logger):
