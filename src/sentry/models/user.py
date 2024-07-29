@@ -377,7 +377,7 @@ class User(Model, AbstractBaseUser):
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
         # the `IntegrityError`s.
-        user_related_models: tuple[type[Model], ...] = (
+        user_related_models = (
             Authenticator,
             Identity,
             UserAvatar,
