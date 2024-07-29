@@ -5,7 +5,9 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const LOCAL_STORAGE_PREFIX = 'fold-section-collapse-';
 export const enum FoldSectionKey {
@@ -89,6 +91,7 @@ export function FoldSection({
   preventCollapse = false,
   ...props
 }: FoldSectionProps) {
+  const organization = useOrganization();
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
     initialCollapse
@@ -98,9 +101,16 @@ export function FoldSection({
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent browser summary/details behaviour
-      setIsCollapsed(collapsed => !collapsed);
+      setIsCollapsed(collapsed => {
+        trackAnalytics('issue_details.section_fold', {
+          sectionKey,
+          organization,
+          open: !collapsed,
+        });
+        return !collapsed;
+      });
     },
-    [setIsCollapsed]
+    [setIsCollapsed, organization, sectionKey]
   );
 
   return (
