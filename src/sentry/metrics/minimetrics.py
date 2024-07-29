@@ -5,7 +5,6 @@ from typing import Any
 
 import sentry_sdk
 from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
-from sentry_sdk.tracing import Span
 
 from sentry import options
 from sentry.features.rollout import in_random_rollout
@@ -118,20 +117,14 @@ def _set_metric_on_span(key: str, value: float | int, op: str, tags: Tags | None
     if not options.get("delightful_metrics.enable_span_attributes"):
         return
 
-    scope = sentry_sdk.Scope.get_current_scope()
-    span_or_tx = getattr(scope, "_span", None)
+    span_or_tx = sentry_sdk.get_current_span()
+    if span_or_tx is None:
+        return
 
-    if span_or_tx and span_or_tx.parent_span_id is not None:
-        return _add_metric_data_to_span(span_or_tx, key, value, tags)
-
-
-def _add_metric_data_to_span(
-    span: Span, key: str, value: float | int, tags: Tags | None = None
-) -> None:
-    span.set_data(key, value)
+    span_or_tx.set_data(key, value)
     if tags:
         for tag_key, tag_value in tags.items():
-            span.set_tag(tag_key, tag_value)
+            span_or_tx.set_tag(tag_key, tag_value)
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):

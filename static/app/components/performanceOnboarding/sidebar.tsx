@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import qs from 'qs';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -30,6 +31,18 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {filterProjects, generateDocKeys, isPlatformSupported} from './utils';
 
+function decodeProjectIds(projectIds: unknown): string[] | null {
+  if (Array.isArray(projectIds)) {
+    return projectIds;
+  }
+
+  if (typeof projectIds === 'string') {
+    return [projectIds];
+  }
+
+  return null;
+}
+
 function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
@@ -45,6 +58,12 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
 
+  const priorityProjectIds: Set<string> | null = useMemo(() => {
+    const queryParams = qs.parse(location.search);
+    const decodedProjectIds = decodeProjectIds(queryParams.project);
+    return decodedProjectIds === null ? null : new Set(decodedProjectIds);
+  }, []);
+
   useEffect(() => {
     if (
       currentProject ||
@@ -54,21 +73,22 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     ) {
       return;
     }
+
     // Establish current project
+    if (priorityProjectIds) {
+      const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
+        acc[project.id] = project;
+        return acc;
+      }, {});
 
-    const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
-      acc[project.id] = project;
-      return acc;
-    }, {});
-
-    if (selection.projects.length) {
-      const projectSelection = selection.projects.map(
-        projectId => projectMap[String(projectId)]
-      );
+      const priorityProjects: Project[] = [];
+      priorityProjectIds.forEach(projectId => {
+        priorityProjects.push(projectMap[String(projectId)]);
+      });
 
       // Among the project selection, find a project that has performance onboarding docs support, and has not sent
       // a first transaction event.
-      const maybeProject = projectSelection.find(project =>
+      const maybeProject = priorityProjects.find(project =>
         projectsForOnboarding.includes(project)
       );
       if (maybeProject) {
@@ -77,7 +97,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       }
 
       // Among the project selection, find a project that has not sent a first transaction event
-      const maybeProjectFallback = projectSelection.find(project =>
+      const maybeProjectFallback = priorityProjects.find(project =>
         projectsWithoutFirstTransactionEvent.includes(project)
       );
       if (maybeProjectFallback) {
@@ -102,6 +122,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     projectsForOnboarding,
     projectsWithoutFirstTransactionEvent,
     currentProject,
+    priorityProjectIds,
   ]);
 
   if (
@@ -129,7 +150,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
         },
       };
 
-      if (currentProject.id === project.id) {
+      if (priorityProjectIds?.has(String(project.id))) {
         acc.unshift(itemProps);
       } else {
         acc.push(itemProps);

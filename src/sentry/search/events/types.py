@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -83,7 +83,7 @@ class SnubaParams:
     environments: Sequence[Environment | None] = field(default_factory=list)
     projects: Sequence[Project] = field(default_factory=list)
     user: RpcUser | None = None
-    teams: Sequence[Team] = field(default_factory=list)
+    teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
 
     def __post_init__(self) -> None:
@@ -120,7 +120,7 @@ class SnubaParams:
         return self.end
 
     @property
-    def environment_names(self) -> Sequence[str]:
+    def environment_names(self) -> list[str]:
         return (
             [env.name if env is not None else "" for env in self.environments]
             if self.environments
@@ -128,19 +128,19 @@ class SnubaParams:
         )
 
     @property
-    def project_ids(self) -> Sequence[int]:
+    def project_ids(self) -> list[int]:
         return sorted([proj.id for proj in self.projects])
 
     @property
-    def project_slug_map(self) -> Mapping[str, int]:
+    def project_slug_map(self) -> dict[str, int]:
         return {proj.slug: proj.id for proj in self.projects}
 
     @property
-    def project_id_map(self) -> Mapping[int, str]:
+    def project_id_map(self) -> dict[int, str]:
         return {proj.id: proj.slug for proj in self.projects}
 
     @property
-    def team_ids(self) -> Sequence[int]:
+    def team_ids(self) -> list[int]:
         return [team.id for team in self.teams]
 
     @property

@@ -302,6 +302,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         # dynamic alert rules have a threshold of 0.0
         self.trigger.update(alert_threshold=0)
+        rule.snuba_query.update(time_window=15 * 60)
         return rule
 
     @cached_property
@@ -461,7 +462,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.threshold_period
+        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == rule.threshold_type
@@ -498,7 +499,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.threshold_period
+        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == rule.threshold_type
@@ -535,7 +536,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         deserialized_body = json.loads(mock_seer_request.call_args.kwargs["body"])
         assert deserialized_body["organization_id"] == self.sub.project.organization.id
         assert deserialized_body["project_id"] == self.sub.project_id
-        assert deserialized_body["config"]["time_period"] == rule.threshold_period
+        assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
         assert deserialized_body["config"]["direction"] == rule.threshold_type

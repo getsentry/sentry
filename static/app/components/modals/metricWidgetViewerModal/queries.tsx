@@ -167,6 +167,7 @@ export const Queries = memo(function Queries({
                   onChange={formula => onEquationChange({formula}, index)}
                   value={equation.formula}
                   availableVariables={availableVariables}
+                  metricsNewInputs={metricsNewInputs}
                 />
               </EquationInputWrapper>
               {equation.alias !== undefined && (

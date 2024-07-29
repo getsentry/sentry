@@ -1,9 +1,3 @@
-import {t} from 'sentry/locale';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {FieldDefinition} from 'sentry/utils/fields';
-import {FieldKind, FieldValueType} from 'sentry/utils/fields';
-
 export enum StarfishType {
   BACKEND = 'backend',
   MOBILE = 'mobile',
@@ -301,71 +295,6 @@ export enum SpanFunction {
   COUNT_OP = 'count_op',
   TRACE_STATUS_RATE = 'trace_status_rate',
 }
-
-export const StarfishDatasetFields = {
-  [DiscoverDatasets.SPANS_METRICS]: SpanIndexedField,
-  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedField,
-};
-
-export const STARFISH_AGGREGATION_FIELDS: Record<
-  SpanFunction,
-  FieldDefinition & {defaultOutputType: AggregationOutputType}
-> = {
-  [SpanFunction.SPS]: {
-    desc: t('Spans per second'),
-    kind: FieldKind.FUNCTION,
-    defaultOutputType: 'number',
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.SPM]: {
-    desc: t('Spans per minute'),
-    kind: FieldKind.FUNCTION,
-    defaultOutputType: 'number',
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.TIME_SPENT_PERCENTAGE]: {
-    desc: t('Span time spent percentage'),
-    defaultOutputType: 'percentage',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.HTTP_ERROR_COUNT]: {
-    desc: t('Count of 5XX http errors'),
-    defaultOutputType: 'integer',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.HTTP_RESPONSE_RATE]: {
-    desc: t('Percentage of HTTP responses by code'),
-    defaultOutputType: 'percentage',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.CACHE_HIT_RATE]: {
-    desc: t('Percentage of cache hits'),
-    defaultOutputType: 'percentage',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.CACHE_MISS_RATE]: {
-    desc: t('Percentage of cache misses'),
-    defaultOutputType: 'percentage',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.COUNT_OP]: {
-    desc: t('Count of spans with matching operation'),
-    defaultOutputType: 'integer',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.TRACE_STATUS_RATE]: {
-    desc: t('Percentage of spans with matching trace status'),
-    defaultOutputType: 'percentage',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-};
 
 // TODO - add more functions and fields, combine shared ones, etc
 
