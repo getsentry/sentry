@@ -42,8 +42,8 @@ import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
 import {smallCss} from '../../styles/typography';
 import PanelLayout from '../panelLayout';
 
-const estimateSize = 81;
-const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
+const summaryPlaceholderHeight = '65px';
+const crashComparisonPlaceholderHeight = '61px';
 const issueListPlaceholderHeight = '305px';
 
 function getCrashFreeRate(data: ApiResult<SessionApiResponse>): number {
@@ -133,7 +133,7 @@ function CrashFreeRate({
     return (
       <PanelItem css={{width: '100%', padding: 'var(--space150)'}}>
         <Placeholder
-          height={placeholderHeight}
+          height={crashComparisonPlaceholderHeight}
           css={[
             resetFlexColumnCss,
             panelSectionCss,
@@ -243,8 +243,8 @@ export default function ReleasesPanel() {
             listItemPlaceholderWrapperCss,
           ]}
         >
-          <Placeholder height={placeholderHeight} />
-          <Placeholder height={placeholderHeight} />
+          <Placeholder height={summaryPlaceholderHeight} />
+          <Placeholder height={crashComparisonPlaceholderHeight} />
           <Placeholder height={issueListPlaceholderHeight} />
         </div>
       ) : (
