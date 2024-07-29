@@ -119,12 +119,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 teams=self.get_teams(request, organization),
                 organization=organization,
             )
+
             if check_global_views:
                 has_global_views = features.has(
                     "organizations:global-views", organization, actor=request.user
                 )
                 fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
                 if not any(
                     [
                         has_global_views,
