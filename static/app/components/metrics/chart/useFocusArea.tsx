@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import color from 'color';
 import isEqual from 'lodash/isEqual';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';

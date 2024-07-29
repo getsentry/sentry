@@ -115,7 +115,7 @@ def get_user_emails_from_monitor(monitor: Monitor, project: Project):
     user_ids = get_user_ids_to_notify_from_monitor(monitor, project)
     actors = [Actor.from_id(user_id=id) for id in user_ids]
     recipients = notifications_service.get_notification_recipients(
-        type=NotificationSettingEnum.APPROVAL,
+        type=NotificationSettingEnum.BROKEN_MONITORS,
         recipients=actors,
         organization_id=project.organization_id,
         project_ids=[project.id],

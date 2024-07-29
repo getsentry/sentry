@@ -4,6 +4,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, TypedDict
 
+from rest_framework import serializers
+
 from sentry.api.serializers import Serializer, register
 from sentry.models.options.project_template_option import TProjectOptions
 from sentry.models.projecttemplate import ProjectTemplate
@@ -63,3 +65,12 @@ class ProjectTemplateSerializer(Serializer):
             response["options"] = options
 
         return response
+
+
+class ProjectTemplateWriteSerializer(serializers.Serializer):
+    id = serializers.IntegerField(required=False)
+    name = serializers.CharField(required=True)
+    options = serializers.DictField(required=False)
+
+    def validate(self, data):
+        return data

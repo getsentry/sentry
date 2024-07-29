@@ -398,6 +398,13 @@ function buildRoutes() {
             name={t('Create New Token')}
             component={make(() => import('sentry/views/settings/account/apiNewToken'))}
           />
+          <Route
+            path=":tokenId/"
+            name={t('Edit User Auth Token')}
+            component={make(
+              () => import('sentry/views/settings/account/apiTokenDetails')
+            )}
+          />
         </Route>
         <Route path="applications/" name={t('Applications')}>
           <IndexRoute
@@ -547,13 +554,6 @@ function buildRoutes() {
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
-      />
-      <Route
-        path="remote-config/"
-        name={t('Remote Config')}
-        component={make(
-          () => import('sentry/views/settings/project/projectRemoteConfig')
-        )}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
@@ -1365,14 +1365,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const activityRoutes = (
-    <Route
-      path="/activity/"
-      component={make(() => import('sentry/views/organizationActivity'))}
-      withOrgPath
-    />
-  );
-
   const statsRoutes = (
     <Fragment>
       <Route path="/stats/" withOrgPath>
@@ -2098,7 +2090,6 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}

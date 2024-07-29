@@ -18,7 +18,10 @@ import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flam
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,7 +37,7 @@ interface FlamegraphDrawerProps {
   flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
   profileTransaction: ReturnType<typeof useProfileTransaction> | null;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
@@ -254,16 +257,17 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         canvasScheduler={props.canvasScheduler}
         canvasPoolManager={props.canvasPoolManager}
       />
-
-      <ProfileDetails
-        transaction={
-          props.profileTransaction && props.profileTransaction.type === 'resolved'
-            ? props.profileTransaction.data
-            : null
-        }
-        projectId={params.projectId}
-        profileGroup={props.profileGroup}
-      />
+      {props.profileGroup.type === 'transaction' ? (
+        <ProfileDetails
+          transaction={
+            props.profileTransaction && props.profileTransaction.type === 'resolved'
+              ? props.profileTransaction.data
+              : null
+          }
+          projectId={params.projectId}
+          profileGroup={props.profileGroup}
+        />
+      ) : null}
 
       {flamegraphPreferences.layout === 'table left' ||
       flamegraphPreferences.layout === 'table right' ? (
@@ -367,9 +371,9 @@ export const ProfilingDetailsListItem = styled('li')<{
     border-bottom: 2px solid transparent;
     border-radius: 0;
     margin: 0;
-    padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
+    padding: ${space(0.5)} 0;
     color: ${p => p.theme.textColor};
-    max-height: ${p => (p.size === 'sm' ? '24px' : 'auto')};
+    max-height: auto;
 
     &::after {
       display: block;
@@ -399,6 +403,7 @@ const StyledButton = styled(Button)<{active: boolean}>`
   box-shadow: none;
   transition: none !important;
   opacity: ${p => (p.active ? 0.7 : 0.5)};
+  line-height: 26px;
 
   &:not(:last-child) {
     margin-right: ${space(1)};

@@ -1,8 +1,12 @@
 import logging
+import math
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
+
+import sentry_sdk
+from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, nodestore
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
@@ -101,7 +105,7 @@ def get_rules_to_slow_conditions(
     return rules_to_slow_conditions
 
 
-def _generate_unique_queries(
+def generate_unique_queries(
     condition_data: EventFrequencyConditionData, environment_id: int
 ) -> list[UniqueConditionQuery]:
     """
@@ -142,7 +146,7 @@ def get_condition_query_groups(
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
-            for condition_query in _generate_unique_queries(condition_data, rule.environment_id):
+            for condition_query in generate_unique_queries(condition_data, rule.environment_id):
                 # NOTE: If percent and count comparison conditions are sharing
                 # the same UniqueConditionQuery, the condition JSON in
                 # DataAndGroups will be incorrect for one of those types.
@@ -175,15 +179,23 @@ def get_condition_group_results(
         condition_cls = rules.get(unique_condition.cls_id)
 
         if condition_cls is None:
-            logger.warning("Unregistered condition %r", unique_condition.cls_id)
-            return None
+            logger.warning(
+                "Unregistered condition %r",
+                unique_condition.cls_id,
+                extra={"project_id": project.id},
+            )
+            continue
 
         # MyPy refuses to make TypedDict compatible with MutableMapping
         # https://github.com/python/mypy/issues/4976
         condition_inst = condition_cls(project=project, data=condition_data)  # type: ignore[arg-type]
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
-            logger.warning("Unregistered condition %r", condition_cls.id)
-            return None
+            logger.warning(
+                "Unregistered condition %r",
+                condition_cls.id,
+                extra={"project_id": project.id},
+            )
+            continue
 
         _, duration = condition_inst.intervals[unique_condition.interval]
 
@@ -212,19 +224,22 @@ def _passes_comparison(
     condition_data: EventFrequencyConditionData,
     group_id: int,
     environment_id: int,
+    project_id: int,
 ) -> bool:
     """
     Checks if a specific condition instance has passed. Handles both the count
     and percent comparison type conditions.
     """
-    unique_queries = _generate_unique_queries(condition_data, environment_id)
+    unique_queries = generate_unique_queries(condition_data, environment_id)
     try:
         query_values = [
             condition_group_results[unique_query][group_id] for unique_query in unique_queries
         ]
-    except KeyError as e:
+    except KeyError as exception:
+        sentry_sdk.capture_exception(exception)
         logger.exception(
-            "delayed_processing.missing_query_results", extra={"exception": e, "group_id": group_id}
+            "delayed_processing.missing_query_results",
+            extra={"exception": exception, "group_id": group_id, "project_id": project_id},
         )
         return False
 
@@ -242,6 +257,7 @@ def get_rules_to_fire(
     condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
     rules_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]],
     rules_to_groups: DefaultDict[int, set[int]],
+    project_id: int,
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rules_to_slow_conditions.items():
@@ -250,16 +266,17 @@ def get_rules_to_fire(
             conditions_matched = 0
             for slow_condition in slow_conditions:
                 if _passes_comparison(
-                    condition_group_results, slow_condition, group_id, alert_rule.environment_id
+                    condition_group_results,
+                    slow_condition,
+                    group_id,
+                    alert_rule.environment_id,
+                    project_id,
                 ):
                     if action_match == "any":
                         rules_to_fire[alert_rule].add(group_id)
                         break
-                    conditions_matched += 1
-                else:
-                    if action_match == "all":
-                        # We failed to match all conditions for this group, skip
-                        break
+                    elif action_match == "all":
+                        conditions_matched += 1
             if action_match == "all" and conditions_matched == len(slow_conditions):
                 rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
@@ -368,14 +385,20 @@ def get_group_to_groupevent(
     bulk_occurrence_id_to_occurrence = {
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
     }
-    group_to_groupevent = build_group_to_groupevent(
+    return build_group_to_groupevent(
         parsed_rulegroup_to_event_data,
         bulk_event_id_to_events,
         bulk_occurrence_id_to_occurrence,
         group_id_to_group,
         project_id,
     )
-    return group_to_groupevent
+
+
+def bucket_num_groups(num_groups: int) -> str:
+    if num_groups > 1:
+        magnitude = 10 ** int(math.log10(num_groups))
+        return f">{magnitude}"
+    return "1"
 
 
 def process_delayed_alert_conditions() -> None:
@@ -409,26 +432,43 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     # STEP 1: Fetch the rulegroup_to_event_data mapping for the project from redis
-    project = Project.objects.get_from_cache(id=project_id)
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        # The TTL of the buffer is 1 hr so the rule_group to event data for the
+        # nonexistent project will eventually be cleaned up.
+        logger.info(
+            "delayed_processing.project_does_not_exist",
+            extra={"project_id": project_id},
+        )
+        return
     rulegroup_to_event_data = buffer.backend.get_hash(
         model=Project, field={"project_id": project.id}
     )
-    logger.info(
-        "delayed_processing.rulegroupeventdata",
-        extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
-    )
+    num_groups = len(rulegroup_to_event_data)
+    num_groups_bucketed = bucket_num_groups(num_groups)
+    metrics.incr("delayed_processing.num_groups", tags={"num_groups": num_groups_bucketed})
+    if num_groups >= 10000:
+        logger.error(
+            "delayed_processing.too_many_groups",
+            extra={"project_id": project_id, "num_groups": num_groups},
+        )
+    else:
+        logger.info(
+            "delayed_processing.rulegroupeventdata",
+            extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
+        )
 
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
     # STEP 3: Fetch the Rule models we need to check
-    alert_rules_qs = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
-    snoozed_rules = set(
-        RuleSnooze.objects.filter(rule__in=alert_rules_qs, user_id=None).values_list(
-            "rule", flat=True
+    alert_rules_queryset = Rule.objects.filter(id__in=list(rules_to_groups.keys())).exclude(
+        id__in=Subquery(
+            RuleSnooze.objects.filter(rule_id=OuterRef("id"), user_id=None).values("rule_id")
         )
     )
-    alert_rules = [rule for rule in alert_rules_qs if rule.id not in snoozed_rules]
+    alert_rules = list(alert_rules_queryset)
 
     # STEP 4: Create a map of unique condition queries to a tuple containing the
     # JSON information needed to instantiate that condition class and the
@@ -452,7 +492,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rules_to_fire = defaultdict(set)
     if condition_group_results:
         rules_to_fire = get_rules_to_fire(
-            condition_group_results, rules_to_slow_conditions, rules_to_groups
+            condition_group_results, rules_to_slow_conditions, rules_to_groups, project_id
         )
         log_str = ""
         for rule in rules_to_fire.keys():

@@ -10,18 +10,22 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
+from slack_sdk.errors import SlackApiError
 
 from sentry import analytics, features
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_LINK_TEAM_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_LINK_TEAM_SUCCESS_DATADOG_METRIC,
+    SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC,
+    SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC,
 )
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.types import TeamLinkRequest
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service
@@ -32,6 +36,7 @@ from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import is_valid_role
+from . import SALT
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
@@ -87,7 +92,7 @@ class SlackLinkTeamView(BaseView):
             return render_error_page(request, status=405, body_text="HTTP 405: Method not allowed")
 
         try:
-            converted = unsign(signed_params)
+            converted = unsign(signed_params, salt=SALT)
             link_team_request = TeamLinkRequest(**converted)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("handle.signature_error", exc_info=e)
@@ -213,12 +218,15 @@ class SlackLinkTeamView(BaseView):
             message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
             metrics.incr(self._METRICS_FAILURE_KEY + ".team_already_linked", sample_rate=1.0)
 
-            integration_service.send_message(
-                integration_id=integration.id,
-                organization_id=team.organization_id,
-                channel=channel_id,
-                message=message,
-            )
+            try:
+                client = SlackSdkClient(integration_id=integration.id)
+                client.chat_postMessage(channel=channel_id, text=message)
+                metrics.incr(SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+            except SlackApiError:
+                # whether or not we send a Slack message, the team is already linked
+                metrics.incr(SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+                pass
+
             return render_to_response(
                 "sentry/integrations/slack/post-linked-team.html",
                 request=request,
@@ -248,12 +256,14 @@ class SlackLinkTeamView(BaseView):
             channel_name=channel_name,
         )
 
-        integration_service.send_message(
-            integration_id=integration.id,
-            organization_id=team.organization_id,
-            channel=channel_id,
-            message=message,
-        )
+        try:
+            client = SlackSdkClient(integration_id=integration.id)
+            client.chat_postMessage(channel=channel_id, text=message)
+            metrics.incr(SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+        except SlackApiError:
+            # whether or not we send a Slack message, the team was linked successfully
+            metrics.incr(SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+            pass
 
         metrics.incr(self._METRICS_SUCCESS_KEY + ".link_team", sample_rate=1.0)
 

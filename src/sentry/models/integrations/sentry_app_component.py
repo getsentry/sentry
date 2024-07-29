@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import MutableMapping
 from typing import Any
 
@@ -17,7 +19,7 @@ class SentryAppComponent(Model):
     uuid = UUIDField(unique=True, auto_add=True)
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="components")
     type = models.CharField(max_length=64)
-    schema = JSONField()
+    schema: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     class Meta:
         app_label = "sentry"

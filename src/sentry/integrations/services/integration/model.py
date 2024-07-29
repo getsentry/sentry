@@ -35,17 +35,17 @@ class RpcIntegration(RpcModel):
         return "disabled"
 
     def get_provider(self) -> IntegrationProvider:
-        from sentry.models.integrations.utils import get_provider
+        from sentry.integrations.models.utils import get_provider
 
         return get_provider(instance=self)
 
     def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
-        from sentry.models.integrations.utils import get_installation
+        from sentry.integrations.models.utils import get_installation
 
         return get_installation(instance=self, organization_id=organization_id, **kwargs)
 
     def has_feature(self, feature: IntegrationFeatures) -> bool:
-        from sentry.models.integrations.utils import has_feature
+        from sentry.integrations.models.utils import has_feature
 
         return has_feature(instance=self, feature=feature)
 

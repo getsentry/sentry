@@ -321,6 +321,7 @@ def reset_snuba(call_snuba):
     init_endpoints = [
         "/tests/spans/drop",
         "/tests/events/drop",
+        "/tests/functions/drop",
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
         "/tests/metrics/drop",

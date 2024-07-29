@@ -149,7 +149,7 @@ function Breadcrumbs({
       {
         query: {
           query: `id:[${sentryTransactionIds}]`,
-          field: ['title'],
+          field: ['title', 'trace', 'timestamp'],
           project: [maybeProject?.id],
         },
       },

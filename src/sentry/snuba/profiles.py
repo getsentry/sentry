@@ -67,6 +67,7 @@ def timeseries_query(
     params: ParamsType,
     rollup: int,
     referrer: str = "",
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     comparison_delta: datetime | None = None,
     functions_acl: list[str] | None = None,
@@ -76,9 +77,14 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
 ) -> Any:
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
+        snuba_params=snuba_params,
         query=query,
         interval=rollup,
         selected_columns=selected_columns,
@@ -95,7 +101,7 @@ def timeseries_query(
                 params["start"],
                 params["end"],
                 rollup,
-                "time",
+                ["time"],
             )
             if zerofill_results
             else results["data"],

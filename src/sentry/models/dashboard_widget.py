@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from enum import Enum
+from typing import Any, ClassVar
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -17,6 +19,9 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.models.organization import Organization
 
 ON_DEMAND_ENABLED_KEY = "enabled"
 
@@ -74,6 +79,31 @@ class DashboardWidgetTypes(TypesClass):
         (TRANSACTION_LIKE, "transaction-like"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DatasetSourcesTypes(Enum):
+    """
+    Ambiguous queries that haven't been or couldn't be categorized into a
+    specific dataset.
+    """
+
+    UNKNOWN = 0
+    """
+     Dataset inferred by either running the query or using heuristics.
+    """
+    INFERRED = 1
+    """
+     Canonical dataset, user explicitly selected it.
+    """
+    USER = 2
+    """
+     Was an ambiguous dataset forced to split (i.e. we picked a default)
+    """
+    FORCED = 3
+
+    @classmethod
+    def as_choices(cls):
+        return tuple((source.value, source.name.lower()) for source in cls)
 
 
 # TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
@@ -212,6 +242,22 @@ class DashboardWidgetQueryOnDemand(Model):
     __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
+class DashboardWidgetManager(BaseManager["DashboardWidget"]):
+    def get_for_metrics(
+        self, organization: Organization, metric_mris: list[str]
+    ) -> BaseQuerySet[DashboardWidget]:
+        widget_query_query = Q()
+        for metric_mri in metric_mris:
+            widget_query_query |= Q(aggregates__element_contains=metric_mri)
+
+        widget_ids = (
+            DashboardWidgetQuery.objects.filter(widget__dashboard__organization=organization)
+            .filter(widget_query_query)
+            .values_list("widget_id", flat=True)
+        )
+        return self.filter(id__in=widget_ids)
+
+
 @region_silo_model
 class DashboardWidget(Model):
     """
@@ -234,6 +280,12 @@ class DashboardWidget(Model):
     discover_widget_split = BoundedPositiveIntegerField(
         choices=DashboardWidgetTypes.as_choices(), null=True
     )
+
+    # The method of which the discover split datasets was decided
+    dataset_source = BoundedPositiveIntegerField(
+        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
+    )
+    objects: ClassVar[DashboardWidgetManager] = DashboardWidgetManager()
 
     class Meta:
         app_label = "sentry"

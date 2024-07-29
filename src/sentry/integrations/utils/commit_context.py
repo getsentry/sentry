@@ -15,11 +15,11 @@ from sentry.integrations.mixins.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame

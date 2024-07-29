@@ -49,15 +49,15 @@ export class TraceView {
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
-    this.trace_view.width = clamp(
-      width,
-      this.MAX_ZOOM_PRECISION_MS,
-      this.trace_space.width - this.trace_view.x
-    );
     this.trace_view.x = clamp(
       x,
       0,
       Math.max(this.trace_space.width - width, this.MAX_ZOOM_PRECISION_MS)
+    );
+    this.trace_view.width = clamp(
+      width,
+      this.MAX_ZOOM_PRECISION_MS,
+      this.trace_space.width - this.trace_view.x
     );
   }
 

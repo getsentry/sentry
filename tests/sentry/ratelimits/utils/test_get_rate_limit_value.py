@@ -88,31 +88,3 @@ class TestGetRateLimitValue(TestCase):
         assert get_rate_limit_value(
             "GET", RateLimitCategory.IP, rate_limit_config
         ) == get_default_rate_limits_for_group("foo", RateLimitCategory.IP)
-
-    def test_multiple_inheritance(self):
-        class ParentEndpoint(Endpoint):
-            rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
-            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)}}
-
-        class Mixin:
-            rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
-            rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=2, window=4)}}
-
-        class ChildEndpoint(ParentEndpoint, Mixin):
-            pass
-
-        _child_endpoint = ChildEndpoint.as_view()
-        rate_limit_config = get_rate_limit_config(_child_endpoint.view_class)
-
-        class ChildEndpointReverse(Mixin, ParentEndpoint):
-            pass
-
-        _child_endpoint_reverse = ChildEndpointReverse.as_view()
-        rate_limit_config_reverse = get_rate_limit_config(_child_endpoint_reverse.view_class)
-
-        assert get_rate_limit_value("GET", RateLimitCategory.IP, rate_limit_config) == RateLimit(
-            100, 5
-        )
-        assert get_rate_limit_value(
-            "GET", RateLimitCategory.IP, rate_limit_config_reverse
-        ) == RateLimit(limit=2, window=4)

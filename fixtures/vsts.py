@@ -6,9 +6,9 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import pytest
 import responses
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type

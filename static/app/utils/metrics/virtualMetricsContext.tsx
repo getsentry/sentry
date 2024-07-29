@@ -5,9 +5,9 @@ import type {
   MetricMeta,
   MetricsExtractionCondition,
   MetricsExtractionRule,
-  MetricType,
   MRI,
 } from 'sentry/types/metrics';
+import {aggregationToMetricType} from 'sentry/utils/metrics/extractionRules';
 import {DEFAULT_MRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -15,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 const Context = createContext<{
+  getCondition: (mri: MRI, conditionId: number) => MetricsExtractionCondition | null;
   getConditions: (mri: MRI) => MetricsExtractionCondition[];
   getExtractionRule: (mri: MRI) => MetricsExtractionRule | null;
   getTags: (mri: MRI) => MetricTag[];
@@ -41,6 +42,7 @@ const Context = createContext<{
     throw new Error('Not implemented');
   },
   getConditions: () => [],
+  getCondition: () => null,
   getExtractionRule: () => null,
   getTags: () => [],
   getVirtualMRIQuery: () => null,
@@ -57,7 +59,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-function createVirtualMRI(rule: MetricsExtractionRule): MRI {
+export function createVirtualMRI(rule: MetricsExtractionRule): MRI {
   return `v:custom/${rule.spanAttribute}|${rule.projectId}@${rule.unit}`;
 }
 
@@ -72,19 +74,6 @@ export function createMRIToVirtualMap(rules: MetricsExtractionRule[]): Map<MRI, 
   }
   return mriMap;
 }
-
-const aggregationToMetricType: Record<MetricAggregation, MetricType> = {
-  count: 'c',
-  count_unique: 's',
-  min: 'g',
-  max: 'g',
-  sum: 'g',
-  avg: 'g',
-  p50: 'd',
-  p75: 'd',
-  p95: 'd',
-  p99: 'd',
-};
 
 const getMetricsExtractionRulesApiKey = (orgSlug: string, projects: number[]) =>
   [
@@ -151,6 +140,14 @@ export function VirtualMetricsContextProvider({children}: Props) {
     (mri: MRI): MetricsExtractionCondition[] => {
       const rule = virtualMRIToRuleMap.get(mri);
       return rule?.conditions || [];
+    },
+    [virtualMRIToRuleMap]
+  );
+
+  const getCondition = useCallback(
+    (mri: MRI, conditionId: number) => {
+      const rule = virtualMRIToRuleMap.get(mri);
+      return rule?.conditions.find(c => c.id === conditionId) || null;
     },
     [virtualMRIToRuleMap]
   );
@@ -242,6 +239,7 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMRI,
       getVirtualMeta,
       getConditions,
+      getCondition,
       getExtractionRule,
       getTags,
       getVirtualMRIQuery,
@@ -253,6 +251,7 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMRI,
       getVirtualMeta,
       getConditions,
+      getCondition,
       getExtractionRule,
       getTags,
       getVirtualMRIQuery,

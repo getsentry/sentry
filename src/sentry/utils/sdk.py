@@ -174,6 +174,11 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
+    # Apply sample_rate from custom_sampling_context
+    custom_sample_rate = sampling_context.get("sample_rate")
+    if custom_sample_rate is not None:
+        return float(custom_sample_rate)
+
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
@@ -297,7 +302,11 @@ def configure_sdk():
     else:
         sentry_saas_transport = None
 
-    if settings.SENTRY_PROFILING_ENABLED:
+    if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
+        sdk_options.setdefault("_experiments", {}).update(
+            continuous_profiling_auto_start=True,
+        )
+    elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 

@@ -238,6 +238,57 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
+    def test_with_project_ids(self):
+        project_bar = self.create_project(organization=self.org, name="bar")
+        release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
+        release.add_project(self.project)
+        release.add_project(project_bar)
+
+        environment = Environment.objects.create(organization_id=self.org.id, name="production")
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                "name": "foo_bar",
+                "environment": "production",
+                "url": "https://www.example.com",
+                "projects": [self.project.id, project_bar.id],
+            },
+        )
+        assert response.status_code == 201, response.content
+        assert response.data["name"] == "foo_bar"
+        assert response.data["url"] == "https://www.example.com"
+        assert response.data["environment"] == "production"
+
+        deploy = Deploy.objects.get(id=response.data["id"])
+
+        assert deploy.name == "foo_bar"
+        assert deploy.environment_id == environment.id
+        assert deploy.url == "https://www.example.com"
+        assert deploy.release == release
+
+        release = Release.objects.get(id=release.id)
+        assert release.total_deploys == 1
+        assert release.last_deploy_id == deploy.id
+
+        rpe = ReleaseProjectEnvironment.objects.get(
+            project=self.project, release=release, environment=environment
+        )
+        assert rpe.last_deploy_id == deploy.id
+
+        rpe = ReleaseProjectEnvironment.objects.get(
+            project=project_bar, release=release, environment=environment
+        )
+        assert rpe.last_deploy_id == deploy.id
+
     def test_with_invalid_project_slug(self):
         bar_project = self.create_project(organization=self.org, name="bar")
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
