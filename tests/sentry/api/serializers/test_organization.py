@@ -71,7 +71,6 @@ class OrganizationSerializerTest(TestCase):
             "dashboards-edit",
             "discover-basic",
             "discover-query",
-            "derive-code-mappings",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
@@ -106,8 +105,8 @@ class OrganizationSerializerTest(TestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
-        features.add("organizations:test-feature", OrganizationFeature)
-        features.add("organizations:disabled-feature", OrganizationFeature)
+        features.add("organizations:test-feature", OrganizationFeature, api_expose=True)
+        features.add("organizations:disabled-feature", OrganizationFeature, api_expose=True)
         mock_batch.return_value = {
             f"organization:{organization.id}": {
                 "organizations:test-feature": True,
