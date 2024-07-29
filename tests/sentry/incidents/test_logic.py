@@ -1368,6 +1368,59 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert updated_rule.seasonality is None
         assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
 
+    def test_update_infer_detection_type(self):
+        # static to static
+        rule = self.create_alert_rule()
+        updated_rule = update_alert_rule(rule, time_window=15)
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # static to percent
+        rule = self.create_alert_rule()
+        updated_rule = update_alert_rule(rule, comparison_delta=60)
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # percent to percent
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        updated_rule = update_alert_rule(rule, time_window=15)
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # percent to static
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        updated_rule = update_alert_rule(rule, comparison_delta=None)
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # dynamic to percent
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=60, sensitivity=None, seasonality=None
+        )
+
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # dynamic to static
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=None, sensitivity=None, seasonality=None
+        )
+
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
