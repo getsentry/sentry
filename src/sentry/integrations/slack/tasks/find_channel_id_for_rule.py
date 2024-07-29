@@ -22,7 +22,7 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 
 
 @instrumented_task(
-    name="sentry.integrations.slack.search_channel_id",
+    name="sentry.integrations.slack.tasks.search_channel_id",
     queue="integrations",
     silo_mode=SiloMode.REGION,
 )

@@ -10,7 +10,7 @@ from sentry.users.services.user.service import user_service
 
 
 @instrumented_task(
-    name="sentry.integrations.tasks.sync_assignee_outbound_impl",
+    name="sentry.integrations.tasks.sync_assignee_outbound",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,

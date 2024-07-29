@@ -35,7 +35,7 @@ def post_message(
 
 # TODO: add retry logic
 @instrumented_task(
-    name="sentry.integrations.slack.post_message_control",
+    name="sentry.integrations.slack.tasks.post_message_control",
     queue="integrations.control",
     max_retries=0,
     silo_mode=SiloMode.CONTROL,

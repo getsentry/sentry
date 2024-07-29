@@ -52,7 +52,7 @@ settings.CELERY_IMPORTS += (
     "sentry.tasks.integrations.vsts.subscription_check",
     "sentry.integrations.tasks.create_comment",
     "sentry.integrations.tasks.kick_off_status_syncs_impl",
-    "sentry.integrations.tasks.link_all_repos",
+    "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.tasks.migrate_issues",
     "sentry.integrations.tasks.migrate_opsgenie_plugins",
     "sentry.integrations.tasks.migrate_repo",

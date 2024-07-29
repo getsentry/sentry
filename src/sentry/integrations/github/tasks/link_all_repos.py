@@ -23,7 +23,7 @@ def get_repo_config(repo, integration_id):
 
 
 @instrumented_task(
-    name="sentry.integrations.tasks.link_all_repos",
+    name="sentry.integrations.github.tasks.link_all_repos",
     queue="integrations.control",
     max_retries=3,
     silo_mode=SiloMode.CONTROL,
