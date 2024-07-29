@@ -1,6 +1,5 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {View} from 'sentry/types/views';
 import {
   setApiQueryData,
   useMutation,
@@ -10,14 +9,15 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewsVariables = {
   orgSlug: string;
-  views: View[];
+  views: GroupSearchView[];
 };
 
 // The PUT groupsearchviews endpoint updates the views AND returns the updated views
-type UpdateGroupSearchViewResponse = View[];
+type UpdateGroupSearchViewResponse = GroupSearchView[];
 
 export const useUpdateGroupSearchViews = (
   options: Omit<
@@ -47,7 +47,7 @@ export const useUpdateGroupSearchViews = (
       setApiQueryData<View[]>(
         queryClient,
         makeFetchGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
-        () => views // Update the cache with the new views
+        views // Update the cache with the new views
       );
       options.onSuccess?.(views, parameters, context);
     },

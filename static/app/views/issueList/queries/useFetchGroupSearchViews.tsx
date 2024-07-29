@@ -1,12 +1,12 @@
-import type {View} from 'sentry/types/views';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type FetchGroupSearchViewsParameters = {
   orgSlug: string;
 };
 
-type FetchGroupSearchViewsResponse = View[];
+type FetchGroupSearchViewsResponse = GroupSearchView[];
 
 export const makeFetchGroupSearchViewsKey = ({
   orgSlug,
