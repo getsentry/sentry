@@ -42,7 +42,7 @@ class GroupValues:
     substatus: int | None
     first_seen: datetime
     num_comments: int
-    priority: int
+    priority: int | None
     first_release_id: int | None
 
 
