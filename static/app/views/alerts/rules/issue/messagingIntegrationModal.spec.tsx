@@ -24,15 +24,14 @@ describe('MessagingIntegrationModal', function () {
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
-    org = OrganizationFixture({
-      features: ['messaging-integration-onboarding'],
-    });
+    org = OrganizationFixture();
 
     jest.clearAllMocks();
   });
 
   const getComponent = (closeModal?, props = {}) => (
     <MessagingIntegrationModal
+      closeModal={closeModal ? closeModal : jest.fn()}
       Header={makeClosableHeader(() => {})}
       Body={ModalBody}
       headerContent={<h1>Connect with a messaging tool</h1>}
@@ -42,7 +41,6 @@ describe('MessagingIntegrationModal', function () {
       project={project}
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}
-      closeModal={closeModal ? closeModal : jest.fn()}
       {...props}
     />
   );

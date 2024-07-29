@@ -1,13 +1,17 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 import type {Organization} from 'sentry/types/organization';
+import useApi from 'sentry/utils/useApi';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {
   headerContent: React.ReactElement<any, any>;
@@ -16,6 +20,38 @@ type Props = ModalRenderProps & {
   providerKeys: string[];
   bodyContent?: React.ReactElement<any, any>;
 };
+
+function getProvider(
+  providerKey: string,
+  provider: IntegrationProvider | null,
+  setProvider: (IntegrationProvider) => void,
+  organization: Organization,
+  api: any,
+  setHasError: (boolean) => void
+) {
+  const fetchData = useCallback(() => {
+    if (!providerKey) {
+      return Promise.resolve();
+    }
+
+    const endpoint = `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`;
+    return api
+      .requestPromise(endpoint)
+      .then(integrations => {
+        setProvider(integrations.providers[0]);
+      })
+      .catch(() => {
+        setHasError(true);
+        return null;
+      });
+  }, [providerKey, api, organization.slug, setHasError]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return provider;
+}
 
 function MessagingIntegrationModal({
   closeModal,
@@ -27,6 +63,8 @@ function MessagingIntegrationModal({
   organization,
   project,
 }: Props) {
+  const api = useApi();
+  const [provider, setProvider] = useState<IntegrationProvider | null>(null);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
@@ -43,15 +81,37 @@ function MessagingIntegrationModal({
         {bodyContent}
         <IntegrationsWrapper>
           {providerKeys.map((value: string) => {
+            getProvider(value, provider, setProvider, organization, api, setHasError);
+            if (!provider) {
+              return null;
+            }
             return (
-              <AddIntegrationRow
-                key={value}
-                providerKey={value}
+              <Access
+                access={['org:integrations']}
                 organization={organization}
-                project={project}
-                onClickHandler={closeModal}
-                setHasError={setHasError}
-              />
+                key={value}
+              >
+                {({hasAccess}) => {
+                  return (
+                    <IntegrationContext.Provider
+                      value={{
+                        provider: provider,
+                        type: 'first_party',
+                        organization: organization,
+                        userHasAccess: hasAccess,
+                        installStatus: 'Not Installed',
+                        analyticsParams: {
+                          already_installed: false,
+                          view: 'onboarding',
+                        },
+                        modalParams: {projectId: project.id},
+                      }}
+                    >
+                      <AddIntegrationRow onClickHandler={closeModal} />
+                    </IntegrationContext.Provider>
+                  );
+                }}
+              </Access>
             );
           })}
         </IntegrationsWrapper>

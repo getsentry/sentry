@@ -1,35 +1,17 @@
-import {Fragment} from 'react';
+import {useContext} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {IconOpen} from 'sentry/icons';
-import type {
-  Integration,
-  IntegrationProvider,
-  IntegrationType,
-} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
+import type {Integration} from 'sentry/types/integrations';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
-  analyticsParams: {
-    already_installed: boolean;
-    view:
-      | 'integrations_directory_integration_detail'
-      | 'integrations_directory'
-      | 'onboarding'
-      | 'project_creation';
-  };
   buttonProps: ButtonProps;
-  installStatus: string;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;
-  organization: Organization;
-  provider: IntegrationProvider;
-  type: IntegrationType;
-  userHasAccess: boolean;
   externalInstallText?: string;
-  modalParams?: {[key: string]: string};
 };
 
 type ButtonProps = {
@@ -42,16 +24,22 @@ type ButtonProps = {
 function IntegrationButton({
   onAddIntegration,
   onExternalClick,
-  organization,
-  provider,
-  type,
-  userHasAccess,
-  installStatus,
-  analyticsParams,
   externalInstallText,
-  modalParams = {},
   buttonProps,
 }: Props) {
+  const integration = useContext(IntegrationContext);
+  if (!integration) {
+    return null;
+  }
+  const {
+    provider,
+    type,
+    organization,
+    userHasAccess,
+    installStatus,
+    analyticsParams,
+    modalParams,
+  } = integration;
   const {metadata} = provider;
 
   if (!userHasAccess) {
@@ -92,7 +80,7 @@ function IntegrationButton({
       </Button>
     );
   }
-  return <Fragment />;
+  return null;
 }
 
 export default IntegrationButton;

@@ -19,6 +19,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 import type {Tab} from './abstractIntegrationDetailedView';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -242,28 +243,32 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const provider = this.provider;
 
     const buttonProps = {
-      style: {marginBottom: space(1)},
-      size: 'sm' as const,
-      priority: 'primary' as const,
+      size: 'sm',
+      priority: 'primary',
       'data-test-id': 'install-button',
       disabled: disabledFromFeatures,
     };
 
     return (
-      <IntegrationButton
-        onAddIntegration={this.onInstall}
-        onExternalClick={this.handleExternalInstall}
-        organization={organization}
-        provider={provider}
-        type={this.integrationType}
-        userHasAccess={userHasAccess}
-        installStatus={this.installationStatus}
-        analyticsParams={{
-          view: 'integrations_directory_integration_detail',
-          already_installed: this.installationStatus !== 'Not Installed',
+      <IntegrationContext.Provider
+        value={{
+          provider: provider,
+          type: this.integrationType,
+          organization: organization,
+          userHasAccess: userHasAccess,
+          installStatus: this.installationStatus,
+          analyticsParams: {
+            view: 'integrations_directory_integration_detail',
+            already_installed: this.installationStatus !== 'Not Installed',
+          },
         }}
-        buttonProps={buttonProps}
-      />
+      >
+        <StyledIntegrationButton
+          onAddIntegration={this.onInstall}
+          onExternalClick={this.handleExternalInstall}
+          buttonProps={buttonProps}
+        />
+      </IntegrationContext.Provider>
     );
   }
 
@@ -461,7 +466,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 }
 
 export default withOrganization(IntegrationDetailedView);
-
 const CapitalizedLink = styled('a')`
   text-transform: capitalize;
+`;
+
+const StyledIntegrationButton = styled(IntegrationButton)`
+  margin-bottom: ${space(1)};
 `;

@@ -4,9 +4,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {IntegrationProvider} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 describe('AddIntegrationButton', function () {
   let org: Organization,
@@ -23,22 +24,27 @@ describe('AddIntegrationButton', function () {
   });
 
   const getComponent = () => (
-    <IntegrationButton
-      onAddIntegration={jest.fn()}
-      onExternalClick={jest.fn()}
-      organization={org}
-      provider={provider}
-      type="first_party"
-      userHasAccess={hasAccess}
-      installStatus="Not Installed"
-      analyticsParams={{
-        view: 'onboarding',
-        already_installed: false,
+    <IntegrationContext.Provider
+      value={{
+        provider: provider,
+        type: 'first_party',
+        organization: org,
+        userHasAccess: hasAccess,
+        installStatus: 'Not Installed',
+        analyticsParams: {
+          view: 'onboarding',
+          already_installed: false,
+        },
+        modalParams: {project: project.id},
       }}
-      externalInstallText={externalInstallText}
-      modalParams={{project: project.id}}
-      buttonProps={null}
-    />
+    >
+      <IntegrationButton
+        onAddIntegration={jest.fn()}
+        onExternalClick={jest.fn()}
+        externalInstallText={externalInstallText}
+        buttonProps={null}
+      />
+    </IntegrationContext.Provider>
   );
 
   it('Opens the setup dialog on click', async function () {
