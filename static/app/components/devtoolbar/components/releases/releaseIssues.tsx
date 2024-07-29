@@ -65,6 +65,7 @@ export default function ReleaseIsssues({releaseVersion}: {releaseVersion: string
             queryResult={queryResult}
             itemRenderer={props => <IssueListItem {...props} />}
             emptyMessage={() => <p css={panelInsetContentCss}>No items to show</p>}
+            limitItems
           />
         </InfiniteListState>
       </div>
