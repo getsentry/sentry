@@ -22,6 +22,9 @@ class FeatureHandler:
 
     Subclasses should implement `has` and contain the logic
     necessary for the feature check.
+
+    Generally FeatureHandlers are only implemented in `getsentry.features`
+    as we don't programatically release features in self-hosted.
     """
 
     features: MutableSet[str] = set()
@@ -68,7 +71,7 @@ class BatchFeatureHandler(FeatureHandler):
     It is generally better to extend BatchFeatureHandler if it is possible to do
     the check with no more than the feature name, organization, and actor. If it
     needs to unpack the Feature object and examine the flagged entity, extend
-    FeatureHandler directly.
+    FeatureHandler instead.
     """
 
     @abc.abstractmethod
