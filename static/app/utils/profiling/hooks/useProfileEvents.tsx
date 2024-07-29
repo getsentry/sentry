@@ -14,7 +14,7 @@ export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> 
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;
-  baseQuery?: string;
+  continuousProfilingCompat?: boolean;
   cursor?: string;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
@@ -30,17 +30,21 @@ export function useProfileEvents<F extends string>({
   referrer,
   query,
   sort,
+  continuousProfilingCompat,
   cursor,
   enabled = true,
   refetchOnMount = true,
   datetime,
   projects,
-  baseQuery = 'has:profile.id',
 }: UseProfileEventsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  query = `${baseQuery} ${query ? `(${query})` : ''}`;
+  if (continuousProfilingCompat) {
+    query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
+  } else {
+    query = `has:profile.id ${query ? `(${query})` : ''}`;
+  }
 
   const path = `/organizations/${organization.slug}/events/`;
   const endpointOptions = {
