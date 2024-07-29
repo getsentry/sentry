@@ -11,6 +11,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import QueryCount from 'sentry/components/queryCount';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/draggableTabMenuButton';
 
 export interface Tab {
@@ -18,17 +19,18 @@ export interface Tab {
   key: Key;
   label: string;
   hasUnsavedChanges?: boolean;
-  onDelete?: (key: MenuItemProps['key']) => void;
-  onDiscard?: (key: MenuItemProps['key']) => void;
-  onDuplicate?: (key: MenuItemProps['key']) => void;
-  onRename?: (key: MenuItemProps['key']) => void;
-  onSave?: (key: MenuItemProps['key']) => void;
   queryCount?: number;
 }
 
 export interface DraggableTabBarProps {
   tabs: Tab[];
+  tempTabActive: boolean;
   tempTabContent: React.ReactNode;
+  onDelete?: (key: MenuItemProps['key']) => void;
+  onDiscard?: (key: MenuItemProps['key']) => void;
+  onDuplicate?: (key: MenuItemProps['key']) => void;
+  onRename?: (key: MenuItemProps['key']) => void;
+  onSave?: (key: MenuItemProps['key']) => void;
 }
 
 export function DraggableTabBar(props: DraggableTabBarProps) {
@@ -36,14 +38,14 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
   const [selectedTabKey, setSelectedTabKey] = useState<Key>(props.tabs[0].key);
 
   const onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void = newOrder => {
-    let newTabOrder: Tab[] = [];
-    for (const node of newOrder) {
-      const foundTab = tabs.find(tab => tab.key === node.key);
-      if (foundTab) {
-        newTabOrder = [...newTabOrder, foundTab];
-      }
-    }
-    setTabs(newTabOrder);
+    setTabs(
+      newOrder
+        .map(node => {
+          const foundTab = tabs.find(tab => tab.key === node.key);
+          return foundTab?.key === node.key ? foundTab : null;
+        })
+        .filter(defined)
+    );
   };
 
   return (
@@ -63,11 +65,11 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
               {selectedTabKey === tab.key && (
                 <DraggableTabMenuButton
                   hasUnsavedChanges={tab.hasUnsavedChanges}
-                  onDelete={tab.onDelete}
-                  onDiscard={tab.onDiscard}
-                  onDuplicate={tab.onDuplicate}
-                  onRename={tab.onRename}
-                  onSave={tab.onSave}
+                  onDelete={key => props.onDelete?.(key)}
+                  onDiscard={key => props.onDiscard?.(key)}
+                  onDuplicate={key => props.onDuplicate?.(key)}
+                  onRename={key => props.onRename?.(key)}
+                  onSave={key => props.onSave?.(key)}
                 />
               )}
             </TabContentWrap>
@@ -84,6 +86,7 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
 }
 
 const TabContentWrap = styled('span')`
+  white-space: nowrap;
   display: flex;
   align-items: center;
   flex-direction: row;
