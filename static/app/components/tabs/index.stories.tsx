@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import type {Orientation} from '@react-types/shared';
 import range from 'lodash/range';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
@@ -7,6 +8,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import type {TabListProps, TabsProps} from 'sentry/components/tabs';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import type {BaseTabProps} from 'sentry/components/tabs/tab';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook(Tabs, story => {
@@ -188,70 +190,27 @@ export default storyBook(Tabs, story => {
     </SideBySide>
   ));
 
-  story('Variants', () => (
-    <div>
-      <p>
-        Use the variant prop to control which tab design to use. The default, "flat", is
-        used in the above examples, but you can also use "filled" variant, as shown below.
-        Note that the "filled" variant does not work when the oritentation is vertical
-      </p>
-      <SizingWindow>
-        <Tabs>
-          <TabList variant={'filled'}>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
-          <TabPanels>
-            {TABS.map(tab => (
-              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-            ))}
-          </TabPanels>
-        </Tabs>
-      </SizingWindow>
-      <br />
-      <p>You can also use the "floating" variant, which is used below</p>
-      <SizingWindow>
-        <Tabs>
-          <TabList variant="floating" hideBorder>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
-          <TabPanels>
-            {TABS.map(tab => (
-              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-            ))}
-          </TabPanels>
-        </Tabs>
-      </SizingWindow>
-      <br />
-      <Matrix<TabsProps<string> & TabListProps>
-        render={props => (
-          <Tabs orientation={props.orientation}>
-            <TabList variant={props.variant}>
-              {TABS.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-              ))}
-            </TabList>
-            <TabPanels>
-              {TABS.map(tab => (
-                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-              ))}
-            </TabPanels>
-          </Tabs>
-        )}
-        propMatrix={{
-          orientation: ['horizontal', 'vertical'],
-          variant: ['flat', 'filled', 'floating'],
-        }}
-        selectedProps={['orientation', 'variant']}
-      />
-      <br />
-      <Matrix<TabsProps<string> & TabListProps>
-        render={props => (
+  story('Variants', () => {
+    const propMatrix: {
+      hideBorder: (boolean | undefined)[];
+      orientation: (Orientation | undefined)[];
+      variant: (BaseTabProps['variant'] | undefined)[];
+    } = {
+      hideBorder: [undefined, false, true],
+      orientation: [undefined, 'horizontal', 'vertical'],
+      variant: [undefined, 'flat', 'filled', 'floating'],
+    };
+    return (
+      <div>
+        <p>
+          Use the variant prop to control which tab design to use. The default, "flat", is
+          used in the above examples, but you can also use "filled" variant, as shown
+          below. Note that the "filled" variant does not work when the oritentation is
+          vertical
+        </p>
+        <SizingWindow>
           <Tabs>
-            <TabList variant={props.variant} hideBorder={props.hideBorder}>
+            <TabList variant={'filled'}>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
               ))}
@@ -262,13 +221,62 @@ export default storyBook(Tabs, story => {
               ))}
             </TabPanels>
           </Tabs>
-        )}
-        propMatrix={{
-          hideBorder: [true, false],
-          variant: ['flat', 'filled', 'floating'],
-        }}
-        selectedProps={['hideBorder', 'variant']}
-      />
-    </div>
-  ));
+        </SizingWindow>
+        <br />
+        <p>You can also use the "floating" variant, which is used below</p>
+        <SizingWindow>
+          <Tabs>
+            <TabList variant="floating" hideBorder>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Tabs>
+        </SizingWindow>
+        <br />
+        <Matrix<TabsProps<string> & TabListProps>
+          render={props => (
+            <Tabs orientation={props.orientation}>
+              <TabList variant={props.variant}>
+                {TABS.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
+              <TabPanels>
+                {TABS.map(tab => (
+                  <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+                ))}
+              </TabPanels>
+            </Tabs>
+          )}
+          propMatrix={propMatrix}
+          selectedProps={['orientation', 'variant']}
+        />
+        <br />
+        <Matrix<TabsProps<string> & TabListProps>
+          render={props => (
+            <Tabs>
+              <TabList variant={props.variant} hideBorder={props.hideBorder}>
+                {TABS.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
+              <TabPanels>
+                {TABS.map(tab => (
+                  <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+                ))}
+              </TabPanels>
+            </Tabs>
+          )}
+          propMatrix={propMatrix}
+          selectedProps={['hideBorder', 'variant']}
+        />
+      </div>
+    );
+  });
 });
