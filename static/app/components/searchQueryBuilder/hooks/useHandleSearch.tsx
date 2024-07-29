@@ -3,7 +3,9 @@ import * as Sentry from '@sentry/react';
 
 import {saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
+import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {
+  queryIsValid,
   recentSearchTypeToLabel,
   tokenIsInvalid,
 } from 'sentry/components/searchQueryBuilder/utils';
@@ -18,7 +20,7 @@ type UseHandleSearchProps = {
   parsedQuery: ParseResult | null;
   recentSearches: SavedSearchType | undefined;
   searchSource: string;
-  onSearch?: (query: string) => void;
+  onSearch?: (query: string, state: CallbackSearchState) => void;
 };
 
 async function saveAsRecentSearch({
@@ -97,7 +99,7 @@ export function useHandleSearch({
 
   return useCallback(
     (query: string) => {
-      onSearch?.(query);
+      onSearch?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
 
       const searchType = recentSearchTypeToLabel(recentSearches);
 
