@@ -340,8 +340,6 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
     def test_multiple_projects_without_global_view(self):
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project.id)
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project2.id)
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(self.url, format="json")
