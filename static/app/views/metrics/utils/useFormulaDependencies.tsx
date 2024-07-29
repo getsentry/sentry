@@ -54,7 +54,9 @@ export function useFormulaDependencies() {
 
       tokens.forEach(token => {
         if (token.type === TokenType.VARIABLE) {
-          const widget = queriesLookup.get(token.content);
+          const widget = queriesLookup.get(
+            metricsNewInputs ? token.content.toUpperCase() : token.content
+          );
           if (widget) {
             dependencies.push(widget);
           } else {
