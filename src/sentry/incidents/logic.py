@@ -98,12 +98,10 @@ NOT_SET = object()
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
-INVALID_TIME_WINDOW = (
-    "Invalid time window for dynamic alert (valid windows are 15, 30, and 60 minutes)"
-)
-INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
 DYNAMIC_TIME_WINDOWS = {15, 30, 60}
-DYNAMIC_TIME_WINDOWS_SECONDS = {15 * 60, 30 * 60, 60 * 60}
+DYNAMIC_TIME_WINDOWS_SECONDS = {window * 60 for window in DYNAMIC_TIME_WINDOWS}
+INVALID_TIME_WINDOW = f"Invalid time window for dynamic alert (valid windows are {', '.join(map(str, DYNAMIC_TIME_WINDOWS))} minutes)"
+INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
 
 logger = logging.getLogger(__name__)
 
