@@ -6,7 +6,6 @@ import colorFn from 'color';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {Series} from 'sentry/components/metrics/chart/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -203,155 +202,146 @@ export const SummaryTable = memo(function SummaryTable({
           }
         }}
       >
-        {rows.length === 0 ? (
-          <SummaryTableEmptyStateWarning>
-            <p>{t('No results found for your query')}</p>
-          </SummaryTableEmptyStateWarning>
-        ) : (
-          rows.map(row => {
-            return (
-              <Fragment key={row.id}>
-                <Row
-                  onClick={() => {
+        {rows.map(row => {
+          return (
+            <Fragment key={row.id}>
+              <Row
+                onClick={() => {
+                  if (hasMultipleSeries) {
+                    onRowClick(row);
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (hasMultipleSeries) {
+                    onRowHover?.(row.id);
+                  }
+                }}
+              >
+                <PaddingCell />
+                <Cell
+                  onClick={event => {
+                    event.stopPropagation();
                     if (hasMultipleSeries) {
-                      onRowClick(row);
-                    }
-                  }}
-                  onMouseEnter={() => {
-                    if (hasMultipleSeries) {
-                      onRowHover?.(row.id);
+                      onColorDotClick?.(row);
                     }
                   }}
                 >
-                  <PaddingCell />
-                  <Cell
-                    onClick={event => {
-                      event.stopPropagation();
-                      if (hasMultipleSeries) {
-                        onColorDotClick?.(row);
-                      }
+                  <ColorDot
+                    color={row.color}
+                    isHidden={!!row.hidden}
+                    style={{
+                      backgroundColor: row.hidden
+                        ? 'transparent'
+                        : colorFn(row.color).alpha(1).string(),
                     }}
+                  />
+                </Cell>
+                <TextOverflowCell>
+                  <Tooltip
+                    title={
+                      <FullSeriesName seriesName={row.seriesName} groupBy={row.groupBy} />
+                    }
+                    delay={500}
+                    overlayStyle={{maxWidth: '80vw'}}
                   >
-                    <ColorDot
-                      color={row.color}
-                      isHidden={!!row.hidden}
-                      style={{
-                        backgroundColor: row.hidden
-                          ? 'transparent'
-                          : colorFn(row.color).alpha(1).string(),
-                      }}
-                    />
-                  </Cell>
-                  <TextOverflowCell>
-                    <Tooltip
-                      title={
-                        <FullSeriesName
-                          seriesName={row.seriesName}
-                          groupBy={row.groupBy}
-                        />
-                      }
-                      delay={500}
-                      overlayStyle={{maxWidth: '80vw'}}
-                    >
-                      <TextOverflow>{row.seriesName}</TextOverflow>
-                    </Tooltip>
-                  </TextOverflowCell>
-                  {totalColumns.map(aggregate => (
-                    <NumberCell key={aggregate}>
-                      {row[aggregate]
-                        ? formatMetricUsingUnit(row[aggregate], row.unit)
-                        : '–'}
-                    </NumberCell>
-                  ))}
+                    <TextOverflow>{row.seriesName}</TextOverflow>
+                  </Tooltip>
+                </TextOverflowCell>
+                {totalColumns.map(aggregate => (
+                  <NumberCell key={aggregate}>
+                    {row[aggregate]
+                      ? formatMetricUsingUnit(row[aggregate], row.unit)
+                      : '–'}
+                  </NumberCell>
+                ))}
 
-                  {hasActions && (
-                    <CenterCell>
-                      <ButtonBar gap={0.5}>
-                        {row.transaction && (
-                          <div>
-                            <Tooltip title={t('Open Transaction Summary')}>
-                              <LinkButton
-                                to={transactionTo(row.transaction)}
-                                size="zero"
-                                borderless
-                              >
-                                <IconLightning size="sm" />
-                              </LinkButton>
-                            </Tooltip>
-                          </div>
-                        )}
+                {hasActions && (
+                  <CenterCell>
+                    <ButtonBar gap={0.5}>
+                      {row.transaction && (
+                        <div>
+                          <Tooltip title={t('Open Transaction Summary')}>
+                            <LinkButton
+                              to={transactionTo(row.transaction)}
+                              size="zero"
+                              borderless
+                            >
+                              <IconLightning size="sm" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
 
-                        {row.release && (
-                          <div>
-                            <Tooltip title={t('Open Release Details')}>
-                              <LinkButton
-                                to={releaseTo(row.release)}
-                                size="zero"
-                                borderless
-                              >
-                                <IconReleases size="sm" />
-                              </LinkButton>
-                            </Tooltip>
-                          </div>
-                        )}
+                      {row.release && (
+                        <div>
+                          <Tooltip title={t('Open Release Details')}>
+                            <LinkButton
+                              to={releaseTo(row.release)}
+                              size="zero"
+                              borderless
+                            >
+                              <IconReleases size="sm" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
 
-                        {/* do not show add/exclude filter if there's no groupby or if this is an equation */}
-                        {Object.keys(row.groupBy ?? {}).length > 0 &&
-                          !row.isEquationSeries && (
-                            <DropdownMenu
-                              items={[
-                                {
-                                  key: 'add-to-filter',
-                                  label: t('Add to filter'),
-                                  size: 'sm',
-                                  onAction: () => {
-                                    handleRowFilter(
-                                      row.queryIndex,
-                                      row,
-                                      MetricSeriesFilterUpdateType.ADD
-                                    );
-                                  },
+                      {/* do not show add/exclude filter if there's no groupby or if this is an equation */}
+                      {Object.keys(row.groupBy ?? {}).length > 0 &&
+                        !row.isEquationSeries && (
+                          <DropdownMenu
+                            items={[
+                              {
+                                key: 'add-to-filter',
+                                label: t('Add to filter'),
+                                size: 'sm',
+                                onAction: () => {
+                                  handleRowFilter(
+                                    row.queryIndex,
+                                    row,
+                                    MetricSeriesFilterUpdateType.ADD
+                                  );
                                 },
-                                {
-                                  key: 'exclude-from-filter',
-                                  label: t('Exclude from filter'),
-                                  size: 'sm',
-                                  onAction: () => {
-                                    handleRowFilter(
-                                      row.queryIndex,
-                                      row,
-                                      MetricSeriesFilterUpdateType.EXCLUDE
-                                    );
-                                  },
+                              },
+                              {
+                                key: 'exclude-from-filter',
+                                label: t('Exclude from filter'),
+                                size: 'sm',
+                                onAction: () => {
+                                  handleRowFilter(
+                                    row.queryIndex,
+                                    row,
+                                    MetricSeriesFilterUpdateType.EXCLUDE
+                                  );
                                 },
-                              ]}
-                              trigger={triggerProps => (
-                                <Button
-                                  {...triggerProps}
-                                  aria-label={t('Quick Context Action Menu')}
-                                  data-test-id="quick-context-action-trigger"
-                                  borderless
-                                  size="zero"
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    triggerProps.onClick?.(e);
-                                  }}
-                                  icon={<IconFilter size="sm" />}
-                                />
-                              )}
-                            />
-                          )}
-                      </ButtonBar>
-                    </CenterCell>
-                  )}
+                              },
+                            ]}
+                            trigger={triggerProps => (
+                              <Button
+                                {...triggerProps}
+                                aria-label={t('Quick Context Action Menu')}
+                                data-test-id="quick-context-action-trigger"
+                                borderless
+                                size="zero"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  triggerProps.onClick?.(e);
+                                }}
+                                icon={<IconFilter size="sm" />}
+                              />
+                            )}
+                          />
+                        )}
+                    </ButtonBar>
+                  </CenterCell>
+                )}
 
-                  <PaddingCell />
-                </Row>
-              </Fragment>
-            );
-          })
-        )}
+                <PaddingCell />
+              </Row>
+            </Fragment>
+          );
+        })}
       </TableBodyWrapper>
     </SummaryTableWrapper>
   );
@@ -572,8 +562,4 @@ const Row = styled('div')`
       background-color: ${p => p.theme.bodyBackground};
     }
   }
-`;
-
-const SummaryTableEmptyStateWarning = styled(EmptyStateWarning)`
-  grid-column: 1 / -1;
 `;
