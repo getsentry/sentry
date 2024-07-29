@@ -5,7 +5,7 @@ from sentry.tasks.base import instrumented_task, retry
 
 
 @instrumented_task(
-    name="sentry.integrations.tasks.sync_metadata",
+    name="sentry.integrations.jira.tasks.sync_metadata",
     queue="integrations.control",
     default_retry_delay=20,
     max_retries=5,

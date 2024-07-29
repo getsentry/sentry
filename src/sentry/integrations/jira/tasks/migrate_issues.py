@@ -12,7 +12,7 @@ from sentry.tasks.integrations import logger
 
 
 @instrumented_task(
-    name="sentry.integrations.tasks.migrate_issues",
+    name="sentry.integrations.jira.tasks.migrate_issues",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
