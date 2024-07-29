@@ -23,6 +23,7 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -277,11 +278,20 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
   );
 }
 
+function validateTab(tab: unknown): tab is 'flamegraph' | 'transactions' {
+  return tab === 'flamegraph' || tab === 'transactions';
+}
+
+function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
+  return validateTab(tab) ? tab : 'transactions';
+}
+
 function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
+  const tab = decodeTab(location.query.tab);
 
   const fields = ALL_FIELDS;
 
@@ -354,6 +364,19 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
+  const onTabChange = useCallback(
+    (newTab: 'flamegraph' | 'transactions') => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          tab: newTab,
+        },
+      });
+    },
+    [location]
+  );
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
@@ -361,7 +384,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
-          <Layout.Header>
+          <StyledLayoutHeader>
             <StyledHeaderContent>
               <Layout.Title>
                 {t('Profiling')}
@@ -374,7 +397,15 @@ function ProfilingContent({location}: ProfilingContentProps) {
               </Layout.Title>
               <FeedbackWidgetButton />
             </StyledHeaderContent>
-          </Layout.Header>
+            <div>
+              <Tabs value={tab} onChange={onTabChange}>
+                <TabList hideBorder>
+                  <TabList.Item key="transactions">{t('Transactions')}</TabList.Item>
+                  <TabList.Item key="flamegraph">{t('Flamegraph')}</TabList.Item>
+                </TabList>
+              </Tabs>
+            </div>
+          </StyledLayoutHeader>
           <Layout.Body>
             <Layout.Main fullWidth>
               {transactionsError && (
@@ -388,18 +419,22 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
                   <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
                 </PageFilterBar>
-                <SearchBar
-                  searchSource="profile_landing"
-                  organization={organization}
-                  projectIds={selection.projects}
-                  query={query}
-                  onSearch={handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                {tab === 'transactions' ? (
+                  <SearchBar
+                    searchSource="profile_landing"
+                    organization={organization}
+                    projectIds={selection.projects}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                ) : null}
               </ActionBar>
-              <LandingAggregateFlamegraphContainer>
-                <LandingAggregateFlamegraph />
-              </LandingAggregateFlamegraphContainer>
+              {tab === 'flamegraph' ? (
+                <LandingAggregateFlamegraphContainer>
+                  <LandingAggregateFlamegraph />
+                </LandingAggregateFlamegraphContainer>
+              ) : null}
               {shouldShowProfilingOnboardingPanel ? (
                 <Fragment>
                   <ProfilingOnboardingPanel
@@ -444,6 +479,14 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     'profiling-global-suspect-functions'
                   ) ? (
                     <Fragment>
+                      {tab === 'transactions' ? (
+                        <ProfilesChartWidget
+                          chartHeight={150}
+                          referrer="api.profiling.landing-chart"
+                          userQuery={query}
+                          selection={selection}
+                        />
+                      ) : null}
                       <WidgetsContainer>
                         <LandingWidgetSelector
                           cursorName={LEFT_WIDGET_CURSOR}
@@ -472,25 +515,31 @@ function ProfilingContent({location}: ProfilingContentProps) {
                       />
                     </PanelsGrid>
                   )}
-                  <ProfileEventsTable
-                    columns={fields.slice()}
-                    data={transactions.status === 'success' ? transactions.data : null}
-                    error={
-                      transactions.status === 'error'
-                        ? t('Unable to load profiles')
-                        : null
-                    }
-                    isLoading={transactions.status === 'loading'}
-                    sort={sort}
-                    sortableColumns={new Set(fields)}
-                  />
-                  <Pagination
-                    pageLinks={
-                      transactions.status === 'success'
-                        ? transactions.getResponseHeader?.('Link') ?? null
-                        : null
-                    }
-                  />
+                  {tab === 'transactions' ? (
+                    <Fragment>
+                      <ProfileEventsTable
+                        columns={fields.slice()}
+                        data={
+                          transactions.status === 'success' ? transactions.data : null
+                        }
+                        error={
+                          transactions.status === 'error'
+                            ? t('Unable to load profiles')
+                            : null
+                        }
+                        isLoading={transactions.status === 'loading'}
+                        sort={sort}
+                        sortableColumns={new Set(fields)}
+                      />
+                      <Pagination
+                        pageLinks={
+                          transactions.status === 'success'
+                            ? transactions.getResponseHeader?.('Link') ?? null
+                            : null
+                        }
+                      />
+                    </Fragment>
+                  ) : null}
                 </Fragment>
               )}
             </Layout.Main>
@@ -521,6 +570,10 @@ const LandingAggregateFlamegraphContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
+`;
+
+const StyledLayoutHeader = styled(Layout.Header)`
+  display: block;
 `;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
