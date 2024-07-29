@@ -100,6 +100,15 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
+function replaceHeadersWithBold(markdown: string) {
+  const headerRegex = /^(#{1,6})\s+(.*)$/gm;
+  const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
+    return ` **${content}** `;
+  });
+
+  return boldMarkdown;
+}
+
 function Progress({
   progress,
   groupId,
@@ -111,15 +120,6 @@ function Progress({
   progress: AutofixProgressItem | AutofixStep;
   runId: string;
 }) {
-  function replaceHeadersWithBold(markdown: string) {
-    const headerRegex = /^(#{1,6})\s+(.*)$/gm;
-    const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
-      return ` **${content}** `;
-    });
-
-    return boldMarkdown;
-  }
-
   if (isProgressLog(progress)) {
     const html = progress.message.includes('\n')
       ? marked(replaceHeadersWithBold(progress.message), {
@@ -213,7 +213,11 @@ export function ExpandableStep({
             }}
           />
           {activeLog && !isExpanded && (
-            <StepHeaderDescription>{activeLog}</StepHeaderDescription>
+            <StepHeaderDescription
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(replaceHeadersWithBold(activeLog)),
+              }}
+            />
           )}
         </StepHeaderLeft>
         <StepHeaderRight>
