@@ -43,7 +43,9 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, _ = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response({"count": 0})
 
@@ -53,7 +55,8 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             query_details = {
                 "selected_columns": self.get_field_list(organization, request),
                 "query": request.GET.get("query"),
-                "params": params,
+                "params": {},
+                "snuba_params": snuba_params,
                 "equations": self.get_equation_list(organization, request),
                 "orderby": self.get_orderby(request),
                 "offset": offset,
@@ -74,7 +77,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             on_results=lambda results: self.handle_results_with_meta(
                 request,
                 organization,
-                params["project_id"],
+                snuba_params.project_ids,
                 results,
                 standard_meta=True,
             ),
