@@ -14,9 +14,8 @@ export default storyBook('GlobalDrawer', story => {
         {`import useDrawer from 'sentry/components/globalDrawer';\nconst {openDrawer, closeDrawer} = useDrawer();`}
       </CodeSnippet>
       <p>
-        The by default the drawer can be closed with an 'escape' press, or an outside
-        click. This behavior can be changed by passing in options to{' '}
-        <code>openDrawer</code>.
+        By default the drawer can be closed with an 'escape' press, or an outside click.
+        This behavior can be changed by passing in options to <code>openDrawer</code>.
       </p>
     </Fragment>
   ));
