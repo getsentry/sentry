@@ -77,23 +77,22 @@ class RegisteredFeatureManager:
         actor: User | None = None,
     ) -> Mapping[Project, bool]:
         """
-        Determine in a batch if a feature is enabled.
+        Determine if a feature is enabled for a batch of objects.
 
-        This applies the same procedure as ``FeatureManager.has``, but with a
-        performance benefit where the objects being checked all belong to the
-        same organization. The objects are entities (e.g., projects) with the
-        common parent organization, as would be passed individually to ``has``.
+        This method enables checking a feature for an organization and a collection
+        of objects (e.g. projects). Feature handlers for batch checks are expected to
+        subclass `features.BatchFeatureHandler` and implement `has_for_batch` or
+        `_check_for_batch`. BatchFeatureHandlers will receive a `FeatureCheckBatch`
+        that contains the organization and object list.
 
         Feature handlers that depend only on organization attributes, and not
         on attributes of the individual objects being checked, will generally
-        perform faster if this method is used in preference to ``has``.
+        perform faster if this method is used in instead of ``has``.
 
-        The return value is a dictionary with the objects as keys. Each value
-        is what would be returned if the key were passed to ``has``.
+        The return value is a dictionary with the objects as keys, and each
+        value is the result of the feature check on the organization.
 
-        The entity handler can handle both batch project/organization
-        contexts so it'll likely have an entirely different implementation
-        of this functionality.
+        This method *does not* work with the `entity_handler`.
 
         >>> FeatureManager.has_for_batch('projects:feature', organization, [project1, project2], actor=request.user)
         """
