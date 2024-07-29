@@ -1,16 +1,19 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
+import Access from 'sentry/components/acl/access';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = {
-  onClickHandler: () => void;
+  onClick: () => void;
+  organization: Organization;
 };
 
-function AddIntegrationRow({onClickHandler}: Props) {
+function AddIntegrationRow({organization, onClick}: Props) {
   const integration = useContext(IntegrationContext);
   if (!integration) {
     return null;
@@ -29,12 +32,20 @@ function AddIntegrationRow({onClickHandler}: Props) {
         <PluginIcon pluginId={provider.slug} size={40} />
         <NameHeader>Connect {provider.name}</NameHeader>
       </IconTextWrapper>
-      <StyledButton
-        onAddIntegration={onClickHandler}
-        onExternalClick={onClickHandler}
-        externalInstallText="Add Installation"
-        buttonProps={buttonProps}
-      />
+      <Access access={['org:integrations']} organization={organization}>
+        {({hasAccess}) => {
+          return (
+            <StyledButton
+              organization={organization}
+              userHasAccess={hasAccess}
+              onAddIntegration={onClick}
+              onExternalClick={onClick}
+              externalInstallText="Add Installation"
+              buttonProps={buttonProps}
+            />
+          );
+        }}
+      </Access>
     </RowWrapper>
   );
 }

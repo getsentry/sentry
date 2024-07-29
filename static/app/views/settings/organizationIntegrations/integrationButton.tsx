@@ -2,6 +2,7 @@ import {useContext} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {IconOpen} from 'sentry/icons';
+import type {Organization} from 'sentry/types/organization';
 import type {Integration} from 'sentry/types/integrations';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -11,6 +12,8 @@ type Props = {
   buttonProps: ButtonProps;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;
+  organization: Organization;
+  userHasAccess: boolean;
   externalInstallText?: string;
 };
 
@@ -22,6 +25,8 @@ type ButtonProps = {
 } | null;
 
 function IntegrationButton({
+  organization,
+  userHasAccess,
   onAddIntegration,
   onExternalClick,
   externalInstallText,
@@ -31,15 +36,7 @@ function IntegrationButton({
   if (!integration) {
     return null;
   }
-  const {
-    provider,
-    type,
-    organization,
-    userHasAccess,
-    installStatus,
-    analyticsParams,
-    modalParams,
-  } = integration;
+  const {provider, type, installStatus, analyticsParams, modalParams} = integration;
   const {metadata} = provider;
 
   if (!userHasAccess) {

@@ -28,8 +28,6 @@ describe('AddIntegrationButton', function () {
       value={{
         provider: provider,
         type: 'first_party',
-        organization: org,
-        userHasAccess: hasAccess,
         installStatus: 'Not Installed',
         analyticsParams: {
           view: 'onboarding',
@@ -39,6 +37,8 @@ describe('AddIntegrationButton', function () {
       }}
     >
       <IntegrationButton
+        organization={org}
+        userHasAccess={hasAccess}
         onAddIntegration={jest.fn()}
         onExternalClick={jest.fn()}
         externalInstallText={externalInstallText}

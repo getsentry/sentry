@@ -254,8 +254,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         value={{
           provider: provider,
           type: this.integrationType,
-          organization: organization,
-          userHasAccess: userHasAccess,
           installStatus: this.installationStatus,
           analyticsParams: {
             view: 'integrations_directory_integration_detail',
@@ -264,6 +262,8 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         }}
       >
         <StyledIntegrationButton
+          organization={organization}
+          userHasAccess={userHasAccess}
           onAddIntegration={this.onInstall}
           onExternalClick={this.handleExternalInstall}
           buttonProps={buttonProps}
