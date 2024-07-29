@@ -657,6 +657,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(event_or_group, project.slug),
-            block_id=block_id,
+            block_id=orjson.dumps(block_id).decode(),
             skip_fallback=self.skip_fallback,
         )
