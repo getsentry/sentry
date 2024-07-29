@@ -4,9 +4,12 @@ import * as Sentry from '@sentry/react';
 import DevToolbar from 'sentry/components/devtoolbar';
 import {rawTrackAnalyticsEvent} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 export default function useDevToolbar({enabled}: {enabled: boolean}) {
   const organization = useOrganization();
+  const {email} = useUser();
+
   useEffect(() => {
     if (enabled) {
       // TODO: this is insufficient and doesn't take into account control/silo endpoints
@@ -30,7 +33,7 @@ export default function useDevToolbar({enabled}: {enabled: boolean}) {
           `https://github.com/search?q=repo%3Agetsentry%2Fsentry-options-automator+OR+repo%3Agetsentry%2Fsentry+${flag}&type=code`,
 
         trackAnalytics: (props: {eventKey: string; eventName: string}) =>
-          rawTrackAnalyticsEvent({...props, organization}),
+          rawTrackAnalyticsEvent({...props, email, organization}),
       });
 
       return () => {
@@ -38,5 +41,5 @@ export default function useDevToolbar({enabled}: {enabled: boolean}) {
       };
     }
     return () => {};
-  }, [enabled, organization]);
+  }, [email, enabled, organization]);
 }
