@@ -1,6 +1,7 @@
 import type {Layout} from 'react-grid-layout';
 
 import type {User} from 'sentry/types/user';
+import type {DatasetSource} from 'sentry/utils/discover/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
@@ -81,6 +82,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  datasetSource?: DatasetSource;
   description?: string;
   id?: string;
   layout?: WidgetLayout | null;
