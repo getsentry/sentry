@@ -82,3 +82,7 @@ class FlyOAuth2Provider(OAuth2Provider):
             "data": self.get_oauth_data(data),
             "email_verified": False,
         }
+
+
+class FlyOAuthPartnershipProvider(FlyOAuth2Provider):
+    is_partner = True
