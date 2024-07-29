@@ -103,16 +103,14 @@ export function FoldSection({
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent browser summary/details behaviour
-      setIsCollapsed(collapsed => {
-        trackAnalytics('issue_details.section_fold', {
-          sectionKey,
-          organization,
-          open: !collapsed,
-        });
-        return !collapsed;
+      trackAnalytics('issue_details.section_fold', {
+        sectionKey,
+        organization,
+        open: !isCollapsed,
       });
+      setIsCollapsed(collapsed => !collapsed);
     },
-    [setIsCollapsed, organization, sectionKey]
+    [setIsCollapsed, organization, sectionKey, isCollapsed]
   );
 
   return (
