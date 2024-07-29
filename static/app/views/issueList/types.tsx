@@ -4,6 +4,7 @@ import type {
   PriorityLevel,
   TagValue,
 } from 'sentry/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;
 
@@ -13,3 +14,10 @@ export type IssueUpdateData =
   | {priority: PriorityLevel}
   | MarkReviewed
   | GroupStatusResolution;
+
+export type GroupSearchView = {
+  name: string;
+  query: string;
+  querySort: IssueSortOptions;
+  id?: string;
+};
