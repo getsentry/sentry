@@ -20,17 +20,17 @@ from sentry.utils.http import absolute_uri
 
 
 def format_actor_options(
-    actors: Sequence[Team | RpcUser], use_block_kit: bool = False
+    actors: Sequence[Team | RpcUser], is_slack: bool = False
 ) -> Sequence[Mapping[str, str]]:
     sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
-    if use_block_kit:
+    if is_slack:
         sort_func = lambda actor: actor["text"]["text"]
-    return sorted((format_actor_option(actor, use_block_kit) for actor in actors), key=sort_func)
+    return sorted((format_actor_option(actor, is_slack) for actor in actors), key=sort_func)
 
 
-def format_actor_option(actor: Team | RpcUser, use_block_kit: bool = False) -> Mapping[str, str]:
+def format_actor_option(actor: Team | RpcUser, is_slack: bool = False) -> Mapping[str, str]:
     if isinstance(actor, RpcUser):
-        if use_block_kit:
+        if is_slack:
             return {
                 "text": {
                     "type": "plain_text",
@@ -40,8 +40,8 @@ def format_actor_option(actor: Team | RpcUser, use_block_kit: bool = False) -> M
             }
 
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
-    if isinstance(actor, Team):
-        if use_block_kit:
+    elif isinstance(actor, Team):
+        if is_slack:
             return {
                 "text": {
                     "type": "plain_text",
@@ -50,8 +50,6 @@ def format_actor_option(actor: Team | RpcUser, use_block_kit: bool = False) -> M
                 "value": f"team:{actor.id}",
             }
         return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
-
-    raise NotImplementedError
 
 
 def build_attachment_title(obj: Group | GroupEvent) -> str:
