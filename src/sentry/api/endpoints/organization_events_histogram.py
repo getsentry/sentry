@@ -79,11 +79,11 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
 
                 with handle_query_errors():
                     results = dataset.histogram_query(
-                        data["field"],
-                        data.get("query"),
-                        params,
-                        data["numBuckets"],
-                        data["precision"],
+                        fields=data["field"],
+                        user_query=data.get("query"),
+                        params=params,
+                        num_buckets=data["numBuckets"],
+                        precision=data["precision"],
                         min_value=data.get("min"),
                         max_value=data.get("max"),
                         data_filter=data.get("dataFilter"),

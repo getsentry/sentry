@@ -247,7 +247,11 @@ export function Content() {
             </StyledPanelItem>
           )}
           {data?.map((trace, i) => (
-            <TraceRow key={trace.trace} trace={trace} defaultExpanded={i === 0} />
+            <TraceRow
+              key={trace.trace}
+              trace={trace}
+              defaultExpanded={!areQueriesEmpty(queries) && i === 0}
+            />
           ))}
         </TracePanelContent>
       </StyledPanel>

@@ -274,6 +274,7 @@ class ContinuousProfileCandidate(TypedDict):
     project_id: int
     profiler_id: str
     chunk_id: str
+    thread_id: str
     start: str
     end: str
 
@@ -287,6 +288,7 @@ class ProfileCandidates(TypedDict):
 class ProfilerMeta:
     project_id: int
     profiler_id: str
+    thread_id: str
     start: float
     end: float
 
@@ -375,7 +377,6 @@ class FlamegraphExecutor:
         }
 
     def get_profile_candidates_from_transactions(self) -> ProfileCandidates:
-        # TODO: continuous profiles support
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
 
         builder = DiscoverQueryBuilder(
@@ -388,6 +389,7 @@ class FlamegraphExecutor:
                 "precise.finish_ts",
                 "profile.id",
                 "profiler.id",
+                "thread.id",
             ],
             query=self.query,
             limit=max_profiles,
@@ -399,9 +401,18 @@ class FlamegraphExecutor:
         builder.add_conditions(
             [
                 Or(
-                    [
-                        Condition(Column("profile_id"), Op.IS_NOT_NULL),
-                        Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                    conditions=[
+                        Condition(builder.resolve_column("profile.id"), Op.IS_NOT_NULL),
+                        And(
+                            conditions=[
+                                Condition(builder.resolve_column("profiler.id"), Op.IS_NOT_NULL),
+                                Condition(
+                                    Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                    Op.EQ,
+                                    1,
+                                ),
+                            ],
+                        ),
                     ],
                 ),
             ],
@@ -419,11 +430,12 @@ class FlamegraphExecutor:
                 ProfilerMeta(
                     project_id=row["project.id"],
                     profiler_id=row["profiler.id"],
+                    thread_id=row["thread.id"],
                     start=row["precise.start_ts"],
                     end=row["precise.finish_ts"],
                 )
                 for row in results["data"]
-                if row["profiler.id"] is not None
+                if row["profiler.id"] is not None and row["thread.id"]
             ]
         )
 
@@ -513,10 +525,15 @@ class FlamegraphExecutor:
                     "project_id": profiler_meta.project_id,
                     "profiler_id": profiler_meta.profiler_id,
                     "chunk_id": row["chunk_id"],
+                    "thread_id": profiler_meta.thread_id,
                     "start": str(int(max(start, profiler_meta.start) * 1.0e9)),
                     "end": str(int(min(end, profiler_meta.end) * 1.0e9)),
                 }
             )
+
+        # TODO: There is the possibility that different transactions use the same
+        # profiler, chunk and thread ids. So make sure to merge overlapping candidates
+        # to avoid using the same sample multiple times.
 
         return continuous_profile_candidates
 

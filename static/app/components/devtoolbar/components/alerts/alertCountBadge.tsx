@@ -8,5 +8,5 @@ export default function AlertCountBadge() {
   if (count === undefined) {
     return null;
   }
-  return <CountBadge value={count} />;
+  return <CountBadge value={count} variant="red" />;
 }

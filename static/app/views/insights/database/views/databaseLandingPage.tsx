@@ -24,7 +24,6 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
@@ -134,8 +133,6 @@ export function DatabaseLandingPage() {
     'api.starfish.span-landing-page-metrics-chart'
   );
 
-  useHasDataTrackAnalytics(ModuleName.DB, 'insight.page_loads.db');
-
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
 
@@ -244,7 +241,11 @@ const LIMIT: number = 25;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="db" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="db"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.db"
+    >
       <DatabaseLandingPage />
     </ModulePageProviders>
   );

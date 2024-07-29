@@ -473,8 +473,8 @@ class Project(Model, PendingDeletionMixin):
 
     def transfer_to(self, organization):
         from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.environment import Environment, EnvironmentProject
-        from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject

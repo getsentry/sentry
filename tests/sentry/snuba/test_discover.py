@@ -2464,8 +2464,8 @@ class QueryTransformTest(TestCase):
                 {"project_id": [self.project.id]},
                 3,
                 1,
-                0.5,
-                2,
+                min_value=0.5,
+                max_value=2,
             )
             assert results == {
                 f"{alias}.bar": [

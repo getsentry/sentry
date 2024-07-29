@@ -43,6 +43,12 @@ function AddWidget({onAddWidget}: Props) {
 
   const organization = useOrganization();
 
+  const defaultDataset = organization.features.includes(
+    'performance-discover-dataset-selector'
+  )
+    ? DataSet.ERRORS
+    : DataSet.EVENTS;
+
   return (
     <Feature features="dashboards-edit">
       <WidgetWrapper
@@ -74,7 +80,7 @@ function AddWidget({onAddWidget}: Props) {
             />
           </InnerWrapper>
         ) : (
-          <InnerWrapper onClick={() => onAddWidget(DataSet.EVENTS)}>
+          <InnerWrapper onClick={() => onAddWidget(defaultDataset)}>
             <AddButton
               data-test-id="widget-add"
               icon={<IconAdd size="lg" isCircled color="inactive" />}

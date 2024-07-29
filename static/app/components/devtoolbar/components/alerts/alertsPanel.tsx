@@ -9,7 +9,7 @@ import TimeSince from 'sentry/components/timeSince';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
+import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 import type {Incident, MetricAlert} from 'sentry/views/alerts/types';
 import {CombinedAlertType} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
@@ -43,7 +43,7 @@ export default function AlertsPanel() {
     <PanelLayout title="Alerts">
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>
-          Active Alerts in{' '}
+          Active alerts in{' '}
           <SentryAppLink
             to={{url: `/projects/${projectSlug}/`}}
             onClick={() => {
@@ -172,7 +172,7 @@ function AlertListItem({item}: {item: Incident}) {
       </TextOverflow>
 
       <div css={smallCss} style={{gridArea: 'message'}}>
-        <AlertRuleStatus rule={rule} />
+        <ActivatedMetricAlertRuleStatus rule={rule} />
       </div>
 
       {teamActor ? (

@@ -151,7 +151,7 @@ def register_temporary_features(manager: FeatureManager):
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     manager.add("organizations:issue-search-group-attributes-side-query", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable custom views features in the issue stream
-    manager.add("organizations:issue-stream-custom-views", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
+    manager.add("organizations:issue-stream-custom-views", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the updated empty state for issues
     manager.add("organizations:issue-stream-empty-state", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable additional platforms for issue stream empty state
@@ -191,7 +191,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enables the search bar for metrics samples list
     manager.add("organizations:metrics-samples-list-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable Session Stats down to a minute resolution
-    manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
+    manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Display CPU and memory metrics in transactions with profiles
     manager.add("organizations:mobile-cpu-memory-in-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Adds the ttid & ttfd vitals to the frontend
@@ -368,7 +368,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable priority alerts using the Seer calculations. This flag will move to a permanent flag before we release.
-    manager.add("organizations:seer-based-priority", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:seer-based-priority", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Replay Details > Accessibility tab
     manager.add("organizations:session-replay-a11y-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable the accessibility issues endpoint
@@ -411,11 +411,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable description field in Slack metric alerts
     manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
-    # Enable improvements to Slack notifications
-    manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
-    # Feature flags for migrating to the Slack SDK WebClient
-    # Use new Slack SDK Client for spike protection message
-    manager.add("organizations:slack-sdk-spike-protection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)

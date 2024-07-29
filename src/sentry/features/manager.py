@@ -168,7 +168,7 @@ class FeatureManager(RegisteredFeatureManager):
         cls: type[Feature] = Feature,
         entity_feature_strategy: bool | FeatureHandlerStrategy = False,
         default: bool = False,
-        api_expose: bool = True,
+        api_expose: bool = False,
     ) -> None:
         """
         Register a feature.

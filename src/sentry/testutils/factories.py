@@ -58,6 +58,19 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.integration_feature import (
+    Feature,
+    IntegrationFeature,
+    IntegrationTypes,
+)
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
@@ -67,12 +80,17 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
+)
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
@@ -83,18 +101,6 @@ from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.integration_feature import (
-    Feature,
-    IntegrationFeature,
-    IntegrationTypes,
-)
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
@@ -1973,3 +1979,56 @@ class Factories:
             owner_user_id=owner_user_id,
             uptime_status=uptime_status,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard(
+        organization: Organization | None = None,
+        title: str | None = None,
+        created_by: User | None = None,
+        **kwargs,
+    ):
+        if organization is None:
+            organization = Factories.create_organization()
+        if created_by is None:
+            created_by = Factories.create_user()
+            Factories.create_member(organization=organization, user=created_by, role="owner")
+        if title is None:
+            title = petname.generate(2, " ", letters=10).title()
+        return Dashboard.objects.create(
+            organization=organization, title=title, created_by_id=created_by.id, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard_widget(
+        order: int,
+        dashboard: Dashboard | None = None,
+        title: str | None = None,
+        display_type: int | None = None,
+        **kwargs,
+    ):
+        if dashboard is None:
+            dashboard = Factories.create_dashboard()
+        if display_type is None:
+            display_type = DashboardWidgetDisplayTypes.AREA_CHART
+        if title is None:
+            title = petname.generate(2, " ", letters=10).title()
+
+        return DashboardWidget.objects.create(
+            dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard_widget_query(
+        order: int,
+        widget: DashboardWidget | None = None,
+        name: str | None = None,
+        **kwargs,
+    ):
+        if widget is None:
+            widget = Factories.create_dashboard_widget(order=order)
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+        return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)
