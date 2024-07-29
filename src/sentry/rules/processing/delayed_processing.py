@@ -359,6 +359,7 @@ def passes_comparison(
         return False
 
     calculated_value = query_values[0]
+    # If there's a second query we must have a percent comparison condition.
     if len(query_values) == 2:
         calculated_value = percent_increase(calculated_value, query_values[1])
 
