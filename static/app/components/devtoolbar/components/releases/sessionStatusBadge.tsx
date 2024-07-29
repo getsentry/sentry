@@ -14,7 +14,7 @@ export default function CrashCountBadge() {
     return null;
   }
 
-  const crashPercent = (crashSessions / healthySessions) * 100;
+  const crashPercent = (crashSessions / (crashSessions + healthySessions)) * 100;
 
   // over 10% of sessions were crashes
   if (crashPercent > 10) {
