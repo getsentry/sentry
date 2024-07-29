@@ -17,7 +17,7 @@ GITHUB_CODEOWNERS = {
 }
 
 
-class GitHubAppsClientTest(TestCase):
+class GitHubEnterpriseApiClientTest(TestCase):
     base_url = "https://github.example.org/api/v3"
 
     def setUp(self):

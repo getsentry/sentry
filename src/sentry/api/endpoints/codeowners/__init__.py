@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from sentry import analytics, features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
@@ -137,17 +137,9 @@ class ProjectCodeOwnersMixin:
 
 
 from .details import ProjectCodeOwnersDetailsEndpoint
-from .external_actor.team_details import ExternalTeamDetailsEndpoint
-from .external_actor.team_index import ExternalTeamEndpoint
-from .external_actor.user_details import ExternalUserDetailsEndpoint
-from .external_actor.user_index import ExternalUserEndpoint
 from .index import ProjectCodeOwnersEndpoint
 
 __all__ = (
-    "ExternalTeamEndpoint",
-    "ExternalTeamDetailsEndpoint",
-    "ExternalUserEndpoint",
-    "ExternalUserDetailsEndpoint",
     "ProjectCodeOwnersEndpoint",
     "ProjectCodeOwnersDetailsEndpoint",
 )

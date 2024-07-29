@@ -4,7 +4,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.integrations.base import IntegrationInstallation
-from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.organization import Organization
 
 logger = logging.getLogger("sentry.tasks.integrations")

@@ -391,9 +391,9 @@ class GroupManager(BaseManager["Group"]):
         organizations: Sequence[Organization],
         external_issue_key: str,
     ) -> QuerySet[Group]:
+        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.services.integration import integration_service
         from sentry.models.grouplink import GroupLink
-        from sentry.models.integrations.external_issue import ExternalIssue
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key
