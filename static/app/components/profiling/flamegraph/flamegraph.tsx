@@ -90,15 +90,7 @@ function getMaxConfigSpace(
     // TODO: Adjust the alignment based on the profile's timestamp if it does
     // not match the transaction's start timestamp
     const transactionDuration = transaction.endTimestamp - transaction.startTimestamp;
-    // On most platforms, profile duration < transaction duration, however
-    // there is one beloved platform where that is not true; android.
-    // Hence, we should take the max of the two to ensure both the transaction
-    // and profile are fully visible to the user.
-    const duration = Math.max(
-      formatTo(transactionDuration, 'seconds', unit),
-      maxProfileDuration
-    );
-    return new Rect(0, 0, duration, 0);
+    return new Rect(0, 0, formatTo(transactionDuration, 'seconds', unit), 0);
   }
 
   // No transaction was found, so best we can do is align it to the starting
