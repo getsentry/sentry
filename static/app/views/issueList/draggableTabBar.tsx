@@ -1,6 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Key, Node} from '@react-types/shared';
 
@@ -10,6 +10,7 @@ import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/it
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import QueryCount from 'sentry/components/queryCount';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/draggableTabMenuButton';
@@ -24,16 +25,73 @@ export interface Tab {
 
 export interface DraggableTabBarProps {
   tabs: Tab[];
+  onAddView?: React.MouseEventHandler;
+  /**
+   * Callback function to be called when user clicks the `Delete` button.
+   * Note: The `Delete` button only appears for persistent views
+   */
   onDelete?: (key: MenuItemProps['key']) => void;
+  /**
+   * Callback function to be called when user clicks on the `Discard Changes` button.
+   * Note: The `Discard Changes` button only appears for persistent views when `isChanged=true`
+   */
   onDiscard?: (key: MenuItemProps['key']) => void;
+  /**
+   * Callback function to be called when user clicks on the `Discard` button for temporary views.
+   * Note: The `Discard` button only appears for temporary views
+   */
+  onDiscardTempView?: () => void;
+  /**
+   * Callback function to be called when user clicks the 'Duplicate' button.
+   * Note: The `Duplicate` button only appears for persistent views
+   */
   onDuplicate?: (key: MenuItemProps['key']) => void;
+  /**
+   * Callback function to be called when user clicks the 'Rename' button.
+   * Note: The `Rename` button only appears for persistent views
+   */
   onRename?: (key: MenuItemProps['key']) => void;
+  /**
+   * Callback function to be called when user clicks the 'Save' button.
+   * Note: The `Save` button only appears for persistent views when `isChanged=true`
+   */
   onSave?: (key: MenuItemProps['key']) => void;
+  /**
+   * Callback function to be called when user clicks the 'Save View' button for temporary views.
+   */
+  onSaveTempView?: () => void;
+  showTempTab?: boolean;
+  tempTabContent?: React.ReactNode;
+  tempTabLabel?: string;
 }
 
-export function DraggableTabBar(props: DraggableTabBarProps) {
-  const [tabs, setTabs] = useState<Tab[]>(props.tabs);
+export function DraggableTabBar({
+  showTempTab = false,
+  tempTabContent,
+  tempTabLabel = 'Unsaved',
+  onAddView,
+  onDelete,
+  onDiscard,
+  onDuplicate,
+  onRename,
+  onSave,
+  onDiscardTempView,
+  onSaveTempView,
+  ...props
+}: DraggableTabBarProps) {
+  const tempTab = {
+    key: 'temporary-tab',
+    label: tempTabLabel,
+    content: tempTabContent,
+  };
+  const [tabs, setTabs] = useState<Tab[]>([...props.tabs, tempTab]);
   const [selectedTabKey, setSelectedTabKey] = useState<Key>(props.tabs[0].key);
+
+  useEffect(() => {
+    if (!showTempTab && selectedTabKey === 'temporary-tab') {
+      setSelectedTabKey(props.tabs[0].key);
+    }
+  }, [showTempTab, selectedTabKey, props.tabs]);
 
   const onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void = newOrder => {
     setTabs(
@@ -46,28 +104,52 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
     );
   };
 
+  const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
+    if (tab.key === 'temporary-tab') {
+      return makeTempViewMenuOptions({
+        onSave: onSaveTempView,
+        onDiscard: onDiscardTempView,
+      });
+    }
+    if (tab.hasUnsavedChanges) {
+      return makeUnsavedChangesMenuOptions({
+        onRename,
+        onDuplicate,
+        onDelete,
+        onSave,
+        onDiscard,
+      });
+    }
+    return makeDefaultMenuOptions({onRename, onDuplicate, onDelete});
+  };
+
   return (
     <Tabs>
       <DraggableTabList
         onReorder={onReorder}
         onSelectionChange={setSelectedTabKey}
+        selectedKey={selectedTabKey}
+        showTempTab={showTempTab}
+        onAddView={onAddView}
         orientation="horizontal"
       >
         {tabs.map(tab => (
-          <DraggableTabList.Item key={tab.key}>
+          <DraggableTabList.Item
+            textValue={`${tab.label} tab`}
+            key={tab.key}
+            hidden={tab.key === 'temporary-tab' && !showTempTab}
+          >
             <TabContentWrap>
               {tab.label}
-              <StyledBadge>
-                <QueryCount hideParens count={tab.queryCount} max={1000} />
-              </StyledBadge>
+              {tab.key !== 'temporary-tab' && (
+                <StyledBadge>
+                  <QueryCount hideParens count={tab.queryCount} max={1000} />
+                </StyledBadge>
+              )}
               {selectedTabKey === tab.key && (
                 <DraggableTabMenuButton
                   hasUnsavedChanges={tab.hasUnsavedChanges}
-                  onDelete={key => props.onDelete?.(key)}
-                  onDiscard={key => props.onDiscard?.(key)}
-                  onDuplicate={key => props.onDuplicate?.(key)}
-                  onRename={key => props.onRename?.(key)}
-                  onSave={key => props.onSave?.(key)}
+                  menuOptions={makeMenuOptions(tab)}
                 />
               )}
             </TabContentWrap>
@@ -82,6 +164,74 @@ export function DraggableTabBar(props: DraggableTabBarProps) {
     </Tabs>
   );
 }
+
+const makeDefaultMenuOptions = ({onRename, onDuplicate, onDelete}): MenuItemProps[] => {
+  return [
+    {
+      key: 'rename-tab',
+      label: t('Rename'),
+      onAction: onRename,
+    },
+    {
+      key: 'duplicate-tab',
+      label: t('Duplicate'),
+      onAction: onDuplicate,
+    },
+    {
+      key: 'delete-tab',
+      label: t('Delete'),
+      priority: 'danger',
+      onAction: onDelete,
+    },
+  ];
+};
+
+const makeUnsavedChangesMenuOptions = ({
+  onRename,
+  onDuplicate,
+  onDelete,
+  onSave,
+  onDiscard,
+}): MenuItemProps[] => {
+  return [
+    {
+      key: 'changed',
+      children: [
+        {
+          key: 'save-changes',
+          label: t('Save Changes'),
+          priority: 'primary',
+          onAction: onSave,
+        },
+        {
+          key: 'discard-changes',
+          label: t('Discard Changes'),
+          onAction: onDiscard,
+        },
+      ],
+    },
+    {
+      key: 'default',
+      children: makeDefaultMenuOptions({onRename, onDuplicate, onDelete}),
+    },
+  ];
+};
+
+const makeTempViewMenuOptions = ({onSave, onDiscard}): MenuItemProps[] => {
+  return [
+    {
+      key: 'save-changes',
+      label: t('Save View'),
+      priority: 'primary',
+      onAction: onSave,
+    },
+    {
+      key: 'discard-changes',
+      label: t('Discard'),
+      onAction: onDiscard,
+    },
+  ];
+};
 
 const TabContentWrap = styled('span')`
   white-space: nowrap;
