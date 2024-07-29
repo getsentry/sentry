@@ -6,6 +6,7 @@ from sentry.integrations.api.serializers.models.repository_project_path_config i
     RepositoryProjectPathConfigSerializer,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import convert_schema_to_rules_text
 
@@ -38,8 +39,8 @@ class ProjectCodeOwnersSerializer(Serializer):
                 organization_id=item.repository_project_path_config.organization_id,
             )
             codeowners_url = "unknown"
-            if item.repository_project_path_config.organization_integration_id and isinstance(
-                install, RepositoryMixin
+            if item.repository_project_path_config.organization_integration_id and (
+                isinstance(install, RepositoryMixin) or isinstance(install, RepositoryIntegration)
             ):
                 try:
                     codeowners_response = install.get_codeowner_file(

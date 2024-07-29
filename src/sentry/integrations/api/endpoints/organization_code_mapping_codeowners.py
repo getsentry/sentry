@@ -11,6 +11,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.integrations.mixins.repositories import RepositoryMixin
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -22,7 +23,7 @@ def get_codeowner_contents(config):
     if not integration:
         return None
     install = integration.get_installation(organization_id=config.project.organization_id)
-    if isinstance(install, RepositoryMixin):
+    if isinstance(install, RepositoryMixin) or isinstance(install, RepositoryIntegration):
         return install.get_codeowner_file(config.repository, ref=config.default_branch)
 
 

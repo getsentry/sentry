@@ -402,7 +402,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
     def test_get(self, get_codeowner_mock_file):
