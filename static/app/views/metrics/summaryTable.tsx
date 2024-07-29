@@ -169,6 +169,12 @@ export const SummaryTable = memo(function SummaryTable({
       return order === 'asc' ? aValue - bValue : bValue - aValue;
     });
 
+  // We do not want to render the table if there is no data to display
+  // If the data is being loaded, then the whole chart will be in a loading state and this is being handled by the parent component
+  if (!rows.length) {
+    return null;
+  }
+
   return (
     <SummaryTableWrapper hasActions={hasActions} totalColumnsCount={totalColumns.length}>
       <HeaderCell disabled />
