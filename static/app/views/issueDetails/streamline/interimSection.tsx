@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {
   EventDataSection,
   type EventDataSectionProps,
@@ -28,15 +26,7 @@ export function InterimSection({
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   return hasStreamlinedUI ? (
-    <FoldSection
-      sectionKey={sectionKey}
-      title={
-        <TitleWithActions>
-          {title}
-          {actions}
-        </TitleWithActions>
-      }
-    >
+    <FoldSection sectionKey={sectionKey} title={title} actions={actions}>
       {children}
     </FoldSection>
   ) : (
@@ -45,10 +35,3 @@ export function InterimSection({
     </EventDataSection>
   );
 }
-
-const TitleWithActions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  margin-right: 8px;
-  align-items: center;
-`;

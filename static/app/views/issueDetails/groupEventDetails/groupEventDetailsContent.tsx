@@ -57,8 +57,10 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {GroupContentItem} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
 import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
@@ -384,6 +386,7 @@ export default function GroupEventDetailsContent({
   event,
   project,
 }: GroupEventDetailsContentProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   if (!event) {
     return (
       <NotFoundMessage>
@@ -414,7 +417,15 @@ export default function GroupEventDetailsContent({
       );
     }
     default: {
-      return (
+      return hasStreamlinedUI ? (
+        <GroupContentItem>
+          <DefaultGroupEventDetailsContent
+            group={group}
+            event={event}
+            project={project}
+          />
+        </GroupContentItem>
+      ) : (
         <DefaultGroupEventDetailsContent group={group} event={event} project={project} />
       );
     }
