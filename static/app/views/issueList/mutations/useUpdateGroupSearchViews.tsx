@@ -12,8 +12,8 @@ import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFe
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewsVariables = {
+  groupSearchViews: GroupSearchView[];
   orgSlug: string;
-  views: GroupSearchView[];
 };
 
 // The PUT groupsearchviews endpoint updates the views AND returns the updated views
@@ -38,18 +38,18 @@ export const useUpdateGroupSearchViews = (
     UpdateGroupSearchViewsVariables
   >({
     ...options,
-    mutationFn: ({orgSlug, views: data}: UpdateGroupSearchViewsVariables) =>
+    mutationFn: ({orgSlug, groupSearchViews: data}: UpdateGroupSearchViewsVariables) =>
       api.requestPromise(`/organizations/${orgSlug}/group-search-views/`, {
         method: 'PUT',
         data,
       }),
-    onSuccess: (views, parameters, context) => {
-      setApiQueryData<View[]>(
+    onSuccess: (groupSearchViews, parameters, context) => {
+      setApiQueryData<GroupSearchView[]>(
         queryClient,
         makeFetchGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
-        views // Update the cache with the new views
+        groupSearchViews // Update the cache with the new groupSearchViews
       );
-      options.onSuccess?.(views, parameters, context);
+      options.onSuccess?.(groupSearchViews, parameters, context);
     },
     onError: (error, variables, context) => {
       addErrorMessage(t('Failed to update views'));
