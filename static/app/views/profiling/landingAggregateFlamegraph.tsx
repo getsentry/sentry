@@ -13,7 +13,6 @@ import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
-import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
@@ -24,8 +23,6 @@ import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
@@ -134,22 +131,9 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
 export function LandingAggregateFlamegraph(): React.ReactNode {
   const location = useLocation();
-  const rawQuery = decodeScalar(location?.query?.query, '');
-
-  const query = useMemo(() => {
-    const search = new MutableSearch(rawQuery);
-    // there are no aggregations happening on this page,
-    // so remove any aggregate filters
-    Object.keys(search.filters).forEach(field => {
-      if (isAggregateField(field)) {
-        search.removeFilter(field);
-      }
-    });
-    return search.formatString();
-  }, [rawQuery]);
 
   const {data, isLoading, isError} = useAggregateFlamegraphQuery({
-    query,
+    query: '',
   });
 
   const [visualization, setVisualization] = useLocalStorageState<
