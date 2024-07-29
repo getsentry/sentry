@@ -50,7 +50,7 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.seer.utils import translate_direction
+from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value

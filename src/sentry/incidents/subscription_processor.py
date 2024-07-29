@@ -47,8 +47,8 @@ from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.seer.utils import translate_direction
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,

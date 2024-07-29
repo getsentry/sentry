@@ -18,8 +18,8 @@ from sentry.seer.anomaly_detection.types import (
     StoreDataRequest,
     TimeSeriesPoint,
 )
+from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.seer.utils import translate_direction
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
