@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
-import {DraggableTabBar} from 'sentry/views/issueList/draggableTabBar';
+import {DraggableTabBar, type Tab} from 'sentry/views/issueList/draggableTabBar';
 
 const TabPanelContainer = styled('div')`
   width: 90%;
@@ -13,21 +13,27 @@ const TabPanelContainer = styled('div')`
 `;
 
 export default storyBook(DraggableTabBar, story => {
-  const TABS = [
+  const TABS: Tab[] = [
     {
       key: 'one',
       label: 'Inbox',
       content: <TabPanelContainer>This is the Inbox view</TabPanelContainer>,
+      queryCount: 1001,
+      hasUnsavedChanges: true,
     },
     {
       key: 'two',
       label: 'For Review',
       content: <TabPanelContainer>This is the For Review view</TabPanelContainer>,
+      queryCount: 50,
+      hasUnsavedChanges: false,
     },
     {
       key: 'three',
       label: 'Regressed',
       content: <TabPanelContainer>This is the Regressed view</TabPanelContainer>,
+      queryCount: 100,
+      hasUnsavedChanges: false,
     },
   ];
 
@@ -44,12 +50,7 @@ export default storyBook(DraggableTabBar, story => {
       </p>
       <SizingWindow>
         <TabBarContainer>
-          <DraggableTabBar
-            tabs={TABS}
-            tempTabContent={
-              <TabPanelContainer>This is a temporary tab</TabPanelContainer>
-            }
-          />
+          <DraggableTabBar tabs={TABS} />
         </TabBarContainer>
       </SizingWindow>
     </Fragment>
