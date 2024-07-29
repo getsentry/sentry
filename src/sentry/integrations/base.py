@@ -3,11 +3,10 @@ from __future__ import annotations
 import abc
 import logging
 import sys
-from collections import namedtuple
 from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -52,30 +51,21 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-FeatureDescription = namedtuple(
-    "FeatureDescription",
-    [
-        "description",  # A markdown description of the feature
-        "featureGate",  # A IntegrationFeature that gates this feature
-    ],
-)
+
+class FeatureDescription(NamedTuple):
+    description: str  # A markdown description of the feature
+    featureGate: IntegrationFeatures  # A IntegrationFeature that gates this feature
 
 
-IntegrationMetadata = namedtuple(
-    "IntegrationMetadata",
-    [
-        "description",  # A markdown description of the integration
-        "features",  # A list of FeatureDescriptions
-        "author",  # The integration author's name
-        "noun",  # The noun used to identify the integration
-        "issue_url",  # URL where issues should be opened
-        "source_url",  # URL to view the source
-        "aspects",  # A map of integration specific 'aspects' to the aspect config.
-    ],
-)
+class IntegrationMetadata(NamedTuple):
+    description: str  # A markdown description of the integration
+    features: Sequence[FeatureDescription]  # A list of FeatureDescriptions
+    author: str  # The integration author's name
+    noun: str  # The noun used to identify the integration
+    issue_url: str  # URL where issues should be opened
+    source_url: str  # URL to view the source
+    aspects: dict[str, Any]  # A map of integration specific 'aspects' to the aspect config.
 
-
-class IntegrationMetadata(IntegrationMetadata):  # type: ignore[no-redef]
     @staticmethod
     def feature_flag_name(f: str | None) -> str | None:
         """
@@ -87,14 +77,14 @@ class IntegrationMetadata(IntegrationMetadata):  # type: ignore[no-redef]
             return f"integrations-{f}"
         return None
 
-    def _asdict(self) -> dict[str, Sequence[Any]]:
-        metadata = super()._asdict()
+    def asdict(self) -> dict[str, Sequence[Any]]:
+        metadata = self._asdict()
         metadata["features"] = [
             {
                 "description": f.description.strip(),
                 "featureGate": self.feature_flag_name(f.featureGate.value),
             }
-            for f in metadata["features"]
+            for f in self.features
         ]
         return metadata
 
