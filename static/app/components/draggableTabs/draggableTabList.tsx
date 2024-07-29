@@ -155,7 +155,7 @@ function BaseDraggableTabList({
           ))}
           <AddViewButton borderless size="zero" onClick={onAddView}>
             <StyledIconAdd size="xs" />
-            Add View
+            t('Add View')
           </AddViewButton>
           <TabDivider />
           {showTempTab && tempTab && (
