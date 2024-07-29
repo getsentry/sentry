@@ -112,13 +112,13 @@ class OrganizationApiApplicationTest(APITestCase):
         assert response.status_code == 404
 
     def test_post_organization_api_application_flag_disabled(self):
-        data = {"allowedOrigins": [], "redirectUris": []}
+        data: dict[str, list[str]] = {"allowedOrigins": [], "redirectUris": []}
         response = self.client.post(self.url, data=data)
         assert response.status_code == 404
 
     def test_put_organization_api_application_flag_disabled(self):
         self._create_api_application([], [])
-        data = {"allowedOrigins": [], "redirectUris": []}
+        data: dict[str, list[str]] = {"allowedOrigins": [], "redirectUris": []}
         response = self.client.put(self.url, data=data)
         assert response.status_code == 404
 
