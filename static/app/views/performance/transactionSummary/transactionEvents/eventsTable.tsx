@@ -26,6 +26,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
   getAggregateAlias,
+  isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -49,6 +50,23 @@ import {
 import type {TitleProps} from './operationSort';
 import OperationSort from './operationSort';
 
+function shouldRenderColumn(containsSpanOpsBreakdown: boolean, col: string): boolean {
+  if (containsSpanOpsBreakdown && isSpanOperationBreakdownField(col)) {
+    return false;
+  }
+
+  if (
+    col === 'profiler.id' ||
+    col === 'thread.id' ||
+    col === 'precise.start_ts' ||
+    col === 'precise.finish_ts'
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 function OperationTitle({onClick}: TitleProps) {
   return (
     <div onClick={onClick}>
@@ -70,7 +88,6 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
-  shouldRenderColumn: (col: string) => boolean;
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
@@ -382,25 +399,26 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {
-      eventView,
-      organization,
-      location,
-      setError,
-      referrer,
-      isEventLoading,
-      shouldRenderColumn,
-    } = this.props;
+    const {eventView, organization, location, setError, referrer, isEventLoading} =
+      this.props;
 
     const totalEventsView = eventView.clone();
     totalEventsView.sorts = [];
     totalEventsView.fields = [{field: 'count()', width: -1}];
 
     const {widths} = this.state;
+    const containsSpanOpsBreakdown = eventView
+      .getColumns()
+      .find(
+        (col: TableColumn<React.ReactText>) =>
+          col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
+      );
 
     const columnOrder = eventView
       .getColumns()
-      .filter((col: TableColumn<React.ReactText>) => shouldRenderColumn(col.name))
+      .filter((col: TableColumn<React.ReactText>) =>
+        shouldRenderColumn(containsSpanOpsBreakdown, col.name)
+      )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};

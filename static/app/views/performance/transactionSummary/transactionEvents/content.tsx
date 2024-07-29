@@ -18,10 +18,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
-import {
-  isSpanOperationBreakdownField,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'sentry/utils/discover/fields';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
@@ -78,7 +74,7 @@ function EventsContent(props: Props) {
   } = props;
   const routes = useRoutes();
 
-  const {eventView, titles, shouldRenderColumn} = useMemo(() => {
+  const {eventView, titles} = useMemo(() => {
     const eventViewClone = originalEventView.clone();
     const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
     const project = projects.find(p => p.id === projectId);
@@ -109,7 +105,6 @@ function EventsContent(props: Props) {
       }
     }
 
-    let hasProfilerFields = false;
     if (
       // only show for projects that already sent a profile
       // once we have a more compact design we will show this for
@@ -125,7 +120,6 @@ function EventsContent(props: Props) {
       }
 
       if (organization.features.includes('continuous-profiling')) {
-        hasProfilerFields = true;
         fields.push({field: 'profiler.id'});
         fields.push({field: 'thread.id'});
         fields.push({field: 'precise.start_ts'});
@@ -144,33 +138,9 @@ function EventsContent(props: Props) {
 
     eventViewClone.fields = fields;
 
-    const containsSpanOpsBreakdown = fields.some(
-      ({field}) => field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
-    );
-
-    const shouldRenderColumnFn = (col: string): boolean => {
-      if (containsSpanOpsBreakdown && isSpanOperationBreakdownField(col)) {
-        return false;
-      }
-
-      if (hasProfilerFields) {
-        if (
-          col === 'profiler.id' ||
-          col === 'thread.id' ||
-          col === 'precise.start_ts' ||
-          col === 'precise.finish_ts'
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    };
-
     return {
       eventView: eventViewClone,
       titles: transactionsListTitles,
-      shouldRenderColumn: shouldRenderColumnFn,
     };
   }, [
     originalEventView,
@@ -193,7 +163,6 @@ function EventsContent(props: Props) {
         setError={setError}
         columnTitles={titles}
         transactionName={transactionName}
-        shouldRenderColumn={shouldRenderColumn}
       />
     </Layout.Main>
   );
