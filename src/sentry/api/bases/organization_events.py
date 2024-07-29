@@ -127,7 +127,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
 
                 if not any(
-                    [has_global_views and len(params.projects) > 1 and not fetching_replay_data]
+                    [
+                        has_global_views,
+                        len(params.projects) <= 1,
+                        fetching_replay_data,
+                    ]
                 ):
                     raise ParseError(detail="You cannot view events from multiple projects.")
 
