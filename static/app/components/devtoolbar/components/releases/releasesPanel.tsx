@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
+import ReleaseIsssues from 'sentry/components/devtoolbar/components/releases/releaseIssues';
 import useReleaseSessions from 'sentry/components/devtoolbar/components/releases/useReleaseSessions';
 import useToolbarRelease from 'sentry/components/devtoolbar/components/releases/useToolbarRelease';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
@@ -43,6 +44,7 @@ import PanelLayout from '../panelLayout';
 
 const estimateSize = 81;
 const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
+const issueListPlaceholderHeight = '305px';
 
 function getCrashFreeRate(data: ApiResult<SessionApiResponse>): number {
   // if `crash_free_rate(session)` is undefined
@@ -72,7 +74,9 @@ function getDiff(
 
 function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release}) {
   return (
-    <PanelItem css={{width: '100%', alignItems: 'flex-start'}}>
+    <PanelItem
+      css={{width: '100%', alignItems: 'flex-start', padding: 'var(--space150)'}}
+    >
       <ReleaseInfoHeader css={infoHeaderCss}>
         <SentryAppLink
           to={{
@@ -147,7 +151,7 @@ function CrashFreeRate({
   const sign = Math.sign(diff);
 
   return (
-    <PanelItem>
+    <PanelItem css={{padding: 'var(--space150)', border: 0}}>
       <div css={infoHeaderCss}>Crash free session rate</div>
       <ReleaseInfoSubheader css={subtextCss}>
         <span css={[resetFlexRowCss, {gap: 'var(--space200)'}]}>
@@ -241,6 +245,7 @@ export default function ReleasesPanel() {
         >
           <Placeholder height={placeholderHeight} />
           <Placeholder height={placeholderHeight} />
+          <Placeholder height={issueListPlaceholderHeight} />
         </div>
       ) : (
         <Fragment>
@@ -252,6 +257,7 @@ export default function ReleasesPanel() {
                 releaseData.json.length > 1 ? releaseData.json[1].version : undefined
               }
             />
+            <ReleaseIsssues releaseVersion={releaseData.json[0].version} />
           </div>
         </Fragment>
       )}
