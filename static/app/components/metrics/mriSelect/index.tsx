@@ -308,7 +308,6 @@ export const MRISelect = memo(function MRISelect({
         size="md"
         sizeLimit={100}
         value={value}
-        css={comboBoxCss}
       />
     );
   }
@@ -330,16 +329,14 @@ export const MRISelect = memo(function MRISelect({
       size="md"
       sizeLimit={100}
       value={value}
-      css={comboBoxCss}
+      css={css`
+        min-width: 200px;
+        max-width: min(500px, 100%);
+      `}
     />
   );
 });
 
 const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const comboBoxCss = css`
-  min-width: 200px;
-  max-width: min(500px, 100%);
 `;
