@@ -1,8 +1,11 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
+import debounce from 'lodash/debounce';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
+import countryNameToCode from 'sentry/data/countryCodesMap';
 import {t} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
+import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
 export default storyBook(CompactSelect, story => {
   story('Basics', () => {
@@ -98,6 +101,75 @@ export default storyBook(CompactSelect, story => {
       </Fragment>
     );
   });
+
+  story('Caching', () => {
+    const [country, setCountry] = useState<string>('');
+    const [search, setSearch] = useState<string>('');
+    const {data, isLoading} = useCountrySearch(search);
+
+    const options = data.map(dataCountry => ({
+      value: dataCountry,
+      label: dataCountry,
+    }));
+
+    const {options: cachedOptions} = useCompactSelectOptionsCache(options);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const debouncedSetSearch = useCallback(
+      debounce(newSearch => {
+        setSearch(newSearch);
+      }, 500),
+      []
+    );
+
+    return (
+      <Fragment>
+        <p>
+          In some cases, it's useful to add caching to <code>CompactSelect</code>. If your
+          select is loading data asynchronously as the user types, a naive implementation
+          will interrupt the user flow. Consider the country selector below. Try typing
+          "c" then a second later "a", then "n". You'll notice that the loading state
+          interrupts the flow, because it clears the options list. This happens if the
+          data hook clears previous results while data is loading (very common).
+        </p>
+        <div>
+          <CompactSelect
+            loading={isLoading}
+            value={country}
+            options={options}
+            menuTitle="Countries"
+            searchable
+            onSearch={newSearch => {
+              debouncedSetSearch(newSearch);
+            }}
+            onChange={newValue => {
+              setCountry(newValue.value);
+            }}
+          />
+        </div>
+        <p>
+          One solution is to wrap the data in <code>useCompactSelectOptionsCache</code>.
+          This will store all previously known results, which prevents the list clearing
+          issue when typing forward and backspacing.
+        </p>
+        <div>
+          <CompactSelect
+            loading={isLoading}
+            value={country}
+            options={cachedOptions}
+            menuTitle="Countries"
+            searchable
+            onSearch={newSearch => {
+              debouncedSetSearch(newSearch);
+            }}
+            onChange={newValue => {
+              setCountry(newValue.value.toString());
+            }}
+          />
+        </div>
+      </Fragment>
+    );
+  });
 });
 
 const arrayToOptions = (array: string[]) =>
@@ -105,3 +177,36 @@ const arrayToOptions = (array: string[]) =>
     value: item,
     label: item,
   }));
+
+const COUNTRY_NAMES = Object.keys(countryNameToCode).sort();
+
+const findCountries = (prefix: string) => {
+  const promise = new Promise<string[]>(resolve => {
+    setTimeout(() => {
+      resolve(
+        COUNTRY_NAMES.filter(name =>
+          name.toLocaleLowerCase().startsWith(prefix.toLocaleLowerCase())
+        )
+      );
+    }, 500);
+  });
+
+  return promise;
+};
+
+const useCountrySearch = (prefix: string) => {
+  const [data, setData] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    setData([]);
+
+    setIsLoading(true);
+    findCountries(prefix).then(newData => {
+      setIsLoading(false);
+      setData(newData.slice(0, 5));
+    });
+  }, [prefix]);
+
+  return {data, isLoading};
+};
