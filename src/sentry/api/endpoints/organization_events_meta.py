@@ -27,7 +27,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization) -> Response:
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response({"count": 0})
 
@@ -36,7 +36,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         with handle_query_errors():
             result = dataset.query(
                 selected_columns=["count()"],
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
             )
@@ -56,7 +57,9 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
     def get(self, request: Request, organization) -> Response:
         try:
             # events-meta is still used by events v1 which doesn't require global views
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, _ = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response([])
 
@@ -76,7 +79,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
             with sentry_sdk.start_span(op="discover.endpoint", description="filter_creation"):
                 projects = self.get_projects(request, organization)
                 query_kwargs = build_query_params_from_request(
-                    request, organization, projects, params.get("environment")
+                    request, organization, projects, snuba_params.environments
                 )
                 query_kwargs["limit"] = 5
                 try:
@@ -119,7 +122,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization) -> Response:
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response({})
 
@@ -145,7 +148,8 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                     f"p50({column}) as first_bound",
                     f"p95({column}) as second_bound",
                 ],
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
             )
@@ -166,7 +170,8 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 "profile_id",
             ],
             orderby=["-profile_id"],
-            params=params,
+            params={},
+            snuba_params=snuba_params,
             query=request.query_params.get("query"),
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
         )
@@ -188,7 +193,8 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         result = spans_indexed.query(
             selected_columns=selected_columns,
             orderby=["timestamp"],
-            params=params,
+            params={},
+            snuba_params=snuba_params,
             query=query,
             limit=9,
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
