@@ -2271,7 +2271,7 @@ def test_get_metric_extrapolation_config(default_project: Project) -> None:
 @django_db_all
 def test_get_metric_extraction_config_when_on_demand_metrics_specs_timeout_exception(
     default_project: Project, default_environment: Environment
-):
+) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert(
             "count()",

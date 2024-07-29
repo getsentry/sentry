@@ -100,3 +100,5 @@ def run_experimental_config_builder(
             )
         except Exception:
             logger.exception("Exception while building Relay project config field")
+
+    return None
