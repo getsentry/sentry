@@ -8,9 +8,9 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NoReturn
-from urllib.request import Request
 
 from rest_framework.exceptions import NotFound
+from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.constants import ObjectStatus
@@ -452,7 +452,7 @@ class IntegrationInstallation:
 
     @property
     def metadata(self) -> IntegrationMetadata:
-        return self.model.metadata
+        return IntegrationMetadata(**self.model.metadata)
 
     def uninstall(self) -> None:
         """
@@ -516,6 +516,9 @@ def disable_integration(
         "integration.disabled",
         extra=extra,
     )
+
+    if not rpc_integration:
+        return None
 
     if org and (
         (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
