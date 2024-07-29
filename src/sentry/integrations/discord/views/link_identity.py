@@ -24,7 +24,7 @@ def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
         "discord_id": discord_id,
         "integration_id": integration.id,
     }
-    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
+    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
 
 
 @control_silo_view
