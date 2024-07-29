@@ -36,6 +36,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
@@ -396,6 +397,9 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
               </ActionBar>
+              <LandingAggregateFlamegraphContainer>
+                <LandingAggregateFlamegraph />
+              </LandingAggregateFlamegraphContainer>
               {shouldShowProfilingOnboardingPanel ? (
                 <Fragment>
                   <ProfilingOnboardingPanel
@@ -509,6 +513,15 @@ const ALL_FIELDS = [
 ] as const;
 
 type FieldType = (typeof ALL_FIELDS)[number];
+
+const LandingAggregateFlamegraphContainer = styled('div')`
+  height: 40vh;
+  min-height: 300px;
+  position: relative;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-bottom: ${space(2)};
+`;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   display: flex;
