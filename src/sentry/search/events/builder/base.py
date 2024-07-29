@@ -164,7 +164,7 @@ class BaseQueryBuilder:
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
-            else None
+            else []
         )
         return SnubaParams(
             start=cast(datetime, params.get("start")),
