@@ -16,7 +16,10 @@ import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {IconAdd} from 'sentry/icons';
+<<<<<<< HEAD
 import {t} from 'sentry/locale';
+=======
+>>>>>>> f53cf6106a0 (Add new add view button and temporary tab designs)
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
@@ -156,7 +159,11 @@ function BaseDraggableTabList({
           ))}
           <AddViewButton borderless size="zero" onClick={onAddView}>
             <StyledIconAdd size="xs" />
+<<<<<<< HEAD
             {t('Add View')}
+=======
+            Add View
+>>>>>>> f53cf6106a0 (Add new add view button and temporary tab designs)
           </AddViewButton>
           <TabDivider />
           {showTempTab && tempTab && (
