@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 
@@ -13,13 +14,14 @@ if TYPE_CHECKING:
 
 
 class CommitAuthorManager(BaseManager["CommitAuthor"]):
-    def get_or_create(self, organization_id, email, defaults, **kwargs):
+    def get_or_create(
+        self, defaults: Mapping[str, Any] | None = None, **kwargs: Any
+    ) -> tuple[CommitAuthor, bool]:
         # Force email address to lowercase because many providers do this. Note though that this isn't technically
         # to spec; only the domain part of the email address is actually case-insensitive.
         # See: https://stackoverflow.com/questions/9807909/are-email-addresses-case-sensitive
-        return super().get_or_create(
-            organization_id=organization_id, email=email.lower(), defaults=defaults, **kwargs
-        )
+        email = kwargs.pop("email").lower()
+        return super().get_or_create(defaults=defaults, email=email, **kwargs)
 
 
 @region_silo_model
