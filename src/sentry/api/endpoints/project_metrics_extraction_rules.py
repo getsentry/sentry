@@ -17,11 +17,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_extraction_rules import (
     SpanAttributeExtractionRuleConfigSerializer,
 )
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.models.dashboard_widget import DashboardWidget
 from sentry.models.project import Project
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.sentry_metrics.span_attribute_extraction_rules import (
     create_extraction_rule_config,
-    delete_extraction_rule_config,
     update_extraction_rule_config,
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -85,11 +86,29 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
         with handle_exceptions():
             with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
-                delete_extraction_rule_config(project, config_update)
-                schedule_invalidate_project_config(
-                    project_id=project.id, trigger="span_attribute_extraction_configs"
-                )
                 for config in config_update:
+                    try:
+                        span_attribute = SpanAttributeExtractionRuleConfig.objects.get(
+                            project=project, span_attribute=config["spanAttribute"]
+                        )
+                    except SpanAttributeExtractionRuleConfig.DoesNotExist:
+                        # ignore non existing extraction rules
+                        continue
+
+                    config_mris = []
+                    for condition in span_attribute.conditions.all():
+                        config_mris.extend(condition.generate_mris())
+
+                    span_attribute.delete()
+                    # delete connected alert rules and dashboards widgets to an extraction rule
+                    AlertRule.objects.get_for_metrics(project.organization, config_mris).delete()
+                    DashboardWidget.objects.get_for_metrics(
+                        project.organization, config_mris
+                    ).delete()
+
+                    schedule_invalidate_project_config(
+                        project_id=project.id, trigger="span_attribute_extraction_configs"
+                    )
                     self._create_audit_entry(
                         "SPAN_BASED_METRIC_DELETE", project, config["spanAttribute"]
                     )

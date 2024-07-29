@@ -4,7 +4,10 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.apitoken import ApiToken
+from sentry.models.dashboard_widget import DashboardWidget
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options, with_feature
@@ -772,3 +775,137 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         data = response.data
         assert len(data) == 1
         assert {el["spanAttribute"] for el in data} == {"some_span"}
+
+    @django_db_all
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_alerts_and_widgets_are_deleted_with_extraction_rules(self):
+        config = {
+            "spanAttribute": "count_clicks",
+            "aggregates": ["count", "p50", "p75", "p95", "p99"],
+            "unit": "none",
+            "tags": ["tag1", "tag2"],
+            "conditions": [
+                {"value": "foo:bar"},
+            ],
+        }
+        span_attribute_extraction_rule = self.create_span_attribute_extraction_config(
+            dictionary=config, user_id=self.user.id, project=self.project
+        )
+        condition1 = span_attribute_extraction_rule.conditions.first()
+        condition_mris = condition1.generate_mris()
+        mri1 = condition_mris[0]
+        mri2 = condition_mris[1]
+        alert_rule1 = self.create_alert_rule(organization=self.organization, aggregate=mri1)
+        alert_rule2 = self.create_alert_rule(organization=self.organization, aggregate=mri2)
+        dashboard = self.create_dashboard(organization=self.organization)
+        dashboard_widget1 = self.create_dashboard_widget(dashboard=dashboard, order=0)
+        self.create_dashboard_widget_query(widget=dashboard_widget1, aggregates=[mri1], order=1)
+        dashboard_widget2 = self.create_dashboard_widget(dashboard=dashboard, order=2)
+        self.create_dashboard_widget_query(widget=dashboard_widget2, aggregates=[mri2], order=2)
+
+        updated_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [
+                        {"id": 1, "value": "other:condition"},
+                    ],
+                }
+            ]
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="delete",
+            **updated_rule,
+        )
+
+        assert not SpanAttributeExtractionRuleConfig.objects.filter(
+            project=self.project, span_attribute="count_clicks"
+        ).exists()
+
+        assert not AlertRule.objects.filter(id=alert_rule1.id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule2.id).exists()
+        assert not DashboardWidget.objects.filter(id=dashboard_widget1.id).exists()
+        assert not DashboardWidget.objects.filter(id=dashboard_widget2.id).exists()
+
+    @django_db_all
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_alerts_and_widgets_connected_to_other_extraction_rules_are_not_affected(self):
+        # Create a rule that will be deleted
+        config1 = {
+            "spanAttribute": "count_clicks",
+            "aggregates": ["count", "p50", "p75", "p95", "p99"],
+            "unit": "none",
+            "tags": ["tag1", "tag2"],
+            "conditions": [
+                {"value": "foo:bar"},
+            ],
+        }
+        span_attribute_extraction_rule1 = self.create_span_attribute_extraction_config(
+            dictionary=config1, user_id=self.user.id, project=self.project
+        )
+        condition1 = span_attribute_extraction_rule1.conditions.first()
+        condition_mris1 = condition1.generate_mris()
+        mri1 = condition_mris1[0]
+        mri2 = condition_mris1[1]
+        self.create_alert_rule(organization=self.organization, aggregate=mri1)
+        self.create_alert_rule(organization=self.organization, aggregate=mri2)
+        dashboard = self.create_dashboard(organization=self.organization)
+        dashboard_widget1 = self.create_dashboard_widget(dashboard=dashboard, order=0)
+        self.create_dashboard_widget_query(widget=dashboard_widget1, aggregates=[mri1], order=1)
+        dashboard_widget2 = self.create_dashboard_widget(dashboard=dashboard, order=2)
+        self.create_dashboard_widget_query(widget=dashboard_widget2, aggregates=[mri2], order=2)
+
+        # Create a rule that will not be deleted
+        config2 = {
+            "spanAttribute": "count_views",
+            "aggregates": ["count", "p50", "p75", "p95", "p99"],
+            "unit": "none",
+            "tags": ["tag1", "tag2"],
+            "conditions": [
+                {"value": "foo:bar"},
+            ],
+        }
+        span_attribute_extraction_rule2 = self.create_span_attribute_extraction_config(
+            dictionary=config2, user_id=self.user.id, project=self.project
+        )
+        condition2 = span_attribute_extraction_rule2.conditions.first()
+        condition_mris2 = condition2.generate_mris()
+        mri3 = condition_mris2[0]
+        mri4 = condition_mris2[1]
+        alert_rule3 = self.create_alert_rule(organization=self.organization, aggregate=mri3)
+        alert_rule4 = self.create_alert_rule(organization=self.organization, aggregate=mri4)
+        dashboard_widget3 = self.create_dashboard_widget(dashboard=dashboard, order=3)
+
+        updated_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [
+                        {"id": 1, "value": "other:condition"},
+                    ],
+                }
+            ]
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="delete",
+            **updated_rule,
+        )
+
+        assert SpanAttributeExtractionRuleConfig.objects.filter(
+            project=self.project, span_attribute="count_views"
+        ).exists()
+        assert AlertRule.objects.filter(id=alert_rule3.id).exists()
+        assert AlertRule.objects.filter(id=alert_rule4.id).exists()
+        assert DashboardWidget.objects.filter(id=dashboard_widget3.id).exists()

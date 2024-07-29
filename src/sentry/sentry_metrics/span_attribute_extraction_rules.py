@@ -29,13 +29,6 @@ def create_extraction_rule_config(request: Request, project: Project, config_upd
     return configs
 
 
-def delete_extraction_rule_config(project: Project, config_update: Any):
-    for obj in config_update:
-        SpanAttributeExtractionRuleConfig.objects.filter(
-            project=project, span_attribute=obj["spanAttribute"]
-        ).delete()
-
-
 def update_extraction_rule_config(request: Request, project: Project, config_update: Any):
     configs = []
     for obj in config_update:
