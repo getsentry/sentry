@@ -214,7 +214,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
-
   return (
     <QueryBuilderWrapper metricsNewInputs={hasMetricsNewInputs(organization)}>
       {hasMetricsNewInputs(organization) && (

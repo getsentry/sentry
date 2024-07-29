@@ -12,7 +12,7 @@ import isEqual from 'lodash/isEqual';
 import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import type {MetricMeta} from 'sentry/types/metrics';
-import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
+import {isSpanDuration, useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
   emptyMetricsQueryWidget,
@@ -275,6 +275,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
     true,
     pageFilters.isReady
   );
+
   const {data: metaPerformance, isLoading: isMetaPerformanceLoading} =
     useVirtualizedMetricsMeta(
       pageFilters.selection,
@@ -282,16 +283,17 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       true,
       pageFilters.isReady
     );
+
   const isMultiChartMode = multiChartMode === 1;
-  const firstCustomMetric: MetricMeta | undefined = metaCustom[0];
+  const defaultMetric: MetricMeta | undefined = metaPerformance.find(isSpanDuration);
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
     useMetricWidgets(
-      firstCustomMetric,
-      firstCustomMetric && getConditions(firstCustomMetric.mri)[0]?.id
+      defaultMetric,
+      defaultMetric && getConditions(defaultMetric.mri)[0]?.id
     );
 
   const [metricsSamples, setMetricsSamples] = useState<
