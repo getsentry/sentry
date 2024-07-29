@@ -20,7 +20,7 @@ export default function useInfiniteReleaseIssuesList({releaseVersion}: Props) {
         `/organizations/${organizationSlug}/issues/`,
         {
           query: {
-            limit: 3,
+            limit: 6,
             queryReferrer: 'devtoolbar',
             environment: Array.isArray(environment) ? environment : [environment],
             project: projectId,

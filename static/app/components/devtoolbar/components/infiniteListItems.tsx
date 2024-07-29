@@ -17,7 +17,6 @@ interface Props<Data> {
   queryResult: UseInfiniteQueryResult<ApiResult<Data[]>, Error>;
   emptyMessage?: () => React.ReactNode;
   estimateSize?: () => number;
-  limitItems?: boolean;
   loadingCompleteMessage?: () => React.ReactNode;
   loadingMoreMessage?: () => React.ReactNode;
   overscan?: number;
@@ -31,14 +30,13 @@ export default function InfiniteListItems<Data>({
   loadingMoreMessage = LoadingMoreMessage,
   overscan,
   queryResult,
-  limitItems,
 }: Props<Data>) {
   const {data, hasNextPage, isFetchingNextPage, fetchNextPage} = queryResult;
   const loadedRows = data ? data.pages.flatMap(d => d.json) : [];
   const parentRef = useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
-    count: !limitItems && hasNextPage ? loadedRows.length + 1 : loadedRows.length,
+    count: hasNextPage ? loadedRows.length + 1 : loadedRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: estimateSize ?? (() => 100),
     overscan: overscan ?? 5,

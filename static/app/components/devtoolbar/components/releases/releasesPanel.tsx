@@ -44,7 +44,7 @@ import PanelLayout from '../panelLayout';
 
 const summaryPlaceholderHeight = '65px';
 const crashComparisonPlaceholderHeight = '61px';
-const issueListPlaceholderHeight = '305px';
+const issueListPlaceholderHeight = '320px';
 
 function getCrashFreeRate(data: ApiResult<SessionApiResponse>): number {
   // if `crash_free_rate(session)` is undefined
