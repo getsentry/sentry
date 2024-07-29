@@ -230,6 +230,7 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
                 <AggregateFlamegraphTreeTable
                   recursion={null}
                   expanded={false}
+                  withoutBorders
                   frameFilter={frameFilter}
                   canvasPoolManager={canvasPoolManager}
                 />
