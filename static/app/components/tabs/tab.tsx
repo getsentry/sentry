@@ -114,7 +114,7 @@ export const BaseTab = forwardRef(
           overflowing={overflowing}
           ref={ref}
         >
-          <VariantStyledInteractionStateLayer />
+          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
           <VariantFocusLayer />
           {props.children}
         </FloatingTabWrap>
@@ -187,27 +187,20 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
       `
         color: ${p.theme.purple400};
         font-weight: ${p.theme.fontWeightBold};
+        background-color: ${p.theme.purple100};
     `}
   }
-
   &[aria-selected='false'] {
     border-top: 1px solid transparent;
   }
-
   color: ${p => p.theme.gray300};
-
   border-radius: 6px;
-
   padding: ${space(0.5)} ${space(1)};
-
   transform: translateY(1px);
-
   cursor: pointer;
-
   &:focus {
     outline: none;
   }
-
   ${p =>
     p.overflowing &&
     `
