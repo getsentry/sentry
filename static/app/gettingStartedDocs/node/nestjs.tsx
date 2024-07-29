@@ -96,7 +96,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Make sure to import [code1:instrument.js/mjs] at the top of your [code2:main.ts/js] file.',
+            'Import [code1:instrument.js/mjs] in your [code2:main.ts/js] file.',
             {
               code1: <code />,
               code2: <code />,
