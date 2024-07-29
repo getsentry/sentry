@@ -297,6 +297,9 @@ function ProfilingContent({location}: ProfilingContentProps) {
     query,
     sort,
     referrer: 'api.profiling.landing-table',
+    continuousProfilingCompat: organization.features.includes(
+      'continuous-profiling-compat'
+    ),
   });
 
   const transactionsError =
