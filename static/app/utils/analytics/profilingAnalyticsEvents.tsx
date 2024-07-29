@@ -13,6 +13,7 @@ type ProfilingEventSource =
   | 'profiling.global_suspect_functions'
   | 'profiling.issue.function_regression.list'
   | 'profiling.issue.function_regression.transactions'
+  | 'profiling.landing.transaction_table'
   | 'profiling_transaction.suspect_functions_table'
   | 'profiling_transaction.slowest_functions_table'
   | 'profiling_transaction.regressed_functions_table'
