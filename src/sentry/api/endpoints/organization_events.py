@@ -43,7 +43,9 @@ SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("transactions"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
 }
-GLOBAL_VIEW_WHITELIST = "api.issues.issue_events"
+# TODO: Adjust this once we make a decision in the DACI for global views restriction
+# Do not add more referres to this list as it is a temporary solution
+GLOBAL_VIEW_WHITELIST = ("api.issues.issue_events",)
 
 
 class DiscoverDatasetSplitException(Exception):

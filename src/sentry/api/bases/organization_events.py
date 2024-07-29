@@ -119,7 +119,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 teams=self.get_teams(request, organization),
                 organization=organization,
             )
-
             if check_global_views:
                 has_global_views = features.has(
                     "organizations:global-views", organization, actor=request.user
