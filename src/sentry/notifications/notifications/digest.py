@@ -16,6 +16,9 @@ from sentry.digests.utils import (
     should_get_personalized_digests,
 )
 from sentry.eventstore.models import Event
+from sentry.integrations.slack.message_builder.notifications.digest import (
+    DigestNotificationMessageBuilder,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
@@ -42,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 class DigestNotification(ProjectNotification):
-    message_builder = "DigestNotificationMessageBuilder"
+    message_builder_cls = DigestNotificationMessageBuilder
     metrics_key = "digest"
     template_path = "sentry/emails/digests/body"
 

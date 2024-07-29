@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentry.digests import Digest
 from sentry.digests.utils import get_groups
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.notifications.notifications.digest import DigestNotification
 from sentry.types.actor import Actor
 
 from .base import SlackNotificationsMessageBuilder
+
+if TYPE_CHECKING:
+    from sentry.notifications.notifications.digest import DigestNotification
 
 
 class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
@@ -21,7 +23,7 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         recipient: Actor,
     ) -> None:
         super().__init__(notification, context, recipient)
-        self.notification: DigestNotification = notification
+        self.notification = notification
 
     def build(self) -> SlackBlock:
         """

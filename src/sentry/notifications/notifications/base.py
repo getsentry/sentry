@@ -10,6 +10,9 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
+from sentry.integrations.slack.message_builder.notifications.base import (
+    SlackNotificationsMessageBuilder,
+)
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.environment import Environment
 from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum, UnsubscribeContext
@@ -39,7 +42,7 @@ class BaseNotification(abc.ABC):
         ExternalProviders.MSTEAMS: "[{text}]({url})",
         ExternalProviders.DISCORD: "[{text}]({url})",
     }
-    message_builder = "SlackNotificationsMessageBuilder"
+    message_builder_cls = SlackNotificationsMessageBuilder
     # some notifications have no settings for it which is why it is optional
     notification_setting_type_enum: NotificationSettingEnum | None = None
     analytics_event: str = ""

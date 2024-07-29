@@ -14,7 +14,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
@@ -210,6 +209,8 @@ def get_timestamp(group: Group, event: GroupEvent | None) -> float:
 def get_color(
     event_for_tags: GroupEvent | None, notification: BaseNotification | None, group: Group
 ) -> str:
+    from sentry.notifications.notifications.rules import AlertRuleNotification
+
     if notification:
         if not isinstance(notification, AlertRuleNotification):
             return "info"

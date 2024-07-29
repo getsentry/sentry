@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import orjson
 
@@ -9,8 +9,10 @@ from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.integrations.types import ExternalProviders
-from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.actor import Actor
+
+if TYPE_CHECKING:
+    from sentry.notifications.notifications.base import BaseNotification
 
 
 class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):

@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING, Any
 from django.urls import reverse
 
 from sentry.db.models import Model
+from sentry.integrations.slack.message_builder.notifications.daily_summary import (
+    SlackDailySummaryMessageBuilder,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.tasks.summaries.utils import DailySummaryProjectContext
@@ -22,7 +25,7 @@ class DailySummaryNotification(BaseNotification):
     metrics_key = "daily_summary"
     template_path = "daily-summary"
     type = "integration.daily_summary"
-    message_builder = "SlackDailySummaryMessageBuilder"
+    message_builder_cls = SlackDailySummaryMessageBuilder
 
     def __init__(
         self,

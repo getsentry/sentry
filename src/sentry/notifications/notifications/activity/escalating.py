@@ -3,6 +3,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.slack.message_builder.notifications.base import (
+    SlackNotificationsMessageBuilder,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.types.actor import Actor
 
@@ -10,7 +13,7 @@ from .base import GroupActivityNotification
 
 
 class EscalatingActivityNotification(GroupActivityNotification):
-    message_builder = "SlackNotificationsMessageBuilder"
+    message_builder_cls = SlackNotificationsMessageBuilder
     metrics_key = "escalating_activity"
     title = "Issue marked as escalating"
 

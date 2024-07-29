@@ -11,6 +11,9 @@ from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
+from sentry.integrations.slack.message_builder.notifications.issues import (
+    IssueNotificationMessageBuilder,
+)
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.issues.grouptype import (
     GROUP_CATEGORIES_CUSTOM_EMAIL,
@@ -65,7 +68,7 @@ GENERIC_TEMPLATE_NAME = "generic"
 
 
 class AlertRuleNotification(ProjectNotification):
-    message_builder = "IssueNotificationMessageBuilder"
+    message_builder_cls = IssueNotificationMessageBuilder
     metrics_key = "issue_alert"
     notification_setting_type_enum = NotificationSettingEnum.ISSUE_ALERTS
     template_path = "sentry/emails/error"

@@ -19,7 +19,6 @@ from sentry.integrations.repository.issue_alert import (
 )
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.integrations.slack.metrics import (
     SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
     SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC,
@@ -413,9 +412,8 @@ class SlackService:
             extra_context_by_actor[recipient] if extra_context_by_actor and recipient else {}
         )
         context = get_context(notification, recipient, shared_context, extra_context)
-        cls = get_message_builder(notification.message_builder)
-        attachments = cls(notification, context, recipient).build()
-        return attachments
+        message_builder = notification.message_builder_cls(notification, context, recipient)
+        return message_builder.build()
 
     def send_message_to_slack_channel(
         self,

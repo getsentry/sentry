@@ -10,6 +10,12 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
 from sentry.db.models import Model
+from sentry.integrations.slack.message_builder.notifications.base import (
+    SlackNotificationsMessageBuilder,
+)
+from sentry.integrations.slack.message_builder.notifications.issues import (
+    IssueNotificationMessageBuilder,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
@@ -75,7 +81,7 @@ class ActivityNotification(ProjectNotification, abc.ABC):
 
 
 class GroupActivityNotification(ActivityNotification, abc.ABC):
-    message_builder = "IssueNotificationMessageBuilder"
+    message_builder_cls: type[SlackNotificationsMessageBuilder] = IssueNotificationMessageBuilder
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
