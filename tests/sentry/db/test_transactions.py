@@ -2,7 +2,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.test import override_settings
 
 from sentry.db.postgres.transactions import (
@@ -30,11 +30,8 @@ class CaseMixin:
             User.objects.filter(username="user1").first()
 
             with transaction.atomic(using=router.db_for_write(Organization)):
-                try:
-                    with transaction.atomic(using=router.db_for_write(Organization)):
-                        Organization.objects.create(name=None)
-                except (IntegrityError, MaxSnowflakeRetryError):
-                    pass
+                with pytest.raises(MaxSnowflakeRetryError):
+                    Organization.objects.create(name=None)  # type: ignore[misc]  # intentional to trigger error
 
             with transaction.atomic(using=router.db_for_write(Organization)):
                 Organization.objects.create(name="org3")

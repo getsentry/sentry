@@ -92,7 +92,8 @@ class AbstractFileBlob(Model):
                 return
             try:
                 with atomic_transaction(using=router.db_for_write(cls.FILE_BLOB_OWNER_MODEL)):
-                    cls.FILE_BLOB_OWNER_MODEL.objects.create(
+                    # TODO: file blob inheritance hierarchy is unsound
+                    cls.FILE_BLOB_OWNER_MODEL.objects.create(  # type: ignore[misc]
                         organization_id=organization.id, blob=blob
                     )
             except IntegrityError:

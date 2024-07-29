@@ -219,7 +219,8 @@ class AbstractFile(Model):
 
     def _get_chunked_blob(self, mode=None, prefetch=False, prefetch_to=None, delete=True):
         return ChunkedFileBlobIndexWrapper(
-            self.FILE_BLOB_INDEX_MODEL.objects.filter(file=self)
+            # TODO: file blob inheritance hierarchy is unsound
+            self.FILE_BLOB_INDEX_MODEL.objects.filter(file=self)  # type: ignore[misc]
             .select_related("blob")
             .order_by("offset"),
             mode=mode,
@@ -295,7 +296,8 @@ class AbstractFile(Model):
             blob_fileobj = ContentFile(contents)
             blob = self.FILE_BLOB_MODEL.from_file(blob_fileobj, logger=logger)
             results.append(
-                self.FILE_BLOB_INDEX_MODEL.objects.create(file=self, blob=blob, offset=offset)
+                # TODO: file blob inheritance hierarchy is unsound
+                self.FILE_BLOB_INDEX_MODEL.objects.create(file=self, blob=blob, offset=offset)  # type: ignore[misc]
             )
             offset += blob.size
         self.size = offset
@@ -334,7 +336,8 @@ class AbstractFile(Model):
             offset = 0
             for blob in file_blobs:
                 try:
-                    self.FILE_BLOB_INDEX_MODEL.objects.create(file=self, blob=blob, offset=offset)
+                    # TODO: file blob inheritance hierarchy is unsound
+                    self.FILE_BLOB_INDEX_MODEL.objects.create(file=self, blob=blob, offset=offset)  # type: ignore[misc]
                 except IntegrityError:
                     # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
                     # the blob we want to link does not exist anymore

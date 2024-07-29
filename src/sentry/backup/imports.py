@@ -72,7 +72,7 @@ def _clear_model_tables_before_import():
     for model in reversed:
         using = router.db_for_write(model)
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
-        manager.all().delete()  # type: ignore[attr-defined]
+        manager.all().delete()
 
         # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
         # solution.

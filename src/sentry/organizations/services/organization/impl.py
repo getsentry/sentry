@@ -475,7 +475,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
-        model.flags = self._deserialize_member_flags(organization_member.flags)
+        model.flags = self._deserialize_member_flags(organization_member.flags)  # type: ignore[assignment]  # TODO: make BitField a mypy plugin
         model.save()
 
     @classmethod
@@ -518,7 +518,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return
 
         if to_member is None:
-            to_member = OrganizationMember.objects.create(
+            to_member = OrganizationMember.objects.create(  # type: ignore[misc]  # TODO: make BitField a mypy plugin
                 organization_id=organization_id,
                 user_id=to_user_id,
                 role=from_member.role,
