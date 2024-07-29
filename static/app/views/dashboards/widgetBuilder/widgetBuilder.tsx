@@ -33,7 +33,7 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
 } from 'sentry/utils/discover/fields';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -302,6 +302,8 @@ function WidgetBuilder({
   const [latestLibrarySelectionTitle, setLatestLibrarySelectionTitle] = useState<
     string | null
   >(null);
+
+  const [splitDecision, setSplitDecision] = useState<WidgetType | undefined>(undefined);
 
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.opened', {
@@ -1017,16 +1019,17 @@ function WidgetBuilder({
     });
   }
 
-  function handleUpdateWidgetSplitDecision(splitDecision: WidgetType) {
+  function handleUpdateWidgetSplitDecision(decision: WidgetType) {
     setState(prevState => {
-      return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[splitDecision]};
+      return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[decision]};
     });
 
     if (currentWidget.id) {
       // Update the dashboard state with the split decision, in case
       // the user cancels editing the widget after the decision was made
-      updateDashboardSplitDecision?.(currentWidget.id, splitDecision);
+      updateDashboardSplitDecision?.(currentWidget.id, decision);
     }
+    setSplitDecision(decision);
   }
 
   function isFormInvalid() {
@@ -1090,6 +1093,13 @@ function WidgetBuilder({
       </SentryDocumentTitle>
     );
   }
+
+  const widgetDiscoverSplitSource = isValidWidgetIndex
+    ? dashboard.widgets[widgetIndexNum].datasetSource
+    : undefined;
+  const originalWidgetType = isValidWidgetIndex
+    ? dashboard.widgets[widgetIndexNum].widgetType
+    : undefined;
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -1186,6 +1196,14 @@ function WidgetBuilder({
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}
+                                    splitDecision={
+                                      splitDecision ??
+                                      // The original widget type is used for a forced split decision
+                                      (widgetDiscoverSplitSource === DatasetSource.FORCED
+                                        ? originalWidgetType
+                                        : undefined)
+                                    }
+                                    source={widgetDiscoverSplitSource}
                                   />
                                   {isTabularChart && (
                                     <DashboardsMEPConsumer>
