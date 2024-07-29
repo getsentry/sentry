@@ -225,6 +225,50 @@ export default storyBook(Tabs, story => {
           </TabPanels>
         </Tabs>
       </SizingWindow>
+      <br />
+      <Matrix<TabsProps<string> & TabListProps>
+        render={props => (
+          <Tabs orientation={props.orientation}>
+            <TabList variant={props.variant}>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Tabs>
+        )}
+        propMatrix={{
+          orientation: ['horizontal', 'vertical'],
+          variant: ['flat', 'filled', 'floating'],
+        }}
+        selectedProps={['orientation', 'variant']}
+      />
+      <br />
+      <Matrix<TabsProps<string> & TabListProps>
+        render={props => (
+          <Tabs>
+            <TabList variant={props.variant} hideBorder={props.hideBorder}>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Tabs>
+        )}
+        propMatrix={{
+          hideBorder: [true, false],
+          variant: ['flat', 'filled', 'floating'],
+        }}
+        selectedProps={['hideBorder', 'variant']}
+      />
     </div>
   ));
 });
