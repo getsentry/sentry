@@ -117,7 +117,7 @@ class TraceError(TypedDict):
 
 
 class TracePerformanceIssue(TypedDict):
-    culprit: str
+    culprit: str | None
     end: float | None
     event_id: str
     issue_id: int
