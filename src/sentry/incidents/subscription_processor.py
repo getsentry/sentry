@@ -638,7 +638,7 @@ class SubscriptionProcessor:
     def get_anomaly_data_from_seer(self, aggregation_value: float | None):
         try:
             anomaly_detection_config = {
-                "time_period": self.alert_rule.threshold_period,
+                "time_period": self.alert_rule.snuba_query.time_window / 60,
                 "sensitivity": self.alert_rule.sensitivity,
                 "seasonality": self.alert_rule.seasonality,
                 "direction": self.alert_rule.threshold_type,

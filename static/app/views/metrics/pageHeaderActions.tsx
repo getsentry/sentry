@@ -99,8 +99,8 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
       },
       {
         leadingItems: [<IconSettings key="icon" />],
-        key: 'configure-metric',
-        label: t('Configure Metric'),
+        key: 'Metrics Settings',
+        label: t('Metrics Settings'),
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
     ],
@@ -120,6 +120,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
             mri: widget.mri,
             groupBy: widget.groupBy,
             aggregation: widget.aggregation,
+            condition: widget.condition,
           });
           return {
             leadingItems: showQuerySymbols
@@ -154,7 +155,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
             onClick={() => openExtractionRuleCreateModal({})}
             size="sm"
           >
-            {t('Create metric')}
+            {t('Create Metric')}
           </Button>
         ) : (
           <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
