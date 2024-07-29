@@ -98,6 +98,10 @@ NOT_SET = object()
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
+INVALID_TIME_WINDOW = (
+    "Invalid time window for dynamic alert (valid windows are 15, 30, and 60 minutes)"
+)
+INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
 
 logger = logging.getLogger(__name__)
 
@@ -567,7 +571,7 @@ def create_alert_rule(
         if not (sensitivity and seasonality):
             raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
         if time_window not in {15, 30, 60}:
-            raise ValidationError("Invalid time window for dynamic alert")
+            raise ValidationError(INVALID_TIME_WINDOW)
     else:
         if sensitivity or seasonality:
             raise ValidationError(
@@ -861,7 +865,7 @@ def update_alert_rule(
                 or time_window is None
                 and alert_rule.snuba_query.time_window not in {15 * 60, 30 * 60, 60 * 60}
             ):
-                raise ValidationError("Invalid time window for dynamic alert")
+                raise ValidationError(INVALID_TIME_WINDOW)
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -1083,7 +1087,7 @@ def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_proje
         raise AlertRuleTriggerLabelAlreadyUsedError()
 
     if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
-        raise ValidationError("Dynamic alerts cannot have a nonzero alert threshold")
+        raise ValidationError(INVALID_ALERT_THRESHOLD)
 
     excluded_subs = []
     if excluded_projects:
@@ -1122,7 +1126,7 @@ def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, exclude
         raise AlertRuleTriggerLabelAlreadyUsedError()
 
     if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
-        raise ValidationError("Dynamic alerts cannot have a nonzero alert threshold")
+        raise ValidationError(INVALID_ALERT_THRESHOLD)
 
     updated_fields = {}
     if label is not None:
