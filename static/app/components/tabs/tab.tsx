@@ -28,6 +28,7 @@ interface TabProps extends AriaTabProps {
    */
   overflowing: boolean;
   state: TabListState<any>;
+  borderStyle?: BaseTabProps['borderStyle'];
   variant?: BaseTabProps['variant'];
 }
 
@@ -150,7 +151,7 @@ export const BaseTab = forwardRef(
  */
 export const Tab = forwardRef(
   (
-    {item, state, orientation, overflowing, variant}: TabProps,
+    {item, state, orientation, overflowing, variant, borderStyle = 'solid'}: TabProps,
     forwardedRef: React.ForwardedRef<HTMLLIElement>
   ) => {
     const ref = useObjectRef(forwardedRef);
@@ -171,6 +172,7 @@ export const Tab = forwardRef(
         orientation={orientation}
         overflowing={overflowing}
         ref={ref}
+        borderStyle={borderStyle}
         variant={variant}
       >
         {rendered}

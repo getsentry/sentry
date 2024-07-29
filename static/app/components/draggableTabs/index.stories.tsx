@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
@@ -37,24 +37,37 @@ export default storyBook(DraggableTabBar, story => {
     },
   ];
 
-  story('Default', () => (
-    <Fragment>
-      <p>
-        You should be using all of <JSXNode name="Tabs" />, <JSXNode name="TabList" />,{' '}
-        <JSXNode name="TabList.Item" />, <JSXNode name="DroppableTabPanels" /> and
-        <JSXNode name="DroppableTabPanels.Item" /> components.
-      </p>
-      <p>
-        This will give you all kinds of accessibility and state tracking out of the box.
-        But you will have to render all tab content, including hooks, upfront.
-      </p>
-      <SizingWindow>
-        <TabBarContainer>
-          <DraggableTabBar tabs={TABS} />
-        </TabBarContainer>
-      </SizingWindow>
-    </Fragment>
-  ));
+  story('Default', () => {
+    const [showTempTab, setShowTempTab] = useState(false);
+    return (
+      <Fragment>
+        <p>
+          You should be using all of <JSXNode name="Tabs" />, <JSXNode name="TabList" />,{' '}
+          <JSXNode name="TabList.Item" />, <JSXNode name="DroppableTabPanels" /> and
+          <JSXNode name="DroppableTabPanels.Item" /> components.
+        </p>
+        <p>
+          This will give you all kinds of accessibility and state tracking out of the box.
+          But you will have to render all tab content, including hooks, upfront.
+        </p>
+        <SizingWindow>
+          <TabBarContainer>
+            <DraggableTabBar
+              tabs={TABS}
+              showTempTab={showTempTab}
+              tempTabContent={
+                <TabPanelContainer>This is a Temporary view</TabPanelContainer>
+              }
+              // The add view button should NOT toggle the temp tab normally.
+              // This is a very temporary way to show off the temp tab design to PR reviewers,
+              // and it will be removed in the very near future
+              onAddView={() => setShowTempTab(!showTempTab)}
+            />
+          </TabBarContainer>
+        </SizingWindow>
+      </Fragment>
+    );
+  });
 });
 
 const TabBarContainer = styled('div')`
