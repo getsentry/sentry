@@ -316,7 +316,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
+            # If the organization allows joining and leaving projects, it means that their
+            # developers can visit issues from any projects. In the case of trace related issues,
+            # we need the endpoint to let us see events from all projects when this flag is enabled.
+            snuba_params, params = self.get_snuba_dataclass(
+                request,
+                organization,
+                check_global_views=not bool(organization.flags.allow_joinleave),
+            )
         except NoProjects:
             return Response(
                 {
