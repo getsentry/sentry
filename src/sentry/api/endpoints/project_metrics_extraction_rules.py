@@ -93,6 +93,10 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                         )
                     except SpanAttributeExtractionRuleConfig.DoesNotExist:
                         # ignore non existing extraction rules
+                        logger.info(
+                            "Extraction rule does not exist while trying to delete",
+                            extra={"config": config},
+                        )
                         continue
 
                     config_mris = []
