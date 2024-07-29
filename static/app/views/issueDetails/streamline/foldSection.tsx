@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -93,6 +93,7 @@ export function FoldSection({
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
     initialCollapse
   );
+  const [isLayerEnabled, setIsLayerEnabled] = useState(true);
 
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
@@ -109,10 +110,20 @@ export function FoldSection({
           preventCollapse={preventCollapse}
           onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
         >
-          <InteractionStateLayer hidden={preventCollapse} />
+          <InteractionStateLayer
+            hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
+          />
           <TitleWithActions>
             {title}
-            {!preventCollapse && !isCollapsed && actions}
+            {!preventCollapse && !isCollapsed && (
+              <div
+                onClick={e => e.stopPropagation()}
+                onMouseEnter={() => setIsLayerEnabled(false)}
+                onMouseLeave={() => setIsLayerEnabled(true)}
+              >
+                {actions}
+              </div>
+            )}
           </TitleWithActions>
           <IconWrapper preventCollapse={preventCollapse}>
             <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
