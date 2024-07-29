@@ -363,7 +363,7 @@ def fulfill_cross_region_export_request(
     path = f"runs/{uuid}/saas_to_saas_export/{org_slug}.tar"
     relocation_storage = get_relocation_storage()
     fp = BytesIO()
-    logger.error(
+    logger.info(
         "fulfill_cross_region_export_request: exporting",
         extra=logger_data,
     )
@@ -374,7 +374,7 @@ def fulfill_cross_region_export_request(
         org_filter={org_slug},
         printer=LoggingPrinter(uuid),
     )
-    logger.error(
+    logger.info(
         "fulfill_cross_region_export_request: exported",
         extra=logger_data,
     )
@@ -382,7 +382,7 @@ def fulfill_cross_region_export_request(
     fp.seek(0)
     relocation_storage.save(path, fp)
     logger_data["encrypted_contents_size"] = fp.tell()
-    logger.error(
+    logger.info(
         "fulfill_cross_region_export_request: saved",
         extra=logger_data,
     )
@@ -400,7 +400,7 @@ def fulfill_cross_region_export_request(
             org_slug=org_slug,
         ).dict(),
     ).save()
-    logger.error(
+    logger.info(
         "fulfill_cross_region_export_request: scheduled",
         extra=logger_data,
     )
@@ -432,7 +432,7 @@ def cross_region_export_timeout_check(
 
     logger_data = {"uuid": str(relocation.uuid), "task": "cross_region_export_timeout_check"}
     logger.info(
-        "Cross region timeout check: started",
+        "cross_region_export_timeout_check: started",
         extra=logger_data,
     )
 
@@ -440,7 +440,7 @@ def cross_region_export_timeout_check(
     # way or another.
     if relocation.latest_task != OrderedTask.UPLOADING_START.name:
         logger.info(
-            "Cross region timeout check: no timeout detected",
+            "cross_region_export_timeout_check: no timeout detected",
             extra=logger_data,
         )
         return
@@ -449,7 +449,7 @@ def cross_region_export_timeout_check(
     # nothing.
     if relocation.status == Relocation.Status.FAILURE.value:
         logger.info(
-            "Cross region timeout check: task already failed",
+            "cross_region_export_timeout_check: task already failed",
             extra=logger_data,
         )
         return
@@ -457,7 +457,7 @@ def cross_region_export_timeout_check(
     reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(delta=CROSS_REGION_EXPORT_TIMEOUT)
     logger_data["reason"] = reason
     logger.error(
-        "Cross region timeout check: timeout detected",
+        "cross_region_export_timeout_check: timeout detected",
         extra=logger_data,
     )
 

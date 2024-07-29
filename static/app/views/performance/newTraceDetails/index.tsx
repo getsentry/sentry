@@ -85,6 +85,7 @@ import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   loadTraceViewPreferences,
 } from './traceState/tracePreferences';
+import {PerformanceSetupWarning} from './traceWarnings/performanceSetupWarning';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
 import {TraceMetadataHeader} from './traceMetadataHeader';
@@ -956,6 +957,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   return (
     <Fragment>
+      <PerformanceSetupWarning
+        tree={tree}
+        traceSlug={props.traceSlug}
+        organization={organization}
+      />
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceResetZoomButton

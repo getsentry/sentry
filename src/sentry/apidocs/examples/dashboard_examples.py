@@ -68,6 +68,69 @@ DASHBOARD_OBJECT = {
     "period": "7d",
 }
 
+DASHBOARDS_OBJECT = [
+    {
+        "id": "1",
+        "title": "Dashboard",
+        "dateCreated": "2024-06-20T14:38:03.498574Z",
+        "createdBy": {
+            "id": "1",
+            "name": "Admin",
+            "username": "admin",
+            "email": "admin@sentry.io",
+            "avatarUrl": "www.example.com",
+            "isActive": True,
+            "hasPasswordAuth": True,
+            "isManaged": False,
+            "dateJoined": "2021-10-25T17:07:33.190596Z",
+            "lastLogin": "2024-07-16T15:28:39.261659Z",
+            "has2fa": True,
+            "lastActive": "2024-07-16T20:45:49.364197Z",
+            "isSuperuser": False,
+            "isStaff": False,
+            "experiments": {},
+            "emails": [{"id": "1", "email": "admin@sentry.io", "is_verified": True}],
+            "avatar": {
+                "avatarType": "letter_avatar",
+                "avatarUuid": None,
+                "avatarUrl": "www.example.com",
+            },
+        },
+        "widgetDisplay": [],
+        "widgetPreview": [],
+    },
+    {
+        "id": "2",
+        "title": "Dashboard",
+        "dateCreated": "2024-06-20T14:38:03.498574Z",
+        "createdBy": {
+            "id": "1",
+            "name": "Admin",
+            "username": "admin",
+            "email": "admin@sentry.io",
+            "avatarUrl": "www.example.com",
+            "isActive": True,
+            "hasPasswordAuth": True,
+            "isManaged": False,
+            "dateJoined": "2021-10-25T17:07:33.190596Z",
+            "lastLogin": "2024-07-16T15:28:39.261659Z",
+            "has2fa": True,
+            "lastActive": "2024-07-16T20:45:49.364197Z",
+            "isSuperuser": False,
+            "isStaff": False,
+            "experiments": {},
+            "emails": [{"id": "1", "email": "admin@sentry.io", "is_verified": True}],
+            "avatar": {
+                "avatarType": "letter_avatar",
+                "avatarUuid": None,
+                "avatarUrl": "www.example.com",
+            },
+        },
+        "widgetDisplay": [],
+        "widgetPreview": [],
+    },
+]
+
 
 class DashboardExamples:
     DASHBOARD_GET_RESPONSE = [
@@ -83,6 +146,24 @@ class DashboardExamples:
         OpenApiExample(
             "Dashboard PUT response",
             value=DASHBOARD_OBJECT,
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    DASHBOARD_POST_RESPONSE = [
+        OpenApiExample(
+            "Create Dashboard",
+            value=DASHBOARD_OBJECT,
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
+
+    DASHBOARDS_QUERY_RESPONSE = [
+        OpenApiExample(
+            "Query Dashboards",
+            value=DASHBOARDS_OBJECT,
             status_codes=["200"],
             response_only=True,
         )

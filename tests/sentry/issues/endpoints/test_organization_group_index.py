@@ -3008,13 +3008,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
 
-        for release, environment, expected_groups in (
+        for release_s, environment, expected_groups in (
             (release.version, "development", [event.group.id]),
             (release.version, "production", []),
         ):
             response = self.get_success_response(
                 sort="new",
-                query=f"first_release:{release}",
+                query=f"first_release:{release_s}",
                 environment=environment,
             )
             assert len(response.data) == len(expected_groups)

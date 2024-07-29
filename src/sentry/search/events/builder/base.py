@@ -124,11 +124,11 @@ class BaseQueryBuilder:
             return snuba_params
 
         if "project_objects" in params:
-            projects = cast(Sequence[Project], params["project_objects"])
+            projects = params["project_objects"]
         elif "project_id" in params and (
             isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)  # type: ignore[unreachable]
         ):
-            projects = Project.objects.filter(id__in=params["project_id"])
+            projects = list(Project.objects.filter(id__in=params["project_id"]))
         else:
             projects = []
 
@@ -164,7 +164,7 @@ class BaseQueryBuilder:
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
-            else None
+            else []
         )
         return SnubaParams(
             start=cast(datetime, params.get("start")),

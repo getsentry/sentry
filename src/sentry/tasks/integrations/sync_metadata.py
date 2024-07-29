@@ -1,5 +1,5 @@
+from sentry.integrations.jira.tasks.sync_metadata import sync_metadata as new_sync_metadata
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.tasks.sync_metadata import sync_metadata as new_sync_metadata
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry

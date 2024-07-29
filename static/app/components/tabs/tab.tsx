@@ -56,7 +56,7 @@ export interface BaseTabProps {
    */
   borderStyle?: 'solid' | 'dashed';
   to?: string;
-  variant?: 'flat' | 'filled';
+  variant?: 'flat' | 'filled' | 'floating';
 }
 
 export const BaseTab = forwardRef(
@@ -99,10 +99,25 @@ export const BaseTab = forwardRef(
           borderStyle={borderStyle}
           ref={ref}
         >
-          <FilledStyledInteractionStateLayer hasSelectedBackground={false} />
-          <FilledFocusLayer />
+          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          <VariantFocusLayer />
           {props.children}
         </FilledTabWrap>
+      );
+    }
+
+    if (variant === 'floating') {
+      return (
+        <FloatingTabWrap
+          {...tabProps}
+          hidden={hidden}
+          overflowing={overflowing}
+          ref={ref}
+        >
+          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          <VariantFocusLayer />
+          {props.children}
+        </FloatingTabWrap>
       );
     }
 
@@ -164,6 +179,36 @@ export const Tab = forwardRef(
   }
 );
 
+const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+  overflowing: boolean;
+}>`
+  &[aria-selected='true'] {
+    ${p =>
+      `
+        color: ${p.theme.purple400};
+        font-weight: ${p.theme.fontWeightBold};
+        background-color: ${p.theme.purple100};
+    `}
+  }
+  &[aria-selected='false'] {
+    border-top: 1px solid transparent;
+  }
+  color: ${p => p.theme.gray300};
+  border-radius: 6px;
+  padding: ${space(0.5)} ${space(1)};
+  transform: translateY(1px);
+  cursor: pointer;
+  &:focus {
+    outline: none;
+  }
+  ${p =>
+    p.overflowing &&
+    `
+      opacity: 0;
+      pointer-events: none;
+    `}
+`;
+
 const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   borderStyle: 'dashed' | 'solid';
   overflowing: boolean;
@@ -185,7 +230,7 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     border-top: 1px solid transparent;
   }
 
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(0.75)} ${space(1.5)};
 
   transform: translateY(1px);
 
@@ -289,7 +334,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
   bottom: ${p => (p.orientation === 'horizontal' ? space(0.75) : 0)};
 `;
 
-const FilledStyledInteractionStateLayer = styled(InteractionStateLayer)`
+const VariantStyledInteractionStateLayer = styled(InteractionStateLayer)`
   position: absolute;
   width: auto;
   height: auto;
@@ -319,7 +364,7 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
   }
 `;
 
-const FilledFocusLayer = styled('div')`
+const VariantFocusLayer = styled('div')`
   position: absolute;
   left: 0;
   right: 0;

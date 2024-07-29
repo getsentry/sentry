@@ -236,9 +236,12 @@ class DuplicateRuleEvaluator:
         """
         Determines whether specified rule already exists, and if it does, returns it.
         """
-        existing_rules = Rule.objects.exclude(id=self._rule_id).filter(
-            project__id=self._project_id, status=ObjectStatus.ACTIVE
-        )
+        if self._rule_id is None:
+            all_rules = Rule.objects.all()
+        else:
+            all_rules = Rule.objects.exclude(id=self._rule_id)
+
+        existing_rules = all_rules.filter(project__id=self._project_id, status=ObjectStatus.ACTIVE)
         for existing_rule in existing_rules:
             keys_checked = 0
             keys_matched = 0
