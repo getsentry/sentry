@@ -172,6 +172,6 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: '0.18'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '783ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Meh 85'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '18.25'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '0.01'})).toBeInTheDocument();
   });
 });
