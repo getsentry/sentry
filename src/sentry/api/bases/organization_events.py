@@ -90,7 +90,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return result
 
     def get_snuba_dataclass(
-        self, request: Request, organization: Organization, check_global_views: bool = True
+        self,
+        request: Request,
+        organization: Organization,
+        check_global_views: bool = True,
+        quantize_date_params: bool = True,
     ) -> tuple[SnubaParams, ParamsType]:
         """This will eventually replace the get_snuba_params function"""
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
@@ -104,7 +108,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
 
             filter_params: dict[str, Any] = self.get_filter_params(request, organization)
-            filter_params = self.quantize_date_params(request, filter_params)
+            if quantize_date_params:
+                filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
                 start=filter_params["start"],
                 end=filter_params["end"],

@@ -66,8 +66,9 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if not features.has(
             "organizations:continuous-profiling-compat", organization, actor=request.user
         ):
-            params = self.get_snuba_params(request, organization)
-            project_ids = params["project_id"]
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+
+            project_ids = snuba_params.project_ids
             if len(project_ids) > 1:
                 raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
 
@@ -79,12 +80,12 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                     organization.id,
                     project_ids[0],
                     function_fingerprint,
-                    params,
+                    snuba_params,
                     request.GET.get("query", ""),
                 )
             else:
                 sentry_sdk.set_tag("dataset", "profiles")
-                profile_ids = get_profile_ids(params, request.query_params.get("query", None))
+                profile_ids = get_profile_ids(snuba_params, request.query_params.get("query", None))
 
             return proxy_profiling_service(
                 method="POST",
@@ -125,9 +126,11 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             return Response(status=404)
 
         # We disable the date quantizing here because we need the timestamps to be precise.
-        params = self.get_snuba_params(request, organization, quantize_date_params=False)
+        snuba_params, _ = self.get_snuba_dataclass(
+            request, organization, quantize_date_params=False
+        )
 
-        project_ids = params.get("project_id")
+        project_ids = snuba_params.project_ids
         if project_ids is None or len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
 
@@ -135,7 +138,7 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         if profiler_id is None:
             raise ParseError(detail="profiler_id must be specified.")
 
-        chunk_ids = get_chunk_ids(params, profiler_id, project_ids[0])
+        chunk_ids = get_chunk_ids(snuba_params, profiler_id, project_ids[0])
 
         return proxy_profiling_service(
             method="POST",
@@ -143,8 +146,8 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             json_data={
                 "profiler_id": profiler_id,
                 "chunk_ids": chunk_ids,
-                "start": str(int(params["start"].timestamp() * 1e9)),
-                "end": str(int(params["end"].timestamp() * 1e9)),
+                "start": str(int(snuba_params.start_date.timestamp() * 1e9)),
+                "end": str(int(snuba_params.end_date.timestamp() * 1e9)),
             },
         )
 
@@ -155,10 +158,10 @@ class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEnd
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = self.get_snuba_params(request, organization)
+        snuba_params, _ = self.get_snuba_dataclass(request, organization)
 
-        project_ids = params.get("project_id")
-        if project_ids is None or len(project_ids) != 1:
+        project_ids = snuba_params.project_ids
+        if len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
 
         span_group = request.query_params.get("span_group")
@@ -168,7 +171,7 @@ class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEnd
         spans = get_spans_from_group(
             organization.id,
             project_ids[0],
-            params,
+            snuba_params,
             span_group,
         )
 

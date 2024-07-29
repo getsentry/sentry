@@ -25,7 +25,7 @@ from sentry import options
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
@@ -42,12 +42,13 @@ class ProfileIds(TypedDict):
 
 
 def get_profile_ids(
-    params: ParamsType,
+    snuba_params: SnubaParams,
     query: str | None = None,
 ) -> ProfileIds:
     builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         query=query,
         selected_columns=["profile.id"],
         limit=options.get("profiling.flamegraph.profile-set.size"),
@@ -69,7 +70,7 @@ def get_profiles_with_function(
     organization_id: int,
     project_id: int,
     function_fingerprint: int,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     query: str,
 ) -> ProfileIds:
     conditions = [query, f"fingerprint:{function_fingerprint}"]
@@ -77,7 +78,8 @@ def get_profiles_with_function(
     result = functions.query(
         selected_columns=["timestamp", "unique_examples()"],
         query=" ".join(cond for cond in conditions if cond),
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         limit=100,
         orderby=["-timestamp"],
         referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
@@ -113,7 +115,7 @@ class IntervalMetadata(TypedDict):
 def get_spans_from_group(
     organization_id: int,
     project_id: int,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     span_group: str,
 ) -> dict[str, list[IntervalMetadata]]:
     query = Query(
@@ -152,8 +154,8 @@ def get_spans_from_group(
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("timestamp"), Op.GTE, params["start"]),
-            Condition(Column("timestamp"), Op.LT, params["end"]),
+            Condition(Column("timestamp"), Op.GTE, snuba_params.start),
+            Condition(Column("timestamp"), Op.LT, snuba_params.end),
             Condition(Column("group"), Op.EQ, span_group),
             Condition(Column("profiler_id"), Op.NEQ, ""),
         ],
