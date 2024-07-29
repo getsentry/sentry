@@ -1,4 +1,4 @@
-from sentry.integrations.tasks.kick_off_status_syncs_impl import (
+from sentry.integrations.tasks.kick_off_status_syncs import (
     kick_off_status_syncs as new_kick_off_status_syncs,
 )
 from sentry.silo.base import SiloMode

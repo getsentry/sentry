@@ -36,10 +36,10 @@ __all__ = (
 
 from sentry.integrations.tasks.create_comment import create_comment
 from sentry.integrations.tasks.jira.sync_metadata import sync_metadata
-from sentry.integrations.tasks.kick_off_status_syncs_impl import kick_off_status_syncs
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.tasks.opsgenie.migrate_opsgenie_plugins import migrate_opsgenie_plugin
-from sentry.integrations.tasks.sync_assignee_outbound_impl import sync_assignee_outbound
+from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.integrations.tasks.sync_status_inbound import sync_status_inbound
 from sentry.integrations.tasks.sync_status_outbound import sync_status_outbound
 from sentry.integrations.tasks.update_comment import update_comment

@@ -10,7 +10,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
 _default_logger = logging.getLogger(__name__)
-_SUCCESS_METRIC = "sentry.integrations.tasls.slack.send_notifications_on_activity.send_activity_notifications.success"
+_SUCCESS_METRIC = "sentry.integrations.tasks.slack.send_notifications_on_activity.send_activity_notifications.success"
 _FAILURE_METRIC = "sentry.integrations.tasks.slack.send_notifications_on_activity.send_activity_notifications.failure"
 _TASK_QUEUED_METRIC = (
     "sentry.integrations.tasks.slack.send_notifications_on_activity.activity_created_receiver"
