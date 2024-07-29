@@ -75,8 +75,8 @@ class ProjectContext:
     def __init__(self, project):
         self.project = project
 
-        # Array of (group_id, group_history, count)
-        self.key_errors = []
+        self.key_errors_by_id: list[tuple[int, int]] = []
+        self.key_errors_by_group: list[tuple[Group, int]] = []
         # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
         self.key_transactions = []
         # Array of (Group, count)
@@ -94,7 +94,7 @@ class ProjectContext:
     def __repr__(self):
         return "\n".join(
             [
-                f"{self.key_errors}, ",
+                f"{self.key_errors_by_group}, ",
                 f"Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]",
                 f"Transactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]",
                 f"Replays: [Accepted {self.accepted_replay_count} Dropped {self.dropped_replay_count}]",
@@ -103,7 +103,7 @@ class ProjectContext:
 
     def check_if_project_is_empty(self):
         return (
-            not self.key_errors
+            not self.key_errors_by_group
             and not self.key_transactions
             and not self.key_performance_issues
             and not self.accepted_error_count
@@ -116,26 +116,21 @@ class ProjectContext:
 
 
 class DailySummaryProjectContext:
-    total_today = 0
-    comparison_period_total = 0
-    comparison_period_avg = 0
-    key_errors: list[tuple[Group, int]] = []
-    key_performance_issues: list[tuple[Group, int]] = []
-    escalated_today: list[Group] = []
-    regressed_today: list[Group] = []
-    new_in_release: dict[int, list[Group]] = {}
-
     def __init__(self, project: Project):
+        self.total_today = 0
+        self.comparison_period_total = 0
+        self.comparison_period_avg = 0
         self.project = project
-        self.key_errors = []
-        self.key_performance_issues = []
-        self.escalated_today = []
-        self.regressed_today = []
-        self.new_in_release = {}
+        self.key_errors_by_id: list[tuple[int, int]] = []
+        self.key_errors_by_group: list[tuple[Group, int]] = []
+        self.key_performance_issues: list[tuple[Group, int]] = []
+        self.escalated_today: list[Group] = []
+        self.regressed_today: list[Group] = []
+        self.new_in_release: dict[int, list[Group]] = {}
 
     def check_if_project_is_empty(self):
         return (
-            not self.key_errors
+            not self.key_errors_by_group
             and not self.key_performance_issues
             and not self.total_today
             and not self.comparison_period_total
@@ -217,7 +212,7 @@ def project_key_errors(
         )
         query_result = raw_snql_query(request, referrer=referrer)
         key_errors = query_result["data"]
-        # Set project_ctx.key_errors to be an array of (group_id, count) for now.
+        # Set project_ctx.key_errors_by_id to be an array of (group_id, count) for now.
         # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
         return key_errors
 
@@ -346,7 +341,7 @@ def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
     # Organization pass. Depends on project_key_errors.
     all_key_error_group_ids = []
     for project_ctx in ctx.projects_context_map.values():
-        all_key_error_group_ids.extend([group_id for group_id, count in project_ctx.key_errors])
+        all_key_error_group_ids.extend([group_id for group_id, _ in project_ctx.key_errors_by_id])
 
     if len(all_key_error_group_ids) == 0:
         return
@@ -358,19 +353,14 @@ def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
     for project_ctx in ctx.projects_context_map.values():
         # note Snuba might have groups that have since been deleted
         # we should just ignore those
-        project_ctx.key_errors = list(
-            filter(
-                lambda x: x[0] is not None,
-                [
-                    (
-                        group_id_to_group.get(group_id),
-                        None,
-                        count,
-                    )
-                    for group_id, count in project_ctx.key_errors
-                ],
+        project_ctx.key_errors_by_group = [
+            (group, count)
+            for group, count in (
+                (group_id_to_group.get(group_id), count)
+                for group_id, count in project_ctx.key_errors_by_id
             )
-        )
+            if group is not None
+        ]
 
 
 def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):

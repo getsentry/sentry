@@ -177,7 +177,9 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
+                project_ctx.key_errors_by_id = [
+                    (e["events.group_id"], e["count()"]) for e in key_errors
+                ]
 
                 if ctx.organization.slug == "sentry":
                     logger.info(
@@ -636,7 +638,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                             "project_id": project_ctx.project.id,
                         },
                     )
-                for group, group_history, count in project_ctx.key_errors:
+                for group, count in project_ctx.key_errors_by_group:
                     if ctx.organization.slug == "sentry":
                         logger.info(
                             "render_template_context.all_key_errors.found_error",
@@ -656,14 +658,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     yield {
                         "count": count,
                         "group": group,
-                        "status": (
-                            group_history.get_status_display() if group_history else "Unresolved"
-                        ),
-                        "status_color": (
-                            group_status_to_color[group_history.status]
-                            if group_history
-                            else group_status_to_color[GroupHistoryStatus.NEW]
-                        ),
+                        "status": "Unresolved",
+                        "status_color": (group_status_to_color[GroupHistoryStatus.NEW]),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
                         "group_substatus_border_color": substatus_border_color,
