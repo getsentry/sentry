@@ -83,9 +83,6 @@ function getMaxConfigSpace(
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string
 ): Rect {
-  // We have a transaction, so we should do our best to align the profile
-  // with the transaction's timeline.
-  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   if (transaction) {
     // TODO: Adjust the alignment based on the profile's timestamp if it does
     // not match the transaction's start timestamp
@@ -93,6 +90,9 @@ function getMaxConfigSpace(
     return new Rect(0, 0, formatTo(transactionDuration, 'seconds', unit), 0);
   }
 
+  // We have a transaction, so we should do our best to align the profile
+  // with the transaction's timeline.
+  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
   return new Rect(0, 0, maxProfileDuration, 0);
