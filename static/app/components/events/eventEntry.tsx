@@ -82,11 +82,16 @@ function EventEntryContent({
     case EntryType.EXPECTCT:
     case EntryType.EXPECTSTAPLE:
       const {data, type} = entry;
-      return <Generic type={type} data={data} />;
+      return <Generic sectionKey={FoldSectionKey.EXPECTCT} type={type} data={data} />;
 
     case EntryType.HPKP:
       return (
-        <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
+        <Generic
+          sectionKey={FoldSectionKey.HPKP}
+          type={entry.type}
+          data={entry.data}
+          meta={event._meta?.hpkp ?? {}}
+        />
       );
 
     case EntryType.BREADCRUMBS:

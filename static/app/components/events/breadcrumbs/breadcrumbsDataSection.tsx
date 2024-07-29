@@ -16,7 +16,6 @@ import {
   getEnhancedBreadcrumbs,
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
@@ -38,6 +37,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -143,12 +144,13 @@ export default function BreadcrumbsDataSection({
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
 
   return (
-    <EventDataSection
+    <InterimSection
       key="breadcrumbs"
       type="breadcrmbs"
       title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}
+      sectionKey={FoldSectionKey.BREADCRUMBS}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
         <BreadcrumbsTimeline
@@ -172,7 +174,7 @@ export default function BreadcrumbsDataSection({
           </ViewAllContainer>
         )}
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

@@ -7,7 +7,6 @@ import styled from '@emotion/styled';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
@@ -34,6 +33,8 @@ import {
   normalizeId,
   shouldSkipSection,
 } from './utils';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 const IMAGE_INFO_UNAVAILABLE = '-1';
 
@@ -535,7 +536,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     );
 
     return (
-      <EventDataSection
+      <InterimSection
         type="images-loaded"
         guideTarget="images-loaded"
         title={t('Images Loaded')}
@@ -543,6 +544,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
           'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
         )}
         actions={actions}
+        sectionKey={FoldSectionKey.DEBUGMETA}
       >
         {isOpen && (
           <Fragment>
@@ -564,7 +566,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
             </StyledPanelTable>
           </Fragment>
         )}
-      </EventDataSection>
+      </InterimSection>
     );
   }
 }

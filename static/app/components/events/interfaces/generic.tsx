@@ -1,10 +1,11 @@
 import {useState} from 'react';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 function getView({
   data,
@@ -41,16 +42,18 @@ type Props = {
   data: Record<string, any> | null;
   type: string;
   meta?: Record<string, any>;
+  sectionKey: FoldSectionKey;
 };
 
 type View = 'report' | 'raw';
 
-export function Generic({type, data, meta}: Props) {
+export function Generic({type, data, meta, sectionKey}: Props) {
   const [view, setView] = useState<View>('report');
   return (
-    <EventDataSection
+    <InterimSection
       type={type}
       title={t('Report')}
+      sectionKey={sectionKey}
       actions={
         <SegmentedControl
           aria-label={t('View')}
@@ -64,6 +67,6 @@ export function Generic({type, data, meta}: Props) {
       }
     >
       {getView({view, data, meta})}
-    </EventDataSection>
+    </InterimSection>
   );
 }

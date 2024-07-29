@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
+
 import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,6 +25,8 @@ import Level from './breadcrumb/level';
 import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type SelectOptionWithLevels = SelectOption<string> & {levels?: BreadcrumbLevelType[]};
 
@@ -307,12 +309,13 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
   );
 
   return (
-    <EventDataSection
+    <InterimSection
       showPermalink={!hideTitle}
       type={EntryType.BREADCRUMBS}
       title={hideTitle ? '' : t('Breadcrumbs')}
       guideTarget="breadcrumbs"
       actions={actions}
+      sectionKey={FoldSectionKey.BREADCRUMBS}
     >
       <ErrorBoundary>
         <Breadcrumbs
@@ -326,7 +329,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
           relativeTime={relativeTime}
         />
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

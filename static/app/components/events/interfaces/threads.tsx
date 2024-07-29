@@ -2,7 +2,6 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
@@ -17,11 +16,13 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization, Project, Thread} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Event, Thread} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {EntryType, StackType, StackView} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
@@ -31,6 +32,8 @@ import getThreadException from './threads/threadSelector/getThreadException';
 import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 
@@ -233,7 +236,11 @@ export function Threads({
       {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
         <Fragment>
           <Grid>
-            <EventDataSection type={EntryType.THREADS} title={t('Threads')}>
+            <InterimSection
+              type={EntryType.THREADS}
+              title={t('Threads')}
+              sectionKey={FoldSectionKey.THREADS}
+            >
               {activeThread && (
                 <Wrapper>
                   <ThreadSelector
@@ -247,9 +254,13 @@ export function Threads({
                   />
                 </Wrapper>
               )}
-            </EventDataSection>
+            </InterimSection>
             {activeThread?.state && (
-              <EventDataSection type={EntryType.THREAD_STATE} title={t('Thread State')}>
+              <InterimSection
+                type={EntryType.THREAD_STATE}
+                title={t('Thread State')}
+                sectionKey={FoldSectionKey.THREAD_STATE}
+              >
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}
                   <ThreadState>{threadStateDisplay}</ThreadState>
@@ -263,13 +274,17 @@ export function Threads({
                   )}
                   <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
                 </ThreadStateWrapper>
-              </EventDataSection>
+              </InterimSection>
             )}
           </Grid>
           {!hideThreadTags && (
-            <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
+            <InterimSection
+              type={EntryType.THREAD_TAGS}
+              title={t('Thread Tags')}
+              sectionKey={FoldSectionKey.THREAD_TAGS}
+            >
               {renderPills()}
-            </EventDataSection>
+            </InterimSection>
           )}
         </Fragment>
       )}
@@ -293,10 +308,10 @@ export function Threads({
               exception={exception}
               fullWidth
             />
+          ) : hasMoreThanOneThread ? (
+            t('Thread Stack Trace')
           ) : (
-            <PermalinkTitle>
-              {hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
-            </PermalinkTitle>
+            t('Stack Trace')
           )
         }
         platform={platform}

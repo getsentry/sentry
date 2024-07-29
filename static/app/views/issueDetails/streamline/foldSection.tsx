@@ -21,9 +21,11 @@ export const enum FoldSectionKey {
 
   EVIDENCE = 'issue-details-evidence',
   MESSAGE = 'issue-details-message',
-  EXCEPTION = 'issue-details-exception',
   STACK_TRACE = 'issue-details-stack-trace',
+
   THREADS = 'issue-details-threads',
+  THREAD_STATE = 'issue-details-thread-state',
+  THREAD_TAGS = 'issue-details-thread-tags',
 
   // QuickTraceQuery -> todo
 
@@ -34,7 +36,6 @@ export const enum FoldSectionKey {
   HPKP = 'issue-details-hpkp',
   CSP = 'issue-details-csp',
   EXPECTCT = 'issue-details-expectct',
-  EXPECTSTAPLE = 'issue-details-expectstaple',
   TEMPLATE = 'issue-details-template',
 
   BREADCRUMBS = 'issue-details-breadcrumbs',

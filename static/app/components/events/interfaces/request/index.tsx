@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -20,6 +19,8 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {RichHttpContentClippedBoxBodySection} from './richHttpContentClippedBoxBodySection';
 import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBoxKeyValueList';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface RequestProps {
   data: EntryRequest['data'];
@@ -107,11 +108,12 @@ export function Request({data, event}: RequestProps) {
   );
 
   return (
-    <EventDataSection
+    <InterimSection
       type={EntryType.REQUEST}
       title={title}
       actions={actions}
       className="request"
+      sectionKey={FoldSectionKey.REQUEST}
     >
       {view === 'curl' ? (
         <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
@@ -158,7 +160,7 @@ export function Request({data, event}: RequestProps) {
           )}
         </Fragment>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
