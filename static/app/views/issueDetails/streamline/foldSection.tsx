@@ -96,6 +96,8 @@ export function FoldSection({
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
     initialCollapse
   );
+  // This controls disabling the InteractionStateLayer when hovering over action items. We don't
+  // want selecting an action to appear as though it'll fold/unfold the section.
   const [isLayerEnabled, setIsLayerEnabled] = useState(true);
 
   const toggleCollapse = useCallback(
