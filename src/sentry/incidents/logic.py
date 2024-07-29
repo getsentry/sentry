@@ -102,8 +102,8 @@ INVALID_TIME_WINDOW = (
     "Invalid time window for dynamic alert (valid windows are 15, 30, and 60 minutes)"
 )
 INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
-DYNAMIC_TIME_THRESHOLDS = {15, 30, 60}
-DYNAMIC_TIME_THRESHOLDS_SECONDS = {15 * 60, 30 * 60, 60 * 60}
+DYNAMIC_TIME_WINDOWS = {15, 30, 60}
+DYNAMIC_TIME_WINDOWS_SECONDS = {15 * 60, 30 * 60, 60 * 60}
 
 logger = logging.getLogger(__name__)
 
@@ -572,7 +572,7 @@ def create_alert_rule(
     if detection_type == AlertRuleDetectionType.DYNAMIC:
         if not (sensitivity and seasonality):
             raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
-        if time_window not in DYNAMIC_TIME_THRESHOLDS:
+        if time_window not in DYNAMIC_TIME_WINDOWS:
             raise ValidationError(INVALID_TIME_WINDOW)
     else:
         if sensitivity or seasonality:
@@ -861,9 +861,9 @@ def update_alert_rule(
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
             updated_fields["comparison_delta"] = None
             if (
-                time_window not in DYNAMIC_TIME_THRESHOLDS
+                time_window not in DYNAMIC_TIME_WINDOWS
                 or time_window is None
-                and alert_rule.snuba_query.time_window not in DYNAMIC_TIME_THRESHOLDS_SECONDS
+                and alert_rule.snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS
             ):
                 raise ValidationError(INVALID_TIME_WINDOW)
 
