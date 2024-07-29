@@ -487,24 +487,26 @@ function ProfilingContent({location}: ProfilingContentProps) {
                           selection={selection}
                         />
                       ) : null}
-                      <WidgetsContainer>
-                        <LandingWidgetSelector
-                          cursorName={LEFT_WIDGET_CURSOR}
-                          widgetHeight="340px"
-                          defaultWidget="slowest functions"
-                          query={query}
-                          storageKey="profiling-landing-widget-0"
-                        />
-                        <LandingWidgetSelector
-                          cursorName={RIGHT_WIDGET_CURSOR}
-                          widgetHeight="340px"
-                          defaultWidget="regressed functions"
-                          query={query}
-                          storageKey="profiling-landing-widget-1"
-                        />
-                      </WidgetsContainer>
+                      {tab === 'transactions' ? (
+                        <WidgetsContainer>
+                          <LandingWidgetSelector
+                            cursorName={LEFT_WIDGET_CURSOR}
+                            widgetHeight="340px"
+                            defaultWidget="slowest functions"
+                            query={query}
+                            storageKey="profiling-landing-widget-0"
+                          />
+                          <LandingWidgetSelector
+                            cursorName={RIGHT_WIDGET_CURSOR}
+                            widgetHeight="340px"
+                            defaultWidget="regressed functions"
+                            query={query}
+                            storageKey="profiling-landing-widget-1"
+                          />
+                        </WidgetsContainer>
+                      ) : null}
                     </Fragment>
-                  ) : (
+                  ) : tab === 'transactions' ? (
                     <PanelsGrid>
                       <ProfilingSlowestTransactionsPanel />
                       <ProfilesChart
@@ -514,7 +516,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                         hideCount
                       />
                     </PanelsGrid>
-                  )}
+                  ) : null}
                   {tab === 'transactions' ? (
                     <Fragment>
                       <ProfileEventsTable
