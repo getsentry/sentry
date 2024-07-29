@@ -48,25 +48,11 @@ from .manager import *  # NOQA
 #
 #   NOTE: The actor kwarg should be passed when it's expected that the handler
 #         needs context of the user.
-#
-#   NOTE: Features that require Snuba to function, add to the
-#         `requires_snuba` tuple.
 
 default_manager = FeatureManager()  # NOQA
 
 register_permanent_features(default_manager)
 register_temporary_features(default_manager)
-
-# This is a gross hardcoded list, but there's no
-# other sensible way to manage this right now without augmenting
-# features themselves in the manager with detections like this.
-requires_snuba = (
-    "organizations:discover",
-    "organizations:global-views",
-    "organizations:incidents",
-    "organizations:minute-resolution-sessions",
-    "organizations:performance-view",
-)
 
 # expose public api
 add = default_manager.add

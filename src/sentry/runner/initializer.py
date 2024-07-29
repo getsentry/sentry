@@ -656,29 +656,6 @@ def validate_snuba() -> None:
     if has_all_snuba_required_backends and eventstream_is_snuba:
         return
 
-    from sentry.features import requires_snuba as snuba_features
-
-    snuba_enabled_features = set()
-
-    for feature in snuba_features:
-        if settings.SENTRY_FEATURES.get(feature, False):
-            snuba_enabled_features.add(feature)
-
-    if snuba_enabled_features and not eventstream_is_snuba:
-        show_big_error(
-            """
-You have features enabled which require Snuba,
-but you don't have any Snuba compatible configuration.
-
-Features you have enabled:
-%s
-
-See: https://github.com/getsentry/snuba#sentry--snuba
-"""
-            % "\n".join(snuba_enabled_features)
-        )
-        raise ConfigurationError("Cannot continue without Snuba configured.")
-
     if not eventstream_is_snuba:
         show_big_error(
             """
