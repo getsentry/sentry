@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.integrations.slack.tasks.link_slack_user_identities import (
+from sentry.integrations.tasks.slack.link_slack_user_identities import (
     link_slack_user_identities as new_link_slack_user_identities,
 )
 from sentry.silo.base import SiloMode

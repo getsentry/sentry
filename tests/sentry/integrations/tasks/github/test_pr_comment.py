@@ -7,7 +7,7 @@ import responses
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-from sentry.integrations.github.tasks.pr_comment import (
+from sentry.integrations.tasks.github.pr_comment import (
     format_comment,
     get_comment_contents,
     get_top_5_issues_by_count,
@@ -15,7 +15,7 @@ from sentry.integrations.github.tasks.pr_comment import (
     github_comment_workflow,
     pr_to_issue_query,
 )
-from sentry.integrations.github.tasks.utils import PullRequestIssue
+from sentry.integrations.tasks.github.utils import PullRequestIssue
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from sentry.integrations.github.tasks.pr_comment import (
+from sentry.integrations.tasks.github.pr_comment import (
     github_comment_reactions as new_github_comment_reactions,
 )
-from sentry.integrations.github.tasks.pr_comment import (
+from sentry.integrations.tasks.github.pr_comment import (
     github_comment_workflow as new_github_comment_workflow,
 )
 from sentry.silo.base import SiloMode

@@ -1,4 +1,4 @@
-from sentry.integrations.github.tasks.link_all_repos import link_all_repos as new_link_all_repos
+from sentry.integrations.tasks.github.link_all_repos import link_all_repos as new_link_all_repos
 from sentry.plugins.providers.integration_repository import RepoExistsError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry

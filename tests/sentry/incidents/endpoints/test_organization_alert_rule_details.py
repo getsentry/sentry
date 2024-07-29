@@ -34,10 +34,10 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
+from sentry.integrations.tasks.slack.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
-from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.sentry_apps.services.app import app_service

@@ -1,4 +1,4 @@
-from sentry.integrations.github.tasks.language_parsers import (
+from sentry.integrations.tasks.github.language_parsers import (
     JavascriptParser,
     PHPParser,
     PythonParser,

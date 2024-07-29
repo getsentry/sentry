@@ -41,8 +41,8 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
-from sentry.integrations.slack.tasks import find_channel_id_for_alert_rule
 from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.integrations.tasks.slack import find_channel_id_for_alert_rule
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource

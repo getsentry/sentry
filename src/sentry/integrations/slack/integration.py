@@ -19,7 +19,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.tasks import link_slack_user_identities
+from sentry.integrations.tasks.slack import link_slack_user_identities
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError

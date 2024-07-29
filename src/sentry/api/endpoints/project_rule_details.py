@@ -28,8 +28,8 @@ from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
-from sentry.integrations.slack.tasks import find_channel_id_for_rule
 from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.integrations.tasks.slack import find_channel_id_for_rule
 from sentry.mediators.project_rules.updater import Updater
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion

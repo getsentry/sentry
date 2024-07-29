@@ -6,7 +6,7 @@ from typing import Any
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
-from sentry.integrations.github.tasks.constants import STACKFRAME_COUNT
+from sentry.integrations.tasks.github.constants import STACKFRAME_COUNT
 
 stackframe_function_name = lambda i: Function(
     "arrayElement",

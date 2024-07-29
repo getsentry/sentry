@@ -5,9 +5,9 @@ import pytest
 import responses
 from django.utils import timezone
 
-from sentry.integrations.github.tasks.constants import STACKFRAME_COUNT
-from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
-from sentry.integrations.github.tasks.open_pr_comment import (
+from sentry.integrations.tasks.github.constants import STACKFRAME_COUNT
+from sentry.integrations.tasks.github.language_parsers import PATCH_PARSERS
+from sentry.integrations.tasks.github.open_pr_comment import (
     format_issue_table,
     format_open_pr_comment,
     get_issue_table_contents,
@@ -17,7 +17,7 @@ from sentry.integrations.github.tasks.open_pr_comment import (
     open_pr_comment_workflow,
     safe_for_comment,
 )
-from sentry.integrations.github.tasks.utils import PullRequestFile, PullRequestIssue
+from sentry.integrations.tasks.github.utils import PullRequestFile, PullRequestIssue
 from sentry.models.group import Group, GroupStatus
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError

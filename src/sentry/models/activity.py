@@ -149,7 +149,7 @@ class Activity(Model):
 
         # The receiver for the post_save signal was not working in production, so just execute directly and safely
         try:
-            from sentry.integrations.slack.tasks.send_notifications_on_activity import (
+            from sentry.integrations.tasks.slack.send_notifications_on_activity import (
                 activity_created_receiver,
             )
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.integrations.github.tasks.open_pr_comment import (
+from sentry.integrations.tasks.github.open_pr_comment import (
     open_pr_comment_workflow as new_open_pr_comment_workflow,
 )
 from sentry.silo.base import SiloMode

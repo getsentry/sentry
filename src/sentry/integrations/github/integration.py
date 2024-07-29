@@ -24,14 +24,14 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.github.tasks.constants import RATE_LIMITED_MESSAGE
-from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.tasks import migrate_repo
+from sentry.integrations.tasks.github.constants import RATE_LIMITED_MESSAGE
+from sentry.integrations.tasks.github.link_all_repos import link_all_repos
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service

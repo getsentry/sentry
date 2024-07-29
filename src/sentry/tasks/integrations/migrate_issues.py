@@ -1,5 +1,5 @@
-from sentry.integrations.jira.tasks.migrate_issues import migrate_issues as new_migrate_issues
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.tasks.jira.migrate_issues import migrate_issues as new_migrate_issues
 from sentry.tasks.base import instrumented_task, retry
 
 

@@ -1,6 +1,6 @@
 from unittest import mock
 
-from sentry.integrations.slack.tasks.send_notifications_on_activity import (
+from sentry.integrations.tasks.slack.send_notifications_on_activity import (
     activity_created_receiver,
     send_activity_notifications_to_slack_threads,
 )

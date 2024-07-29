@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.integrations.slack.tasks.post_message import post_message as new_post_message
-from sentry.integrations.slack.tasks.post_message import (
+from sentry.integrations.tasks.slack.post_message import post_message as new_post_message
+from sentry.integrations.tasks.slack.post_message import (
     post_message_control as new_post_message_control,
 )
 from sentry.silo.base import SiloMode

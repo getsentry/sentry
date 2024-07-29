@@ -1,4 +1,4 @@
-from sentry.integrations.github.tasks.pr_comment import (
+from sentry.integrations.tasks.github.pr_comment import (
     github_comment_reactions,
     github_comment_workflow,
 )

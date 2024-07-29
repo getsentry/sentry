@@ -1,6 +1,6 @@
 import responses
 
-from sentry.integrations.jira.tasks.sync_metadata import sync_metadata
+from sentry.integrations.tasks.jira.sync_metadata import sync_metadata
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

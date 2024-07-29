@@ -50,27 +50,28 @@ settings.CELERY_IMPORTS += (
     "sentry.tasks.integrations.update_comment",
     "sentry.tasks.integrations.vsts.kickoff_subscription_check",
     "sentry.tasks.integrations.vsts.subscription_check",
+    "yolo",
     "sentry.integrations.tasks.create_comment",
     "sentry.integrations.tasks.kick_off_status_syncs_impl",
-    "sentry.integrations.github.tasks.link_all_repos",
-    "sentry.integrations.tasks.migrate_issues",
-    "sentry.integrations.tasks.migrate_opsgenie_plugins",
+    "sentry.integrations.tasks.github.link_all_repos",
+    "sentry.integrations.tasks.jira.migrate_issues",
+    "sentry.integrations.tasks.opsgenie.migrate_opsgenie_plugins",
     "sentry.integrations.tasks.migrate_repo",
     "sentry.integrations.tasks.sync_assignee_outbound_impl",
-    "sentry.integrations.tasks.sync_metadata",
+    "sentry.integrations.tasks.jira.sync_metadata",
     "sentry.integrations.tasks.sync_status_inbound",
     "sentry.integrations.tasks.sync_status_outbound",
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.tasks.vsts.kickoff_subscription_check",
     "sentry.integrations.tasks.vsts.subscription_check",
-    "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.tasks.github.pr_comment",
 )
 
-from sentry.integrations.jira.tasks.sync_metadata import sync_metadata
-from sentry.integrations.opsgenie.tasks.migrate_opsgenie_plugins import migrate_opsgenie_plugin
 from sentry.integrations.tasks.create_comment import create_comment
+from sentry.integrations.tasks.jira.sync_metadata import sync_metadata
 from sentry.integrations.tasks.kick_off_status_syncs_impl import kick_off_status_syncs
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.tasks.opsgenie.migrate_opsgenie_plugins import migrate_opsgenie_plugin
 from sentry.integrations.tasks.sync_assignee_outbound_impl import sync_assignee_outbound
 from sentry.integrations.tasks.sync_status_inbound import sync_status_inbound
 from sentry.integrations.tasks.sync_status_outbound import sync_status_outbound

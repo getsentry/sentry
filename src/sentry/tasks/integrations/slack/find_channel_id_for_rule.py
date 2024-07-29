@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.integrations.slack.tasks.find_channel_id_for_rule import (
+from sentry.integrations.tasks.slack.find_channel_id_for_rule import (
     find_channel_id_for_rule as new_find_channel_id_for_rule,
 )
 from sentry.models.project import Project

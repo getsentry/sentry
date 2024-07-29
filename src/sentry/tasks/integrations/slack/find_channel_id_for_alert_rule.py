@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
+from sentry.integrations.tasks.slack.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule as new_find_channel_id_for_alert_rule,
 )
 from sentry.silo.base import SiloMode

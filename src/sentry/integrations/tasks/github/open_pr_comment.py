@@ -22,22 +22,22 @@ from snuba_sdk import (
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP
-from sentry.integrations.github.client import GitHubAppsClient
-from sentry.integrations.github.tasks.constants import (
+from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.tasks.github.constants import (
     ISSUE_LOCKED_ERROR_MESSAGE,
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
-from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
-from sentry.integrations.github.tasks.pr_comment import format_comment_url
-from sentry.integrations.github.tasks.utils import (
+from sentry.integrations.tasks.github.language_parsers import PATCH_PARSERS
+from sentry.integrations.tasks.github.pr_comment import format_comment_url
+from sentry.integrations.tasks.github.utils import (
     GithubAPIErrorType,
     PullRequestFile,
     PullRequestIssue,
     create_or_update_comment,
 )
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -164,7 +164,7 @@ def get_issue_table_contents(issue_list: list[dict[str, Any]]) -> list[PullReque
 
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
-    gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
+    gh_client: GitHubApiClient, repository: Repository, pull_request: PullRequest
 ) -> list[dict[str, str]]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
@@ -407,7 +407,7 @@ def get_top_5_issues_by_count_for_file(
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.open_pr_comment", silo_mode=SiloMode.REGION
+    name="sentry.integrations.tasks.github.open_pr_comment_workflow", silo_mode=SiloMode.REGION
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
     logger.info("github.open_pr_comment.start_workflow")
