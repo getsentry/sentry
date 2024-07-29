@@ -13,8 +13,11 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
     BaseRequestParser,
     create_async_request_payload,
 )
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
+from sentry.integrations.slack.views import SALT
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
 from sentry.integrations.slack.views.link_team import SlackLinkTeamView
 from sentry.integrations.slack.views.unlink_identity import SlackUnlinkIdentityView
@@ -30,8 +33,6 @@ from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.region import Region
 from sentry.utils.signing import unsign
@@ -114,7 +115,7 @@ class SlackRequestParser(BaseRequestParser):
 
         elif self.view_class in self.django_views:
             # Parse the signed params to identify the associated integration
-            params = unsign(self.match.kwargs.get("signed_params"))
+            params = unsign(self.match.kwargs.get("signed_params"), salt=SALT)
             return Integration.objects.filter(id=params.get("integration_id")).first()
 
         return None

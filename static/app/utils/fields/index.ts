@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -530,16 +531,99 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   },
 };
 
+type TraceFields =
+  | SpanIndexedField.SPAN_ACTION
+  | SpanIndexedField.SPAN_CATEGORY
+  | SpanIndexedField.SPAN_DESCRIPTION
+  | SpanIndexedField.SPAN_DOMAIN
+  | SpanIndexedField.SPAN_DURATION
+  | SpanIndexedField.SPAN_GROUP
+  | SpanIndexedField.SPAN_MODULE
+  | SpanIndexedField.SPAN_OP
+  // TODO: Remove self time field when it is deprecated
+  | SpanIndexedField.SPAN_SELF_TIME
+  | SpanIndexedField.SPAN_STATUS
+  | SpanIndexedField.RESPONSE_CODE;
+
+const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+  /** Indexed Fields */
+  [SpanIndexedField.SPAN_ACTION]: {
+    desc: t(
+      'The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_CATEGORY]: {
+    desc: t(
+      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DESCRIPTION]: {
+    desc: t('Parameterized and scrubbed description of the span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DOMAIN]: {
+    desc: t(
+      'General scope of the span’s action, i.e. the tables involved in a `db` span or the host name in an `http` span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DURATION]: {
+    desc: t('The total time taken by the span'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_GROUP]: {
+    desc: t('Unique hash of the span’s description'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_MODULE]: {
+    desc: t(
+      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_OP]: {
+    desc: t('The operation of the span, e.g `http.client`, `middleware`'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_SELF_TIME]: {
+    desc: t('The duration of the span excluding the duration of its child spans'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_STATUS]: {
+    desc: t('Status of the operation the span represents'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.RESPONSE_CODE]: {
+    desc: t('The HTTP response status code'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 type AllEventFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
   | keyof typeof MEASUREMENT_FIELDS
   | keyof typeof SPAN_OP_FIELDS
+  | keyof typeof TRACE_FIELD_DEFINITIONS
   | FieldKey;
 
 const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
+  ...TRACE_FIELD_DEFINITIONS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,

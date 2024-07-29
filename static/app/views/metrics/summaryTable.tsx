@@ -16,7 +16,6 @@ import type {MetricAggregation} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
-import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   type FocusedMetricsSeries,
@@ -239,14 +238,7 @@ export const SummaryTable = memo(function SummaryTable({
                     delay={500}
                     overlayStyle={{maxWidth: '80vw'}}
                   >
-                    <TextOverflow>
-                      <SerieNamePrefix
-                        hasMetricsNewInputs={hasMetricsNewInputs(organization)}
-                      >
-                        {row.seriesName.split(':')[0]}:
-                      </SerieNamePrefix>
-                      {row.seriesName.split(':')[1]}
-                    </TextOverflow>
+                    <TextOverflow>{row.seriesName}</TextOverflow>
                   </Tooltip>
                 </TextOverflowCell>
                 {totalColumns.map(aggregate => (
@@ -564,8 +556,4 @@ const Row = styled('div')`
       background-color: ${p => p.theme.bodyBackground};
     }
   }
-`;
-
-const SerieNamePrefix = styled('span')<{hasMetricsNewInputs: boolean}>`
-  text-transform: ${p => (p.hasMetricsNewInputs ? 'uppercase' : 'lowercase')};
 `;

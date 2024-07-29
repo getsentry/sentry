@@ -17,6 +17,7 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -40,6 +41,7 @@ export interface SearchQueryBuilderProps {
    */
   searchSource: string;
   className?: string;
+  disabled?: boolean;
   /**
    * When true, free text will be marked as invalid.
    */
@@ -67,6 +69,10 @@ export interface SearchQueryBuilderProps {
    * Sections and filter keys are displayed in the order they are provided.
    */
   filterKeySections?: FilterKeySection[];
+  /**
+   * Allows for customization of the invalid token messages.
+   */
+  invalidMessages?: SearchConfig['invalidMessages'];
   label?: string;
   onBlur?: (query: string) => void;
   /**
@@ -79,11 +85,18 @@ export interface SearchQueryBuilderProps {
   onSearch?: (query: string) => void;
   placeholder?: string;
   queryInterface?: QueryInterfaceType;
-  savedSearchType?: SavedSearchType;
+  /**
+   * If provided, saves and displays recent searches of the given type.
+   */
+  recentSearches?: SavedSearchType;
 }
 
 function ActionButtons() {
-  const {dispatch, handleSearch} = useSearchQueryBuilder();
+  const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
+
+  if (disabled) {
+    return null;
+  }
 
   return (
     <ButtonsWrapper>
@@ -103,10 +116,12 @@ function ActionButtons() {
 
 export function SearchQueryBuilder({
   className,
+  disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
   disallowUnsupportedFilters,
   disallowWildcard,
+  invalidMessages,
   label,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -117,12 +132,16 @@ export function SearchQueryBuilder({
   onSearch,
   onBlur,
   placeholder,
-  searchSource,
-  savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
+  recentSearches,
+  searchSource,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const {state, dispatch} = useQueryBuilderState({initialQuery});
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+  });
 
   const parsedQuery = useMemo(
     () =>
@@ -132,15 +151,17 @@ export function SearchQueryBuilder({
         disallowUnsupportedFilters,
         disallowWildcard,
         filterKeys,
+        invalidMessages,
       }),
     [
+      state.query,
+      fieldDefinitionGetter,
       disallowFreeText,
       disallowLogicalOperators,
-      disallowWildcard,
-      fieldDefinitionGetter,
-      filterKeys,
       disallowUnsupportedFilters,
-      state.query,
+      disallowWildcard,
+      filterKeys,
+      invalidMessages,
     ]
   );
 
@@ -154,7 +175,7 @@ export function SearchQueryBuilder({
 
   const handleSearch = useHandleSearch({
     parsedQuery,
-    savedSearchType,
+    recentSearches,
     searchSource,
     onSearch,
   });
@@ -164,6 +185,7 @@ export function SearchQueryBuilder({
   const contextValue = useMemo(() => {
     return {
       ...state,
+      disabled,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeys,
@@ -174,12 +196,13 @@ export function SearchQueryBuilder({
       wrapperRef,
       handleSearch,
       placeholder,
-      savedSearchType,
+      recentSearches,
       searchSource,
       size,
     };
   }, [
     state,
+    disabled,
     parsedQuery,
     filterKeySections,
     filterKeys,
@@ -187,9 +210,9 @@ export function SearchQueryBuilder({
     fieldDefinitionGetter,
     dispatch,
     onSearch,
-    placeholder,
     handleSearch,
-    savedSearchType,
+    placeholder,
+    recentSearches,
     searchSource,
     size,
   ]);
@@ -201,6 +224,7 @@ export function SearchQueryBuilder({
           className={className}
           onBlur={() => onBlur?.(state.query)}
           ref={wrapperRef}
+          aria-disabled={disabled}
         >
           {size !== 'small' && <PositionedSearchIcon size="sm" />}
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (

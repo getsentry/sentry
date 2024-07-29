@@ -38,10 +38,18 @@ DEFAULT_RULE_DATA_NEW = {
 }
 
 
+# TODO(snigdha): Remove this constant when seer-based-priority is GA
 PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 
 
 def has_high_priority_issue_alerts(project: Project) -> bool:
+    # Seer-based priority is enabled if the organization has the feature flag
+    seer_based_priority_enabled = features.has(
+        "organizations:seer-based-priority", project.organization
+    )
+    if seer_based_priority_enabled:
+        return True
+
     # High priority alerts are enabled if the project has the feature flag
     # or for python/javascript projects in organization that have the feature flag
     return features.has("projects:high-priority-alerts", project) or (

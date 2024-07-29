@@ -9,7 +9,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
@@ -69,6 +69,7 @@ export function parseQueryBuilderValue(
     disallowLogicalOperators?: boolean;
     disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
+    invalidMessages?: SearchConfig['invalidMessages'];
   }
 ): ParseResult | null {
   return collapseTextTokens(
@@ -82,6 +83,7 @@ export function parseQueryBuilderValue(
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
+      invalidMessages: options?.invalidMessages,
       supportedTags: options?.filterKeys,
     })
   );
@@ -167,4 +169,23 @@ export function isDateToken(token: TokenResult<Token.FILTER>) {
   return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
     token.filter
   );
+}
+
+export function recentSearchTypeToLabel(type: SavedSearchType | undefined) {
+  switch (type) {
+    case SavedSearchType.ISSUE:
+      return 'issues';
+    case SavedSearchType.EVENT:
+      return 'events';
+    case SavedSearchType.METRIC:
+      return 'metrics';
+    case SavedSearchType.REPLAY:
+      return 'replays';
+    case SavedSearchType.SESSION:
+      return 'sessions';
+    case SavedSearchType.SPAN:
+      return 'spans';
+    default:
+      return 'none';
+  }
 }

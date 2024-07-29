@@ -98,6 +98,33 @@ export function getJavaFrame(frame: Frame): string {
   return result;
 }
 
+export function getDartFrame(frame: Frame, frameIdxFromEnd: number): string {
+  let result = `  #${frameIdxFromEnd}`;
+
+  if (frame.function === '<asynchronous suspension>') {
+    return `${result}      ${frame.function}`;
+  }
+
+  if (defined(frame.function)) {
+    result += '      ' + frame.function;
+  }
+  if (defined(frame.absPath)) {
+    result += ' (';
+
+    result += frame.absPath;
+    if (defined(frame.lineNo) && frame.lineNo >= 0) {
+      result += ':' + frame.lineNo;
+    }
+    if (defined(frame.colNo) && frame.colNo >= 0) {
+      result += ':' + frame.colNo;
+    }
+
+    result += ')';
+  }
+
+  return result;
+}
+
 function ljust(str: string, len: number) {
   return str + Array(Math.max(0, len - str.length) + 1).join(' ');
 }
@@ -138,7 +165,12 @@ function getPreamble(exception: ExceptionValue, platform: string | undefined): s
   }
 }
 
-function getFrame(frame: Frame, frameIdx: number, platform: string | undefined): string {
+function getFrame(
+  frame: Frame,
+  frameIdx: number,
+  frameIdxFromEnd: number,
+  platform: string | undefined
+): string {
   if (frame.platform) {
     platform = frame.platform;
   }
@@ -153,6 +185,8 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
       return getPythonFrame(frame);
     case 'java':
       return getJavaFrame(frame);
+    case 'dart':
+      return getDartFrame(frame, frameIdxFromEnd);
     case 'objc':
     // fallthrough
     case 'cocoa':
@@ -180,7 +214,7 @@ export default function displayRawContent(
     : rawFrames;
 
   const frames = framesToUse.map((frame, frameIdx) =>
-    getFrame(frame, frameIdx, platform)
+    getFrame(frame, frameIdx, framesToUse.length - frameIdx - 1, platform)
   );
 
   if (platform !== 'python') {

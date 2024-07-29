@@ -38,7 +38,7 @@ class CacheKVStorage(KVStorage[Any, Any]):
     def delete(self, key: Any) -> None:
         self.backend.delete(key)
 
-    def bootstrap(self) -> None:
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         # Nothing to do in this method: the backend is expected to either not
         # require any explicit setup action (memcached, Redis) or that setup is
         # assumed to be managed elsewhere (e.g. the Django database cache is
@@ -98,7 +98,7 @@ class CacheKeyWrapper(KVStorage[str, V]):
     def delete_many(self, keys: Sequence[str]) -> None:
         return self.storage.delete_many([wrap_key(self.prefix, self.version, key) for key in keys])
 
-    def bootstrap(self) -> None:
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         self.storage.bootstrap()
 
     def destroy(self) -> None:

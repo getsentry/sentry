@@ -167,12 +167,12 @@ function SimilarStackTrace({params, location, project}: Props) {
           showIcon
           defaultExpanded
           expand={
-            'We\'d love to get your feedback on the accuracy of this score. You can check off individuals rows with "Agree" and "Disagree" to send us feedback on how you\'d classify each decision we\'ve made. If you have any questions, you can feel free to reach out to the team at #proj-ml-grouping.'
+            'We\'d love to get your feedback on the accuracy of this score. You can check off individuals rows with "Agree" and "Disagree" to send us feedback on how you\'d classify each decision we\'ve made.'
           }
         >
-          Hi there! We're running an internal POC to improve grouping with ML techniques.
-          Each similar issue has been scored as "Would Group: Yes" and "Would Group: No,"
-          which refers to whether or not we'd group the similar issue into the main issue.
+          Hi there! We're working on improving grouping with ML techniques. Each similar
+          issue has been scored as "Would Group: Yes" and "Would Group: No," which refers
+          to whether or not we'd group the similar issue into the main issue.
         </Alert>
       )}
       <HeaderWrapper>
