@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {SvgIcon} from 'sentry/icons/svgIcon';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface DraggableTabMenuButtonProps {
@@ -111,9 +111,9 @@ export function DraggableTabMenuButton({
                 aria-label="Tab Options"
                 borderless
                 size="zero"
-                icon={<IconCompactEllipsis />}
+                icon={<IconEllipsis compact />}
               />
-              {hasUnsavedChanges && <ChangedAndUnsavedIndicator role="presentation" />}
+              {hasUnsavedChanges && <UnsavedChangesIndicator role="presentation" />}
             </Fragment>
           ),
           style: {width: '18px', height: '16px'},
@@ -125,21 +125,11 @@ export function DraggableTabMenuButton({
   );
 }
 
-function IconCompactEllipsis() {
-  return (
-    <SvgIcon>
-      <circle cx="8" cy="8" r="1.11" />
-      <circle cx="2.5" cy="8" r="1.11" />
-      <circle cx="13.5" cy="8" r="1.11" />
-    </SvgIcon>
-  );
-}
-
 const StyledDropdownMenu = styled(DropdownMenu)`
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
-export const ChangedAndUnsavedIndicator = styled('div')`
+const UnsavedChangesIndicator = styled('div')`
   width: 7px;
   height: 7px;
   border-radius: 50%;
