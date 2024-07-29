@@ -6,7 +6,6 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
-from sentry.incidents.action_handlers import format_duration
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
@@ -15,6 +14,7 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -92,11 +92,11 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
             comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago"
         )
         return _(
-            f"{metric_and_agg_text} {higher_or_lower} in the last {format_duration(time_window)} "
+            f"{metric_and_agg_text} {higher_or_lower} in the last {format_duration_idiomatic(time_window)} "
             f"compared to the {comparison_string}"
         )
 
-    return _(f"{metric_and_agg_text} in the last {format_duration(time_window)}")
+    return _(f"{metric_and_agg_text} in the last {format_duration_idiomatic(time_window)}")
 
 
 def incident_attachment_info(
