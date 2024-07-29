@@ -45,7 +45,7 @@ SAVED_QUERY_DATASET_MAP = {
 }
 # TODO: Adjust this once we make a decision in the DACI for global views restriction
 # Do not add more referres to this list as it is a temporary solution
-GLOBAL_VIEW_WHITELIST = ("api.issues.issue_events",)
+GLOBAL_VIEW_ALLOWLIST = ("api.issues.issue_events",)
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -331,7 +331,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 # checking for referrer for an allowlist is a brittle check since referrer
                 # can easily be set by the caller
                 check_global_views=(
-                    referrer in GLOBAL_VIEW_WHITELIST
+                    referrer in GLOBAL_VIEW_ALLOWLIST
                     and not bool(organization.flags.allow_joinleave)
                 ),
             )
