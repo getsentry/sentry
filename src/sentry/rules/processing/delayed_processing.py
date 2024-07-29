@@ -153,6 +153,17 @@ def get_condition_query_groups(
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
             for condition_query in generate_unique_queries(condition_data, rule.environment_id):
+                # NOTE: If percent and count comparison conditions are sharing
+                # the same UniqueConditionQuery, the condition JSON in
+                # DataAndGroups will be incorrect for one of those types.
+                # The JSON will either have or be missing a comparisonInterval
+                # which only applies to percent conditions, and have the incorrect
+                # comparisonType for one type. This is not a concern because
+                # when we instantiate the exact condition class with the JSON,
+                # the class ignores both fields when calling get_rate_bulk.
+
+                # Add to set of group_ids if there are already group_ids
+                # that apply to the unique condition query.
                 if data_and_groups := condition_groups.get(condition_query):
                     data_and_groups.group_ids.update(rules_to_groups[rule.id])
                 else:
