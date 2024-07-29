@@ -407,7 +407,7 @@ class EventsTable extends Component<Props, State> {
     totalEventsView.fields = [{field: 'count()', width: -1}];
 
     const {widths} = this.state;
-    const containsSpanOpsBreakdown = eventView
+    const containsSpanOpsBreakdown = !!eventView
       .getColumns()
       .find(
         (col: TableColumn<React.ReactText>) =>
