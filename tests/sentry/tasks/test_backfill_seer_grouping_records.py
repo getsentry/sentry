@@ -1,4 +1,5 @@
 import copy
+import time
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from random import choice
@@ -1519,10 +1520,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert self.project.get_option("sentry:similarity_backfill_completed") is not None
 
     @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_no_enable_ingestion(
-        self, mock_post_bulk_grouping_records, mock_logger
+        self, mock_post_bulk_grouping_records
     ):
         """
         Test that when the enable_ingestion flag is False, the project option is not set.
@@ -1540,3 +1540,121 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             }
 
         assert self.project.get_option("sentry:similarity_backfill_completed") is None
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    def test_backfill_seer_grouping_records_skip_project_already_processed(self, mock_logger):
+        """
+        Test that projects that have a backfill completed project option are skipped when passed
+        the skip_processed_projects flag.
+        """
+        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(
+                self.project.id, None, skip_processed_projects=True
+            )
+
+        expected_call_args_list = [
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": None,
+                    "cohort": None,
+                    "last_processed_project_index": None,
+                    "only_delete": False,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_skipped",
+                extra={
+                    "project_id": self.project.id,
+                    "project_already_processed": True,
+                    "project_manually_skipped": None,
+                },
+            ),
+            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+        ]
+        assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_reprocess_project_already_processed(
+        self, mock_post_bulk_grouping_records, mock_logger
+    ):
+        """
+        Test that projects that have a backfill completed project option are not skipped when not
+        passed the skip_processed_projects flag.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        last_group_id = sorted(
+            [group.id for group in Group.objects.filter(project_id=self.project.id)]
+        )[0]
+        expected_call_args_list = [
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": None,
+                    "cohort": None,
+                    "last_processed_project_index": None,
+                    "only_delete": False,
+                },
+            ),
+            call("about to call next backfill", extra={"project_id": self.project.id}),
+            call(
+                "calling next backfill task",
+                extra={"project_id": self.project.id, "last_processed_group_id": last_group_id},
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": last_group_id,
+                    "cohort": None,
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                },
+            ),
+            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+        ]
+        assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    def test_backfill_seer_grouping_records_manually_skip_project(self, mock_logger):
+        """
+        Test that project ids that are included in the skip_project_ids field are skipped.
+        """
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(
+                self.project.id, None, skip_project_ids=[self.project.id]
+            )
+
+        expected_call_args_list = [
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_id": None,
+                    "cohort": None,
+                    "last_processed_project_index": None,
+                    "only_delete": False,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_skipped",
+                extra={
+                    "project_id": self.project.id,
+                    "project_already_processed": False,
+                    "project_manually_skipped": True,
+                },
+            ),
+            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+        ]
+        assert mock_logger.info.call_args_list == expected_call_args_list

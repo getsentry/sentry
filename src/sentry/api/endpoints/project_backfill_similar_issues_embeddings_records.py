@@ -34,6 +34,8 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         last_processed_id = None
         only_delete = False
         enable_ingestion = False
+        skip_processed_projects = False
+        skip_project_ids = None
 
         if request.data.get("last_processed_id"):
             last_processed_id = int(request.data["last_processed_id"])
@@ -42,12 +44,20 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             only_delete = True
 
         if request.data.get("enable_ingestion"):
-            enable_ingestion = request.data["enable_ingestion"] == "true"
+            enable_ingestion = True
+
+        if request.data.get("skip_processed_projects"):
+            skip_processed_projects = True
+
+        if request.data.get("skip_project_ids"):
+            skip_project_ids = request.data["skip_project_ids"]
 
         backfill_seer_grouping_records_for_project.delay(
             current_project_id=project.id,
             last_processed_group_id_input=last_processed_id,
             only_delete=only_delete,
             enable_ingestion=enable_ingestion,
+            skip_processed_projects=skip_processed_projects,
+            skip_project_ids=skip_project_ids,
         )
         return Response(status=204)
