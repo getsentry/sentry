@@ -8,7 +8,8 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
+import type {PlatformKey} from 'sentry/types/project';
+import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 import type {Incident, MetricAlert} from 'sentry/views/alerts/types';
 import {CombinedAlertType} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
@@ -32,7 +33,7 @@ import useTeams from '../teams/useTeams';
 import useInfiniteAlertsList from './useInfiniteAlertsList';
 
 export default function AlertsPanel() {
-  const {projectId, projectSlug, trackAnalytics} = useConfiguration();
+  const {projectId, projectSlug, projectPlatform, trackAnalytics} = useConfiguration();
   const queryResult = useInfiniteAlertsList();
 
   const estimateSize = 84;
@@ -42,7 +43,7 @@ export default function AlertsPanel() {
     <PanelLayout title="Alerts">
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>
-          Active Alerts in{' '}
+          Active alerts in{' '}
           <SentryAppLink
             to={{url: `/projects/${projectSlug}/`}}
             onClick={() => {
@@ -52,10 +53,19 @@ export default function AlertsPanel() {
               });
             }}
           >
-            <div css={[resetFlexRowCss, {display: 'inline-flex', gap: 'var(--space50)'}]}>
+            <div
+              css={[
+                resetFlexRowCss,
+                {display: 'inline-flex', gap: 'var(--space50)', alignItems: 'center'},
+              ]}
+            >
               <ProjectBadge
                 css={css({'&& img': {boxShadow: 'none'}})}
-                project={{slug: projectSlug, id: projectId}}
+                project={{
+                  slug: projectSlug,
+                  id: projectId,
+                  platform: projectPlatform as PlatformKey,
+                }}
                 avatarSize={16}
                 hideName
                 avatarProps={{hasTooltip: false}}
@@ -162,7 +172,7 @@ function AlertListItem({item}: {item: Incident}) {
       </TextOverflow>
 
       <div css={smallCss} style={{gridArea: 'message'}}>
-        <AlertRuleStatus rule={rule} />
+        <ActivatedMetricAlertRuleStatus rule={rule} />
       </div>
 
       {teamActor ? (

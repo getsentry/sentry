@@ -9,7 +9,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
@@ -63,16 +63,28 @@ function getSearchConfigFromKeys(
 export function parseQueryBuilderValue(
   value: string,
   getFieldDefinition: FieldDefinitionGetter,
-  options?: {filterKeys: TagCollection; disallowLogicalOperators?: boolean}
+  options?: {
+    filterKeys: TagCollection;
+    disallowFreeText?: boolean;
+    disallowLogicalOperators?: boolean;
+    disallowUnsupportedFilters?: boolean;
+    disallowWildcard?: boolean;
+    invalidMessages?: SearchConfig['invalidMessages'];
+  }
 ): ParseResult | null {
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
+      disallowFreeText: options?.disallowFreeText,
+      validateKeys: options?.disallowUnsupportedFilters,
+      disallowWildcard: options?.disallowWildcard,
       disallowedLogicalOperators: options?.disallowLogicalOperators
         ? new Set([BooleanOperator.AND, BooleanOperator.OR])
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
+      invalidMessages: options?.invalidMessages,
+      supportedTags: options?.filterKeys,
     })
   );
 }
@@ -124,9 +136,16 @@ function collapseTextTokens(tokens: ParseResult | null) {
     const lastToken = acc[acc.length - 1];
 
     if (isSimpleTextToken(token) && isSimpleTextToken(lastToken)) {
-      lastToken.value += token.value;
-      lastToken.text += token.text;
-      lastToken.location.end = token.location.end;
+      const freeTextToken = lastToken as TokenResult<Token.FREE_TEXT>;
+      freeTextToken.value += token.value;
+      freeTextToken.text += token.text;
+      freeTextToken.location.end = token.location.end;
+
+      if (token.type === Token.FREE_TEXT) {
+        freeTextToken.quoted = freeTextToken.quoted || token.quoted;
+        freeTextToken.invalid = freeTextToken.invalid ?? token.invalid;
+      }
+
       return acc;
     }
 
@@ -146,8 +165,35 @@ export function tokenIsInvalid(token: TokenResult<Token>) {
   return Boolean(token.invalid);
 }
 
+export function queryIsValid(parsedQuery: ParseResult | null) {
+  if (!parsedQuery) {
+    return false;
+  }
+
+  return !parsedQuery.some(tokenIsInvalid);
+}
+
 export function isDateToken(token: TokenResult<Token.FILTER>) {
   return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
     token.filter
   );
+}
+
+export function recentSearchTypeToLabel(type: SavedSearchType | undefined) {
+  switch (type) {
+    case SavedSearchType.ISSUE:
+      return 'issues';
+    case SavedSearchType.EVENT:
+      return 'events';
+    case SavedSearchType.METRIC:
+      return 'metrics';
+    case SavedSearchType.REPLAY:
+      return 'replays';
+    case SavedSearchType.SESSION:
+      return 'sessions';
+    case SavedSearchType.SPAN:
+      return 'spans';
+    default:
+      return 'none';
+  }
 }

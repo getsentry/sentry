@@ -18,7 +18,7 @@ interface PlainTextQueryInputProps {
 
 export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const {query, parsedQuery, dispatch, handleSearch, size, placeholder} =
+  const {query, parsedQuery, dispatch, handleSearch, size, placeholder, disabled} =
     useSearchQueryBuilder();
   const [cursorPosition, setCursorPosition] = useState(0);
 
@@ -72,6 +72,7 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
         spellCheck={false}
         size={size}
         placeholder={placeholder}
+        disabled={disabled}
       />
     </InputWrapper>
   );

@@ -1,25 +1,40 @@
 import type {RefObject} from 'react';
 import {useEffect} from 'react';
 
+import type {UseFeedbackOptions} from 'sentry/components/feedback/widget/useFeedback';
 import {useFeedback} from 'sentry/components/feedback/widget/useFeedback';
 
 interface Props {
   buttonRef?: RefObject<HTMLButtonElement> | RefObject<HTMLAnchorElement>;
   formTitle?: string;
   messagePlaceholder?: string;
+  optionOverrides?: UseFeedbackOptions;
 }
 
 export default function useFeedbackWidget({
   buttonRef,
   formTitle,
   messagePlaceholder,
+  optionOverrides,
 }: Props) {
-  const {feedback, options} = useFeedback({formTitle, messagePlaceholder});
+  const {feedback, options: defaultOptions} = useFeedback({
+    formTitle,
+    messagePlaceholder,
+  });
 
   useEffect(() => {
     if (!feedback) {
       return undefined;
     }
+
+    const options = {
+      ...defaultOptions,
+      ...optionOverrides,
+      tags: {
+        ...defaultOptions.tags,
+        ...optionOverrides?.tags,
+      },
+    };
 
     if (buttonRef) {
       if (buttonRef.current) {
@@ -33,7 +48,7 @@ export default function useFeedbackWidget({
     }
 
     return undefined;
-  }, [buttonRef, feedback, options]);
+  }, [buttonRef, feedback, defaultOptions, optionOverrides]);
 
   return feedback;
 }

@@ -635,6 +635,13 @@ function getEventsSeriesRequest(
     return doOnDemandMetricsRequest(api, requestData);
   }
 
+  if (organization.features.includes('performance-discover-dataset-selector')) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...getQueryExtraForSplittingDiscover(widget, organization, false),
+    };
+  }
+
   return doEventsRequest<true>(api, requestData);
 }
 
@@ -687,20 +694,35 @@ export function filterAggregateParams(
   return true;
 }
 
-const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
-  return organization.features.includes('performance-discover-widget-split-ui');
-};
-
 const getQueryExtraForSplittingDiscover = (
   widget: Widget,
   organization: Organization,
   useOnDemandMetrics: boolean
 ) => {
-  if (!useOnDemandMetrics || !shouldSendWidgetForSplittingDiscover(organization)) {
+  // We want to send the dashboardWidgetId on the request if we're in the Widget
+  // Builder with the selector feature flag
+  const isEditing = location.pathname.endsWith('/edit/');
+  const hasDiscoverSelector = organization.features.includes(
+    'performance-discover-dataset-selector'
+  );
+
+  if (!hasDiscoverSelector) {
+    if (
+      !useOnDemandMetrics ||
+      !organization.features.includes('performance-discover-widget-split-ui')
+    ) {
+      return {};
+    }
+    if (widget.id) {
+      return {dashboardWidgetId: widget.id};
+    }
+
     return {};
   }
-  if (widget.id) {
+
+  if (isEditing && widget.id) {
     return {dashboardWidgetId: widget.id};
   }
+
   return {};
 };

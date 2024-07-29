@@ -1,3 +1,4 @@
+import pytest
 from django.conf import settings
 from snuba_sdk.legacy import json_to_snql
 
@@ -49,6 +50,7 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
         self.group.update(first_release=release)
 
+    @pytest.mark.skip(reason="old migration test")
     def test(self):
         run_test([self.group, self.group_2])
 
@@ -63,5 +65,6 @@ class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         redis_client.set("backfill_group_info_to_group_attributes", self.group.id)
 
+    @pytest.mark.skip(reason="old migration test")
     def test_restart(self):
         run_test([self.group_2])

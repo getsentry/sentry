@@ -83,7 +83,7 @@ class ResultsHeader extends Component<Props, State> {
           savedQuery: organization.features.includes(
             'performance-discover-dataset-selector'
           )
-            ? getSavedQueryWithDataset(savedQuery)
+            ? (getSavedQueryWithDataset(savedQuery) as SavedQuery)
             : savedQuery,
           loading: false,
         });
@@ -99,7 +99,7 @@ class ResultsHeader extends Component<Props, State> {
         homepageQuery: organization.features.includes(
           'performance-discover-dataset-selector'
         )
-          ? getSavedQueryWithDataset(homepageQuery)
+          ? (getSavedQueryWithDataset(homepageQuery) as SavedQuery)
           : homepageQuery,
         loading: false,
       });
@@ -209,7 +209,7 @@ class ResultsHeader extends Component<Props, State> {
                 homepageQuery: organization.features.includes(
                   'performance-discover-dataset-selector'
                 )
-                  ? getSavedQueryWithDataset(updatedHomepageQuery)
+                  ? (getSavedQueryWithDataset(updatedHomepageQuery) as SavedQuery)
                   : updatedHomepageQuery,
               });
               if (isHomepage) {

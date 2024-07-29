@@ -87,6 +87,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: KeyboardEvent) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
+  onOpenChange?: (newOpenState: boolean) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
@@ -469,6 +470,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onKeyDown,
     onKeyUp,
     onInputChange,
+    onOpenChange,
     autoFocus,
     openOnFocus,
     onFocus,
@@ -484,6 +486,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
+  const {disabled} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -517,6 +520,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onSelectionChange,
     allowsCustomValue: true,
     disabledKeys,
+    isDisabled: disabled,
   };
 
   const state = useComboBoxState<T>({
@@ -594,6 +598,10 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     hasCustomMenu,
   });
 
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [onOpenChange, isOpen]);
+
   const {
     overlayProps,
     triggerProps,
@@ -667,6 +675,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         onChange={onInputChange}
         tabIndex={tabIndex}
         onPaste={onPaste}
+        disabled={disabled}
       />
       <StyledPositionWrapper {...overlayProps} visible={isOpen}>
         <OverlayContent
