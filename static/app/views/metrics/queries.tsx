@@ -115,6 +115,7 @@ export function Queries() {
                 isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
                 formulaDependencies={formulaDependencies}
+                metricsNewInputs={metricsNewInputs}
               />
             )}
           </Row>
@@ -235,6 +236,7 @@ interface FormulaProps {
   formulaDependencies: ReturnType<typeof useFormulaDependencies>;
   index: number;
   isSelected: boolean;
+  metricsNewInputs: boolean;
   onChange: (index: number, data: Partial<MetricsWidget>) => void;
   onToggleVisibility: (index: number) => void;
   showQuerySymbols: boolean;
@@ -251,6 +253,7 @@ function Formula({
   isSelected,
   showQuerySymbols,
   formulaDependencies,
+  metricsNewInputs,
 }: FormulaProps) {
   const handleToggle = useCallback(() => {
     onToggleVisibility(index);
@@ -281,6 +284,7 @@ function Formula({
         availableVariables={availableVariables}
         value={widget.formula}
         onChange={formula => handleChange({formula})}
+        metricsNewInputs={metricsNewInputs}
       />
       <MetricFormulaContextMenu
         widgetIndex={index}
