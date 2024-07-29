@@ -165,6 +165,14 @@ export function tokenIsInvalid(token: TokenResult<Token>) {
   return Boolean(token.invalid);
 }
 
+export function queryIsValid(parsedQuery: ParseResult | null) {
+  if (!parsedQuery) {
+    return false;
+  }
+
+  return !parsedQuery.some(tokenIsInvalid);
+}
+
 export function isDateToken(token: TokenResult<Token.FILTER>) {
   return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
     token.filter
