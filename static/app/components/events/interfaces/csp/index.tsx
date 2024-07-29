@@ -5,11 +5,11 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import type {HelpProps} from './help';
 import Help from './help';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type View = 'report' | 'raw' | 'help';
 

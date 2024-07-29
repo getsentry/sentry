@@ -16,11 +16,13 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Event, Thread} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {EntryType, StackType, StackView} from 'sentry/types';
+import type {Event, Thread} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
 
@@ -32,8 +34,6 @@ import getThreadException from './threads/threadSelector/getThreadException';
 import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
 

@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types';
 import {EntryType} from 'sentry/types/event';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import DeprecatedLine from './frame/deprecatedLine';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type Props = {
   data: Frame;

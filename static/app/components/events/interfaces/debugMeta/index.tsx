@@ -20,6 +20,8 @@ import {defined} from 'sentry/utils';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -33,8 +35,6 @@ import {
   normalizeId,
   shouldSkipSection,
 } from './utils';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 const IMAGE_INFO_UNAVAILABLE = '-1';
 

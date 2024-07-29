@@ -7,7 +7,6 @@ import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-
 import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,6 +17,8 @@ import {EntryType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -25,8 +26,6 @@ import Level from './breadcrumb/level';
 import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type SelectOptionWithLevels = SelectOption<string> & {levels?: BreadcrumbLevelType[]};
 

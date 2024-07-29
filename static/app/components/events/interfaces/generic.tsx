@@ -4,7 +4,7 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import type {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 function getView({
@@ -40,9 +40,9 @@ function getView({
 
 type Props = {
   data: Record<string, any> | null;
+  sectionKey: FoldSectionKey;
   type: string;
   meta?: Record<string, any>;
-  sectionKey: FoldSectionKey;
 };
 
 type View = 'report' | 'raw';

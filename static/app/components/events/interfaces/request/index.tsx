@@ -16,11 +16,11 @@ import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {RichHttpContentClippedBoxBodySection} from './richHttpContentClippedBoxBodySection';
 import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBoxKeyValueList';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface RequestProps {
   data: EntryRequest['data'];
