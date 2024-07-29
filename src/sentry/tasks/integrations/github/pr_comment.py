@@ -198,7 +198,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     installation = integration.get_installation(organization_id=org_id)
 
-    # GitHubAppsClient (GithubClientMixin)
+    # GitHubApiClient
     # TODO(cathy): create helper function to fetch client for repo
     client = installation.get_client()
 
@@ -268,7 +268,7 @@ def github_comment_reactions():
 
         installation = integration.get_installation(organization_id=pr.organization_id)
 
-        # GitHubAppsClient (GithubClientMixin)
+        # GitHubApiClient
         # TODO(cathy): create helper function to fetch client for repo
         client = installation.get_client()
 

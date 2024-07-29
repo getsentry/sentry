@@ -183,7 +183,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubClientMixin(GithubProxyClient):
+class GitHubBaseClient(GithubProxyClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -741,7 +741,7 @@ class GitHubClientMixin(GithubProxyClient):
         )
 
 
-class GitHubAppsClient(GitHubClientMixin):
+class GitHubApiClient(GitHubBaseClient):
     def __init__(
         self,
         integration: Integration,

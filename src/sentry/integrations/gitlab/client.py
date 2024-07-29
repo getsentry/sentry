@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.integrations.gitlab")
 
 
-class GitlabProxySetupClient(IntegrationProxyClient):
+class GitLabSetupApiClient(IntegrationProxyClient):
     """
     API Client that doesn't require an installation.
     This client is used during integration setup to fetch data
@@ -61,7 +61,7 @@ class GitlabProxySetupClient(IntegrationProxyClient):
         return self.get(path)
 
 
-class GitLabProxyApiClient(IntegrationProxyClient):
+class GitLabApiClient(IntegrationProxyClient):
     integration_name = "gitlab"
 
     def __init__(self, installation: GitlabIntegration):
