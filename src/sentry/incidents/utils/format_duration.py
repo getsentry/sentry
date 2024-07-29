@@ -4,7 +4,6 @@ from django.template.defaultfilters import pluralize
 def format_duration_idiomatic(minutes: int) -> str:
     """
     Format minutes into an idiomatic duration string for the purpose of these alerts.
-    For
 
     For usage like
     "in the past 5 minutes"
