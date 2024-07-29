@@ -8,7 +8,6 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DatasetSourcesTypes
-from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -172,7 +171,7 @@ class DashboardListResponse(TypedDict):
     id: str
     title: str
     dateCreated: str
-    createdBy: list[OpaqueSerializedResponse]
+    createdBy: UserSerializerResponse
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
 
