@@ -5,6 +5,27 @@ import {t} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook(CompactSelect, story => {
+  story('Basics', () => {
+    return (
+      <Fragment>
+        <p>
+          <code>CompactSelect</code> is a general-purpose dropdown select component. It's
+          a capable alternative to <code>select</code> elements, and supports features
+          like sections, search, multi-select, loading states, and more.
+        </p>
+
+        <p>
+          <code>SelectControl</code> is a similar component, but is meant to be used
+          inside of forms. <code>CompactSelect</code> is meant for use outside of forms.
+          We use <code>CompactSelect</code> for features like project selectors,
+          environment selectors, and other filter dropdowns. We use{' '}
+          <code>SelectControl</code> inside forms in the Settings UI, and some other
+          similar places.
+        </p>
+      </Fragment>
+    );
+  });
+
   story('Simple', () => {
     const [value, setValue] = useState<string>('');
     const options = [
@@ -22,14 +43,9 @@ export default storyBook(CompactSelect, story => {
     return (
       <Fragment>
         <p>
-          <code>CompactSelect</code> is a general-purpose dropdown selector component. In
-          the most basic case, a <code>value</code>, <code>onChange</code> handler and an
-          array of <code>options</code> are all that's needed. The component does not
+          In the most basic case, a <code>value</code>, <code>onChange</code> handler and
+          an array of <code>options</code> are all that's needed. The component does not
           maintain its own selection state.
-        </p>
-
-        <p>
-          <b>NOTE:</b> Prefer using this component over <code>SelectControl</code>!
         </p>
 
         <CompactSelect value={value} onChange={handleValueChange} options={options} />
