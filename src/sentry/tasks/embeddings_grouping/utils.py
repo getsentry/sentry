@@ -122,7 +122,7 @@ def get_current_batch_groups_from_postgres(
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
 
-    groups_to_backfill_batch = (
+    groups_to_backfill_batch_raw = (
         Group.objects.filter(
             group_id_filter,
             project_id=project.id,
@@ -132,9 +132,9 @@ def get_current_batch_groups_from_postgres(
         .values_list("id", "data", "status", "last_seen")
         .order_by("-id")[:batch_size]
     )
-    total_groups_to_backfill_length = len(groups_to_backfill_batch)
+    total_groups_to_backfill_length = len(groups_to_backfill_batch_raw)
     batch_end_group_id = (
-        groups_to_backfill_batch[total_groups_to_backfill_length - 1][0]
+        groups_to_backfill_batch_raw[total_groups_to_backfill_length - 1][0]
         if total_groups_to_backfill_length
         else None
     )
@@ -142,7 +142,7 @@ def get_current_batch_groups_from_postgres(
     # Filter out groups that are pending deletion in memory so postgres won't make a bad query plan
     groups_to_backfill_batch = [
         (group[0], group[1])
-        for group in groups_to_backfill_batch
+        for group in groups_to_backfill_batch_raw
         if group[2] not in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
         and group[3] > datetime.now(UTC) - timedelta(days=90)
     ]
