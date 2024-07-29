@@ -1,8 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
@@ -13,6 +11,7 @@ import {Button} from 'sentry/components/button';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
+import {useHandleAssigneeChange} from 'sentry/components/group/assignedTo';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -26,17 +25,14 @@ import type {
   TeamParticipant,
   UserParticipant,
 } from 'sentry/types';
-import {getMessage} from 'sentry/utils/events';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import GroupActions from 'sentry/views/issueDetails/actions/updatedAction';
+import GroupActions from 'sentry/views/issueDetails/actions/index';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
-import {ShortIdBreadcrumb} from 'sentry/views/issueDetails/shortIdBreadcrumb';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import {useIssueDetailsHeader} from 'sentry/views/issueDetails/issueDetailsHeader';
+import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 interface GroupRelease {
   firstRelease: Release;
@@ -72,197 +68,145 @@ export default function StreamlinedGroupHeader({
 
   const {firstRelease, lastRelease} = groupReleaseData || {};
 
-  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
-    AssignableEntity | null,
-    RequestError,
-    AssignableEntity | null
-  >({
-    mutationFn: async (
-      newAssignee: AssignableEntity | null
-    ): Promise<AssignableEntity | null> => {
-      if (newAssignee) {
-        await assignToActor({
-          id: group!.id,
-          orgSlug: organization.slug,
-          actor: {id: newAssignee.id, type: newAssignee.type},
-          assignedBy: 'assignee_selector',
-        });
-        return Promise.resolve(newAssignee);
-      }
-
-      await clearAssignment(group!.id, organization.slug, 'assignee_selector');
-      return Promise.resolve(null);
-    },
-    onSuccess: (newAssignee: AssignableEntity | null) => {
-      if (newAssignee) {
-        return;
-      }
-    },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    organization,
+    group,
   });
 
-  const disabledTabs = useMemo(() => {
-    if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
-      return [
-        Tab.ACTIVITY,
-        Tab.USER_FEEDBACK,
-        Tab.ATTACHMENTS,
-        Tab.EVENTS,
-        Tab.MERGED,
-        Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
-      ];
-    }
+  const {
+    disabledTabs,
+    message,
+    eventRoute,
+    disableActions,
+    shortIdBreadcrumb,
+    className,
+  } = useIssueDetailsHeader({
+    group,
+    groupReprocessingStatus,
+    baseUrl,
+    project,
+  });
 
-    if (groupReprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT) {
-      return [
-        Tab.DETAILS,
-        Tab.ATTACHMENTS,
-        Tab.EVENTS,
-        Tab.MERGED,
-        Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
-        Tab.USER_FEEDBACK,
-      ];
-    }
-
-    return [];
-  }, [groupReprocessingStatus]);
-
-  const eventRoute = useMemo(() => {
-    return {
-      pathname: `${baseUrl}events/`,
-      query,
-    };
-  }, [query, baseUrl]);
-
-  const disableActions = !!disabledTabs.length;
-
-  const message = getMessage(group);
-
-  const shortIdBreadcrumb = (
-    <ShortIdBreadcrumb organization={organization} project={project} group={group} />
-  );
-
-  const {participants} = group;
-
-  const userParticipants = participants.filter(
-    (p): p is UserParticipant => p.type === 'user'
-  );
-  const teamParticipants = participants.filter(
-    (p): p is TeamParticipant => p.type === 'team'
-  );
-
-  const {seenBy} = group;
   const activeUser = ConfigStore.get('user');
-  const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
+
+  const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
+    return {
+      userParticipants: group.participants.filter(
+        (p): p is UserParticipant => p.type === 'user'
+      ),
+      teamParticipants: group.participants.filter(
+        (p): p is TeamParticipant => p.type === 'team'
+      ),
+      displayUsers: group.seenBy.filter(user => activeUser.id !== user.id),
+    };
+  }, [group, activeUser.id]);
 
   return (
     <Layout.Header>
-      <Breadcrumbs
-        crumbs={[
-          {
-            label: 'Issues',
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: query,
+      <div className={className}>
+        <Breadcrumbs
+          crumbs={[
+            {
+              label: 'Issues',
+              to: {
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: query,
+              },
             },
-          },
-          {label: shortIdBreadcrumb},
-        ]}
-      />
-      <TitleHeading>
-        <h3>
-          <StyledEventOrGroupTitle data={group} />
-        </h3>
-      </TitleHeading>
-      <MessageWrapper>
-        <EventMessage
-          message={message}
-          type={group.type}
-          showUnhandled={group.isUnhandled}
+            {label: shortIdBreadcrumb},
+          ]}
         />
-        <Divider />
-        <div>{t('First Seen in')}</div>
-        <Version version={firstRelease?.version || ''} projectId={project.id} />
-        <Divider />
-        <div>{t('Last Seen in')}</div>
-        <Version version={lastRelease?.version || ''} projectId={project.id} />
-      </MessageWrapper>
-      <StyledBreak />
-      <InfoWrapper isResolved={group.status === 'resolved'}>
-        <GroupActions
-          group={group}
-          project={project}
-          disabled={disableActions}
-          event={event}
-          query={location.query}
-        />
-        <PriorityAssignee>
-          <Wrapper>
-            {t('Priority')}
-            <GroupPriority group={group} />
-          </Wrapper>
-          <Wrapper>
-            {t('Assignee')}
-            <AssigneeSelectorDropdown
-              group={group}
-              loading={assigneeLoading}
-              onAssign={(assignedActor: AssignableEntity | null) =>
-                handleAssigneeChange(assignedActor)
-              }
-              onClear={() => handleAssigneeChange(null)}
-              trigger={(props, isOpen) => (
-                <StyledDropdownButton
-                  {...props}
-                  borderless
-                  aria-label={t('Modify issue assignee')}
-                  size="zero"
-                >
-                  <AssigneeBadge
-                    assignedTo={group.assignedTo ?? undefined}
-                    assignmentReason={
-                      group.owners?.find(owner => {
-                        const [_ownershipType, ownerId] = owner.owner.split(':');
-                        return ownerId === group.assignedTo?.id;
-                      })?.type
-                    }
-                    loading={assigneeLoading}
-                    chevronDirection={isOpen ? 'up' : 'down'}
-                  />
-                </StyledDropdownButton>
-              )}
-            />
-          </Wrapper>
-          {participants.length > 0 && (
+        <TitleHeading>
+          <h3>
+            <StyledEventOrGroupTitle data={group} />
+          </h3>
+        </TitleHeading>
+        <MessageWrapper>
+          <EventMessage
+            message={message}
+            type={group.type}
+            showUnhandled={group.isUnhandled}
+          />
+          <Divider />
+          <div>{t('First Seen in')}</div>
+          <Version version={firstRelease?.version || ''} projectId={project.id} />
+          <Divider />
+          <div>{t('Last Seen in')}</div>
+          <Version version={lastRelease?.version || ''} projectId={project.id} />
+        </MessageWrapper>
+        <StyledBreak />
+        <InfoWrapper isResolved={group.status === 'resolved'}>
+          <GroupActions
+            group={group}
+            project={project}
+            disabled={disableActions}
+            event={event}
+            query={location.query}
+          />
+          <PriorityWorkflowWrapper>
             <Wrapper>
-              {t('Participants')}
-              <div>
-                <StyledAvatarList
-                  users={userParticipants}
-                  teams={teamParticipants}
-                  avatarSize={18}
-                  maxVisibleAvatars={2}
-                  typeAvatars="participants"
-                />
-              </div>
+              {t('Priority')}
+              <GroupPriority group={group} />
             </Wrapper>
-          )}
-          {displayUsers.length > 0 && (
             <Wrapper>
-              {t('Viewers')}
-              <StyledAvatarList
-                users={displayUsers}
-                avatarSize={18}
-                maxVisibleAvatars={2}
+              {t('Assignee')}
+              <AssigneeSelectorDropdown
+                group={group}
+                loading={assigneeLoading}
+                onAssign={(assignedActor: AssignableEntity | null) =>
+                  handleAssigneeChange(assignedActor)
+                }
+                onClear={() => handleAssigneeChange(null)}
+                trigger={(props, isOpen) => (
+                  <StyledDropdownButton
+                    {...props}
+                    borderless
+                    aria-label={t('Modify issue assignee')}
+                    size="zero"
+                  >
+                    <AssigneeBadge
+                      assignedTo={group.assignedTo ?? undefined}
+                      assignmentReason={
+                        group.owners?.find(owner => {
+                          const [_ownershipType, ownerId] = owner.owner.split(':');
+                          return ownerId === group.assignedTo?.id;
+                        })?.type
+                      }
+                      loading={assigneeLoading}
+                      chevronDirection={isOpen ? 'up' : 'down'}
+                    />
+                  </StyledDropdownButton>
+                )}
               />
             </Wrapper>
-          )}
-        </PriorityAssignee>
-      </InfoWrapper>
-      <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
+            {group.participants.length > 0 && (
+              <Wrapper>
+                {t('Participants')}
+                <div>
+                  <StyledAvatarList
+                    users={userParticipants}
+                    teams={teamParticipants}
+                    avatarSize={18}
+                    maxVisibleAvatars={2}
+                    typeAvatars="participants"
+                  />
+                </div>
+              </Wrapper>
+            )}
+            {displayUsers.length > 0 && (
+              <Wrapper>
+                {t('Viewers')}
+                <StyledAvatarList
+                  users={displayUsers}
+                  avatarSize={18}
+                  maxVisibleAvatars={2}
+                />
+              </Wrapper>
+            )}
+          </PriorityWorkflowWrapper>
+        </InfoWrapper>
+        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
+      </div>
     </Layout.Header>
   );
 }
@@ -301,9 +245,9 @@ const InfoWrapper = styled('div')<{isResolved: boolean}>`
   color: ${p => p.theme.gray300};
 `;
 
-const PriorityAssignee = styled('div')`
+const PriorityWorkflowWrapper = styled('div')`
   display: flex;
-  gap: ${space(3)};
+  gap: ${space(2)};
 `;
 
 const Wrapper = styled('div')`

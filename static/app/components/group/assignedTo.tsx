@@ -24,7 +24,7 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
+import type {Actor, Commit, Committer, Group, Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -170,27 +170,15 @@ export function getAssignedToDisplayName(group: Group | FeedbackIssue) {
   return group.assignedTo?.name;
 }
 
-function AssignedTo({
+export function useHandleAssigneeChange({
+  organization,
   group,
-  project,
-  event,
   onAssign,
-  disableDropdown = false,
-}: AssignedToProps) {
-  const organization = useOrganization();
-  const api = useApi();
-  const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const {data} = useCommitters(
-    {
-      eventId: event?.id ?? '',
-      projectSlug: project.slug,
-    },
-    {
-      notifyOnChangeProps: ['data'],
-      enabled: defined(event?.id),
-    }
-  );
-
+}: {
+  group: Group;
+  organization: Organization;
+  onAssign?: OnAssignCallback;
+}) {
   const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
     AssignableEntity | null,
     RequestError,
@@ -220,6 +208,36 @@ function AssignedTo({
     onError: () => {
       addErrorMessage('Failed to update assignee');
     },
+  });
+
+  return {handleAssigneeChange, assigneeLoading};
+}
+
+function AssignedTo({
+  group,
+  project,
+  event,
+  onAssign,
+  disableDropdown = false,
+}: AssignedToProps) {
+  const organization = useOrganization();
+  const api = useApi();
+  const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
+  const {data} = useCommitters(
+    {
+      eventId: event?.id ?? '',
+      projectSlug: project.slug,
+    },
+    {
+      notifyOnChangeProps: ['data'],
+      enabled: defined(event?.id),
+    }
+  );
+
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    organization,
+    group,
+    onAssign,
   });
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -21,7 +21,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Organization, Project} from 'sentry/types';
 import {IssueCategory} from 'sentry/types/group';
-import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -29,11 +28,11 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {useIssueDetailsHeader} from 'sentry/views/issueDetails/issueDetailsHeader';
 
 import GroupActions from './actions';
-import {ShortIdBreadcrumb} from './shortIdBreadcrumb';
 import {Tab} from './types';
-import {ReprocessingStatus} from './utils';
+import type {ReprocessingStatus} from './utils';
 
 type Props = {
   baseUrl: string;
@@ -178,61 +177,21 @@ function GroupHeader({
 }: Props) {
   const location = useLocation();
 
-  const disabledTabs = useMemo(() => {
-    if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
-      return [
-        Tab.ACTIVITY,
-        Tab.USER_FEEDBACK,
-        Tab.ATTACHMENTS,
-        Tab.EVENTS,
-        Tab.MERGED,
-        Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
-      ];
-    }
-
-    if (groupReprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT) {
-      return [
-        Tab.DETAILS,
-        Tab.ATTACHMENTS,
-        Tab.EVENTS,
-        Tab.MERGED,
-        Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
-        Tab.USER_FEEDBACK,
-      ];
-    }
-
-    return [];
-  }, [groupReprocessingStatus]);
-
-  const eventRoute = useMemo(() => {
-    const searchTermWithoutQuery = omit(location.query, 'query');
-    return {
-      pathname: `${baseUrl}events/`,
-      query: searchTermWithoutQuery,
-    };
-  }, [location, baseUrl]);
+  const {
+    disabledTabs,
+    message,
+    eventRoute,
+    disableActions,
+    shortIdBreadcrumb,
+    className,
+  } = useIssueDetailsHeader({
+    group,
+    groupReprocessingStatus,
+    baseUrl,
+    project,
+  });
 
   const {userCount} = group;
-
-  let className = 'group-detail';
-
-  if (group.hasSeen) {
-    className += ' hasSeen';
-  }
-
-  if (group.status === 'resolved') {
-    className += ' isResolved';
-  }
-
-  const message = getMessage(group);
-
-  const disableActions = !!disabledTabs.length;
-
-  const shortIdBreadcrumb = (
-    <ShortIdBreadcrumb organization={organization} project={project} group={group} />
-  );
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
