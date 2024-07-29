@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -61,6 +61,11 @@ class OrganizationApiApplicationIndexEndpoint(ControlSiloOrganizationEndpoint):
 
     def get(self, request: Request, organization_context, organization) -> Response:
         """Fetch organization API Application."""
+        if not features.has(
+            "organizations:oauth2-public-api-applications", organization, actor=request.user
+        ):
+            return Response(status=404)
+
         try:
             application = ApiApplication.objects.filter(organization_id=organization.id).get()
             return Response(
@@ -72,6 +77,11 @@ class OrganizationApiApplicationIndexEndpoint(ControlSiloOrganizationEndpoint):
 
     def post(self, request: Request, organization_context, organization) -> Response:
         """Create organization API Application."""
+        if not features.has(
+            "organizations:oauth2-public-api-applications", organization, actor=request.user
+        ):
+            return Response(status=404)
+
         serializer = ApiApplicationValidator(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -103,6 +113,11 @@ class OrganizationApiApplicationIndexEndpoint(ControlSiloOrganizationEndpoint):
         )
 
     def put(self, request: Request, organization_context, organization) -> Response:
+        if not features.has(
+            "organizations:oauth2-public-api-applications", organization, actor=request.user
+        ):
+            return Response(status=404)
+
         serializer = ApiApplicationValidator(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -129,6 +144,11 @@ class OrganizationApiApplicationIndexEndpoint(ControlSiloOrganizationEndpoint):
         )
 
     def delete(self, request: Request, organization_context, organization) -> Response:
+        if not features.has(
+            "organizations:oauth2-public-api-applications", organization, actor=request.user
+        ):
+            return Response(status=404)
+
         try:
             application = ApiApplication.objects.filter(organization_id=organization.id).get()
             application.delete()
