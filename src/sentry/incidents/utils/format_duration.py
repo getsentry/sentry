@@ -29,3 +29,4 @@ def format_duration_idiomatic(minutes: int) -> str:
             literal = f"{value:d}" if value != 1 else ""
             unit_str = f" {unit}{pluralize(value)}"
             return f"{literal}{unit_str}".strip()
+    return f"{minutes} minutes"

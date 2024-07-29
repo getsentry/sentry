@@ -3,6 +3,8 @@ import pytest
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 
 TEST_CASES = [
+    (0, "0 minutes"),
+    (1, "minute"),
     (5, "5 minutes"),
     (59, "59 minutes"),
     (60, "hour"),
