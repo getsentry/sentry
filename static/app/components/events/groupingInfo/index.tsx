@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -13,6 +12,8 @@ import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
@@ -148,10 +149,11 @@ export function EventGroupingInfo({
     : [];
 
   return (
-    <EventDataSection
+    <InterimSection
       type="grouping-info"
       title={t('Event Grouping Information')}
       actions={<SectionToggleButton isExpanded={isOpen} onExpandChange={setIsOpen} />}
+      sectionKey={FoldSectionKey.GROUPING_INFO}
     >
       {!isOpen ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
       {isOpen ? (
@@ -190,7 +192,7 @@ export function EventGroupingInfo({
             : null}
         </Fragment>
       ) : null}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

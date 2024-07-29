@@ -11,7 +11,6 @@ import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -19,6 +18,8 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
@@ -110,12 +111,16 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
 
   if (isError) {
     return (
-      <EventDataSection type="attachments" title="Attachments">
+      <InterimSection
+        type="attachments"
+        title="Attachments"
+        sectionKey={FoldSectionKey.ATTACHMENTS}
+      >
         <LoadingError
           onRetry={refetch}
           message={t('An error occurred while fetching attachments')}
         />
-      </EventDataSection>
+      </InterimSection>
     );
   }
 
@@ -137,7 +142,11 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
   };
 
   return (
-    <EventDataSection type="attachments" title={title}>
+    <InterimSection
+      type="attachments"
+      title={title}
+      sectionKey={FoldSectionKey.ATTACHMENTS}
+    >
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice
           orgSlug={organization.slug}
@@ -205,7 +214,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
           ))}
         </StyledPanelTable>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

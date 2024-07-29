@@ -1,10 +1,11 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import type {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';
@@ -26,6 +27,7 @@ type Props = {
   projectSlug: Project['slug'];
   group?: Group;
   isShare?: boolean;
+  sectionKey?: FoldSectionKey;
 };
 
 function EventEntryContent({
@@ -158,9 +160,13 @@ export function EventEntry(props: Props) {
   return (
     <ErrorBoundary
       customComponent={
-        <EventDataSection type={props.entry.type} title={props.entry.type}>
+        <InterimSection
+          sectionKey={FoldSectionKey.MESSAGE}
+          type={props.entry.type}
+          title={props.entry.type}
+        >
           <p>{t('There was an error rendering this data.')}</p>
-        </EventDataSection>
+        </InterimSection>
       }
     >
       <EventEntryContent {...props} />

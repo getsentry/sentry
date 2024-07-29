@@ -1,10 +1,11 @@
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
   event: Event;
@@ -39,12 +40,12 @@ export function EventPackageData({event}: Props) {
   }
 
   return (
-    <EventDataSection type="packages" title={title}>
+    <InterimSection type="packages" title={title} sectionKey={FoldSectionKey.PACKAGE}>
       <ClippedBox>
         <ErrorBoundary mini>
           <KeyValueList data={packages} longKeys={longKeys} />
         </ErrorBoundary>
       </ClippedBox>
-    </EventDataSection>
+    </InterimSection>
   );
 }

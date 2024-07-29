@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,6 +12,8 @@ import {
   isTransactionBased,
 } from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -50,7 +51,8 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
   return (
-    <EventDataSection
+    <InterimSection
+      sectionKey={FoldSectionKey.SPAN_EVIDENCE}
       title={t('Span Evidence')}
       type="span-evidence"
       help={t(
@@ -116,7 +118,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
           />
         </TraceViewWrapper>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

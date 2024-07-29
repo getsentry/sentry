@@ -19,12 +19,40 @@ export const enum FoldSectionKey {
   HIGHLIGHTS = 'issue-details-highlights',
   RESOURCES = 'issue-details-resources', // Position controlled by flag
 
-  // -> Keep going from here
-
+  EVIDENCE = 'issue-details-evidence',
+  MESSAGE = 'issue-details-message',
+  EXCEPTION = 'issue-details-exception',
   STACK_TRACE = 'issue-details-stack-trace',
+  THREADS = 'issue-details-threads',
+
+  // QuickTraceQuery -> todo
+
+  SPAN_EVIDENCE = 'issue-details-span-evidence',
+  HYDRATION_DIFF = 'issue-details-hydration-diff',
+  REPLAY = 'issue-details-replay',
+
+  HPKP = 'issue-details-hpkp',
+  CSP = 'issue-details-csp',
+  EXPECTCT = 'issue-details-expectct',
+  EXPECTSTAPLE = 'issue-details-expectstaple',
+  TEMPLATE = 'issue-details-template',
+
   BREADCRUMBS = 'issue-details-breadcrumbs',
+  DEBUGMETA = 'issue-details-debugmeta',
+  REQUEST = 'issue-details-request',
+
   TAGS = 'issue-details-tags',
+  SCREENSHOT = 'issue-details-screenshot',
+
   CONTEXTS = 'issue-details-contexts',
+  EXTRA = 'issue-details-extra',
+  PACKAGE = 'issue-details-package',
+  DEVICE = 'issue-details-device',
+  VIEW_HIERARCHY = 'issue-details-view-hierarchy',
+  ATTACHMENTS = 'issue-details-attachments',
+  SDK = 'issue-details-sdk',
+  GROUPING_INFO = 'issue-details-grouping-info',
+  RRWEB = 'issue-details-rrweb',
 }
 
 interface FoldSectionProps {

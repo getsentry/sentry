@@ -1,7 +1,11 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
 import {
   EventDataSection,
   type EventDataSectionProps,
 } from 'sentry/components/events/eventDataSection';
+import {space} from 'sentry/styles/space';
 import {
   FoldSection,
   type FoldSectionKey,
@@ -26,12 +30,23 @@ export function InterimSection({
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   return hasStreamlinedUI ? (
-    <FoldSection sectionKey={sectionKey} title={title} actions={actions}>
-      {children}
-    </FoldSection>
+    <Fragment>
+      <FoldSection sectionKey={sectionKey} title={title} actions={actions}>
+        {children}
+      </FoldSection>
+      <Divider />
+    </Fragment>
   ) : (
     <EventDataSection title={title} actions={actions} {...props}>
       {children}
     </EventDataSection>
   );
 }
+
+const Divider = styled('hr')`
+  border: 1px solid ${p => p.theme.border};
+  margin: ${space(1)} 0;
+  &:last-child {
+    display: none;
+  }
+`;

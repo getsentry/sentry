@@ -1,4 +1,3 @@
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
 import type {Event} from 'sentry/types/event';
@@ -9,6 +8,8 @@ import {
   getConfigForIssueType,
   getIssueCategoryAndTypeFromOccurrenceType,
 } from 'sentry/utils/issueTypeConfig';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type EvidenceProps = {event: Event; project: Project; group?: Group};
 
@@ -35,7 +36,12 @@ export function EventEvidence({event, group, project}: EvidenceProps) {
   }
 
   return (
-    <EventDataSection title={config.title} type="evidence" help={config.helpText}>
+    <InterimSection
+      sectionKey={FoldSectionKey.EVIDENCE}
+      title={config.title}
+      type="evidence"
+      help={config.helpText}
+    >
       <KeyValueList
         data={evidenceDisplay.map(item => ({
           subject: item.name,
@@ -44,6 +50,6 @@ export function EventEvidence({event, group, project}: EvidenceProps) {
         }))}
         shouldSort={false}
       />
-    </EventDataSection>
+    </InterimSection>
   );
 }

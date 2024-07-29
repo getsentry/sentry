@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
 import {Autofix} from 'sentry/components/events/autofix';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -15,6 +14,8 @@ import {
 } from 'sentry/utils/issueTypeConfig';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
   event: Event;
@@ -73,6 +74,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
       type="resources-and-possible-solutions"
       title={t('Resources and Possible Solutions')}
       configResources={!!config.resources}
+      sectionKey={FoldSectionKey.RESOURCES}
     >
       <Content>
         {config.resources && (
@@ -97,7 +99,7 @@ const Content = styled('div')`
   gap: ${space(2)};
 `;
 
-const Wrapper = styled(EventDataSection)<{configResources: boolean}>`
+const Wrapper = styled(InterimSection)<{configResources: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     ${p =>
       !p.configResources &&

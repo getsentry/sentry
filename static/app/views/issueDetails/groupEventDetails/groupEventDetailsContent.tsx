@@ -59,6 +59,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupContentItem} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -77,9 +78,16 @@ type GroupEventEntryProps = {
   event: Event;
   group: Group;
   project: Project;
+  sectionKey: FoldSectionKey;
 };
 
-function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProps) {
+function GroupEventEntry({
+  event,
+  entryType,
+  group,
+  project,
+  ...props
+}: GroupEventEntryProps) {
   const organization = useOrganization();
   const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
@@ -93,6 +101,7 @@ function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProp
       group={group}
       entry={matchingEntry}
       {...{organization, event}}
+      {...props}
     />
   );
 }
@@ -227,10 +236,26 @@ function DefaultGroupEventDetailsContent({
         />
       )}
       <EventEvidence event={event} group={group} project={project} />
-      <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.THREADS} {...eventEntryProps} />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.MESSAGE}
+        entryType={EntryType.MESSAGE}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.EXCEPTION}
+        entryType={EntryType.EXCEPTION}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.STACK_TRACE}
+        entryType={EntryType.STACKTRACE}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.THREADS}
+        entryType={EntryType.THREADS}
+        {...eventEntryProps}
+      />
       {hasAnrImprovementsFeature && isANR && (
         <QuickTraceQuery
           event={event}
@@ -257,15 +282,39 @@ function DefaultGroupEventDetailsContent({
       )}
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
-      <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.EXPECTCT} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.HPKP}
+        entryType={EntryType.HPKP}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.CSP}
+        entryType={EntryType.CSP}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.EXPECTCT}
+        entryType={EntryType.EXPECTCT}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.EXPECTSTAPLE}
+        entryType={EntryType.EXPECTSTAPLE}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.TEMPLATE}
+        entryType={EntryType.TEMPLATE}
+        {...eventEntryProps}
+      />
       {hasNewTimelineUI ? (
         <BreadcrumbsDataSection event={event} group={group} project={project} />
       ) : (
-        <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
+        <GroupEventEntry
+          sectionKey={FoldSectionKey.BREADCRUMBS}
+          entryType={EntryType.BREADCRUMBS}
+          {...eventEntryProps}
+        />
       )}
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
@@ -274,8 +323,16 @@ function DefaultGroupEventDetailsContent({
           group={group}
         />
       )}
-      <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.DEBUGMETA}
+        entryType={EntryType.DEBUGMETA}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.REQUEST}
+        entryType={EntryType.REQUEST}
+        {...eventEntryProps}
+      />
       <div ref={tagsRef}>
         <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
       </div>

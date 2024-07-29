@@ -1,7 +1,8 @@
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import KeyValueList from './interfaces/keyValueList';
 import {AnnotatedText} from './meta/annotatedText';
@@ -17,7 +18,7 @@ export function EventSdk({sdk, meta}: Props) {
   }
 
   return (
-    <EventDataSection type="sdk" title={t('SDK')}>
+    <InterimSection type="sdk" title={t('SDK')} sectionKey={FoldSectionKey.SDK}>
       <KeyValueList
         data={[
           {
@@ -48,6 +49,6 @@ export function EventSdk({sdk, meta}: Props) {
           },
         ]}
       />
-    </EventDataSection>
+    </InterimSection>
   );
 }

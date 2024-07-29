@@ -12,8 +12,9 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {EventDataSection} from './eventDataSection';
 import type {ViewHierarchyData} from './viewHierarchy';
 import {ViewHierarchy} from './viewHierarchy';
 
@@ -85,11 +86,15 @@ function EventViewHierarchyContent({event, project}: Props) {
   }
 
   return (
-    <EventDataSection type="view_hierarchy" title={t('View Hierarchy')}>
+    <InterimSection
+      type="view_hierarchy"
+      title={t('View Hierarchy')}
+      sectionKey={FoldSectionKey.VIEW_HIERARCHY}
+    >
       <ErrorBoundary mini>
         <ViewHierarchy viewHierarchy={hierarchy} project={project} />
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
