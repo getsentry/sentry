@@ -103,7 +103,7 @@ INVALID_TIME_WINDOW = (
 )
 INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
 DYNAMIC_TIME_THRESHOLDS = {15, 30, 60}
-DYNAMIC_TIME_THRESHOLDS_SECONDS = {15 * 50, 30 * 60, 60 * 60}
+DYNAMIC_TIME_THRESHOLDS_SECONDS = {15 * 60, 30 * 60, 60 * 60}
 
 logger = logging.getLogger(__name__)
 
