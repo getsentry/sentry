@@ -50,6 +50,7 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.seer.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
@@ -465,7 +466,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 5
 
@@ -502,7 +503,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 10
 
@@ -539,7 +540,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 1
 

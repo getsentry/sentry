@@ -9,7 +9,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.user import User
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
@@ -19,6 +19,7 @@ from sentry.seer.anomaly_detection.types import (
     TimeSeriesPoint,
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.utils import translate_direction
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
@@ -47,18 +48,6 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
         ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
         formatted_data.append(ts_point)
     return formatted_data
-
-
-def translate_direction(direction: int) -> str:
-    """
-    Temporary translation map to Seer's expected values
-    """
-    direction_map = {
-        AlertRuleThresholdType.ABOVE: "up",
-        AlertRuleThresholdType.BELOW: "down",
-        AlertRuleThresholdType.ABOVE_AND_BELOW: "both",
-    }
-    return direction_map[AlertRuleThresholdType(direction)]
 
 
 def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPResponse:
