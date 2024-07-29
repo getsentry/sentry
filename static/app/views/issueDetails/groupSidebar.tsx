@@ -287,9 +287,7 @@ export default function GroupSidebar({
           groupId={group.id}
           tagKeys={
             isMobilePlatform(project?.platform)
-              ? !organization.features.includes('device-classification')
-                ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
-                : MOBILE_TAGS
+              ? MOBILE_TAGS
               : frontend.some(val => val === project?.platform)
                 ? FRONTEND_TAGS
                 : backend.some(val => val === project?.platform)

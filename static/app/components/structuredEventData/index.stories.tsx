@@ -1,9 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
+import Matrix from 'sentry/components/stories/matrix';
+import SideBySide from 'sentry/components/stories/sideBySide';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import storyBook from 'sentry/stories/storyBook';
 
@@ -22,6 +24,100 @@ export default storyBook(StructuredEventData, story => {
         <StructuredEventData data={false} />
         <StructuredEventData data={{foo: 'bar', arr: [1, 2, 3, 4, 5, 6]}} />
         <StructuredEventData data={['one', 2, null]} />
+      </Fragment>
+    );
+  });
+
+  story('Auto-Expanded items', () => (
+    <Matrix
+      propMatrix={{
+        data: [
+          {
+            foo: 'bar',
+            'the_real_world?': {
+              the_city: {
+                the_hotel: {
+                  the_fortress: 'a pinwheel',
+                },
+              },
+            },
+            arr5: [1, 2, 3, 4, 5],
+            arr6: [1, 2, 3, 4, 5, 6],
+          },
+        ],
+        forceDefaultExpand: [undefined, true, false],
+        maxDefaultDepth: [undefined, 0, 1, 2, 3],
+      }}
+      render={StructuredEventData}
+      selectedProps={['forceDefaultExpand', 'maxDefaultDepth']}
+    />
+  ));
+
+  story('Manually expanded items', () => {
+    const data = {
+      foo: 'bar',
+      'the_real_world?': {
+        the_city: {
+          the_hotel: {
+            the_fortress: 'a pinwheel',
+          },
+        },
+      },
+      arr5: [1, 2, 3, 4, 5],
+      arr6: [1, 2, 3, 4, 5, 6],
+    };
+    return (
+      <SideBySide>
+        <div>
+          <p>Nothing</p>
+          <StructuredEventData data={data} initialExpandedPaths={[]} />
+        </div>
+        <div>
+          <p>Root only</p>
+          <StructuredEventData data={data} initialExpandedPaths={['$']} />
+        </div>
+        <div>
+          <p>1st level</p>
+          <StructuredEventData
+            data={data}
+            initialExpandedPaths={['$', '$.the_real_world?', '$.arr5', '$.arr6']}
+          />
+        </div>
+        <div>
+          <p>Depth first</p>
+          <StructuredEventData
+            data={data}
+            initialExpandedPaths={[
+              '$',
+              '$.the_real_world?',
+              '$.the_real_world?.the_city',
+              '$.the_real_world?.the_city.the_hotel',
+              '$.the_real_world?.the_city.the_hotel.the_fortress',
+            ]}
+          />
+        </div>
+      </SideBySide>
+    );
+  });
+
+  story('onToggleExpand', () => {
+    const [state, setState] = useState<string[]>();
+    return (
+      <Fragment>
+        <p>
+          You can keep track of the expanded/collapsed state so the component looks the
+          same even if it's re-rendered on the screen at a later time (like in a virtual
+          scrolling list).
+        </p>
+        <p>
+          The <JSXProperty name="onToggleExpand" value={Function} /> callback is not
+          triggered on mount.
+        </p>
+        <p>Current expanded state: {JSON.stringify(state, null, '\t')}</p>
+        <StructuredEventData
+          data={{foo: 'bar', arr: [1, 2, 3, 4, 5, 6]}}
+          onToggleExpand={expandedPaths => setState(expandedPaths)}
+        />
       </Fragment>
     );
   });

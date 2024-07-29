@@ -71,7 +71,6 @@ class OrganizationSerializerTest(TestCase):
             "dashboards-edit",
             "discover-basic",
             "discover-query",
-            "derive-code-mappings",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
@@ -88,7 +87,6 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "performance-tracing-without-performance",
             "invite-members",
-            "invite-members-rate-limits",
             "minute-resolution-sessions",
             "new-page-filter",
             "open-membership",
@@ -100,9 +98,6 @@ class OrganizationSerializerTest(TestCase):
             "symbol-sources",
             "team-insights",
             "team-roles",
-            "performance-issues-search",
-            "transaction-name-normalize",
-            "transaction-name-mark-scrubbed-as-sanitized",
         }
 
     @mock.patch("sentry.features.batch_has")
@@ -110,8 +105,8 @@ class OrganizationSerializerTest(TestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
-        features.add("organizations:test-feature", OrganizationFeature)
-        features.add("organizations:disabled-feature", OrganizationFeature)
+        features.add("organizations:test-feature", OrganizationFeature, api_expose=True)
+        features.add("organizations:disabled-feature", OrganizationFeature, api_expose=True)
         mock_batch.return_value = {
             f"organization:{organization.id}": {
                 "organizations:test-feature": True,

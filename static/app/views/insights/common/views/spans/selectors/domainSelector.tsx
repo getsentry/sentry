@@ -1,22 +1,24 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
+import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
+import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
@@ -33,11 +35,6 @@ interface DomainData {
   'span.domain': string[];
 }
 
-interface DomainCacheValue {
-  domains: Set<string>;
-  initialLoadHadMoreData: boolean;
-}
-
 export function DomainSelector({
   value = '',
   moduleName = ModuleName.ALL,
@@ -47,14 +44,14 @@ export function DomainSelector({
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
 
-  const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
-  const [domainQuery, setDomainQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
+  const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSetSearch = useCallback(
     debounce(newSearch => {
-      setDomainQuery(newSearch);
+      setSearchQuery(newSearch);
     }, 500),
     []
   );
@@ -63,7 +60,7 @@ export function DomainSelector({
     location,
     moduleName,
     spanCategory,
-    domainQuery,
+    searchQuery,
     additionalQuery
   );
 
@@ -78,36 +75,33 @@ export function DomainSelector({
     referrer: 'api.starfish.get-span-domains',
   });
 
-  const incomingDomains = uniq(
-    domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])
-  );
-
-  // Cache for all previously seen domains
-  const domainCache = useRef<DomainCacheValue>({
-    domains: new Set(),
-    initialLoadHadMoreData: true,
+  const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
+    query: searchQuery,
+    isLoading,
+    pageLinks,
   });
 
-  // The current selected table might not be in the cached set. Ensure it's always there
+  const incomingDomains = [
+    ...uniq(domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])),
+  ];
+
   if (value) {
-    domainCache.current.domains.add(value);
+    incomingDomains.push(value);
   }
 
-  // When caching the unfiltered domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter that narrows the search
-  useEffect(() => {
-    if (domainQuery === '' && !isLoading) {
-      const {next} = parseLinkHeader(pageLinks ?? '');
+  const {options: domainOptions, clear: clearDomainOptionsCache} =
+    useCompactSelectOptionsCache(
+      incomingDomains.filter(Boolean).map(datum => {
+        return {
+          value: datum,
+          label: datum,
+        };
+      })
+    );
 
-      domainCache.current.initialLoadHadMoreData = next?.results ?? false;
-    }
-  }, [domainQuery, pageLinks, isLoading]);
-
-  // Cache all known domains from previous requests
   useEffect(() => {
-    incomingDomains?.forEach(domain => {
-      domainCache.current.domains.add(domain);
-    });
-  }, [incomingDomains]);
+    clearDomainOptionsCache();
+  }, [pageFilters.selection.projects, clearDomainOptionsCache]);
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
@@ -119,31 +113,27 @@ export function DomainSelector({
   const options = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
-    ...Array.from(domainCache.current.domains)
-      .map(datum => {
-        return {
-          value: datum,
-          label: datum,
-        };
-      })
-      .sort((a, b) => a.value.localeCompare(b.value)),
+    ...domainOptions,
     ...(emptyOptionLocation === 'bottom' ? [emptyOption] : []),
   ];
 
   return (
-    <SelectControl
-      inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
-      inputValue={searchInputValue}
+    <CompactSelect
+      style={{maxWidth: '300px'}}
       value={value}
       options={options}
-      isLoading={isLoading}
-      onInputChange={input => {
-        setSearchInputValue(input);
-
-        // If the initial query didn't fetch all the domains, update the search query and fire off a new query with the given search
-        if (domainCache.current.initialLoadHadMoreData) {
-          debouncedSetSearch(input);
+      emptyMessage={t('No results')}
+      loading={isLoading}
+      searchable
+      menuTitle={LABEL_FOR_MODULE_NAME[moduleName]}
+      maxMenuWidth={'500px'}
+      onSearch={newValue => {
+        if (!wasSearchSpaceExhausted) {
+          debouncedSetSearch(newValue);
         }
+      }}
+      triggerProps={{
+        prefix: LABEL_FOR_MODULE_NAME[moduleName],
       }}
       onChange={newValue => {
         trackAnalytics('insight.general.select_domain_value', {
@@ -159,18 +149,9 @@ export function DomainSelector({
           },
         });
       }}
-      noOptionsMessage={() => t('No results')}
-      styles={{
-        control: provided => ({
-          ...provided,
-          minWidth: MIN_WIDTH,
-        }),
-      }}
     />
   );
 }
-
-const MIN_WIDTH = 300;
 
 const LIMIT = 100;
 

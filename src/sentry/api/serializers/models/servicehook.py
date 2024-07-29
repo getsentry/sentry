@@ -4,7 +4,7 @@ from sentry.models.servicehook import ServiceHook
 
 @register(ServiceHook)
 class ServiceHookSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": obj.guid,
             "url": obj.url,

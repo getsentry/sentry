@@ -9,7 +9,10 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  isDateToken,
+  recentSearchTypeToLabel,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   type ParseResultToken,
@@ -24,6 +27,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterOperatorProps = {
   item: Node<ParseResultToken>;
+  onOpenChange: (isOpen: boolean) => void;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FILTER>;
 };
@@ -185,17 +189,25 @@ function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   };
 }
 
-export function FilterKeyOperator({token, state, item}: FilterOperatorProps) {
+export function FilterKeyOperator({
+  token,
+  state,
+  item,
+  onOpenChange,
+}: FilterOperatorProps) {
   const organization = useOrganization();
-  const {dispatch, searchSource, query, savedSearchType} = useSearchQueryBuilder();
+  const {dispatch, searchSource, query, recentSearches, disabled} =
+    useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
 
   return (
     <CompactSelect
+      disabled={disabled}
       trigger={triggerProps => (
         <OpButton
+          disabled={disabled}
           aria-label={t('Edit operator for filter: %s', token.key.text)}
           {...mergeProps(triggerProps, filterButtonProps)}
         >
@@ -206,11 +218,12 @@ export function FilterKeyOperator({token, state, item}: FilterOperatorProps) {
       size="sm"
       options={options}
       value={operator}
+      onOpenChange={onOpenChange}
       onChange={option => {
         trackAnalytics('search.operator_autocompleted', {
           organization,
           query,
-          search_type: savedSearchType === 0 ? 'issues' : 'events',
+          search_type: recentSearchTypeToLabel(recentSearches),
           search_source: searchSource,
           new_experience: true,
           search_operator: option.value,

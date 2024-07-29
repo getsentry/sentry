@@ -1,5 +1,4 @@
 import logging
-import random
 from collections.abc import Callable, Mapping
 
 import sentry_sdk
@@ -77,7 +76,9 @@ class MessageProcessor:
         # TODO-anton: remove sampled here and let traces_sampler decide
         with sentry_sdk.start_transaction(
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
-            sampled=random.random() < settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE,
+            custom_sampling_context={
+                "sample_rate": settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE
+            },
         ):
             return self._process_messages_impl(outer_message)
 

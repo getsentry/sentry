@@ -363,6 +363,15 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"`Excluded`, which does not make sense. `Excluded` must always be a standalone value."
         )
 
+    if (
+        getattr(sender._meta, "app_label", None) == "getsentry"
+        and sender.__relocation_scope__ != RelocationScope.Excluded
+    ):
+        raise ValueError(
+            f"{sender!r} model is in the `getsentry` app, and therefore cannot be exported. "
+            f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
+        )
+
     from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
 
     if issubclass(sender, ReplicatedControlModel):

@@ -7,9 +7,10 @@ import datetime
 import hmac
 from collections.abc import MutableMapping
 from hashlib import sha256
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol
 
 from pydantic.fields import Field
+from typing_extensions import TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc import RpcModel, RpcModelProtocolMeta

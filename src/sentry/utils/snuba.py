@@ -1098,14 +1098,23 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     raise SnubaError("Failed to parse snuba error response")
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
+            allocation_policy_prefix = "allocation_policy."
             if "quota_allowance" in body and "summary" in body["quota_allowance"]:
                 quota_allowance_summary = body["quota_allowance"]["summary"]
-                span.set_tag("threads_used", quota_allowance_summary["threads_used"])
-                sentry_sdk.set_tag("threads_used", quota_allowance_summary["threads_used"])
+                span.set_tag(
+                    f"{allocation_policy_prefix}threads_used",
+                    quota_allowance_summary["threads_used"],
+                )
+                sentry_sdk.set_tag(
+                    f"{allocation_policy_prefix}threads_used",
+                    quota_allowance_summary["threads_used"],
+                )
                 for k, v in quota_allowance_summary["throttled_by"].items():
+                    k = allocation_policy_prefix + "throttling_policy." + k
                     span.set_tag(k, v)
                     sentry_sdk.set_tag(k, v)
                 for k, v in quota_allowance_summary["rejected_by"].items():
+                    k = allocation_policy_prefix + "rejecting_policy." + k
                     span.set_tag(k, v)
                     sentry_sdk.set_tag(k, v)
 
@@ -1115,9 +1124,11 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 ):
                     metrics.incr("snuba.client.query.throttle", tags={"referrer": referrer})
                     if random.random() < 0.01:
-                        logger.warning("Query is throttled", extra={"response.data": response.data})
+                        logger.warning(
+                            "Warning: Query is throttled", extra={"response.data": response.data}
+                        )
                         sentry_sdk.capture_message(
-                            f"Query from referrer {referrer} is throttled", level="warning"
+                            f"Warning: Query from referrer {referrer} is throttled", level="warning"
                         )
 
             if response.status != 200:

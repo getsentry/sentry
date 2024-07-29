@@ -6,9 +6,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 
 import sentry_sdk
+from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
-from redis.client import StrictRedis
-from rediscluster import RedisCluster
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import features, nodestore, options
@@ -20,6 +19,7 @@ from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
+    BulkCreateGroupingRecordsResponse,
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
     delete_project_grouping_records,
@@ -93,79 +93,84 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
 @sentry_sdk.tracing.trace
 def initialize_backfill(
     project_id: int,
-    cohort: str | list[int] | None,
-    last_processed_group_index: int | None,
+    last_processed_group_id: int | None,
     last_processed_project_index: int | None,
-    redis_client: StrictRedis | RedisCluster,
 ):
     logger.info(
         "backfill_seer_grouping_records.start",
         extra={
             "project_id": project_id,
-            "last_processed_index": last_processed_group_index,
+            "last_processed_index": last_processed_group_id,
         },
     )
     project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-backfill", project):
         raise FeatureError("Project does not have feature")
 
-    if last_processed_group_index is None:
-        last_processed_group_index_ret = int(
-            redis_client.get(make_backfill_grouping_index_redis_key(project_id)) or 0
-        )
-    else:
-        last_processed_group_index_ret = last_processed_group_index
+    last_processed_project_index_ret = (
+        last_processed_project_index if last_processed_project_index else 0
+    )
 
-    if last_processed_project_index is None:
-        if cohort and isinstance(cohort, str):
-            last_processed_project_index_ret = int(
-                redis_client.get(make_backfill_project_index_redis_key(cohort)) or 0
-            )
-        else:
-            last_processed_project_index_ret = 0
-    else:
-        last_processed_project_index_ret = last_processed_project_index
-
-    return project, last_processed_group_index_ret, last_processed_project_index_ret
+    return project, last_processed_group_id, last_processed_project_index_ret
 
 
 @sentry_sdk.tracing.trace
-def get_current_batch_groups_from_postgres(project, last_processed_group_index, batch_size):
-    groups_to_backfill_query = (
+def get_current_batch_groups_from_postgres(
+    project, last_processed_group_id, batch_size, enable_ingestion: bool = False
+):
+    group_id_filter = Q()
+    if last_processed_group_id is not None:
+        group_id_filter = Q(id__lt=last_processed_group_id)
+
+    groups_to_backfill_batch_raw = (
         Group.objects.filter(
+            group_id_filter,
             project_id=project.id,
             type=ErrorGroupType.type_id,
             times_seen__gt=1,
-            last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
         )
-        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
-        .values_list("id", "data")
-        .order_by("-times_seen", "id")
+        .values_list("id", "data", "status", "last_seen")
+        .order_by("-id")[:batch_size]
     )
-    total_groups_to_backfill_length = groups_to_backfill_query.count()
+    total_groups_to_backfill_length = len(groups_to_backfill_batch_raw)
+    batch_end_group_id = (
+        groups_to_backfill_batch_raw[total_groups_to_backfill_length - 1][0]
+        if total_groups_to_backfill_length
+        else None
+    )
 
-    batch_end_index = min(last_processed_group_index + batch_size, total_groups_to_backfill_length)
-    groups_to_backfill_batch = groups_to_backfill_query[last_processed_group_index:batch_end_index]
+    # Filter out groups that are pending deletion in memory so postgres won't make a bad query plan
+    groups_to_backfill_batch = [
+        (group[0], group[1])
+        for group in groups_to_backfill_batch_raw
+        if group[2] not in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+        and group[3] > datetime.now(UTC) - timedelta(days=90)
+    ]
+    total_groups_to_backfill_length = len(groups_to_backfill_batch)
 
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
             "batch_len": len(groups_to_backfill_batch),
-            "last_processed_index": last_processed_group_index,
-            "total_groups_length": total_groups_to_backfill_length,
+            "last_processed_group_id": batch_end_group_id,
         },
     )
-
-    if len(groups_to_backfill_batch) == 0:
+    if total_groups_to_backfill_length == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
         )
+        if enable_ingestion:
+            logger.info(
+                "backfill_seer_grouping_records.enable_ingestion",
+                extra={"project_id": project.id},
+            )
+            project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+
         return (
             groups_to_backfill_batch,
-            batch_end_index,
-            total_groups_to_backfill_length,
+            None,
         )
 
     groups_to_backfill_with_no_embedding = [
@@ -183,8 +188,7 @@ def get_current_batch_groups_from_postgres(project, last_processed_group_index, 
         )
     return (
         groups_to_backfill_with_no_embedding,
-        batch_end_index,
-        total_groups_to_backfill_length,
+        batch_end_group_id,
     )
 
 
@@ -339,33 +343,59 @@ def get_events_from_nodestore(
     )
 
 
-@sentry_sdk.tracing.trace
-@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
-def send_group_and_stacktrace_to_seer(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
-):
-    seer_response = post_bulk_grouping_records(
-        CreateGroupingRecordsRequest(
-            group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-            data=nodestore_results["data"],
-            stacktrace_list=nodestore_results["stacktrace_list"],
+def _make_seer_call(
+    create_grouping_records_request: CreateGroupingRecordsRequest, project_id: int
+) -> BulkCreateGroupingRecordsResponse | None:
+    try:
+        seer_response = _retry_operation(
+            post_bulk_grouping_records,
+            create_grouping_records_request,
+            retries=3,
+            delay=2,
+            exceptions=Exception,
         )
-    )
+    except Exception as e:
+        logger.exception(
+            "tasks.backfill_seer_grouping_records.seer_exception_after_retries",
+            extra={"project_id": project_id, "error": e},
+        )
+        raise
+
     return seer_response
 
 
 @sentry_sdk.tracing.trace
 @metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
+def send_group_and_stacktrace_to_seer(
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+    nodestore_results,
+    project_id,
+):
+    return _make_seer_call(
+        CreateGroupingRecordsRequest(
+            group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            data=nodestore_results["data"],
+            stacktrace_list=nodestore_results["stacktrace_list"],
+        ),
+        project_id,
+    )
+
+
+@sentry_sdk.tracing.trace
+@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
 def send_group_and_stacktrace_to_seer_multithreaded(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+    nodestore_results,
+    project_id,
 ):
     def process_chunk(chunk_data, chunk_stacktrace):
-        return post_bulk_grouping_records(
+        return _make_seer_call(
             CreateGroupingRecordsRequest(
                 group_id_list=chunk_data["group_ids"],
                 data=chunk_data["data"],
                 stacktrace_list=chunk_stacktrace,
-            )
+            ),
+            project_id,
         )
 
     chunk_size = options.get("similarity.backfill_seer_chunk_size")
@@ -600,19 +630,8 @@ def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
     return event
 
 
-def make_backfill_grouping_index_redis_key(project_id: int):
-    redis_key = "grouping_record_backfill.last_processed_grouping_index"
-    return f"{redis_key}-{project_id}"
-
-
-def make_backfill_project_index_redis_key(cohort_name: str):
-    redis_key = "grouping_record_backfill.last_processed_project_index"
-    return f"{redis_key}-{cohort_name}"
-
-
 def delete_seer_grouping_records(
     project_id: int,
-    redis_client: RedisCluster | StrictRedis,
 ):
     """
     Delete seer grouping records for the project_id.
@@ -623,7 +642,6 @@ def delete_seer_grouping_records(
         extra={"project_id": project_id},
     )
     delete_project_grouping_records(project_id)
-    redis_client.delete(make_backfill_grouping_index_redis_key(project_id))
 
     for groups in chunked(
         RangeQuerySetWrapper(

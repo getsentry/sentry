@@ -555,13 +555,6 @@ function buildRoutes() {
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
-      <Route
-        path="remote-config/"
-        name={t('Remote Config')}
-        component={make(
-          () => import('sentry/views/settings/project/projectRemoteConfig')
-        )}
-      />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -1372,14 +1365,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const activityRoutes = (
-    <Route
-      path="/activity/"
-      component={make(() => import('sentry/views/organizationActivity'))}
-      withOrgPath
-    />
-  );
-
   const statsRoutes = (
     <Fragment>
       <Route path="/stats/" withOrgPath>
@@ -2105,7 +2090,6 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}

@@ -86,7 +86,7 @@ class UserReportWithGroupSerializer(UserReportSerializer):
             )
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         context = super().serialize(obj, attrs, user)
         context["issue"] = attrs["group"]
         return context

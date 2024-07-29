@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 from typing import Literal, NotRequired, TypedDict
 
@@ -86,7 +87,6 @@ def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttrib
     Converts a persisted MetricsExtractionRule into a SpanAttributeMetricSpec that satisfies
     MetricSpec of relay metric extraction config.
     """
-
     parsed_search_query = event_search.parse_search_query(extraction_rule.condition)
     extended_search_query = _extend_search_query(parsed_search_query)
 
@@ -94,7 +94,7 @@ def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttrib
         "category": "span",
         "mri": extraction_rule.generate_mri(),
         "field": _get_field(extraction_rule),
-        "tags": _get_tags(extraction_rule, parsed_search_query),
+        "tags": _get_tags(extraction_rule, extended_search_query),
         "condition": _get_rule_condition(extraction_rule, extended_search_query),
     }
 
@@ -126,7 +126,7 @@ def _flatten_query_tokens(parsed_search_query: Sequence[QueryToken]) -> list[Sea
     query_tokens: list[SearchFilter] = []
 
     for token in parsed_search_query:
-        if isinstance(token, SearchFilter):
+        if isinstance(token, SearchFilter) and token.operator not in (">", ">=", "<", "<="):
             query_tokens.append(token)
         elif isinstance(token, ParenExpression):
             query_tokens = query_tokens + _flatten_query_tokens(token.children)
@@ -171,12 +171,22 @@ def _extend_numeric_token(token: SearchFilter) -> ParenExpression | SearchFilter
     """
 
     if token.operator == "=" or token.operator == "!=":
-        if not str(token.value.value).isdigit():
+        match_comparative_ops = r"[<>]=*"
+        if op := re.match(match_comparative_ops, token.value.value):
+            numeric_value_token = SearchFilter(
+                key=token.key,
+                operator=op.group(),
+                value=SearchValue(int(token.value.value[len(op.group()) :])),
+            )
+            return numeric_value_token
+
+        elif not str(token.value.value).isdigit():
             return token
 
-        numeric_value_token = SearchFilter(
-            key=token.key, operator=token.operator, value=SearchValue(int(token.value.value))
-        )
+        else:
+            numeric_value_token = SearchFilter(
+                key=token.key, operator=token.operator, value=SearchValue(int(token.value.value))
+            )
 
     elif token.is_in_filter:
         str_values = [str(value) for value in token.value.value]
