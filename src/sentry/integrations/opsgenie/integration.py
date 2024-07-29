@@ -59,10 +59,10 @@ FEATURES = [
 ]
 
 metadata = IntegrationMetadata(
-    description=_(DESCRIPTION.strip()),
+    description=DESCRIPTION.strip(),
     features=FEATURES,
     author="The Sentry Team",
-    noun=_("Installation"),
+    noun="Installation",
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/opsgenie",
     aspects={},

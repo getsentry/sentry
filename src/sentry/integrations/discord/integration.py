@@ -5,8 +5,6 @@ from enum import Enum
 from typing import Any
 from urllib.parse import urlencode
 
-from django.utils.translation import gettext_lazy as _
-
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
@@ -60,10 +58,10 @@ COMMANDS: list[object] = [
 ]
 
 metadata = IntegrationMetadata(
-    description=_(DESCRIPTION.strip()),
+    description=DESCRIPTION.strip(),
     features=FEATURES,
     author="The Sentry Team",
-    noun=_("Installation"),
+    noun="Installation",
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Discord%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/discord",
     aspects={},
