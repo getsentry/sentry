@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -17,6 +18,10 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
+import {
+  isSpanOperationBreakdownField,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+} from 'sentry/utils/discover/fields';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
@@ -72,57 +77,110 @@ function EventsContent(props: Props) {
     projects,
   } = props;
   const routes = useRoutes();
-  const eventView = originalEventView.clone();
-  const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
-  const project = projects.find(p => p.id === projectId);
 
-  const fields = [...eventView.fields];
+  const {eventView, titles, shouldRenderColumn} = useMemo(() => {
+    const eventViewClone = originalEventView.clone();
+    const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
+    const project = projects.find(p => p.id === projectId);
 
-  if (webVital) {
-    transactionsListTitles.splice(3, 0, webVital);
-  }
+    const fields = [...eventViewClone.fields];
 
-  const spanOperationBreakdownConditions = filterToSearchConditions(
-    spanOperationBreakdownFilter,
-    location
-  );
-
-  if (spanOperationBreakdownConditions) {
-    eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
-    transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
-  }
-
-  const platform = platformToPerformanceType(projects, eventView.project);
-  if (platform === ProjectPerformanceType.BACKEND) {
-    const userIndex = transactionsListTitles.indexOf('user');
-    if (userIndex > 0) {
-      transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
-      fields.splice(userIndex + 1, 0, {field: 'http.method'});
+    if (webVital) {
+      transactionsListTitles.splice(3, 0, webVital);
     }
-  }
 
-  if (
-    organization.features.includes('profiling') &&
-    project &&
-    // only show for projects that already sent a profile
-    // once we have a more compact design we will show this for
-    // projects that support profiling as well
-    project.hasProfiles
-  ) {
-    transactionsListTitles.push(t('profile'));
-    fields.push({field: 'profile.id'});
-  }
+    const spanOperationBreakdownConditions = filterToSearchConditions(
+      spanOperationBreakdownFilter,
+      location
+    );
 
-  if (
-    organization.features.includes('session-replay') &&
-    project &&
-    projectSupportsReplay(project)
-  ) {
-    transactionsListTitles.push(t('replay'));
-    fields.push({field: 'replayId'});
-  }
+    if (spanOperationBreakdownConditions) {
+      eventViewClone.query =
+        `${eventViewClone.query} ${spanOperationBreakdownConditions}`.trim();
+      transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
+    }
 
-  eventView.fields = fields;
+    const platform = platformToPerformanceType(projects, eventViewClone.project);
+    if (platform === ProjectPerformanceType.BACKEND) {
+      const userIndex = transactionsListTitles.indexOf('user');
+      if (userIndex > 0) {
+        transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
+        fields.splice(userIndex + 1, 0, {field: 'http.method'});
+      }
+    }
+
+    let hasProfilerFields = false;
+    if (
+      // only show for projects that already sent a profile
+      // once we have a more compact design we will show this for
+      // projects that support profiling as well
+      project?.hasProfiles &&
+      (organization.features.includes('profiling') ||
+        organization.features.includes('continuous-profiling'))
+    ) {
+      transactionsListTitles.push(t('profile'));
+
+      if (organization.features.includes('profiling')) {
+        fields.push({field: 'profile.id'});
+      }
+
+      if (organization.features.includes('continuous-profiling')) {
+        hasProfilerFields = true;
+        fields.push({field: 'profiler.id'});
+        fields.push({field: 'thread.id'});
+        fields.push({field: 'precise.start_ts'});
+        fields.push({field: 'precise.finish_ts'});
+      }
+    }
+
+    if (
+      organization.features.includes('session-replay') &&
+      project &&
+      projectSupportsReplay(project)
+    ) {
+      transactionsListTitles.push(t('replay'));
+      fields.push({field: 'replayId'});
+    }
+
+    eventViewClone.fields = fields;
+
+    const containsSpanOpsBreakdown = fields.some(
+      ({field}) => field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
+    );
+
+    const shouldRenderColumnFn = (col: string): boolean => {
+      if (containsSpanOpsBreakdown && isSpanOperationBreakdownField(col)) {
+        return false;
+      }
+
+      if (hasProfilerFields) {
+        if (
+          col === 'profiler.id' ||
+          col === 'thread.id' ||
+          col === 'precise.start_ts' ||
+          col === 'precise.finish_ts'
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    return {
+      eventView: eventViewClone,
+      titles: transactionsListTitles,
+      shouldRenderColumn: shouldRenderColumnFn,
+    };
+  }, [
+    originalEventView,
+    location,
+    organization,
+    projects,
+    projectId,
+    spanOperationBreakdownFilter,
+    webVital,
+  ]);
 
   return (
     <Layout.Main fullWidth>
@@ -133,8 +191,9 @@ function EventsContent(props: Props) {
         routes={routes}
         location={location}
         setError={setError}
-        columnTitles={transactionsListTitles}
+        columnTitles={titles}
         transactionName={transactionName}
+        shouldRenderColumn={shouldRenderColumn}
       />
     </Layout.Main>
   );

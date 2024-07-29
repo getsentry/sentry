@@ -5,6 +5,7 @@ import type {Location, LocationDescriptor, LocationDescriptorObject} from 'histo
 import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
+import {LinkButton} from 'sentry/components/button';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -12,6 +13,7 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,11 +26,11 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
   getAggregateAlias,
-  isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -68,6 +70,7 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
+  shouldRenderColumn: (col: string) => boolean;
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
@@ -242,7 +245,15 @@ class EventsTable extends Component<Props, State> {
             handleCellAction={this.handleCellAction(column)}
             allowActions={allowActions}
           >
-            {target ? <Link to={target}>{rendered}</Link> : rendered}
+            <div>
+              <LinkButton
+                disabled={!target || isEmptyObject(target)}
+                to={target || {}}
+                size="xs"
+              >
+                <IconProfiling size="xs" />
+              </LinkButton>
+            </div>
           </CellAction>
         </Tooltip>
       );
@@ -371,27 +382,25 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, referrer, isEventLoading} =
-      this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      setError,
+      referrer,
+      isEventLoading,
+      shouldRenderColumn,
+    } = this.props;
 
     const totalEventsView = eventView.clone();
     totalEventsView.sorts = [];
     totalEventsView.fields = [{field: 'count()', width: -1}];
 
     const {widths} = this.state;
-    const containsSpanOpsBreakdown = eventView
-      .getColumns()
-      .find(
-        (col: TableColumn<React.ReactText>) =>
-          col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
-      );
 
     const columnOrder = eventView
       .getColumns()
-      .filter(
-        (col: TableColumn<React.ReactText>) =>
-          !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
-      )
+      .filter((col: TableColumn<React.ReactText>) => shouldRenderColumn(col.name))
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
