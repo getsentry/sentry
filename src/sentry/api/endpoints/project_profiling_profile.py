@@ -42,18 +42,6 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):
 
 
 @region_silo_endpoint
-class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project, transaction_id: str) -> HttpResponse:
-        if not features.has("organizations:profiling", project.organization, actor=request.user):
-            return Response(status=404)
-        kwargs: dict[str, Any] = {
-            "method": "GET",
-            "path": f"/organizations/{project.organization_id}/projects/{project.id}/transactions/{transaction_id}",
-        }
-        return proxy_profiling_service(**kwargs)
-
-
-@region_silo_endpoint
 class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
     def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
