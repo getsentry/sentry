@@ -17,18 +17,16 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Organization,
-  PlatformKey,
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
-} from 'sentry/types';
 import {
+  type PlatformKey,
   ReleaseComparisonChartType,
+  type ReleaseProject,
+  type ReleaseWithHealth,
+  type SessionApiResponse,
   SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -1031,7 +1029,7 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
-const Change = styled('div')<{color?: Color}>`
+export const Change = styled('div')<{color?: Color}>`
   font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;

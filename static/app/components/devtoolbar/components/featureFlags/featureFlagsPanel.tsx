@@ -26,7 +26,9 @@ export default function FeatureFlagsPanel() {
   return (
     <PanelLayout title="Feature Flags">
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-        <span>Flags enabled for {organizationSlug}</span>
+        <span>
+          Flags enabled for <code>{organizationSlug}</code>
+        </span>
       </div>
       <PanelTable
         headers={[
