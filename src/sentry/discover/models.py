@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint
@@ -89,7 +91,7 @@ class DiscoverSavedQuery(Model):
     organization = FlexibleForeignKey("sentry.Organization")
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     name = models.CharField(max_length=255)
-    query = JSONField()
+    query: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     version = models.IntegerField(null=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
@@ -160,7 +162,7 @@ class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
                 schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
-    def post_save(self, instance, **kwargs):
+    def post_save(self, *, instance: TeamKeyTransaction, created: bool, **kwargs: object) -> None:
         # this hook may be called from model hooks during an
         # open transaction. In that case, wait until the current transaction has
         # been committed or rolled back to ensure we don't read stale data in the

@@ -5,11 +5,12 @@
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
-from typing import Any, TypedDict
+from typing import Any
 
 from django.dispatch import Signal
 from django.utils import timezone
-from pydantic import Field
+from pydantic import Field, PrivateAttr
+from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.hybridcloud.rpc import RpcModel
@@ -172,6 +173,8 @@ class RpcOrganizationMappingFlags(RpcModel):
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
     codecov_access: bool = False
+    disable_member_project_creation: bool = False
+    prevent_superuser_access: bool = False
 
 
 class RpcOrganizationFlags(RpcOrganizationMappingFlags):
@@ -186,6 +189,8 @@ class RpcOrganizationFlags(RpcOrganizationMappingFlags):
             self.disable_new_visibility_features,
             self.require_email_verification,
             self.codecov_access,
+            self.disable_member_project_creation,
+            self.prevent_superuser_access,
         )
 
 
@@ -248,7 +253,7 @@ class RpcOrganization(RpcOrganizationSummary):
 
     default_role: str = ""
     date_added: datetime = Field(default_factory=timezone.now)
-    _default_owner_id: int | None = None
+    _default_owner_id: int | None = PrivateAttr(default=None)
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {
@@ -285,7 +290,7 @@ class RpcOrganization(RpcOrganizationSummary):
 
         This mirrors the method on the Organization model.
         """
-        if not hasattr(self, "_default_owner_id"):
+        if getattr(self, "_default_owner_id") is None:
             owners = self.get_owners()
             if len(owners) == 0:
                 return None

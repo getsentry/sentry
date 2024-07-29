@@ -25,11 +25,11 @@ export function ExtrapolationField({project}: ExtrapolationFieldProps) {
   const organization = useOrganization();
   const api = useApi();
 
-  const [isToggleEnabled, setIsToggleEnabled] = useState(!!project.extrapolateMetrics);
+  const [isToggleEnabled, setIsToggleEnabled] = useState(!project.extrapolateMetrics);
 
   // Reload from props if new project state is received
   useEffect(() => {
-    setIsToggleEnabled(!!project.extrapolateMetrics);
+    setIsToggleEnabled(!project.extrapolateMetrics);
   }, [project.extrapolateMetrics]);
 
   const {mutate: handleToggleChange} = useMutation<Project, RequestError, boolean>({
@@ -37,19 +37,19 @@ export function ExtrapolationField({project}: ExtrapolationFieldProps) {
       return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
         method: 'PUT',
         data: {
-          extrapolateMetrics: value,
+          extrapolateMetrics: !value,
         },
       });
     },
     onMutate: () => {
-      addLoadingMessage(t('Toggling metrics extrapolation'));
+      addLoadingMessage(t('Toggling sampled mode'));
     },
     onSuccess: updatedProject => {
-      addSuccessMessage(t('Successfully toggled metrics extrapolation'));
+      addSuccessMessage(t('Successfully toggled sampled mode'));
       ProjectsStore.onUpdateSuccess(updatedProject);
     },
     onError: () => {
-      addErrorMessage(t('Failed to toggle metrics extrapolation'));
+      addErrorMessage(t('Failed to toggle sampled mode'));
     },
   });
 
@@ -61,9 +61,9 @@ export function ExtrapolationField({project}: ExtrapolationFieldProps) {
           value={isToggleEnabled}
           name="metrics-extrapolation-toggle"
           disabled={!project.access.includes('project:write')} // admin, manager and owner of an organization will be able to edit this field
-          label={t('Metrics Extrapolation')}
+          label={t('Sampled Mode')}
           help={tct(
-            'Enables metrics extrapolation from sampled data, providing more reliable and comprehensive metrics for your project. To learn more about metrics extrapolation, [link:read the docs]',
+            'Typically, Sentry uses weights to approximate original volume and correct sampling skew. Enable sampled mode to view raw event data, where sample rates are ignored in calculations. [link:Read the docs] to learn more.',
             {
               // TODO(telemetry-experience): Add link to metrics extrapolation docs when available
               link: <ExternalLink href="https://docs.sentry.io/product/metrics/" />,

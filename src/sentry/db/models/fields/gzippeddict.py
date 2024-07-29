@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import pickle
 
-from django.db.models import TextField
+from django.db.models import Model, TextField
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
@@ -20,12 +20,12 @@ class GzippedDictField(TextField):
     value is a dictionary.
     """
 
-    def contribute_to_class(self, cls, name):
+    def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
         """
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super().contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):

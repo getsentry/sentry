@@ -6,10 +6,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -37,6 +33,7 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/cache/settings';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {
@@ -46,7 +43,6 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -134,7 +130,7 @@ export function CacheLandingPage() {
     isFetching: isTransactionDurationFetching,
   } = useMetrics(
     {
-      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
+      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}]`,
       fields: [`avg(transaction.duration)`, 'transaction'],
       enabled: !isTransactionsListFetching && transactionsList.length > 0,
     },
@@ -143,8 +139,6 @@ export function CacheLandingPage() {
 
   const onboardingProject = useOnboardingProject();
   const hasData = useHasFirstSpan(ModuleName.CACHE);
-
-  useHasDataTrackAnalytics(ModuleName.CACHE, 'insight.page_loads.cache');
 
   useEffect(() => {
     const hasMissingDataError =
@@ -210,11 +204,7 @@ export function CacheLandingPage() {
           <PageAlert />
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
+              <ModulePageFilterBar moduleName={ModuleName.CACHE} />
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.CACHE}>
               <ModuleLayout.Half>
@@ -255,7 +245,11 @@ export function CacheLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="cache" features="insights-addon-modules">
+    <ModulePageProviders
+      moduleName="cache"
+      features="insights-addon-modules"
+      analyticEventName="insight.page_loads.cache"
+    >
       <PageAlertProvider>
         <CacheLandingPage />
       </PageAlertProvider>

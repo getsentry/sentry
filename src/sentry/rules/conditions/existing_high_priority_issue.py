@@ -42,7 +42,11 @@ class ExistingHighPriorityIssueCondition(EventCondition):
 
         return [
             ConditionActivity(
-                group_id=a[0], type=ConditionActivityType.REAPPEARED, timestamp=a[1], data=a[2]
+                group_id=group_id,
+                type=ConditionActivityType.REAPPEARED,
+                timestamp=timestamp,
+                data=data,
             )
-            for a in activities
+            for group_id, timestamp, data in activities
+            if group_id is not None
         ]

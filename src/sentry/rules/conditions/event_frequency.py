@@ -177,7 +177,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
         _, duration = self.intervals[interval]
         try:
-            current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[arg-type, union-attr]
+            current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[union-attr]
         # XXX(CEO): once inc-666 work is concluded, rm try/except
         except RateLimitExceeded:
             metrics.incr("rule.event_frequency.snuba_query_limit")
@@ -658,38 +658,47 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
-        batch_percents: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
         project_id = self.get_value_from_groups(groups, "project_id")
-        avg_sessions_in_interval = None
-        if project_id:
-            session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
-            avg_sessions_in_interval = self.get_session_interval(
-                session_count_last_hour, self.get_option("interval")
-            )
-        if avg_sessions_in_interval:
-            error_issue_ids, _ = self.get_error_and_generic_group_ids(groups)
-            organization_id = self.get_value_from_groups(groups, "project__organization_id")
-            if error_issue_ids and organization_id:
-                error_issue_count = self.get_chunked_result(
-                    tsdb_function=self.tsdb.get_sums,
-                    model=get_issue_tsdb_group_model(GroupCategory.ERROR),
-                    group_ids=error_issue_ids,
-                    organization_id=organization_id,
-                    start=start,
-                    end=end,
-                    environment_id=environment_id,
-                    referrer_suffix="batch_alert_event_frequency_percent",
-                )
-                for group_id, count in error_issue_count.items():
-                    percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
-                    batch_percents[group_id] = percent
-        else:
-            percent = 0
-            for group in groups:
-                batch_percents[group.get("id")] = percent
+
+        if not project_id:
+            return {group.get("id"): 0 for group in groups}
+
+        session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
+        avg_sessions_in_interval = self.get_session_interval(
+            session_count_last_hour, self.get_option("interval")
+        )
+
+        if not avg_sessions_in_interval:
+            return {group.get("id"): 0 for group in groups}
+
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        if not (error_issue_ids and organization_id):
+            return {group.get("id"): 0 for group in groups}
+
+        error_issue_count = self.get_chunked_result(
+            tsdb_function=self.tsdb.get_sums,
+            model=get_issue_tsdb_group_model(GroupCategory.ERROR),
+            group_ids=error_issue_ids,
+            organization_id=organization_id,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            referrer_suffix="batch_alert_event_frequency_percent",
+        )
+
+        batch_percents: dict[int, int] = {}
+        for group_id, count in error_issue_count.items():
+            percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
+            batch_percents[group_id] = percent
+
+        # We do not have sessions for non-error issue types
+        for group in generic_issue_ids:
+            batch_percents[group] = 0
 
         return batch_percents
 

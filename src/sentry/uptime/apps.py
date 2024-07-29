@@ -5,4 +5,4 @@ class Config(AppConfig):
     name = "sentry.uptime"
 
     def ready(self):
-        pass
+        from sentry.uptime.endpoints import serializers  # NOQA

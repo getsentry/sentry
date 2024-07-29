@@ -248,7 +248,7 @@ def cleanup(
             expired_threshold = timezone.now() - timedelta(days=days)
             models.OrganizationMember.objects.delete_expired(expired_threshold)
 
-        for model_tp in [models.ApiGrant, models.ApiToken]:
+        for model_tp in (models.ApiGrant, models.ApiToken):
             debug_output(f"Removing expired values for {model_tp.__name__}")
 
             if is_filtered(model_tp):
@@ -273,8 +273,8 @@ def cleanup(
         if is_filtered(ExportedData):
             debug_output(">> Skipping ExportedData files")
         else:
-            queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
-            for item in queryset:
+            export_data_queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
+            for item in export_data_queryset:
                 item.delete_file()
 
         project_id = None

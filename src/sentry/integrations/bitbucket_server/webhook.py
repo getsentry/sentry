@@ -11,9 +11,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
+from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider

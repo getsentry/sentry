@@ -33,7 +33,8 @@ import {
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -145,7 +146,7 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
 
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
-  const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
+  const jsFrameworkSelectOptions = replayJsFrameworkOptions().map(platform => {
     return {
       value: platform.id,
       textValue: platform.name,
@@ -193,8 +194,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     !crashReportOnboarding;
 
   const jsFrameworkPlatform =
-    replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-    replayJsFrameworkOptions[0];
+    replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
+    replayJsFrameworkOptions()[0];
 
   const {
     isLoading,
@@ -269,7 +270,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       ) : (
         newDocs?.platformOptions &&
         widgetPlatform &&
-        !crashReportOnboarding && (
+        !crashReportOnboarding &&
+        !isLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (

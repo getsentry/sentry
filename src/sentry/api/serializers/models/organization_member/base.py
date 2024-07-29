@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.users.services.user import RpcUser
@@ -99,8 +99,6 @@ class OrganizationMemberSerializer(Serializer):
             "email": email,
             "name": user["name"] if user else email,
             "user": attrs["user"],
-            "role": obj.role,  # Deprecated, use orgRole instead
-            "roleName": roles.get(obj.role).name,  # Deprecated
             "orgRole": obj.role,
             "pending": obj.is_pending,
             "expired": obj.token_expired,
@@ -115,6 +113,8 @@ class OrganizationMemberSerializer(Serializer):
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
+            "role": obj.role,  # Deprecated, use orgRole instead
+            "roleName": roles.get(obj.role).name,  # Deprecated
         }
 
         if "externalUsers" in self.expand:

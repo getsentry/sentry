@@ -10,6 +10,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {parseFilterValueDuration} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/duration/parser';
+import {parseFilterValuePercentage} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/percentage/parser';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
@@ -17,7 +18,10 @@ import {
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
-import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  isDateToken,
+  recentSearchTypeToLabel,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   TermOperator,
@@ -379,6 +383,8 @@ function getPredefinedValues({
         return getNumericSuggestions(filterValue);
       case FieldValueType.DURATION:
         return getDurationSuggestions(filterValue, token);
+      case FieldValueType.PERCENTAGE:
+        return [];
       case FieldValueType.BOOLEAN:
         return DEFAULT_BOOLEAN_SUGGESTIONS;
       case FieldValueType.DATE:
@@ -479,6 +485,18 @@ function cleanFilterValue(
         return `${parsed.value}ms`;
       }
       return value;
+    }
+    case FieldValueType.PERCENTAGE: {
+      const parsed = parseFilterValuePercentage(value);
+      if (!parsed) {
+        return null;
+      }
+      // If the user passes "50%", convert to 0.5
+      if (parsed.unit) {
+        const numericValue = parseFloat(parsed.value);
+        return isNaN(numericValue) ? parsed.value : (numericValue / 100).toString();
+      }
+      return parsed.value;
     }
     case FieldValueType.DATE:
       const parsed = parseFilterValueDate(value);
@@ -660,7 +678,11 @@ function ItemCheckbox({
   const {dispatch} = useSearchQueryBuilder();
 
   return (
-    <TrailingWrap onPointerUp={e => e.stopPropagation()}>
+    <TrailingWrap
+      onPointerUp={e => e.stopPropagation()}
+      onMouseUp={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
       <CheckWrap visible={isFocused || selected} role="presentation">
         <Checkbox
           size="sm"
@@ -673,7 +695,7 @@ function ItemCheckbox({
               value: escapeTagValue(value),
             });
           }}
-          aria-label={t('Select %s', value)}
+          aria-label={t('Toggle %s', value)}
           tabIndex={-1}
         />
       </CheckWrap>
@@ -703,7 +725,7 @@ export function SearchQueryBuilderValueCombobox({
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const {getFieldDefinition, filterKeys, dispatch, searchSource, savedSearchType} =
+  const {getFieldDefinition, filterKeys, dispatch, searchSource, recentSearches} =
     useSearchQueryBuilder();
   const fieldDefinition = getFieldDefinition(token.key.text);
   const canSelectMultipleValues = tokenSupportsMultipleValues(
@@ -740,7 +762,9 @@ export function SearchQueryBuilderValueCombobox({
     if (canSelectMultipleValues) {
       setInputValue(getMultiSelectInputValue(token));
     }
-  }, [canSelectMultipleValues, token]);
+    // We want to avoid resetting the input value if the token text doesn't actually change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSelectMultipleValues, token.text]);
 
   // On mount, scroll to the end of the input
   useEffect(() => {
@@ -758,7 +782,7 @@ export function SearchQueryBuilderValueCombobox({
   const analyticsData = useMemo(
     () => ({
       organization,
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: recentSearchTypeToLabel(recentSearches),
       search_source: searchSource,
       filter_key: token.key.text,
       filter_operator: token.operator,
@@ -768,7 +792,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       fieldDefinition?.valueType,
       organization,
-      savedSearchType,
+      recentSearches,
       searchSource,
       token.key.text,
       token.operator,

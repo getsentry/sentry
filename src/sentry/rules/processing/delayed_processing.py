@@ -5,6 +5,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
+import sentry_sdk
+from django.db.models import OuterRef, Subquery
+
 from sentry import buffer, nodestore
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
@@ -232,10 +235,11 @@ def _passes_comparison(
         query_values = [
             condition_group_results[unique_query][group_id] for unique_query in unique_queries
         ]
-    except KeyError as e:
+    except KeyError as exception:
+        sentry_sdk.capture_exception(exception)
         logger.exception(
             "delayed_processing.missing_query_results",
-            extra={"exception": e, "group_id": group_id, "project_id": project_id},
+            extra={"exception": exception, "group_id": group_id, "project_id": project_id},
         )
         return False
 
@@ -271,11 +275,8 @@ def get_rules_to_fire(
                     if action_match == "any":
                         rules_to_fire[alert_rule].add(group_id)
                         break
-                    conditions_matched += 1
-                else:
-                    if action_match == "all":
-                        # We failed to match all conditions for this group, skip
-                        break
+                    elif action_match == "all":
+                        conditions_matched += 1
             if action_match == "all" and conditions_matched == len(slow_conditions):
                 rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
@@ -384,14 +385,13 @@ def get_group_to_groupevent(
     bulk_occurrence_id_to_occurrence = {
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
     }
-    group_to_groupevent = build_group_to_groupevent(
+    return build_group_to_groupevent(
         parsed_rulegroup_to_event_data,
         bulk_event_id_to_events,
         bulk_occurrence_id_to_occurrence,
         group_id_to_group,
         project_id,
     )
-    return group_to_groupevent
 
 
 def bucket_num_groups(num_groups: int) -> str:
@@ -432,29 +432,43 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     # STEP 1: Fetch the rulegroup_to_event_data mapping for the project from redis
-    project = Project.objects.get_from_cache(id=project_id)
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        # The TTL of the buffer is 1 hr so the rule_group to event data for the
+        # nonexistent project will eventually be cleaned up.
+        logger.info(
+            "delayed_processing.project_does_not_exist",
+            extra={"project_id": project_id},
+        )
+        return
     rulegroup_to_event_data = buffer.backend.get_hash(
         model=Project, field={"project_id": project.id}
     )
-    num_groups = len(rulegroup_to_event_data.keys())
+    num_groups = len(rulegroup_to_event_data)
     num_groups_bucketed = bucket_num_groups(num_groups)
     metrics.incr("delayed_processing.num_groups", tags={"num_groups": num_groups_bucketed})
-    logger.info(
-        "delayed_processing.rulegroupeventdata",
-        extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
-    )
+    if num_groups >= 10000:
+        logger.error(
+            "delayed_processing.too_many_groups",
+            extra={"project_id": project_id, "num_groups": num_groups},
+        )
+    else:
+        logger.info(
+            "delayed_processing.rulegroupeventdata",
+            extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
+        )
 
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
     # STEP 3: Fetch the Rule models we need to check
-    alert_rules_qs = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
-    snoozed_rules = set(
-        RuleSnooze.objects.filter(rule__in=alert_rules_qs, user_id=None).values_list(
-            "rule", flat=True
+    alert_rules_queryset = Rule.objects.filter(id__in=list(rules_to_groups.keys())).exclude(
+        id__in=Subquery(
+            RuleSnooze.objects.filter(rule_id=OuterRef("id"), user_id=None).values("rule_id")
         )
     )
-    alert_rules = [rule for rule in alert_rules_qs if rule.id not in snoozed_rules]
+    alert_rules = list(alert_rules_queryset)
 
     # STEP 4: Create a map of unique condition queries to a tuple containing the
     # JSON information needed to instantiate that condition class and the

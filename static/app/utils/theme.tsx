@@ -780,7 +780,7 @@ const commonTheme = {
 
     containerWidth: '1440px',
     headerHeight: '61px',
-    sidebarWidth: '236px',
+    sidebarWidth: '220px',
   },
 
   sidebar: {
@@ -790,7 +790,7 @@ const commonTheme = {
     badgeSize: '22px',
     smallBadgeSize: '11px',
     collapsedWidth: '70px',
-    expandedWidth: '236px',
+    expandedWidth: '220px',
     mobileHeight: '54px',
     menuSpacing: '15px',
   },

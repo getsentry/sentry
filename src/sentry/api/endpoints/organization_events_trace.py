@@ -69,7 +69,7 @@ SnubaTransaction = TypedDict(
         "precise.finish_ts": int,
         "precise.start_ts": int,
         "profile.id": str,
-        "profile.profiler_id": str,
+        "profiler.id": str,
         "project": str,
         "project.id": int,
         "root": str,
@@ -235,9 +235,9 @@ class TraceEvent:
             offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
             for group_id in self.event["occurrence_to_issue_id"][problem.id]:
                 if group_id not in memoized_groups:
-                    memoized_groups[group_id] = Group.objects.filter(
+                    memoized_groups[group_id] = Group.objects.get(
                         id=group_id, project=self.event["project.id"]
-                    ).first()
+                    )
                 group = memoized_groups[group_id]
                 if event_span.get("span_id") in offender_span_ids:
                     start_timestamp = float(event_span["precise.start_ts"])
@@ -416,7 +416,7 @@ class TraceEvent:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
             result["profile_id"] = self.event["profile.id"]
-            result["profiler_id"] = self.event["profile.profiler_id"]
+            result["profiler_id"] = self.event["profiler.id"]
             result["sdk_name"] = self.event["sdk.name"]
             # TODO: once we're defaulting measurements we don't need this check
             if "measurements" in self.event:
@@ -430,7 +430,7 @@ class TraceEvent:
             profile_id = contexts.get("profile", {}).get("profile_id")
             if profile_id is not None:
                 result["profile_id"] = profile_id
-            result["profiler_id"] = self.event["profile.profiler_id"]
+            result["profiler_id"] = self.event["profiler.id"]
 
             if detailed:
                 if "measurements" in self.nodestore_event.data:
@@ -596,7 +596,7 @@ def query_trace_data(
         "project",
         "project.id",
         "profile.id",
-        "profile.profiler_id",
+        "profiler.id",
         "sdk.name",
         "trace.span",
         "trace.parent_span",

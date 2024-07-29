@@ -72,12 +72,13 @@ class NotificationController:
         self.type = type
         self.provider = provider
 
-        org_mapping = OrganizationMapping.objects.filter(organization_id=organization_id).first()
-        org = (
-            serialize_organization_mapping(org_mapping)
-            if organization_id and org_mapping is not None
-            else None
-        )
+        if organization_id is not None:
+            org_mapping = OrganizationMapping.objects.filter(
+                organization_id=organization_id
+            ).first()
+            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
+        else:
+            org = None
         if org and features.has("organizations:team-workflow-notifications", org):
             self.recipients: list[Recipient] = []
             for recipient in recipients:
@@ -289,14 +290,13 @@ class NotificationController:
             )
         )
 
-        org_mapping = OrganizationMapping.objects.filter(
-            organization_id=self.organization_id
-        ).first()
-        org = (
-            serialize_organization_mapping(org_mapping)
-            if self.organization_id and org_mapping is not None
-            else None
-        )
+        if self.organization_id is not None:
+            org_mapping = OrganizationMapping.objects.filter(
+                organization_id=self.organization_id
+            ).first()
+            org = serialize_organization_mapping(org_mapping) if org_mapping is not None else None
+        else:
+            org = None
         has_team_workflow = org and features.has("organizations:team-workflow-notifications", org)
 
         for recipient in self.recipients:

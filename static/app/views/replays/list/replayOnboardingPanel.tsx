@@ -12,7 +12,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Accordion from 'sentry/components/replays/accordion';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {Tooltip} from 'sentry/components/tooltip';
-import {mobile, replayPlatforms} from 'sentry/data/platformCategories';
+import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayPanel from 'sentry/views/replays/list/replayPanel';
 
 type Breakpoints = {
@@ -47,11 +48,8 @@ export default function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const {canCreateProject} = useProjectCreationAccess({organization});
-  const hasMobileReplays = organization.features.includes('session-replay-mobile-player');
 
-  const supportedPlatforms = hasMobileReplays
-    ? replayPlatforms.concat(mobile)
-    : replayPlatforms;
+  const supportedPlatforms = replayPlatforms;
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -124,6 +122,8 @@ export function SetupReplaysCTA({
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
+  const {allMobileProj} = useAllMobileProj();
+
   const FAQ = [
     {
       header: (
@@ -133,7 +133,7 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay supports all browser-based applications and certain native mobile platforms, such as iOS, React Native, and Android. Our native Android, React Native, and iOS SDKs are currently in beta. Features are still in progress and may have some bugs. We recognize the irony.'
+              'Session Replay supports all browser-based applications and certain native mobile platforms, such as Android, iOS, and React Native. Our mobile SDKs are currently in beta. Features are still in progress and may have some bugs. We recognize the irony.'
             )}
           </div>
           <div>
@@ -160,12 +160,28 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay adds a small amount of performance overhead to your web application. For most web apps, the performance overhead of our client SDK will be imperceptible to end-users. For example, the Sentry site has Replay enabled and we have not seen any significant slowdowns.'
+              'Session Replay adds a small amount of performance overhead to your web or mobile application. For most applications, the performance overhead of our client SDK will be imperceptible to end-users. For example, the Sentry site has Replay enabled and we have not seen any significant slowdowns.'
             )}
           </div>
           <div>
             {t(
-              'The performance overhead generally scales linearly with the DOM complexity of your application. The more DOM state changes that occur in the application lifecycle, the more events that are captured, transmitted, etc.'
+              'For web, the performance overhead generally scales linearly with the DOM complexity of your application. The more DOM state changes that occur in the application lifecycle, the more events that are captured, transmitted, etc.'
+            )}
+          </div>
+          <div>
+            {tct(
+              'With early customers of Mobile Replay, the overhead was not noticeable by end-users, but depending on your application complexity, you may discover the recording overhead may negatively impact your mobile application performance. If you do, please let us know on GitHub: [android:Android], [ios:iOS], and [rn:React Native].',
+              {
+                android: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-java/issues/new/choose" />
+                ),
+                ios: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-cocoa/issues/new/choose" />
+                ),
+                rn: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-react-native/issues/new/choose" />
+                ),
+              }
             )}
           </div>
           <div>
@@ -260,7 +276,11 @@ export function SetupReplaysCTA({
       <ButtonList gap={1}>
         {renderCTA()}
         <Button
-          href="https://docs.sentry.io/product/session-replay/getting-started/"
+          href={
+            allMobileProj
+              ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
+              : 'https://docs.sentry.io/product/explore/session-replay/'
+          }
           external
         >
           {t('Read Docs')}
