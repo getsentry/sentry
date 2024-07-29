@@ -44,6 +44,7 @@ from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
 EVENT_LIMIT = 100
+COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
 
 
 class UniqueConditionQuery(NamedTuple):
@@ -278,9 +279,6 @@ def get_group_to_groupevent(
     )
 
 
-COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
-
-
 def get_condition_group_results(
     condition_groups: dict[UniqueConditionQuery, DataAndGroups], project: Project
 ) -> dict[UniqueConditionQuery, dict[int, int]] | None:
@@ -288,7 +286,7 @@ def get_condition_group_results(
     current_time = datetime.now(tz=timezone.utc)
     project_id = project.id
 
-    for unique_condition, data_and_groups in condition_groups.items():
+    for unique_condition, (condition_data, group_ids) in condition_groups.items():
         cls_id = unique_condition.cls_id
         condition_cls = rules.get(cls_id)
         if condition_cls is None:
@@ -299,7 +297,7 @@ def get_condition_group_results(
             )
             continue
 
-        condition_inst = condition_cls(project=project, data=data_and_groups.data)  # type: ignore[arg-type]
+        condition_inst = condition_cls(project=project, data=condition_data)  # type: ignore[arg-type]
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
             logger.warning("Unregistered condition %r", cls_id, extra={"project_id": project_id})
             continue
@@ -315,7 +313,7 @@ def get_condition_group_results(
         result = safe_execute(
             condition_inst.get_rate_bulk,
             duration=duration,
-            group_ids=data_and_groups.group_ids,
+            group_ids=group_ids,
             environment_id=unique_condition.environment_id,
             current_time=current_time,
             comparison_interval=comparison_interval,
