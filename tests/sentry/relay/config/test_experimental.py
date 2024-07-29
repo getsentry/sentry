@@ -4,7 +4,12 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.relay.config.experimental import TimeChecker, TimeoutException, add_experimental_config
+from sentry.relay.config.experimental import (
+    TimeChecker,
+    TimeoutException,
+    add_experimental_config,
+    run_experimental_config_builder,
+)
 
 
 def test_time_checker_throws_on_timeout_hit():
@@ -40,3 +45,36 @@ def test_add_experimental_config_catches_timeout(mock_logger):
     extra = mock_logger.call_args[1]["extra"]
     assert extra.pop("elapsed") > timedelta(seconds=1)
     assert extra == {"hard_timeout": timedelta(seconds=1)}
+
+
+@patch("sentry.relay.config.experimental._FEATURE_BUILD_TIMEOUT", timedelta(seconds=1))
+@patch("sentry.relay.config.experimental.logger.exception")
+def test_run_experimental_config_builder_catches_timeout(mock_logger):
+    def dummy(timeout: TimeChecker, *args, **kwargs):
+        sleep(1)
+        timeout.check()
+
+    run_experimental_config_builder(dummy, 1, 1)
+
+    # Assert logger message.
+    # These many asserts is a workaround to exclude `elapsed` from the assertion
+    assert mock_logger.call_args[0] == ("Project config feature build timed out",)
+    extra = mock_logger.call_args[1]["extra"]
+    assert extra.pop("elapsed") > timedelta(seconds=1)
+    assert extra == {"hard_timeout": timedelta(seconds=1)}
+
+
+def test_run_experimental_config_builder_returns_results_from_function_in_args():
+    def dummy(*args, **kwargs):
+        return 1, 2, 3
+
+    result = run_experimental_config_builder(dummy, 1, 2, 3, 4, 5)
+
+    assert result == (1, 2, 3)
+
+    def dummy2(*args, **kwargs):
+        return "foo", None, "bar"
+
+    result2 = run_experimental_config_builder(dummy2)
+
+    assert result2 == ("foo", None, "bar")

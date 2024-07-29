@@ -1,7 +1,7 @@
 import logging
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 import sentry_sdk
 
@@ -76,3 +76,27 @@ def add_experimental_config(
         else:
             if subconfig is not None:
                 config[key] = subconfig
+
+
+R = TypeVar("R")
+
+
+def run_experimental_config_builder(
+    function: Callable[..., R], *args: Any, **kwargs: Any
+) -> R | None:
+    """
+    Runs an experimental config builder function with a timeout.
+    If the function call raises an exception, we log it to sentry and return None.
+    """
+    timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
+
+    with sentry_sdk.start_span(op="project_config.experimental_config_builder"):
+        try:
+            return function(timeout, *args, **kwargs)
+        except TimeoutException as e:
+            logger.exception(
+                "Project config feature build timed out",
+                extra={"hard_timeout": e._timeout, "elapsed": e._elapsed},
+            )
+        except Exception:
+            logger.exception("Exception while building Relay project config field")
