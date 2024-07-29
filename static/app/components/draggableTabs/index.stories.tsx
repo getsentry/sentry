@@ -50,12 +50,7 @@ export default storyBook(DraggableTabBar, story => {
       </p>
       <SizingWindow>
         <TabBarContainer>
-          <DraggableTabBar
-            tabs={TABS}
-            tempTabContent={
-              <TabPanelContainer>This is a temporary tab</TabPanelContainer>
-            }
-          />
+          <DraggableTabBar tabs={TABS} />
         </TabBarContainer>
       </SizingWindow>
     </Fragment>

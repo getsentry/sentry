@@ -24,8 +24,6 @@ export interface Tab {
 
 export interface DraggableTabBarProps {
   tabs: Tab[];
-  tempTabActive: boolean;
-  tempTabContent: React.ReactNode;
   onDelete?: (key: MenuItemProps['key']) => void;
   onDiscard?: (key: MenuItemProps['key']) => void;
   onDuplicate?: (key: MenuItemProps['key']) => void;
