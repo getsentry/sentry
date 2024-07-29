@@ -89,7 +89,7 @@ describe('useCurrentProjectState', () => {
     expect(result.current.currentProject).toBe(undefined);
   });
 
-  it('should return currentProject=undefined whenproject url param is present and currentPanel != targetPanel', () => {
+  it('should return currentProject=undefined when project url param is present and currentPanel != targetPanel', () => {
     ProjectsStore.loadInitialData([javascript, angular]);
     mockPageFilterStore([javascript, angular]);
     const {result} = renderHook(useCurrentProjectState, {
@@ -99,7 +99,7 @@ describe('useCurrentProjectState', () => {
         onboardingPlatforms: customMetricOnboardingPlatforms,
         allPlatforms: customMetricPlatforms,
       },
-      wrapper: createWrapper(angular.slug),
+      wrapper: createWrapper(angular.id),
     });
     expect(result.current.currentProject).toBe(undefined);
   });
@@ -129,9 +129,9 @@ describe('useCurrentProjectState', () => {
         onboardingPlatforms: customMetricOnboardingPlatforms,
         allPlatforms: customMetricPlatforms,
       },
-      wrapper: createWrapper(angular.slug),
+      wrapper: createWrapper(javascript.id),
     });
-    expect(result.current.currentProject).toBe(angular);
+    expect(result.current.currentProject).toBe(javascript);
   });
 
   it('should return the first project if global selection does not have onboarding', () => {
