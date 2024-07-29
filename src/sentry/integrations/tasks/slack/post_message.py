@@ -8,7 +8,7 @@ from sentry.integrations.slack.service import SlackService
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
-logger = logging.getLogger("sentry.integrations.slack.tasks")
+logger = logging.getLogger("sentry.integrations.tasks.slack")
 
 
 # TODO: add retry logic

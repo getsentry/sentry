@@ -17,7 +17,7 @@ class TestActivityCreatedReceiver(TestCase):
 
     def test_ignores_uncreated_events(self) -> None:
         with mock.patch(
-            "sentry.integrations.slack.tasks.send_notifications_on_activity.send_activity_notifications_to_slack_threads",
+            "sentry.integrations.tasks.slack.send_notifications_on_activity.send_activity_notifications_to_slack_threads",
             self.mock_send_activity_notifications,
         ):
             foo = mock.MagicMock()
@@ -27,7 +27,7 @@ class TestActivityCreatedReceiver(TestCase):
 
     def test_calls_async_function(self) -> None:
         with mock.patch(
-            "sentry.integrations.slack.tasks.send_notifications_on_activity.send_activity_notifications_to_slack_threads",
+            "sentry.integrations.tasks.slack.send_notifications_on_activity.send_activity_notifications_to_slack_threads",
             self.mock_send_activity_notifications,
         ):
             mock_activity = mock.MagicMock()
@@ -39,7 +39,7 @@ class TestActivityCreatedReceiver(TestCase):
 
     def test_receiver_signal(self) -> None:
         with mock.patch(
-            "sentry.integrations.slack.tasks.send_notifications_on_activity.send_activity_notifications_to_slack_threads",
+            "sentry.integrations.tasks.slack.send_notifications_on_activity.send_activity_notifications_to_slack_threads",
             self.mock_send_activity_notifications,
         ):
             new_activity = Activity.objects.create(
@@ -66,7 +66,7 @@ class TestSendActivityNotifications(TestCase):
 
     def test_returns_early_when_no_activity_found(self) -> None:
         with mock.patch(
-            "sentry.integrations.slack.tasks.send_notifications_on_activity.SlackService",
+            "sentry.integrations.tasks.slack.send_notifications_on_activity.SlackService",
             self.mock_slack_service,
         ):
             send_activity_notifications_to_slack_threads(activity_id=123)
@@ -74,7 +74,7 @@ class TestSendActivityNotifications(TestCase):
 
     def test_calls_notify_all_threads_for_activity(self) -> None:
         with mock.patch(
-            "sentry.integrations.slack.tasks.send_notifications_on_activity.SlackService",
+            "sentry.integrations.tasks.slack.send_notifications_on_activity.SlackService",
             self.mock_slack_service,
         ):
             send_activity_notifications_to_slack_threads(activity_id=self.activity.id)

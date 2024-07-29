@@ -807,8 +807,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
     "sentry.replays.usecases.ingest.issue_creation",
-    "sentry.integrations.slack.tasks",
-    "sentry.integrations.github.tasks",
+    "sentry.integrations.tasks.slack",
+    "sentry.integrations.tasks.github",
+    "sentry.integrations.tasks.opsgenie",
+    "sentry.integrations.tasks.jira",
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.subscriptions.tasks",
 )
@@ -1210,7 +1212,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
-        "task": "sentry.integrations.github.tasks.github_comment_reactions",
+        "task": "sentry.integrations.tasks.github.github_comment_reactions",
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
     },

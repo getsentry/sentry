@@ -15,7 +15,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
-logger = logging.getLogger("sentry.integrations.slack.tasks")
+logger = logging.getLogger("sentry.integrations.tasks.slack")
 
 
 @instrumented_task(

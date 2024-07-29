@@ -97,7 +97,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         assert repos[0].name == "getsentry/snuba"
 
-    @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
+    @patch("sentry.integrations.tasks.github.link_all_repos.metrics")
     def test_link_all_repos_missing_integration(self, mock_metrics, _):
         link_all_repos(
             integration_key=self.key,
@@ -108,7 +108,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
             "github.link_all_repos.error", tags={"type": "missing_integration"}
         )
 
-    @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
+    @patch("sentry.integrations.tasks.github.link_all_repos.metrics")
     def test_link_all_repos_missing_organization(self, mock_metrics, _):
         link_all_repos(
             integration_key=self.key,
@@ -119,7 +119,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
             "github.link_all_repos.error", tags={"type": "missing_organization"}
         )
 
-    @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
+    @patch("sentry.integrations.tasks.github.link_all_repos.metrics")
     @responses.activate
     def test_link_all_repos_api_error(self, mock_metrics, _):
 
@@ -159,7 +159,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         mock_metrics.incr.assert_called_with("github.link_all_repos.rate_limited_error")
 
     @patch("sentry.models.Repository.objects.create")
-    @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
+    @patch("sentry.integrations.tasks.github.link_all_repos.metrics")
     @responses.activate
     def test_link_all_repos_repo_creation_error(self, mock_metrics, mock_repo, _):
         mock_repo.side_effect = IntegrityError
