@@ -9,11 +9,13 @@ import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 import {Reorder} from 'framer-motion';
 
+import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {TabsContext} from 'sentry/components/tabs';
 import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
+import {IconAdd} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
@@ -29,6 +31,8 @@ function BaseDraggableTabList({
   className,
   outerWrapStyles,
   onReorder,
+  onAddView,
+  showTempTab = false,
   tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
@@ -103,6 +107,11 @@ function BaseDraggableTabList({
     });
   }, [state.collection, overflowTabs]);
 
+  const persistentTabs = [...state.collection].filter(
+    item => item.key !== 'temporary-tab'
+  );
+  const tempTab = [...state.collection].find(item => item.key === 'temporary-tab');
+
   return (
     <TabListOuterWrap style={outerWrapStyles}>
       <Reorder.Group
@@ -115,10 +124,11 @@ function BaseDraggableTabList({
           {...tabListProps}
           orientation={orientation}
           hideBorder={hideBorder}
+          borderStyle={state.selectedKey === 'temporary-tab' ? 'dashed' : 'solid'}
           className={className}
           ref={tabListRef}
         >
-          {[...state.collection].map(item => (
+          {persistentTabs.map(item => (
             <Reorder.Item
               key={item.key}
               value={item}
@@ -136,12 +146,32 @@ function BaseDraggableTabList({
                 variant={tabVariant}
               />
 
-              {state.selectedKey !== item.key &&
-                state.collection.getKeyAfter(item.key) !== state.selectedKey && (
-                  <TabDivider />
-                )}
+              {(state.selectedKey === 'temporary-tab' ||
+                (state.selectedKey !== item.key &&
+                  state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
+                <TabDivider />
+              )}
             </Reorder.Item>
           ))}
+          <AddViewButton borderless size="zero" onClick={onAddView}>
+            <StyledIconAdd size="xs" />
+            Add View
+          </AddViewButton>
+          <TabDivider />
+          {showTempTab && tempTab && (
+            <Tab
+              key={tempTab.key}
+              item={tempTab}
+              state={state}
+              orientation={orientation}
+              overflowing={
+                orientation === 'horizontal' && overflowTabs.includes(tempTab.key)
+              }
+              ref={element => (tabItemsRef.current[tempTab.key] = element)}
+              variant={tabVariant}
+              borderStyle="dashed"
+            />
+          )}
         </TabListWrap>
       </Reorder.Group>
 
@@ -164,7 +194,9 @@ export interface DraggableTabListProps
   onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
   className?: string;
   hideBorder?: boolean;
+  onAddView?: React.MouseEventHandler;
   outerWrapStyles?: React.CSSProperties;
+  showTempTab?: boolean;
   tabVariant?: BaseTabProps['variant'];
 }
 
@@ -172,7 +204,12 @@ export interface DraggableTabListProps
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DraggableTabList({items, ...props}: DraggableTabListProps) {
+export function DraggableTabList({
+  items,
+  onAddView,
+  showTempTab,
+  ...props
+}: DraggableTabListProps) {
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -190,7 +227,13 @@ export function DraggableTabList({items, ...props}: DraggableTabListProps) {
   );
 
   return (
-    <BaseDraggableTabList items={parsedItems} disabledKeys={disabledKeys} {...props}>
+    <BaseDraggableTabList
+      items={parsedItems}
+      onAddView={onAddView}
+      showTempTab={showTempTab}
+      disabledKeys={disabledKeys}
+      {...props}
+    >
       {item => <Item {...item} />}
     </BaseDraggableTabList>
   );
@@ -213,6 +256,7 @@ const TabListOuterWrap = styled('div')`
 const TabListWrap = styled('ul', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
+  borderStyle: 'dashed' | 'solid';
   hideBorder: boolean;
   orientation: Orientation;
 }>`
@@ -229,7 +273,7 @@ const TabListWrap = styled('ul', {
       ? `
         grid-auto-flow: column;
         justify-content: start;
-        ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+        ${!p.hideBorder && `border-bottom: ${p.borderStyle} 1px ${p.theme.border};`}
         stroke-dasharray: 4, 3;
       `
       : `
@@ -238,6 +282,18 @@ const TabListWrap = styled('ul', {
         align-content: start;
         gap: 1px;
         padding-right: ${space(2)};
-        ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
+        ${!p.hideBorder && `border-right: ${p.borderStyle} 1px ${p.theme.border};`}
       `};
+`;
+
+const AddViewButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+  padding-right: ${space(0.5)};
+  margin: 3px 2px 2px 2px;
+  font-weight: normal;
+`;
+
+const StyledIconAdd = styled(IconAdd)`
+  margin-right: 4px;
+  margin-left: 2px;
 `;
