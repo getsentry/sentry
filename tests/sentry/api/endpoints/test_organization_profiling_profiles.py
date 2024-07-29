@@ -48,7 +48,7 @@ class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "detail": ErrorDetail(
-                "You cannot view events from multiple projects.",
+                "You cannot get a flamegraph from multiple projects.",
                 code="parse_error",
             ),
         }
