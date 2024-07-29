@@ -13,6 +13,7 @@ from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidget
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
+from sentry.relay.config.experimental import TimeoutException
 from sentry.relay.config.metric_extraction import (
     _set_bulk_cached_query_chunk,
     get_current_widget_specs,
@@ -2265,3 +2266,23 @@ def test_get_metric_extrapolation_config(default_project: Project) -> None:
 
     normalized = normalize_project_config(project_config)["metricExtraction"]["extrapolate"]
     assert normalized == config["extrapolate"]
+
+
+@django_db_all
+def test_get_metric_extraction_config_when_on_demand_metrics_specs_timeout_exception(
+    default_project: Project, default_environment: Environment
+):
+    with Feature(ON_DEMAND_METRICS):
+        create_alert(
+            "count()",
+            "device.platform:android OR device.platform:ios",
+            default_project,
+            environment=default_environment,
+        )
+
+        with mock.patch(
+            "sentry.relay.config.metric_extraction.get_on_demand_metric_specs",
+            side_effect=TimeoutException,
+        ):
+            config = get_metric_extraction_config(default_project)
+            assert config is None
