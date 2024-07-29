@@ -14,6 +14,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.msteams import MsTeamsClient
 from sentry.integrations.services.integration import (
     IntegrationService,
@@ -32,7 +33,6 @@ from sentry.integrations.services.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component

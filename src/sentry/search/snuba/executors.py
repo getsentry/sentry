@@ -57,6 +57,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.events.builder.discover import UnresolvedQuery
@@ -67,6 +68,8 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+
+FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
 
 class TrendsSortWeights(TypedDict):
@@ -1499,6 +1502,45 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             1,
         )
 
+    def get_priority_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        """
+        Returns the priority lookup for a search filter.
+        """
+        return Condition(
+            Column("group_priority", self.entities["attrs"]), Op.IN, search_filter.value.raw_value
+        )
+
+    def get_first_release_condition(
+        self, search_filter: SearchFilter, projects: list[Project]
+    ) -> Condition:
+        """
+        Returns the first_release lookup for a search filter.
+        """
+        versions = search_filter.value.raw_value
+        releases = {
+            version: release_id
+            for version, release_id in Release.objects.filter(
+                organization=projects[0].organization_id, version__in=versions
+            ).values_list("version", "id")
+        }
+
+        for version in versions:
+            if version not in releases:
+                # TODO: This is mostly around for legacy reasons - we should probably just
+                # raise a validation here an inform the user that they passed an invalid
+                # release
+                releases[None] = -1
+                # We only need to find the first non-existent release here
+                break
+
+        return Condition(
+            Column("group_first_release", self.entities["attrs"]),
+            Op.IN,
+            list(releases.values()),
+        )
+
     ISSUE_FIELD_NAME = "group_id"
 
     entities = {
@@ -1517,6 +1559,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "times_seen": (get_times_seen_filter, Clauses.HAVING),
         "error.handled": (get_handled_condition, Clauses.WHERE),
         "error.unhandled": (get_handled_condition, Clauses.WHERE),
+        "issue.priority": (get_priority_condition, Clauses.WHERE),
+        "first_release": (get_first_release_condition, Clauses.WHERE),
+        "firstRelease": (get_first_release_condition, Clauses.WHERE),
     }
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
@@ -1571,6 +1616,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         end = max([retention_date, end])
         return start, end, retention_date
 
+    @metrics.wraps("snuba.search.group_attributes.query")
     def query(
         self,
         projects: Sequence[Project],
@@ -1614,8 +1660,23 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         # Check if any search filters are in POSTGRES_ONLY_SEARCH_FIELDS
         search_filters = search_filters or ()
         group_ids_to_pass_to_snuba = None
-        if any(sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS for sf in search_filters):
-            group_ids_to_pass_to_snuba = list(group_queryset.values_list("id", flat=True))
+        too_many_candidates = False
+        max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
+        with sentry_sdk.start_span(op="snuba_group_attributes_query") as span:
+            if any(sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS for sf in search_filters):
+                group_ids_to_pass_to_snuba = list(
+                    group_queryset.using_replica().values_list("id", flat=True)[
+                        : max_candidates + 1
+                    ]
+                )
+                span.set_data("Max Candidates", max_candidates)
+                span.set_data("Result Size", len(group_ids_to_pass_to_snuba))
+
+                if too_many_candidates := (len(group_ids_to_pass_to_snuba) > max_candidates):
+                    metrics.incr(
+                        "snuba.search.group_attributes.too_many_candidates", skip_internal=False
+                    )
+                    group_ids_to_pass_to_snuba = None
 
         # remove the search filters that are only for postgres
         search_filters = [
@@ -1647,11 +1708,13 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 Condition(Column("timestamp", joined_entity), Op.GTE, start),
                 Condition(Column("timestamp", joined_entity), Op.LT, end),
             ]
+
             having = []
             # if we need to prefetch from postgres, we add filter by the group ids
             if group_ids_to_pass_to_snuba is not None:
                 # will not find any matches, we can return early
                 if len(group_ids_to_pass_to_snuba) == 0:
+                    metrics.incr("snuba.search.group_attributes.no_candidates", skip_internal=False)
                     return self.empty_result
 
                 # limit groups and events to the group ids
@@ -1674,6 +1737,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 # we handle the date filter with calculate_start_end
                 if search_filter.key.name in ["issue.category", "issue.type", "date"]:
                     pass
+                # handle first_release filter separately
+                elif search_filter.key.name in FIRST_RELEASE_FILTERS:
+                    where_conditions.append(
+                        self.get_first_release_condition(search_filter, projects)
+                    )
                 elif fn:
                     # dynamic lookup of what clause to use
                     if clause == Clauses.WHERE:
@@ -1705,6 +1773,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 if raw_group_types is not None:
                     # no possible groups, return empty
                     if len(raw_group_types) == 0:
+                        metrics.incr(
+                            "snuba.search.group_attributes.no_possible_groups", skip_internal=False
+                        )
                         return self.empty_result
 
                     # filter out the group types that are not visible to the org/user
@@ -1787,6 +1858,17 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 k += 1
                 count += bulk_result[k]["data"][0]["count"]
             k += 1
+
+        metrics.distribution("snuba.search.group_attributes.num_snuba_results", len(data))
+
+        if too_many_candidates:
+            # If we had too many candidates to reasonably pass down to snuba,
+            # we need to apply the Postgres filter as a post-filtering step.
+            filtered_group_ids = group_queryset.filter(
+                id__in=[group["g.group_id"] for group in data]
+            ).values_list("id", flat=True)
+
+            data = [group for group in data if group["g.group_id"] in filtered_group_ids]
 
         paginator_results = SequencePaginator(
             [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],

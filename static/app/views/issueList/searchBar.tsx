@@ -24,6 +24,8 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
 
@@ -91,7 +93,7 @@ interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTa
 
 const EXCLUDED_TAGS = ['environment'];
 
-function IssueListSearchBar({organization, tags, ...props}: Props) {
+function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
   const api = useApi();
   const {selection: pageFilters} = usePageFilters();
   const {tags: issueTags} = useFetchIssueTags({
@@ -109,7 +111,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
   });
 
   const tagValueLoader = useCallback(
-    (key: string, search: string) => {
+    async (key: string, search: string) => {
       const orgSlug = organization.slug;
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
@@ -122,14 +124,32 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         statsPeriod: pageFilters.datetime.period,
       };
 
-      return fetchTagValues({
+      const fetchTagValuesPayload = {
         api,
         orgSlug,
         tagKey: key,
         search,
         projectIds,
         endpointParams,
-      });
+        sort: '-count' as const,
+      };
+
+      const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
+        fetchTagValues({
+          ...fetchTagValuesPayload,
+          dataset: Dataset.ERRORS,
+        }),
+        fetchTagValues({
+          ...fetchTagValuesPayload,
+          dataset: Dataset.ISSUE_PLATFORM,
+        }),
+      ]);
+
+      return mergeAndSortTagValues(
+        eventsDatasetValues,
+        issuePlatformDatasetValues,
+        'count'
+      );
     },
     [
       api,
@@ -195,6 +215,13 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     return getFilterKeySections(issueTags, organization);
   }, [organization, issueTags]);
 
+  const onChange = useCallback(
+    (value: string) => {
+      onClose?.(value, {validSearch: true});
+    },
+    [onClose]
+  );
+
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
       <SearchQueryBuilder
@@ -205,11 +232,9 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         filterKeys={issueTags}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
-        onChange={value => {
-          props.onClose?.(value, {validSearch: true});
-        }}
+        onChange={onChange}
         searchSource={props.searchSource ?? 'issues'}
-        savedSearchType={SavedSearchType.ISSUE}
+        recentSearches={SavedSearchType.ISSUE}
         disallowLogicalOperators
         placeholder={props.placeholder}
       />
@@ -227,6 +252,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       supportedTags={getSupportedTags(tags)}
       defaultSearchGroup={recommendedGroup}
       organization={organization}
+      onClose={onClose}
       {...props}
     />
   );

@@ -47,6 +47,11 @@ export type SearchEventParameters = {
     item_value_type?: string;
     search_operator?: string;
   };
+  'search.key_manually_typed': Omit<SearchEventBase, 'query'> & {
+    item_kind: string;
+    item_name: string;
+    item_value_type: string;
+  };
   'search.operator_autocompleted': SearchEventBase & {
     search_operator: string;
     filter_key?: string;
@@ -103,6 +108,7 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.searched': 'Search: Performed search',
   'search.searched_filter': 'Search: Performed search filter',
   'search.key_autocompleted': 'Search: Key Autocompleted',
+  'search.key_manually_typed': 'Search: Key Manually Typed',
   'search.shortcut_used': 'Search: Shortcut Used',
   'search.docs_opened': 'Search: Docs Opened',
   'search.search_with_invalid': 'Search: Attempted Invalid Search',

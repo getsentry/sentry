@@ -4,7 +4,6 @@ import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -21,9 +20,7 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
-const SpanSamplesTableContainer = styled('div')`
-  padding-top: ${space(2)};
-`;
+const SpanSamplesTableContainer = styled('div')``;
 
 type Props = {
   groupId: string;

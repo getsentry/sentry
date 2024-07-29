@@ -13,6 +13,7 @@ import {
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
+import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const MAX_TAGS = 1000;
 
@@ -101,17 +102,19 @@ export function fetchTagValues({
   projectIds,
   search,
   sort,
+  dataset,
 }: {
   api: Client;
   orgSlug: string;
   tagKey: string;
+  dataset?: Dataset;
   endpointParams?: Query;
   includeReplays?: boolean;
   includeSessions?: boolean;
   includeTransactions?: boolean;
   projectIds?: string[];
   search?: string;
-  sort?: string;
+  sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
   const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
 
@@ -148,6 +151,10 @@ export function fetchTagValues({
 
   if (sort) {
     query.sort = sort;
+  }
+
+  if (dataset) {
+    query.dataset = dataset;
   }
 
   return api.requestPromise(url, {
@@ -200,8 +207,7 @@ export function fetchSpanFieldValues({
 
 type FetchOrganizationTagsParams = {
   orgSlug: string;
-  // TODO: Change this to Dataset type once IssuePlatform is added
-  dataset?: string;
+  dataset?: Dataset;
   enabled?: boolean;
   end?: string;
   keepPreviousData?: boolean;

@@ -24,9 +24,9 @@ from sentry.integrations.github import (
 )
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
@@ -522,7 +522,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
@@ -541,7 +541,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},

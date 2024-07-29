@@ -243,7 +243,8 @@ function SearchBar(props: SearchBarProps) {
     const combinedTags: TagCollection =
       dataset === DiscoverDatasets.ERRORS
         ? Object.assign({}, functionTags, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
-        : dataset === DiscoverDatasets.TRANSACTIONS
+        : dataset === DiscoverDatasets.TRANSACTIONS ||
+            dataset === DiscoverDatasets.METRICS_ENHANCED
           ? Object.assign(
               {},
               measurementsWithKind,

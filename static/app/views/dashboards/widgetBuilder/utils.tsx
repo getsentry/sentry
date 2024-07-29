@@ -15,6 +15,7 @@ import {
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -41,7 +42,7 @@ export enum DataSet {
   RELEASES = 'releases',
   METRICS = 'metrics',
   ERRORS = 'error-events',
-  TRANSACTIONS = 'transactions',
+  TRANSACTIONS = 'transaction-like',
 }
 
 export enum SortDirection {
@@ -61,6 +62,17 @@ export const displayTypes = {
   [DisplayType.TABLE]: t('Table'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
 };
+
+export function getDiscoverDatasetFromWidgetType(widgetType: WidgetType) {
+  switch (widgetType) {
+    case WidgetType.TRANSACTIONS:
+      return DiscoverDatasets.METRICS_ENHANCED;
+    case WidgetType.ERRORS:
+      return DiscoverDatasets.ERRORS;
+    default:
+      return undefined;
+  }
+}
 
 export function mapErrors(
   data: ValidationError,

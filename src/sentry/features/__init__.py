@@ -23,12 +23,17 @@ from .manager import *  # NOQA
 #   NOTE: There is no currently established convention for features which do not
 #         fall under these scopes. Use your best judgment for these.
 #
+# - Decide if your feature needs to be exposed in API responses or not
+#   If your feature is not used in the frontend, it is recommended that you don't
+#   expose the feature flag as feature flag checks add latency and bloat to organization
+#   details and project details responses.
+#
 # - Set a default for your features.
 #
-#   Feature defaults are configured in the sentry.conf.server.SENTRY_FEATURES
-#   module variable. This is the DEFAULT value for a feature, the default may be
-#   overridden by the logic in the exposed feature.manager.FeatureManager
-#   instance. See the ``has`` method here for a detailed understanding of how
+#   Feature defaults are configured with the `default` parameter. Default values
+#   can also be defined in `settings.SENTRY_FEATURES`. Default values
+#   are used if no registered handler makes a decision for the feature.
+#   See the ``has`` method here for a detailed understanding of how
 #   the default values is overridden.
 #
 # - Use your feature.

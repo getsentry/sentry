@@ -52,7 +52,7 @@ OPTION_KEYS = frozenset(
         "sentry:grouping_enhancements_base",
         "sentry:secondary_grouping_config",
         "sentry:secondary_grouping_expiry",
-        "sentry:grouping_auto_update",
+        "sentry:similarity_backfill_completed",
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
         "sentry:metrics_extraction_rules",
@@ -146,7 +146,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self._option_cache[cache_key] = result
         return result
 
-    def post_save(self, instance: ProjectOption, **kwargs: Any) -> None:
+    def post_save(self, *, instance: ProjectOption, created: bool, **kwargs: object) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_save")
 
     def post_delete(self, instance: ProjectOption, **kwargs: Any) -> None:

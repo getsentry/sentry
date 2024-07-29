@@ -38,13 +38,13 @@ class GitLabPluginTest(PluginTestCase):
         )
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("gitlab_url", "https://gitlab.com", self.project)
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("gitlab_repo", "getsentry/sentry", self.project)
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("gitlab_token", "abcdefg", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
     def test_create_issue(self):

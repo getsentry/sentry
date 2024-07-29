@@ -12,7 +12,7 @@ from sentry.utils import json
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 if TYPE_CHECKING:
-    from sentry.models.integrations.integration import Integration
+    from sentry.integrations.models.integration import Integration
     from sentry.models.outbox import ControlOutbox
 
 

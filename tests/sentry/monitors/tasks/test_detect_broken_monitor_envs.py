@@ -614,7 +614,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         # Disable Nudges for this disabled_owner
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
-                type="approval",
+                type="brokenMonitors",
                 scope_type="user",
                 scope_identifier=disabled_owner.id,
                 user_id=disabled_owner.id,

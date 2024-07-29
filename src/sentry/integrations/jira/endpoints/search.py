@@ -9,7 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 

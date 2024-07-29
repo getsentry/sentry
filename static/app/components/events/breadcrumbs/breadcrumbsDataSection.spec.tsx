@@ -30,6 +30,8 @@ describe('BreadcrumbsDataSection', function () {
     // Only summary crumbs should be visible by default
     const summaryCrumbTitles = [
       'Exception',
+      MOCK_BREADCRUMBS[5].category,
+      MOCK_BREADCRUMBS[4].category,
       MOCK_BREADCRUMBS[3].category,
       MOCK_BREADCRUMBS[2].category,
     ];
@@ -75,50 +77,43 @@ describe('BreadcrumbsDataSection', function () {
     );
 
     // From virtual crumb
-    expect(screen.getByText('0ms')).toBeInTheDocument();
-    expect(screen.queryByText('06:01:48.762')).not.toBeInTheDocument();
+    expect(screen.getByText('06:01:48.762')).toBeInTheDocument();
+    expect(screen.queryByText('0ms')).not.toBeInTheDocument();
     // From event breadcrumb
-    expect(screen.getByText('-1min 2ms')).toBeInTheDocument();
-    expect(screen.queryByText('06:00:48.760')).not.toBeInTheDocument();
+    expect(screen.getByText('06:00:48.760')).toBeInTheDocument();
+    expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
 
     const timeControl = screen.getByRole('button', {
       name: 'Change Time Format for Breadcrumbs',
     });
     await userEvent.click(timeControl);
 
-    expect(screen.queryByText('0ms')).not.toBeInTheDocument();
-    expect(screen.getByText('06:01:48.762')).toBeInTheDocument();
-    expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
-    expect(screen.getByText('06:00:48.760')).toBeInTheDocument();
-
-    await userEvent.click(timeControl);
-
     expect(screen.getByText('0ms')).toBeInTheDocument();
     expect(screen.queryByText('06:01:48.762')).not.toBeInTheDocument();
     expect(screen.getByText('-1min 2ms')).toBeInTheDocument();
     expect(screen.queryByText('06:00:48.760')).not.toBeInTheDocument();
+
+    await userEvent.click(timeControl);
+
+    expect(screen.queryByText('0ms')).not.toBeInTheDocument();
+    expect(screen.getByText('06:01:48.762')).toBeInTheDocument();
+    expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
+    expect(screen.getByText('06:00:48.760')).toBeInTheDocument();
   });
 
-  it.each([
-    {action: 'Search', elementRole: 'textbox'},
-    {action: 'Filter', elementRole: 'button'},
-    {action: 'Sort', elementRole: 'button'},
-  ])(
-    'opens the drawer, and focuses $action $elementRole when $action button is pressed',
-    async ({action, elementRole}) => {
-      render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
+  it('opens the drawer and focuses search when the search button is pressed', async function () {
+    render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
 
-      const control = screen.getByRole('button', {name: `${action} Breadcrumbs`});
-      expect(control).toBeInTheDocument();
-      await userEvent.click(control);
-      expect(
-        screen.getByRole('complementary', {name: 'breadcrumb drawer'})
-      ).toBeInTheDocument();
-      const drawerControl = screen.getByRole(elementRole, {
-        name: `${action} All Breadcrumbs`,
-      });
-      expect(drawerControl).toBeInTheDocument();
-      expect(drawerControl).toHaveFocus();
-    }
-  );
+    const control = screen.getByRole('button', {name: 'Open Breadcrumb Search'});
+    expect(control).toBeInTheDocument();
+    await userEvent.click(control);
+    expect(
+      screen.getByRole('complementary', {name: 'breadcrumb drawer'})
+    ).toBeInTheDocument();
+    const drawerControl = screen.getByRole('textbox', {
+      name: 'Search All Breadcrumbs',
+    });
+    expect(drawerControl).toBeInTheDocument();
+    expect(drawerControl).toHaveFocus();
+  });
 });

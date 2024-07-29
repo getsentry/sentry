@@ -311,7 +311,7 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
 # A custom logger that roughly matches the parts of the `click.echo` interface that the
 # `import_*` methods rely on.
 class LoggingPrinter(Printer):
-    def __init__(self, uuid: str):
+    def __init__(self, uuid: UUID):
         self.uuid = uuid
         super().__init__()
 
@@ -326,13 +326,13 @@ class LoggingPrinter(Printer):
             logger.error(
                 "Import failed: %s",
                 text,
-                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
+                extra={"uuid": str(self.uuid), "task": OrderedTask.IMPORTING.name},
             )
         else:
             logger.info(
                 "Import info: %s",
                 text,
-                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
+                extra={"uuid": str(self.uuid), "task": OrderedTask.IMPORTING.name},
             )
 
 
@@ -365,7 +365,7 @@ def send_relocation_update_email(
 
 
 def start_relocation_task(
-    uuid: str, task: OrderedTask, allowed_task_attempts: int
+    uuid: UUID, task: OrderedTask, allowed_task_attempts: int
 ) -> tuple[Relocation | None, int]:
     """
     All tasks for relocation are done sequentially, and take the UUID of the `Relocation` model as
@@ -374,7 +374,7 @@ def start_relocation_task(
     Returns a tuple of relocation model and the number of attempts remaining for this task.
     """
 
-    logger_data = {"uuid": uuid}
+    logger_data = {"uuid": str(uuid)}
     try:
         relocation: Relocation = Relocation.objects.get(uuid=uuid)
     except Relocation.DoesNotExist:
@@ -489,7 +489,9 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     relocation.status = Relocation.Status.FAILURE.value
     relocation.save()
 
-    logger.info("Task failed", extra={"uuid": relocation.uuid, "task": task.name, "reason": reason})
+    logger.info(
+        "Task failed", extra={"uuid": str(relocation.uuid), "task": task.name, "reason": reason}
+    )
     send_relocation_update_email(
         relocation,
         Relocation.EmailKind.FAILED,
@@ -514,7 +516,7 @@ def retry_task_or_fail_relocation(
     instead.
     """
 
-    logger_data = {"uuid": relocation.uuid, "task": task.name, "attempts_left": attempts_left}
+    logger_data = {"uuid": str(relocation.uuid), "task": task.name, "attempts_left": attempts_left}
     try:
         yield
     except Exception:

@@ -235,7 +235,7 @@ export const CallTreeTableHeaderButton = styled('button')`
   border: none;
   background-color: ${props => props.theme.surface200};
   transition: background-color 100ms ease-in-out;
-  line-height: 24px;
+  line-height: 29px;
 
   svg {
     width: 10px;

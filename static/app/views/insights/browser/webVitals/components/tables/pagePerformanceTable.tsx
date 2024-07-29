@@ -1,7 +1,5 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
@@ -17,6 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -25,15 +24,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
-import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -41,6 +37,7 @@ type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
 const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
+  {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
   {key: 'p75(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
   {key: 'p75(measurements.fcp)', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
@@ -65,25 +62,17 @@ const DEFAULT_SORT: Sort = {
 export function PagePerformanceTable() {
   const location = useLocation();
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const shouldUseStaticWeights = useStaticWeightsSetting();
 
   const columnOrder = COLUMN_ORDER;
 
   const query = decodeScalar(location.query.query, '');
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
-  const project = useMemo(
-    () => projects.find(p => p.id === String(location.query.project)),
-    [projects, location.query.project]
-  );
-
   const sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
-  const {data: projectScoresData, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({browserTypes});
 
   const {
     data,
+    meta,
     pageLinks,
     isLoading: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsScoresQuery({
@@ -94,15 +83,9 @@ export function PagePerformanceTable() {
     browserTypes,
   });
 
-  const scoreCount = projectScoresData?.data?.[0]?.[
-    'count_scores(measurements.score.total)'
-  ] as number;
-
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity:
-      (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
-      (shouldUseStaticWeights ? 1 : scoreCount), // static weight keys are already normalized
+    opportunity: ((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -216,15 +199,6 @@ export function PagePerformanceTable() {
     if (key === 'transaction') {
       return (
         <NoOverflow>
-          {project && (
-            <StyledProjectAvatar
-              project={project}
-              direction="left"
-              size={16}
-              hasTooltip
-              tooltip={project.slug}
-            />
-          )}
           <Link
             to={{
               ...location,
@@ -232,6 +206,7 @@ export function PagePerformanceTable() {
               query: {
                 ...location.query,
                 transaction: row.transaction,
+                project: row['project.id'],
                 query: undefined,
                 cursor: undefined,
               },
@@ -284,7 +259,18 @@ export function PagePerformanceTable() {
       }
       return null;
     }
-    return <NoOverflow>{row[key]}</NoOverflow>;
+
+    if (!meta?.fields) {
+      return <NoOverflow>{row[key]}</NoOverflow>;
+    }
+
+    const renderer = getFieldRenderer(col.key, meta.fields, false);
+
+    return renderer(row, {
+      location,
+      organization,
+      unit: meta.units?.[col.key],
+    });
   }
 
   const handleSearch = (newQuery: string) => {
@@ -313,7 +299,7 @@ export function PagePerformanceTable() {
         />
         <StyledPagination
           pageLinks={pageLinks}
-          disabled={isProjectScoresLoading || isTransactionWebVitalsQueryLoading}
+          disabled={isTransactionWebVitalsQueryLoading}
           size="md"
         />
         {/* The Pagination component disappears if pageLinks is not defined,
@@ -338,7 +324,8 @@ export function PagePerformanceTable() {
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
-          isLoading={isProjectScoresLoading || isTransactionWebVitalsQueryLoading}
+          aria-label={t('Pages')}
+          isLoading={isTransactionWebVitalsQueryLoading}
           columnOrder={columnOrder}
           columnSortBy={[]}
           data={tableData}
@@ -369,12 +356,6 @@ const AlignCenter = styled('span')`
   margin: auto;
   text-align: center;
   width: 100%;
-`;
-
-const StyledProjectAvatar = styled(ProjectAvatar)`
-  top: ${space(0.25)};
-  position: relative;
-  padding-right: ${space(1)};
 `;
 
 const SearchBarContainer = styled('div')`
