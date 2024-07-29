@@ -53,7 +53,11 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
-import UpdatedGroupHeader from 'sentry/views/issueDetails/updatedHeader';
+import GroupHeader from 'sentry/views/issueDetails//header';
+import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
   getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
@@ -65,11 +69,6 @@ import {
   useFetchIssueTagsForDetailsPage,
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
-
-import {ERROR_TYPES} from './constants';
-import GroupHeader from './header';
-import SampleEventAlert from './sampleEventAlert';
-import {Tab, TabPaths} from './types';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -707,7 +706,7 @@ function GroupDetailsContent({
       onChange={tab => trackTabChanged({tab, group, project, event, organization})}
     >
       {hasStreamlinedUI ? (
-        <UpdatedGroupHeader
+        <StreamlinedGroupHeader
           group={group}
           project={project}
           groupReprocessingStatus={groupReprocessingStatus}

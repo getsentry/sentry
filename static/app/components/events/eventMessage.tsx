@@ -11,7 +11,6 @@ type Props = {
   annotations?: React.ReactNode;
   className?: string;
   hasGuideAnchor?: boolean;
-  hideLevel?: boolean;
   level?: Level;
   levelIndicatorSize?: string;
   message?: React.ReactNode;
@@ -48,17 +47,14 @@ function EventMessage({
   message,
   type,
   showUnhandled = false,
-  hideLevel = false,
 }: Props) {
   return (
     <LevelMessageContainer className={className}>
-      {!hideLevel && (
-        <EventOrGroupLevel
-          level={level}
-          levelIndicatorSize={levelIndicatorSize}
-          type={type}
-        />
-      )}
+      <EventOrGroupLevel
+        level={level}
+        levelIndicatorSize={levelIndicatorSize}
+        type={type}
+      />
       {showUnhandled ? <UnhandledTag /> : null}
       {message ? (
         <Message>{message}</Message>

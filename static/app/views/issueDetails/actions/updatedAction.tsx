@@ -378,7 +378,7 @@ export function Actions(props: Props) {
               })
             }
           >
-            {t('Unresolve')}
+            {isResolved ? t('Unresolve') : t('Unarchive')}
           </ActionButton>
         </ResolvedActionWapper>
       ) : (
@@ -440,7 +440,6 @@ export function Actions(props: Props) {
               ]),
           {
             key: 'open-in-discover',
-            className: 'hidden-sm hidden-md hidden-lg',
             label: t('Open in Discover'),
             to: disabled ? '' : getDiscoverUrl(),
             onAction: () => trackIssueAction('open_in_discover'),
@@ -504,7 +503,7 @@ export function Actions(props: Props) {
 const ActionWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
 `;
 
 const ResolvedWrapper = styled('div')`

@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TeamParticipant, UserParticipant} from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
-import UpdatedGroupHeader from 'sentry/views/issueDetails/updatedHeader';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('UpdatedGroupHeader', () => {
@@ -69,7 +69,7 @@ describe('UpdatedGroupHeader', () => {
       };
 
       render(
-        <UpdatedGroupHeader
+        <StreamlinedGroupHeader
           {...defaultProps}
           group={participantGroup}
           project={project}
