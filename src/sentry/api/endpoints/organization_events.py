@@ -43,6 +43,7 @@ SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("transactions"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
 }
+GLOBAL_VIEW_WHITELIST = "api.issues.issue_events"
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -315,6 +316,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
+        referrer = request.GET.get("referrer")
+
         try:
             # If the organization allows joining and leaving projects, it means that their
             # developers can visit issues from any projects. In the case of trace related issues,
@@ -322,7 +325,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params, params = self.get_snuba_dataclass(
                 request,
                 organization,
-                check_global_views=not bool(organization.flags.allow_joinleave),
+                check_global_views=(
+                    referrer in GLOBAL_VIEW_WHITELIST
+                    and not bool(organization.flags.allow_joinleave)
+                ),
             )
         except NoProjects:
             return Response(
@@ -337,8 +343,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
         except InvalidParams as err:
             raise ParseError(err)
-
-        referrer = request.GET.get("referrer")
 
         batch_features = self.get_features(organization, request)
 
