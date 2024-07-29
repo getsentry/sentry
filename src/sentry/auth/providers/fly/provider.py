@@ -85,4 +85,4 @@ class FlyOAuth2Provider(OAuth2Provider):
 
 
 class FlyOAuthPartnershipProvider(FlyOAuth2Provider):
-    is_partner = True
+    is_partner = False
