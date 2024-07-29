@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, TypedDict
 
 import orjson
 from rest_framework import status
@@ -18,6 +18,11 @@ from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequ
 from sentry.models.group import Group
 
 from ..utils import logger
+
+
+class OptionGroup(TypedDict):
+    label: Mapping[str, str]
+    options: Sequence[Mapping[str, Any]]
 
 
 @region_silo_endpoint
@@ -69,15 +74,17 @@ class SlackOptionsLoadEndpoint(Endpoint):
 
         option_groups = []
         if filtered_teams:
-            team_options = format_actor_options(filtered_teams, True)
-            option_groups.append(
-                {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
-            )
+            team_options_group: OptionGroup = {
+                "label": {"type": "plain_text", "text": "Teams"},
+                "options": format_actor_options(filtered_teams, True),
+            }
+            option_groups.append(team_options_group)
         if filtered_members:
-            member_options = format_actor_options(filtered_members, True)
-            option_groups.append(
-                {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
-            )
+            member_options_group: OptionGroup = {
+                "label": {"type": "plain_text", "text": "People"},
+                "options": format_actor_options(filtered_members, True),
+            }
+            option_groups.append(member_options_group)
         return option_groups
 
     # XXX(isabella): atm this endpoint is used only for the assignment dropdown on issue alerts

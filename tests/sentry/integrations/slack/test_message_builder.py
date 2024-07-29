@@ -17,7 +17,7 @@ from sentry.integrations.slack.message_builder.issues import (
     build_actions,
     format_release_tag,
     get_context,
-    get_option_groups_block_kit,
+    get_option_groups,
     get_tags,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
@@ -85,7 +85,7 @@ def build_test_message_blocks(
         {
             "type": "section",
             "text": {"type": "mrkdwn", "text": title_text},
-            "block_id": f'{{"issue":{group.id}}}',
+            "block_id": {"issue": group.id},
         },
     ]
     if group.culprit:
@@ -111,7 +111,8 @@ def build_test_message_blocks(
     if tags:
         for k, v in tags.items():
             if k == "release":
-                v = format_release_tag(v, group)
+                event_for_tags = group.get_latest_event()
+                v = format_release_tag(v, event_for_tags)
             v = v.replace("`", "")
             tags_text += f"{k}: `{v}`  "
 
@@ -296,7 +297,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        more_tags = {"escape": "`room`", "foo": "bar"}
+        more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
@@ -306,7 +307,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo", "escape"}
+            group, event.for_group(group), tags={"foo", "escape", "release"}
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -327,7 +328,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo", "escape"}, notes=notes
+            group, event.for_group(group), tags={"foo", "escape", "release"}, notes=notes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -423,10 +424,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
     @patch(
-        "sentry.integrations.slack.message_builder.issues.get_option_groups_block_kit",
-        wraps=get_option_groups_block_kit,
+        "sentry.integrations.slack.message_builder.issues.get_option_groups",
+        wraps=get_option_groups,
     )
-    def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups_block_kit):
+    def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups):
         user2 = self.create_user()
         self.create_member(user=user2, organization=self.organization)
         team2 = self.create_team(organization=self.organization, members=[self.user, user2])
@@ -434,9 +435,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = self.create_group(project=project2)
 
         SlackIssuesMessageBuilder(group).build()
-        assert mock_get_option_groups_block_kit.called
+        assert mock_get_option_groups.called
 
-        team_option_groups, member_option_groups = mock_get_option_groups_block_kit(group)
+        team_option_groups, member_option_groups = mock_get_option_groups(group)
         assert len(team_option_groups["options"]) == 2
         assert len(member_option_groups["options"]) == 2
 
@@ -696,7 +697,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert has_actions
 
-    def test_team_recipient_block_kit_already_assigned(self):
+    def test_team_recipient_already_assigned(self):
         issue_alert_group = self.create_group(project=self.project)
         GroupAssignee.objects.create(
             project=self.project, group=issue_alert_group, user_id=self.user.id
@@ -789,7 +790,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
-    def test_block_kit_truncates_long_query(self):
+    def test_truncates_long_query(self):
         event = self.store_event(
             data={"message": "a" * 5000, "level": "error"}, project_id=self.project.id
         )
