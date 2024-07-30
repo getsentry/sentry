@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.utils import timezone
@@ -32,6 +32,8 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
+NOT_ENOUGH_DATA = "Fewer than seven days of historical data available"
+
 
 def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     """
@@ -48,6 +50,20 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
         formatted_data.append(ts_point)
     return formatted_data
 
+
+# return the start and end indices
+def _get_start_and_end(data: SnubaTSResult) -> tuple[int, int]:
+    start, end = -1, -1
+    indices_with_results = []
+    for i, datum in enumerate(data.data.get("data", [])):
+        if "count" in datum:
+            indices_with_results.append(i)
+    if not indices_with_results:
+        return start, end
+    else:
+        start = indices_with_results[0]
+        end = indices_with_results[-1]
+        return start, end
 
 def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> BaseHTTPResponse:
     """
@@ -115,7 +131,19 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
         )
         raise TimeoutError
 
-    # TODO warn if there isn't at least 7 days of data
+    MIN_DAYS = 7
+    data_start_index, data_end_index = _get_start_and_end(historical_data)
+    if data_start_index == -1:
+        resp.status = 202
+        resp.reason = NOT_ENOUGH_DATA  # this reason value isn't read anywhere, but I think it's good to justify the 202
+
+    data_start_time = datetime.fromtimestamp(
+        historical_data.data.get("data")[data_start_index]["time"]
+    )
+    data_end_time = datetime.fromtimestamp(historical_data.data.get("data")[data_end_index]["time"])
+    if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
+        resp.status = 202
+        resp.reason = NOT_ENOUGH_DATA
     return resp
 
 

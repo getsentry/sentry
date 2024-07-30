@@ -46,6 +46,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
+from sentry.seer.anomaly_detection.store_data import NOT_ENOUGH_DATA, send_historical_data_to_seer
 from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
@@ -119,6 +120,7 @@ class AlertRuleIndexMixin(Endpoint):
                 find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)
             else:
+                http_status = status.HTTP_201_CREATED
                 alert_rule = serializer.save()
                 referrer = request.query_params.get("referrer")
                 session_id = request.query_params.get("sessionId")
@@ -138,7 +140,14 @@ class AlertRuleIndexMixin(Endpoint):
                         duplicate_rule=duplicate_rule,
                         wizard_v3=wizard_v3,
                     )
-                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+                if http_status == status.HTTP_201_CREATED:
+                    return Response(serialize(alert_rule, request.user), status=http_status)
+                else:
+                    response = Response(
+                        {**serialize(alert_rule, request.user), "detail": NOT_ENOUGH_DATA},
+                        status=http_status,
+                    )
+                    return response
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
