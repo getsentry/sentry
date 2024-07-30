@@ -70,4 +70,17 @@ describe('javascript-react onboarding docs', function () {
       screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
+
+  it('enables profiling by setting profiling sample rates', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry.browserProfilingIntegration\(\)/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+  });
 });
