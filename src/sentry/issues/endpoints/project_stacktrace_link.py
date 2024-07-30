@@ -62,9 +62,7 @@ def set_top_tags(
     try:
         scope.set_tag("project.slug", project.slug)
         scope.set_tag("organization.slug", project.organization.slug)
-        scope.set_tag(
-            "organization.early_adopter", bool(project.organization.flags.early_adopter.is_set)
-        )
+        scope.set_tag("organization.early_adopter", bool(project.organization.flags.early_adopter))
         scope.set_tag("stacktrace_link.platform", ctx["platform"])
         scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
         scope.set_tag("stacktrace_link.file", ctx["file"])
