@@ -55,6 +55,7 @@ def add_experimental_config(
     **kwargs: Any,
 ) -> None:
     """Try to set `config[key] = function(*args, **kwargs)`.
+    If the result of the function call is None, the key is not set.
     If the function call raises an exception, we log it to sentry and the key remains unset.
     NOTE: Only use this function if you expect Relay to behave reasonably
     if ``key`` is missing from the config.
