@@ -73,9 +73,9 @@ def build_safe_config(
     key: str,
     function: Callable[..., R],
     *args: Any,
-    default_return: R_default = None,
+    default_return: R_default | None = None,
     **kwargs: Any,
-) -> R | R_default:
+) -> R | R_default | None:
     """
     Runs a config builder function with a timeout.
     If the function call raises an exception, we log it to sentry and return value passed as
