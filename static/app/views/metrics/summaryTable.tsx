@@ -175,7 +175,11 @@ export const SummaryTable = memo(function SummaryTable({
   }
 
   return (
-    <SummaryTableWrapper hasActions={hasActions} totalColumnsCount={totalColumns.length}>
+    <SummaryTableWrapper
+      hasActions={hasActions}
+      totalColumnsCount={totalColumns.length}
+      data-test-id="summary-table"
+    >
       <HeaderCell disabled />
       <HeaderCell disabled />
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
