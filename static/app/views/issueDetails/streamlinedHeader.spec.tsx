@@ -13,7 +13,7 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('UpdatedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['issue-details-streamline']});
   const project = ProjectFixture({
     platform: 'javascript',
     teams: [TeamFixture()],
