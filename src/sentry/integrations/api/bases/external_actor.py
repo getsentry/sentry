@@ -75,13 +75,13 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
         else:
             return dict(user_id=actor_model.id)
 
-    def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
+    def create(self, validated_data: MutableMapping[str, Any]) -> tuple[ExternalActor, bool]:
         actor_params = self.get_actor_params(validated_data)
         return ExternalActor.objects.get_or_create(
             **validated_data,
             organization=self.organization,
             defaults=actor_params,
-        )[0]
+        )
 
     def update(
         self, instance: ExternalActor, validated_data: MutableMapping[str, Any]
