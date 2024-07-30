@@ -77,7 +77,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         Because of technical limitations, this endpoint returns
         at most 10000 data points. For example, if you select a 90 day window grouped by releases,
         you will see at most `floor(10k / (90 + 1)) = 109` releases. To get more results, reduce the
-        `statsPeriod`."
+        `statsPeriod`.
         """
 
         def data_fn(offset: int, limit: int) -> SessionsQueryResult:
