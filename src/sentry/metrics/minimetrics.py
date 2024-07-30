@@ -1,9 +1,17 @@
 import random
+from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 from sentry_sdk.metrics import metrics_noop
+from sentry_sdk.tracing import Span
 
 from sentry.metrics.base import MetricsBackend, Tags
+
+
+def _set_tags(span: Span, tags: Tags | None) -> None:
+    if tags:
+        for tag_key, tag_value in tags.items():
+            span.set_tag(tag_key, tag_value)
 
 
 @metrics_noop
@@ -13,25 +21,13 @@ def _set_metric_on_span(key: str, value: float | int, op: str, tags: Tags | None
         return
 
     span_or_tx.set_data(key, value)
-    if tags:
-        for tag_key, tag_value in tags.items():
-            span_or_tx.set_tag(tag_key, tag_value)
+    _set_tags(span_or_tx, tags)
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
         return random.random() < sample_rate
-
-    @staticmethod
-    def _to_minimetrics_unit(unit: str | None, default: str | None = None) -> str:
-        if unit is None:
-            if default is not None:
-                return default
-
-            return "none"
-
-        return unit
 
     def incr(
         self,
@@ -56,7 +52,19 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
-            _set_metric_on_span(key=key, value=value, op="timing", tags=tags)
+            span_or_tx = sentry_sdk.get_current_span()
+            if span_or_tx is None:
+                return
+
+            if span_or_tx.op == key:
+                _set_tags(span_or_tx, tags)
+                return
+
+            timestamp = datetime.now(timezone.utc)
+            start_timestamp = timestamp - timedelta(seconds=value)
+            span = span_or_tx.start_child(op=key, start_timestamp=start_timestamp)
+            _set_tags(span, tags)
+            span.finish(end_timestamp=timestamp)
 
     def gauge(
         self,
