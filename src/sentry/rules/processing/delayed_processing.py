@@ -528,6 +528,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     for rule in alert_rules:
         rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
 
+    rules_to_fire = defaultdict(set)
     if condition_group_results:
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
