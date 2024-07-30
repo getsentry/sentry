@@ -33,7 +33,8 @@ class ExistingHighPriorityIssueCondition(EventCondition):
                 project=self.project,
                 datetime__gte=start,
                 datetime__lt=end,
-                type__in=[ActivityType.SET_ESCALATING.value],
+                data={"priority": "high", "reason": "escalating"},
+                type__in=[ActivityType.SET_PRIORITY.value],
                 user_id=None,
             )
             .order_by("-datetime")[:limit]
@@ -43,9 +44,8 @@ class ExistingHighPriorityIssueCondition(EventCondition):
         return [
             ConditionActivity(
                 group_id=group_id,
-                type=ConditionActivityType.REAPPEARED,
+                type=ConditionActivityType.EXISTING_HIGH_PRIORITY_ISSUE,
                 timestamp=timestamp,
-                data=data,
             )
             for group_id, timestamp, data in activities
             if group_id is not None
