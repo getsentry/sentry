@@ -197,9 +197,6 @@ def get_seer_similar_issues(
     Ask Seer for the given event's nearest neighbor(s) and return the seer response data, sorted
     with the best matches first, along with the group Seer decided the event should go in, if any,
     or None if no neighbor was near enough.
-
-    Will also return `None` for the neighboring group if the `projects:similarity-embeddings-grouping`
-    feature flag is off.
     """
 
     event_hash = primary_hashes.hashes[0]
