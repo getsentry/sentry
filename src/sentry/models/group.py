@@ -632,12 +632,10 @@ class Group(Model):
 
         if self.issue_category == GroupCategory.FEEDBACK:
             path = f"/organizations/{organization.slug}/feedback/"
-            slug = {"feedbackSlug": f"{self.project.slug}:{self.id}"}
-            project = {"project": self.project.id}
             params = {
                 **(params or {}),
-                **slug,
-                **project,
+                "feedbackSlug": f"{self.project.slug}:{self.id}",
+                "project": str(self.project.id),
             }
             query = urlencode(params)
             return organization.absolute_url(path, query=query)
