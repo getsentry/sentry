@@ -6,11 +6,15 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.http import urlencode
+from rest_framework.request import Request
 
 from sentry import features
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.services.user.service import user_service
 from sentry.web.frontend.base import BaseView
 
@@ -19,8 +23,14 @@ logger = logging.getLogger(__name__)
 
 class ExternalIntegrationPipeline(IntegrationPipeline):
     def _dialog_success(self, _org_integration):
+        assert self.organization, "Organization must exist to get slug"
         org_slug = self.organization.slug
+
+        assert isinstance(
+            self.provider, IntegrationProvider
+        ), "Must be an IntegrationProvider to get integration key"
         provider = self.provider.integration_key
+
         integration_id = self.integration.id
         # add in param string if we have a next page
         param_string = ""
@@ -36,6 +46,8 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
 
 class IntegrationExtensionConfigurationView(BaseView):
     auth_required = False
+    external_provider_key: str
+    provider: str
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if not request.user.is_authenticated:
@@ -51,7 +63,7 @@ class IntegrationExtensionConfigurationView(BaseView):
             return self.redirect(redirect_uri)
 
         # check if we have one org
-        organization = None
+        organization: RpcOrganization | RpcOrganizationMapping | None = None
         organizations = user_service.get_organizations(user_id=request.user.id)
         if len(organizations) == 1:
             organization = organizations[0]
@@ -81,7 +93,9 @@ class IntegrationExtensionConfigurationView(BaseView):
                 )
                 if org_member and "org:integrations" in org_member.scopes:
                     try:
-                        pipeline = self.init_pipeline(request, organization, request.GET.dict())
+                        pipeline = self.init_pipeline(
+                            Request(request=request), organization, request.GET.dict()
+                        )
                         return pipeline.current_step()
                     except ValueError as e:
                         return self.respond(
@@ -108,7 +122,7 @@ class IntegrationExtensionConfigurationView(BaseView):
         # if anything before fails, we give up and send them to the link page where we can display errors
         return self.redirect(f"/extensions/{self.provider}/link/?{urlencode(request.GET.dict())}")
 
-    def init_pipeline(self, request: HttpRequest, organization, params):
+    def init_pipeline(self, request: Request, organization, params):
         pipeline = ExternalIntegrationPipeline(
             request=request, organization=organization, provider_key=self.external_provider_key
         )
