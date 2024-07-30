@@ -100,6 +100,15 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
+function replaceHeadersWithBold(markdown: string) {
+  const headerRegex = /^(#{1,6})\s+(.*)$/gm;
+  const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
+    return ` **${content}** `;
+  });
+
+  return boldMarkdown;
+}
+
 function Progress({
   progress,
   groupId,
@@ -112,12 +121,23 @@ function Progress({
   runId: string;
 }) {
   if (isProgressLog(progress)) {
+    const html = progress.message.includes('\n')
+      ? marked(replaceHeadersWithBold(progress.message), {
+          breaks: true,
+          gfm: true,
+        })
+      : singleLineRenderer(replaceHeadersWithBold(progress.message), {
+          breaks: true,
+          gfm: true,
+        });
+
     return (
       <Fragment>
         <DateTime date={progress.timestamp} format="HH:mm:ss:SSS" />
         <div
+          style={{overflowX: 'scroll', overflowY: 'hidden'}}
           dangerouslySetInnerHTML={{
-            __html: marked(progress.message),
+            __html: html,
           }}
         />
       </Fragment>
@@ -193,7 +213,11 @@ export function ExpandableStep({
             }}
           />
           {activeLog && !isExpanded && (
-            <StepHeaderDescription>{activeLog}</StepHeaderDescription>
+            <StepHeaderDescription
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(replaceHeadersWithBold(activeLog)),
+              }}
+            />
           )}
         </StepHeaderLeft>
         <StepHeaderRight>

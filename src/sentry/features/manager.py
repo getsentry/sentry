@@ -77,23 +77,22 @@ class RegisteredFeatureManager:
         actor: User | None = None,
     ) -> Mapping[Project, bool]:
         """
-        Determine in a batch if a feature is enabled.
+        Determine if a feature is enabled for a batch of objects.
 
-        This applies the same procedure as ``FeatureManager.has``, but with a
-        performance benefit where the objects being checked all belong to the
-        same organization. The objects are entities (e.g., projects) with the
-        common parent organization, as would be passed individually to ``has``.
+        This method enables checking a feature for an organization and a collection
+        of objects (e.g. projects). Feature handlers for batch checks are expected to
+        subclass `features.BatchFeatureHandler` and implement `has_for_batch` or
+        `_check_for_batch`. BatchFeatureHandlers will receive a `FeatureCheckBatch`
+        that contains the organization and object list.
 
         Feature handlers that depend only on organization attributes, and not
         on attributes of the individual objects being checked, will generally
-        perform faster if this method is used in preference to ``has``.
+        perform faster if this method is used in instead of ``has``.
 
-        The return value is a dictionary with the objects as keys. Each value
-        is what would be returned if the key were passed to ``has``.
+        The return value is a dictionary with the objects as keys, and each
+        value is the result of the feature check on the organization.
 
-        The entity handler can handle both batch project/organization
-        contexts so it'll likely have an entirely different implementation
-        of this functionality.
+        This method *does not* work with the `entity_handler`.
 
         >>> FeatureManager.has_for_batch('projects:feature', organization, [project1, project2], actor=request.user)
         """
@@ -168,7 +167,7 @@ class FeatureManager(RegisteredFeatureManager):
         cls: type[Feature] = Feature,
         entity_feature_strategy: bool | FeatureHandlerStrategy = False,
         default: bool = False,
-        api_expose: bool = True,
+        api_expose: bool = False,
     ) -> None:
         """
         Register a feature.
@@ -182,7 +181,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         entity_feature_strategy = self._shim_feature_strategy(entity_feature_strategy)
 
-        if entity_feature_strategy == FeatureHandlerStrategy.REMOTE:
+        if entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE:
             if name.startswith("users:"):
                 raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
@@ -193,15 +192,12 @@ class FeatureManager(RegisteredFeatureManager):
                 )
             self.option_features.add(name)
 
-        is_external_flag = (
+        # Register all flagpole features with options automator,
+        # so long as they haven't already been registered.
+        if (
             entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE
-            or entity_feature_strategy == FeatureHandlerStrategy.REMOTE
-        )
-
-        # Register all remote and flagpole features with options automator,
-        # so long as they haven't already been registered. This will allow
-        # us to backfill and cut over to Flagpole without interruptions.
-        if is_external_flag and name not in self.flagpole_features:
+            and name not in self.flagpole_features
+        ):
             self.flagpole_features.add(name)
             # Set a default of {} to ensure the feature evaluates to None when checked
             feature_option_name = f"{FLAGPOLE_OPTION_PREFIX}.{name}"
@@ -371,7 +367,7 @@ class FeatureManager(RegisteredFeatureManager):
         Shim layer for old API to register a feature until all the features have been converted
         """
         if entity_feature_strategy is True:
-            return FeatureHandlerStrategy.REMOTE
+            return FeatureHandlerStrategy.FLAGPOLE
         elif entity_feature_strategy is False:
             return FeatureHandlerStrategy.INTERNAL
         return entity_feature_strategy

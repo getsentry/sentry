@@ -123,7 +123,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
     <div>
       <EventNavigationWrapper>
         <Tabs>
-          <TabList hideBorder>
+          <TabList hideBorder variant="floating">
             {Object.keys(EventNavLabels).map(label => {
               return (
                 <TabList.Item

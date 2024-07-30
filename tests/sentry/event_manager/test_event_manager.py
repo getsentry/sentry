@@ -49,6 +49,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.grouptype import (
     ErrorGroupType,
     GroupCategory,
@@ -67,7 +68,6 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations import Integration
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -570,6 +570,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         group = event.group
         assert group is not None
+        assert group.first_release is not None
         assert group.first_release.version == "1.0"
         assert not has_pending_commit_resolution(group)
 
@@ -593,6 +594,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = self.make_release_event("1.0", project_id)
         group = event.group
         assert group is not None
+        assert group.first_release is not None
 
         # Add a few commits with no associated release
         repo = self.create_repo(project=group.project)
@@ -1055,12 +1057,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         group = event.group
         assert group is not None
+        assert group.first_release is not None
         assert group.first_release.version == "1.0"
 
         event = self.make_release_event("2.0", project_id)
 
         group = event.group
         assert group is not None
+        assert group.first_release is not None
         assert group.first_release.version == "1.0"
 
     def test_release_project_slug(self) -> None:
@@ -1072,6 +1076,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         group = event.group
         assert group is not None
+        assert group.first_release is not None
         assert group.first_release.version == "foo-1.0"
         release_tag = [v for k, v in event.tags if k == "sentry:release"][0]
         assert release_tag == "foo-1.0"
@@ -1080,6 +1085,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         group = event.group
         assert group is not None
+        assert group.first_release is not None
         assert group.first_release.version == "foo-1.0"
 
     def test_release_project_slug_long(self) -> None:
@@ -1094,6 +1100,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         group = event.group
         assert group is not None
+        assert group.first_release is not None
         assert group.first_release.version == "foo-{}".format("a" * partial_version_len)
         release_tag = [v for k, v in event.tags if k == "sentry:release"][0]
         assert release_tag == "foo-{}".format("a" * partial_version_len)

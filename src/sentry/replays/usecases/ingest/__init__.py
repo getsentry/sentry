@@ -176,7 +176,19 @@ def track_initial_segment_event(
         first_replay_received.send_robust(project=project, sender=Project)
 
     # Replay videos are not billed for now.
-    if not is_replay_video:
+    if is_replay_video:
+        track_outcome(
+            org_id=org_id,
+            project_id=project_id,
+            key_id=key_id,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.fromtimestamp(received, timezone.utc),
+            event_id=replay_id,
+            category=DataCategory.REPLAY_VIDEO,
+            quantity=1,
+        )
+    else:
         track_outcome(
             org_id=org_id,
             project_id=project_id,
