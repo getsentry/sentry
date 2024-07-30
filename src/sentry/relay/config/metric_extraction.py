@@ -233,6 +233,8 @@ def _get_alert_metric_specs(
     with metrics.timer("on_demand_metrics.alert_spec_convert"):
         for alert in alert_rules:
             alert_snuba_query = alert.snuba_query
+            if alert_snuba_query is None:
+                continue
             metrics.incr(
                 "on_demand_metrics.before_alert_spec_generation",
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
