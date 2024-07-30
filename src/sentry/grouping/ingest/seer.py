@@ -203,6 +203,7 @@ def get_seer_similar_issues(
     stacktrace_string = get_stacktrace_string(
         get_grouping_info_from_variants(primary_hashes.variants)
     )
+    exception_type = get_path(event.data, "exception", "values", -1, "type")
 
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
@@ -210,9 +211,7 @@ def get_seer_similar_issues(
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "message": filter_null_from_string(event.title),
-        "exception_type": filter_null_from_string(
-            get_path(event.data, "exception", "values", -1, "type")
-        ),
+        "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
         "referrer": "ingest",
     }

@@ -789,7 +789,3 @@ class SeerUtilsTest(TestCase):
     def test_filter_null_from_string(self):
         string_with_null = 'String with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
         assert filter_null_from_string(string_with_null) == 'String with null , "" is null'
-
-    def test_filter_null_from_string_None(self):
-        none = None
-        assert filter_null_from_string(none) is None

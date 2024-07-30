@@ -182,12 +182,10 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
     return False
 
 
-def filter_null_from_string(string: str | None) -> str | None:
+def filter_null_from_string(string: str) -> str:
     """
     Filter out null bytes from string so that it can be saved in records table.
     """
-    if string is None:
-        return None
     return string.replace("\x00", "")
 
 

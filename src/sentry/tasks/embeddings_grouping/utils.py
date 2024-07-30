@@ -310,14 +310,15 @@ def get_events_from_nodestore(
                 invalid_event_group_ids.append(group_id)
                 continue
 
+            exception_type = get_path(event.data, "exception", "values", -1, "type")
             group_data.append(
                 CreateGroupingRecordData(
                     group_id=group_id,
                     project_id=project.id,
                     message=filter_null_from_string(event.title),
-                    exception_type=filter_null_from_string(
-                        get_path(event.data, "exception", "values", -1, "type")
-                    ),
+                    exception_type=filter_null_from_string(exception_type)
+                    if exception_type
+                    else None,
                     hash=primary_hash,
                 )
             )
