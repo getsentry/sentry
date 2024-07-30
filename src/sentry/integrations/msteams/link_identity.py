@@ -20,6 +20,7 @@ from .constants import SALT
 
 def build_linking_url(integration, organization, teams_user_id, team_id, tenant_id):
     signed_params = sign(
+        salt=SALT,
         integration_id=integration.id,
         organization_id=organization.id,
         teams_user_id=teams_user_id,

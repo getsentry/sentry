@@ -9,7 +9,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 from sentry.web.frontend.base import control_silo_view
 
-from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
+from . import SALT, UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
 
 
 @control_silo_view
@@ -35,7 +35,7 @@ class JiraSentryInstallationView(JiraSentryUIBaseView):
             "metadata": orjson.dumps(integration.metadata).decode(),
         }
         finish_link = "{}.?signed_params={}".format(
-            absolute_uri("/extensions/jira/configure/"), sign(**signed_data)
+            absolute_uri("/extensions/jira/configure/"), sign(salt=SALT, **signed_data)
         )
 
         image_path = absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png"))
