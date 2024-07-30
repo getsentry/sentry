@@ -352,12 +352,12 @@ def _make_seer_call(
             create_grouping_records_request,
             retries=3,
             delay=2,
-            exceptions=ServiceUnavailable,
+            exceptions=Exception,
         )
-    except ServiceUnavailable:
+    except Exception as e:
         logger.exception(
-            "tasks.backfill_seer_grouping_records.seer_service_unavailable",
-            extra={"project_id": project_id},
+            "tasks.backfill_seer_grouping_records.seer_exception_after_retries",
+            extra={"project_id": project_id, "error": e},
         )
         raise
 

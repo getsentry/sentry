@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from snuba_sdk import (
     And,
@@ -29,7 +29,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 
 class StartEnd(TypedDict):
@@ -276,9 +276,9 @@ class ContinuousProfileCandidate(TypedDict):
     project_id: int
     profiler_id: str
     chunk_id: str
-    thread_id: str
-    start: str
-    end: str
+    thread_id: NotRequired[str]
+    start: NotRequired[str]
+    end: NotRequired[str]
 
 
 class ProfileCandidates(TypedDict):
@@ -318,20 +318,22 @@ class FlamegraphExecutor:
         self,
         *,
         snuba_params: SnubaParams,
-        dataset: Dataset,
+        data_source: Literal["functions", "transactions", "profiles"],
         query: str,
         fingerprint: int | None = None,
     ):
         self.snuba_params = snuba_params
-        self.dataset = dataset
+        self.data_source = data_source
         self.query = query
         self.fingerprint = fingerprint
 
     def get_profile_candidates(self) -> ProfileCandidates:
-        if self.dataset == Dataset.Functions:
+        if self.data_source == "functions":
             return self.get_profile_candidates_from_functions()
-        elif self.dataset == Dataset.Discover:
+        elif self.data_source == "transactions":
             return self.get_profile_candidates_from_transactions()
+        elif self.data_source == "profiles":
+            return self.get_profile_candidates_from_profiles()
 
         raise NotImplementedError
 
@@ -559,3 +561,96 @@ class FlamegraphExecutor:
         )
 
         return raw_snql_query(request, referrer=referrer)
+
+    def get_profile_candidates_from_profiles(self) -> ProfileCandidates:
+        if self.snuba_params.organization is None:
+            raise ValueError("`organization` is required and cannot be `None`")
+
+        max_profiles = options.get("profiling.flamegraph.profile-set.size")
+
+        referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES.value
+
+        transaction_profiles_builder = DiscoverQueryBuilder(
+            dataset=Dataset.Discover,
+            params={},
+            snuba_params=self.snuba_params,
+            selected_columns=["project.id", "profile.id", "timestamp"],
+            query=None,  # To match the profile chunks, we only fetch the latest profiles
+            orderby=["-timestamp"],
+            limit=max_profiles,
+            config=QueryBuilderConfig(
+                transform_alias_to_input_format=True,
+            ),
+        )
+        transaction_profiles_builder.add_conditions(
+            [Condition(transaction_profiles_builder.resolve_column("profile.id"), Op.IS_NOT_NULL)]
+        )
+
+        project_condition = Condition(
+            Column("project_id"),
+            Op.IN,
+            self.snuba_params.project_ids,
+        )
+        start_condition = Condition(
+            Column("start_timestamp"),
+            Op.LT,
+            resolve_datetime64(self.snuba_params.end),
+        )
+        end_condition = Condition(
+            Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
+        )
+
+        continuous_profiles_query = Query(
+            match=Storage(StorageKey.ProfileChunks.value),
+            select=[
+                Column("project_id"),
+                Column("profiler_id"),
+                Column("chunk_id"),
+                Column("start_timestamp"),
+                Column("end_timestamp"),
+            ],
+            where=[
+                project_condition,
+                start_condition,
+                end_condition,
+            ],
+            orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
+            limit=Limit(max_profiles),
+        )
+
+        all_results = bulk_snuba_queries(
+            [
+                transaction_profiles_builder.get_snql_query(),
+                Request(
+                    dataset=Dataset.Profiles.value,
+                    app_id="default",
+                    query=continuous_profiles_query,
+                    tenant_ids={
+                        "referrer": referrer,
+                        "organization_id": self.snuba_params.organization.id,
+                    },
+                ),
+            ],
+            referrer,
+        )
+
+        transaction_profile_results = transaction_profiles_builder.process_results(all_results[0])
+        continuous_profile_results = all_results[1]
+
+        return {
+            "transaction": [
+                {
+                    "project_id": row["project.id"],
+                    "profile_id": row["profile.id"],
+                }
+                for row in transaction_profile_results["data"]
+            ],
+            "continuous": [
+                {
+                    "project_id": row["project_id"],
+                    "profiler_id": row["profiler_id"],
+                    "chunk_id": row["chunk_id"],
+                }
+                for row in continuous_profile_results["data"]
+            ],
+        }

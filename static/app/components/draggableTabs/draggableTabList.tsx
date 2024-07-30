@@ -9,30 +9,32 @@ import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 import {Reorder} from 'framer-motion';
 
+import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {TabsContext} from 'sentry/components/tabs';
+import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type {Tab} from 'sentry/views/issueList/draggableTabBar';
 
-import {DraggableTab} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 
 interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
-  setTabs: (tabs: Tab[]) => void;
-  tabs: Tab[];
 }
 
 function BaseDraggableTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
-  tabs,
-  setTabs,
+  onReorder,
+  onAddView,
+  showTempTab = false,
+  tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -106,23 +108,34 @@ function BaseDraggableTabList({
     });
   }, [state.collection, overflowTabs]);
 
+  const persistentTabs = [...state.collection].filter(
+    item => item.key !== 'temporary-tab'
+  );
+  const tempTab = [...state.collection].find(item => item.key === 'temporary-tab');
+
   return (
     <TabListOuterWrap style={outerWrapStyles}>
-      <Reorder.Group axis="x" values={tabs} onReorder={setTabs} as="div">
+      <Reorder.Group
+        axis="x"
+        values={[...state.collection]}
+        onReorder={onReorder}
+        as="div"
+      >
         <TabListWrap
           {...tabListProps}
           orientation={orientation}
           hideBorder={hideBorder}
+          borderStyle={state.selectedKey === 'temporary-tab' ? 'dashed' : 'solid'}
           className={className}
           ref={tabListRef}
         >
-          {[...state.collection].map(item => (
+          {persistentTabs.map(item => (
             <Reorder.Item
               key={item.key}
-              value={tabs.find(tab => tab.key === item.key)}
+              value={item}
               style={{display: 'flex', flexDirection: 'row'}}
             >
-              <DraggableTab
+              <Tab
                 key={item.key}
                 item={item}
                 state={state}
@@ -131,13 +144,35 @@ function BaseDraggableTabList({
                   orientation === 'horizontal' && overflowTabs.includes(item.key)
                 }
                 ref={element => (tabItemsRef.current[item.key] = element)}
+                variant={tabVariant}
               />
-              {state.selectedKey !== item.key &&
-                state.collection.getKeyAfter(item.key) !== state.selectedKey && (
-                  <TabDivider />
-                )}
+
+              {(state.selectedKey === 'temporary-tab' ||
+                (state.selectedKey !== item.key &&
+                  state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
+                <TabDivider />
+              )}
             </Reorder.Item>
           ))}
+          <AddViewButton borderless size="zero" onClick={onAddView}>
+            <StyledIconAdd size="xs" />
+            {t('Add View')}
+          </AddViewButton>
+          <TabDivider />
+          {showTempTab && tempTab && (
+            <Tab
+              key={tempTab.key}
+              item={tempTab}
+              state={state}
+              orientation={orientation}
+              overflowing={
+                orientation === 'horizontal' && overflowTabs.includes(tempTab.key)
+              }
+              ref={element => (tabItemsRef.current[tempTab.key] = element)}
+              variant={tabVariant}
+              borderStyle="dashed"
+            />
+          )}
         </TabListWrap>
       </Reorder.Group>
 
@@ -157,11 +192,13 @@ const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nod
 export interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
-  setTabs: (tabs: Tab[]) => void;
-  tabs: Tab[];
+  onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
   className?: string;
   hideBorder?: boolean;
+  onAddView?: React.MouseEventHandler;
   outerWrapStyles?: React.CSSProperties;
+  showTempTab?: boolean;
+  tabVariant?: BaseTabProps['variant'];
 }
 
 /**
@@ -170,8 +207,8 @@ export interface DraggableTabListProps
  */
 export function DraggableTabList({
   items,
-  tabs,
-  setTabs,
+  onAddView,
+  showTempTab,
   ...props
 }: DraggableTabListProps) {
   const collection = useCollection({items, ...props}, collectionFactory);
@@ -192,10 +229,10 @@ export function DraggableTabList({
 
   return (
     <BaseDraggableTabList
-      tabs={tabs}
       items={parsedItems}
+      onAddView={onAddView}
+      showTempTab={showTempTab}
       disabledKeys={disabledKeys}
-      setTabs={setTabs}
       {...props}
     >
       {item => <Item {...item} />}
@@ -210,7 +247,7 @@ const TabDivider = styled('div')`
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
-  margin: 9px auto;
+  margin: 8px 4px;
 `;
 
 const TabListOuterWrap = styled('div')`
@@ -220,6 +257,7 @@ const TabListOuterWrap = styled('div')`
 const TabListWrap = styled('ul', {
   shouldForwardProp: tabsShouldForwardProp,
 })<{
+  borderStyle: 'dashed' | 'solid';
   hideBorder: boolean;
   orientation: Orientation;
 }>`
@@ -236,8 +274,7 @@ const TabListWrap = styled('ul', {
       ? `
         grid-auto-flow: column;
         justify-content: start;
-        gap: ${space(0.5)};
-        ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+        ${!p.hideBorder && `border-bottom: ${p.borderStyle} 1px ${p.theme.border};`}
         stroke-dasharray: 4, 3;
       `
       : `
@@ -246,6 +283,18 @@ const TabListWrap = styled('ul', {
         align-content: start;
         gap: 1px;
         padding-right: ${space(2)};
-        ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
+        ${!p.hideBorder && `border-right: ${p.borderStyle} 1px ${p.theme.border};`}
       `};
+`;
+
+const AddViewButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+  padding-right: ${space(0.5)};
+  margin: 3px 2px 2px 2px;
+  font-weight: normal;
+`;
+
+const StyledIconAdd = styled(IconAdd)`
+  margin-right: 4px;
+  margin-left: 2px;
 `;
