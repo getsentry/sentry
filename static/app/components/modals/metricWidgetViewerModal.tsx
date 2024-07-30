@@ -62,6 +62,7 @@ function MetricWidgetViewerModal({
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters, getVirtualMRIQuery)
   );
+
   const [metricEquations, setMetricEquations] = useState<DashboardMetricsEquation[]>(() =>
     getMetricEquations(widget)
   );

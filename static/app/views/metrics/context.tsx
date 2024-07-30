@@ -12,7 +12,7 @@ import isEqual from 'lodash/isEqual';
 import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import type {MetricMeta} from 'sentry/types/metrics';
-import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
+import {isSpanDuration, useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
   emptyMetricsQueryWidget,
@@ -98,7 +98,7 @@ export function useMetricsContext() {
 }
 
 export function useMetricWidgets(
-  firstCustomMeta: MetricMeta | undefined,
+  defaultMetricMeta: MetricMeta | undefined,
   defaultCondition?: number
 ) {
   const {getVirtualMRIQuery} = useVirtualMetricsContext();
@@ -110,7 +110,7 @@ export function useMetricWidgets(
       const parseResult = parseMetricWidgetsQueryParam(urlWidgets);
 
       if (parseResult.length === 0) {
-        const widget = getNewMetricsWidget(firstCustomMeta, defaultCondition);
+        const widget = getNewMetricsWidget(defaultMetricMeta, defaultCondition);
         widget.id = 0;
         return [widget];
       }
@@ -133,7 +133,7 @@ export function useMetricWidgets(
           condition: virtualMRIQuery.conditionId,
         };
       });
-    }, [defaultCondition, firstCustomMeta, getVirtualMRIQuery, urlWidgets])
+    }, [defaultCondition, defaultMetricMeta, getVirtualMRIQuery, urlWidgets])
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -275,6 +275,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
     true,
     pageFilters.isReady
   );
+
   const {data: metaPerformance, isLoading: isMetaPerformanceLoading} =
     useVirtualizedMetricsMeta(
       pageFilters.selection,
@@ -282,16 +283,17 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       true,
       pageFilters.isReady
     );
+
   const isMultiChartMode = multiChartMode === 1;
-  const firstCustomMetric: MetricMeta | undefined = metaCustom[0];
+  const defaultMetricMeta: MetricMeta | undefined = metaPerformance.find(isSpanDuration);
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
     useMetricWidgets(
-      firstCustomMetric,
-      firstCustomMetric && getConditions(firstCustomMetric.mri)[0]?.id
+      defaultMetricMeta,
+      defaultMetricMeta && getConditions(defaultMetricMeta.mri)[0]?.id
     );
 
   const [metricsSamples, setMetricsSamples] = useState<
