@@ -666,6 +666,7 @@ const iconSizes = {
 
 const commonTheme = {
   breakpoints: {
+    xsmall: '500px',
     small: '800px',
     medium: '992px',
     large: '1200px',

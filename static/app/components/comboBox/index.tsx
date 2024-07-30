@@ -240,17 +240,16 @@ function ControlledComboBox<Value extends string>({
     );
   });
 
-  // Sync input value with value prop
-  const previousValue = useRef(value);
-  if (previousValue.current !== value) {
-    const selectedLabel = options
-      .flatMap(item => ('options' in item ? item.options : [item]))
-      .find(option => option.value === value)?.label;
-    if (selectedLabel) {
-      setInputValue(selectedLabel);
+  useEffect(() => {
+    if (value) {
+      const selectedLabel = options
+        .flatMap(item => ('options' in item ? item.options : [item]))
+        .find(option => option.value === value)?.label;
+      if (selectedLabel) {
+        setInputValue(selectedLabel);
+      }
     }
-    previousValue.current = value;
-  }
+  }, [value, options]);
 
   const items = useMemo(() => {
     return getItemsWithKeys(options) as ComboBoxOptionOrSectionWithKey<Value>[];

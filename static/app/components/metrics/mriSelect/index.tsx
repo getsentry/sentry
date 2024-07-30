@@ -23,6 +23,7 @@ import {
 } from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
+import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -159,6 +160,7 @@ export const MRISelect = memo(function MRISelect({
   const mriMode = useMriMode();
   const [inputValue, setInputValue] = useState('');
   const hasExtractionRules = hasCustomMetricsExtractionRules(organization);
+  const breakpoints = useBreakpoints();
 
   const metricsWithDuplicateNames = useMetricsWithDuplicateNames(metricsMeta);
   const filteredMRIs = useFilteredMRIs(metricsMeta, inputValue, mriMode);
@@ -214,6 +216,19 @@ export const MRISelect = memo(function MRISelect({
     [onChange]
   );
 
+  const maxLength = useMemo(() => {
+    if (breakpoints.small) {
+      // at least small size screen, no problem with fitting 100 characters
+      return 100;
+    }
+    if (breakpoints.xsmall) {
+      return 35; // at least xsmall size screen, no problem with fitting 35 characters
+    }
+
+    // screen smaller than xsmall, 20 characters is optimal
+    return 20;
+  }, [breakpoints]);
+
   const mriOptions = useMemo(
     () =>
       displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
@@ -262,7 +277,7 @@ export const MRISelect = memo(function MRISelect({
             ? metric.mri
             : isUnresolvedExtractedMetric
               ? t('Deleted Metric')
-              : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
+              : middleEllipsis(formatMRI(metric.mri) ?? '', maxLength, /\.|-|_/),
           value: metric.mri,
           leadingItems: [projectBadge],
           disabled: isUnresolvedExtractedMetric,
@@ -287,6 +302,7 @@ export const MRISelect = memo(function MRISelect({
       onTagClick,
       projects,
       selectedProjects,
+      maxLength,
     ]
   );
 
