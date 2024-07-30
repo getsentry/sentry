@@ -275,7 +275,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             sdk_names=["sentry.dart", "sentry.dart.flutter"],
             # Since 8.2.0 the Dart SDK sends SDK frames, which is required;
             # see https://github.com/getsentry/sentry-dart/releases/tag/8.2.0
-            min_sdk_version="8.2.0",
+            min_sdk_version="8.2.1",
             report_fatal_errors=True,
             system_library_path_patterns={
                 # Dart
@@ -301,9 +301,11 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),
-            # SentryExceptionFactory.getSentryException is always part of the stacktrace when
-            # users capture exceptions and would cause false positives. Therefore, we ignore it.
-            sdk_crash_ignore_functions_matchers={"SentryExceptionFactory.getSentryException"},
+            # getCurrentStackTrace is always part of the stacktrace when the SDK captures the stacktrace,
+            # and would cause false positives. Therefore, we ignore it.
+            sdk_crash_ignore_functions_matchers={
+                "getCurrentStackTrace",
+            },
         )
         configs.append(dart_config)
 
