@@ -175,13 +175,6 @@ class GitHubEnterpriseIntegration(
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def reinstall(self):
-        installation_id = self.model.external_id.split(":")[1]
-        metadata = self.model.metadata
-        metadata["installation_id"] = installation_id
-        self.model.update(metadata=metadata)
-        self.reinstall_repositories()
-
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
             message = API_ERRORS.get(exc.code)
