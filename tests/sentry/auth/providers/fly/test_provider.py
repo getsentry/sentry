@@ -70,3 +70,11 @@ class FlyOAuth2ProviderTest(TestCase):
             "data": provider.get_oauth_data(data),
             "email_verified": False,
         }
+
+
+@control_silo_test
+class DisableableFlyOAuth2ProviderTest(FlyOAuth2ProviderTest):
+    def setUp(self):
+        self.auth_provider: AuthProvider = AuthProvider.objects.create(
+            provider=ChannelName.FLY_DISABLEABLE.value, organization_id=self.organization.id
+        )
