@@ -1,8 +1,6 @@
 import {type ReactNode, useContext} from 'react';
 
-import AnalyticsProvider, {
-  AnalyticsContext,
-} from 'sentry/components/devtoolbar/components/analyticsProvider';
+import {AnalyticsContext} from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SessionStatusBadge from 'sentry/components/devtoolbar/components/releases/sessionStatusBadge';
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {
@@ -77,25 +75,25 @@ function NavButton({
   panelName: ReturnType<typeof useToolbarRoute>['state']['activePanel'];
   children?: ReactNode;
 }) {
+  const {trackAnalytics} = useConfiguration();
   const {state, setActivePanel} = useToolbarRoute();
 
   const isActive = state.activePanel === panelName;
 
   return (
-    <AnalyticsProvider
-      nameVal={`panel ${label} toggle`}
-      keyVal={`${label.replace(' ', '-')}`}
+    <IconButton
+      data-active-route={isActive}
+      icon={icon}
+      onClick={() => {
+        setActivePanel(isActive ? null : panelName);
+        trackAnalytics?.({
+          eventKey: `devtoolbar.nav.button.${label.replace(' ', '-')}.click`,
+          eventName: `devtoolbar: Toggle Nav Panel ${label} Click`,
+        });
+      }}
+      title={label}
     >
-      <IconButton
-        data-active-route={isActive}
-        icon={icon}
-        onClick={() => {
-          setActivePanel(isActive ? null : panelName);
-        }}
-        title={label}
-      >
-        {children}
-      </IconButton>
-    </AnalyticsProvider>
+      {children}
+    </IconButton>
   );
 }
