@@ -1290,6 +1290,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
         )
 
         assert updated_rule.comparison_delta is None
@@ -1302,6 +1303,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
         )
 
         updated_rule = update_alert_rule(
@@ -1331,6 +1333,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
         )
 
         assert updated_rule.sensitivity == AlertRuleSensitivity.HIGH
@@ -1355,6 +1358,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
         )
 
         updated_rule = update_alert_rule(rule, detection_type=AlertRuleDetectionType.STATIC)
@@ -1363,6 +1367,83 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert updated_rule.sensitivity is None
         assert updated_rule.seasonality is None
         assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # test dynamic to dynamic
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, detection_type=AlertRuleDetectionType.DYNAMIC, time_window=30
+        )
+        assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+
+    def test_update_infer_detection_type(self):
+        # static to static
+        rule = self.create_alert_rule()
+        updated_rule = update_alert_rule(rule, time_window=15)
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # static to percent
+        rule = self.create_alert_rule()
+        updated_rule = update_alert_rule(rule, comparison_delta=60)
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # percent to percent
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        updated_rule = update_alert_rule(rule, time_window=15)
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # percent to static
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        updated_rule = update_alert_rule(rule, comparison_delta=None)
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # dynamic to percentsta
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=60, sensitivity=None, seasonality=None
+        )
+
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # dynamic to static
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=None, sensitivity=None, seasonality=None
+        )
+
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+    def test_update_invalid_time_window(self):
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
+        )
+
+        with pytest.raises(ValidationError):
+            update_alert_rule(rule, detection_type=AlertRuleDetectionType.DYNAMIC, time_window=300)
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1426,7 +1507,7 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
 
-class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
+class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
@@ -1490,6 +1571,17 @@ class CreateAlertRuleTriggerTest(TestCase):
         with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             create_alert_rule_trigger(self.alert_rule, name, 100)
 
+    def test_invalid_threshold_dynamic_alert(self):
+        rule = self.create_alert_rule(
+            time_window=15,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        create_alert_rule_trigger(rule, "yay", 0)
+        with pytest.raises(ValidationError):
+            create_alert_rule_trigger(rule, "no", 10)
+
 
 class UpdateAlertRuleTriggerTest(TestCase):
     @cached_property
@@ -1543,6 +1635,17 @@ class UpdateAlertRuleTriggerTest(TestCase):
 
         with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
+
+    def test_invalid_threshold_dynamic_alert(self):
+        rule = self.create_alert_rule(
+            time_window=15,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        trigger = create_alert_rule_trigger(rule, "yay", 0)
+        with pytest.raises(ValidationError):
+            update_alert_rule_trigger(trigger, alert_threshold=10)
 
 
 class DeleteAlertRuleTriggerTest(TestCase):

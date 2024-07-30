@@ -98,6 +98,10 @@ NOT_SET = object()
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
+DYNAMIC_TIME_WINDOWS = {15, 30, 60}
+DYNAMIC_TIME_WINDOWS_SECONDS = {window * 60 for window in DYNAMIC_TIME_WINDOWS}
+INVALID_TIME_WINDOW = f"Invalid time window for dynamic alert (valid windows are {', '.join(map(str, DYNAMIC_TIME_WINDOWS))} minutes)"
+INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
 
 logger = logging.getLogger(__name__)
 
@@ -566,6 +570,8 @@ def create_alert_rule(
     if detection_type == AlertRuleDetectionType.DYNAMIC:
         if not (sensitivity and seasonality):
             raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
+        if time_window not in DYNAMIC_TIME_WINDOWS:
+            raise ValidationError(INVALID_TIME_WINDOW)
     else:
         if sensitivity or seasonality:
             raise ValidationError(
@@ -734,8 +740,8 @@ def update_alert_rule(
     comparison_delta=NOT_SET,
     monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
-    sensitivity: AlertRuleSensitivity | None = None,
-    seasonality: AlertRuleSeasonality | None = None,
+    sensitivity: AlertRuleSensitivity | None | object = NOT_SET,
+    seasonality: AlertRuleSeasonality | None | object = NOT_SET,
     detection_type: AlertRuleDetectionType | None = None,
     **kwargs,
 ):
@@ -776,9 +782,9 @@ def update_alert_rule(
         updated_fields["name"] = name
     if description:
         updated_fields["description"] = description
-    if sensitivity:
+    if sensitivity is not NOT_SET:
         updated_fields["sensitivity"] = sensitivity
-    if seasonality:
+    if seasonality is not NOT_SET:
         updated_fields["seasonality"] = seasonality
     if query is not None:
         updated_query_fields["query"] = query
@@ -812,17 +818,15 @@ def update_alert_rule(
             comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
         updated_fields["comparison_delta"] = comparison_delta
-
-    # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
-    if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
-        if comparison_delta is not None:
-            detection_type = AlertRuleDetectionType.PERCENT
-        else:
-            if seasonality:
-                detection_type = AlertRuleDetectionType.DYNAMIC
+    if detection_type is None:
+        if "comparison_delta" in updated_fields:  # some value changed -> update type if necessary
+            if comparison_delta is not None:
+                detection_type = AlertRuleDetectionType.PERCENT
             else:
                 detection_type = AlertRuleDetectionType.STATIC
 
+    # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
+    if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
         window = int(
             updated_query_fields.get(
                 "time_window", timedelta(seconds=alert_rule.snuba_query.time_window)
@@ -854,6 +858,12 @@ def update_alert_rule(
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
             updated_fields["comparison_delta"] = None
+            if (
+                time_window not in DYNAMIC_TIME_WINDOWS
+                or time_window is None
+                and alert_rule.snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS
+            ):
+                raise ValidationError(INVALID_TIME_WINDOW)
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -1074,6 +1084,9 @@ def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_proje
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
         raise AlertRuleTriggerLabelAlreadyUsedError()
 
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
+        raise ValidationError(INVALID_ALERT_THRESHOLD)
+
     excluded_subs = []
     if excluded_projects:
         excluded_subs = get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
@@ -1109,6 +1122,9 @@ def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, exclude
         .exists()
     ):
         raise AlertRuleTriggerLabelAlreadyUsedError()
+
+    if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
+        raise ValidationError(INVALID_ALERT_THRESHOLD)
 
     updated_fields = {}
     if label is not None:
