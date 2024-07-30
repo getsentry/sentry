@@ -10,6 +10,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyOperator';
+import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {formatFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
@@ -277,18 +278,6 @@ const BaseGridCell = styled('div')`
 const FilterValueGridCell = styled(BaseGridCell)`
   /* When we run out of space, shrink the value */
   min-width: 0;
-`;
-
-const UnstyledButton = styled('button')`
-  background: none;
-  border: none;
-  outline: none;
-  padding: 0;
-  user-select: none;
-
-  :focus {
-    outline: none;
-  }
 `;
 
 const ValueButton = styled(UnstyledButton)`

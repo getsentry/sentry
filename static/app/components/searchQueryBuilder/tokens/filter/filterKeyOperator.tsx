@@ -8,6 +8,7 @@ import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect'
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
+import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
@@ -393,18 +394,6 @@ export function FilterKeyOperator({
     </GridCell>
   );
 }
-
-const UnstyledButton = styled('button')`
-  background: none;
-  border: none;
-  outline: none;
-  padding: 0;
-  user-select: none;
-
-  :focus {
-    outline: none;
-  }
-`;
 
 const GridCell = styled('div')`
   display: flex;

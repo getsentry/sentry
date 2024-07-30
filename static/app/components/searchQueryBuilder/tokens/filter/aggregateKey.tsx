@@ -4,6 +4,7 @@ import type {Node} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import type {
   AggregateFilter,
@@ -43,18 +44,6 @@ export function AggregateKey({item, state, token}: AggregateKeyProps) {
     </KeyButton>
   );
 }
-
-const UnstyledButton = styled('button')`
-  background: none;
-  border: none;
-  outline: none;
-  padding: 0;
-  user-select: none;
-
-  :focus {
-    outline: none;
-  }
-`;
 
 const KeyButton = styled(UnstyledButton)`
   padding: 0 ${space(0.25)} 0 ${space(0.5)};
