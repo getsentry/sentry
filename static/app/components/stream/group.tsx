@@ -48,12 +48,14 @@ import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {
   DISCOVER_EXCLUSION_FIELDS,
@@ -302,7 +304,11 @@ function BaseGroupRow({
       }
 
       const discoverView = EventView.fromSavedQuery(discoverQuery);
-      return discoverView.getResultsViewUrlTarget(organization.slug);
+      return discoverView.getResultsViewUrlTarget(
+        organization.slug,
+        false,
+        hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+      );
     }
 
     return {

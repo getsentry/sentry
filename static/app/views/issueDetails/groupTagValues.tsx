@@ -24,10 +24,12 @@ import {space} from 'sentry/styles/space';
 import type {Group, Project, SavedQueryVersions} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 type RouteParams = {
   groupId: string;
@@ -232,7 +234,13 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
                 {
                   key: 'open-in-discover',
                   label: t('Open in Discover'),
-                  to: discoverView.getResultsViewUrlTarget(orgId),
+                  to: discoverView.getResultsViewUrlTarget(
+                    orgId,
+                    false,
+                    hasDatasetSelector(organization)
+                      ? SavedQueryDatasets.ERRORS
+                      : undefined
+                  ),
                   hidden: !organization.features.includes('discover-basic'),
                 },
                 {

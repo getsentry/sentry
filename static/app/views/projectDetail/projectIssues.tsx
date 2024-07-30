@@ -22,7 +22,9 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
@@ -154,6 +156,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         query: discoverQuery,
         display: 'top5',
         ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
+        ...appendQueryDatasetParam(organization, SavedQueryDatasets.ERRORS),
       },
     };
   }

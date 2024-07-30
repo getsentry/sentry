@@ -36,7 +36,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
@@ -45,6 +45,7 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
 import ShareIssueModal from './shareModal';
@@ -119,7 +120,11 @@ export function Actions(props: Props) {
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-    return discoverView.getResultsViewUrlTarget(organization.slug);
+    return discoverView.getResultsViewUrlTarget(
+      organization.slug,
+      false,
+      hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+    );
   };
 
   const trackIssueAction = (
