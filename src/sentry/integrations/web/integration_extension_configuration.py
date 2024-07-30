@@ -6,7 +6,6 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.http import urlencode
-from rest_framework.request import Request
 
 from sentry import features
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
@@ -93,9 +92,7 @@ class IntegrationExtensionConfigurationView(BaseView):
                 )
                 if org_member and "org:integrations" in org_member.scopes:
                     try:
-                        pipeline = self.init_pipeline(
-                            Request(request=request), organization, request.GET.dict()
-                        )
+                        pipeline = self.init_pipeline(request, organization, request.GET.dict())
                         return pipeline.current_step()
                     except ValueError as e:
                         return self.respond(
@@ -124,7 +121,7 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def init_pipeline(self, request: HttpRequest, organization, params):
         pipeline = ExternalIntegrationPipeline(
-            request=Request(request=request),
+            request=request,
             organization=organization,
             provider_key=self.external_provider_key,
         )

@@ -3,7 +3,6 @@ import logging
 import sentry_sdk
 from django.http import Http404, HttpRequest
 from django.http.response import HttpResponseBase
-from rest_framework.request import Request
 from sentry_sdk.tracing import TRANSACTION_SOURCE_VIEW
 
 from sentry import features
@@ -26,7 +25,7 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
         scope.set_transaction_name(f"integration.{provider_id}", source=TRANSACTION_SOURCE_VIEW)
 
         pipeline = IntegrationPipeline(
-            request=Request(request=request), organization=organization, provider_key=provider_id
+            request=request, organization=organization, provider_key=provider_id
         )
 
         is_feature_enabled = {}
