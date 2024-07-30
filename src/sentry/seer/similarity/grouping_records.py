@@ -5,7 +5,7 @@ from django.conf import settings
 from urllib3.exceptions import ReadTimeoutError
 
 from sentry.conf.server import (
-    SEER_GROUPING_RECORDS_URL,
+    SEER_GROUPING_BACKFILL_URL,
     SEER_HASH_GROUPING_RECORDS_DELETE_URL,
     SEER_PROJECT_GROUPING_RECORDS_DELETE_URL,
 )
@@ -63,7 +63,7 @@ def post_bulk_grouping_records(
     try:
         response = make_signed_seer_api_request(
             seer_grouping_connection_pool,
-            SEER_GROUPING_RECORDS_URL,
+            SEER_GROUPING_BACKFILL_URL,
             body=json.dumps(grouping_records_request).encode("utf-8"),
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
