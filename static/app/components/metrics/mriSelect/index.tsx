@@ -225,8 +225,8 @@ export const MRISelect = memo(function MRISelect({
       return 35; // at least xsmall size screen, no problem with fitting 35 characters
     }
 
-    // screen smaller than xsmall, 22 characters is optimal
-    return 22;
+    // screen smaller than xsmall, 20 characters is optimal
+    return 20;
   }, [breakpoints]);
 
   const mriOptions = useMemo(
