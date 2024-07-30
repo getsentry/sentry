@@ -179,6 +179,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
                 "release_threshold": self.basic_threshold.id,
             },
         )
+        assert self.basic_threshold.environment is not None
         data = {
             "project": self.basic_threshold.project.id,
             "environment": self.basic_threshold.environment.name,
@@ -196,6 +197,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
                 "release_threshold": self.basic_threshold.id,
             },
         )
+        assert self.basic_threshold.environment is not None
         data = {
             "project": self.basic_threshold.project.id,
             "environment": self.basic_threshold.environment.name,
@@ -217,6 +219,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
                 "release_threshold": self.basic_threshold.id,
             },
         )
+        assert self.basic_threshold.environment is not None
         data = {
             "project": self.basic_threshold.project.id,
             "environment": self.basic_threshold.environment.name,
@@ -238,6 +241,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
                 "release_threshold": self.basic_threshold.id,
             },
         )
+        assert self.basic_threshold.environment is not None
         data = {
             "project": self.basic_threshold.project.id,
             "environment": self.basic_threshold.environment.name,
@@ -264,6 +268,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         assert response.status_code == 404
 
     def test_valid(self):
+        assert self.basic_threshold.environment is not None
         updated_data = {
             "project": self.basic_threshold.project.id,
             "environment": self.basic_threshold.environment.name,
