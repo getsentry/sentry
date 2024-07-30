@@ -452,7 +452,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         additional_query_column: str | None = None,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
-        if len(params) == 0 and snuba_params is not None:
+        if (params is None or len(params) == 0) and snuba_params is not None:
             params = snuba_params.filter_params
 
         with handle_query_errors():
