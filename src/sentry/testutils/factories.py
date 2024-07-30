@@ -1192,6 +1192,7 @@ class Factories:
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
                 assert install.api_grant is not None
+                assert install.sentry_app.application is not None
                 GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
