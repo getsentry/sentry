@@ -1,6 +1,7 @@
 import {Fragment, Suspense} from 'react';
 import {Global} from '@emotion/react';
 
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
@@ -33,7 +34,9 @@ export default function App() {
       <div css={[fixedContainerBaseCss, placement.fixedContainer.css, {visibility}]}>
         {isDisabled ? null : (
           <Fragment>
-            <Navigation setIsDisabled={setIsDisabled} />
+            <AnalyticsProvider nameVal="nav" keyVal="nav">
+              <Navigation setIsDisabled={setIsDisabled} />
+            </AnalyticsProvider>
             <Suspense fallback={<LoadingPanel />}>
               <PanelRouter />
             </Suspense>

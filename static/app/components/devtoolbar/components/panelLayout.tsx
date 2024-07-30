@@ -4,8 +4,8 @@ import {panelCss, panelHeadingCss, panelSectionCss} from '../styles/panel';
 import {resetDialogCss, resetFlexColumnCss} from '../styles/reset';
 
 interface Props {
-  title: string;
   children?: React.ReactNode;
+  title?: string;
   titleLeft?: React.ReactNode;
   titleRight?: React.ReactNode;
 }

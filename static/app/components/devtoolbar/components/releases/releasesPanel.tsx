@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import ReleaseIsssues from 'sentry/components/devtoolbar/components/releases/releaseIssues';
 import useReleaseSessions from 'sentry/components/devtoolbar/components/releases/useReleaseSessions';
 import useToolbarRelease from 'sentry/components/devtoolbar/components/releases/useToolbarRelease';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
@@ -41,8 +43,9 @@ import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
 import {smallCss} from '../../styles/typography';
 import PanelLayout from '../panelLayout';
 
-const estimateSize = 81;
-const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
+const summaryPlaceholderHeight = '65px';
+const crashComparisonPlaceholderHeight = '61px';
+const issueListPlaceholderHeight = '320px';
 
 function getCrashFreeRate(data: ApiResult<SessionApiResponse>): number {
   // if `crash_free_rate(session)` is undefined
@@ -72,7 +75,9 @@ function getDiff(
 
 function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release}) {
   return (
-    <PanelItem css={{width: '100%', alignItems: 'flex-start'}}>
+    <PanelItem
+      css={{width: '100%', alignItems: 'flex-start', padding: 'var(--space150)'}}
+    >
       <ReleaseInfoHeader css={infoHeaderCss}>
         <SentryAppLink
           to={{
@@ -129,7 +134,7 @@ function CrashFreeRate({
     return (
       <PanelItem css={{width: '100%', padding: 'var(--space150)'}}>
         <Placeholder
-          height={placeholderHeight}
+          height={crashComparisonPlaceholderHeight}
           css={[
             resetFlexColumnCss,
             panelSectionCss,
@@ -147,7 +152,7 @@ function CrashFreeRate({
   const sign = Math.sign(diff);
 
   return (
-    <PanelItem>
+    <PanelItem css={{padding: 'var(--space150)', border: 0}}>
       <div css={infoHeaderCss}>Crash free session rate</div>
       <ReleaseInfoSubheader css={subtextCss}>
         <span css={[resetFlexRowCss, {gap: 'var(--space200)'}]}>
@@ -178,8 +183,7 @@ export default function ReleasesPanel() {
     isError: isReleaseDataError,
   } = useToolbarRelease();
 
-  const {organizationSlug, projectSlug, projectId, projectPlatform, trackAnalytics} =
-    useConfiguration();
+  const {organizationSlug, projectSlug, projectId, projectPlatform} = useConfiguration();
 
   if (isReleaseDataError) {
     return <EmptyStateWarning small>No data to show</EmptyStateWarning>;
@@ -187,49 +191,45 @@ export default function ReleasesPanel() {
 
   return (
     <PanelLayout title="Latest Release">
-      <span
-        css={[
-          smallCss,
-          panelSectionCss,
-          panelInsetContentCss,
-          resetFlexRowCss,
-          {gap: 'var(--space50)', flexGrow: 0},
-        ]}
-      >
-        Latest release for{' '}
-        <SentryAppLink
-          to={{
-            url: `/releases/`,
-            query: {project: projectId},
-          }}
-          onClick={() => {
-            trackAnalytics?.({
-              eventKey: `devtoolbar.releases-list.header.click`,
-              eventName: `devtoolbar: Click releases-list header`,
-            });
-          }}
+      <AnalyticsProvider nameVal="header" keyVal="header">
+        <span
+          css={[
+            smallCss,
+            panelSectionCss,
+            panelInsetContentCss,
+            resetFlexRowCss,
+            {gap: 'var(--space50)', flexGrow: 0},
+          ]}
         >
-          <div
-            css={[
-              resetFlexRowCss,
-              {display: 'inline-flex', gap: 'var(--space50)', alignItems: 'center'},
-            ]}
+          Latest release for{' '}
+          <SentryAppLink
+            to={{
+              url: `/releases/`,
+              query: {project: projectId},
+            }}
           >
-            <ProjectBadge
-              css={css({'&& img': {boxShadow: 'none'}})}
-              project={{
-                slug: projectSlug,
-                id: projectId,
-                platform: projectPlatform as PlatformKey,
-              }}
-              avatarSize={16}
-              hideName
-              avatarProps={{hasTooltip: false}}
-            />
-            {projectSlug}
-          </div>
-        </SentryAppLink>
-      </span>
+            <div
+              css={[
+                resetFlexRowCss,
+                {display: 'inline-flex', gap: 'var(--space50)', alignItems: 'center'},
+              ]}
+            >
+              <ProjectBadge
+                css={css({'&& img': {boxShadow: 'none'}})}
+                project={{
+                  slug: projectSlug,
+                  id: projectId,
+                  platform: projectPlatform as PlatformKey,
+                }}
+                avatarSize={16}
+                hideName
+                avatarProps={{hasTooltip: false}}
+              />
+              {projectSlug}
+            </div>
+          </SentryAppLink>
+        </span>
+      </AnalyticsProvider>
       {isReleaseDataLoading ? (
         <div
           css={[
@@ -239,8 +239,9 @@ export default function ReleasesPanel() {
             listItemPlaceholderWrapperCss,
           ]}
         >
-          <Placeholder height={placeholderHeight} />
-          <Placeholder height={placeholderHeight} />
+          <Placeholder height={summaryPlaceholderHeight} />
+          <Placeholder height={crashComparisonPlaceholderHeight} />
+          <Placeholder height={issueListPlaceholderHeight} />
         </div>
       ) : (
         <Fragment>
@@ -252,6 +253,7 @@ export default function ReleasesPanel() {
                 releaseData.json.length > 1 ? releaseData.json[1].version : undefined
               }
             />
+            <ReleaseIsssues releaseVersion={releaseData.json[0].version} />
           </div>
         </Fragment>
       )}
