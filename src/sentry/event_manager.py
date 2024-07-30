@@ -1551,13 +1551,6 @@ def _save_aggregate(
                         )
                         event.data["seer_similarity"] = seer_response_data
 
-                        # We only want to add this data to new groups, while we're testing
-                        # TODO: Remove this once we're out of the testing phase
-                        if not seer_matched_group:
-                            group_creation_kwargs["data"]["metadata"][
-                                "seer_similarity"
-                            ] = seer_response_data
-
                     # Insurance - in theory we shouldn't ever land here
                     except Exception as e:
                         sentry_sdk.capture_exception(
