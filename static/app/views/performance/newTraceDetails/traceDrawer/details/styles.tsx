@@ -469,6 +469,7 @@ function NodeActions(props: {
         ) : null}
       </Actions>
       <DropdownMenu
+        usePortal
         items={items}
         className="DropdownMenu"
         position="bottom-end"
