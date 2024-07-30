@@ -11,9 +11,10 @@ import {AnimatePresence} from 'framer-motion';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import DrawerComponents from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOnClickOutsideMany from 'sentry/utils/useOnClickOutsideMany';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
 export interface DrawerOptions {
   /**
@@ -29,10 +30,6 @@ export interface DrawerOptions {
    */
   closeOnOutsideClick?: boolean;
   /**
-   * If closeOnOutsideClick is not set to false, these elements will not close the drawer.
-   */
-  exemptOutsideRefs?: React.RefObject<HTMLElement>[];
-  /**
    * Custom content for the header of the drawer
    */
   headerContent?: React.ReactNode;
@@ -44,6 +41,11 @@ export interface DrawerOptions {
    * Callback for when the drawer opens
    */
   onOpen?: () => void;
+  /**
+   * Function to determine whether the drawer should close when interacting with
+   * other elements.
+   */
+  shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
 }
 
 interface DrawerRenderProps {
@@ -106,8 +108,17 @@ export function GlobalDrawer({children}) {
       handleClose();
     }
   }, [currentDrawerConfig, handleClose]);
-  const extraRefs = currentDrawerConfig?.options?.exemptOutsideRefs ?? [];
-  useOnClickOutsideMany([panelRef, ...extraRefs], handleClickOutside);
+  const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
+  useOnClickOutside(panelRef, e => {
+    if (
+      defined(shouldCloseOnInteractOutside) &&
+      defined(e?.target) &&
+      !shouldCloseOnInteractOutside(e.target as Element)
+    ) {
+      return;
+    }
+    handleClickOutside();
+  });
 
   // Close the drawer when escape is pressed and options allow it.
   const handleEscapePress = useCallback(() => {
