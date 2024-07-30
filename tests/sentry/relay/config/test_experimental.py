@@ -8,7 +8,7 @@ from sentry.relay.config.experimental import (
     TimeChecker,
     TimeoutException,
     add_experimental_config,
-    run_time_constrained_config_builder,
+    build_safe_config,
 )
 
 
@@ -54,11 +54,11 @@ def test_run_experimental_config_builder_catches_timeout(mock_logger):
         sleep(1)
         timeout.check()
 
-    run_time_constrained_config_builder(dummy, 1, 1)
+    build_safe_config("key", dummy, 1, 1)
 
     # Assert logger message.
     # These many asserts is a workaround to exclude `elapsed` from the assertion
-    assert mock_logger.call_args[0] == ("Project config feature build timed out",)
+    assert mock_logger.call_args[0] == ("Project config feature build timed out: %s", "key")
     extra = mock_logger.call_args[1]["extra"]
     assert extra.pop("elapsed") > timedelta(seconds=1)
     assert extra == {"hard_timeout": timedelta(seconds=1)}
@@ -68,14 +68,14 @@ def test_run_experimental_config_builder_returns_results_from_function_in_args()
     def dummy(*args, **kwargs):
         return 1, 2, 3
 
-    result = run_time_constrained_config_builder(dummy, 1, 2, 3, 4, 5)
+    result = build_safe_config("key", dummy, 1, 2, 3, 4, 5)
 
     assert result == (1, 2, 3)
 
     def dummy2(*args, **kwargs):
         return "foo", None, "bar"
 
-    result2 = run_time_constrained_config_builder(dummy2)
+    result2 = build_safe_config("key", dummy2)
 
     assert result2 == ("foo", None, "bar")
 
@@ -87,7 +87,7 @@ def test_run_experimental_config_builder_returns_default_value_on_timeout_except
         sleep(1)
         timeout.check()
 
-    result = run_time_constrained_config_builder(dummy, default_return="bar")
+    result = build_safe_config("key", dummy, default_return="bar")
 
     assert result == "bar"
 
@@ -96,6 +96,6 @@ def test_run_experimental_config_builder_returns_value_passed_as_arg_on_exceptio
     def dummy(*args, **kwargs):
         raise ValueError("foo")
 
-    result = run_time_constrained_config_builder(dummy, default_return="bar")
+    result = build_safe_config("key", dummy, default_return="bar")
 
     assert result == "bar"

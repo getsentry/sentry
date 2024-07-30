@@ -55,35 +55,21 @@ def add_experimental_config(
     **kwargs: Any,
 ) -> None:
     """Try to set `config[key] = function(*args, **kwargs)`.
-    If the result of the function call is None, the key is not set.
     If the function call raises an exception, we log it to sentry and the key remains unset.
     NOTE: Only use this function if you expect Relay to behave reasonably
     if ``key`` is missing from the config.
     """
-    timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
-    with sentry_sdk.start_span(op=f"project_config.experimental_config.{key}"):
-        try:
-            subconfig = function(timeout, *args, **kwargs)
-        except TimeoutException as e:
-            logger.exception(
-                "Project config feature build timed out: %s",
-                key,
-                extra={"hard_timeout": e._timeout, "elapsed": e._elapsed},
-            )
-        except Exception:
-            logger.exception("Exception while building Relay project config field")
-        else:
-            if subconfig is not None:
-                config[key] = subconfig
+    if subconfig := build_safe_config(key, function, *args, **kwargs):
+        config[key] = subconfig
 
 
 R = TypeVar("R")
 R_default = TypeVar("R_default")
 
 
-def run_time_constrained_config_builder(
-    function: Callable[..., R], *args: Any, default_return: R_default = None, **kwargs: Any
+def build_safe_config(
+    key, function: Callable[..., R], *args: Any, default_return: R_default = None, **kwargs: Any
 ) -> R | R_default:
     """
     Runs a config builder function with a timeout.
@@ -92,14 +78,13 @@ def run_time_constrained_config_builder(
     """
     timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
-    with sentry_sdk.start_span(
-        op=f"project_config.time_constrained_config_builder.{function.__name__}"
-    ):
+    with sentry_sdk.start_span(op=f"project_config.time_constrained_config_builder.{key}"):
         try:
             return function(timeout, *args, **kwargs)
         except TimeoutException as e:
             logger.exception(
-                "Project config feature build timed out",
+                "Project config feature build timed out: %s",
+                key,
                 extra={"hard_timeout": e._timeout, "elapsed": e._elapsed},
             )
         except Exception:

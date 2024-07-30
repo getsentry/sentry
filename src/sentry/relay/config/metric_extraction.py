@@ -29,7 +29,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.relay.config.experimental import TimeChecker, run_time_constrained_config_builder
+from sentry.relay.config.experimental import TimeChecker, build_safe_config
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -111,12 +111,12 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
     sentry_sdk.set_tag("organization_id", project.organization_id)
 
     with sentry_sdk.start_span(op="get_on_demand_metric_specs"):
-        alert_specs, widget_specs = run_time_constrained_config_builder(
-            get_on_demand_metric_specs, project, default_return=([], [])
+        alert_specs, widget_specs = build_safe_config(
+            "on_demand_metric_specs", get_on_demand_metric_specs, project, default_return=([], [])
         )
     with sentry_sdk.start_span(op="generate_span_attribute_specs"):
-        span_attr_specs = run_time_constrained_config_builder(
-            _generate_span_attribute_specs, project, default_return=[]
+        span_attr_specs = build_safe_config(
+            "span_attribute_specs", _generate_span_attribute_specs, project, default_return=[]
         )
     with sentry_sdk.start_span(op="merge_metric_specs"):
         metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
