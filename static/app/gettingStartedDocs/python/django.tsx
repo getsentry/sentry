@@ -99,7 +99,7 @@ urlpatterns = [
         <div>
           <p>
             {tct(
-              'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of the Sentry product.',
+              'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
               {
                 link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
