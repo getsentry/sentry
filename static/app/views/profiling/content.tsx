@@ -403,15 +403,17 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
+  const continuousProfilingCompat = organization.features.includes(
+    'continuous-profiling-compat'
+  );
+
   const transactions = useProfileEvents<FieldType>({
     cursor,
     fields,
     query,
     sort,
     referrer: 'api.profiling.landing-table',
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
+    continuousProfilingCompat,
   });
 
   const transactionsError =
@@ -464,6 +466,7 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
                 referrer="api.profiling.landing-chart"
                 userQuery={query}
                 selection={selection}
+                continuousProfilingCompat={continuousProfilingCompat}
               />
               <WidgetsContainer>
                 <LandingWidgetSelector
