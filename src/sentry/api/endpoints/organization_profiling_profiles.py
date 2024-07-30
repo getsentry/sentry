@@ -21,7 +21,6 @@ from sentry.profiles.flamegraph import (
 )
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import proxy_profiling_service
-from sentry.snuba.dataset import Dataset
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
@@ -34,25 +33,27 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
     # fingerprint is an UInt32
     fingerprint = serializers.IntegerField(min_value=0, max_value=(1 << 32) - 1, required=False)
-    dataset = serializers.ChoiceField(["profiles", "discover", "functions"], required=False)
+    dataSource = serializers.ChoiceField(["transactions", "profiles", "functions"], required=False)
     query = serializers.CharField(required=False)
 
     def validate(self, attrs):
-        dataset = attrs.get("dataset")
+        source = attrs.get("dataSource")
 
-        if dataset is None:
+        if source is None:
             if attrs.get("fingerprint") is not None:
-                attrs["dataset"] = Dataset.Functions
+                attrs["dataSource"] = "functions"
             else:
-                attrs["dataset"] = Dataset.Discover
-        elif dataset == "functions":
-            attrs["dataset"] = Dataset.Functions
+                attrs["dataSource"] = "transactions"
+        elif source == "functions":
+            attrs["dataSource"] = "functions"
         elif attrs.get("fingerprint") is not None:
             raise ParseError(
-                detail='"fingerprint" is only permitted when using dataset: "functions"'
+                detail='"fingerprint" is only permitted when using dataSource: "functions"'
             )
+        elif source == "profiles":
+            attrs["dataSource"] = "profiles"
         else:
-            attrs["dataset"] = Dataset.Discover
+            attrs["dataSource"] = "transactions"
 
         return attrs
 
@@ -73,7 +74,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                 raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
 
             if request.query_params.get("fingerprint"):
-                sentry_sdk.set_tag("dataset", "functions")
+                sentry_sdk.set_tag("data source", "functions")
                 function_fingerprint = int(request.query_params["fingerprint"])
 
                 profile_ids = get_profiles_with_function(
@@ -84,7 +85,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                     request.GET.get("query", ""),
                 )
             else:
-                sentry_sdk.set_tag("dataset", "profiles")
+                sentry_sdk.set_tag("data source", "profiles")
                 profile_ids = get_profile_ids(snuba_params, request.query_params.get("query", None))
 
             return proxy_profiling_service(
@@ -106,7 +107,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         with handle_query_errors():
             executor = FlamegraphExecutor(
                 snuba_params=snuba_params,
-                dataset=serialized["dataset"],
+                data_source=serialized["dataSource"],
                 query=serialized.get("query", ""),
                 fingerprint=serialized.get("fingerprint"),
             )
