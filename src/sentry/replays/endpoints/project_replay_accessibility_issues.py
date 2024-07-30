@@ -8,7 +8,6 @@ import requests
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import metrics
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -23,6 +22,7 @@ from sentry.replays.usecases.reader import (
 )
 from sentry.replays.usecases.segment import query_segment_storage_meta_by_timestamp
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 REFERRER = "replays.query.query_replay_clicks_dataset"
