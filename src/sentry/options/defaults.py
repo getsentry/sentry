@@ -2624,6 +2624,12 @@ register(
     default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "profiling.continuous-profiling.chunks-query.size",
+    type=Int,
+    default=250,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Enable orjson in the occurrence_consumer.process_[message|batch]
 register(
