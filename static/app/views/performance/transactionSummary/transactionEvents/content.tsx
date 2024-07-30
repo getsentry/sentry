@@ -18,10 +18,12 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
@@ -236,7 +238,11 @@ function Search(props: Props) {
         }))}
       />
       <Button
-        to={eventView.getResultsViewUrlTarget(organization.slug)}
+        to={eventView.getResultsViewUrlTarget(
+          organization.slug,
+          false,
+          hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+        )}
         onClick={handleDiscoverButtonClick}
       >
         {t('Open in Discover')}

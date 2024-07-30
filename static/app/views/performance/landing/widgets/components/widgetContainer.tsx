@@ -16,12 +16,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {Field} from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import MobileReleaseComparisonListWidget from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
 
@@ -344,7 +345,11 @@ const getEventViewDiscoverPath = (
   organization: Organization,
   eventView: EventView
 ): string => {
-  const discoverUrlTarget = eventView.getResultsViewUrlTarget(organization.slug);
+  const discoverUrlTarget = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+  );
 
   // The landing page EventView has some additional conditions, but
   // `EventView#getResultsViewUrlTarget` omits those! Get them manually

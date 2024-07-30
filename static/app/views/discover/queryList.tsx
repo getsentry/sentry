@@ -23,6 +23,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {
   getSavedQueryWithDataset,
@@ -166,14 +167,11 @@ class QueryList extends Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = eventView.getResultsViewUrlTarget(organization.slug);
-
-      if (organization.features.includes('performance-discover-dataset-selector')) {
-        to.query = {
-          ...to.query,
-          queryDataset: view.queryDataset,
-        };
-      }
+      const to = eventView.getResultsViewUrlTarget(
+        organization.slug,
+        false,
+        hasDatasetSelector(organization) ? view.queryDataset : undefined
+      );
 
       const menuItems = [
         {
