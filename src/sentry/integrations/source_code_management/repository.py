@@ -7,9 +7,8 @@ from typing import Any
 import sentry_sdk
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.services.repository import RpcRepository
 from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
@@ -139,17 +138,6 @@ class RepositoryIntegration(ABC):
         the external service is concerned.
         """
         return []
-
-    def reinstall_repositories(self) -> None:
-        """Reinstalls repositories associated with the integration."""
-        result = integration_service.organization_contexts(integration_id=self.model.id)
-
-        for install in result.organization_integrations:
-            repository_service.reinstall_repositories_for_integration(
-                organization_id=install.organization_id,
-                integration_id=self.model.id,
-                provider=f"integrations:{self.model.provider}",
-            )
 
     @abstractmethod
     def has_repo_access(self, repo: RpcRepository) -> bool:
