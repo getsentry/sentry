@@ -22,10 +22,10 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.project import Project
 from sentry.seer.similarity.utils import SEER_ELIGIBLE_PLATFORMS
 from sentry.signals import project_created
+from sentry.types.region import get_local_region
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -221,14 +221,11 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         # Create project option to turn on ML similarity feature for new EA projects
         if project:
             is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
-            organization_mapping = organization_mapping_service.get(
-                organization_id=project.organization.id
-            )
             if (
                 project.organization.flags
                 and project.organization.flags.early_adopter
                 and is_seer_eligible_platform
-                and organization_mapping.region_name == "us"
+                and get_local_region().name == "us"
             ):
                 project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 

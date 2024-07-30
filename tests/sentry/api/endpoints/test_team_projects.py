@@ -1,17 +1,24 @@
+from collections.abc import Generator
+from contextlib import contextmanager
+from unittest import TestCase
 from unittest.mock import Mock
+
+from django.test import override_settings
 
 from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created
+from sentry.silo.base import SiloMode
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.region import get_test_env_directory
+from sentry.types.region import RegionCategory, load_from_config
+from tests.sentry.types.test_region import RegionDirectoryTest
 
 
 class TeamProjectsListTest(APITestCase):
@@ -43,7 +50,7 @@ class TeamProjectsListTest(APITestCase):
         assert str(proj3.id) not in response.data
 
 
-class TeamProjectsCreateTest(APITestCase):
+class TeamProjectsCreateTest(APITestCase, TestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"
 
@@ -240,6 +247,50 @@ class TeamProjectsCreateTest(APITestCase):
         assert javascript_filter_states["web-crawlers"]
         assert javascript_filter_states["filtered-transaction"]
 
+    @staticmethod
+    @contextmanager
+    def _in_global_state(directory: RegionDirectoryTest) -> Generator[None, None, None]:
+        with get_test_env_directory().swap_state(tuple(directory.regions)):
+            yield
+
+    @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
+    def test_similarity_project_option_valid(self):
+        """
+        Test that project option for similarity grouping is created for EA organizations
+        where the project platform is Seer-eligible.
+        """
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(
+                {
+                    "name": "us",
+                    "snowflake_id": 1,
+                    "address": "http://us.testserver",
+                    "category": RegionCategory.MULTI_TENANT.name,
+                }
+            )
+        with self._in_global_state(directory):
+            self.organization.flags.early_adopter = True
+            self.organization.save()
+            response = self.get_success_response(
+                self.organization.slug,
+                self.team.slug,
+                **self.data,
+                status_code=201,
+            )
+
+            project = Project.objects.get(id=response.data["id"])
+            assert project.name == "foo"
+            assert project.slug == "bar"
+            assert project.platform == "python"
+            assert project.teams.first() == self.team
+
+            assert (
+                ProjectOption.objects.get_value(
+                    project=project, key="sentry:similarity_backfill_completed"
+                )
+                is not None
+            )
+
     def test_similarity_project_option_invalid(self):
         """
         Test that project option for similarity grouping is not created for EA organizations
@@ -268,44 +319,4 @@ class TeamProjectsCreateTest(APITestCase):
                 project=project, key="sentry:similarity_backfill_completed"
             )
             is None
-        )
-
-
-@control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
-class TeamProjectsCreateUsRegion(TeamProjectsCreateTest):
-    def setUp(self):
-        super().setUp()
-        self.organization = self.create_organization(
-            name="test name",
-            slug="foobar",
-            owner=self.user,
-            region="us",
-            flags=Organization.flags.early_adopter,
-        )
-        self.team = self.create_team(members=[self.user], organization=self.organization)
-        self.data = {"name": "foo", "slug": "bar", "platform": "python"}
-        self.login_as(user=self.user)
-
-    def test_similarity_project_option_valid(self):
-        """
-        Test that project option for similarity grouping is created for EA organizations
-        where the project platform is Seer-eligible.
-        """
-        response = self.get_success_response(
-            self.organization.slug,
-            self.team.slug,
-            **self.data,
-            status_code=201,
-        )
-        project = Project.objects.get(id=response.data["id"])
-        assert project.name == "foo"
-        assert project.slug == "bar"
-        assert project.platform == "python"
-        assert project.teams.first() == self.team
-
-        assert (
-            ProjectOption.objects.get_value(
-                project=project, key="sentry:similarity_backfill_completed"
-            )
-            is not None
         )
