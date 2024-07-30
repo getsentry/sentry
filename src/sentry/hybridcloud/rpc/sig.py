@@ -7,7 +7,6 @@ from typing import Any
 
 import pydantic
 from django.utils.functional import LazyObject
-from pydantic import ConfigDict
 
 from sentry.hybridcloud.rpc import ArgumentDict
 
@@ -82,10 +81,7 @@ class SerializableFunctionSignature:
         if self.is_instance_method:
             parameters = parameters[1:]  # exclude `self` argument
         field_definitions = {p.name: create_field(p) for p in parameters}
-
-        # TODO(Hybrid-Cloud): Remove number coercion after pydantic V2 stabilized
-        config = ConfigDict(coerce_numbers_to_str=True)
-        return pydantic.create_model(model_name, __config__=config, **field_definitions)  # type: ignore[call-overload]
+        return pydantic.create_model(model_name, **field_definitions)  # type: ignore[call-overload]
 
     _RETURN_MODEL_ATTR = "value"
 
