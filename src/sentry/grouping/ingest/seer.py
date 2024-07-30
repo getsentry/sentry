@@ -221,9 +221,7 @@ def get_seer_similar_issues(
         SeerSimilarIssuesMetadata(request_hash=event_hash, results=seer_results)
     )
     parent_group = (
-        Group.objects.filter(id=seer_results[0].parent_group_id).first()
-        if seer_results and seer_results[0].should_group
-        else None
+        Group.objects.filter(id=seer_results[0].parent_group_id).first() if seer_results else None
     )
 
     logger.info(
