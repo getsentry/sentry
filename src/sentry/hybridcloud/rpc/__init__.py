@@ -11,6 +11,7 @@ from typing import Any, Generic, Protocol, Self, TypeVar, cast
 import pydantic
 from django.db import router, transaction
 from django.db.models import Model
+from pydantic import ConfigDict
 
 from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
@@ -43,13 +44,14 @@ class ValueEqualityEnum(Enum):
 class RpcModel(pydantic.BaseModel):
     """A serializable object that may be part of an RPC schema."""
 
-    class Config:
-        orm_mode = True
-        use_enum_values = True
+    # TODO(Hybrid-Cloud): Remove number coercion after pydantic V2 stabilized
+    model_config = ConfigDict(
+        from_attributes=True, use_enum_values=True, coerce_numbers_to_str=True
+    )
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
-        return iter(cls.__fields__.keys())
+        return iter(cls.model_fields.keys())
 
     @classmethod
     def serialize_by_field_name(
