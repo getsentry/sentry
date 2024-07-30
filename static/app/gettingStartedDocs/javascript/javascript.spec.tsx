@@ -73,7 +73,7 @@ describe('javascript onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('enables profiling by setting profiling samplerates', () => {
+  it('enables profiling by setting profiling sample rates', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
     });
