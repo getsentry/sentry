@@ -103,7 +103,7 @@ def get_autofix_state(
             or run_id is not None
             and result["run_id"] == run_id
         ):
-            return AutofixState.validate(result["state"])
+            return AutofixState.model_validate(result["state"])
 
     return None
 
