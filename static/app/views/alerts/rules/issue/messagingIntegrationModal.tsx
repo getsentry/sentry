@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQueries} from 'sentry/utils/queryClient';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
@@ -30,35 +30,38 @@ function MessagingIntegrationModal({
   organization,
   project,
 }: Props) {
+  const queryResults = useApiQueries<{providers: IntegrationProvider[]}>(
+    providerKeys.map((providerKey: string) => [
+      `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+    ]),
+    {staleTime: Infinity}
+  );
+
+  if (queryResults.some(({isLoading}) => isLoading)) {
+    return null;
+  }
+
+  if (queryResults.some(({isError}) => isError)) {
+    closeModal();
+    addErrorMessage(t('Failed to load integration data'));
+    return null;
+  }
+
   return (
     <Fragment>
       <Header closeButton>{headerContent}</Header>
       <Body>
         {bodyContent}
         <IntegrationsWrapper>
-          {providerKeys.map((providerKey: string) => {
-            const {
-              data: integrations,
-              isLoading,
-              isError,
-            } = useApiQuery<{providers: IntegrationProvider[]}>(
-              [
-                `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
-              ],
-              {staleTime: Infinity, retry: false}
-            );
-            if (isLoading) {
+          {queryResults.map(result => {
+            const provider = result.data?.providers[0];
+
+            if (!provider) {
               return null;
             }
-            if (isError || !integrations) {
-              closeModal();
-              addErrorMessage(t('Failed to load integration data'));
-              return null;
-            }
-            const provider = integrations.providers[0];
             return (
               <IntegrationContext.Provider
-                key={providerKey}
+                key={provider.key}
                 value={{
                   provider: provider,
                   type: 'first_party',

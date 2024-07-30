@@ -18,7 +18,9 @@ jest.mock('sentry/actionCreators/modal');
 describe('MessagingIntegrationModal', function () {
   let project, org;
   const providerKeys = ['slack', 'discord', 'msteams'];
-  const providers = [GitHubIntegrationProviderFixture()];
+  const providers = (providerKey: string) => [
+    GitHubIntegrationProviderFixture({key: providerKey}),
+  ];
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -51,7 +53,7 @@ describe('MessagingIntegrationModal', function () {
       mockResponses.push(
         MockApiClient.addMockResponse({
           url: `/organizations/${org.slug}/config/integrations/?provider_key=${providerKey}`,
-          body: {providers: providers},
+          body: {providers: providers(providerKey)},
         })
       );
     });
