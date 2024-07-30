@@ -18,22 +18,18 @@ describe('Nest.js onboarding docs', function () {
 
     // Includes import statement
     const allMatches = screen.getAllByText(
-      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/nestjs"/)
+      textWithMarkupMatcher(/import \{ SentryModule } from '@sentry\/nestjs\/setup'/)
     );
     allMatches.forEach(match => {
       expect(match).toBeInTheDocument();
     });
   });
 
-  it('includes error handler', () => {
+  it('includes root module', () => {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          /Sentry\.setupNestErrorHandler\(app, new BaseExceptionFilter\(httpAdapter\)\)/
-        )
-      )
+      screen.getByText(textWithMarkupMatcher(/SentryModule\.forRoot\(\)/))
     ).toBeInTheDocument();
   });
 
