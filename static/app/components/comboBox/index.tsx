@@ -240,8 +240,6 @@ function ControlledComboBox<Value extends string>({
     );
   });
 
-  // Sync input value with value prop
-  const previousValue = useRef(value);
   useEffect(() => {
     if (value) {
       const selectedLabel = options
@@ -250,7 +248,6 @@ function ControlledComboBox<Value extends string>({
       if (selectedLabel) {
         setInputValue(selectedLabel);
       }
-      previousValue.current = value;
     }
   }, [value, options]);
 
