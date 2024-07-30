@@ -689,9 +689,9 @@ export function hasDatasetSelector(organization: Organization): boolean {
 
 export function appendQueryDatasetParam(
   organization: Organization,
-  queryDataset: SavedQueryDatasets
+  queryDataset?: SavedQueryDatasets
 ) {
-  if (hasDatasetSelector(organization)) {
+  if (hasDatasetSelector(organization) && queryDataset) {
     return {queryDataset: queryDataset};
   }
   return {};
