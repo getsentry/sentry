@@ -45,7 +45,7 @@ PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 def has_high_priority_issue_alerts(project: Project) -> bool:
     # Seer-based priority is enabled if the organization has the feature flag
     seer_based_priority_enabled = features.has(
-        "organizations:seer-based-priority", project.organization
+        "organizations:priority-ga-features", project.organization
     )
     if seer_based_priority_enabled:
         return True
