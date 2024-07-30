@@ -132,7 +132,7 @@ describe('SearchQueryBuilder', function () {
       render(
         <SearchQueryBuilder
           {...defaultProps}
-          initialQuery=""
+          initialQuery="a"
           onChange={mockOnChange}
           onBlur={mockOnBlur}
           onSearch={mockOnSearch}
@@ -140,19 +140,27 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(getLastInput());
-      await userEvent.keyboard('foo{enter}');
+      await userEvent.keyboard('b{enter}');
+
+      const expectedQueryState = expect.objectContaining({
+        parsedQuery: expect.arrayContaining([expect.any(Object)]),
+        queryIsValid: true,
+      });
 
       // Should call onChange and onSearch after enter
       await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('foo');
-        expect(mockOnSearch).toHaveBeenCalledWith('foo');
+        expect(mockOnChange).toHaveBeenCalledTimes(1);
+        expect(mockOnChange).toHaveBeenCalledWith('ab', expectedQueryState);
+        expect(mockOnSearch).toHaveBeenCalledTimes(1);
+        expect(mockOnSearch).toHaveBeenCalledWith('ab', expectedQueryState);
       });
 
       await userEvent.click(document.body);
 
       // Clicking outside activates onBlur
       await waitFor(() => {
-        expect(mockOnBlur).toHaveBeenCalledWith('foo');
+        expect(mockOnBlur).toHaveBeenCalledTimes(1);
+        expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
       });
     });
   });
@@ -172,8 +180,8 @@ describe('SearchQueryBuilder', function () {
       userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
 
       await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('');
-        expect(mockOnSearch).toHaveBeenCalledWith('');
+        expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
+        expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
       });
 
       expect(
@@ -253,7 +261,10 @@ describe('SearchQueryBuilder', function () {
       expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox assigned:me');
 
       await waitFor(() => {
-        expect(mockOnChange).toHaveBeenLastCalledWith('browser.name:firefox assigned:me');
+        expect(mockOnChange).toHaveBeenLastCalledWith(
+          'browser.name:firefox assigned:me',
+          expect.anything()
+        );
       });
     });
   });
@@ -534,7 +545,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(getLastInput());
       await userEvent.type(screen.getByRole('combobox'), 'some free text{enter}');
       await waitFor(() => {
-        expect(mockOnSearch).toHaveBeenCalledWith('some free text');
+        expect(mockOnSearch).toHaveBeenCalledWith('some free text', expect.anything());
       });
       // Should still have text in the input
       expect(screen.getByRole('combobox')).toHaveValue('some free text');
@@ -831,7 +842,7 @@ describe('SearchQueryBuilder', function () {
 
       // Pressing delete should remove all selected tokens
       await userEvent.keyboard('{Backspace}');
-      expect(mockOnChange).toHaveBeenCalledWith('');
+      expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
     });
 
     it('focus goes to first input after ctrl+a and arrow left', async function () {
@@ -933,7 +944,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{Control>}x{/Control}');
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('browser.name:firefox');
-      expect(mockOnChange).toHaveBeenCalledWith('');
+      expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
     });
 
     it('can undo last action with ctrl-z', async function () {
@@ -1118,7 +1129,7 @@ describe('SearchQueryBuilder', function () {
         );
         await userEvent.click(await screen.findByRole('option', {name: 'does not have'}));
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('!has:key');
+          expect(mockOnChange).toHaveBeenCalledWith('!has:key', expect.anything());
         });
         expect(
           within(
@@ -1311,7 +1322,10 @@ describe('SearchQueryBuilder', function () {
 
         // Value should be surrounded by quotes and escaped
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith(`browser.name:${expected}`);
+          expect(mockOnChange).toHaveBeenCalledWith(
+            `browser.name:${expected}`,
+            expect.anything()
+          );
         });
       });
 
@@ -1826,7 +1840,7 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('foo age:-1h');
+          expect(mockOnChange).toHaveBeenCalledWith('foo age:-1h', expect.anything());
         });
       });
 
@@ -1854,7 +1868,7 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('foo age:+1h');
+          expect(mockOnChange).toHaveBeenCalledWith('foo age:+1h', expect.anything());
         });
       });
 
@@ -1876,7 +1890,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17');
+          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17', expect.anything());
         });
       });
 
@@ -1899,7 +1913,10 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17T00:00:00Z');
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'age:>2017-10-17T00:00:00Z',
+            expect.anything()
+          );
         });
       });
 
@@ -1923,7 +1940,10 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17T00:00:00+00:00');
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'age:>2017-10-17T00:00:00+00:00',
+            expect.anything()
+          );
         });
       });
 

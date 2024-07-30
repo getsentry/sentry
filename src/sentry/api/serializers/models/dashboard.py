@@ -167,6 +167,15 @@ class DashboardWidgetQuerySerializer(Serializer):
         }
 
 
+class DashboardListResponse(TypedDict):
+    id: str
+    title: str
+    dateCreated: str
+    createdBy: UserSerializerResponse
+    widgetDisplay: list[str]
+    widgetPreview: list[dict[str, str]]
+
+
 class DashboardListSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         item_dict = {i.id: i for i in item_list}
@@ -215,7 +224,7 @@ class DashboardListSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardListResponse:
         data = {
             "id": str(obj.id),
             "title": obj.title,
