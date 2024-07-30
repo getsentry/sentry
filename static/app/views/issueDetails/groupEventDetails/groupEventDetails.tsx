@@ -30,15 +30,15 @@ import usePrevious from 'sentry/utils/usePrevious';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
-
-import ReprocessingProgress from '../reprocessingProgress';
 import {
   getEventEnvironment,
   getGroupMostRecentActivity,
   ReprocessingStatus,
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
-} from '../utils';
+} from 'sentry/views/issueDetails/utils';
+
+import ReprocessingProgress from '../reprocessingProgress';
 
 const EscalatingIssuesFeedback = HookOrDefault({
   hookName: 'component:escalating-issues-banner-feedback',

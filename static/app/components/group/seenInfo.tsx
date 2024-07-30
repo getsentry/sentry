@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
@@ -36,52 +37,56 @@ function SeenInfo({
   projectSlug,
   projectId,
 }: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   return (
     <HovercardWrapper>
-      <StyledHovercard
-        showUnderline
-        header={
-          <div>
-            <TimeSinceWrapper>
-              {t('Any Environment')}
-              <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
-            </TimeSinceWrapper>
-            {environment && (
+      {!hasStreamlinedUI && (
+        <StyledHovercard
+          showUnderline
+          header={
+            <div>
               <TimeSinceWrapper>
-                {toTitleCase(environment)}
-                {date ? (
-                  <TimeSince date={date} disabledAbsoluteTooltip />
-                ) : (
-                  <span>{t('N/A')}</span>
-                )}
+                {t('Any Environment')}
+                <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
               </TimeSinceWrapper>
+              {environment && (
+                <TimeSinceWrapper>
+                  {toTitleCase(environment)}
+                  {date ? (
+                    <TimeSince date={date} disabledAbsoluteTooltip />
+                  ) : (
+                    <span>{t('N/A')}</span>
+                  )}
+                </TimeSinceWrapper>
+              )}
+            </div>
+          }
+          body={
+            date ? (
+              <StyledDateTime date={date} />
+            ) : (
+              <NoEnvironment>{t('N/A for %s', environment)}</NoEnvironment>
+            )
+          }
+          position="top"
+        >
+          <DateWrapper>
+            {date ? (
+              <TooltipWrapper>
+                <StyledTimeSince date={date} disabledAbsoluteTooltip />
+              </TooltipWrapper>
+            ) : dateGlobal && environment === '' ? (
+              <Fragment>
+                <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
+                <StyledTimeSince date={dateGlobal} disabledAbsoluteTooltip />
+              </Fragment>
+            ) : (
+              <NoDateTime>{t('N/A')}</NoDateTime>
             )}
-          </div>
-        }
-        body={
-          date ? (
-            <StyledDateTime date={date} />
-          ) : (
-            <NoEnvironment>{t('N/A for %s', environment)}</NoEnvironment>
-          )
-        }
-        position="top"
-      >
-        <DateWrapper>
-          {date ? (
-            <TooltipWrapper>
-              <StyledTimeSince date={date} disabledAbsoluteTooltip />
-            </TooltipWrapper>
-          ) : dateGlobal && environment === '' ? (
-            <Fragment>
-              <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
-              <StyledTimeSince date={dateGlobal} disabledAbsoluteTooltip />
-            </Fragment>
-          ) : (
-            <NoDateTime>{t('N/A')}</NoDateTime>
-          )}
-        </DateWrapper>
-      </StyledHovercard>
+          </DateWrapper>
+        </StyledHovercard>
+      )}
       <DateWrapper>
         {defined(release) && (
           <Fragment>

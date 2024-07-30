@@ -5,7 +5,9 @@ import AlertLink from 'sentry/components/alertLink';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
+import {useFirstLastSeen} from 'sentry/components/group/useFirstLastSeen';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,8 +16,6 @@ import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import QuestionTooltip from '../questionTooltip';
 
 type Props = {
   environments: string[];
@@ -31,23 +31,16 @@ type GroupRelease = {
   lastRelease: Release;
 };
 
-function GroupReleaseStats({
-  organization,
-  project,
-  environments,
-  allEnvironments,
-  group,
-  currentRelease,
-}: Props) {
-  const environment = environments.length > 0 ? environments.join(', ') : undefined;
-  const environmentLabel = environment ? environment : t('All Environments');
-
-  const shortEnvironmentLabel =
-    environments.length > 1
-      ? t('selected environments')
-      : environments.length === 1
-        ? environments[0]
-        : undefined;
+function GroupReleaseStats({organization, project, group, currentRelease}: Props) {
+  const {
+    environmentLabel,
+    environment,
+    shortEnvironmentLabel,
+    hasRelease,
+    projectSlug,
+    projectId,
+    allEnvironments,
+  } = useFirstLastSeen({group, project});
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
     [
@@ -66,9 +59,6 @@ function GroupReleaseStats({
   const firstRelease = groupReleaseData?.firstRelease;
   const lastRelease = groupReleaseData?.lastRelease;
 
-  const projectId = project.id;
-  const projectSlug = project.slug;
-  const hasRelease = project.features.includes('releases');
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   return (
