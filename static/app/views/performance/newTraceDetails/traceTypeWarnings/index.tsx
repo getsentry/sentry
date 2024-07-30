@@ -15,8 +15,7 @@ function TraceTypeWarnings(props: Props) {
   if (
     props.tree.type !== 'trace' ||
     props.tree.shape === TraceType.ONE_ROOT ||
-    // Note: We have plans to show the generic banners for all incomplete (i.e except ONE_ROOT) trace shapes, but
-    // for now we are only showing it for traces with errors.
+    // Note: Just handling the errors-only-trace banners for now.
     props.tree.shape !== TraceType.ONLY_ERRORS
   ) {
     return null;

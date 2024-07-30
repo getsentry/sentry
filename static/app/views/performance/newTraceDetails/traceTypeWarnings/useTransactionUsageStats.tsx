@@ -31,7 +31,7 @@ export function useTransactionUsageStats({
   const traceStartDate = new Date(traceNode?.space?.[0]);
   const traceEndDate = new Date(traceNode?.space?.[0] + traceNode?.space?.[1]);
 
-  // Add 1 hour buffer to the trace start and end date to
+  // Add 1 hour buffer to the trace start and end date.
   const start = traceNode
     ? new Date(traceStartDate.getTime() - ONE_HOUR).toISOString()
     : '';
