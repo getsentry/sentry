@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def get_resolutions_and_activity_data_for_groups(
     affected_groups: list,
-    resolution_strategy: str,
+    resolution_strategy: str | None,
     activity_data: dict,
     organization_id: int,
 ):
@@ -221,7 +221,7 @@ def sync_status_inbound(
             activity_data,
         ) = get_resolutions_and_activity_data_for_groups(
             list(affected_groups),
-            str(config.get("resolution_strategy")),
+            config.get("resolution_strategy"),
             activity_data,
             organization_id,
         )
