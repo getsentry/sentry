@@ -4,7 +4,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 
 
 @instrumented_task(
-    name="sentry.integrations.tasks.kick_off_status_syncs",
+    name="sentry.integrations.kick_off_status_syncs",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,

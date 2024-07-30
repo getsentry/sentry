@@ -169,7 +169,7 @@ def get_resolutions_and_activity_data_for_groups(
 
 
 @instrumented_task(
-    name="sentry.integrations.tasks.sync_status_inbound",
+    name="sentry.integrations.sync_status_inbound",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,

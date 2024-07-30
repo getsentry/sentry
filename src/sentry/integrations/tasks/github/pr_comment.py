@@ -132,7 +132,7 @@ def get_comment_contents(issue_list: list[int]) -> list[PullRequestIssue]:
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.pr_comment.github_comment_workflow",
+    name="sentry.integrations.github.pr_comment.github_comment_workflow",
     silo_mode=SiloMode.REGION,
 )
 def github_comment_workflow(pullrequest_id: int, project_id: int):
@@ -239,7 +239,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.github_comment_reactions",
+    name="sentry.integrations.github.github_comment_reactions",
     silo_mode=SiloMode.REGION,
 )
 def github_comment_reactions():
