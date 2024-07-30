@@ -78,9 +78,11 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         for field in fields:
             if field["name"] == "title":
                 field["label"] = "Name"
+                field["default"] = "issue.name"
             if field["name"] == "description":
                 field["label"] = "Notes"
                 field["required"] = False
+                field["default"] = "issue.description"
 
         return [
             {
