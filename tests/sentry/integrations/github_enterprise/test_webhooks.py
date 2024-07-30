@@ -319,6 +319,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "133d60480286590a610a0eb7352ff6e02b9674c4"
         assert commit.message == "Update README.md (àgain)"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@users.noreply.github.com"
         assert commit.author.external_id is None
@@ -328,6 +329,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert commit.message == "Update README.md"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@users.noreply.github.com"
         assert commit.author.external_id is None
@@ -384,6 +386,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "133d60480286590a610a0eb7352ff6e02b9674c4"
         assert commit.message == "Update README.md (àgain)"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@example.com"
         assert commit.date_added == datetime(2015, 5, 5, 23, 45, 15, tzinfo=timezone.utc)
@@ -392,6 +395,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert commit.message == "Update README.md"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@example.com"
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
@@ -536,6 +540,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.key == "1"
         assert pr.message == "This is a pretty simple change that we need to pull into master."
         assert pr.title == "Update the README with new information"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
@@ -565,6 +570,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.key == "1"
         assert pr.message == "new edited body"
         assert pr.title == "new edited title"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
@@ -594,5 +600,6 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.key == "1"
         assert pr.message == "new closed body"
         assert pr.title == "new closed title"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"

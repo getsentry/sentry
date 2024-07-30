@@ -47,6 +47,7 @@ class WebhookBaseTest(APITestCase):
 
         assert commit.key == "e0e377d186e4f0e937bdb487a23384fe002df649"
         assert commit.message == "README.md edited online with Bitbucket"
+        assert commit.author is not None
         assert commit.author.name == "Max Bittker"
         assert commit.author.email == "max@getsentry.com"
         assert commit.author.external_id is None

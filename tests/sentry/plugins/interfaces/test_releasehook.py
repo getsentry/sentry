@@ -123,9 +123,11 @@ class SetCommitsTest(TestCase):
         assert len(commit_list) == 2
         assert commit_list[0].key == "c7155651831549cf8a5e47889fce17eb"
         assert commit_list[0].message == "foo"
+        assert commit_list[0].author is not None
         assert commit_list[0].author.name is None
         assert commit_list[0].author.email == "jane@example.com"
         assert commit_list[1].key == "bbee5b51f84611e4b14834363b8514c2"
         assert commit_list[1].message == "bar"
+        assert commit_list[1].author is not None
         assert commit_list[1].author.name == "Joe^^"
         assert commit_list[1].author.email == "joe@localhost"
