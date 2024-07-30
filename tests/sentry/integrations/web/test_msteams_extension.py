@@ -29,7 +29,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
         params = {"signed_params": signed_data}
         assert data == config_view.map_params_to_state(params)
 
-    @patch("sentry.web.frontend.msteams_extension_configuration.unsign")
+    @patch("sentry.integrations.web.msteams_extension_configuration.unsign")
     def test_expired_signature(self, mock_unsign):
         with self.feature({"organizations:integrations-alert-rule": True}):
             mock_unsign.side_effect = SignatureExpired()
