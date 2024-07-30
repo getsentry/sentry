@@ -36,8 +36,15 @@ def sync_assignee_outbound(external_issue_id: int, user_id: int | None, assign: 
 
     # Assume unassign if None.
     user = user_service.get_user(user_id) if user_id else None
+
+    assert integration, "Integration must exist to get an installation"
     installation = integration.get_installation(organization_id=external_issue.organization_id)
-    if installation.should_sync("outbound_assignee"):
+
+    if (
+        hasattr(installation, "should_sync")
+        and hasattr(installation, "sync_assignee_outbound")
+        and installation.should_sync("outbound_assignee")
+    ):
         installation.sync_assignee_outbound(external_issue, user, assign=assign)
         analytics.record(
             "integration.issue.assignee.synced",

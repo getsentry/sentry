@@ -30,7 +30,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
     if repo is None:
         raise Repository.DoesNotExist
 
-    if installation.has_repo_access(repo):
+    if hasattr(installation, "has_repo_access") and installation.has_repo_access(repo):
         # This probably shouldn't happen, but log it just in case.
         if repo.integration_id is not None and repo.integration_id != integration_id:
             logger.info(

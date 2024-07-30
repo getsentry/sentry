@@ -48,10 +48,10 @@ def find_channel_id_for_rule(
 
     # TODO: make work for multiple Slack actions
     for action in actions:
-        if action.get("workspace") and action.get("channel"):
-            integration_id = action["workspace"]
+        if hasattr(action, "get") and action.get("workspace") and action.get("channel"):
+            integration_id = getattr(action, "workspace", None)
             # we need to strip the prefix when searching on the channel name
-            channel_name = strip_channel_name(action["channel"])
+            channel_name = strip_channel_name(str(getattr(action, "channel", None)))
             break
 
     integrations = integration_service.get_integrations(
@@ -91,9 +91,13 @@ def find_channel_id_for_rule(
     if channel_data.channel_id:
         for action in actions:
             # need to make sure we are adding back the right prefix and also the channel_id
-            if action.get("channel") and strip_channel_name(action.get("channel")) == channel_name:
-                action["channel"] = channel_data.prefix + channel_name
-                action["channel_id"] = channel_data.channel_id
+            if (
+                hasattr(action, "get")
+                and action.get("channel")
+                and strip_channel_name(action.get("channel")) == channel_name
+            ):
+                setattr(action, "channel", channel_data.prefix + channel_name)
+                setattr(action, "channel_id", channel_data.channel_id)
                 break
 
         kwargs["actions"] = actions

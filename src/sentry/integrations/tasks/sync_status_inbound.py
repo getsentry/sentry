@@ -180,6 +180,7 @@ def sync_status_inbound(
     integration_id: int, organization_id: int, issue_key: str, data: Mapping[str, Any]
 ) -> None:
     from sentry.integrations.mixins import ResolveSyncAction
+    from sentry.integrations.mixins.issues import IssueSyncMixin
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
@@ -193,9 +194,19 @@ def sync_status_inbound(
         return
 
     installation = integration.get_installation(organization_id=organization_id)
+    assert (
+        installation and installation.org_integration
+    ), "Installation  and org_integration must exist to get a config"
     config = installation.org_integration.config
 
     try:
+        # testing mypy in github
+        if isinstance(installation, IssueSyncMixin):
+            pass
+
+        assert hasattr(
+            installation, "get_resolve_sync_action"
+        ), "installation be a IssueSyncMixin to get a resolve sync action"
         # This makes an API call.
         action = installation.get_resolve_sync_action(data)
     except Exception:
@@ -213,7 +224,10 @@ def sync_status_inbound(
             activity_type,
             activity_data,
         ) = get_resolutions_and_activity_data_for_groups(
-            affected_groups, config.get("resolution_strategy"), activity_data, organization_id
+            list(affected_groups),
+            str(config.get("resolution_strategy")),
+            activity_data,
+            organization_id,
         )
         Group.objects.update_group_status(
             groups=affected_groups,

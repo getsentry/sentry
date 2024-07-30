@@ -35,15 +35,19 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
         return None
 
     integration = integration_service.get_integration(integration_id=external_issue.integration_id)
+
+    assert integration, "Integration must exist to get an installation"
     installation = integration.get_installation(organization_id=external_issue.organization_id)
-    if installation.should_sync("outbound_status"):
-        installation.sync_status_outbound(
-            external_issue, group.status == GroupStatus.RESOLVED, group.project_id
-        )
-        analytics.record(
-            "integration.issue.status.synced",
-            provider=integration.provider,
-            id=integration.id,
-            organization_id=external_issue.organization_id,
-        )
+
+    if hasattr(installation, "should_sync") and installation.should_sync("outbound_status"):
+        if hasattr(installation, "sync_status_outbound"):
+            installation.sync_status_outbound(
+                external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+            )
+            analytics.record(
+                "integration.issue.status.synced",
+                provider=integration.provider,
+                id=integration.id,
+                organization_id=external_issue.organization_id,
+            )
     return None

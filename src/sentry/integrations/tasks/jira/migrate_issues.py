@@ -39,9 +39,12 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
         if not plugin:
             continue
 
-        is_different_jira_instance = plugin.get_option("instance_url", project).rstrip(
-            "/"
-        ) != integration.metadata.get("base_url").rstrip("/")
+        base_url = integration.metadata.get("base_url")
+        if base_url:
+            base_url = base_url.rstrip("/")
+        is_different_jira_instance = (
+            plugin.get_option("instance_url", project).rstrip("/") != base_url
+        )
         if is_different_jira_instance:
             continue
         plugin_issues = GroupMeta.objects.filter(
@@ -79,6 +82,7 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
 
             plugin_ignored_fields = plugin.get_option("ignored_fields", project)
             if plugin_ignored_fields:
+                assert organization_integration, "Organization integration must exist to get config"
                 config = organization_integration.config
                 integration_ignored_fields = organization_integration.config.get(
                     "issues_ignored_fields"
