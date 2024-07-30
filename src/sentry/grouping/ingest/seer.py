@@ -197,9 +197,6 @@ def get_seer_similar_issues(
     Ask Seer for the given event's nearest neighbor(s) and return the seer response data, sorted
     with the best matches first, along with the group Seer decided the event should go in, if any,
     or None if no neighbor was near enough.
-
-    Will also return `None` for the neighboring group if the `projects:similarity-embeddings-grouping`
-    feature flag is off.
     """
 
     event_hash = primary_hashes.hashes[0]
@@ -220,13 +217,9 @@ def get_seer_similar_issues(
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
-    similar_issues_metadata = asdict(
-        SeerSimilarIssuesMetadata(request_hash=event_hash, results=seer_results)
-    )
+    similar_issues_metadata = asdict(SeerSimilarIssuesMetadata(results=seer_results))
     parent_group = (
-        Group.objects.filter(id=seer_results[0].parent_group_id).first()
-        if seer_results and seer_results[0].should_group
-        else None
+        Group.objects.filter(id=seer_results[0].parent_group_id).first() if seer_results else None
     )
 
     logger.info(

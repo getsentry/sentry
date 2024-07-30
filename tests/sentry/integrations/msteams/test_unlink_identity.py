@@ -2,6 +2,7 @@ import time
 
 import responses
 
+from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.msteams.unlink_identity import build_unlinking_url
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
@@ -63,7 +64,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         )
 
         signed_params = unlink_url.split("/")[-2]
-        params = unsign(signed_params)
+        params = unsign(signed_params, salt=SALT)
         assert params == {
             "conversation_id": self.conversation_id,
             "service_url": "https://smba.trafficmanager.net/amer",

@@ -1,3 +1,4 @@
+from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.web.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )
@@ -22,6 +23,7 @@ class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):
             unsign(
                 signed_params,
                 max_age=INSTALL_EXPIRATION_TIME,
+                salt=SALT,
             )
         )
         return params
