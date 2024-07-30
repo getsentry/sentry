@@ -17,6 +17,7 @@ import {
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -88,12 +89,8 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   }${
     params.isProfilingSelected
       ? `
-        // Set profilesSampleRate to 1.0 to profile every transaction.
-        // Since profilesSampleRate is relative to tracesSampleRate,
-        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
-        // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0,`
+      // Profiling
+      profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
       : ''
   }
   });`;
@@ -169,6 +166,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ),
       configurations: getSetupConfiguration(params),
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
       ...params,
