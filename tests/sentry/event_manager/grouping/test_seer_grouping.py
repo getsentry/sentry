@@ -25,10 +25,6 @@ class SeerEventManagerGroupingTest(TestCase):
             message_distance=0.05,
             should_group=True,
         )
-        metadata_base = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "results": [asdict(seer_result_data)],
-        }
 
         get_seer_similar_issues_return_values: list[Any] = []
 
@@ -70,7 +66,10 @@ class SeerEventManagerGroupingTest(TestCase):
 
             with Feature({"projects:similarity-embeddings-grouping": True}):
                 new_event = save_new_event({"message": "Maisey is silly"}, self.project)
-                expected_metadata = {**metadata_base, "request_hash": new_event.get_primary_hash()}
+                expected_metadata = {
+                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                    "results": [asdict(seer_result_data)],
+                }
 
                 # We checked whether to make the call, and then made it
                 assert should_call_seer_spy.call_count == 1
@@ -119,7 +118,6 @@ class SeerEventManagerGroupingTest(TestCase):
             new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
             expected_metadata = {
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": new_event.get_primary_hash(),
                 "results": [asdict(seer_result_data)],
             }
 
@@ -154,28 +152,6 @@ class SeerEventManagerGroupingTest(TestCase):
 
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
-        ) as mock_get_similarity_data:
-            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
-
-            assert mock_get_similarity_data.call_count == 1
-            assert existing_event.group_id != new_event.group_id
-
-    @with_feature("projects:similarity-embeddings-grouping")
-    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
-    def test_creates_new_group_if_too_far_neighbor_found(self, _):
-        existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
-
-        no_cigar_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
-            stacktrace_distance=0.10,
-            message_distance=0.05,
-            should_group=False,
-        )
-
-        with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-            return_value=[no_cigar_data],
         ) as mock_get_similarity_data:
             new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
 

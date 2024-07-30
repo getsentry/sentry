@@ -15,6 +15,7 @@ import FeatureFlagItem from './featureFlagItem';
 import {FeatureFlagsContextProvider, useFeatureFlagsContext} from './featureFlagsContext';
 
 type Prefilter = 'all' | 'overrides';
+
 export default function FeatureFlagsPanel() {
   const [prefilter, setPreFilter] = useState<Prefilter>('all');
   const [searchTerm, setSearchTerm] = useState('');

@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import Switch from 'sentry/components/switchButton';
@@ -15,24 +16,20 @@ import {useFeatureFlagsContext} from './featureFlagsContext';
 type FeatureFlag = {name: string; override: FlagValue; value: FlagValue};
 
 export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
-  const {featureFlags, trackAnalytics} = useConfiguration();
+  const {featureFlags} = useConfiguration();
 
   return (
     <Fragment>
       <Cell css={[panelInsetContentCss, {alignItems: 'flex-start'}]}>
         {featureFlags?.urlTemplate?.(flag.name) ? (
-          <ExternalLink
-            css={[smallCss, inlineLinkCss]}
-            href={featureFlags.urlTemplate(flag.name)}
-            onClick={() => {
-              trackAnalytics?.({
-                eventKey: `devtoolbar.feature-flag-list.item.click`,
-                eventName: `devtoolbar: Click feature-flag-list item`,
-              });
-            }}
-          >
-            {flag.name}
-          </ExternalLink>
+          <AnalyticsProvider nameVal="item" keyVal="item">
+            <ExternalLink
+              css={[smallCss, inlineLinkCss]}
+              href={featureFlags.urlTemplate(flag.name)}
+            >
+              {flag.name}
+            </ExternalLink>
+          </AnalyticsProvider>
         ) : (
           <span>{flag.name}</span>
         )}

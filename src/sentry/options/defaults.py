@@ -843,12 +843,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.similarity-embeddings-metadata-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.similarity-embeddings-delete-by-hash-killswitch.enabled",
     default=False,
     type=Bool,
@@ -2628,6 +2622,12 @@ register(
     "profiling.continuous-profiling.chunks-set.size",
     type=Int,
     default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "profiling.continuous-profiling.chunks-query.size",
+    type=Int,
+    default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -149,8 +149,6 @@ export const SummaryTable = memo(function SummaryTable({
         ...getTotals(s),
       };
     })
-    // Filter series with no data
-    .filter(s => s.min !== Infinity)
     .sort((a, b) => {
       const {name, order} = sort;
       if (!name) {
@@ -168,8 +166,18 @@ export const SummaryTable = memo(function SummaryTable({
       return order === 'asc' ? aValue - bValue : bValue - aValue;
     });
 
+  // We do not want to render the table if there is no data to display
+  // If the data is being loaded, then the whole chart will be in a loading state and this is being handled by the parent component
+  if (!rows.length) {
+    return null;
+  }
+
   return (
-    <SummaryTableWrapper hasActions={hasActions} totalColumnsCount={totalColumns.length}>
+    <SummaryTableWrapper
+      hasActions={hasActions}
+      totalColumnsCount={totalColumns.length}
+      data-test-id="summary-table"
+    >
       <HeaderCell disabled />
       <HeaderCell disabled />
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
@@ -245,7 +253,7 @@ export const SummaryTable = memo(function SummaryTable({
                   <NumberCell key={aggregate}>
                     {row[aggregate]
                       ? formatMetricUsingUnit(row[aggregate], row.unit)
-                      : '–'}
+                      : '\u2014'}
                   </NumberCell>
                 ))}
 

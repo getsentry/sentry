@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
+import {PlatformIcon as BasePlatformIcon} from 'platformicons';
 
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -21,12 +21,12 @@ const iconStyle = {
   border: '1px solid ' + commonTheme.translucentGray100,
 };
 
-const ContextIcon = styled(
+const PlatformIcon = styled(
   ({className, name, version, showVersion, showTooltip}: Props) => {
     const icon = generatePlatformIconName(name, version);
 
     if (!showTooltip) {
-      return <PlatformIcon platform={icon} size={iconSize} style={iconStyle} />;
+      return <BasePlatformIcon platform={icon} size={iconSize} style={iconStyle} />;
     }
 
     const title = (
@@ -39,7 +39,7 @@ const ContextIcon = styled(
     );
     return (
       <Tooltip title={title} className={className}>
-        <PlatformIcon platform={icon} size={iconSize} style={iconStyle} />
+        <BasePlatformIcon platform={icon} size={iconSize} style={iconStyle} />
         {showVersion ? (version ? version : null) : undefined}
       </Tooltip>
     );
@@ -51,4 +51,4 @@ const ContextIcon = styled(
   align-items: center;
 `;
 
-export default ContextIcon;
+export default PlatformIcon;
