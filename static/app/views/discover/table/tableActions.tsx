@@ -15,7 +15,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {downloadAsCsv} from '../utils';
 
@@ -30,6 +33,7 @@ type Props = {
   showTags: boolean;
   tableData: TableData | null | undefined;
   title: string;
+  queryDataset?: SavedQueryDatasets;
   supportsInvestigationRule?: boolean;
 };
 
@@ -159,14 +163,22 @@ function FeatureWrapper(props: FeatureWrapperProps) {
 }
 
 function TableActions(props: Props) {
+  const {tableData, queryDataset, supportsInvestigationRule} = props;
   const location = useLocation();
+  const organization = useOrganization();
   const cursor = location?.query?.cursor;
   const cursorOffset = parseCursor(cursor)?.offset ?? 0;
-  const numSamples = props.tableData?.data?.length ?? null;
+  const numSamples = tableData?.data?.length ?? null;
   const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
+
+  const isNotTransactionsView =
+    hasDatasetSelector(organization) &&
+    queryDataset &&
+    queryDataset !== SavedQueryDatasets.TRANSACTIONS;
+
   return (
     <Fragment>
-      {props.supportsInvestigationRule && (
+      {supportsInvestigationRule && !isNotTransactionsView && (
         <InvestigationRuleCreation
           {...props}
           buttonProps={{size: 'sm'}}
