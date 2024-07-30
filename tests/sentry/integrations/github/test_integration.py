@@ -522,7 +522,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
@@ -541,7 +541,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},

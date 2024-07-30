@@ -241,6 +241,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             organization_id=self.organization.id, email="admin2@localhost"
         )
         created_commit = Commit.objects.get(key="commit-id")
+        assert created_commit.author is not None
         assert created_commit.author.id == created_commit_author.id
 
         assert created_commit.organization_id == self.organization.id

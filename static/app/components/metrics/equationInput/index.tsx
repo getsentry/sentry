@@ -19,6 +19,7 @@ import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 interface EquationInputProps
   extends Omit<React.ComponentProps<typeof Input>, 'onChange' | 'value'> {
   availableVariables: Set<string>;
+  metricsNewInputs: boolean;
   onChange: (equation: string) => void;
   value: string;
 }
@@ -48,6 +49,7 @@ export function EquationInput({
   availableVariables,
   value: valueProp,
   onChange,
+  metricsNewInputs,
   ...props
 }: EquationInputProps) {
   const [errors, setErrors] = useState<any>([]);
@@ -56,12 +58,12 @@ export function EquationInput({
 
   const validateVariable = useCallback(
     (variable: string): string | null => {
-      if (!availableVariables.has(variable.toUpperCase())) {
+      if (!availableVariables.has(metricsNewInputs ? variable.toUpperCase() : variable)) {
         return t('Unknown query "%s"', variable);
       }
       return null;
     },
-    [availableVariables]
+    [availableVariables, metricsNewInputs]
   );
 
   const parseAndValidateFormula = useCallback(

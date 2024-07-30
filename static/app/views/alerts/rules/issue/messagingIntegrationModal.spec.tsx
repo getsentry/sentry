@@ -18,21 +18,22 @@ jest.mock('sentry/actionCreators/modal');
 describe('MessagingIntegrationModal', function () {
   let project, org;
   const providerKeys = ['slack', 'discord', 'msteams'];
-  const providers = [GitHubIntegrationProviderFixture()];
+  const providers = (providerKey: string) => [
+    GitHubIntegrationProviderFixture({key: providerKey}),
+  ];
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
-    org = OrganizationFixture({
-      features: ['messaging-integration-onboarding'],
-    });
+    org = OrganizationFixture();
 
     jest.clearAllMocks();
   });
 
   const getComponent = (closeModal?, props = {}) => (
     <MessagingIntegrationModal
+      closeModal={closeModal ? closeModal : jest.fn()}
       Header={makeClosableHeader(() => {})}
       Body={ModalBody}
       headerContent={<h1>Connect with a messaging tool</h1>}
@@ -42,7 +43,6 @@ describe('MessagingIntegrationModal', function () {
       project={project}
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}
-      closeModal={closeModal ? closeModal : jest.fn()}
       {...props}
     />
   );
@@ -53,7 +53,7 @@ describe('MessagingIntegrationModal', function () {
       mockResponses.push(
         MockApiClient.addMockResponse({
           url: `/organizations/${org.slug}/config/integrations/?provider_key=${providerKey}`,
-          body: {providers: providers},
+          body: {providers: providers(providerKey)},
         })
       );
     });

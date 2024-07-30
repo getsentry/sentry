@@ -843,12 +843,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.similarity-embeddings-metadata-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.similarity-embeddings-delete-by-hash-killswitch.enabled",
     default=False,
     type=Bool,
@@ -1877,11 +1871,7 @@ register(
 register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Flagpole Rollout
-register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Flagpole Configuration (used in getsentry)
 register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
@@ -2059,6 +2049,12 @@ register("metric_extraction.max_span_attribute_specs", default=100, flags=FLAG_A
 register(
     "delightful_metrics.minimetrics_sample_rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.minimetrics_disable_legacy",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2626,6 +2622,12 @@ register(
     "profiling.continuous-profiling.chunks-set.size",
     type=Int,
     default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "profiling.continuous-profiling.chunks-query.size",
+    type=Int,
+    default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

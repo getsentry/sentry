@@ -3,11 +3,14 @@ import * as Sentry from '@sentry/react';
 
 import {saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
+import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {
+  queryIsValid,
   recentSearchTypeToLabel,
   tokenIsInvalid,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {SavedSearchType} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -18,7 +21,7 @@ type UseHandleSearchProps = {
   parsedQuery: ParseResult | null;
   recentSearches: SavedSearchType | undefined;
   searchSource: string;
-  onSearch?: (query: string) => void;
+  onSearch?: (query: string, state: CallbackSearchState) => void;
 };
 
 async function saveAsRecentSearch({
@@ -74,7 +77,7 @@ function trackIndividualSearchFilters({
       trackAnalytics('search.searched_filter', {
         organization,
         query,
-        key: token.key.text,
+        key: getKeyName(token.key),
         values,
         search_type: searchType,
         search_source: searchSource,
@@ -97,7 +100,7 @@ export function useHandleSearch({
 
   return useCallback(
     (query: string) => {
-      onSearch?.(query);
+      onSearch?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
 
       const searchType = recentSearchTypeToLabel(recentSearches);
 

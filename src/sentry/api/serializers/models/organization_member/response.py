@@ -3,12 +3,12 @@ from typing import NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 
-from sentry.api.serializers.models.external_actor import ExternalActorResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializerResponse,
     TeamRoleSerializerResponse,
 )
 from sentry.api.serializers.models.user import UserSerializerResponse
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorResponse
 
 
 class SCIMName(TypedDict):

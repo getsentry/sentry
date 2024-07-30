@@ -12,7 +12,7 @@ from django.test import override_settings
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
-from sentry.integrations.gitlab.client import GitLabProxyApiClient, GitlabProxySetupClient
+from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.models.integration import Integration
@@ -647,7 +647,7 @@ def assert_proxy_request(request, is_proxy=True):
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
 )
-class GitlabProxySetupClientTest(IntegrationTestCase):
+class GitlabSetupApiClientTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     base_url = "https://gitlab.example.com"
     access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -674,11 +674,11 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
             json=response_payload,
         )
 
-        class GitlabProxySetupTestClient(GitlabProxySetupClient):
+        class GitLabSetupTestClient(GitLabSetupApiClient):
             _use_proxy_url_for_tests = True
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = GitlabProxySetupTestClient(
+            client = GitLabSetupTestClient(
                 base_url=self.base_url,
                 access_token=self.access_token,
                 verify_ssl=False,
@@ -692,7 +692,7 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = GitlabProxySetupTestClient(
+            client = GitLabSetupTestClient(
                 base_url=self.base_url,
                 access_token=self.access_token,
                 verify_ssl=False,
@@ -709,7 +709,7 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
 )
-class GitlabProxyApiClientTest(GitLabTestCase):
+class GitlabApiClientTest(GitLabTestCase):
     @responses.activate
     def test_integration_proxy_is_active(self):
         gitlab_id = 123
@@ -726,11 +726,11 @@ class GitlabProxyApiClientTest(GitLabTestCase):
             json=orjson.loads(GET_COMMIT_RESPONSE),
         )
 
-        class GitlabProxyApiTestClient(GitLabProxyApiClient):
+        class GitLabApiTestClient(GitLabApiClient):
             _use_proxy_url_for_tests = True
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = GitlabProxyApiTestClient(self.installation)
+            client = GitLabApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
 
@@ -745,7 +745,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
         responses.calls.reset()
         cache.clear()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = GitlabProxyApiTestClient(self.installation)
+            client = GitLabApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
 
@@ -760,7 +760,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
         responses.calls.reset()
         cache.clear()
         with override_settings(SILO_MODE=SiloMode.REGION):
-            client = GitlabProxyApiTestClient(self.installation)
+            client = GitLabApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
 
