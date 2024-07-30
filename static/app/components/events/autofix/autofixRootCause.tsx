@@ -123,6 +123,50 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
   });
 }
 
+function getLinesToHighlight(suggestedFix: AutofixRootCauseSuggestedFix): number[] {
+  function getBacktickSubstrings(input: string): Set<string> {
+    // Regular expression to match substrings wrapped in backticks
+    const regex = /`([^`]+)`/g;
+    const result = new Set<string>();
+    let match: RegExpExecArray | null;
+    do {
+      match = regex.exec(input);
+      if (match) {
+        result.add(match[1]);
+      }
+    } while (match);
+    return result;
+  }
+
+  function findLinesWithSubstrings(
+    input: string | undefined,
+    substrings: Set<string>
+  ): number[] {
+    if (!input) {
+      return [];
+    }
+    const lines = input.split('\n');
+    const result: number[] = [];
+
+    lines.forEach((line, index) => {
+      for (const substring of substrings) {
+        if (line.includes(substring)) {
+          result.push(index + 1); // line numbers are 1-based
+          break;
+        }
+      }
+    });
+
+    return result;
+  }
+
+  const lineNumbersToHighlight = findLinesWithSubstrings(
+    suggestedFix.snippet?.snippet,
+    getBacktickSubstrings(suggestedFix.description)
+  );
+  return lineNumbersToHighlight;
+}
+
 function RootCauseContent({
   selected,
   children,
@@ -143,13 +187,24 @@ function RootCauseContent({
   );
 }
 
-function SuggestedFixSnippet({snippet}: {snippet: AutofixRootCauseSuggestedFixSnippet}) {
+function SuggestedFixSnippet({
+  snippet,
+  linesToHighlight,
+}: {
+  linesToHighlight: number[];
+  snippet: AutofixRootCauseSuggestedFixSnippet;
+}) {
   const extension = getFileExtension(snippet.file_path);
   const lanugage = extension ? getPrismLanguage(extension) : undefined;
 
   return (
     <div>
-      <StyledCodeSnippet filename={snippet.file_path} language={lanugage}>
+      <StyledCodeSnippet
+        filename={snippet.file_path}
+        language={lanugage}
+        hideCopyButton
+        linesToHighlight={linesToHighlight}
+      >
         {snippet.snippet}
       </StyledCodeSnippet>
     </div>
@@ -177,7 +232,7 @@ function CauseSuggestedFix({
         <strong
           dangerouslySetInnerHTML={{
             __html: singleLineRenderer(
-              t('Suggested Fix #%s: %s', fixNumber, suggestedFix.title)
+              t('Relevant Code #%s: %s', fixNumber, suggestedFix.title)
             ),
           }}
         />
@@ -189,7 +244,7 @@ function CauseSuggestedFix({
           analyticsEventKey="autofix.root_cause_fix_selected"
           analyticsParams={{group_id: groupId}}
         >
-          {t('Continue With This Fix')}
+          {t('Continue with a fix')}
         </Button>
       </SuggestedFixHeader>
       <p
@@ -197,7 +252,12 @@ function CauseSuggestedFix({
           __html: marked(suggestedFix.description),
         }}
       />
-      {suggestedFix.snippet && <SuggestedFixSnippet snippet={suggestedFix.snippet} />}
+      {suggestedFix.snippet && (
+        <SuggestedFixSnippet
+          snippet={suggestedFix.snippet}
+          linesToHighlight={getLinesToHighlight(suggestedFix)}
+        />
+      )}
     </SuggestedFixWrapper>
   );
 }
@@ -238,7 +298,7 @@ function CauseOption({
             __html: marked(cause.description),
           }}
         />
-        {cause.suggested_fixes?.map((fix, index) => (
+        {cause.code_context?.map((fix, index) => (
           <CauseSuggestedFix
             causeId={cause.id}
             key={fix.title}
@@ -276,7 +336,7 @@ function SelectedRootCauseOption({
         <SuggestedFixHeader>
           <strong
             dangerouslySetInnerHTML={{
-              __html: singleLineRenderer(t('Selected Fix: %s', selectedFix.title)),
+              __html: singleLineRenderer(t('Selected Code: %s', selectedFix.title)),
             }}
           />
         </SuggestedFixHeader>
@@ -285,7 +345,12 @@ function SelectedRootCauseOption({
             __html: marked(selectedFix.description),
           }}
         />
-        {selectedFix.snippet && <SuggestedFixSnippet snippet={selectedFix.snippet} />}
+        {selectedFix.snippet && (
+          <SuggestedFixSnippet
+            snippet={selectedFix.snippet}
+            linesToHighlight={getLinesToHighlight(selectedFix)}
+          />
+        )}
       </SuggestedFixWrapper>
     </RootCauseOption>
   );
@@ -338,7 +403,7 @@ function ProvideYourOwn({
             analyticsEventKey="autofix.root_cause_custom_cause_provided"
             analyticsParams={{group_id: groupId}}
           >
-            {t('Continue With This Fix')}
+            {t('Continue with a fix')}
           </Button>
         </OptionFooter>
       </RootCauseContent>
@@ -367,7 +432,7 @@ function AutofixRootCauseDisplay({
     }
 
     const selectedCause = causes.find(cause => cause.id === rootCauseSelection.cause_id);
-    const selectedFix = selectedCause?.suggested_fixes?.find(
+    const selectedFix = selectedCause?.code_context?.find(
       fix => fix.id === rootCauseSelection.fix_id
     );
 
@@ -397,12 +462,12 @@ function AutofixRootCauseDisplay({
                     __html: marked(cause.description),
                   }}
                 />
-                {cause.suggested_fixes?.map(fix => (
+                {cause.code_context?.map(fix => (
                   <SuggestedFixWrapper key={fix.id}>
                     <SuggestedFixHeader>
                       <strong
                         dangerouslySetInnerHTML={{
-                          __html: singleLineRenderer(t('Fix: %s', fix.title)),
+                          __html: singleLineRenderer(t('Code: %s', fix.title)),
                         }}
                       />
                     </SuggestedFixHeader>
@@ -411,7 +476,12 @@ function AutofixRootCauseDisplay({
                         __html: marked(fix.description),
                       }}
                     />
-                    {fix.snippet && <SuggestedFixSnippet snippet={fix.snippet} />}
+                    {fix.snippet && (
+                      <SuggestedFixSnippet
+                        snippet={fix.snippet}
+                        linesToHighlight={getLinesToHighlight(fix)}
+                      />
+                    )}
                   </SuggestedFixWrapper>
                 ))}
               </RootCauseOption>

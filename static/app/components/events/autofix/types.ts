@@ -129,7 +129,6 @@ export type AutofixRootCauseSuggestedFixSnippet = {
 
 export type AutofixRootCauseSuggestedFix = {
   description: string;
-  elegance: number;
   id: string;
   title: string;
   snippet?: AutofixRootCauseSuggestedFixSnippet;
@@ -137,10 +136,10 @@ export type AutofixRootCauseSuggestedFix = {
 
 export type AutofixRootCauseData = {
   actionability: number;
+  code_context: AutofixRootCauseSuggestedFix[];
   description: string;
   id: string;
   likelihood: number;
-  suggested_fixes: AutofixRootCauseSuggestedFix[];
   title: string;
 };
 

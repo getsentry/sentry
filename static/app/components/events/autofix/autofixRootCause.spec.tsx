@@ -32,7 +32,7 @@ describe('AutofixRootCause', function () {
       screen.getByText('This is the description of a suggested fix.')
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Continue With This Fix'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Continue with a fix'}));
 
     expect(mockSelectFix).toHaveBeenCalledWith(
       expect.anything(),
@@ -61,7 +61,7 @@ describe('AutofixRootCause', function () {
       screen.getByRole('button', {name: 'Provide your own root cause'})
     );
     await userEvent.keyboard('custom root cause');
-    await userEvent.click(screen.getByRole('button', {name: 'Continue With This Fix'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Continue with a fix'}));
 
     expect(mockSelectFix).toHaveBeenCalledWith(
       expect.anything(),
