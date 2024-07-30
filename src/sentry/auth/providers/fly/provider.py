@@ -84,5 +84,6 @@ class FlyOAuth2Provider(OAuth2Provider):
         }
 
 
-class FlyOAuthPartnershipProvider(FlyOAuth2Provider):
+class DisableableFlyOAuth2Provider(FlyOAuth2Provider):
+    name = SPONSOR_OAUTH_NAME[ChannelName.FLY_DISABLEABLE]
     is_partner = False
