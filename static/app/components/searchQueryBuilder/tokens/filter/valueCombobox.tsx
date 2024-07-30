@@ -381,6 +381,7 @@ function getPredefinedValues({
   if (!key.values?.length) {
     switch (fieldDefinition?.valueType) {
       case FieldValueType.NUMBER:
+      case FieldValueType.INTEGER:
         return getNumericSuggestions(filterValue);
       case FieldValueType.DURATION:
         return getDurationSuggestions(filterValue, token);
