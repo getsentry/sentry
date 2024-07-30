@@ -16,6 +16,7 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -45,6 +46,10 @@ const getNextStep = (
     nextStepDocs = nextStepDocs.filter(
       step => step.id !== ProductSolution.SESSION_REPLAY
     );
+  }
+
+  if (params.isProfilingSelected) {
+    nextStepDocs = nextStepDocs.filter(step => step.id !== ProductSolution.PROFILING);
   }
   return nextStepDocs;
 };
@@ -133,6 +138,9 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
       ...params,
@@ -187,6 +195,7 @@ function getSdkSetupSnippet(params: Params) {
   import * as Sentry from "@sentry/angular";
 
   import { AppModule } from "./app/app.module";
+import { getProfilingDocumentHeaderConfigurationStep } from '../../components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
   Sentry.init({
     dsn: "${params.dsn}",

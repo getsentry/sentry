@@ -18,6 +18,7 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -28,6 +29,7 @@ type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/gatsby";
+import { getProfilingDocumentHeaderConfigurationStep } from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
 Sentry.init({
   dsn: "${params.dsn}",
@@ -162,6 +164,9 @@ const onboarding: OnboardingConfig = {
   ],
   configure: (params: Params) => [
     getConfigureStep(params),
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps//',
     }),

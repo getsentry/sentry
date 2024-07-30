@@ -16,6 +16,7 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -31,6 +32,7 @@ import loadInitializers from "ember-load-initializers";
 import config from "./config/environment";
 
 import * as Sentry from "@sentry/ember";
+import { getProfilingDocumentHeaderConfigurationStep } from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
 Sentry.init({
   dsn: "${params.dsn}",
@@ -130,6 +132,9 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/ember/sourcemaps/',
     }),
