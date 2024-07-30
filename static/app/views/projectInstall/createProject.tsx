@@ -324,12 +324,7 @@ function CreateProject() {
           <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
           <HelpText>
             {tct(
-              'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/" />
-                ),
-              }
+              'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from.',
             )}
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
