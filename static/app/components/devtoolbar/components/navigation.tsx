@@ -6,6 +6,7 @@ import {
   IconFlag,
   IconIssues,
   IconMegaphone,
+  IconPlay,
   IconReleases,
   IconSiren,
 } from 'sentry/icons';
@@ -58,6 +59,7 @@ export default function Navigation({
       <NavButton panelName="releases" label="Releases" icon={<IconReleases />}>
         <SessionStatusBadge />
       </NavButton>
+      <NavButton panelName="replay" label="Session Replay" icon={<IconPlay />} />
     </dialog>
   );
 }

@@ -7,6 +7,7 @@ const PanelFeedback = lazy(() => import('./feedback/feedbackPanel'));
 const PanelIssues = lazy(() => import('./issues/issuesPanel'));
 const PanelFeatureFlags = lazy(() => import('./featureFlags/featureFlagsPanel'));
 const PanelReleases = lazy(() => import('./releases/releasesPanel'));
+const PanelReplay = lazy(() => import('./replay/replayPanel'));
 
 export default function PanelRouter() {
   const {state} = useToolbarRoute();
@@ -22,6 +23,8 @@ export default function PanelRouter() {
       return <PanelFeatureFlags />;
     case 'releases':
       return <PanelReleases />;
+    case 'replay':
+      return <PanelReplay />;
     default:
       return null;
   }
