@@ -40,7 +40,7 @@ export default function PanelRouter() {
       );
     case 'releases':
       return (
-        <AnalyticsProvider keyVal="release-panel" nameVal="Releases panel">
+        <AnalyticsProvider keyVal="releases-panel" nameVal="Releases panel">
           <PanelReleases />
         </AnalyticsProvider>
       );

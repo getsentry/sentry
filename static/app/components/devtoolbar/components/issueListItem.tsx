@@ -20,7 +20,7 @@ export default function IssueListItem({item}: {item: Group}) {
   const {projectSlug, projectId} = useConfiguration();
 
   return (
-    <AnalyticsProvider keyVal="issue-list" nameVal="issue list item">
+    <AnalyticsProvider keyVal="issue-list.item" nameVal="issue list item">
       <div css={listItemGridCss}>
         <TextOverflow
           css={[badgeWithLabelCss, smallCss]}

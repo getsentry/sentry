@@ -1,7 +1,10 @@
-import type {ReactNode} from 'react';
+import {type ReactNode, useContext} from 'react';
 
-import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import AnalyticsProvider, {
+  AnalyticsContext,
+} from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SessionStatusBadge from 'sentry/components/devtoolbar/components/releases/sessionStatusBadge';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {
   IconClose,
   IconFlag,
@@ -24,9 +27,11 @@ export default function Navigation({
 }: {
   setIsDisabled: (val: boolean) => void;
 }) {
+  const {trackAnalytics} = useConfiguration();
   const placement = usePlacementCss();
 
   const {state: route} = useToolbarRoute();
+  const {eventName, eventKey} = useContext(AnalyticsContext);
   const isRouteActive = !!route.activePanel;
 
   return (
@@ -34,15 +39,17 @@ export default function Navigation({
       css={[resetDialogCss, navigationCss, placement.navigation.css]}
       data-has-active={isRouteActive}
     >
-      <AnalyticsProvider nameVal="hide" keyVal="hide devtoolbar">
-        <IconButton
-          onClick={() => {
-            setIsDisabled(true);
-          }}
-          title="Hide for this session"
-          icon={<IconClose />}
-        />
-      </AnalyticsProvider>
+      <IconButton
+        onClick={() => {
+          trackAnalytics?.({
+            eventKey: eventKey + '.hide.click',
+            eventName: eventName + ' hide devtoolbar clicked',
+          });
+          setIsDisabled(true);
+        }}
+        title="Hide for this session"
+        icon={<IconClose />}
+      />
 
       <hr style={{margin: 0, width: '100%'}} />
 
