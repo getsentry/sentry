@@ -1,12 +1,13 @@
-import {type ReactNode, useMemo} from 'react';
+import {Fragment, type ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
-import type {Node} from '@react-types/shared';
+import type {DOMAttributes, FocusableElement, Node} from '@react-types/shared';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
@@ -14,6 +15,7 @@ import {
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
+  type AggregateFilter,
   FilterType,
   type ParseResultToken,
   TermOperator,
@@ -25,12 +27,27 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type FilterOperatorProps = {
+interface FilterOperatorProps {
+  filterRef: React.RefObject<HTMLDivElement>;
   item: Node<ParseResultToken>;
   onOpenChange: (isOpen: boolean) => void;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FILTER>;
-};
+  gridCellProps?: DOMAttributes<FocusableElement>;
+}
+
+interface AggregateProps extends Omit<FilterOperatorProps, 'token'> {
+  token: AggregateFilter;
+}
+
+interface OperatorProps {
+  item: Node<ParseResultToken>;
+  onOpenChange: (isOpen: boolean) => void;
+  state: ListState<ParseResultToken>;
+  token: TokenResult<Token.FILTER>;
+  includeKeyLabel?: boolean;
+  middle?: boolean;
+}
 
 const OP_LABELS = {
   [TermOperator.DEFAULT]: 'is',
@@ -83,19 +100,28 @@ function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
 function FilterKeyOperatorLabel({
   keyLabel,
   opLabel,
+  includeKeyLabel,
 }: {
   keyLabel: string;
+  includeKeyLabel?: boolean;
   opLabel?: string;
 }) {
+  if (!includeKeyLabel) {
+    return <OpLabel>{opLabel}</OpLabel>;
+  }
+
   return (
-    <KeyOpWrapper>
+    <KeyOpLabelWrapper>
       <span>{keyLabel}</span>
       {opLabel ? <OpLabel>{opLabel}</OpLabel> : null}
-    </KeyOpWrapper>
+    </KeyOpLabelWrapper>
   );
 }
 
-function getOperatorInfo(token: TokenResult<Token.FILTER>): {
+function getOperatorInfo(
+  token: TokenResult<Token.FILTER>,
+  includeKeyLabel?: boolean
+): {
   label: ReactNode;
   operator: TermOperator;
   options: SelectOption<TermOperator>[];
@@ -107,14 +133,26 @@ function getOperatorInfo(token: TokenResult<Token.FILTER>): {
 
     return {
       operator,
-      label: <FilterKeyOperatorLabel keyLabel={keyLabel} opLabel={opLabel} />,
+      label: (
+        <FilterKeyOperatorLabel
+          keyLabel={keyLabel}
+          opLabel={opLabel}
+          includeKeyLabel={includeKeyLabel}
+        />
+      ),
       options: DATE_OPTIONS.map((op): SelectOption<TermOperator> => {
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
         return {
           value: op,
           textValue: `${keyLabel} ${optionOpLabel}`,
-          label: <FilterKeyOperatorLabel keyLabel={keyLabel} opLabel={optionOpLabel} />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel={keyLabel}
+              opLabel={optionOpLabel}
+              includeKeyLabel={includeKeyLabel}
+            />
+          ),
         };
       }),
     };
@@ -129,17 +167,29 @@ function getOperatorInfo(token: TokenResult<Token.FILTER>): {
         <FilterKeyOperatorLabel
           keyLabel={token.key.text}
           opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
+          includeKeyLabel={includeKeyLabel}
         />
       ),
       options: [
         {
           value: TermOperator.DEFAULT,
-          label: <FilterKeyOperatorLabel keyLabel={token.key.text} />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel={token.key.text}
+              includeKeyLabel={includeKeyLabel}
+            />
+          ),
           textValue: 'is',
         },
         {
           value: TermOperator.NOT_EQUAL,
-          label: <FilterKeyOperatorLabel keyLabel={token.key.text} opLabel="not" />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel={token.key.text}
+              opLabel="not"
+              includeKeyLabel={includeKeyLabel}
+            />
+          ),
           textValue: 'is not',
         },
       ],
@@ -152,17 +202,25 @@ function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       label: (
         <FilterKeyOperatorLabel
           keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
+          includeKeyLabel={includeKeyLabel}
         />
       ),
       options: [
         {
           value: TermOperator.DEFAULT,
-          label: <FilterKeyOperatorLabel keyLabel="has" />,
+          label: (
+            <FilterKeyOperatorLabel keyLabel="has" includeKeyLabel={includeKeyLabel} />
+          ),
           textValue: 'has',
         },
         {
           value: TermOperator.NOT_EQUAL,
-          label: <FilterKeyOperatorLabel keyLabel="does not have" />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel="does not have"
+              includeKeyLabel={includeKeyLabel}
+            />
+          ),
           textValue: 'does not have',
         },
       ],
@@ -174,7 +232,13 @@ function getOperatorInfo(token: TokenResult<Token.FILTER>): {
 
   return {
     operator,
-    label: <FilterKeyOperatorLabel keyLabel={keyLabel} opLabel={opLabel} />,
+    label: (
+      <FilterKeyOperatorLabel
+        keyLabel={keyLabel}
+        opLabel={opLabel}
+        includeKeyLabel={includeKeyLabel}
+      />
+    ),
     options: getValidOpsForFilter(token)
       .filter(op => op !== TermOperator.EQUAL)
       .map((op): SelectOption<TermOperator> => {
@@ -182,38 +246,50 @@ function getOperatorInfo(token: TokenResult<Token.FILTER>): {
 
         return {
           value: op,
-          label: <FilterKeyOperatorLabel keyLabel={keyLabel} opLabel={optionOpLabel} />,
+          label: (
+            <FilterKeyOperatorLabel
+              keyLabel={keyLabel}
+              opLabel={optionOpLabel}
+              includeKeyLabel={includeKeyLabel}
+            />
+          ),
           textValue: `${keyLabel} ${optionOpLabel}`,
         };
       }),
   };
 }
 
-export function FilterKeyOperator({
-  token,
+function OperatorSelect({
   state,
   item,
+  token,
   onOpenChange,
-}: FilterOperatorProps) {
+  middle,
+  includeKeyLabel,
+}: OperatorProps) {
   const organization = useOrganization();
   const {dispatch, searchSource, query, recentSearches, disabled} =
     useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
+  const {operator, label, options} = useMemo(
+    () => getOperatorInfo(token, includeKeyLabel),
+    [includeKeyLabel, token]
+  );
 
   return (
     <CompactSelect
       disabled={disabled}
       trigger={triggerProps => (
-        <OpButton
+        <KeyOpButton
           disabled={disabled}
           aria-label={t('Edit operator for filter: %s', token.key.text)}
+          middle={middle}
           {...mergeProps(triggerProps, filterButtonProps)}
         >
           <InteractionStateLayer />
           {label}
-        </OpButton>
+        </KeyOpButton>
       )}
       size="sm"
       options={options}
@@ -239,6 +315,84 @@ export function FilterKeyOperator({
   );
 }
 
+function AggregateFilterKeyOperator({
+  token,
+  state,
+  item,
+  onOpenChange,
+  filterRef,
+  gridCellProps,
+}: AggregateProps) {
+  return (
+    <Fragment>
+      <GridCell {...gridCellProps}>
+        <AggregateKey
+          filterRef={filterRef}
+          item={item}
+          token={token}
+          state={state}
+          onActiveChange={onOpenChange}
+        />
+      </GridCell>
+      <GridCell {...gridCellProps}>
+        <OperatorSelect
+          token={token}
+          state={state}
+          item={item}
+          onOpenChange={onOpenChange}
+          middle
+          includeKeyLabel={false}
+        />
+      </GridCell>
+    </Fragment>
+  );
+}
+
+export function FilterKeyOperator({
+  token,
+  state,
+  item,
+  onOpenChange,
+  filterRef,
+  gridCellProps,
+}: FilterOperatorProps) {
+  switch (token.filter) {
+    case FilterType.AGGREGATE_DATE:
+    case FilterType.AGGREGATE_DURATION:
+    case FilterType.AGGREGATE_NUMERIC:
+    case FilterType.AGGREGATE_PERCENTAGE:
+    case FilterType.AGGREGATE_RELATIVE_DATE:
+    case FilterType.AGGREGATE_SIZE:
+      if (token.key.args) {
+        return (
+          <AggregateFilterKeyOperator
+            token={token}
+            state={state}
+            item={item}
+            onOpenChange={onOpenChange}
+            filterRef={filterRef}
+            gridCellProps={gridCellProps}
+          />
+        );
+      }
+      break;
+    default:
+      break;
+  }
+
+  return (
+    <GridCell {...gridCellProps}>
+      <OperatorSelect
+        token={token}
+        state={state}
+        item={item}
+        onOpenChange={onOpenChange}
+        includeKeyLabel
+      />
+    </GridCell>
+  );
+}
+
 const UnstyledButton = styled('button')`
   background: none;
   border: none;
@@ -251,12 +405,19 @@ const UnstyledButton = styled('button')`
   }
 `;
 
-const OpButton = styled(UnstyledButton)`
+const GridCell = styled('div')`
+  display: flex;
+  align-items: stretch;
+  position: relative;
+`;
+
+const KeyOpButton = styled(UnstyledButton)<{middle?: boolean}>`
   padding: 0 ${space(0.25)} 0 ${space(0.5)};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
-  border-radius: 3px 0 0 3px;
+
+  border-radius: ${p => (p.middle ? 0 : '3px 0 0 3px')};
 
   :focus {
     background-color: ${p => p.theme.translucentGray100};
@@ -265,7 +426,7 @@ const OpButton = styled(UnstyledButton)`
   }
 `;
 
-const KeyOpWrapper = styled('div')`
+const KeyOpLabelWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};

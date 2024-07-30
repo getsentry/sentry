@@ -212,14 +212,14 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
       >
-        <BaseGridCell {...gridCellProps}>
-          <FilterKeyOperator
-            token={token}
-            state={state}
-            item={item}
-            onOpenChange={setFilterMenuOpen}
-          />
-        </BaseGridCell>
+        <FilterKeyOperator
+          token={token}
+          state={state}
+          item={item}
+          onOpenChange={setFilterMenuOpen}
+          filterRef={ref}
+          gridCellProps={gridCellProps}
+        />
         <FilterValueGridCell {...gridCellProps}>
           <FilterValue
             token={token}
