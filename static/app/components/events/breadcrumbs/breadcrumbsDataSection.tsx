@@ -50,7 +50,8 @@ export default function BreadcrumbsDataSection({
   group,
   project,
 }: BreadcrumbsDataSectionProps) {
-  const {openDrawer} = useDrawer();
+  const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -91,7 +92,18 @@ export default function BreadcrumbsDataSection({
             group={group}
           />
         ),
-        {ariaLabel: 'breadcrumb drawer'}
+        {
+          ariaLabel: 'breadcrumb drawer',
+          // We prevent a click on the 'View All' button from closing the drawer so that
+          // we don't reopen it immediately, and instead let the button handle this itself.
+          shouldCloseOnInteractOutside: element => {
+            const viewAllButton = viewAllButtonRef.current;
+            if (viewAllButton?.contains(element)) {
+              return false;
+            }
+            return true;
+          },
+        }
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -163,8 +175,11 @@ export default function BreadcrumbsDataSection({
             <div>
               <ViewAllButton
                 size="sm"
-                onClick={() => onViewAllBreadcrumbs()}
+                // Since we've disabled the button as an 'outside click' for the drawer we can change
+                // the operation based on the drawer state.
+                onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
                 aria-label={t('View All Breadcrumbs')}
+                ref={viewAllButtonRef}
               >
                 {t('View All')}
               </ViewAllButton>
