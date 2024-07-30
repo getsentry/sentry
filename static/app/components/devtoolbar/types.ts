@@ -2,6 +2,9 @@ import type SentrySDK from '@sentry/react'; // TODO: change to `@sentry/browser`
 
 export type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 
+export type FlagValue = boolean | string | number | undefined;
+export type FeatureFlagMap = Record<string, {override: FlagValue; value: FlagValue}>;
+
 export type Configuration = {
   apiPrefix: string;
   environment: string | string[];
@@ -12,8 +15,13 @@ export type Configuration = {
   projectSlug: string;
   SentrySDK?: typeof SentrySDK;
   domId?: string;
-  featureFlagTemplateUrl?: undefined | ((flag: string) => string | undefined);
-  featureFlags?: string[];
+  featureFlags?: {
+    clear?: () => void;
+    getFeatureFlagMap?: () => FeatureFlagMap;
+    setOverrideValue?: (name: string, override: FlagValue) => void;
+    urlTemplate?: (name: string) => string | undefined;
+  };
+
   trackAnalytics?: (props: {eventKey: string; eventName: string}) => void;
 };
 

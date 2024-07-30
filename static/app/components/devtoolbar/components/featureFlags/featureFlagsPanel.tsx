@@ -1,85 +1,144 @@
-import {useRef, useState} from 'react';
+import {type Dispatch, Fragment, type SetStateAction, useState} from 'react';
 
-import useEnabledFeatureFlags from 'sentry/components/devtoolbar/components/featureFlags/useEnabledFeatureFlags';
-import {inlineLinkCss} from 'sentry/components/devtoolbar/styles/link';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 
-import useConfiguration from '../../hooks/useConfiguration';
 import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
+import {resetFlexRowCss} from '../../styles/reset';
 import {smallCss} from '../../styles/typography';
 import PanelLayout from '../panelLayout';
 
-export default function FeatureFlagsPanel() {
-  const featureFlags = useEnabledFeatureFlags();
-  const {organizationSlug, featureFlagTemplateUrl, trackAnalytics} = useConfiguration();
-  const [searchTerm, setSearchTerm] = useState('');
-  const searchInput = useRef<HTMLInputElement>(null);
+import CreateOverride from './createOverride';
+import FeatureFlagItem from './featureFlagItem';
+import {FeatureFlagsContextProvider, useFeatureFlagsContext} from './featureFlagsContext';
 
-  const filteredItems = featureFlags
-    ?.filter(s => s.toLowerCase().includes(searchTerm))
-    .sort();
+type Prefilter = 'all' | 'overrides';
+export default function FeatureFlagsPanel() {
+  const [prefilter, setPreFilter] = useState<Prefilter>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   return (
-    <PanelLayout title="Feature Flags">
-      <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-        <span>
-          Flags enabled for <code>{organizationSlug}</code>
-        </span>
-      </div>
-      <PanelTable
-        headers={[
-          <div key="column">
-            <Input
-              ref={searchInput}
-              size="sm"
-              placeholder="Search flags"
-              onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+    <FeatureFlagsContextProvider>
+      <PanelLayout title="Feature Flags">
+        <div css={{display: 'grid', gridTemplateRows: 'auto auto 1fr auto', flexGrow: 1}}>
+          <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
+            <IsDirtyMessage />
+          </div>
+          <div
+            css={[
+              smallCss,
+              panelSectionCss,
+              panelInsetContentCss,
+              {
+                display: 'grid',
+                gridTemplateAreas: "'segments clear' 'search search'",
+                gap: 'var(--space100)',
+              },
+            ]}
+          >
+            <Filters
+              setPreFilter={setPreFilter}
+              prefilter={prefilter}
+              setSearchTerm={setSearchTerm}
             />
-          </div>,
-        ]}
-        stickyHeaders
-        css={[
-          {
-            border: 'none',
-            padding: 0,
-            '&>:first-child': {
-              minHeight: 'unset',
-              padding: 'var(--space50) var(--space150)',
-            },
-          },
-        ]}
+          </div>
+          <div css={[resetFlexRowCss, {contain: 'strict'}]}>
+            <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
+          </div>
+          <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
+            <CreateOverride />
+          </div>
+        </div>
+      </PanelLayout>
+    </FeatureFlagsContextProvider>
+  );
+}
+
+function IsDirtyMessage() {
+  const {isDirty} = useFeatureFlagsContext();
+
+  return <span>{isDirty ? 'Reload to see changes' : ''}</span>;
+}
+
+function Filters({
+  setPreFilter,
+  prefilter,
+  setSearchTerm,
+}: {
+  prefilter: Prefilter;
+  setPreFilter: Dispatch<SetStateAction<Prefilter>>;
+  setSearchTerm: Dispatch<SetStateAction<string>>;
+}) {
+  const {clearOverrides} = useFeatureFlagsContext();
+  return (
+    <Fragment>
+      <div css={{gridArea: 'segments'}}>
+        <SegmentedControl<Prefilter> onChange={setPreFilter} size="xs" value={prefilter}>
+          <SegmentedControl.Item key="all">All Flags</SegmentedControl.Item>
+          <SegmentedControl.Item key="overrides">Overrides Only</SegmentedControl.Item>
+        </SegmentedControl>
+      </div>
+      <Button
+        size="xs"
+        onClick={() => {
+          clearOverrides();
+        }}
+        css={{gridArea: 'clear'}}
       >
-        {filteredItems?.length ? (
-          filteredItems.map(flag => {
-            return (
-              <Cell key={flag} css={[panelInsetContentCss, {alignItems: 'flex-start'}]}>
-                {featureFlagTemplateUrl?.(flag) ? (
-                  <ExternalLink
-                    css={[smallCss, inlineLinkCss]}
-                    href={featureFlagTemplateUrl(flag)}
-                    onClick={() => {
-                      trackAnalytics?.({
-                        eventKey: `devtoolbar.feature-flag-list.item.click`,
-                        eventName: `devtoolbar: Click feature-flag-list item`,
-                      });
-                    }}
-                  >
-                    {flag}
-                  </ExternalLink>
-                ) : (
-                  <span>{flag}</span>
-                )}
-              </Cell>
-            );
-          })
-        ) : (
-          <EmptyStateWarning small>No items to show</EmptyStateWarning>
-        )}
-      </PanelTable>
-    </PanelLayout>
+        Clear Overrides
+      </Button>
+      <Input
+        css={{gridArea: 'search'}}
+        onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+        placeholder="Search flags"
+        size="xs"
+      />
+    </Fragment>
+  );
+}
+
+function FlagTable({prefilter, searchTerm}: {prefilter: string; searchTerm: string}) {
+  const {featureFlagMap} = useFeatureFlagsContext();
+
+  const filtered = Object.fromEntries(
+    Object.entries(featureFlagMap)?.filter(([name, {value, override}]) => {
+      const overrideOnly = prefilter === 'overrides';
+      const isOverridden = override !== undefined && value !== override;
+      const matchesSearch = name
+        .toLocaleLowerCase()
+        .includes(searchTerm.toLocaleLowerCase());
+      return overrideOnly ? isOverridden && matchesSearch : matchesSearch;
+    })
+  );
+  const names = Object.keys(filtered).sort();
+
+  return (
+    <PanelTable
+      css={[
+        panelSectionCss,
+        {
+          flexGrow: 1,
+          margin: 0,
+          borderRadius: 0,
+          border: 'none',
+          padding: 0,
+          '& > :first-child': {
+            minHeight: 'unset',
+            padding: 'var(--space50) var(--space150)',
+          },
+        },
+      ]}
+      headers={[
+        <Fragment key="name">Name</Fragment>,
+        <Fragment key="value">Value</Fragment>,
+      ]}
+      stickyHeaders
+    >
+      {names?.map(name => (
+        <FeatureFlagItem key={name} flag={{name, ...filtered[name]}} />
+      ))}
+    </PanelTable>
   );
 }
