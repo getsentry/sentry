@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SessionStatusBadge from 'sentry/components/devtoolbar/components/releases/sessionStatusBadge';
 import {
   IconClose,
@@ -10,7 +11,6 @@ import {
   IconSiren,
 } from 'sentry/icons';
 
-import useConfiguration from '../hooks/useConfiguration';
 import usePlacementCss from '../hooks/usePlacementCss';
 import useToolbarRoute from '../hooks/useToolbarRoute';
 import {navigationCss} from '../styles/navigation';
@@ -24,7 +24,6 @@ export default function Navigation({
 }: {
   setIsDisabled: (val: boolean) => void;
 }) {
-  const {trackAnalytics} = useConfiguration();
   const placement = usePlacementCss();
 
   const {state: route} = useToolbarRoute();
@@ -35,17 +34,15 @@ export default function Navigation({
       css={[resetDialogCss, navigationCss, placement.navigation.css]}
       data-has-active={isRouteActive}
     >
-      <IconButton
-        onClick={() => {
-          setIsDisabled(true);
-          trackAnalytics?.({
-            eventKey: `devtoolbar.nav.hide.click`,
-            eventName: `devtoolbar: Hide devtoolbar`,
-          });
-        }}
-        title="Hide for this session"
-        icon={<IconClose />}
-      />
+      <AnalyticsProvider nameVal="hide" keyVal="hide devtoolbar">
+        <IconButton
+          onClick={() => {
+            setIsDisabled(true);
+          }}
+          title="Hide for this session"
+          icon={<IconClose />}
+        />
+      </AnalyticsProvider>
 
       <hr style={{margin: 0, width: '100%'}} />
 
@@ -73,25 +70,25 @@ function NavButton({
   panelName: ReturnType<typeof useToolbarRoute>['state']['activePanel'];
   children?: ReactNode;
 }) {
-  const {trackAnalytics} = useConfiguration();
   const {state, setActivePanel} = useToolbarRoute();
 
   const isActive = state.activePanel === panelName;
 
   return (
-    <IconButton
-      data-active-route={isActive}
-      icon={icon}
-      onClick={() => {
-        setActivePanel(isActive ? null : panelName);
-        trackAnalytics?.({
-          eventKey: `devtoolbar.nav.button.${label.replace(' ', '-')}.click`,
-          eventName: `devtoolbar: Toggle Nav Panel ${label} Click`,
-        });
-      }}
-      title={label}
+    <AnalyticsProvider
+      nameVal={`panel ${label} toggle`}
+      keyVal={`${label.replace(' ', '-')}`}
     >
-      {children}
-    </IconButton>
+      <IconButton
+        data-active-route={isActive}
+        icon={icon}
+        onClick={() => {
+          setActivePanel(isActive ? null : panelName);
+        }}
+        title={label}
+      >
+        {children}
+      </IconButton>
+    </AnalyticsProvider>
   );
 }

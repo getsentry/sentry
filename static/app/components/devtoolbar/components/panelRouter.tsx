@@ -1,5 +1,7 @@
 import {lazy} from 'react';
 
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+
 import useToolbarRoute from '../hooks/useToolbarRoute';
 
 const PanelAlerts = lazy(() => import('./alerts/alertsPanel'));
@@ -13,15 +15,35 @@ export default function PanelRouter() {
 
   switch (state.activePanel) {
     case 'alerts':
-      return <PanelAlerts />;
+      return (
+        <AnalyticsProvider keyVal="alerts-panel" nameVal="Alerts panel">
+          <PanelAlerts />
+        </AnalyticsProvider>
+      );
     case 'feedback':
-      return <PanelFeedback />;
+      return (
+        <AnalyticsProvider keyVal="feedback-panel" nameVal="Feedback panel">
+          <PanelFeedback />
+        </AnalyticsProvider>
+      );
     case 'issues':
-      return <PanelIssues />;
+      return (
+        <AnalyticsProvider keyVal="issues-panel" nameVal="Issues panel">
+          <PanelIssues />
+        </AnalyticsProvider>
+      );
     case 'featureFlags':
-      return <PanelFeatureFlags />;
+      return (
+        <AnalyticsProvider keyVal="feature-flags-panel" nameVal="Feature Flags panel">
+          <PanelFeatureFlags />
+        </AnalyticsProvider>
+      );
     case 'releases':
-      return <PanelReleases />;
+      return (
+        <AnalyticsProvider keyVal="release-panel" nameVal="Releases panel">
+          <PanelReleases />
+        </AnalyticsProvider>
+      );
     default:
       return null;
   }

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ReleaseIsssues from 'sentry/components/devtoolbar/components/releases/releaseIssues';
 import useReleaseSessions from 'sentry/components/devtoolbar/components/releases/useReleaseSessions';
 import useToolbarRelease from 'sentry/components/devtoolbar/components/releases/useToolbarRelease';
@@ -182,8 +183,7 @@ export default function ReleasesPanel() {
     isError: isReleaseDataError,
   } = useToolbarRelease();
 
-  const {organizationSlug, projectSlug, projectId, projectPlatform, trackAnalytics} =
-    useConfiguration();
+  const {organizationSlug, projectSlug, projectId, projectPlatform} = useConfiguration();
 
   if (isReleaseDataError) {
     return <EmptyStateWarning small>No data to show</EmptyStateWarning>;
@@ -191,49 +191,45 @@ export default function ReleasesPanel() {
 
   return (
     <PanelLayout title="Latest Release">
-      <span
-        css={[
-          smallCss,
-          panelSectionCss,
-          panelInsetContentCss,
-          resetFlexRowCss,
-          {gap: 'var(--space50)', flexGrow: 0},
-        ]}
-      >
-        Latest release for{' '}
-        <SentryAppLink
-          to={{
-            url: `/releases/`,
-            query: {project: projectId},
-          }}
-          onClick={() => {
-            trackAnalytics?.({
-              eventKey: `devtoolbar.releases-list.header.click`,
-              eventName: `devtoolbar: Click releases-list header`,
-            });
-          }}
+      <AnalyticsProvider nameVal="header" keyVal="header">
+        <span
+          css={[
+            smallCss,
+            panelSectionCss,
+            panelInsetContentCss,
+            resetFlexRowCss,
+            {gap: 'var(--space50)', flexGrow: 0},
+          ]}
         >
-          <div
-            css={[
-              resetFlexRowCss,
-              {display: 'inline-flex', gap: 'var(--space50)', alignItems: 'center'},
-            ]}
+          Latest release for{' '}
+          <SentryAppLink
+            to={{
+              url: `/releases/`,
+              query: {project: projectId},
+            }}
           >
-            <ProjectBadge
-              css={css({'&& img': {boxShadow: 'none'}})}
-              project={{
-                slug: projectSlug,
-                id: projectId,
-                platform: projectPlatform as PlatformKey,
-              }}
-              avatarSize={16}
-              hideName
-              avatarProps={{hasTooltip: false}}
-            />
-            {projectSlug}
-          </div>
-        </SentryAppLink>
-      </span>
+            <div
+              css={[
+                resetFlexRowCss,
+                {display: 'inline-flex', gap: 'var(--space50)', alignItems: 'center'},
+              ]}
+            >
+              <ProjectBadge
+                css={css({'&& img': {boxShadow: 'none'}})}
+                project={{
+                  slug: projectSlug,
+                  id: projectId,
+                  platform: projectPlatform as PlatformKey,
+                }}
+                avatarSize={16}
+                hideName
+                avatarProps={{hasTooltip: false}}
+              />
+              {projectSlug}
+            </div>
+          </SentryAppLink>
+        </span>
+      </AnalyticsProvider>
       {isReleaseDataLoading ? (
         <div
           css={[
