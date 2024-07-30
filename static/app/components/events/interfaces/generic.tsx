@@ -4,7 +4,6 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import type {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 function getView({
@@ -40,20 +39,18 @@ function getView({
 
 type Props = {
   data: Record<string, any> | null;
-  sectionKey: FoldSectionKey;
   type: string;
   meta?: Record<string, any>;
 };
 
 type View = 'report' | 'raw';
 
-export function Generic({type, data, meta, sectionKey}: Props) {
+export function Generic({type, data, meta}: Props) {
   const [view, setView] = useState<View>('report');
   return (
     <InterimSection
       type={type}
       title={t('Report')}
-      sectionKey={sectionKey}
       actions={
         <SegmentedControl
           aria-label={t('View')}

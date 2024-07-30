@@ -67,12 +67,7 @@ export function Csp({data, event}: Props) {
   );
 
   return (
-    <InterimSection
-      type="csp"
-      title={t('CSP Report')}
-      actions={actions}
-      sectionKey={FoldSectionKey.CSP}
-    >
+    <InterimSection title={t('CSP Report')} actions={actions} type={FoldSectionKey.CSP}>
       {getView(view, cleanData, meta)}
     </InterimSection>
   );

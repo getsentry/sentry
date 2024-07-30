@@ -6,7 +6,7 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import type {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {Breadcrumbs} from './interfaces/breadcrumbs';
@@ -84,16 +84,11 @@ function EventEntryContent({
     case EntryType.EXPECTCT:
     case EntryType.EXPECTSTAPLE:
       const {data, type} = entry;
-      return <Generic sectionKey={FoldSectionKey.EXPECTCT} type={type} data={data} />;
+      return <Generic type={type} data={data} />;
 
     case EntryType.HPKP:
       return (
-        <Generic
-          sectionKey={FoldSectionKey.HPKP}
-          type={entry.type}
-          data={entry.data}
-          meta={event._meta?.hpkp ?? {}}
-        />
+        <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
       );
 
     case EntryType.BREADCRUMBS:
@@ -167,11 +162,7 @@ export function EventEntry(props: Props) {
   return (
     <ErrorBoundary
       customComponent={
-        <InterimSection
-          sectionKey={FoldSectionKey.MESSAGE}
-          type={props.entry.type}
-          title={props.entry.type}
-        >
+        <InterimSection type={props.entry.type} title={props.entry.type}>
           <p>{t('There was an error rendering this data.')}</p>
         </InterimSection>
       }

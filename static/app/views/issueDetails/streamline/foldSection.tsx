@@ -9,55 +9,60 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const LOCAL_STORAGE_PREFIX = 'fold-section-collapse-';
+const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
+
 export const enum FoldSectionKey {
   // View Full Trace
   // Suspect Commits
 
-  USER_FEEDBACK = 'issue-details-user-feedback',
-  LLM_MONITORING = 'issue-details-llm-monitoring',
+  USER_FEEDBACK = 'user-feedback',
+  LLM_MONITORING = 'llm-monitoring',
 
-  UPTIME = 'issue-details-uptime', // Only Uptime issues
-  CRON = 'issue-details-cron-timeline', // Only Cron issues
+  UPTIME = 'uptime', // Only Uptime issues
+  CRON = 'cron-timeline', // Only Cron issues
 
-  HIGHLIGHTS = 'issue-details-highlights',
-  RESOURCES = 'issue-details-resources', // Position controlled by flag
+  HIGHLIGHTS = 'highlights',
+  RESOURCES = 'resources', // Position controlled by flag
 
-  EVIDENCE = 'issue-details-evidence',
-  MESSAGE = 'issue-details-message',
-  STACK_TRACE = 'issue-details-stack-trace',
+  EXCEPTION = 'exception',
+  STACKTRACE = 'stacktrace',
+  SPANS = 'spans',
+  EVIDENCE = 'evidence',
+  MESSAGE = 'message',
+  STACK_TRACE = 'stack-trace',
 
-  THREADS = 'issue-details-threads',
-  THREAD_STATE = 'issue-details-thread-state',
-  THREAD_TAGS = 'issue-details-thread-tags',
+  THREADS = 'threads',
+  THREAD_STATE = 'thread-state',
+  THREAD_TAGS = 'thread-tags',
 
   // QuickTraceQuery?
 
-  SPAN_EVIDENCE = 'issue-details-span-evidence',
-  HYDRATION_DIFF = 'issue-details-hydration-diff',
-  REPLAY = 'issue-details-replay',
+  SPAN_EVIDENCE = 'span-evidence',
+  HYDRATION_DIFF = 'hydration-diff',
+  REPLAY = 'replay',
 
-  HPKP = 'issue-details-hpkp',
-  CSP = 'issue-details-csp',
-  EXPECTCT = 'issue-details-expectct',
-  TEMPLATE = 'issue-details-template',
+  HPKP = 'hpkp',
+  CSP = 'csp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  TEMPLATE = 'template',
 
-  BREADCRUMBS = 'issue-details-breadcrumbs',
-  DEBUGMETA = 'issue-details-debugmeta',
-  REQUEST = 'issue-details-request',
+  BREADCRUMBS = 'breadcrumbs',
+  DEBUGMETA = 'debugmeta',
+  REQUEST = 'request',
 
-  TAGS = 'issue-details-tags',
-  SCREENSHOT = 'issue-details-screenshot',
+  TAGS = 'tags',
+  SCREENSHOT = 'screenshot',
 
-  CONTEXTS = 'issue-details-contexts',
-  EXTRA = 'issue-details-extra',
-  PACKAGE = 'issue-details-package',
-  DEVICE = 'issue-details-device',
-  VIEW_HIERARCHY = 'issue-details-view-hierarchy',
-  ATTACHMENTS = 'issue-details-attachments',
-  SDK = 'issue-details-sdk',
-  GROUPING_INFO = 'issue-details-grouping-info',
-  RRWEB = 'issue-details-rrweb', // Legacy integration prior to replays
+  CONTEXTS = 'contexts',
+  EXTRA = 'extra',
+  PACKAGES = 'packages',
+  DEVICE = 'device',
+  VIEW_HIERARCHY = 'view-hierarchy',
+  ATTACHMENTS = 'attachments',
+  SDK = 'sdk',
+  GROUPING_INFO = 'grouping-info',
+  RRWEB = 'rrweb', // Legacy integration prior to replays
 }
 
 interface FoldSectionProps {

@@ -16,8 +16,9 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, StackType, StackView} from 'sentry/types';
+import {StackType, StackView} from 'sentry/types';
 import type {Event, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -236,11 +237,7 @@ export function Threads({
       {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
         <Fragment>
           <Grid>
-            <InterimSection
-              type={EntryType.THREADS}
-              title={t('Threads')}
-              sectionKey={FoldSectionKey.THREADS}
-            >
+            <InterimSection type={FoldSectionKey.THREADS} title={t('Threads')}>
               {activeThread && (
                 <Wrapper>
                   <ThreadSelector
@@ -257,9 +254,8 @@ export function Threads({
             </InterimSection>
             {activeThread?.state && (
               <InterimSection
-                type={EntryType.THREAD_STATE}
                 title={t('Thread State')}
-                sectionKey={FoldSectionKey.THREAD_STATE}
+                type={FoldSectionKey.THREAD_STATE}
               >
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}
@@ -278,11 +274,7 @@ export function Threads({
             )}
           </Grid>
           {!hideThreadTags && (
-            <InterimSection
-              type={EntryType.THREAD_TAGS}
-              title={t('Thread Tags')}
-              sectionKey={FoldSectionKey.THREAD_TAGS}
-            >
+            <InterimSection title={t('Thread Tags')} type={FoldSectionKey.THREAD_TAGS}>
               {renderPills()}
             </InterimSection>
           )}

@@ -39,7 +39,7 @@ export default function ContextDataSection({
   return (
     <InterimSection
       key={'context'}
-      type={'context'}
+      type={FoldSectionKey.CONTEXTS}
       title={t('Contexts')}
       help={tct(
         'The structured context items attached to this event. [link:Learn more]',
@@ -48,7 +48,6 @@ export default function ContextDataSection({
         }
       )}
       isHelpHoverable
-      sectionKey={FoldSectionKey.CONTEXTS}
     >
       <ErrorBoundary mini message={t('There was a problem loading event context.')}>
         <KeyValueData.Container>{cards}</KeyValueData.Container>

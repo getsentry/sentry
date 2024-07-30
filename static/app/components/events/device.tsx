@@ -24,7 +24,7 @@ export function EventDevice({event}: Props) {
   }
 
   return (
-    <InterimSection type="device" title={t('Device')} sectionKey={FoldSectionKey.DEVICE}>
+    <InterimSection type={FoldSectionKey.DEVICE} title={t('Device')}>
       <KeyValueList
         shouldSort={false}
         data={[

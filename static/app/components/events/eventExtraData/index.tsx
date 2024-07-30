@@ -41,8 +41,7 @@ export const EventExtraData = memo(
 
     return (
       <InterimSection
-        sectionKey={FoldSectionKey.EXTRA}
-        type="extra"
+        type={FoldSectionKey.EXTRA}
         title={t('Additional Data')}
         actions={
           <SegmentedControl

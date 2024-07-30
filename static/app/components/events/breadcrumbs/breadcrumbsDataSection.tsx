@@ -146,11 +146,10 @@ export default function BreadcrumbsDataSection({
   return (
     <InterimSection
       key="breadcrumbs"
-      type="breadcrmbs"
+      type={FoldSectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}
-      sectionKey={FoldSectionKey.BREADCRUMBS}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
         <BreadcrumbsTimeline

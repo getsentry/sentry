@@ -12,10 +12,12 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
 import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -537,14 +539,13 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
 
     return (
       <InterimSection
-        type="images-loaded"
+        type={FoldSectionKey.DEBUGMETA}
         guideTarget="images-loaded"
         title={t('Images Loaded')}
         help={t(
           'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
         )}
         actions={actions}
-        sectionKey={FoldSectionKey.DEBUGMETA}
       >
         {isOpen && (
           <Fragment>

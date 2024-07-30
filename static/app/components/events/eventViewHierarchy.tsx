@@ -86,11 +86,7 @@ function EventViewHierarchyContent({event, project}: Props) {
   }
 
   return (
-    <InterimSection
-      type="view_hierarchy"
-      title={t('View Hierarchy')}
-      sectionKey={FoldSectionKey.VIEW_HIERARCHY}
-    >
+    <InterimSection title={t('View Hierarchy')} type={FoldSectionKey.VIEW_HIERARCHY}>
       <ErrorBoundary mini>
         <ViewHierarchy viewHierarchy={hierarchy} project={project} />
       </ErrorBoundary>

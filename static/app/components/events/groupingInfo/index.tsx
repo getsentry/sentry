@@ -150,10 +150,9 @@ export function EventGroupingInfo({
 
   return (
     <InterimSection
-      type="grouping-info"
       title={t('Event Grouping Information')}
       actions={<SectionToggleButton isExpanded={isOpen} onExpandChange={setIsOpen} />}
-      sectionKey={FoldSectionKey.GROUPING_INFO}
+      type={FoldSectionKey.GROUPING_INFO}
     >
       {!isOpen ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
       {isOpen ? (

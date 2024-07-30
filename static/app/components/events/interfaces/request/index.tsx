@@ -109,11 +109,10 @@ export function Request({data, event}: RequestProps) {
 
   return (
     <InterimSection
-      type={EntryType.REQUEST}
+      type={FoldSectionKey.REQUEST}
       title={title}
       actions={actions}
       className="request"
-      sectionKey={FoldSectionKey.REQUEST}
     >
       {view === 'curl' ? (
         <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>

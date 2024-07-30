@@ -15,11 +15,7 @@ export function Template({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.TEMPLATE);
   const meta = event._meta?.entries?.[entryIndex]?.data?.values;
   return (
-    <InterimSection
-      type={EntryType.TEMPLATE}
-      title={t('Template')}
-      sectionKey={FoldSectionKey.TEMPLATE}
-    >
+    <InterimSection title={t('Template')} type={FoldSectionKey.TEMPLATE}>
       <div className="traceback no-exception">
         <ul>
           <DeprecatedLine

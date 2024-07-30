@@ -18,7 +18,7 @@ export function EventSdk({sdk, meta}: Props) {
   }
 
   return (
-    <InterimSection type="sdk" title={t('SDK')} sectionKey={FoldSectionKey.SDK}>
+    <InterimSection title={t('SDK')} type={FoldSectionKey.SDK}>
       <KeyValueList
         data={[
           {

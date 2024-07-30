@@ -58,11 +58,7 @@ export function Message({data, event}: Props) {
     : null;
 
   return (
-    <InterimSection
-      type="message"
-      title={t('Message')}
-      sectionKey={FoldSectionKey.MESSAGE}
-    >
+    <InterimSection title={t('Message')} type={FoldSectionKey.MESSAGE}>
       {meta?.data?.formatted?.[''] ? (
         <AnnotatedText value={messageData} meta={meta?.data?.formatted?.['']} />
       ) : (

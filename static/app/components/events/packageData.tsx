@@ -40,7 +40,7 @@ export function EventPackageData({event}: Props) {
   }
 
   return (
-    <InterimSection type="packages" title={title} sectionKey={FoldSectionKey.PACKAGE}>
+    <InterimSection title={title} type={FoldSectionKey.PACKAGES}>
       <ClippedBox>
         <ErrorBoundary mini>
           <KeyValueList data={packages} longKeys={longKeys} />

@@ -13,7 +13,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 const sortByOptions = {
@@ -432,7 +431,6 @@ export function TraceEventDataSection({
         )
       }
       wrapTitle={wrapTitle}
-      sectionKey={FoldSectionKey.STACK_TRACE}
     >
       <TraceEventDataSectionContext.Provider value={childProps}>
         {children(childProps)}

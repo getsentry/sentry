@@ -37,9 +37,8 @@ export function EventEvidence({event, group, project}: EvidenceProps) {
 
   return (
     <InterimSection
-      sectionKey={FoldSectionKey.EVIDENCE}
+      type={FoldSectionKey.EVIDENCE}
       title={config.title}
-      type="evidence"
       help={config.helpText}
     >
       <KeyValueList

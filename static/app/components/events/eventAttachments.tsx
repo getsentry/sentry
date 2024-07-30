@@ -111,11 +111,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
 
   if (isError) {
     return (
-      <InterimSection
-        type="attachments"
-        title="Attachments"
-        sectionKey={FoldSectionKey.ATTACHMENTS}
-      >
+      <InterimSection type={FoldSectionKey.ATTACHMENTS} title={t('Attachments')}>
         <LoadingError
           onRetry={refetch}
           message={t('An error occurred while fetching attachments')}
@@ -142,11 +138,7 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
   };
 
   return (
-    <InterimSection
-      type="attachments"
-      title={title}
-      sectionKey={FoldSectionKey.ATTACHMENTS}
-    >
+    <InterimSection type={FoldSectionKey.ATTACHMENTS} title={title}>
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice
           orgSlug={organization.slug}

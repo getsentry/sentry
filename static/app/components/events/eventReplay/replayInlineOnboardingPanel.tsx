@@ -47,11 +47,7 @@ export default function ReplayInlineOnboardingPanel({
   }
 
   return (
-    <InterimSection
-      sectionKey={FoldSectionKey.REPLAY}
-      type="replay"
-      title={t('Session Replay')}
-    >
+    <InterimSection type={FoldSectionKey.REPLAY} title={t('Session Replay')}>
       <BannerWrapper>
         <div>
           <BannerTitle>

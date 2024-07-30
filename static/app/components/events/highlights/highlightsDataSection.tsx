@@ -263,9 +263,8 @@ export default function HighlightsDataSection({
 
   return (
     <InterimSection
-      sectionKey={FoldSectionKey.HIGHLIGHTS}
       key="event-highlights"
-      type="event-highlights"
+      type={FoldSectionKey.HIGHLIGHTS}
       title={t('Event Highlights')}
       help={tct(
         'Promoted tags and context items saved for this project. [link:Learn more]',

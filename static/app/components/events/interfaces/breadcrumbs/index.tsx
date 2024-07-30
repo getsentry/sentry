@@ -310,11 +310,10 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
   return (
     <InterimSection
       showPermalink={!hideTitle}
-      type={EntryType.BREADCRUMBS}
+      type={FoldSectionKey.BREADCRUMBS}
       title={hideTitle ? '' : t('Breadcrumbs')}
       guideTarget="breadcrumbs"
       actions={actions}
-      sectionKey={FoldSectionKey.BREADCRUMBS}
     >
       <ErrorBoundary>
         <Breadcrumbs

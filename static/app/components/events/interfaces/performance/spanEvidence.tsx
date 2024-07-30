@@ -5,12 +5,13 @@ import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/pe
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   isTransactionBased,
-} from 'sentry/types';
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -52,9 +53,8 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   return (
     <InterimSection
-      sectionKey={FoldSectionKey.SPAN_EVIDENCE}
+      type={FoldSectionKey.SPAN_EVIDENCE}
       title={t('Span Evidence')}
-      type="span-evidence"
       help={t(
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
