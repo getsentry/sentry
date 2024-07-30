@@ -42,9 +42,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
         substring = re.escape(substring)
         return bool(re.match(substring, string, re.I))
 
-    def get_filtered_option_groups(
-        self, group: Group, substring: str
-    ) -> Sequence[Mapping[str, Any]]:
+    def get_filtered_option_groups(self, group: Group, substring: str) -> list[OptionGroup]:
         all_teams = group.project.teams.all()
         filtered_teams = list(
             filter(
@@ -72,7 +70,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
             )
         )
 
-        option_groups = []
+        option_groups: list[OptionGroup] = []
         if filtered_teams:
             team_options_group: OptionGroup = {
                 "label": {"type": "plain_text", "text": "Teams"},
