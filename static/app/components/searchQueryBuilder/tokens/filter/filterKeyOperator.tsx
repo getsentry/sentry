@@ -22,6 +22,7 @@ import {
   type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -303,7 +304,7 @@ function OperatorSelect({
           search_source: searchSource,
           new_experience: true,
           search_operator: option.value,
-          filter_key: token.key.text,
+          filter_key: getKeyName(token.key),
         });
         dispatch({
           type: 'UPDATE_FILTER_OP',

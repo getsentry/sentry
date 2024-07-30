@@ -19,6 +19,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -137,7 +138,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
 
   return (
     <ValueButton
-      aria-label={t('Edit value for filter: %s', token.key.text)}
+      aria-label={t('Edit value for filter: %s', getKeyName(token.key))}
       onClick={() => {
         setIsEditing(true);
         onActiveChange(true);
@@ -157,7 +158,7 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
 
   return (
     <DeleteButton
-      aria-label={t('Remove filter: %s', token.key.text)}
+      aria-label={t('Remove filter: %s', getKeyName(token.key))}
       onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
       disabled={disabled}
       {...filterButtonProps}

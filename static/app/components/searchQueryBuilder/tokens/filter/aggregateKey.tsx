@@ -9,6 +9,7 @@ import type {
   AggregateFilter,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -25,12 +26,12 @@ export function AggregateKey({item, state, token}: AggregateKeyProps) {
 
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  const fnName = token.key.name.text;
+  const fnName = getKeyName(token.key);
   const fnParams = token.key.args?.text ?? '';
 
   return (
     <KeyButton
-      aria-label={t('Edit parameters for filter: %s', token.key.name.text)}
+      aria-label={t('Edit parameters for filter: %s', fnName)}
       disabled={disabled}
       {...filterButtonProps}
     >
