@@ -134,4 +134,4 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
     if not result:
         return None
 
-    return AutofixState.validate(result.get("state", None))
+    return AutofixState.model_validate(result.get("state", None))

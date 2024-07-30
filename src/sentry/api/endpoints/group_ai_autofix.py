@@ -213,7 +213,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         response_state: dict[str, Any] | None = None
 
         if autofix_state:
-            response_state = autofix_state.dict()
+            response_state = autofix_state.model_dump()
             user_ids = autofix_state.actor_ids
             if user_ids:
                 users = user_service.serialize_many(
