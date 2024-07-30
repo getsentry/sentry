@@ -444,6 +444,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         top_events: int = 0,
         query_column: str = "count()",
         params: ParamsType | None = None,
+        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
@@ -451,6 +452,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         additional_query_column: str | None = None,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
+        if (params is None or len(params) == 0) and snuba_params is not None:
+            params = snuba_params.filter_params
+
         with handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
