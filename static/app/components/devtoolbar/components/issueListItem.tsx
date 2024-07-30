@@ -17,7 +17,7 @@ import TimeSince from 'sentry/components/timeSince';
 import type {Group} from 'sentry/types/group';
 
 export default function IssueListItem({item}: {item: Group}) {
-  const {projectSlug, projectId} = useConfiguration();
+  const {projectId} = useConfiguration();
 
   return (
     <AnalyticsProvider keyVal="issue-list.item" nameVal="issue list item">
@@ -29,10 +29,12 @@ export default function IssueListItem({item}: {item: Group}) {
           <SentryAppLink
             to={{
               url: `/issues/${item.id}/`,
-              query: {project: projectId, feedbackSlug: `${projectSlug}:${item.id}`},
+              query: {project: projectId},
             }}
           >
-            <strong>{item.metadata.type ?? '<unknown>'}</strong>
+            <strong>
+              <TextOverflow>{item.metadata.type ?? '<unknown>'}</TextOverflow>
+            </strong>
           </SentryAppLink>
         </TextOverflow>
 
