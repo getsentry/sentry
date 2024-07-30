@@ -117,7 +117,7 @@ Sentry.init { options ->
   options.dsn = "${params.dsn}"${
     params.isPerformanceSelected
       ? `
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
   // We recommend adjusting this value in production.
   options.tracesSampleRate = 1.0`
       : ''
@@ -266,7 +266,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     },
     {
       id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
+      name: t('Tracing'),
       description: t(
         'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
       ),

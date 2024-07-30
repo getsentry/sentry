@@ -9,7 +9,7 @@ export default function AddInstallationInstructions() {
     <Fragment>
       <p>
         {tct(
-          'The automated AWS Lambda setup will instrument your Lambda functions with Sentry error and performance monitoring without any code changes. We use CloudFormation Stack ([learnMore]) to create the Sentry role which gives us access to your AWS account.',
+          'The automated AWS Lambda setup will instrument your Lambda functions with Sentry error and tracing without any code changes. We use CloudFormation Stack ([learnMore]) to create the Sentry role which gives us access to your AWS account.',
           {
             learnMore: (
               <ExternalLink href="https://aws.amazon.com/cloudformation/">

@@ -165,9 +165,7 @@ class ProjectCard extends Component<Props> {
                         )}
                         {zeroTransactions && (
                           <QuestionTooltip
-                            title={t(
-                              'Click here to learn more about performance monitoring'
-                            )}
+                            title={t('Click here to learn more about tracing')}
                             position="top"
                             size="xs"
                           />

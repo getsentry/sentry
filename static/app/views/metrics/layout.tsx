@@ -231,7 +231,7 @@ export const MetricsLayout = memo(() => {
                 <Fragment>
                   <p>
                     {t(
-                      'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Performance Monitoring.'
+                      'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Tracing.'
                     )}
                   </p>
                   <ButtonList gap={1}>

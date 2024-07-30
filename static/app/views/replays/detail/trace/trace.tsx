@@ -35,7 +35,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 import {useReplayTraces} from './useReplayTraces';
 
 function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
-  // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
+  // We want to send the 'trace_status' data if the project actively uses and has access to the tracing.
   useRouteAnalyticsParams(performanceActive ? {trace_status: 'trace missing'} : {});
 
   return (
@@ -62,7 +62,7 @@ function TraceFound({
 }) {
   const location = useLocation();
 
-  // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
+  // We want to send the 'trace_status' data if the project actively uses and has access to the tracing.
   useRouteAnalyticsParams(performanceActive ? {trace_status: 'success'} : {});
 
   return (

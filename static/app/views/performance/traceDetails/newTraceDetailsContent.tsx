@@ -290,7 +290,7 @@ function NewTraceDetailsContent(props: Props) {
         warning = (
           <Alert type="info" showIcon>
             {tct(
-              "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
+              "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure tracing for your SDKs] to learn more about service interactions.",
               {
                 tracingLink: (
                   <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />

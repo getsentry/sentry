@@ -11,10 +11,10 @@ const features = ['organizations:performance-view'];
 function PerfDisabled() {
   return (
     <FeatureDisabled
-      featureName={t('Performance Monitoring')}
+      featureName={t('Tracing')}
       features={features}
       hideHelpToggle
-      message={t('Requires performance monitoring.')}
+      message={t('Requires tracing.')}
     />
   );
 }

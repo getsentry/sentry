@@ -65,7 +65,7 @@ function getTestsForGroup(
   // We are going to take all of our tests and split them into groups.
   // If we have a test without a known duration, we will default it to 2 second
   // This is to ensure that we still assign some weight to the tests and still attempt to somewhat balance them.
-  // The 1.5s default is selected as a p50 value of all of our JS tests in CI (as of 2022-10-26) taken from our sentry performance monitoring.
+  // The 1.5s default is selected as a p50 value of all of our JS tests in CI (as of 2022-10-26) taken from our sentry tracing.
   const tests = new Map<string, number>();
   const SUITE_P50_DURATION_MS = 1500;
 

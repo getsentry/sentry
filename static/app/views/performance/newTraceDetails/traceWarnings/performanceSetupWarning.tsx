@@ -92,7 +92,7 @@ export function PerformanceSetupWarning({
     return (
       <Alert type="info" showIcon>
         {tct(
-          "Some of the projects associated with this trace don't support performance monitoring. To learn more about how to setup performance monitoring, visit our [documentation].",
+          "Some of the projects associated with this trace don't support tracing. To learn more about how to setup tracing, visit our [documentation].",
           {
             documentationLink: (
               <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
@@ -115,7 +115,7 @@ export function PerformanceSetupWarning({
         <BannerTitle>{t('Your setup is incomplete')}</BannerTitle>
         <BannerDescription>
           {t(
-            "Want to know why this string of errors happened? Configure performance monitoring to get a full picture of what's going on."
+            "Want to know why this string of errors happened? Configure tracing to get a full picture of what's going on."
           )}
         </BannerDescription>
         <ButtonsWrapper>

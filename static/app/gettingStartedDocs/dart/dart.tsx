@@ -27,7 +27,7 @@ import 'package:sentry/sentry.dart';
 Future<void> main() async {
   await Sentry.init((options) {
     options.dsn = '${params.dsn}';
-    // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+    // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
     // We recommend adjusting this value in production.
     options.tracesSampleRate = 1.0;
   });

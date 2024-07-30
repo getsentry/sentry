@@ -174,11 +174,7 @@ export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
           'No transactions with [spanCategory] spans found. You may need to add integrations to your [link] to capture these spans.',
           {
             spanCategory: type === 'db' ? t('Database') : HTTP_MODULE_TITLE,
-            link: (
-              <ExternalLink href={docsLink}>
-                {t('performance monitoring setup')}
-              </ExternalLink>
-            ),
+            link: <ExternalLink href={docsLink}>{t('tracing setup')}</ExternalLink>,
           }
         )}
       </SecondaryMessage>

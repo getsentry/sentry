@@ -171,12 +171,12 @@ describe('LoaderScript', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(screen.getByText(t('Enable Performance Monitoring'))).toBeInTheDocument();
+    expect(screen.getByText(t('Enable Tracing'))).toBeInTheDocument();
     expect(screen.getByText(t('Enable Session Replay'))).toBeInTheDocument();
     expect(screen.getByText(t('Enable Debug Bundles & Logging'))).toBeInTheDocument();
 
     let performanceCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: t('Enable Tracing'),
     });
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
@@ -196,12 +196,12 @@ describe('LoaderScript', function () {
     // Toggle performance option
     await userEvent.click(
       screen.getByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: t('Enable Tracing'),
       })
     );
 
     performanceCheckbox = await screen.findByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: t('Enable Tracing'),
       checked: true,
     });
     expect(performanceCheckbox).toBeEnabled();
@@ -284,7 +284,7 @@ describe('LoaderScript', function () {
 
     expect(
       screen.getAllByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: t('Enable Tracing'),
         checked: false,
       })
     ).toHaveLength(2);
@@ -304,20 +304,20 @@ describe('LoaderScript', function () {
     // Toggle performance option
     await userEvent.click(
       screen.getAllByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: t('Enable Tracing'),
       })[1]
     );
 
     expect(
       await screen.findByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: t('Enable Tracing'),
         checked: true,
       })
     ).toBeInTheDocument();
 
     expect(
       screen.getByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: t('Enable Tracing'),
         checked: false,
       })
     ).toBeInTheDocument();

@@ -172,12 +172,16 @@ function BaseSlider(
 
   const nThumbs = state.values.length;
   const refs = useRef<Array<HTMLInputElement>>([]);
-  useImperativeHandle(forwardedRef, () => {
-    if (nThumbs > 1) {
-      return refs.current;
-    }
-    return refs.current[0];
-  }, [nThumbs]);
+  useImperativeHandle(
+    forwardedRef,
+    () => {
+      if (nThumbs > 1) {
+        return refs.current;
+      }
+      return refs.current[0];
+    },
+    [nThumbs]
+  );
 
   const getFormattedValue = useCallback(
     (val: number) => {

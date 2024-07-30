@@ -56,7 +56,7 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
     <Wrapper>
       {!isDataAvailable &&
         tct(
-          'No queries found. Try updating your filters, or learn more about performance monitoring for queries in our [documentation:documentation].',
+          'No queries found. Try updating your filters, or learn more about tracing for queries in our [documentation:documentation].',
           {
             documentation: <ExternalLink href={MODULE_DOC_LINK} />,
           }

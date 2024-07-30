@@ -475,7 +475,7 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
         <BannerTitle>{t('Connect the Dots')}</BannerTitle>
         <BannerDescription>
           {t(
-            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
+            "If you haven't already, configure tracing to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
           )}
         </BannerDescription>
         <ButtonsWrapper>

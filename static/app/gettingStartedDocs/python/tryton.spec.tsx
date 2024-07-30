@@ -12,7 +12,7 @@ describe('django onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
   });
 
-  it('renders without performance monitoring', function () {
+  it('renders without "tracing"', function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });

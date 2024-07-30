@@ -178,7 +178,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
           />
 
           <BooleanField
-            label={t('Enable Performance Monitoring')}
+            label={t('Enable Tracing')}
             name={`${keyId}-has-performance`}
             value={
               sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)

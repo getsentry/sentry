@@ -28,7 +28,7 @@ Future<void> main() async {
       options.dsn = '${params.dsn}';${
         params.isPerformanceSelected
           ? `
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
       // We recommend adjusting this value in production.
       options.tracesSampleRate = 1.0;`
           : ''

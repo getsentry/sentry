@@ -70,12 +70,12 @@ describe('Loader Script Settings', function () {
     // Panel title
     expect(screen.getByText('JavaScript Loader Script')).toBeInTheDocument();
 
-    expect(screen.getByText(t('Enable Performance Monitoring'))).toBeInTheDocument();
+    expect(screen.getByText(t('Enable Tracing'))).toBeInTheDocument();
     expect(screen.getByText(t('Enable Session Replay'))).toBeInTheDocument();
     expect(screen.getByText(t('Enable Debug Bundles & Logging'))).toBeInTheDocument();
 
     const performanceCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: t('Enable Tracing'),
     });
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
@@ -126,7 +126,7 @@ describe('Loader Script Settings', function () {
     // Toggle performance option
     await userEvent.click(
       screen.getByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: t('Enable Tracing'),
       })
     );
 
@@ -235,7 +235,7 @@ describe('Loader Script Settings', function () {
     );
 
     const performanceCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: t('Enable Tracing'),
     });
     expect(performanceCheckbox).not.toBeChecked();
 

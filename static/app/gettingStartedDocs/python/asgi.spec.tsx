@@ -19,7 +19,7 @@ describe('asgi onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders without performance monitoring', function () {
+  it('renders without "tracing"', function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
