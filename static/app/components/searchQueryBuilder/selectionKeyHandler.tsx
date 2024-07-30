@@ -76,6 +76,8 @@ export const SelectionKeyHandler = forwardRef(
         switch (e.key) {
           case 'Backspace':
           case 'Delete': {
+            e.preventDefault();
+            e.stopPropagation();
             dispatch({
               type: 'REPLACE_TOKENS_WITH_TEXT',
               tokens: selectedTokens,
@@ -92,6 +94,8 @@ export const SelectionKeyHandler = forwardRef(
             return;
           }
           case 'ArrowRight':
+            e.preventDefault();
+            e.stopPropagation();
             state.selectionManager.clearSelection();
             state.selectionManager.setFocusedKey(
               findNearestFreeTextKey(
@@ -102,6 +106,8 @@ export const SelectionKeyHandler = forwardRef(
             );
             return;
           case 'ArrowLeft':
+            e.preventDefault();
+            e.stopPropagation();
             state.selectionManager.clearSelection();
             state.selectionManager.setFocusedKey(
               findNearestFreeTextKey(

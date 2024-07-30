@@ -83,8 +83,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enable release health widget in dashboards
     manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
-    # Enable data secrecy
-    manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the dev toolbar PoC code for employees
     manager.add("organizations:devtoolbar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Delightful Developer Metrics (DDM):
@@ -191,7 +189,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enables the search bar for metrics samples list
     manager.add("organizations:metrics-samples-list-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable Session Stats down to a minute resolution
-    manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
+    manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Display CPU and memory metrics in transactions with profiles
     manager.add("organizations:mobile-cpu-memory-in-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Adds the ttid & ttfd vitals to the frontend
@@ -368,7 +366,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable priority alerts using the Seer calculations. This flag will move to a permanent flag before we release.
-    manager.add("organizations:seer-based-priority", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:seer-based-priority", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Replay Details > Accessibility tab
     manager.add("organizations:session-replay-a11y-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable the accessibility issues endpoint
@@ -411,11 +409,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable description field in Slack metric alerts
     manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
-    # Enable improvements to Slack notifications
-    manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
-    # Feature flags for migrating to the Slack SDK WebClient
-    # Use new Slack SDK Client for spike protection message
-    manager.add("organizations:slack-sdk-spike-protection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
@@ -429,12 +422,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-initial-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
     manager.add("organizations:insights-addon-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Use static web vital performance scoring weights
-    manager.add("organizations:insights-browser-webvitals-static-weights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Sets all web vitals to optional when calculating performance scores
-    manager.add("organizations:insights-browser-webvitals-optional-components", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Add default browser performance score profile for fallback when no or unknown browser name is provided
-    manager.add("organizations:insights-default-performance-score-profiles", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the aggregate span waterfall view
@@ -537,8 +524,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:similarity-embeddings-delete-by-hash", ProjectFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable similarity embeddings grouping
     manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
-    # Enable adding seer grouping metadata to new groups
-    manager.add("projects:similarity-embeddings-metadata", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Starfish: extract metrics from the spans

@@ -90,12 +90,18 @@ const StyledButton = styled(Button)`
 `;
 
 const ComboBox = styled(_ComboBox)`
+  width: 100%;
   input {
+    min-width: 100%;
     border-radius: 0;
     font-weight: 600;
   }
   :last-child input {
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    max-width: min(500px, 100%);
   }
 `;
 
@@ -124,6 +130,7 @@ const FieldGroup = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-row-gap: ${space(1)};
+
   > *:nth-child(even) {
     margin-left: -1px;
   }

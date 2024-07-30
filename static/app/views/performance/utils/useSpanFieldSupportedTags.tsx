@@ -64,9 +64,13 @@ export function useSpanFieldSupportedTags(options?: {
   const {excludedTags = [], projects} = options || {};
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
+  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
   const staticTags = getSpanFieldSupportedTags(
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
+    [
+      SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
+      SpanIndexedField.SPAN_CATEGORY,
+      ...excludedTags,
+    ],
     DiscoverDatasets.SPANS_INDEXED
   );
 

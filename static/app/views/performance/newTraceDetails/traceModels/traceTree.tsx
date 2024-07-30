@@ -486,6 +486,7 @@ export class TraceTree {
   vital_types: Set<'web' | 'mobile'> = new Set();
   eventsCount: number = 0;
   profiled_events: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
+  project_ids: Set<number> = new Set();
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
@@ -549,6 +550,7 @@ export class TraceTree {
 
       node.canFetch = true;
       tree.eventsCount += 1;
+      tree.project_ids.add(node.value.project_id);
 
       if (node.profiles.length > 0) {
         tree.profiled_events.add(node);
@@ -1592,19 +1594,28 @@ export class TraceTree {
         // The user may have collapsed the node before the promise resolved. When that
         // happens, dont update the tree with the resolved data. Alternatively, we could implement
         // a cancellable promise and avoid this cumbersome heuristic.
+        // Remove existing entries from the list
+        let index = this._list.indexOf(node);
         node.fetchStatus = 'resolved';
+
+        // Some nodes may have gotten cloned and their reference lost due to the fact
+        // that we are really maintaining a txn tree as well as a span tree. When this
+        // happens, we need to find the original reference in the list so that we can
+        // expand it at its new position
+        if (index === -1) {
+          index = this._list.indexOf(node.cloneReference!);
+          if (index === -1) {
+            return data;
+          }
+          node = this._list[index];
+          node.fetchStatus = 'resolved';
+        }
+
         if (!node.expanded) {
           return data;
         }
 
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
-
-        // Remove existing entries from the list
-        const index = this._list.indexOf(node);
-
-        if (index === -1) {
-          return data;
-        }
 
         if (node.expanded) {
           const childrenCount = node.getVisibleChildrenCount();
@@ -1738,6 +1749,7 @@ export class TraceTree {
 }
 
 export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
+  cloneReference: TraceTreeNode<TraceTree.NodeValue> | null = null;
   canFetch: boolean = false;
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode | null = null;
@@ -1904,6 +1916,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       }
     }
 
+    this.cloneReference = clone;
     return clone;
   }
 

@@ -11,6 +11,7 @@ from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from .card_builder.identity import build_unlinked_card
+from .constants import SALT
 from .utils import get_preinstall_client
 
 
@@ -33,7 +34,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, signed_params) -> HttpResponse:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=SALT)
         except (SignatureExpired, BadSignature):
             return render_to_response(
                 "sentry/integrations/msteams/expired-link.html",

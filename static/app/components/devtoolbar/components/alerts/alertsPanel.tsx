@@ -43,7 +43,7 @@ export default function AlertsPanel() {
     <PanelLayout title="Alerts">
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>
-          Active Alerts in{' '}
+          Active alerts in{' '}
           <SentryAppLink
             to={{url: `/projects/${projectSlug}/`}}
             onClick={() => {
