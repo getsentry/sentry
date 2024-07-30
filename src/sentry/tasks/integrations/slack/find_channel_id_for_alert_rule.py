@@ -105,16 +105,19 @@ def find_channel_id_for_alert_rule(
         instance=alert_rule,
     )
     if serializer.is_valid():
+        success = False
         try:
             alert_rule = serializer.save()
         # we can still get a validation error for the channel not existing
         except (serializers.ValidationError, ChannelLookupTimeoutError):
             # channel doesn't exist error or validation error
             redis_rule_status.set_value("failed")
+        else:
+            success = True
 
         # XXX: this is not the ideal location to do this, but because we need the rule id at this stage
         # it's the only option outside of major changes. see blame PR description for more details
-        if alert_rule:
+        if success:
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
                 resp = send_historical_data_to_seer(alert_rule=alert_rule, user=user)
                 if resp.status != 200:
