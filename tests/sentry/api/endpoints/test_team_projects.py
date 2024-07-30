@@ -1,9 +1,5 @@
-from collections.abc import Generator
-from contextlib import contextmanager
 from unittest import TestCase
 from unittest.mock import Mock
-
-from django.test import override_settings
 
 from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.constants import RESERVED_PROJECT_SLUGS
@@ -13,11 +9,9 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created
-from sentry.silo.base import SiloMode
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.region import get_test_env_directory
-from sentry.types.region import RegionCategory, RegionDirectory, load_from_config
+from sentry.testutils.helpers.options import override_options
 
 
 class TeamProjectsListTest(APITestCase):
@@ -246,49 +240,33 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert javascript_filter_states["web-crawlers"]
         assert javascript_filter_states["filtered-transaction"]
 
-    @staticmethod
-    @contextmanager
-    def _in_global_state(directory: RegionDirectory) -> Generator[None, None, None]:
-        with get_test_env_directory().swap_state(tuple(directory.regions)):
-            yield
-
-    @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
+    @override_options({"similarity.new_project_seer_grouping.enabled": True})
     def test_similarity_project_option_valid(self):
         """
         Test that project option for similarity grouping is created for EA organizations
         where the project platform is Seer-eligible.
         """
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
-            directory = load_from_config(
-                {
-                    "name": "us",
-                    "snowflake_id": 1,
-                    "address": "http://us.testserver",
-                    "category": RegionCategory.MULTI_TENANT.name,
-                }
-            )
-        with self._in_global_state(directory):
-            self.organization.flags.early_adopter = True
-            self.organization.save()
-            response = self.get_success_response(
-                self.organization.slug,
-                self.team.slug,
-                **self.data,
-                status_code=201,
-            )
+        self.organization.flags.early_adopter = True
+        self.organization.save()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
 
-            project = Project.objects.get(id=response.data["id"])
-            assert project.name == "foo"
-            assert project.slug == "bar"
-            assert project.platform == "python"
-            assert project.teams.first() == self.team
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "python"
+        assert project.teams.first() == self.team
 
-            assert (
-                ProjectOption.objects.get_value(
-                    project=project, key="sentry:similarity_backfill_completed"
-                )
-                is not None
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
             )
+            is not None
+        )
 
     def test_similarity_project_option_invalid(self):
         """

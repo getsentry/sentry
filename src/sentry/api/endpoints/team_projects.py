@@ -6,7 +6,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
@@ -25,7 +25,6 @@ from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.utils import SEER_ELIGIBLE_PLATFORMS
 from sentry.signals import project_created
-from sentry.types.region import get_local_region
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -225,7 +224,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 project.organization.flags
                 and project.organization.flags.early_adopter
                 and is_seer_eligible_platform
-                and get_local_region().name == "us"
+                and options.get("similarity.new_project_seer_grouping.enabled")
             ):
                 project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
