@@ -8,10 +8,10 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {AutofixShowMore} from 'sentry/components/events/autofix/autofixShowMore';
 import {
+  type AutofixRootCauseCodeContext,
+  type AutofixRootCauseCodeContextSnippet,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
-  type AutofixRootCauseSuggestedFix,
-  type AutofixRootCauseSuggestedFixSnippet,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {
@@ -123,7 +123,7 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
   });
 }
 
-function getLinesToHighlight(suggestedFix: AutofixRootCauseSuggestedFix): number[] {
+function getLinesToHighlight(suggestedFix: AutofixRootCauseCodeContext): number[] {
   function getBacktickSubstrings(input: string): Set<string> {
     // Regular expression to match substrings wrapped in backticks
     const regex = /`([^`]+)`/g;
@@ -192,7 +192,7 @@ function SuggestedFixSnippet({
   linesToHighlight,
 }: {
   linesToHighlight: number[];
-  snippet: AutofixRootCauseSuggestedFixSnippet;
+  snippet: AutofixRootCauseCodeContextSnippet;
 }) {
   const extension = getFileExtension(snippet.file_path);
   const lanugage = extension ? getPrismLanguage(extension) : undefined;
@@ -222,7 +222,7 @@ function CauseSuggestedFix({
   fixNumber: number;
   groupId: string;
   runId: string;
-  suggestedFix: AutofixRootCauseSuggestedFix;
+  suggestedFix: AutofixRootCauseCodeContext;
 }) {
   const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
@@ -318,7 +318,7 @@ function SelectedRootCauseOption({
   selectedFix,
 }: {
   selectedCause: AutofixRootCauseData;
-  selectedFix: AutofixRootCauseSuggestedFix;
+  selectedFix: AutofixRootCauseCodeContext;
 }) {
   return (
     <RootCauseOption selected>

@@ -122,21 +122,21 @@ export interface AutofixUserResponseStep extends BaseStep {
   user_id: number;
 }
 
-export type AutofixRootCauseSuggestedFixSnippet = {
+export type AutofixRootCauseCodeContextSnippet = {
   file_path: string;
   snippet: string;
 };
 
-export type AutofixRootCauseSuggestedFix = {
+export type AutofixRootCauseCodeContext = {
   description: string;
   id: string;
   title: string;
-  snippet?: AutofixRootCauseSuggestedFixSnippet;
+  snippet?: AutofixRootCauseCodeContextSnippet;
 };
 
 export type AutofixRootCauseData = {
   actionability: number;
-  code_context: AutofixRootCauseSuggestedFix[];
+  code_context: AutofixRootCauseCodeContext[];
   description: string;
   id: string;
   likelihood: number;
