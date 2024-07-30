@@ -357,7 +357,6 @@ export function Threads({
           ) || (activeThread?.stacktrace?.frames ?? []).length > 1
         }
         stackTraceNotFound={stackTraceNotFound}
-        wrapTitle={false}
       >
         {childrenProps => {
           // TODO(scttcper): These are duplicated from renderContent, should consolidate

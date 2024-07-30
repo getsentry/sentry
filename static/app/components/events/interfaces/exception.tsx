@@ -83,7 +83,6 @@ export function Exception({
         !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
       }
       stackTraceNotFound={stackTraceNotFound}
-      wrapTitle={false}
     >
       {({recentFirst, display, fullStackTrace}) =>
         stackTraceNotFound ? (

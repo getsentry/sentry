@@ -55,7 +55,6 @@ export function StackTrace({
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
       title={t('Stack Trace')}
-      wrapTitle={false}
       hasMinified={false}
       hasVerboseFunctionNames={
         !!data.frames?.some(

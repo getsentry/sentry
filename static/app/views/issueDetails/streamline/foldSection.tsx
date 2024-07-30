@@ -11,8 +11,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const LOCAL_STORAGE_PREFIX = 'fold-section-collapse-';
 export const enum FoldSectionKey {
-  // Suspect Commits & Traces
-  USER_FEEDBACK = 'issue-details-user-feedback', // In development
+  // View Full Trace
+  // Suspect Commits
+
+  USER_FEEDBACK = 'issue-details-user-feedback',
   LLM_MONITORING = 'issue-details-llm-monitoring',
 
   UPTIME = 'issue-details-uptime', // Only Uptime issues
@@ -29,7 +31,7 @@ export const enum FoldSectionKey {
   THREAD_STATE = 'issue-details-thread-state',
   THREAD_TAGS = 'issue-details-thread-tags',
 
-  // QuickTraceQuery -> todo
+  // QuickTraceQuery?
 
   SPAN_EVIDENCE = 'issue-details-span-evidence',
   HYDRATION_DIFF = 'issue-details-hydration-diff',
@@ -55,7 +57,7 @@ export const enum FoldSectionKey {
   ATTACHMENTS = 'issue-details-attachments',
   SDK = 'issue-details-sdk',
   GROUPING_INFO = 'issue-details-grouping-info',
-  RRWEB = 'issue-details-rrweb',
+  RRWEB = 'issue-details-rrweb', // Legacy integration prior to replays
 }
 
 interface FoldSectionProps {
