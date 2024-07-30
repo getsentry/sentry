@@ -389,10 +389,11 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     def test_anomaly_detection_alert_slack_action(
         self, mock_uuid4, mock_get_channel_id, mock_seer_request
     ):
+        channel_id = self.slack_action[0]["targetIdentifier"]
         mock_uuid4.return_value = self.get_mock_uuid()
         mock_get_channel_id.return_value = SlackChannelIdData(
             prefix=CHANNEL_PREFIX,
-            channel_id=self.slack_action[0]["targetIdentifier"],
+            channel_id=str(channel_id),
             timed_out=False,
         )
         data = {
@@ -436,7 +437,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
 
         with outbox_runner():
             find_channel_id_for_alert_rule(
-                data=data, uuid=mock_uuid4, organization_id=self.organization.id
+                data=data,
+                uuid=mock_uuid4,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
             )
 
         assert AlertRule.objects.filter(

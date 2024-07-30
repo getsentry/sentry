@@ -117,13 +117,18 @@ def find_channel_id_for_alert_rule(
 
         # XXX: this is not the ideal location to do this, but because we need the rule id at this stage
         # it's the only option outside of major changes. see blame PR description for more details
-        if success:
+        if success and alert_rule:
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+                if not user:
+                    redis_rule_status.set_value("failed")
+                    return
+
                 resp = send_historical_data_to_seer(alert_rule=alert_rule, user=user)
                 if resp.status != 200:
                     alert_rule.delete()
                     redis_rule_status.set_value("failed")
                     return
+
             redis_rule_status.set_value("success", alert_rule.id)
             return
     # some other error

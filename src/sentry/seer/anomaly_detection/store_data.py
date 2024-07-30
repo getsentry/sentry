@@ -1,3 +1,4 @@
+
 import logging
 from datetime import timedelta
 
@@ -23,6 +24,7 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
+from sentry.users.services.user import RpcUser
 from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
 
@@ -50,7 +52,7 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     return formatted_data
 
 
-def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPResponse:
+def send_historical_data_to_seer(alert_rule: AlertRule, user: User | RpcUser) -> BaseHTTPResponse:
     """
     Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert
     """
