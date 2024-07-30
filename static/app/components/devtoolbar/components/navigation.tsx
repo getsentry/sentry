@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 
+import SessionStatusBadge from 'sentry/components/devtoolbar/components/releases/sessionStatusBadge';
 import {
   IconClose,
   IconFlag,
@@ -54,7 +55,9 @@ export default function Navigation({
         <AlertCountBadge />
       </NavButton>
       <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />} />
-      <NavButton panelName="releases" label="Releases" icon={<IconReleases />} />
+      <NavButton panelName="releases" label="Releases" icon={<IconReleases />}>
+        <SessionStatusBadge />
+      </NavButton>
     </dialog>
   );
 }
