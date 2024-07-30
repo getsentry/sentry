@@ -1,6 +1,8 @@
-import {Fragment, useState} from 'react';
+import {useContext, useState} from 'react';
 
-import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import AnalyticsProvider, {
+  AnalyticsContext,
+} from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import Switch from 'sentry/components/switchButton';
@@ -19,17 +21,15 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
   const {featureFlags} = useConfiguration();
 
   return (
-    <Fragment>
+    <AnalyticsProvider nameVal="item" keyVal="item">
       <Cell css={[panelInsetContentCss, {alignItems: 'flex-start'}]}>
         {featureFlags?.urlTemplate?.(flag.name) ? (
-          <AnalyticsProvider nameVal="item" keyVal="item">
-            <ExternalLink
-              css={[smallCss, inlineLinkCss]}
-              href={featureFlags.urlTemplate(flag.name)}
-            >
-              {flag.name}
-            </ExternalLink>
-          </AnalyticsProvider>
+          <ExternalLink
+            css={[smallCss, inlineLinkCss]}
+            href={featureFlags.urlTemplate(flag.name)}
+          >
+            {flag.name}
+          </ExternalLink>
         ) : (
           <span>{flag.name}</span>
         )}
@@ -37,7 +37,7 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
       <Cell>
         <FlagValueInput flag={flag} />
       </Cell>
-    </Fragment>
+    </AnalyticsProvider>
   );
 }
 
@@ -59,6 +59,7 @@ function FlagValueInput({flag}: {flag: FeatureFlag}) {
 
 function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
   const {featureFlags, trackAnalytics} = useConfiguration();
+  const {eventName, eventKey} = useContext(AnalyticsContext);
 
   const {hasOverride} = useFeatureFlagsContext();
 
@@ -84,8 +85,8 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
           setState(!isActive);
           hasOverride();
           trackAnalytics?.({
-            eventKey: 'devtoolbar.feature-flag-list-item-override',
-            eventName: 'devtoolbar: Override a feature-flag value',
+            eventKey: eventKey + '.override.click',
+            eventName: eventName + ' override clicked',
           });
         }}
       />
