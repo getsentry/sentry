@@ -267,6 +267,7 @@ class ProjectTest(APITestCase, TestCase):
         )
 
         assert EnvironmentProject.objects.count() == 1
+        assert snuba_query.environment is not None
         assert snuba_query.environment.id == environment.id
 
         project.transfer_to(organization=to_org)
