@@ -6,9 +6,9 @@ import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 
+from sentry.integrations.models.integration import Integration
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox

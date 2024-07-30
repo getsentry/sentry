@@ -5,7 +5,7 @@ from uuid import uuid4
 from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
-from snuba_sdk import Column, Condition, Function, Op, Or
+from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
@@ -48,7 +48,7 @@ class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "detail": ErrorDetail(
-                "You cannot view events from multiple projects.",
+                "You cannot get a flamegraph from multiple projects.",
                 code="parse_error",
             ),
         }
@@ -138,6 +138,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
         transaction=None,
         profile_id=None,
         profiler_id=None,
+        thread_id=None,
         project=None,
     ):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -150,6 +151,11 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
         if profiler_id is not None:
             data.setdefault("contexts", {}).setdefault("profile", {})["profiler_id"] = profiler_id
+
+        if thread_id is not None:
+            data.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {})[
+                "thread.id"
+            ] = thread_id
 
         self.store_event(data, project_id=project.id if project else self.project.id)
 
@@ -281,7 +287,18 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                     Or(
                         conditions=[
                             Condition(Column("profile_id"), Op.IS_NOT_NULL),
-                            Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                            And(
+                                conditions=[
+                                    Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                                    Condition(
+                                        Function(
+                                            "has", [Column("contexts.key"), "trace.thread_id"]
+                                        ),
+                                        Op.EQ,
+                                        1,
+                                    ),
+                                ],
+                            ),
                         ],
                     )
                     in snql_request.query.where
@@ -379,9 +396,11 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
         # this transaction has continuous profile with a matching chunk (to be mocked below)
         profiler_id = uuid4().hex
+        thread_id = "12345"
         profiler_transaction = self.store_transaction(
             transaction="foo",
             profiler_id=profiler_id,
+            thread_id=thread_id,
             project=self.project,
         )
         start_timestamp = datetime.fromtimestamp(profiler_transaction["start_timestamp"])
@@ -430,7 +449,16 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             Or(
                 conditions=[
                     Condition(Column("profile_id"), Op.IS_NOT_NULL),
-                    Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                    And(
+                        conditions=[
+                            Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                            Condition(
+                                Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                Op.EQ,
+                                1,
+                            ),
+                        ],
+                    ),
                 ],
             )
             in snql_request.query.where
@@ -452,6 +480,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                         "project_id": self.project.id,
                         "profiler_id": profiler_id,
                         "chunk_id": chunk["chunk_id"],
+                        "thread_id": thread_id,
                         "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
                         "end": str(int(profiler_transaction["timestamp"] * 1e9)),
                     },

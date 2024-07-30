@@ -11,18 +11,26 @@ export function CacheMetrics({
 }: {
   cacheMetrics: Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>[];
 }) {
-  const items: SectionCardKeyValueList = cacheMetrics.flatMap((metricRow, idx) => [
-    {
-      key: `avg(cache.item_size)${idx}`,
+  const itemSize: number | null = cacheMetrics[0]['avg(cache.item_size)'];
+  const missRate: number | null = cacheMetrics[0]['cache_miss_rate()'];
+
+  const items: SectionCardKeyValueList = [];
+
+  if (itemSize !== null) {
+    items.push({
+      key: 'avg(cache.item_size)',
       subject: DataTitles['avg(cache.item_size)'],
-      value: formatBytesBase2(metricRow?.['avg(cache.item_size)']),
-    },
-    {
-      key: `cache_miss_rate()${idx}`,
+      value: formatBytesBase2(itemSize),
+    });
+  }
+
+  if (missRate !== null) {
+    items.push({
+      key: 'cache_miss_rate()',
       subject: DataTitles['cache_miss_rate()'],
-      value: formatPercentage(metricRow?.['cache_miss_rate()']),
-    },
-  ]);
+      value: formatPercentage(missRate),
+    });
+  }
 
   return <TraceDrawerComponents.SectionCard items={items} title={t('Cache Metrics')} />;
 }

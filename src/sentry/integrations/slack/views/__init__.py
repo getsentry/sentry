@@ -10,6 +10,8 @@ from sentry.utils.signing import sign
 from sentry.web.decorators import EndpointFunc
 from sentry.web.helpers import render_to_response
 
+SALT = "sentry-slack-integration"
+
 
 def never_cache(view_func: EndpointFunc) -> EndpointFunc:
     """TODO(mgaeta): Remove cast once Django has a typed version."""
@@ -19,7 +21,7 @@ def never_cache(view_func: EndpointFunc) -> EndpointFunc:
 
 def build_linking_url(endpoint: str, **kwargs: Any) -> str:
     """TODO(mgaeta): Remove cast once sentry/utils/http.py is typed."""
-    url: str = absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
+    url: str = absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
     return url
 
 

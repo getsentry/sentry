@@ -547,12 +547,14 @@ class SessionsParams:
         required=True,
         type=str,
         many=True,
-        description="""The list of fields to query.\n\nThe available fields are\n  - `sum(session)`\n  - `count_unique("
-                    "user)`\n  - `avg`, `p50`, `p75`, `p90`, `p95`, `p99`, `max` applied to `session.duration`. For "
-                    "example, `p99(session.duration)`. Session duration is [no longer being recorded]("
-                    "https://github.com/getsentry/sentry/discussions/42716) as of on Jan 12, 2023. Returned data may "
-                    "be incomplete.\n  - `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example, "
-                    "`crash_free_rate(user)`""",
+        description="""The list of fields to query.
+
+The available fields are
+- `sum(session)`
+- `count_unique(user)`
+- `avg`, `p50`, `p75`, `p90`, `p95`, `p99`, `max` applied to `session.duration`. For example, `p99(session.duration)`. Session duration is [no longer being recorded](https://github.com/getsentry/sentry/discussions/42716) as of on Jan 12, 2023. Returned data may be incomplete.
+- `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example,`crash_free_rate(user)`
+""",
     )
     INTERVAL = OpenApiParameter(
         name="interval",
@@ -598,4 +600,14 @@ class SessionsParams:
         required=False,
         type=int,
         description="""Specify `0` to exclude series from the response. The default is `1`""",
+    )
+
+
+class DashboardParams:
+    DASHBOARD_ID = OpenApiParameter(
+        name="dashboard_id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the dashboard you'd like to retrieve.""",
     )

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import useDrawer from 'sentry/components/globalDrawer';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook('GlobalDrawer', story => {
@@ -13,12 +14,12 @@ export default storyBook('GlobalDrawer', story => {
         {`import useDrawer from 'sentry/components/globalDrawer';\nconst {openDrawer, closeDrawer} = useDrawer();`}
       </CodeSnippet>
       <p>
-        The by default the drawer can be closed with an 'escape' press, or an outside
-        click. This behavior can be changed by passing in options to{' '}
-        <code>openDrawer</code>.
+        By default the drawer can be closed with an 'escape' press, or an outside click.
+        This behavior can be changed by passing in options to <code>openDrawer</code>.
       </p>
     </Fragment>
   ));
+
   story('Empty Example', () => {
     const {openDrawer, closeDrawer} = useDrawer();
     return (
@@ -35,36 +36,6 @@ export default storyBook('GlobalDrawer', story => {
           {`<Button onClick={closeDrawer}>Close Drawer</Button>`}
         </CodeSnippet>
         <LeftButton onClick={closeDrawer}>Close Drawer</LeftButton>
-      </Fragment>
-    );
-  });
-
-  story('<Body /> Example', () => {
-    const {openDrawer} = useDrawer();
-    return (
-      <Fragment>
-        <CodeSnippet language="jsx">
-          {`<Button onClick={() => openDrawer(({Body}) => <Body>Lorem, ipsum...</Body>, {ariaLabel: 'test drawer'})}>
-  Open Drawer
-</Button>`}
-        </CodeSnippet>
-        <LeftButton
-          onClick={() =>
-            openDrawer(
-              ({Body}) => (
-                <Body>
-                  Lorem, ipsum dolor sit amet consectetur adipisicing elit. Temporibus
-                  cupiditate voluptates nostrum voluptatibus ab provident eius accusamus
-                  corporis, nesciunt possimus consectetur sapiente velit alias cum nemo
-                  beatae doloribus sed accusantium?
-                </Body>
-              ),
-              {ariaLabel: 'test drawer'}
-            )
-          }
-        >
-          Open Drawer
-        </LeftButton>
       </Fragment>
     );
   });
@@ -112,6 +83,50 @@ export default storyBook('GlobalDrawer', story => {
           }
         >
           Neither, must click Close Button
+        </LeftButton>
+      </Fragment>
+    );
+  });
+
+  story('Helper Components Example', () => {
+    const {openDrawer} = useDrawer();
+    return (
+      <Fragment>
+        <CodeSnippet language="jsx">
+          {`import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+
+<Button onClick={() => openDrawer(
+  () => (
+    <Fragment>
+      <DrawerHeader>My Drawer</DrawerHeader>
+      <DrawerBody>Lorem, ipsum...</DrawerBody>
+    </Fragment>
+  ),
+  {ariaLabel: 'test drawer', onClose: () => alert('Called my handler!')}
+)}>
+  Open Drawer
+</Button>`}
+        </CodeSnippet>
+        <LeftButton
+          onClick={() =>
+            openDrawer(
+              () => (
+                <Fragment>
+                  <DrawerHeader>My Drawer</DrawerHeader>
+                  <DrawerBody>
+                    Lorem, ipsum dolor sit amet consectetur adipisicing elit. Temporibus
+                    cupiditate voluptates nostrum voluptatibus ab provident eius accusamus
+                    corporis, nesciunt possimus consectetur sapiente velit alias cum nemo
+                    beatae doloribus sed accusantium?
+                  </DrawerBody>
+                </Fragment>
+              ),
+              // eslint-disable-next-line no-alert
+              {ariaLabel: 'test drawer', onClose: () => alert('Called my handler!')}
+            )
+          }
+        >
+          Open Drawer
         </LeftButton>
       </Fragment>
     );

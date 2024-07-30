@@ -50,6 +50,9 @@ class AvatarBase(Model):
 
     def get_file(self):
         file_id = getattr(self, self.file_write_fk(), None)
+        if file_id is None:
+            return None
+
         file_class = self.file_class()
         try:
             return file_class.objects.get(pk=file_id)

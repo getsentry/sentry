@@ -73,7 +73,9 @@ class RegionRelocationExportService(RpcService):
         requesting_region_name: str,
         replying_region_name: str,
         org_slug: str,
-        encrypted_contents: bytes,
+        # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+        encrypted_contents: bytes | None,
+        encrypted_bytes: list[int] | None = None,
     ) -> None:
         """
         This method is responsible for asynchronously sending an already generated and locally-saved
@@ -130,7 +132,9 @@ class ControlRelocationExportService(RpcService):
         requesting_region_name: str,
         replying_region_name: str,
         org_slug: str,
-        encrypted_contents: bytes,
+        # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+        encrypted_contents: bytes | None,
+        encrypted_bytes: list[int] | None = None,
     ) -> None:
         """
         This helper method is a proxy handler for the `reply_with_export` method, durably forwarding

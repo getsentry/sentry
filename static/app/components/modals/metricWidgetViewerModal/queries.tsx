@@ -66,10 +66,12 @@ export const Queries = memo(function Queries({
   removeEquation,
 }: Props) {
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
 
   const availableVariables = useMemo(
-    () => new Set(metricQueries.map(query => getQuerySymbol(query.id))),
-    [metricQueries]
+    () => new Set(metricQueries.map(query => getQuerySymbol(query.id, metricsNewInputs))),
+    [metricQueries, metricsNewInputs]
   );
 
   const handleEditQueryAlias = useCallback(
@@ -165,6 +167,7 @@ export const Queries = memo(function Queries({
                   onChange={formula => onEquationChange({formula}, index)}
                   value={equation.formula}
                   availableVariables={availableVariables}
+                  metricsNewInputs={metricsNewInputs}
                 />
               </EquationInputWrapper>
               {equation.alias !== undefined && (
@@ -291,7 +294,7 @@ function QueryContextMenu({
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'settings',
-      label: t('Metric Settings'),
+      label: t('Configure Metric'),
       disabled: !customMetric,
       onAction: () => {
         navigateTo(

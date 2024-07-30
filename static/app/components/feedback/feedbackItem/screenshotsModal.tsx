@@ -53,7 +53,7 @@ export default function ScreenshotsModal({
           </PaginationWrapper>
         )}
       </Header>
-      <Body>
+      <Body style={{display: 'flex', justifyContent: 'center'}}>
         <FeedbackScreenshot
           organization={organization}
           screenshot={currentScreenshot}
