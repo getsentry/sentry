@@ -47,15 +47,7 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
+          description: params.isProfilingSelected,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -107,7 +99,7 @@ urlpatterns = [
         <div>
           <p>
             {tct(
-              'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of the Sentry product',
+              'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of the Sentry product.',
               {
                 link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
@@ -116,7 +108,7 @@ urlpatterns = [
           <br />
           <p>
             {t(
-              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge'
+              'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'
             )}
           </p>
         </div>
