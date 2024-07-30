@@ -244,7 +244,7 @@ function CauseSuggestedFix({
           analyticsEventKey="autofix.root_cause_fix_selected"
           analyticsParams={{group_id: groupId}}
         >
-          {t('Continue with a fix')}
+          {t('Continue with a fix here')}
         </Button>
       </SuggestedFixHeader>
       <p
@@ -403,7 +403,7 @@ function ProvideYourOwn({
             analyticsEventKey="autofix.root_cause_custom_cause_provided"
             analyticsParams={{group_id: groupId}}
           >
-            {t('Continue with a fix')}
+            {t('Continue with a fix here')}
           </Button>
         </OptionFooter>
       </RootCauseContent>
