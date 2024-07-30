@@ -48,20 +48,20 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
 
         try:
             # still used by events v1 which doesn't require global views
-            filter_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, _ = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             paginator = SequencePaginator([])
         else:
             with handle_query_errors():
                 environment_ids = None
-                if "environment_objects" in filter_params:
-                    environment_ids = [env.id for env in filter_params["environment_objects"]]
                 paginator = tagstore.backend.get_tag_value_paginator_for_projects(
-                    filter_params["project_id"],
+                    snuba_params.project_ids,
                     environment_ids,
                     key,
-                    filter_params["start"],
-                    filter_params["end"],
+                    snuba_params.start,
+                    snuba_params.end,
                     dataset=dataset,
                     query=request.GET.get("query"),
                     order_by=validate_sort_field(request.GET.get("sort", "-last_seen")),
