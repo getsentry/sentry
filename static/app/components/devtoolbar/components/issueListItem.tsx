@@ -23,7 +23,7 @@ export default function IssueListItem({item}: {item: Group}) {
     <AnalyticsProvider keyVal="issue-list.item" nameVal="issue list item">
       <div css={listItemGridCss}>
         <TextOverflow
-          css={[badgeWithLabelCss, smallCss]}
+          css={[badgeWithLabelCss, smallCss, 'display: block']}
           style={{gridArea: 'name', fontWeight: item.hasSeen ? 'bold' : 400}}
         >
           <SentryAppLink
@@ -32,9 +32,7 @@ export default function IssueListItem({item}: {item: Group}) {
               query: {project: projectId},
             }}
           >
-            <strong>
-              <TextOverflow>{item.metadata.type ?? '<unknown>'}</TextOverflow>
-            </strong>
+            <strong>{item.metadata.type ?? '<unknown>'}</strong>
           </SentryAppLink>
         </TextOverflow>
 
