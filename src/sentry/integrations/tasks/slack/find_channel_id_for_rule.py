@@ -2,14 +2,13 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils import (
     SLACK_RATE_LIMITED_MESSAGE,
     RedisRuleStatus,
     strip_channel_name,
 )
-from sentry.integrations.slack.utils.channel import get_channel_id_with_timeout
+from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id_with_timeout
 from sentry.mediators.project_rules.creator import Creator
 from sentry.mediators.project_rules.updater import Updater
 from sentry.models.project import Project
@@ -28,7 +27,7 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 )
 def find_channel_id_for_rule(
     project: Project,
-    actions: Sequence[AlertRuleTriggerAction],
+    actions: Sequence[dict[str, Any]],
     uuid: str,
     rule_id: int | None = None,
     user_id: int | None = None,
@@ -48,10 +47,10 @@ def find_channel_id_for_rule(
 
     # TODO: make work for multiple Slack actions
     for action in actions:
-        if hasattr(action, "get") and action.get("workspace") and action.get("channel"):
-            integration_id = getattr(action, "workspace", None)
+        if action.get("workspace") and action.get("channel"):
+            integration_id = action["workspace"]
             # we need to strip the prefix when searching on the channel name
-            channel_name = strip_channel_name(str(getattr(action, "channel", None)))
+            channel_name = strip_channel_name(action["channel"])
             break
 
     integrations = integration_service.get_integrations(
@@ -73,6 +72,7 @@ def find_channel_id_for_rule(
     # We do not know exactly how long it will take to paginate through all of the Slack
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
     # we can always update later
+    channel_data: SlackChannelIdData | None = None
     try:
         channel_data = get_channel_id_with_timeout(
             integration,
@@ -88,16 +88,17 @@ def find_channel_id_for_rule(
         redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
         return
 
-    if channel_data.channel_id:
+    if channel_data and channel_data.channel_id:
         for action in actions:
+            action_channel = action.get("channel")
             # need to make sure we are adding back the right prefix and also the channel_id
             if (
-                hasattr(action, "get")
-                and action.get("channel")
-                and strip_channel_name(action.get("channel")) == channel_name
+                action_channel
+                and channel_name
+                and strip_channel_name(action_channel) == channel_name
             ):
-                setattr(action, "channel", channel_data.prefix + channel_name)
-                setattr(action, "channel_id", channel_data.channel_id)
+                action["channel"] = channel_data.prefix + channel_name
+                action["channel_id"] = channel_data.channel_id
                 break
 
         kwargs["actions"] = actions
