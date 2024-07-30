@@ -29,7 +29,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {useIssueDetailsHeader} from 'sentry/views/issueDetails/issueDetailsHeader';
+import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
 import GroupActions from './actions';
 import {Tab} from './types';
