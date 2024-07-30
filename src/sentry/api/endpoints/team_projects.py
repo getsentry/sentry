@@ -217,8 +217,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 sender=self,
             )
 
-        # Create project option to turn on ML similarity feature for new EA projects
-        if project:
+            # Create project option to turn on ML similarity feature for new EA projects
             is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
             if (
                 project.organization.flags
