@@ -73,19 +73,13 @@ export default function StreamlinedGroupHeader({
     group,
   });
 
-  const {
-    disabledTabs,
-    message,
-    eventRoute,
-    disableActions,
-    shortIdBreadcrumb,
-    className,
-  } = useIssueDetailsHeader({
-    group,
-    groupReprocessingStatus,
-    baseUrl,
-    project,
-  });
+  const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
+    useIssueDetailsHeader({
+      group,
+      groupReprocessingStatus,
+      baseUrl,
+      project,
+    });
 
   const activeUser = ConfigStore.get('user');
 
@@ -103,7 +97,7 @@ export default function StreamlinedGroupHeader({
 
   return (
     <Layout.Header>
-      <div className={className}>
+      <div>
         <Breadcrumbs
           crumbs={[
             {
@@ -117,9 +111,9 @@ export default function StreamlinedGroupHeader({
           ]}
         />
         <TitleHeading>
-          <h3>
+          <TitleWrapper>
             <StyledEventOrGroupTitle data={group} />
-          </h3>
+          </TitleWrapper>
         </TitleHeading>
         <MessageWrapper>
           <EventMessage
@@ -213,6 +207,21 @@ export default function StreamlinedGroupHeader({
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
+`;
+
+const TitleWrapper = styled('h3')`
+  font-size: ${p => p.theme.headerFontSize};
+  margin: 0 0 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  color: ${p => p.theme.headingColor};
+
+  & em {
+    font-weight: ${p => p.theme.fontWeightNormal};
+    color: ${p => p.theme.textColor};
+    font-size: 90%;
+  }
 `;
 
 const TitleHeading = styled('div')`
