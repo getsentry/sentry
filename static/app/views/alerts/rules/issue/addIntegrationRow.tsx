@@ -1,95 +1,51 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import Access from 'sentry/components/acl/access';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = {
-  onClickHandler: () => void;
+  onClick: () => void;
   organization: Organization;
-  project: Project;
-  providerKey: string;
-  setHasError: (boolean) => void;
 };
 
-function AddIntegrationRow({
-  providerKey,
-  organization,
-  project,
-  onClickHandler,
-  setHasError,
-}: Props) {
-  const [provider, setProvider] = useState<IntegrationProvider | null>(null);
-
-  const api = useApi();
-  const fetchData = useCallback(() => {
-    if (!providerKey) {
-      return Promise.resolve();
-    }
-
-    const endpoint = `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`;
-    return api
-      .requestPromise(endpoint)
-      .then(integrations => {
-        setProvider(integrations.providers[0]);
-      })
-      .catch(() => {
-        setHasError(true);
-      });
-  }, [providerKey, api, organization.slug, setHasError]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  if (!provider) {
+function AddIntegrationRow({organization, onClick}: Props) {
+  const integration = useContext(IntegrationContext);
+  if (!integration) {
     return null;
   }
-
-  const {metadata} = provider;
+  const provider = integration.provider;
 
   const buttonProps = {
-    size: 'sm' as const,
-    priority: 'primary' as const,
+    size: 'sm',
+    priority: 'primary',
     'data-test-id': 'install-button',
-    organization,
   };
-
-  const close = () => onClickHandler;
-
-  // TODO(Mia): show request installation button if user does not have necessary permissions
-  const integrationButton = metadata.aspects.externalInstall ? (
-    <ExternalButton
-      href={metadata.aspects.externalInstall.url}
-      onClick={() => close}
-      external
-      {...buttonProps}
-    >
-      Add Installation
-    </ExternalButton>
-  ) : (
-    <InternalButton
-      provider={provider}
-      onAddIntegration={close}
-      analyticsParams={{view: 'onboarding', already_installed: false}}
-      modalParams={{projectId: project.id}}
-      {...buttonProps}
-    />
-  );
 
   return (
     <RowWrapper>
       <IconTextWrapper>
-        <PluginIcon pluginId={providerKey} size={40} />
+        <PluginIcon pluginId={provider.slug} size={40} />
         <NameHeader>Connect {provider.name}</NameHeader>
       </IconTextWrapper>
-      {integrationButton}
+      <Access access={['org:integrations']} organization={organization}>
+        {({hasAccess}) => {
+          return (
+            <StyledButton
+              organization={organization}
+              userHasAccess={hasAccess}
+              onAddIntegration={onClick}
+              onExternalClick={onClick}
+              externalInstallText="Add Installation"
+              buttonProps={buttonProps}
+            />
+          );
+        }}
+      </Access>
     </RowWrapper>
   );
 }
@@ -113,11 +69,7 @@ const NameHeader = styled('h6')`
   margin: 0;
 `;
 
-const ExternalButton = styled(Button)`
-  margin: 0;
-`;
-
-const InternalButton = styled(AddIntegrationButton)`
+const StyledButton = styled(IntegrationButton)`
   margin: 0;
 `;
 
