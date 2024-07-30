@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 from django.db.models import Q
@@ -188,7 +188,7 @@ def sync_status_inbound(
 
     organizations = Organization.objects.filter(id=organization_id)
     affected_groups = Group.objects.get_groups_by_external_issue(
-        integration, Sequence(organizations), issue_key
+        integration, organizations, issue_key
     )
     if not affected_groups:
         return
