@@ -81,7 +81,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
             **validated_data,
             organization=self.organization,
             defaults=actor_params,
-        )
+        )[0]
 
     def update(
         self, instance: ExternalActor, validated_data: MutableMapping[str, Any]
