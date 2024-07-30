@@ -295,9 +295,6 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
 
         return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
-    def reinstall(self):
-        self.reinstall_repositories()
-
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):
     key = "bitbucket_server"

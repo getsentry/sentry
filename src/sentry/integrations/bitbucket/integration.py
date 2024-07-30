@@ -137,9 +137,6 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
         return [repo for repo in repos if repo.name not in accessible_repos]
 
-    def reinstall(self):
-        self.reinstall_repositories()
-
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(f'https://{self.model.metadata["domain_name"]}') or url.startswith(
             "https://bitbucket.org",

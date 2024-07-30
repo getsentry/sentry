@@ -254,9 +254,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
 
-    def reinstall(self) -> None:
-        self.reinstall_repositories()
-
     def message_from_error(self, exc: Exception) -> str:
         if not isinstance(exc, ApiError):
             return ERR_INTERNAL

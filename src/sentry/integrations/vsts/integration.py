@@ -128,9 +128,6 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: RpcIdentity | None = None
 
-    def reinstall(self) -> None:
-        self.reinstall_repositories()
-
     def all_repos_migrated(self) -> bool:
         return not self.get_unmigratable_repositories()
 
