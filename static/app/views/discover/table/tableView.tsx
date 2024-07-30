@@ -51,7 +51,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
@@ -258,7 +258,7 @@ function TableView(props: TableViewProps) {
   function _renderGridHeaderCell(
     column: TableColumn<keyof TableDataRow>
   ): React.ReactNode {
-    const {eventView, location, tableData} = props;
+    const {eventView, location, tableData, organization, queryDataset} = props;
     const tableMeta = tableData?.meta;
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
@@ -275,7 +275,10 @@ function TableView(props: TableViewProps) {
 
       return {
         ...location,
-        query: queryStringObject,
+        query: {
+          ...queryStringObject,
+          ...appendQueryDatasetParam(organization, queryDataset),
+        },
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
