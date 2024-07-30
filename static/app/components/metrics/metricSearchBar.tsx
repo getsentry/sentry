@@ -130,7 +130,7 @@ export function MetricSearchBar({
 
   const searchQueryBuilderProps: SearchQueryBuilderProps & {css: SerializedStyles} = {
     disabled,
-    onChange: handleChange,
+    onChange: (value, {queryIsValid}) => handleChange(value, {validSearch: queryIsValid}),
     placeholder: t('Filter by tags'),
     initialQuery: query ?? '',
     getTagValues,
