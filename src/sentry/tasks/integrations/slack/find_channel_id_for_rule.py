@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from typing import Any
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.tasks.slack.find_channel_id_for_rule import (
     find_channel_id_for_rule as new_find_channel_id_for_rule,
 )
@@ -17,7 +16,7 @@ from sentry.tasks.base import instrumented_task
 )
 def find_channel_id_for_rule(
     project: Project,
-    actions: Sequence[AlertRuleTriggerAction],
+    actions: Sequence[dict[str, Any]],
     uuid: str,
     rule_id: int | None = None,
     user_id: int | None = None,

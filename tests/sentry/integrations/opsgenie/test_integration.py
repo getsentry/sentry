@@ -243,7 +243,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
-    @patch("sentry.integrations.tasks.migrate_opsgenie_plugins.metrics")
+    @patch("sentry.integrations.tasks.opsgenie.migrate_opsgenie_plugins.metrics")
     def test_migrate_plugin(self, mock_metrics):
         """
         Test that 2 projects with the Opsgenie plugin activated that have one alert rule each
