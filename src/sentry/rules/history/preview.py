@@ -53,7 +53,9 @@ FREQUENCY_CONDITIONS = [
 # Most of the ISSUE_STATE_CONDITIONS are mutually exclusive, except for the following pairs.
 VALID_CONDITION_PAIRS = {
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
+    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
 }
 
 
