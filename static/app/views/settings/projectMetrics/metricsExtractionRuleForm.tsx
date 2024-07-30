@@ -46,20 +46,84 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
 }
 
 const HIGH_CARDINALITY_TAGS = new Set([
+  SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH,
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.SPAN_GROUP,
+  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
+  SpanIndexedField.TRANSACTION_ID,
   SpanIndexedField.PROJECT_ID,
+  SpanIndexedField.PROFILE_ID,
+  SpanIndexedField.REPLAY_ID,
+  SpanIndexedField.TIMESTAMP,
+  SpanIndexedField.USER,
+  SpanIndexedField.USER_ID,
+  SpanIndexedField.USER_EMAIL,
+  SpanIndexedField.USER_USERNAME,
   SpanIndexedField.INP,
   SpanIndexedField.INP_SCORE,
   SpanIndexedField.INP_SCORE_WEIGHT,
   SpanIndexedField.TOTAL_SCORE,
   SpanIndexedField.CACHE_ITEM_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_ID,
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
-  SpanIndexedField.TRANSACTION_ID,
-  SpanIndexedField.ID,
 ]);
+
+const HIGH_CARDINALITY_KEYWORDS = new Set([
+  'id',
+  'slug',
+  'duration',
+  'time',
+  'timestamp',
+  'size',
+  'length',
+  'len',
+  'count',
+  'uuid',
+  'guid',
+]);
+
+/**
+ * Generates permutations of how a keyword can be formatted in a tag.
+ */
+const generateTagNamePermutation = (keyword: string): string[] => [
+  `_${keyword}`,
+  `${keyword}_`,
+  `.${keyword}`,
+  `${keyword}.`,
+  `-${keyword}`,
+  `${keyword}-`,
+  `:${keyword}`,
+  `${keyword}:`,
+  keyword.charAt(0).toUpperCase() + keyword.slice(1), // capitalize first letter
+  keyword.toUpperCase(), // uppercase version of tag
+];
+
+/**
+ * Checks if the tag is well known high cardinality tag or one of the known high cardinality keywords
+ * is in the tag. Permutations of a keyword are used as a heuristic to decrease the chance of
+ * false positives - e.g. 'idealTag' would not be considered high cardinality.
+ * NOTE: this is a heuristic and not a perfect solution - it can still result
+ * in false positives (e.g. 'myIdealTag' will be flagged as high cardinality tag)
+ */
+const isHighCardinalityTag = (tag: string): boolean => {
+  if (HIGH_CARDINALITY_TAGS.has(tag as SpanIndexedField)) {
+    return true;
+  }
+
+  for (const keyword of HIGH_CARDINALITY_KEYWORDS) {
+    for (const permutation of generateTagNamePermutation(keyword)) {
+      if (tag.includes(permutation)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
   {
@@ -257,7 +321,7 @@ export function MetricsExtractionRuleForm({
     return allAttributeOptions
       .filter(
         // We don't want to suggest numeric fields as tags as they would explode cardinality
-        option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
+        option => !isHighCardinalityTag(option)
       )
       .map<SelectValue<string>>(option => ({
         label: option,
