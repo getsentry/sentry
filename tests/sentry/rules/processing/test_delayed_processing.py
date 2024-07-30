@@ -31,7 +31,6 @@ from sentry.rules.processing.delayed_processing import (
     get_group_to_groupevent,
     get_rules_to_fire,
     get_rules_to_groups,
-    get_rules_to_slow_conditions,
     get_slow_conditions,
     parse_rulegroup_to_event_data,
     process_delayed_alert_conditions,
@@ -137,11 +136,6 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
             condition_blob["comparisonInterval"] = comparison_interval
 
         return condition_blob
-
-
-class BuildGroupToGroupEventTest(TestCase):
-    def test_build_group_to_groupevent(self):
-        pass
 
 
 class BulkFetchEventsTest(CreateEventTestCase):
@@ -476,8 +470,8 @@ class GetRulesToFireTest(TestCase):
         self.rules_to_groups[self.rule1.id].add(self.group1.id)
         self.rules_to_groups[self.rule1.id].add(self.group2.id)
 
-        # Mock _passes_comparison function
-        self.patcher = patch("sentry.rules.processing.delayed_processing._passes_comparison")
+        # Mock passes_comparison function
+        self.patcher = patch("sentry.rules.processing.delayed_processing.passes_comparison")
         self.mock_passes_comparison = self.patcher.start()
 
     def tearDown(self):
@@ -537,7 +531,7 @@ class GetRulesToFireTest(TestCase):
         result = get_rules_to_fire({}, defaultdict(list), defaultdict(set), self.project.id)
         assert len(result) == 0
 
-    @patch("sentry.rules.processing.delayed_processing._passes_comparison", return_value=True)
+    @patch("sentry.rules.processing.delayed_processing.passes_comparison", return_value=True)
     def test_multiple_rules_and_groups(self, mock_passes):
         rule2 = self.create_project_rule(
             project=self.project,
@@ -586,30 +580,6 @@ class GetRulesToGroupsTest(TestCase):
         input_data = {"invalid_key": "event_data"}
         with pytest.raises(ValueError):
             get_rules_to_groups(input_data)
-
-
-class GetRulesToSlowConditionsTest(RuleTestCase):
-    rule_cls = EventFrequencyCondition
-
-    def setUp(self):
-        self.rule = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
-
-    def test_get_rules_to_slow_conditions(self):
-        results = get_rules_to_slow_conditions([self.rule])
-        assert results == {self.rule: [TEST_RULE_SLOW_CONDITION]}
-
-    def test_get_rules_to_slow_conditions__with_fast_conditions(self):
-        self.rule = self.get_rule(data={"conditions": [TEST_RULE_FAST_CONDITION]})
-        results = get_rules_to_slow_conditions([self.rule])
-        assert results == defaultdict(list)
-
-    def test_get_rules_to_slow_conditions__with_multiple_slow_rules(self):
-        self.rule_two = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
-        results = get_rules_to_slow_conditions([self.rule, self.rule_two])
-        assert results == {
-            self.rule: [TEST_RULE_SLOW_CONDITION],
-            self.rule_two: [TEST_RULE_SLOW_CONDITION],
-        }
 
 
 class GetSlowConditionsTest(RuleTestCase):
@@ -1354,3 +1324,31 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         ):
             apply_delayed(project_id)
         self._assert_count_percent_results(safe_execute_callthrough)
+
+
+class UniqueConditionQueryTest(TestCase):
+    """
+    Tests for the UniqueConditionQuery class. Currently, this is just to pass codecov.
+    """
+
+    def test_repr(self):
+        condition = UniqueConditionQuery(
+            cls_id="1", interval="1d", environment_id=1, comparison_interval="1d"
+        )
+        assert (
+            repr(condition)
+            == "<UniqueConditionQuery:\nid: 1,\ninterval: 1d,\nenv id: 1,\ncomp interval: 1d\n>"
+        )
+
+
+class DataAndGroupsTest(TestCase):
+    """
+    Tests for the DataAndGroups class. Currently, this is just to pass codecov.
+    """
+
+    def test_repr(self):
+        condition = DataAndGroups(data=TEST_RULE_SLOW_CONDITION, group_ids={1, 2})
+        assert (
+            repr(condition)
+            == "<DataAndGroups data: {'id': 'sentry.rules.conditions.event_frequency.EventFrequencyCondition', 'value': 1, 'interval': '1h'} group_ids: {1, 2}>"
+        )
