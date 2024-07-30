@@ -32,11 +32,9 @@ function IntegrationButton({
   externalInstallText,
   buttonProps,
 }: Props) {
-  const integration = useContext(IntegrationContext);
-  if (!integration) {
-    return null;
-  }
-  const {provider, type, installStatus, analyticsParams, modalParams} = integration;
+  const {provider, type, installStatus, analyticsParams, modalParams} =
+    useContext(IntegrationContext) ?? {};
+  if (!provider || !type) return null;
   const {metadata} = provider;
 
   if (!userHasAccess) {
