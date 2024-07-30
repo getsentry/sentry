@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.db.models import Q
@@ -75,11 +75,12 @@ def get_resolutions_and_activity_data_for_groups(
                     .order_by("-sort")
                     .first()
                 )
+
                 # Check if semver versioning scheme is followed
                 follows_semver = follows_semver_versioning_scheme(
                     org_id=organization_id,
                     project_id=group.project.id,
-                    release_version=last_release_by_date.version,
+                    release_version=last_release_by_date.version if last_release_by_date else None,
                 )
 
                 local_logging_params.update(
@@ -180,7 +181,6 @@ def sync_status_inbound(
     integration_id: int, organization_id: int, issue_key: str, data: Mapping[str, Any]
 ) -> None:
     from sentry.integrations.mixins import ResolveSyncAction
-    from sentry.integrations.mixins.issues import IssueSyncMixin
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
@@ -188,7 +188,7 @@ def sync_status_inbound(
 
     organizations = Organization.objects.filter(id=organization_id)
     affected_groups = Group.objects.get_groups_by_external_issue(
-        integration, organizations, issue_key
+        integration, Sequence(organizations), issue_key
     )
     if not affected_groups:
         return
@@ -200,10 +200,6 @@ def sync_status_inbound(
     config = installation.org_integration.config
 
     try:
-        # testing mypy in github
-        if isinstance(installation, IssueSyncMixin):
-            pass
-
         assert hasattr(
             installation, "get_resolve_sync_action"
         ), "installation be a IssueSyncMixin to get a resolve sync action"

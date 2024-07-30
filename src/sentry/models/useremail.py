@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 
 class UserEmailManager(BaseManager["UserEmail"]):
-    def get_emails_by_user(self, organization: RpcOrganization) -> Mapping[User, Sequence[str]]:
+    def get_emails_by_user(self, organization: RpcOrganization) -> Mapping[User, Iterable[str]]:
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         emails_by_user = defaultdict(set)

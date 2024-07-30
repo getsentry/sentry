@@ -89,7 +89,7 @@ def get_slack_user_list(
 def get_slack_data_by_user(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization,
-    emails_by_user: Mapping[User, Sequence[str]],
+    emails_by_user: Mapping[User, Iterable[str]],
 ) -> Iterable[Mapping[User, SlackUserData]]:
     all_users = get_slack_user_list(integration, organization)
     yield from (format_slack_data_by_user(emails_by_user, users) for users in all_users)

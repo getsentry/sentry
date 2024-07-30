@@ -16,4 +16,4 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
 def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
-    new_sync_status_outbound(group_id, external_issue_id)
+    return new_sync_status_outbound(group_id, external_issue_id)
