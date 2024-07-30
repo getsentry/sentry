@@ -12,7 +12,6 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
@@ -322,11 +321,6 @@ function CreateProject() {
       <div data-test-id="onboarding-info">
         <List symbol="colored-numeric">
           <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
-          <HelpText>
-            {tct(
-              'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from.'
-            )}
-          </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
             platform={platform?.key}
@@ -452,9 +446,4 @@ const TeamSelectInput = styled('div')`
   gap: ${space(1)};
   grid-template-columns: 1fr min-content;
   align-items: center;
-`;
-
-const HelpText = styled('p')`
-  color: ${p => p.theme.subText};
-  max-width: 760px;
 `;
