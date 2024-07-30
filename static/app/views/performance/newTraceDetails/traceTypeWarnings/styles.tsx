@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 type BannerProps = {
-  description: string;
+  description: React.ReactNode;
   docsRoute: string;
   image: any;
   localStorageKey: string;
@@ -17,7 +17,7 @@ type BannerProps = {
   onSecondaryButtonClick: () => void;
   organization: Organization;
   primaryButtonText: string;
-  title: string;
+  title: React.ReactNode;
 };
 
 function Banner(props: BannerProps) {
