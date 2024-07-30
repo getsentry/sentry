@@ -159,7 +159,7 @@ def process_profile_task(
         set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if (
-        profile.get("version") != "2"
+        profile.get("version") in ["1", "2"]
         and options.get("profiling.generic_metrics.functions_ingestion.enabled")
         and (
             organization.id
