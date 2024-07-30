@@ -1,3 +1,4 @@
+from sentry.integrations.msteams.constants import SALT
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import control_silo_view
 
@@ -21,6 +22,7 @@ class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):
             unsign(
                 signed_params,
                 max_age=INSTALL_EXPIRATION_TIME,
+                salt=SALT,
             )
         )
         return params

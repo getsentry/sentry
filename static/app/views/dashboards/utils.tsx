@@ -41,7 +41,11 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  type SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
@@ -58,6 +62,7 @@ import type {
 import {
   DashboardFilterKeys,
   DisplayType,
+  WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
@@ -310,7 +315,13 @@ export function getWidgetDiscoverUrl(
   isMetricsData: boolean = false
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
-  const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+  const discoverLocation = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) && widget.widgetType
+      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      : undefined
+  );
 
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
@@ -674,4 +685,14 @@ export function connectDashboardCharts(groupName: string) {
 
 export function hasDatasetSelector(organization: Organization): boolean {
   return organization.features.includes('performance-discover-dataset-selector');
+}
+
+export function appendQueryDatasetParam(
+  organization: Organization,
+  queryDataset: SavedQueryDatasets
+) {
+  if (hasDatasetSelector(organization)) {
+    return {queryDataset: queryDataset};
+  }
+  return {};
 }

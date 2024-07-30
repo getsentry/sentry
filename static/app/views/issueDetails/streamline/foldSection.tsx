@@ -5,7 +5,9 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const LOCAL_STORAGE_PREFIX = 'fold-section-collapse-';
 export const enum FoldSectionKey {
@@ -89,18 +91,26 @@ export function FoldSection({
   preventCollapse = false,
   ...props
 }: FoldSectionProps) {
+  const organization = useOrganization();
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
     initialCollapse
   );
+  // This controls disabling the InteractionStateLayer when hovering over action items. We don't
+  // want selecting an action to appear as though it'll fold/unfold the section.
   const [isLayerEnabled, setIsLayerEnabled] = useState(true);
 
   const toggleCollapse = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent browser summary/details behaviour
+      trackAnalytics('issue_details.section_fold', {
+        sectionKey,
+        organization,
+        open: !isCollapsed,
+      });
       setIsCollapsed(collapsed => !collapsed);
     },
-    [setIsCollapsed]
+    [setIsCollapsed, organization, sectionKey, isCollapsed]
   );
 
   return (

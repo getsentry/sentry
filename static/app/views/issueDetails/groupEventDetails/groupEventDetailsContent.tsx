@@ -406,6 +406,7 @@ function ProfilingDurationRegressionIssueDetailsContent({
   event,
   project,
 }: Required<GroupEventDetailsContentProps>) {
+  const organization = useOrganization();
   return (
     <TransactionsDeltaProvider event={event} project={project}>
       <Fragment>
@@ -415,9 +416,11 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventAffectedTransactions event={event} group={group} project={project} />
-        </ErrorBoundary>
+        {!organization.features.includes('continuous-profiling-compat') && (
+          <ErrorBoundary mini>
+            <EventAffectedTransactions event={event} group={group} project={project} />
+          </ErrorBoundary>
+        )}
         <ErrorBoundary mini>
           <DataSection>
             <b>{t('Largest Changes in Call Stack Frequency')}</b>

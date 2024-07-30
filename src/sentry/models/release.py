@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from time import time
-from typing import ClassVar
+from typing import ClassVar, TypedDict
 
 import orjson
 import sentry_sdk
@@ -36,6 +36,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
@@ -176,6 +177,12 @@ class ReleaseModelManager(BaseManager["Release"]):
 
         # Convert the False back into a None.
         return release_version or None
+
+
+class _CommitDataKwargs(TypedDict, total=False):
+    author: CommitAuthor
+    message: str
+    date_added: str
 
 
 @region_silo_model
@@ -658,7 +665,6 @@ class Release(Model):
 
         # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
         from sentry.models.commit import Commit
-        from sentry.models.commitauthor import CommitAuthor
         from sentry.models.group import Group, GroupStatus
         from sentry.models.grouplink import GroupLink
         from sentry.models.groupresolution import GroupResolution
@@ -752,7 +758,7 @@ class Release(Model):
                     else:
                         author = authors[author_email]
 
-                    commit_data = {}
+                    commit_data: _CommitDataKwargs = {}
 
                     # Update/set message and author if they are provided.
                     if author is not None:
@@ -768,14 +774,10 @@ class Release(Model):
                         key=data["id"],
                         defaults=commit_data,
                     )
-                    if not created:
-                        commit_data = {
-                            key: value
-                            for key, value in commit_data.items()
-                            if getattr(commit, key) != value
-                        }
-                        if commit_data:
-                            commit.update(**commit_data)
+                    if not created and any(
+                        getattr(commit, key) != value for key, value in commit_data.items()
+                    ):
+                        commit.update(**commit_data)
 
                     if author is None:
                         author = commit.author
@@ -885,7 +887,7 @@ class Release(Model):
             (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
         ]
 
-        user_by_author: dict[str | None, RpcUser | None] = {None: None}
+        user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
         commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
 
