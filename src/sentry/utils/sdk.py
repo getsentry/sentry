@@ -302,7 +302,11 @@ def configure_sdk():
     else:
         sentry_saas_transport = None
 
-    if settings.SENTRY_PROFILING_ENABLED:
+    if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
+        sdk_options.setdefault("_experiments", {}).update(
+            continuous_profiling_auto_start=True,
+        )
+    elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
@@ -423,8 +427,6 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
-    from sentry.metrics import minimetrics
-
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
         "deliver-from-outbox-control",
@@ -435,16 +437,6 @@ def configure_sdk():
         "schedule-digests",
         "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]
-
-    # turn on minimetrics
-    sdk_options.setdefault("_experiments", {}).update(
-        enable_metrics=True,
-        metric_code_locations=options.get("delightful_metrics.enable_code_locations"),
-        before_emit_metric=minimetrics.before_emit_metric,
-        # turn summaries on, but filter them dynamically in the callback
-        metrics_summary_sample_rate=1.0,
-        should_summarize_metric=minimetrics.should_summarize_metric,
-    )
 
     enable_cache_spans = os.getenv("SENTRY_URL_PREFIX") == "sentry.my.sentry.io"
 
@@ -469,8 +461,6 @@ def configure_sdk():
         spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
     )
-
-    minimetrics.patch_sentry_sdk()
 
 
 def check_tag_for_scope_bleed(

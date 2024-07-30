@@ -14,4 +14,4 @@ class RelocationExportReplyWithExportParameters(pydantic.BaseModel):
     requesting_region_name: str
     replying_region_name: str
     org_slug: str
-    # encrypted_contents excluded, as receivers are expected to manually read them from filestore.
+    # encrypted_bytes excluded, as receivers are expected to manually read them from filestore.

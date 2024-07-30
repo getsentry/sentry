@@ -9,10 +9,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -34,16 +30,14 @@ import {
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 
 export function WebVitalsLandingPage() {
   const location = useLocation();
-  const hasModuleData = useHasFirstSpan(ModuleName.VITAL);
 
   const router = useRouter();
 
@@ -61,8 +55,6 @@ export function WebVitalsLandingPage() {
     isProjectScoresLoading || isLoading
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
-
-  useHasDataTrackAnalytics(ModuleName.VITAL, 'insight.page_loads.vital');
 
   const crumbs = useModuleBreadcrumbs('vital');
 
@@ -90,12 +82,10 @@ export function WebVitalsLandingPage() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <TopMenuContainer>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-            {hasModuleData && <BrowserTypeSelector />}
+            <ModulePageFilterBar
+              moduleName={ModuleName.VITAL}
+              extraFilters={<BrowserTypeSelector />}
+            />
           </TopMenuContainer>
           <MainContentContainer>
             <ModulesOnboarding moduleName={ModuleName.VITAL}>
@@ -162,7 +152,11 @@ export function WebVitalsLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="vital" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="vital"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.vital"
+    >
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );

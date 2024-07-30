@@ -98,7 +98,7 @@ class ApiHostError(ApiError):
     code = 503
 
     @classmethod
-    def from_exception(cls, exception: RequestException) -> ApiHostError:
+    def from_exception(cls, exception: Exception) -> ApiHostError:
         maybe_request = getattr(exception, "request", None)
         if maybe_request is not None:
             return cls.from_request(maybe_request)

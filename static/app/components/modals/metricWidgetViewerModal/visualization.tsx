@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
   type FocusedMetricsSeries,
@@ -21,6 +22,7 @@ import {
   type MetricsQueryApiQueryParams,
   useMetricsQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {BigNumber, getBigNumberData} from 'sentry/views/dashboards/metrics/bigNumber';
@@ -133,6 +135,8 @@ export function MetricVisualization({
   interval,
 }: MetricVisualizationProps) {
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const hasSetMetric = useMemo(
     () =>
       expressions.some(
@@ -149,7 +153,10 @@ export function MetricVisualization({
     onIntervalChange: EMPTY_FN,
   });
 
-  const queries = useMemo(() => expressionsToApiQueries(expressions), [expressions]);
+  const queries = useMemo(
+    () => expressionsToApiQueries(expressions, metricsNewInputs),
+    [expressions, metricsNewInputs]
+  );
 
   const {
     data: timeseriesData,

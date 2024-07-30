@@ -140,6 +140,7 @@ def mark_failed_threshold(
 
         starting_checkin = previous_checkins[0]
 
+        incident: MonitorIncident | None
         incident, _ = MonitorIncident.objects.get_or_create(
             monitor_environment=monitor_env,
             resolving_checkin=None,

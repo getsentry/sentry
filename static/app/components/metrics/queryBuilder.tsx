@@ -6,10 +6,7 @@ import uniqBy from 'lodash/uniqBy';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {
-  CardinalityWarningIcon,
-  MetricQuerySelect,
-} from 'sentry/components/metrics/metricQuerySelect';
+import {MetricQuerySelect} from 'sentry/components/metrics/metricQuerySelect';
 import {
   MetricSearchBar,
   type MetricSearchBarProps,
@@ -19,13 +16,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
+import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
@@ -52,7 +48,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   const pageFilters = usePageFilters();
   const {getConditions, getVirtualMeta, resolveVirtualMRI, getTags} =
     useVirtualMetricsContext();
-  const {data: cardinality} = useCardinalityLimitedMetricVolume(pageFilters.selection);
 
   const {
     data: meta,
@@ -220,38 +215,32 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
 
-  const isCardinalityLimited = (condition?: MetricsExtractionCondition): boolean => {
-    if (!cardinality || !condition) {
-      return false;
-    }
-    return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
-  };
-
-  const spanConditions = getConditions(metricsQuery.mri);
-
-  const istMetricQueryCardinalityLimited = isCardinalityLimited(
-    spanConditions.find(c => c.id === metricsQuery.condition)
-  );
-
   return (
-    <QueryBuilderWrapper>
+    <QueryBuilderWrapper metricsNewInputs={hasMetricsNewInputs(organization)}>
+      {hasMetricsNewInputs(organization) && (
+        <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
+          <QueryFieldGroup>
+            <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
+            <MRISelect
+              onChange={handleMRIChange}
+              onTagClick={handleMetricTagClick}
+              onOpenMenu={handleOpenMetricsMenu}
+              isLoading={isMetaLoading}
+              metricsMeta={meta}
+              projects={projectIds}
+              value={metricsQuery.mri}
+            />
+          </QueryFieldGroup>
+        </GuideAnchor>
+      )}
       <FlexBlock>
-        <FlexBlock>
-          <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
-            {hasMetricsNewInputs(organization) ? (
-              <QueryFieldGroup>
-                <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
-                <MRISelect
-                  onChange={handleMRIChange}
-                  onTagClick={handleMetricTagClick}
-                  onOpenMenu={handleOpenMetricsMenu}
-                  isLoading={isMetaLoading}
-                  metricsMeta={meta}
-                  projects={projectIds}
-                  value={metricsQuery.mri}
-                />
-              </QueryFieldGroup>
-            ) : (
+        {!hasMetricsNewInputs(organization) && (
+          <FlexBlock>
+            <GuideAnchor
+              target="metrics_selector"
+              position="bottom"
+              disabled={index !== 0}
+            >
               <MRISelect
                 onChange={handleMRIChange}
                 onTagClick={handleMetricTagClick}
@@ -261,21 +250,17 @@ export const QueryBuilder = memo(function QueryBuilder({
                 projects={projectIds}
                 value={metricsQuery.mri}
               />
-            )}
-          </GuideAnchor>
-          {!hasMetricsNewInputs(organization) &&
-            (selectedMeta?.type === 'v' ? (
+            </GuideAnchor>
+            {selectedMeta?.type === 'v' ? (
               <MetricQuerySelect
-                isCardinalityLimited={istMetricQueryCardinalityLimited}
-                spanConditions={spanConditions}
                 mri={metricsQuery.mri}
-                conditionId={metricsQuery.condition}
                 onChange={value => {
                   onChange({condition: value});
                 }}
               />
-            ) : null)}
-        </FlexBlock>
+            ) : null}
+          </FlexBlock>
+        )}
         <FlexBlock>
           <GuideAnchor
             target="metrics_aggregate"
@@ -370,18 +355,13 @@ export const QueryBuilder = memo(function QueryBuilder({
       {hasMetricsNewInputs(organization) ? (
         selectedMeta?.type === 'v' ? (
           <QueryFieldGroup>
-            <QueryFieldGroup.Label>
-              {istMetricQueryCardinalityLimited && <CardinalityWarningIcon />}
-              {t('Where')}
-            </QueryFieldGroup.Label>
+            <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
             <MetricQuerySelect
-              spanConditions={spanConditions}
               mri={metricsQuery.mri}
               conditionId={metricsQuery.condition}
               onChange={value => {
                 onChange({condition: value});
               }}
-              isCardinalityLimited={istMetricQueryCardinalityLimited}
             />
             <QueryFieldGroup.Label>{t('And')}</QueryFieldGroup.Label>
             <SearchBar
@@ -448,11 +428,20 @@ const TooltipIconWrapper = styled('span')`
   margin-top: ${space(0.25)};
 `;
 
-const QueryBuilderWrapper = styled('div')`
+const QueryBuilderWrapper = styled('div')<{metricsNewInputs: boolean}>`
   display: flex;
   flex-grow: 1;
   gap: ${space(1)};
   flex-wrap: wrap;
+  ${p =>
+    p.metricsNewInputs &&
+    css`
+      @media (min-width: ${p.theme.breakpoints.xxlarge}) {
+        > *:first-child {
+          flex-grow: 0;
+        }
+      }
+    `}
 `;
 
 const FlexBlock = styled('div')`

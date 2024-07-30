@@ -6,13 +6,13 @@ import weakref
 from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import Any, Generic
+from typing import Any
 
 from django.conf import settings
 from django.db import models, router
 from django.db.models import Model
 from django.db.models.fields import Field
-from django.db.models.manager import BaseManager as DjangoBaseManager
+from django.db.models.manager import Manager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 from django.utils.encoding import smart_str
 
@@ -69,7 +69,10 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -
     return f"{prefix}:{model.__name__}:{md5_text(kwargs_bits_str).hexdigest()}"
 
 
-class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore[misc]
+_base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet, "_base_manager_base")
+
+
+class BaseManager(_base_manager_base[M]):
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
@@ -482,7 +485,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
         cache.delete(cache_key, version=self.cache_version)
 
-    def post_save(self, instance: M, **kwargs: Any) -> None:  # type: ignore[misc]  # python/mypy#6178
+    def post_save(self, *, instance: M, created: bool, **kwargs: object) -> None:  # type: ignore[misc]  # python/mypy#6178
         """
         Triggered when a model bound to this manager is saved.
         """

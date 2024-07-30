@@ -843,12 +843,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.similarity-embeddings-metadata-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.similarity-embeddings-delete-by-hash-killswitch.enabled",
     default=False,
     type=Bool,
@@ -892,12 +886,21 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TODO: The default error limit here was estimated based on EA traffic. (In an average 10 min
+# period, there are roughly 35K events without matching hashes. About 2% of orgs are EA, so for
+# simplicity, assume 2% of those events are from EA orgs. If we're willing to tolerate up to a 95%
+# failure rate, then we need 35K * 0.02 * 0.95 events to fail to trip the breaker.)
+#
+# When we GA, we should multiply both the limits by 50 (to remove the 2% part of the current
+# calculation), and remove this TODO.
 register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
-    # TODO: For now we're using the defaults for everything but `allow_passthrough`. We may want to
-    # revisit that choice in the future.
-    default={"allow_passthrough": True},
+    default={
+        "error_limit": 666,
+        "error_limit_window": 600,  # 10 min
+        "broken_state_duration": 300,  # 5 min
+    },
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1868,11 +1871,7 @@ register(
 register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Flagpole Rollout
-register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Flagpole Configuration (used in getsentry)
 register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
@@ -2050,6 +2049,12 @@ register("metric_extraction.max_span_attribute_specs", default=100, flags=FLAG_A
 register(
     "delightful_metrics.minimetrics_sample_rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.minimetrics_disable_legacy",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2617,6 +2622,12 @@ register(
     "profiling.continuous-profiling.chunks-set.size",
     type=Int,
     default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "profiling.continuous-profiling.chunks-query.size",
+    type=Int,
+    default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

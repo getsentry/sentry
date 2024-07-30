@@ -11,7 +11,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryPermission
 from sentry.api.serializers import serialize
 from sentry.integrations.api.bases.integration import PARANOID_GET
-from sentry.models.integrations.integration_feature import Feature, IntegrationFeature
+from sentry.integrations.models.integration_feature import Feature, IntegrationFeature
 
 logger = logging.getLogger(__name__)
 

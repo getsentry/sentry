@@ -307,7 +307,7 @@ jobs:
           python3 -m tools.fast_editable --path .
           sentry init
 
-      - run: mypy
+      - run: PYTHONWARNINGS=error::RuntimeWarning mypy
         id: run
 
       - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0

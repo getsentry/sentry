@@ -1,6 +1,8 @@
 import logging
 from dataclasses import asdict
 
+from django.conf import settings
+
 from sentry import features, options
 from sentry import ratelimits as ratelimiter
 from sentry.eventstore.models import Event
@@ -17,6 +19,7 @@ from sentry.seer.similarity.utils import (
     killswitch_enabled,
 )
 from sentry.utils import metrics
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
@@ -45,21 +48,18 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     # (Checking the rate limit for calling Seer also increments the counter of how many times we've
     # tried to call it, and if we fail any of the other checks, it shouldn't count as an attempt.
     # Thus we only want to run the rate limit check if every other check has already succeeded.)
-    #
-    # Note: The circuit breaker check which might naturally be here alongside its killswitch
-    # and rate limiting friends instead happens in the `with_circuit_breaker` helper used where
-    # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
-    # errors arising from that call.)
-    if killswitch_enabled(project.id, event) or _ratelimiting_enabled(event, project):
+    if (
+        killswitch_enabled(project.id, event)
+        or _circuit_breaker_broken(event, project)
+        or _ratelimiting_enabled(event, project)
+    ):
         return False
 
     return True
 
 
 def _project_has_similarity_grouping_enabled(project: Project) -> bool:
-    has_either_seer_grouping_feature = features.has(
-        "projects:similarity-embeddings-metadata", project
-    ) or features.has("projects:similarity-embeddings-grouping", project)
+    has_seer_grouping_flag_on = features.has("projects:similarity-embeddings-grouping", project)
 
     # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
     # the backfill script completes, we turn on this option, enabling ingest immediately rather than
@@ -67,7 +67,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     # projects have been backfilled, the option (and this check) can go away.
     has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
 
-    return has_either_seer_grouping_feature or has_been_backfilled
+    return has_seer_grouping_flag_on or has_been_backfilled
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
@@ -157,6 +157,32 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     return False
 
 
+def _circuit_breaker_broken(event: Event, project: Project) -> bool:
+    breaker_config = options.get("seer.similarity.circuit-breaker-config")
+    circuit_breaker = CircuitBreaker(settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY, breaker_config)
+    circuit_broken = not circuit_breaker.should_allow_request()
+
+    if circuit_broken:
+        logger.warning(
+            "should_call_seer_for_grouping.broken_circuit_breaker",
+            extra={
+                "event_id": event.event_id,
+                "project_id": project.id,
+                **breaker_config,
+            },
+        )
+        metrics.incr(
+            "grouping.similarity.broken_circuit_breaker",
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "circuit-breaker"},
+        )
+
+    return circuit_broken
+
+
 def get_seer_similar_issues(
     event: Event,
     primary_hashes: CalculatedHashes,
@@ -171,9 +197,6 @@ def get_seer_similar_issues(
     Ask Seer for the given event's nearest neighbor(s) and return the seer response data, sorted
     with the best matches first, along with the group Seer decided the event should go in, if any,
     or None if no neighbor was near enough.
-
-    Will also return `None` for the neighboring group if the `projects:similarity-embeddings-grouping`
-    feature flag is off.
     """
 
     event_hash = primary_hashes.hashes[0]
@@ -194,17 +217,9 @@ def get_seer_similar_issues(
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
-    similar_issues_metadata = asdict(
-        SeerSimilarIssuesMetadata(request_hash=event_hash, results=seer_results)
-    )
+    similar_issues_metadata = asdict(SeerSimilarIssuesMetadata(results=seer_results))
     parent_group = (
-        Group.objects.filter(id=seer_results[0].parent_group_id).first()
-        if (
-            seer_results
-            and seer_results[0].should_group
-            and features.has("projects:similarity-embeddings-grouping", event.project)
-        )
-        else None
+        Group.objects.filter(id=seer_results[0].parent_group_id).first() if seer_results else None
     )
 
     logger.info(

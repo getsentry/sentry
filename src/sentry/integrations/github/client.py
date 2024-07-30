@@ -17,6 +17,7 @@ from sentry.integrations.github.blame import (
 )
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.utils.code_mapping import (
@@ -25,7 +26,6 @@ from sentry.integrations.utils.code_mapping import (
     RepoTree,
     filter_source_code_files,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -183,7 +183,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubClientMixin(GithubProxyClient):
+class GitHubBaseClient(GithubProxyClient):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -741,7 +741,7 @@ class GitHubClientMixin(GithubProxyClient):
         )
 
 
-class GitHubAppsClient(GitHubClientMixin):
+class GitHubApiClient(GitHubBaseClient):
     def __init__(
         self,
         integration: Integration,

@@ -16,6 +16,8 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 
 import {Container, FieldShortId, OverflowLink} from '../discover/styles';
@@ -233,7 +235,11 @@ const getDiscoverUrl = (
     query: `issue.id:${data.id}${filtered ? data.discoverSearchQuery : ''}`,
     version: 2,
   });
-  return discoverView.getResultsViewUrlTarget(organization.slug);
+  return discoverView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+  );
 };
 
 export function getSortField(field: string): string | null {

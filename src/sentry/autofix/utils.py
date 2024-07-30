@@ -1,7 +1,11 @@
-from typing import TypedDict
+import datetime
+import enum
 
+import orjson
 import requests
 from django.conf import settings
+from pydantic import BaseModel
+from typing_extensions import TypedDict
 
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
@@ -19,9 +23,24 @@ class AutofixRequest(TypedDict):
     issue: AutofixIssue
 
 
-class AutofixState(TypedDict):
+class AutofixStatus(str, enum.Enum):
+    COMPLETED = "COMPLETED"
+    ERROR = "ERROR"
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    NEED_MORE_INFORMATION = "NEED_MORE_INFORMATION"
+    CANCELLED = "CANCELLED"
+
+
+class AutofixState(BaseModel):
     run_id: int
     request: AutofixRequest
+    updated_at: datetime.datetime
+    status: AutofixStatus
+    actor_ids: list[str] | None = None
+
+    class Config:
+        extra = "allow"
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -51,6 +70,44 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
     return list(repos.values())
 
 
+def get_autofix_state(
+    *, group_id: int | None = None, run_id: int | None = None
+) -> AutofixState | None:
+    path = "/v1/automation/autofix/state"
+    body = orjson.dumps(
+        {
+            "group_id": group_id,
+            "run_id": run_id,
+        }
+    )
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(
+                url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                body=body,
+            ),
+        },
+    )
+
+    response.raise_for_status()
+
+    result = response.json()
+
+    if result:
+        if (
+            group_id is not None
+            and result["group_id"] == group_id
+            or run_id is not None
+            and result["run_id"] == run_id
+        ):
+            return AutofixState.validate(result["state"])
+
+    return None
+
+
 def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
     path = "/v1/automation/autofix/state/pr"
     body = json.dumps(
@@ -77,4 +134,4 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
     if not result:
         return None
 
-    return result.get("state", None)
+    return AutofixState.validate(result.get("state", None))
