@@ -113,13 +113,13 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
     with sentry_sdk.start_span(op="get_on_demand_metric_specs"):
         alert_specs, widget_specs = build_safe_config(
             "on_demand_metric_specs", get_on_demand_metric_specs, project, default_return=([], [])
-        )
+        )  # type: ignore[misc]
     with sentry_sdk.start_span(op="generate_span_attribute_specs"):
         span_attr_specs = build_safe_config(
             "span_attribute_specs", _generate_span_attribute_specs, project, default_return=[]
         )
     with sentry_sdk.start_span(op="merge_metric_specs"):
-        metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
+        metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)  # type: ignore[arg-type]
     with sentry_sdk.start_span(op="get_extrapolation_config"):
         extrapolation_config = get_extrapolation_config(project)
 
