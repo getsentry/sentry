@@ -98,7 +98,7 @@ export function useMetricsContext() {
 }
 
 export function useMetricWidgets(
-  firstCustomMeta: MetricMeta | undefined,
+  defaultMetricMeta: MetricMeta | undefined,
   defaultCondition?: number
 ) {
   const {getVirtualMRIQuery} = useVirtualMetricsContext();
@@ -110,7 +110,7 @@ export function useMetricWidgets(
       const parseResult = parseMetricWidgetsQueryParam(urlWidgets);
 
       if (parseResult.length === 0) {
-        const widget = getNewMetricsWidget(firstCustomMeta, defaultCondition);
+        const widget = getNewMetricsWidget(defaultMetricMeta, defaultCondition);
         widget.id = 0;
         return [widget];
       }
@@ -133,7 +133,7 @@ export function useMetricWidgets(
           condition: virtualMRIQuery.conditionId,
         };
       });
-    }, [defaultCondition, firstCustomMeta, getVirtualMRIQuery, urlWidgets])
+    }, [defaultCondition, defaultMetricMeta, getVirtualMRIQuery, urlWidgets])
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -285,15 +285,15 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
     );
 
   const isMultiChartMode = multiChartMode === 1;
-  const defaultMetric: MetricMeta | undefined = metaPerformance.find(isSpanDuration);
+  const defaultMetricMeta: MetricMeta | undefined = metaPerformance.find(isSpanDuration);
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
     useMetricWidgets(
-      defaultMetric,
-      defaultMetric && getConditions(defaultMetric.mri)[0]?.id
+      defaultMetricMeta,
+      defaultMetricMeta && getConditions(defaultMetricMeta.mri)[0]?.id
     );
 
   const [metricsSamples, setMetricsSamples] = useState<
