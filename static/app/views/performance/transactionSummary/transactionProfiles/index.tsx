@@ -10,7 +10,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import Panel from 'sentry/components/panels/panel';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
@@ -299,7 +298,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
                         hideSystemFrames={false}
                         setHideSystemFrames={noop}
                       />
-                      <StyledPanel>
+                      <FlamegraphContainer>
                         {visualization === 'flamegraph' ? (
                           <AggregateFlamegraph
                             canvasPoolManager={canvasPoolManager}
@@ -314,7 +313,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
                             withoutBorders
                           />
                         )}
-                      </StyledPanel>
+                      </FlamegraphContainer>
                       {isLoading ? (
                         <RequestStateMessageContainer>
                           <LoadingIndicator />
@@ -435,6 +434,9 @@ const ProfileVisualization = styled('div')`
   grid-template-rows: min-content 1fr;
   height: 100%;
   flex: 1;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
 `;
 
 const RequestStateMessageContainer = styled('div')`
@@ -454,13 +456,14 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding: ${space(1)};
   background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header
    */
   height: 41px;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const ViewSelectContainer = styled('div')`
@@ -471,7 +474,7 @@ const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
   max-width: 300px;
 `;
 
-const StyledPanel = styled(Panel)`
+const FlamegraphContainer = styled('div')`
   overflow: hidden;
   display: flex;
 `;
