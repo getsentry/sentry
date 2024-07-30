@@ -290,9 +290,9 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
 export function InvestigationRuleCreation(props: Props) {
   const organization = useOrganization();
 
-  // if (!organization.isDynamicallySampled) {
-  //   return null;
-  // }
+  if (!organization.isDynamicallySampled) {
+    return null;
+  }
 
   return <InvestigationRuleCreationInternal {...props} organization={organization} />;
 }
