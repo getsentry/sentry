@@ -39,7 +39,7 @@ import {
 import {
   type DiscoverDatasets,
   DisplayModes,
-  type SavedQueryDatasets,
+  SavedQueryDatasets,
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -135,9 +135,14 @@ function TableView(props: TableViewProps) {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] {
-    const {organization, eventView, tableData, location, isHomepage} = props;
+    const {organization, eventView, tableData, location, isHomepage, queryDataset} =
+      props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
+
+    const isTransactionsDataset =
+      hasDatasetSelector(organization) &&
+      queryDataset === SavedQueryDatasets.TRANSACTIONS;
 
     if (isHeader) {
       if (hasAggregates) {
@@ -197,7 +202,7 @@ function TableView(props: TableViewProps) {
 
       let target;
 
-      if (dataRow['event.type'] !== 'transaction') {
+      if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
         target = {
           // NOTE: This uses a legacy redirect for project event to the issue group event link
@@ -306,7 +311,15 @@ function TableView(props: TableViewProps) {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode {
-    const {isFirstPage, eventView, location, organization, tableData, isHomepage} = props;
+    const {
+      isFirstPage,
+      eventView,
+      location,
+      organization,
+      tableData,
+      isHomepage,
+      queryDataset,
+    } = props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -325,10 +338,14 @@ function TableView(props: TableViewProps) {
     const unit = tableData.meta.units?.[columnKey];
     let cell = fieldRenderer(dataRow, {organization, location, unit});
 
+    const isTransactionsDataset =
+      hasDatasetSelector(organization) &&
+      queryDataset === SavedQueryDatasets.TRANSACTIONS;
+
     if (columnKey === 'id') {
       let target;
 
-      if (dataRow['event.type'] !== 'transaction') {
+      if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
 
         target = {

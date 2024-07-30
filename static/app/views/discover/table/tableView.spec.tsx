@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import TableView from 'sentry/views/discover/table/tableView';
 
 describe('TableView > CellActions', function () {
@@ -50,6 +51,7 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
+        queryDataset={SavedQueryDatasets.TRANSACTIONS}
       />,
       {router: context.router}
     );
@@ -321,6 +323,72 @@ describe('TableView > CellActions', function () {
       expect.stringMatching(
         RegExp(
           '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+        )
+      )
+    );
+  });
+
+  it('renders trace view link', function () {
+    const org = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'performance-discover-dataset-selector',
+        'trace-view-v1',
+      ],
+    });
+
+    rows = {
+      meta: {
+        trace: 'string',
+        id: 'string',
+        transaction: 'string',
+        timestamp: 'date',
+        project: 'string',
+        'event.type': 'string',
+      },
+      data: [
+        {
+          trace: '7fdf8efed85a4f9092507063ced1995b',
+          id: '509663014077465b8981b65225bdec0f',
+          transaction: '/organizations/',
+          timestamp: '2019-05-23T22:12:48+00:00',
+          project: 'project-slug',
+          'event.type': '',
+        },
+      ],
+    };
+
+    const loc = LocationFixture({
+      pathname: '/organizations/org-slug/discover/results/',
+      query: {
+        id: '42',
+        name: 'best query',
+        field: ['id', 'transaction', 'timestamp'],
+        queryDataset: 'transaction-like',
+        sort: ['transaction'],
+        query: '',
+        project: ['123'],
+        statsPeriod: '14d',
+        environment: ['staging'],
+        yAxis: 'p95',
+      },
+    });
+
+    initialData = initializeOrg({
+      organization: org,
+      router: {location: loc},
+    });
+
+    renderComponent(initialData, rows, EventView.fromLocation(loc));
+
+    const firstRow = screen.getAllByRole('row')[1];
+    const link = within(firstRow).getByTestId('view-event');
+
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringMatching(
+        RegExp(
+          '/organizations/org-slug/performance/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )
     );
