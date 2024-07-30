@@ -79,18 +79,22 @@ def add_experimental_config(
 
 
 R = TypeVar("R")
+R_default = TypeVar("R_default")
 
 
-def run_experimental_config_builder(
-    function: Callable[..., R], *args: Any, **kwargs: Any
-) -> R | None:
+def run_time_constrained_config_builder(
+    function: Callable[..., R], *args: Any, default_return: R_default = None, **kwargs: Any
+) -> R | R_default:
     """
-    Runs an experimental config builder function with a timeout.
-    If the function call raises an exception, we log it to sentry and return None.
+    Runs a config builder function with a timeout.
+    If the function call raises an exception, we log it to sentry and return value passed as
+    `default_return` parameter (by default this is `None`).
     """
     timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
-    with sentry_sdk.start_span(op="project_config.experimental_config_builder"):
+    with sentry_sdk.start_span(
+        op=f"project_config.time_constrained_config_builder.{function.__name__}"
+    ):
         try:
             return function(timeout, *args, **kwargs)
         except TimeoutException as e:
@@ -101,4 +105,4 @@ def run_experimental_config_builder(
         except Exception:
             logger.exception("Exception while building Relay project config field")
 
-    return None
+    return default_return

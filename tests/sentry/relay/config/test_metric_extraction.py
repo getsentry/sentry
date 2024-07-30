@@ -2194,6 +2194,19 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
 
 
 @django_db_all
+def test_get_span_attribute_metrics_timeout_exception(default_project: Project) -> None:
+    with Feature("organizations:custom-metrics-extraction-rule"):
+        with mock.patch(
+            "sentry.relay.config.metric_extraction._generate_span_attribute_specs",
+            side_effect=TimeoutException,
+        ) as mock_get_span_attribute_specs:
+            mock_get_span_attribute_specs.__name__ = "_generate_span_attribute_specs"
+
+            config = get_metric_extraction_config(default_project)
+            assert config is None
+
+
+@django_db_all
 @override_options({"metric_extraction.max_span_attribute_specs": 1})
 def test_get_metric_extraction_config_span_attributes_above_max_limit(
     default_project: Project,
@@ -2283,6 +2296,9 @@ def test_get_metric_extraction_config_when_on_demand_metrics_specs_timeout_excep
         with mock.patch(
             "sentry.relay.config.metric_extraction.get_on_demand_metric_specs",
             side_effect=TimeoutException,
-        ):
+        ) as mock_get_on_demand_metric_specs:
+            mock_get_on_demand_metric_specs.__name__ = (
+                "get_on_demand_metric_specs"  # needs to be set for the mock to work
+            )
             config = get_metric_extraction_config(default_project)
             assert config is None
