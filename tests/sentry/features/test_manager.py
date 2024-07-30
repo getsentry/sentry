@@ -333,7 +333,7 @@ class FeatureManagerTest(TestCase):
         manager.add("feat:3", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 
         manager.add("feat:4", OrganizationFeature, True)
-        manager.add("feat:5", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+        manager.add("feat:5", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
 
         assert "feat:1" not in manager.entity_features
         assert "feat:2" not in manager.entity_features

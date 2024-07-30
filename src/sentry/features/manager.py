@@ -181,7 +181,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         entity_feature_strategy = self._shim_feature_strategy(entity_feature_strategy)
 
-        if entity_feature_strategy == FeatureHandlerStrategy.REMOTE:
+        if entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE:
             if name.startswith("users:"):
                 raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
@@ -192,15 +192,12 @@ class FeatureManager(RegisteredFeatureManager):
                 )
             self.option_features.add(name)
 
-        is_external_flag = (
+        # Register all flagpole features with options automator,
+        # so long as they haven't already been registered.
+        if (
             entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE
-            or entity_feature_strategy == FeatureHandlerStrategy.REMOTE
-        )
-
-        # Register all remote and flagpole features with options automator,
-        # so long as they haven't already been registered. This will allow
-        # us to backfill and cut over to Flagpole without interruptions.
-        if is_external_flag and name not in self.flagpole_features:
+            and name not in self.flagpole_features
+        ):
             self.flagpole_features.add(name)
             # Set a default of {} to ensure the feature evaluates to None when checked
             feature_option_name = f"{FLAGPOLE_OPTION_PREFIX}.{name}"
@@ -370,7 +367,7 @@ class FeatureManager(RegisteredFeatureManager):
         Shim layer for old API to register a feature until all the features have been converted
         """
         if entity_feature_strategy is True:
-            return FeatureHandlerStrategy.REMOTE
+            return FeatureHandlerStrategy.FLAGPOLE
         elif entity_feature_strategy is False:
             return FeatureHandlerStrategy.INTERNAL
         return entity_feature_strategy
