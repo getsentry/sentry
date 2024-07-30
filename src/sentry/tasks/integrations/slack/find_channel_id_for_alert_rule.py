@@ -11,10 +11,11 @@ from sentry.incidents.logic import (
     InvalidTriggerActionError,
     get_slack_channel_ids,
 )
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
 from sentry.models.organization import Organization
+from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -106,12 +107,21 @@ def find_channel_id_for_alert_rule(
     if serializer.is_valid():
         try:
             alert_rule = serializer.save()
-            redis_rule_status.set_value("success", alert_rule.id)
-            return
         # we can still get a validation error for the channel not existing
         except (serializers.ValidationError, ChannelLookupTimeoutError):
             # channel doesn't exist error or validation error
             redis_rule_status.set_value("failed")
+
+        # XXX: this is not the ideal location to do this, but because we need the rule id at this stage
+        # it's the only option outside of major changes. see blame PR description for more details
+        if alert_rule:
+            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+                resp = send_historical_data_to_seer(alert_rule=alert_rule, user=user)
+                if resp.status != 200:
+                    alert_rule.delete()
+                    redis_rule_status.set_value("failed")
+                    return
+            redis_rule_status.set_value("success", alert_rule.id)
             return
     # some other error
     redis_rule_status.set_value("failed")

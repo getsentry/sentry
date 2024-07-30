@@ -119,7 +119,6 @@ class AlertRuleIndexMixin(Endpoint):
                 }
                 find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)
-                # TODO handle slack channel lookup AND anomaly detection
             else:
                 alert_rule = serializer.save()
                 if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
