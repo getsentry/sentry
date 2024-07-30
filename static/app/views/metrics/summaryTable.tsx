@@ -149,8 +149,6 @@ export const SummaryTable = memo(function SummaryTable({
         ...getTotals(s),
       };
     })
-    // Filter series with no data
-    .filter(s => s.min !== Infinity)
     .sort((a, b) => {
       const {name, order} = sort;
       if (!name) {
@@ -245,7 +243,7 @@ export const SummaryTable = memo(function SummaryTable({
                   <NumberCell key={aggregate}>
                     {row[aggregate]
                       ? formatMetricUsingUnit(row[aggregate], row.unit)
-                      : '–'}
+                      : '\u2014'}
                   </NumberCell>
                 ))}
 
