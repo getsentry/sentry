@@ -17,14 +17,18 @@ import {DraggableTabMenuButton} from 'sentry/views/issueList/draggableTabMenuBut
 
 export interface Tab {
   content: React.ReactNode;
-  key: Key;
+  key: string;
   label: string;
   hasUnsavedChanges?: boolean;
   queryCount?: number;
 }
 
 export interface DraggableTabBarProps {
+  defaultNewTab: Tab;
+  setTabs: (tabs: Tab[]) => void;
+  showTempTab: boolean;
   tabs: Tab[];
+  tempTab: Tab;
   onAddView?: React.MouseEventHandler;
   /**
    * Callback function to be called when user clicks the `Delete` button.
@@ -60,15 +64,16 @@ export interface DraggableTabBarProps {
    * Callback function to be called when user clicks the 'Save View' button for temporary views.
    */
   onSaveTempView?: () => void;
-  showTempTab?: boolean;
   tempTabContent?: React.ReactNode;
   tempTabLabel?: string;
 }
 
 export function DraggableTabBar({
-  showTempTab = false,
-  tempTabContent,
-  tempTabLabel = 'Unsaved',
+  tabs,
+  setTabs,
+  tempTab,
+  defaultNewTab,
+  showTempTab,
   onAddView,
   onDelete,
   onDiscard,
@@ -77,21 +82,14 @@ export function DraggableTabBar({
   onSave,
   onDiscardTempView,
   onSaveTempView,
-  ...props
 }: DraggableTabBarProps) {
-  const tempTab = {
-    key: 'temporary-tab',
-    label: tempTabLabel,
-    content: tempTabContent,
-  };
-  const [tabs, setTabs] = useState<Tab[]>([...props.tabs, tempTab]);
-  const [selectedTabKey, setSelectedTabKey] = useState<Key>(props.tabs[0].key);
+  const [selectedTabKey, setSelectedTabKey] = useState<Key>(tabs[0].key);
 
   useEffect(() => {
     if (!showTempTab && selectedTabKey === 'temporary-tab') {
-      setSelectedTabKey(props.tabs[0].key);
+      setSelectedTabKey(tabs[0].key);
     }
-  }, [showTempTab, selectedTabKey, props.tabs]);
+  }, [showTempTab, selectedTabKey, tabs]);
 
   const onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void = newOrder => {
     setTabs(
@@ -104,23 +102,56 @@ export function DraggableTabBar({
     );
   };
 
+  const handleOnDelete = (tab: Tab) => {
+    if (tabs.length > 1) {
+      setTabs(tabs.filter(tb => tb.key !== tab.key));
+      onDelete?.(tab.key);
+    }
+  };
+
+  const handleOnDuplicate = (tab: Tab) => {
+    const idx = tabs.findIndex(tb => tb.key === tab.key);
+    if (idx !== -1) {
+      setTabs([
+        ...tabs.slice(0, idx + 1),
+        {
+          ...tab,
+          key: `${tab.key}-copy`,
+          label: `${tab.label} (Copy)`,
+          hasUnsavedChanges: false,
+        },
+        ...tabs.slice(idx + 1),
+      ]);
+      onDuplicate?.(tab.key);
+    }
+  };
+
+  const handleOnAddView = (e: React.MouseEvent<Element, MouseEvent>) => {
+    setTabs([...tabs, defaultNewTab]);
+    onAddView?.(e);
+  };
+
   const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
     if (tab.key === 'temporary-tab') {
       return makeTempViewMenuOptions({
-        onSave: onSaveTempView,
-        onDiscard: onDiscardTempView,
+        onSave: () => onSaveTempView?.(),
+        onDiscard: () => onDiscardTempView?.(),
       });
     }
     if (tab.hasUnsavedChanges) {
       return makeUnsavedChangesMenuOptions({
         onRename,
-        onDuplicate,
-        onDelete,
+        onDuplicate: () => handleOnDuplicate(tab),
+        onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
         onSave,
         onDiscard,
       });
     }
-    return makeDefaultMenuOptions({onRename, onDuplicate, onDelete});
+    return makeDefaultMenuOptions({
+      onRename,
+      onDuplicate: () => handleOnDuplicate(tab),
+      onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
+    });
   };
 
   return (
@@ -130,10 +161,10 @@ export function DraggableTabBar({
         onSelectionChange={setSelectedTabKey}
         selectedKey={selectedTabKey}
         showTempTab={showTempTab}
-        onAddView={onAddView}
+        onAddView={e => handleOnAddView(e)}
         orientation="horizontal"
       >
-        {tabs.map(tab => (
+        {[...tabs, tempTab].map(tab => (
           <DraggableTabList.Item
             textValue={`${tab.label} tab`}
             key={tab.key}
@@ -141,7 +172,7 @@ export function DraggableTabBar({
           >
             <TabContentWrap>
               {tab.label}
-              {tab.key !== 'temporary-tab' && (
+              {tab.key !== 'temporary-tab' && tab.queryCount && (
                 <StyledBadge>
                   <QueryCount hideParens count={tab.queryCount} max={1000} />
                 </StyledBadge>
@@ -157,7 +188,7 @@ export function DraggableTabBar({
         ))}
       </DraggableTabList>
       <TabPanels>
-        {tabs.map(tab => (
+        {[...tabs, tempTab].map(tab => (
           <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
         ))}
       </TabPanels>
@@ -165,8 +196,16 @@ export function DraggableTabBar({
   );
 }
 
-const makeDefaultMenuOptions = ({onRename, onDuplicate, onDelete}): MenuItemProps[] => {
-  return [
+const makeDefaultMenuOptions = ({
+  onRename,
+  onDuplicate,
+  onDelete,
+}: {
+  onDelete?: (key: string) => void;
+  onDuplicate?: (key: string) => void;
+  onRename?: (key: string) => void;
+}): MenuItemProps[] => {
+  const menuOptions: MenuItemProps[] = [
     {
       key: 'rename-tab',
       label: t('Rename'),
@@ -177,13 +216,16 @@ const makeDefaultMenuOptions = ({onRename, onDuplicate, onDelete}): MenuItemProp
       label: t('Duplicate'),
       onAction: onDuplicate,
     },
-    {
+  ];
+  if (onDelete) {
+    menuOptions.push({
       key: 'delete-tab',
       label: t('Delete'),
       priority: 'danger',
       onAction: onDelete,
-    },
-  ];
+    });
+  }
+  return menuOptions;
 };
 
 const makeUnsavedChangesMenuOptions = ({
@@ -192,6 +234,12 @@ const makeUnsavedChangesMenuOptions = ({
   onDelete,
   onSave,
   onDiscard,
+}: {
+  onDelete?: (key: string) => void;
+  onDiscard?: (key: string) => void;
+  onDuplicate?: (key: string) => void;
+  onRename?: (key: string) => void;
+  onSave?: (key: string) => void;
 }): MenuItemProps[] => {
   return [
     {
@@ -217,7 +265,13 @@ const makeUnsavedChangesMenuOptions = ({
   ];
 };
 
-const makeTempViewMenuOptions = ({onSave, onDiscard}): MenuItemProps[] => {
+const makeTempViewMenuOptions = ({
+  onSave,
+  onDiscard,
+}: {
+  onDiscard: () => void;
+  onSave: () => void;
+}): MenuItemProps[] => {
   return [
     {
       key: 'save-changes',
