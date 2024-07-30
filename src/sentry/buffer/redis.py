@@ -88,6 +88,7 @@ class RedisOperation(Enum):
     HASH_ADD = "hset"
     HASH_GET_ALL = "hgetall"
     HASH_DELETE = "hdel"
+    HASH_LENGTH = "hlen"
 
 
 class PendingBuffer:
@@ -310,6 +311,12 @@ class RedisBuffer(Buffer):
             decoded_hash[k] = v
 
         return decoded_hash
+
+    def get_hash_length(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> int:
+        key = self._make_key(model, field)
+        return self._execute_redis_operation(key, RedisOperation.HASH_LENGTH)
 
     def process_batch(self) -> None:
         try:

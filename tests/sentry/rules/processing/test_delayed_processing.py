@@ -750,8 +750,8 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
 
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed")
-    def test_fetches_from_buffer_and_executes(self, mock_apply_delayed):
+    @patch("sentry.rules.processing.delayed_processing.process_rulegroups_in_batches")
+    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches):
         self._push_base_events()
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
@@ -761,7 +761,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
             (self.project, self.rulegroup_event_mapping_one),
             (self.project_two, self.rulegroup_event_mapping_two),
         ):
-            assert mock_apply_delayed.delay.call_count == 2
+            assert mock_process_in_batches.call_count == 2
 
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
@@ -1324,6 +1324,20 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         ):
             apply_delayed(project_id)
         self._assert_count_percent_results(safe_execute_callthrough)
+
+    def test_process_in_batches(self):
+        # TODO fill this in
+        pass
+
+
+class ProcessRuleGroupsInBatchesTest(TestCase):
+    def test_basic(self):
+        # TODO write tests for processin in batches
+        pass
+
+    # todo test for no batches
+    # todo test for multiple batches
+    # verify state of redis buffers
 
 
 class UniqueConditionQueryTest(TestCase):

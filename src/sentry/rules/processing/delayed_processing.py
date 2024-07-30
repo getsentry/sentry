@@ -75,13 +75,13 @@ class DataAndGroups(NamedTuple):
         return f"<DataAndGroups data: {self.data} group_ids: {self.group_ids}>"
 
 
-def fetch_projects(project_ids: list[int]) -> Sequence[Project] | None:
+def fetch_project(project_id: int) -> Project | None:
     try:
-        return Project.objects.get_many_from_cache(project_ids)
+        return Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
         logger.info(
-            "delayed_processing.can_not_fetch_projects",
-            extra={"project_ids": project_ids},
+            "delayed_processing.project_does_not_exist",
+            extra={"project_id": project_id},
         )
         return None
 
@@ -467,20 +467,34 @@ def bucket_num_groups(num_groups: int) -> str:
 CHUNK_PAGE_SIZE = 10000
 
 
-def process_rulegroups_in_batches(project: Project, batch_size=CHUNK_PAGE_SIZE):
-    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project.id)
+def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_PAGE_SIZE):
+    event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
 
-    # For small dictionaries, process all at once
-    if len(rulegroup_to_event_data) < 10:
-        return apply_delayed(project, rulegroup_to_event_data)
+    if event_count < CHUNK_PAGE_SIZE:
+        return apply_delayed(project_id)
 
-    # For larger dictionaries, process in batches
-    items = iter(rulegroup_to_event_data.items())
-    while True:
-        batch = dict(islice(items, batch_size))
-        if not batch:
-            break
-        apply_delayed.delayed(project, batch)
+    # if the dictionary is large, get the items and chunk them.
+    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
+
+    with metrics.timer("delayed_processing.process_batch.duration"):
+        items = iter(rulegroup_to_event_data.items())
+        while True:
+            batch = dict(islice(items, batch_size))
+            if not batch:
+                break
+
+            batch_key = f"{project_id}:{uuid.uuid4()}"
+            batch_values = json.dumps(batch)
+
+            buffer.backend.push_to_hash(
+                model=Project,
+                filters={"project_id": project_id, "batch_key": batch_key},
+                field=batch_key,
+                value=batch_values,
+            )
+            apply_delayed.delayed(project_id, batch_key)
+
+            # TODO destroy processed redis data
 
 
 def process_delayed_alert_conditions() -> None:
@@ -492,13 +506,8 @@ def process_delayed_alert_conditions() -> None:
         log_str = ", ".join(f"{project_id}: {timestamp}" for project_id, timestamp in project_ids)
         logger.info("delayed_processing.project_id_list", extra={"project_ids": log_str})
 
-        projects = fetch_projects([project_id for project_id, _ in project_ids])
-        if not projects:
-            logger.info("delayed_processing.no_projects", extra={"project_ids": log_str})
-            return None
-
-        for project in projects:
-            process_rulegroups_in_batches(project)
+        for project_id, _ in project_ids:
+            process_rulegroups_in_batches(project_id)
 
         buffer.backend.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
@@ -512,13 +521,22 @@ def process_delayed_alert_conditions() -> None:
     time_limit=60,
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(
-    project: Project, rulegroup_to_event_data: dict[str, str], *args: Any, **kwargs: Any
-) -> None:
+def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
-    project_id = project.id
+    project = fetch_project(project_id)
+
+    if project is None:
+        return
+
+    if batch_key is None:
+        rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
+    else:
+        rulegroup_to_event_data = json.loads(
+            buffer.backend.get_hash(model=Project, field={"batch_key": batch_key})
+        )
+
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
     alert_rules = fetch_alert_rules(list(rules_to_groups.keys()))
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)

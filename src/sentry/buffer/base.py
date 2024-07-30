@@ -34,6 +34,7 @@ class Buffer(Service):
         "push_to_hash",
         "get_sorted_set",
         "get_hash",
+        "get_hash_length",
         "delete_hash",
         "delete_key",
     )
@@ -53,6 +54,11 @@ class Buffer(Service):
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
     ) -> dict[str, str]:
         return {}
+
+    def get_hash_length(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> int:
+        return 0
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         return []
