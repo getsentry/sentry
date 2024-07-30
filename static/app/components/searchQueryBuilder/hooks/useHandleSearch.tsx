@@ -10,6 +10,7 @@ import {
   tokenIsInvalid,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {SavedSearchType} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -76,7 +77,7 @@ function trackIndividualSearchFilters({
       trackAnalytics('search.searched_filter', {
         organization,
         query,
-        key: token.key.text,
+        key: getKeyName(token.key),
         values,
         search_type: searchType,
         search_source: searchSource,

@@ -81,6 +81,12 @@ type DeleteLastMultiSelectFilterValueAction = {
   type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE';
 };
 
+type UpdateAggregateArgsAction = {
+  token: TokenResult<Token.KEY_AGGREGATE_ARGS>;
+  type: 'UPDATE_AGGREGATE_ARGS';
+  value: string;
+};
+
 export type QueryBuilderActions =
   | ClearAction
   | UpdateQueryAction
@@ -91,6 +97,7 @@ export type QueryBuilderActions =
   | ReplaceTokensWithTextAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
+  | UpdateAggregateArgsAction
   | MultiSelectFilterValueAction
   | DeleteLastMultiSelectFilterValueAction;
 
@@ -429,6 +436,11 @@ export function useQueryBuilderState({
           return {
             ...state,
             query: modifyFilterValue(state.query, action.token, action.value),
+          };
+        case 'UPDATE_AGGREGATE_ARGS':
+          return {
+            ...state,
+            query: replaceQueryToken(state.query, action.token, action.value),
           };
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
