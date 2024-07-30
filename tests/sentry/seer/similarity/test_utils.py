@@ -8,7 +8,7 @@ from sentry.seer.similarity.utils import (
     SEER_ELIGIBLE_PLATFORMS,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
-    filter_null_from_event_title,
+    filter_null_from_string,
     get_stacktrace_string,
 )
 from sentry.testutils.cases import TestCase
@@ -786,6 +786,10 @@ class EventContentIsSeerEligibleTest(TestCase):
 
 
 class SeerUtilsTest(TestCase):
-    def test_filter_null_from_event_title(self):
-        title_with_null = 'Title with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
-        assert filter_null_from_event_title(title_with_null) == 'Title with null , "" is null'
+    def test_filter_null_from_string(self):
+        string_with_null = 'String with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
+        assert filter_null_from_string(string_with_null) == 'String with null , "" is null'
+
+    def test_filter_null_from_string_None(self):
+        none = None
+        assert filter_null_from_string(none) is None

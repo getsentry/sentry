@@ -14,7 +14,7 @@ from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     event_content_is_seer_eligible,
-    filter_null_from_event_title,
+    filter_null_from_string,
     get_stacktrace_string,
     killswitch_enabled,
 )
@@ -209,8 +209,10 @@ def get_seer_similar_issues(
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
-        "message": filter_null_from_event_title(event.title),
-        "exception_type": get_path(event.data, "exception", "values", -1, "type"),
+        "message": filter_null_from_string(event.title),
+        "exception_type": filter_null_from_string(
+            get_path(event.data, "exception", "values", -1, "type")
+        ),
         "k": num_neighbors,
         "referrer": "ingest",
     }

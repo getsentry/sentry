@@ -30,7 +30,7 @@ from sentry.seer.similarity.types import (
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,
 )
-from sentry.seer.similarity.utils import filter_null_from_event_title, get_stacktrace_string
+from sentry.seer.similarity.utils import filter_null_from_string, get_stacktrace_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -314,8 +314,10 @@ def get_events_from_nodestore(
                 CreateGroupingRecordData(
                     group_id=group_id,
                     project_id=project.id,
-                    message=filter_null_from_event_title(event.title),
-                    exception_type=get_path(event.data, "exception", "values", -1, "type"),
+                    message=filter_null_from_string(event.title),
+                    exception_type=filter_null_from_string(
+                        get_path(event.data, "exception", "values", -1, "type")
+                    ),
                     hash=primary_hash,
                 )
             )

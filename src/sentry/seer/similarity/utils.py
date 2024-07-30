@@ -182,11 +182,13 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
     return False
 
 
-def filter_null_from_event_title(title: str) -> str:
+def filter_null_from_string(string: str | None) -> str | None:
     """
-    Filter out null bytes from event title so that it can be saved in records table.
+    Filter out null bytes from string so that it can be saved in records table.
     """
-    return title.replace("\x00", "")
+    if string is None:
+        return None
+    return string.replace("\x00", "")
 
 
 T = TypeVar("T", dict[str, Any], str)
