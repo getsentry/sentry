@@ -70,7 +70,7 @@ R_default = TypeVar("R_default")
 
 
 def build_safe_config(
-    key, function: Callable[..., R], *args: Any, default_return: R_default = None, **kwargs: Any
+    key: str, function: Callable[..., R], *args: Any, default_return: R_default = None, **kwargs: Any
 ) -> R | R_default:
     """
     Runs a config builder function with a timeout.
