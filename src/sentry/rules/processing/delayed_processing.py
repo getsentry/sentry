@@ -61,8 +61,8 @@ class UniqueConditionQuery(NamedTuple):
 
     def __repr__(self):
         return (
-            f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\n"
-            f"comp interval: {self.comparison_interval}"
+            f"<UniqueConditionQuery:\nid: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\n"
+            f"comp interval: {self.comparison_interval}\n>"
         )
 
 
@@ -71,7 +71,7 @@ class DataAndGroups(NamedTuple):
     group_ids: set[int]
 
     def __repr__(self):
-        return f"data: {self.data}\ngroup_ids: {self.group_ids}"
+        return f"<DataAndGroups data: {self.data} group_ids: {self.group_ids}>"
 
 
 def fetch_project(project_id: int) -> Project | None:

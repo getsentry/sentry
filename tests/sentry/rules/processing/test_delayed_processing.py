@@ -138,11 +138,6 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         return condition_blob
 
 
-class BuildGroupToGroupEventTest(TestCase):
-    def test_build_group_to_groupevent(self):
-        pass
-
-
 class BulkFetchEventsTest(CreateEventTestCase):
     def setUp(self):
         super().setUp()
@@ -1329,3 +1324,28 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         ):
             apply_delayed(project_id)
         self._assert_count_percent_results(safe_execute_callthrough)
+
+
+class UniqueConditionQueryTest(TestCase):
+    """
+    Tests for the UniqueConditionQuery class. Currently, this is just to pass codecov.
+    """
+
+    def test_repr(self):
+        condition = UniqueConditionQuery(
+            cls_id="1", interval="1d", environment_id=1, comparison_interval="1d"
+        )
+        assert (
+            repr(condition)
+            == "<UniqueConditionQuery:\nid: 1,\ninterval: 1d,\nenv id: 1,\ncomp interval: 1d\n>"
+        )
+
+
+class DataAndGroupsTest(TestCase):
+    """
+    Tests for the DataAndGroups class. Currently, this is just to pass codecov.
+    """
+
+    def test_repr(self):
+        condition = DataAndGroups(data={"1:100": "event_data"}, group_ids={1, 2})
+        assert repr(condition) == "<DataAndGroups data: {'1:100': 'event_data'} group_ids: {1, 2}>"
