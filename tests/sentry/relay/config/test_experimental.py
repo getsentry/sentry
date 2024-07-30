@@ -49,7 +49,7 @@ def test_add_experimental_config_catches_timeout(mock_logger):
 
 @patch("sentry.relay.config.experimental._FEATURE_BUILD_TIMEOUT", timedelta(seconds=1))
 @patch("sentry.relay.config.experimental.logger.exception")
-def test_run_experimental_config_builder_catches_timeout(mock_logger):
+def test_build_safe_config_catches_timeout(mock_logger):
     def dummy(timeout: TimeChecker, *args, **kwargs):
         sleep(1)
         timeout.check()
@@ -64,7 +64,7 @@ def test_run_experimental_config_builder_catches_timeout(mock_logger):
     assert extra == {"hard_timeout": timedelta(seconds=1)}
 
 
-def test_run_experimental_config_builder_returns_results_from_function_in_args():
+def test_build_safe_config_returns_results_from_function_in_args():
     def dummy(*args, **kwargs):
         return 1, 2, 3
 
@@ -82,7 +82,7 @@ def test_run_experimental_config_builder_returns_results_from_function_in_args()
 
 @patch("sentry.relay.config.experimental._FEATURE_BUILD_TIMEOUT", timedelta(seconds=1))
 @patch("sentry.relay.config.experimental.logger.exception")
-def test_run_experimental_config_builder_returns_default_value_on_timeout_exception(mock_logger):
+def test_build_safe_config_returns_default_value_on_timeout_exception(mock_logger):
     def dummy(timeout: TimeChecker, *args, **kwargs):
         sleep(1)
         timeout.check()
@@ -92,7 +92,7 @@ def test_run_experimental_config_builder_returns_default_value_on_timeout_except
     assert result == "bar"
 
 
-def test_run_experimental_config_builder_returns_value_passed_as_arg_on_exception():
+def test_build_safe_config_returns_value_passed_as_arg_on_exception():
     def dummy(*args, **kwargs):
         raise ValueError("foo")
 
