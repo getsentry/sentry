@@ -38,13 +38,6 @@ export default function useDevToolbar({enabled}: {enabled: boolean}) {
             // only boolean flags in sentry
             if (typeof value === 'boolean') {
               FeatureFlagOverrides.singleton().setStoredOverride(name, value);
-              // if (value) {
-              //   organization.features.push(name);
-              // } else {
-              //   organization.features = organization.features.filter(
-              //     feature => feature !== name
-              //   );
-              // }
             }
           },
           clear: () => {
