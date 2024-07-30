@@ -7,7 +7,7 @@ import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
-import ContextIcon from 'sentry/components/replays/contextIcon';
+import PlatformIcon from 'sentry/components/replays/platformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
@@ -477,7 +477,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
     <Item>
       <Container>
         <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
-          <ContextIcon
+          <PlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -504,7 +504,7 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
     <Item>
       <Container>
         <Tooltip title={`${name} ${version}`}>
-          <ContextIcon
+          <PlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
