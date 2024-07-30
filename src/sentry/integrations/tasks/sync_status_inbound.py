@@ -188,7 +188,7 @@ def sync_status_inbound(
 
     organizations = Organization.objects.filter(id=organization_id)
     affected_groups = Group.objects.get_groups_by_external_issue(
-        integration, organizations, issue_key
+        integration, list(organizations), issue_key
     )
     if not affected_groups:
         return
