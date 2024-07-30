@@ -7,7 +7,6 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
-from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase
@@ -407,14 +406,14 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             },
         )
 
-    @patch.object(FlamegraphExecutor, "_query_chunks_for_profilers")
+    @patch("sentry.profiles.flamegraph.bulk_snuba_queries")
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_transactions_with_data(
         self,
         mock_proxy_profiling_service,
         mock_raw_snql_query,
-        mock_query_chunks_for_profilers,
+        mock_bulk_snuba_queries,
     ):
         # this transaction has no transaction profile or continuous profile
         self.store_transaction(transaction="foo", project=self.project)
@@ -457,7 +456,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             "start_timestamp": (start_timestamp - buffer).isoformat(),
             "end_timestamp": (finish_timestamp + buffer).isoformat(),
         }
-        mock_query_chunks_for_profilers.return_value = {"data": [chunk]}
+        mock_bulk_snuba_queries.return_value = [{"data": [chunk]}]
 
         mock_proxy_profiling_service.return_value = HttpResponse(status=200)
 

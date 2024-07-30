@@ -29,6 +29,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
+from sentry.utils.iterators import chunked
 from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 
@@ -460,21 +461,61 @@ class FlamegraphExecutor:
     def get_chunks_for_profilers(
         self, profiler_metas: list[ProfilerMeta]
     ) -> list[ContinuousProfileCandidate]:
+        if len(profiler_metas) == 0:
+            return []
+
+        chunk_size = options.get("profiling.continuous-profiling.chunks-query.size")
+        queries = [
+            self._create_chunks_query(profiler_metas)
+            for chunk in chunked(profiler_metas, chunk_size)
+        ]
+
+        results = self._query_chunks_for_profilers(queries)
+
+        profiler_metas_by_id = {
+            (profiler_meta.project_id, profiler_meta.profiler_id): profiler_meta
+            for profiler_meta in profiler_metas
+        }
+
+        continuous_profile_candidates: list[ContinuousProfileCandidate] = []
+
+        for result in results:
+            for row in result["data"]:
+                profiler_meta = profiler_metas_by_id[(row["project_id"], row["profiler_id"])]
+                start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
+                end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
+
+                continuous_profile_candidates.append(
+                    {
+                        "project_id": profiler_meta.project_id,
+                        "profiler_id": profiler_meta.profiler_id,
+                        "chunk_id": row["chunk_id"],
+                        "thread_id": profiler_meta.thread_id,
+                        "start": str(int(max(start, profiler_meta.start) * 1.0e9)),
+                        "end": str(int(min(end, profiler_meta.end) * 1.0e9)),
+                    }
+                )
+
+        # TODO: There is the possibility that different transactions use the same
+        # profiler, chunk and thread ids. So make sure to merge overlapping candidates
+        # to avoid using the same sample multiple times.
+
+        return continuous_profile_candidates
+
+    def _create_chunks_query(self, profiler_metas: list[ProfilerMeta]) -> Query:
+        assert profiler_metas, "profiler_metas cannot be empty"
+
         profiler_conditions = [profiler_meta.as_condition() for profiler_meta in profiler_metas]
 
-        if len(profiler_conditions) == 0:
-            return []
-        elif len(profiler_conditions) == 1:
+        if len(profiler_conditions) == 1:
             profilers_condition = profiler_conditions[0]
         else:
             profilers_condition = Or(conditions=profiler_conditions)
 
-        max_chunks = options.get("profiling.continuous-profiling.chunks-set.size")
-
         project_condition = Condition(
             Column("project_id"),
             Op.IN,
-            [profiler_meta.project_id for profiler_meta in profiler_metas],
+            list({profiler_meta.project_id for profiler_meta in profiler_metas}),
         )
         start_condition = Condition(
             Column("start_timestamp"),
@@ -485,7 +526,7 @@ class FlamegraphExecutor:
             Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
         )
 
-        query = Query(
+        return Query(
             match=Storage(StorageKey.ProfileChunks.value),
             select=[
                 Column("project_id"),
@@ -507,41 +548,10 @@ class FlamegraphExecutor:
                 OrderBy(Column("profiler_id"), Direction.DESC),
                 OrderBy(Column("start_timestamp"), Direction.DESC),
             ],
-            limit=Limit(max_chunks),
+            limit=Limit(options.get("profiling.continuous-profiling.chunks-set.size")),
         )
 
-        result = self._query_chunks_for_profilers(query)
-
-        profiler_metas_by_id = {
-            (profiler_meta.project_id, profiler_meta.profiler_id): profiler_meta
-            for profiler_meta in profiler_metas
-        }
-
-        continuous_profile_candidates: list[ContinuousProfileCandidate] = []
-
-        for row in result["data"]:
-            profiler_meta = profiler_metas_by_id[(row["project_id"], row["profiler_id"])]
-            start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
-            end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
-
-            continuous_profile_candidates.append(
-                {
-                    "project_id": profiler_meta.project_id,
-                    "profiler_id": profiler_meta.profiler_id,
-                    "chunk_id": row["chunk_id"],
-                    "thread_id": profiler_meta.thread_id,
-                    "start": str(int(max(start, profiler_meta.start) * 1.0e9)),
-                    "end": str(int(min(end, profiler_meta.end) * 1.0e9)),
-                }
-            )
-
-        # TODO: There is the possibility that different transactions use the same
-        # profiler, chunk and thread ids. So make sure to merge overlapping candidates
-        # to avoid using the same sample multiple times.
-
-        return continuous_profile_candidates
-
-    def _query_chunks_for_profilers(self, query: Query) -> Mapping[str, Any]:
+    def _query_chunks_for_profilers(self, queries: list[Query]) -> list[Mapping[str, Any]]:
         """This function is split out for mocking as we cannot write to the
         profile chunks dataset in tests today"""
 
@@ -550,17 +560,20 @@ class FlamegraphExecutor:
 
         referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_CHUNK_CANDIDATES.value
 
-        request = Request(
-            dataset=Dataset.Profiles.value,
-            app_id="default",
-            query=query,
-            tenant_ids={
-                "referrer": referrer,
-                "organization_id": self.snuba_params.organization.id,
-            },
-        )
+        requests = [
+            Request(
+                dataset=Dataset.Profiles.value,
+                app_id="default",
+                query=query,
+                tenant_ids={
+                    "referrer": referrer,
+                    "organization_id": self.snuba_params.organization.id,
+                },
+            )
+            for query in queries
+        ]
 
-        return raw_snql_query(request, referrer=referrer)
+        return bulk_snuba_queries(requests, referrer=referrer)
 
     def get_profile_candidates_from_profiles(self) -> ProfileCandidates:
         if self.snuba_params.organization is None:
