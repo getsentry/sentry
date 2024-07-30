@@ -1,13 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {AssigneeBadge} from 'sentry/components/assigneeBadge';
-import AssigneeSelectorDropdown, {
-  type AssignableEntity,
-} from 'sentry/components/assigneeSelectorDropdown';
+import {AssigneeSelector} from 'sentry/components/assigneeSelector';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
@@ -144,33 +140,10 @@ export default function StreamlinedGroupHeader({
             </Wrapper>
             <Wrapper>
               {t('Assignee')}
-              <AssigneeSelectorDropdown
+              <AssigneeSelector
                 group={group}
-                loading={assigneeLoading}
-                onAssign={(assignedActor: AssignableEntity | null) =>
-                  handleAssigneeChange(assignedActor)
-                }
-                onClear={() => handleAssigneeChange(null)}
-                trigger={(props, isOpen) => (
-                  <StyledDropdownButton
-                    {...props}
-                    borderless
-                    aria-label={t('Modify issue assignee')}
-                    size="zero"
-                  >
-                    <AssigneeBadge
-                      assignedTo={group.assignedTo ?? undefined}
-                      assignmentReason={
-                        group.owners?.find(owner => {
-                          const [_ownershipType, ownerId] = owner.owner.split(':');
-                          return ownerId === group.assignedTo?.id;
-                        })?.type
-                      }
-                      loading={assigneeLoading}
-                      chevronDirection={isOpen ? 'up' : 'down'}
-                    />
-                  </StyledDropdownButton>
-                )}
+                assigneeLoading={assigneeLoading}
+                handleAssigneeChange={handleAssigneeChange}
               />
             </Wrapper>
             {group.participants.length > 0 && (
@@ -265,14 +238,6 @@ const Wrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const StyledDropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  border: none;
-  padding: 0;
-  height: unset;
-  border-radius: 10px;
-  box-shadow: none;
-`;
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
   padding-left: ${space(0.75)};
