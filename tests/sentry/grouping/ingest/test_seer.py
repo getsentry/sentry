@@ -240,7 +240,6 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
         expected_metadata = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": self.new_event_hashes.hashes[0],
             "results": [asdict(seer_result_data)],
         }
 
@@ -256,7 +255,6 @@ class GetSeerSimilarIssuesTest(TestCase):
     def test_returns_no_group_and_empty_metadata_if_no_similar_group_found(self):
         expected_metadata = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": self.new_event_hashes.hashes[0],
             "results": [],
         }
 

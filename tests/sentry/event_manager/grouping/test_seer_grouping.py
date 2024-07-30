@@ -25,10 +25,6 @@ class SeerEventManagerGroupingTest(TestCase):
             message_distance=0.05,
             should_group=True,
         )
-        metadata_base = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "results": [asdict(seer_result_data)],
-        }
 
         get_seer_similar_issues_return_values: list[Any] = []
 
@@ -70,7 +66,10 @@ class SeerEventManagerGroupingTest(TestCase):
 
             with Feature({"projects:similarity-embeddings-grouping": True}):
                 new_event = save_new_event({"message": "Maisey is silly"}, self.project)
-                expected_metadata = {**metadata_base, "request_hash": new_event.get_primary_hash()}
+                expected_metadata = {
+                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                    "results": [asdict(seer_result_data)],
+                }
 
                 # We checked whether to make the call, and then made it
                 assert should_call_seer_spy.call_count == 1
@@ -119,7 +118,6 @@ class SeerEventManagerGroupingTest(TestCase):
             new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
             expected_metadata = {
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": new_event.get_primary_hash(),
                 "results": [asdict(seer_result_data)],
             }
 
