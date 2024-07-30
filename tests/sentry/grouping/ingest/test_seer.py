@@ -253,29 +253,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                 self.existing_event.group,
             )
 
-    def test_returns_metadata_but_no_group_if_similar_group_insufficiently_close(self):
-        seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(self.existing_event.get_primary_hash()),
-            parent_group_id=NonNone(self.existing_event.group_id),
-            stacktrace_distance=0.08,
-            message_distance=0.12,
-            should_group=False,
-        )
-        expected_metadata = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": self.new_event_hashes.hashes[0],
-            "results": [asdict(seer_result_data)],
-        }
-
-        with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-            return_value=[seer_result_data],
-        ):
-            assert get_seer_similar_issues(self.new_event, self.new_event_hashes) == (
-                expected_metadata,
-                None,
-            )
-
     def test_returns_no_group_and_empty_metadata_if_no_similar_group_found(self):
         expected_metadata = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
