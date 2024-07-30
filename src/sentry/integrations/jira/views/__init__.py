@@ -1,3 +1,4 @@
+SALT = "sentry-jira-integration"
 UNABLE_TO_VERIFY_INSTALLATION = "Unable to verify installation"
 
 from .base import JiraSentryUIBaseView

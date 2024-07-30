@@ -21,6 +21,8 @@ from sentry.utils.signing import sign
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
+SALT = "sentry-project-transfer"
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {"POST": ["org:admin"]}

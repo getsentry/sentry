@@ -15,6 +15,7 @@ from sentry.web.helpers import render_to_response
 
 from .card_builder.identity import build_linked_card
 from .client import MsTeamsClient
+from .constants import SALT
 
 
 def build_linking_url(integration, organization, teams_user_id, team_id, tenant_id):
@@ -36,7 +37,7 @@ class MsTeamsLinkIdentityView(BaseView):
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params) -> HttpResponse:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=SALT)
         except (SignatureExpired, BadSignature):
             return render_to_response(
                 "sentry/integrations/msteams/expired-link.html",
