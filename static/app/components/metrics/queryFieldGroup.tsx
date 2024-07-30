@@ -69,11 +69,20 @@ function CompactSelect<Value extends SelectKey>({
   );
 }
 
-function DeleteButton({title, onClick}: {onClick: () => void; title: string}) {
+function DeleteButton({
+  title,
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  title: string;
+  disabled?: boolean;
+}) {
   return (
     <Tooltip title={title} delay={SLOW_TOOLTIP_DELAY}>
       <StyledButton
         icon={<IconDelete size="xs" />}
+        disabled={disabled}
         aria-label={title}
         onClick={onClick}
       />
