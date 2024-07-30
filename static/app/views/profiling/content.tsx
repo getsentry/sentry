@@ -285,7 +285,7 @@ function validateTab(tab: unknown): tab is 'flamegraph' | 'transactions' {
 
 function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
   // Fallback to transactions if tab is invalid. We default to transactions
-  // becuase that is going to be the most common perf setup when we release.
+  // because that is going to be the most common perf setup when we release.
   return validateTab(tab) ? tab : 'transactions';
 }
 
