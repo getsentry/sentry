@@ -4,6 +4,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from itertools import islice
 from typing import Any, DefaultDict, NamedTuple
 
 import sentry_sdk
@@ -74,13 +75,13 @@ class DataAndGroups(NamedTuple):
         return f"<DataAndGroups data: {self.data} group_ids: {self.group_ids}>"
 
 
-def fetch_project(project_id: int) -> Project | None:
+def fetch_projects(project_ids: list[int]) -> Sequence[Project] | None:
     try:
-        return Project.objects.get_from_cache(id=project_id)
+        return Project.objects.get_many_from_cache(project_ids)
     except Project.DoesNotExist:
         logger.info(
-            "delayed_processing.project_does_not_exist",
-            extra={"project_id": project_id},
+            "delayed_processing.can_not_fetch_projects",
+            extra={"project_ids": project_ids},
         )
         return None
 
@@ -463,6 +464,25 @@ def bucket_num_groups(num_groups: int) -> str:
     return "1"
 
 
+CHUNK_PAGE_SIZE = 10000
+
+
+def process_rulegroups_in_batches(project: Project, batch_size=CHUNK_PAGE_SIZE):
+    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project.id)
+
+    # For small dictionaries, process all at once
+    if len(rulegroup_to_event_data) < 10:
+        return apply_delayed(project, rulegroup_to_event_data)
+
+    # For larger dictionaries, process in batches
+    items = iter(rulegroup_to_event_data.items())
+    while True:
+        batch = dict(islice(items, batch_size))
+        if not batch:
+            break
+        apply_delayed.delayed(project, batch)
+
+
 def process_delayed_alert_conditions() -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
@@ -472,8 +492,13 @@ def process_delayed_alert_conditions() -> None:
         log_str = ", ".join(f"{project_id}: {timestamp}" for project_id, timestamp in project_ids)
         logger.info("delayed_processing.project_id_list", extra={"project_ids": log_str})
 
-        for project_id, _ in project_ids:
-            apply_delayed.delay(project_id)
+        projects = fetch_projects([project_id for project_id, _ in project_ids])
+        if not projects:
+            logger.info("delayed_processing.no_projects", extra={"project_ids": log_str})
+            return None
+
+        for project in projects:
+            process_rulegroups_in_batches(project)
 
         buffer.backend.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
@@ -487,32 +512,13 @@ def process_delayed_alert_conditions() -> None:
     time_limit=60,
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
+def apply_delayed(
+    project: Project, rulegroup_to_event_data: dict[str, str], *args: Any, **kwargs: Any
+) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
-    project = fetch_project(project_id)
-    if not project:
-        # Should we remove the project_id from the redis queue?
-        return
-
-    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
-    num_groups = len(rulegroup_to_event_data)
-    num_groups_bucketed = bucket_num_groups(num_groups)
-    metrics.incr("delayed_processing.num_groups", tags={"num_groups": num_groups_bucketed})
-
-    if num_groups >= 10000:
-        logger.error(
-            "delayed_processing.too_many_groups",
-            extra={
-                "project_id": project_id,
-                "num_groups": num_groups,
-                "organization_id": project.organization_id,
-            },
-        )
-        # TODO @saponifi3d - Split the processing from here into smaller groups
-        return
-
+    project_id = project.id
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
     alert_rules = fetch_alert_rules(list(rules_to_groups.keys()))
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
