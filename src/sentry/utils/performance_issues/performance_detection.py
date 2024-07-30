@@ -366,8 +366,6 @@ def _detect_performance_problems(
         )
 
     organization = project.organization
-    if project is None or organization is None:
-        return []
 
     problems: list[PerformanceProblem] = []
     with sentry_sdk.start_span(op="performance_detection", description="is_creation_allowed"):
