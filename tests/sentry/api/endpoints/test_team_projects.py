@@ -17,8 +17,7 @@ from sentry.silo.base import SiloMode
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import get_test_env_directory
-from sentry.types.region import RegionCategory, load_from_config
-from tests.sentry.types.test_region import RegionDirectoryTest
+from sentry.types.region import RegionCategory, RegionDirectory, load_from_config
 
 
 class TeamProjectsListTest(APITestCase):
@@ -249,7 +248,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @staticmethod
     @contextmanager
-    def _in_global_state(directory: RegionDirectoryTest) -> Generator[None, None, None]:
+    def _in_global_state(directory: RegionDirectory) -> Generator[None, None, None]:
         with get_test_env_directory().swap_state(tuple(directory.regions)):
             yield
 
