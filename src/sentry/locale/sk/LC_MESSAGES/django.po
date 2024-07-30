@@ -10025,7 +10025,7 @@ msgid "Unknown error. Please try again."
 msgstr ""
 
 #: static/app/constants/notAvailableMessages.tsx:4
-msgid "This view is only available with Performance Monitoring."
+msgid "This view is only available with Tracing."
 msgstr ""
 
 #: static/app/constants/notAvailableMessages.tsx:5
@@ -15206,7 +15206,7 @@ msgstr ""
 #: static/app/views/onboarding/components/integrations/addInstallationInstructions.tsx:11
 msgid ""
 "The automated AWS Lambda setup will instrument your Lambda functions with "
-"Sentry error and performance monitoring without any code changes. We use "
+"Sentry error and tracing without any code changes. We use "
 "CloudFormation Stack ([learnMore]) to create the Sentry role which gives us "
 "access to your AWS account."
 msgstr ""
@@ -16192,7 +16192,7 @@ msgstr ""
 
 #: static/app/views/organizationGroupDetails/quickTrace/configureDistributedTracing.tsx:88
 #: static/app/views/performance/transactionDetails/quickTraceMeta.tsx:60
-msgid "Requires performance monitoring."
+msgid "Requires tracing."
 msgstr ""
 
 #: static/app/views/organizationGroupDetails/quickTrace/issueQuickTrace.tsx:120
@@ -18559,7 +18559,7 @@ msgid "transactions: %s"
 msgstr ""
 
 #: static/app/views/projectsDashboard/projectCard.tsx:171
-msgid "Click here to learn more about performance monitoring"
+msgid "Click here to learn more about tracing"
 msgstr ""
 
 #: static/app/views/projectsDashboard/projectCard.tsx:227
