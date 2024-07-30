@@ -195,7 +195,7 @@ def sync_status_inbound(
 
     installation = integration.get_installation(organization_id=organization_id)
     assert (
-        installation and installation.org_integration
+        installation.org_integration
     ), "Installation  and org_integration must exist to get a config"
     config = installation.org_integration.config
 

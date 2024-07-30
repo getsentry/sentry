@@ -7,7 +7,7 @@ from typing import Any
 from django.db.models.signals import post_save
 
 from sentry import options
-from sentry.integrations.tasks import kick_off_status_syncs
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type

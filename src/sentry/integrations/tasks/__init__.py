@@ -28,7 +28,6 @@ __all__ = (
     "kickoff_vsts_subscription_check",
     "logger",
     "migrate_opsgenie_plugin",
-    "migrate_issues",
     "migrate_repo",
     "should_comment_sync",
     "sync_assignee_outbound",

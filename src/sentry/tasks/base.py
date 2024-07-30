@@ -176,7 +176,7 @@ def retry(
     return inner
 
 
-def track_group_async_operation(function):
+def track_group_async_operation(function: Callable[..., Any]) -> Callable[..., Any]:
     def wrapper(*args, **kwargs):
         from sentry.utils import snuba
 
