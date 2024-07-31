@@ -44,9 +44,9 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
 class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
     owner = ApiOwner.PERFORMANCE
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectSettingPermission,)
 
