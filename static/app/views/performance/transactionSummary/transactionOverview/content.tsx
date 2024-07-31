@@ -112,6 +112,31 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
     label: 'Span Duration',
     children: SPAN_OP_BREAKDOWN_FIELDS,
   },
+  // TODO: In the future, it would be awesome if we could be more 'smart' about which fields we expose here.
+  // For example, these device fields are likely not necessary for a Python transaction, but they should be suggested for mobile
+  {
+    value: 'device_fields',
+    label: 'Device',
+    children: [
+      FieldKey.DEVICE_ARCH,
+      FieldKey.DEVICE_BATTERY_LEVEL,
+      FieldKey.DEVICE_BRAND,
+      FieldKey.DEVICE_CHARGING,
+      FieldKey.DEVICE_CLASS,
+      FieldKey.DEVICE_FAMILY,
+      FieldKey.DEVICE_LOCALE,
+      FieldKey.DEVICE_MODEL_ID,
+      FieldKey.DEVICE_NAME,
+      FieldKey.DEVICE_ONLINE,
+      FieldKey.DEVICE_ORIENTATION,
+      FieldKey.DEVICE_SCREEN_DENSITY,
+      FieldKey.DEVICE_SCREEN_DPI,
+      FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS,
+      FieldKey.DEVICE_SCREEN_WIDTH_PIXELS,
+      FieldKey.DEVICE_SIMULATOR,
+      FieldKey.DEVICE_UUID,
+    ],
+  },
 ];
 
 type Props = {
