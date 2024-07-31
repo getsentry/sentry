@@ -248,7 +248,9 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 user.save()
 
                 # Ugly way of doing this, but Django requires the backend be set
-                user = authenticate(username=user.username, password=form.cleaned_data["password"])
+                auth = authenticate(username=user.username, password=form.cleaned_data["password"])
+                assert isinstance(auth, User), auth
+                user = auth
 
                 # Only log the user in if there is no two-factor on the
                 # account.

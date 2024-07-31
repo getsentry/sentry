@@ -1,5 +1,6 @@
 import {useRef, useState} from 'react';
 
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import useEnabledFeatureFlags from 'sentry/components/devtoolbar/components/featureFlags/useEnabledFeatureFlags';
 import {inlineLinkCss} from 'sentry/components/devtoolbar/styles/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -15,7 +16,7 @@ import PanelLayout from '../panelLayout';
 
 export default function FeatureFlagsPanel() {
   const featureFlags = useEnabledFeatureFlags();
-  const {organizationSlug, featureFlagTemplateUrl, trackAnalytics} = useConfiguration();
+  const {organizationSlug, featureFlagTemplateUrl} = useConfiguration();
   const [searchTerm, setSearchTerm] = useState('');
   const searchInput = useRef<HTMLInputElement>(null);
 
@@ -58,18 +59,14 @@ export default function FeatureFlagsPanel() {
             return (
               <Cell key={flag} css={[panelInsetContentCss, {alignItems: 'flex-start'}]}>
                 {featureFlagTemplateUrl?.(flag) ? (
-                  <ExternalLink
-                    css={[smallCss, inlineLinkCss]}
-                    href={featureFlagTemplateUrl(flag)}
-                    onClick={() => {
-                      trackAnalytics?.({
-                        eventKey: `devtoolbar.feature-flag-list.item.click`,
-                        eventName: `devtoolbar: Click feature-flag-list item`,
-                      });
-                    }}
-                  >
-                    {flag}
-                  </ExternalLink>
+                  <AnalyticsProvider nameVal="item" keyVal="item">
+                    <ExternalLink
+                      css={[smallCss, inlineLinkCss]}
+                      href={featureFlagTemplateUrl(flag)}
+                    >
+                      {flag}
+                    </ExternalLink>
+                  </AnalyticsProvider>
                 ) : (
                   <span>{flag}</span>
                 )}

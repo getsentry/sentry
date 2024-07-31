@@ -22,7 +22,7 @@ type OptionCache = Map<SelectKey, Option>;
  */
 export function useCompactSelectOptionsCache(options: Option[]): {
   clear: () => void;
-  options: readonly Option[];
+  options: Option[];
 } {
   const cache = useRef<OptionCache>(new Map());
 
