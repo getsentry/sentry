@@ -68,7 +68,7 @@ def fix_event_data(data):
 class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
     owner = ApiOwner.PERFORMANCE
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     # Members should be able to create sample events.
     # This is the same scope that allows members to view all issues for a project.
