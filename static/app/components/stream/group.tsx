@@ -6,17 +6,14 @@ import type {LocationDescriptor} from 'history';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {AssigneeBadge} from 'sentry/components/assigneeBadge';
-import AssigneeSelectorDropdown, {
-  type AssignableEntity,
-} from 'sentry/components/assigneeSelectorDropdown';
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
@@ -548,34 +545,11 @@ function BaseGroupRow({
           ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
-              <AssigneeSelectorDropdown
+              <AssigneeSelector
                 group={group}
-                loading={assigneeLoading}
+                assigneeLoading={assigneeLoading}
+                handleAssigneeChange={handleAssigneeChange}
                 memberList={memberList}
-                onAssign={(assignedActor: AssignableEntity | null) =>
-                  handleAssigneeChange(assignedActor)
-                }
-                onClear={() => handleAssigneeChange(null)}
-                trigger={(props, isOpen) => (
-                  <StyledDropdownButton
-                    {...props}
-                    borderless
-                    aria-label={t('Modify issue assignee')}
-                    size="zero"
-                  >
-                    <AssigneeBadge
-                      assignedTo={group.assignedTo ?? undefined}
-                      assignmentReason={
-                        group.owners?.find(owner => {
-                          const [_ownershipType, ownerId] = owner.owner.split(':');
-                          return ownerId === group.assignedTo?.id;
-                        })?.type
-                      }
-                      loading={assigneeLoading}
-                      chevronDirection={isOpen ? 'up' : 'down'}
-                    />
-                  </StyledDropdownButton>
-                )}
               />
             </AssigneeWrapper>
           )}
@@ -589,15 +563,6 @@ function BaseGroupRow({
 const StreamGroup = withOrganization(BaseGroupRow);
 
 export default StreamGroup;
-
-const StyledDropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  border: none;
-  padding: 0;
-  height: unset;
-  border-radius: 10px;
-  box-shadow: none;
-`;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
