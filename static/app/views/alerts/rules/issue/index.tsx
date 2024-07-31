@@ -420,6 +420,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   }
 
   refetchConfigs() {
+    console.log('refetching!!!!');
     const {organization} = this.props;
     const {project} = this.state;
 
@@ -1232,6 +1233,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               <SetupAlertIntegrationButton
                 projectSlug={project.slug}
                 organization={organization}
+                refetchConfigs={this.refetchConfigs}
               />
             </SetConditionsListItem>
             <ContentIndent>

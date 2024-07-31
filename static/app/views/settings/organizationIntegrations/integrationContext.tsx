@@ -14,6 +14,7 @@ export type IntegrationContextProps = {
   installStatus: string;
   provider: IntegrationProvider;
   type: IntegrationType;
+  onAddIntegration?: () => void;
   modalParams?: {[key: string]: string};
 };
 
