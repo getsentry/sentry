@@ -268,7 +268,12 @@ def format_mri_field(field: str) -> str:
                 try:
                     condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
                     config = condition.config
-                    return f'{parsed.op}({config.span_attribute}) filtered by "{condition.value}"'
+                    if condition.value:
+                        filter_str = f' filtered by "{condition.value}"'
+                    else:
+                        filter_str = ""
+
+                    return f"{parsed.op}({config.span_attribute}){filter_str}"
                 except SpanAttributeExtractionRuleCondition.DoesNotExist:
                     with sentry_sdk.new_scope() as scope:
                         scope.set_tag("field", field)

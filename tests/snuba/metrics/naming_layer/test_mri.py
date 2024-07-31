@@ -48,6 +48,26 @@ class TestMRIUtils(TestCase):
             == 'count_unique(browser.name) filtered by "browser.name:Chrome or browser.name:Firefox"'
         )
 
+    def test_span_metric_mri_field_empty_condition(self):
+        config = {
+            "spanAttribute": "browser.name",
+            "aggregates": ["count_unique"],
+            "unit": "none",
+            "tags": [],
+            "conditions": [
+                {"value": ""},
+            ],
+        }
+        project = self.create_project(organization=self.organization, name="my new project")
+        config_object = self.create_span_attribute_extraction_config(
+            dictionary=config, user_id=self.user.id, project=project
+        )
+        condition_id = config_object.conditions.get().id
+        assert (
+            format_mri_field(f"count_unique(c:custom/span_attribute_{condition_id}@none)")
+            == "count_unique(browser.name)"
+        )
+
     def test_span_metric_mri_field_value(self):
         config = {
             "spanAttribute": "my_duration",
