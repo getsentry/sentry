@@ -265,7 +265,6 @@ module = [
     "sentry.integrations.github.integration",
     "sentry.integrations.github.issues",
     "sentry.integrations.github_enterprise.integration",
-    "sentry.integrations.github_enterprise.webhook",
     "sentry.integrations.gitlab.client",
     "sentry.integrations.gitlab.integration",
     "sentry.integrations.gitlab.issues",
