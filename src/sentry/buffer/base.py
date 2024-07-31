@@ -58,7 +58,7 @@ class Buffer(Service):
     def get_hash_length(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
     ) -> int:
-        return 0
+        raise NotImplementedError
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         return []
