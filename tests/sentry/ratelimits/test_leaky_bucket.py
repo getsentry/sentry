@@ -33,6 +33,8 @@ class LeakyBucketRateLimiterTest(TestCase):
         with freeze_time("2077-09-13"):
             assert not self.limiter.is_limited("foo", incr_by=3)
             assert self.limiter.is_limited("foo", incr_by=3)
+            assert not self.limiter.is_limited("foo", incr_by=2)
+            assert self.limiter.is_limited("foo")
 
     def test_invalid_incr_by(self) -> None:
         with pytest.raises(ValueError) as ex:
