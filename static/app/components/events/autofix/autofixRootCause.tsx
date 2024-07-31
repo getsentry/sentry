@@ -215,7 +215,7 @@ function CauseOption({
             __html: singleLineRenderer(cause.title),
           }}
         />
-        <div style={{display: 'flex', flexDirection: 'row'}}>
+        <RootCauseOptionsRow>
           <Button
             size="xs"
             onClick={() => handleSelectFix({causeId: cause.id})}
@@ -234,7 +234,7 @@ function CauseOption({
             borderless
             style={{marginLeft: 8}}
           />
-        </div>
+        </RootCauseOptionsRow>
       </RootCauseOptionHeader>
       <RootCauseContent selected={selected}>
         <CauseDescription
@@ -559,4 +559,9 @@ const OptionFooter = styled('div')`
 
 const CustomRootCausePadding = styled('div')`
   padding: 0 ${space(2)} ${space(2)} ${space(2)};
+`;
+
+const RootCauseOptionsRow = styled('div')`
+  display: flex;
+  flex-direction: row;
 `;
