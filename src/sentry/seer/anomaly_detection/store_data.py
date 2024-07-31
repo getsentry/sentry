@@ -95,6 +95,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPR
         not alert_rule.sensitivity
         or not alert_rule.seasonality
         or alert_rule.threshold_type is None
+        or alert_rule.organization is None
     ):
         # this won't happen because we've already gone through the serializer, but mypy insists
         base_error_response.reason = (
@@ -157,7 +158,7 @@ def fetch_historical_data(alert_rule: AlertRule, snuba_query: SnubaQuery) -> Snu
         dataset_label = "errors"
     dataset = get_dataset(dataset_label)
     project = alert_rule.projects.get()
-    if not project or not dataset:
+    if not project or not dataset or not alert_rule.organization:
         return None
 
     historical_data = dataset.timeseries_query(
