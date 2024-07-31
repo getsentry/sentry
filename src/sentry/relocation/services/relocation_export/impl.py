@@ -181,7 +181,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             "replying_region_name": replying_region_name,
             "org_slug": org_slug,
             # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-            "encrypt_with_public_key_size": len(encrypted_bytes or []),
+            "encrypted_bytes_size": len(encrypted_bytes or []),
         }
         logger.info("SaaS -> SaaS reply received on proxy", extra=logger_data)
 

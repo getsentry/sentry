@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 from uuid import UUID
 
 from sentry.api.endpoints.organization_fork import (
+    ERR_CANNOT_FORK_FROM_REGION,
     ERR_CANNOT_FORK_INTO_SAME_REGION,
     ERR_DUPLICATE_ORGANIZATION_FORK,
     ERR_ORGANIZATION_INACTIVE,
@@ -332,6 +333,31 @@ class OrganizationForkTest(APITestCase):
         assert response.data.get("detail") == ERR_ORGANIZATION_INACTIVE.substitute(
             slug=self.existing_org.slug,
             status="DELETION_IN_PROGRESS",
+        )
+        assert uploading_start_mock.call_count == 0
+        assert analytics_record_mock.call_count == 0
+        assert Relocation.objects.count() == relocation_count
+        assert RelocationFile.objects.count() == relocation_file_count
+
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
+    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @patch(
+        "sentry.api.endpoints.organization_fork.CANNOT_FORK_FROM_REGION", {EXPORTING_TEST_REGION}
+    )
+    def test_bad_organization_in_forbidden_region(
+        self,
+        uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
+    ):
+        self.login_as(user=self.superuser, superuser=True)
+        relocation_count = Relocation.objects.count()
+        relocation_file_count = RelocationFile.objects.count()
+
+        response = self.get_error_response(self.existing_org.slug, status_code=403)
+
+        assert response.data.get("detail") is not None
+        assert response.data.get("detail") == ERR_CANNOT_FORK_FROM_REGION.substitute(
+            region=EXPORTING_TEST_REGION,
         )
         assert uploading_start_mock.call_count == 0
         assert analytics_record_mock.call_count == 0
