@@ -89,7 +89,6 @@ export interface AutofixDefaultStep extends BaseStep {
 export type AutofixRootCauseSelection =
   | {
       cause_id: string;
-      fix_id: string;
     }
   | {custom_root_cause: string}
   | null;

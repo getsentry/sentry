@@ -53,7 +53,6 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
       params:
         | {
             causeId: string;
-            fixId: string;
           }
         | {
             customRootCause: string;
@@ -75,7 +74,6 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
                 payload: {
                   type: 'select_root_cause',
                   cause_id: params.causeId,
-                  fix_id: params.fixId,
                 },
               },
       });
@@ -108,7 +106,6 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
                         }
                       : {
                           cause_id: params.causeId,
-                          fix_id: params.fixId,
                         },
                 };
               }),
@@ -194,57 +191,6 @@ function SuggestedFixSnippet({
   );
 }
 
-function CauseSuggestedFix({
-  fixNumber,
-  suggestedFix,
-  groupId,
-  runId,
-  causeId,
-}: {
-  causeId: string;
-  fixNumber: number;
-  groupId: string;
-  runId: string;
-  suggestedFix: AutofixRootCauseCodeContext;
-}) {
-  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
-
-  return (
-    <SuggestedFixWrapper>
-      <SuggestedFixHeader>
-        <strong
-          dangerouslySetInnerHTML={{
-            __html: singleLineRenderer(
-              t('Relevant Code #%s: %s', fixNumber, suggestedFix.title)
-            ),
-          }}
-        />
-        <Button
-          size="xs"
-          onClick={() => handleSelectFix({causeId, fixId: suggestedFix.id})}
-          busy={isLoading}
-          analyticsEventName="Autofix: Root Cause Fix Selected"
-          analyticsEventKey="autofix.root_cause_fix_selected"
-          analyticsParams={{group_id: groupId}}
-        >
-          {t('Continue with a fix here')}
-        </Button>
-      </SuggestedFixHeader>
-      <p
-        dangerouslySetInnerHTML={{
-          __html: marked(suggestedFix.description),
-        }}
-      />
-      {suggestedFix.snippet && (
-        <SuggestedFixSnippet
-          snippet={suggestedFix.snippet}
-          linesToHighlight={getLinesToHighlight(suggestedFix)}
-        />
-      )}
-    </SuggestedFixWrapper>
-  );
-}
-
 function CauseOption({
   cause,
   selected,
@@ -258,6 +204,8 @@ function CauseOption({
   selected: boolean;
   setSelectedId: (id: string) => void;
 }) {
+  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
+
   return (
     <RootCauseOption selected={selected} onClick={() => setSelectedId(cause.id)}>
       {!selected && <InteractionStateLayer />}
@@ -267,13 +215,26 @@ function CauseOption({
             __html: singleLineRenderer(cause.title),
           }}
         />
-        <Button
-          icon={<IconChevron size="xs" direction={selected ? 'down' : 'right'} />}
-          aria-label={t('Select root cause')}
-          aria-expanded={selected}
-          size="zero"
-          borderless
-        />
+        <div style={{display: 'flex', flexDirection: 'row'}}>
+          <Button
+            size="xs"
+            onClick={() => handleSelectFix({causeId: cause.id})}
+            busy={isLoading}
+            analyticsEventName="Autofix: Root Cause Fix Selected"
+            analyticsEventKey="autofix.root_cause_fix_selected"
+            analyticsParams={{group_id: groupId}}
+          >
+            {t('Continue with a fix')}
+          </Button>
+          <Button
+            icon={<IconChevron size="xs" direction={selected ? 'down' : 'right'} />}
+            aria-label={t('Select root cause')}
+            aria-expanded={selected}
+            size="zero"
+            borderless
+            style={{marginLeft: 8}}
+          />
+        </div>
       </RootCauseOptionHeader>
       <RootCauseContent selected={selected}>
         <CauseDescription
@@ -281,16 +242,7 @@ function CauseOption({
             __html: marked(cause.description),
           }}
         />
-        {cause.code_context?.map((fix, index) => (
-          <CauseSuggestedFix
-            causeId={cause.id}
-            key={fix.title}
-            suggestedFix={fix}
-            fixNumber={index + 1}
-            groupId={groupId}
-            runId={runId}
-          />
-        )) ?? null}
+        <AutofixRootCauseCodeContexts codeContext={cause.code_context} />
       </RootCauseContent>
     </RootCauseOption>
   );
@@ -298,10 +250,10 @@ function CauseOption({
 
 function SelectedRootCauseOption({
   selectedCause,
-  selectedFix,
+  codeContext,
 }: {
+  codeContext: AutofixRootCauseCodeContext[];
   selectedCause: AutofixRootCauseData;
-  selectedFix: AutofixRootCauseCodeContext;
 }) {
   return (
     <RootCauseOption selected>
@@ -315,26 +267,7 @@ function SelectedRootCauseOption({
           __html: marked(selectedCause.description),
         }}
       />
-      <SuggestedFixWrapper>
-        <SuggestedFixHeader>
-          <strong
-            dangerouslySetInnerHTML={{
-              __html: singleLineRenderer(t('Selected Code: %s', selectedFix.title)),
-            }}
-          />
-        </SuggestedFixHeader>
-        <p
-          dangerouslySetInnerHTML={{
-            __html: marked(selectedFix.description),
-          }}
-        />
-        {selectedFix.snippet && (
-          <SuggestedFixSnippet
-            snippet={selectedFix.snippet}
-            linesToHighlight={getLinesToHighlight(selectedFix)}
-          />
-        )}
-      </SuggestedFixWrapper>
+      <AutofixRootCauseCodeContexts codeContext={codeContext} />
     </RootCauseOption>
   );
 }
@@ -386,7 +319,7 @@ function ProvideYourOwn({
             analyticsEventKey="autofix.root_cause_custom_cause_provided"
             analyticsParams={{group_id: groupId}}
           >
-            {t('Continue with a fix here')}
+            {t('Continue with a fix')}
           </Button>
         </OptionFooter>
       </RootCauseContent>
@@ -415,11 +348,8 @@ function AutofixRootCauseDisplay({
     }
 
     const selectedCause = causes.find(cause => cause.id === rootCauseSelection.cause_id);
-    const selectedFix = selectedCause?.code_context?.find(
-      fix => fix.id === rootCauseSelection.fix_id
-    );
 
-    if (!selectedCause || !selectedFix) {
+    if (!selectedCause) {
       return <Alert type="error">{t('Selected root cause not found.')}</Alert>;
     }
 
@@ -428,7 +358,7 @@ function AutofixRootCauseDisplay({
     return (
       <CausesContainer>
         <SelectedRootCauseOption
-          selectedFix={selectedFix}
+          codeContext={selectedCause?.code_context}
           selectedCause={selectedCause}
         />
         {otherCauses.length > 0 && (
@@ -445,28 +375,7 @@ function AutofixRootCauseDisplay({
                     __html: marked(cause.description),
                   }}
                 />
-                {cause.code_context?.map(fix => (
-                  <SuggestedFixWrapper key={fix.id}>
-                    <SuggestedFixHeader>
-                      <strong
-                        dangerouslySetInnerHTML={{
-                          __html: singleLineRenderer(t('Code: %s', fix.title)),
-                        }}
-                      />
-                    </SuggestedFixHeader>
-                    <p
-                      dangerouslySetInnerHTML={{
-                        __html: marked(fix.description),
-                      }}
-                    />
-                    {fix.snippet && (
-                      <SuggestedFixSnippet
-                        snippet={fix.snippet}
-                        linesToHighlight={getLinesToHighlight(fix)}
-                      />
-                    )}
-                  </SuggestedFixWrapper>
-                ))}
+                <AutofixRootCauseCodeContexts codeContext={cause.code_context} />
               </RootCauseOption>
             ))}
           </AutofixShowMore>
@@ -520,6 +429,35 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
   }
 
   return <AutofixRootCauseDisplay {...props} />;
+}
+
+export function AutofixRootCauseCodeContexts({
+  codeContext,
+}: {
+  codeContext: AutofixRootCauseCodeContext[];
+}) {
+  return codeContext?.map((fix, index) => (
+    <SuggestedFixWrapper key={fix.id}>
+      <SuggestedFixHeader>
+        <strong
+          dangerouslySetInnerHTML={{
+            __html: singleLineRenderer(t('Relevant Code #%s: %s', index + 1, fix.title)),
+          }}
+        />
+      </SuggestedFixHeader>
+      <p
+        dangerouslySetInnerHTML={{
+          __html: marked(fix.description),
+        }}
+      />
+      {fix.snippet && (
+        <SuggestedFixSnippet
+          snippet={fix.snippet}
+          linesToHighlight={getLinesToHighlight(fix)}
+        />
+      )}
+    </SuggestedFixWrapper>
+  ));
 }
 
 const NoCausesPadding = styled('div')`
