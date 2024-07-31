@@ -87,7 +87,7 @@ import UserStats from './userStats';
 const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'user_identification_fields',
-    label: 'User Identification Fields',
+    label: 'User Identification',
     children: [
       FieldKey.USER,
       FieldKey.USER_DISPLAY,
@@ -98,8 +98,18 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
     ],
   },
   {
+    value: 'http_fields',
+    label: 'HTTP',
+    children: [
+      FieldKey.HTTP_METHOD,
+      FieldKey.HTTP_REFERER,
+      FieldKey.HTTP_STATUS_CODE,
+      FieldKey.HTTP_URL,
+    ],
+  },
+  {
     value: 'span_duration_fields',
-    label: 'Span Duration Fields',
+    label: 'Span Duration',
     children: SPAN_OP_BREAKDOWN_FIELDS,
   },
 ];
