@@ -84,6 +84,14 @@ def mock_get_condition_group(descending=False):
 
 @freeze_time(FROZEN_TIME)
 class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
+    def setUp(self):
+        super().setUp()
+        self.mock_redis_buffer = mock_redis_buffer()
+        self.mock_redis_buffer.__enter__()
+
+    def tearDown(self):
+        self.mock_redis_buffer.__exit__(None, None, None)
+
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
         buffer.backend.push_to_hash(
@@ -659,8 +667,6 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
 
     def setUp(self):
         super().setUp()
-        self.mock_redis_buffer = mock_redis_buffer()
-        self.mock_redis_buffer.__enter__()
 
         self.tag_filter = {
             "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -747,9 +753,6 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
         self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
         self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
-
-    def tearDown(self):
-        self.mock_redis_buffer.__exit__(None, None, None)
 
     @patch("sentry.rules.processing.delayed_processing.process_rulegroups_in_batches")
     def test_fetches_from_buffer_and_executes(self, mock_process_in_batches):

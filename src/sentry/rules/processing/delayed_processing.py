@@ -466,7 +466,9 @@ def bucket_num_groups(num_groups: int) -> str:
 
 
 def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
+    # TODO REMOVE THIS
     rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
+
     event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
 
     print("REHYDRAAATTE", batch_size, event_count, project_id, rulegroup_to_event_data)
