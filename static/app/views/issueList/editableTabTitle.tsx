@@ -1,32 +1,24 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-
-import useKeyPress from 'sentry/utils/useKeyPress';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
 function EditableTabTitle({
   label,
   onChange,
   isEditing,
   setIsEditing,
-  inputRef,
 }: {
   isEditing: boolean;
   label: string;
   onChange: (newLabel: string) => void;
   setIsEditing: (isEditing: boolean) => void;
-  inputRef?: React.RefObject<HTMLInputElement>;
 }) {
   const [inputValue, setInputValue] = useState(label);
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  const enter = useKeyPress('Enter', undefined, true);
-  const esc = useKeyPress('Escape', undefined, true);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const isEmpty = !inputValue.trim();
 
-  useOnClickOutside(wrapperRef, () => {
+  const handleOnBlur = () => {
     if (!isEditing) {
       return;
     }
@@ -39,41 +31,17 @@ function EditableTabTitle({
     }
 
     setIsEditing(false);
-  });
+  };
 
-  const onEnter = useCallback(() => {
-    if (enter) {
-      if (isEmpty) {
-        setInputValue(label);
-        return;
-      }
-      if (inputValue !== label) {
-        onChange(inputValue);
-      }
-
+  const handleOnKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleOnBlur();
+    }
+    if (e.key === 'Escape') {
+      setInputValue(label);
       setIsEditing(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enter, inputValue, onChange]);
-
-  const onEsc = useCallback(() => {
-    if (esc) {
-      if (label !== inputValue) {
-        setInputValue(label);
-      }
-      if (isEditing) {
-        setIsEditing(false);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [esc]);
-
-  useEffect(() => {
-    if (isEditing) {
-      onEnter();
-      onEsc();
-    }
-  }, [onEnter, onEsc, isEditing]);
+  };
 
   useEffect(() => {
     setTimeout(() => {
@@ -86,16 +54,15 @@ function EditableTabTitle({
   };
 
   return isEditing ? (
-    <div ref={wrapperRef}>
-      <StyledInput
-        type="text"
-        value={inputValue}
-        onChange={handleOnChange}
-        onBlur={() => setIsEditing(false)}
-        ref={inputRef}
-        size={inputValue.length > 1 ? inputValue.length - 1 : 1}
-      />
-    </div>
+    <StyledInput
+      type="text"
+      value={inputValue}
+      onChange={handleOnChange}
+      onKeyDown={handleOnKeyDown}
+      onBlur={handleOnBlur}
+      ref={inputRef}
+      size={inputValue.length > 1 ? inputValue.length - 1 : 1}
+    />
   ) : (
     label
   );
