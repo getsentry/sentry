@@ -161,7 +161,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization) -> Response:
         """
-        Create a new saved query for the given Organization
+        Create a new saved query for the given organization.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)

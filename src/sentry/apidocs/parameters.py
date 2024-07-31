@@ -615,11 +615,11 @@ class DashboardParams:
 
 class DiscoverSavedQueryParams:
     DISCOVER_SAVED_QUERY_ID = OpenApiParameter(
-        name="discover_saved_query_id",
+        name="query_id",
         location="path",
         required=True,
         type=int,
-        description="""The ID of the Discover saved query you'd like to retrieve.""",
+        description="""The ID of the Discover query you'd like to retrieve.""",
     )
 
 
