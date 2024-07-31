@@ -1,3 +1,4 @@
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -83,6 +84,7 @@ const eventDataSections: SectionDefinition[] = [
 export default function EventNavigation({event, group}: EventNavigationProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
 
   const hasPreviousEvent = defined(event.previousEventID);
   const hasNextEvent = defined(event.nextEventID);
@@ -92,6 +94,11 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
   const jumpToSections = eventDataSections.filter(eventSection =>
     eventSection.condition(event)
   );
+
+  const grayText = css`
+    color: ${theme.subText};
+    font-weight: ${theme.fontWeightNormal};
+  `;
 
   const downloadJson = () => {
     const host = organization.links.regionUrl;
@@ -145,25 +152,27 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
               title={'Previous Event'}
               aria-label="Previous Event"
               borderless
-              size="sm"
+              size="xs"
               icon={<IconChevron direction="left" />}
               disabled={!hasPreviousEvent}
               to={{
                 pathname: `${baseEventsPath}${event.previousEventID}/`,
                 query: {...location.query, referrer: 'previous-event'},
               }}
+              css={grayText}
             />
             <LinkButton
               title={'Next Event'}
               aria-label="Next Event"
               borderless
-              size="sm"
+              size="xs"
               icon={<IconChevron direction="right" />}
               disabled={!hasNextEvent}
               to={{
                 pathname: `${baseEventsPath}${event.nextEventID}/`,
                 query: {...location.query, referrer: 'next-event'},
               }}
+              css={grayText}
             />
           </Navigation>
           <LinkButton
@@ -174,7 +183,8 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
               query: omit(location.query, 'query'),
             }}
             borderless
-            size="sm"
+            size="xs"
+            css={grayText}
           >
             {t('View All Events')}
           </LinkButton>
@@ -204,7 +214,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
             <DropdownMenu
               triggerProps={{
                 'aria-label': t('Event actions'),
-                icon: <Chevron direction="down" />,
+                icon: <Chevron direction="down" color={theme.subText} />,
                 size: 'zero',
                 borderless: true,
                 showChevron: false,
@@ -230,13 +240,13 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
               ]}
             />
           </EventIdInfo>
-          <TimeSince date={event.dateCreated ?? event.dateReceived} />
+          <TimeSince date={event.dateCreated ?? event.dateReceived} css={grayText} />
         </EventInfo>
         <JumpTo>
           <div>{t('Jump to:')}</div>
           <ButtonBar>
             {jumpToSections.map(jump => (
-              <StyledButton
+              <Button
                 key={jump.section}
                 onClick={() => {
                   document
@@ -244,10 +254,11 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
                     ?.scrollIntoView({behavior: 'smooth'});
                 }}
                 borderless
-                size="sm"
+                size="xs"
+                css={grayText}
               >
                 {jump.label}
-              </StyledButton>
+              </Button>
             ))}
           </ButtonBar>
         </JumpTo>
@@ -259,6 +270,8 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
 const EventNavigationWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: ${space(1)} ${space(1.5)};
 `;
 
 const NavigationWrapper = styled('div')`
@@ -276,6 +289,7 @@ const EventInfoJumpToWrapper = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  padding: ${space(1)} ${space(1.5)};
 `;
 
 const EventInfo = styled('div')`
@@ -290,16 +304,13 @@ const JumpTo = styled('div')`
   gap: ${space(1)};
   flex-direction: row;
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Divider = styled('hr')`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.border};
-  border: none;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  border-color: ${p => p.theme.border};
+  margin: 0;
 `;
 
 const EventIdInfo = styled('span')`
@@ -313,16 +324,13 @@ const EventId = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.gray200};
+  /** gray200 w/ 50% opacity */
+  text-decoration-color: rgba(128, 112, 143, 0.5);
   &:hover {
     > span {
       display: flex;
     }
   }
-`;
-
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray300};
 `;
 
 const CopyIconContainer = styled('span')`

@@ -57,6 +57,7 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import EventNavigation from 'sentry/views/issueDetails/eventNavigation';
 import {GroupContentItem} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -479,11 +480,15 @@ export default function GroupEventDetailsContent({
     default: {
       return hasStreamlinedUI ? (
         <GroupContentItem>
-          <DefaultGroupEventDetailsContent
-            group={group}
-            event={event}
-            project={project}
-          />
+          <EventNavigation event={event} group={group} />
+          <GroupDivider />
+          <GroupContentPadding>
+            <DefaultGroupEventDetailsContent
+              group={group}
+              event={event}
+              project={project}
+            />
+          </GroupContentPadding>
         </GroupContentItem>
       ) : (
         <DefaultGroupEventDetailsContent group={group} event={event} project={project} />
@@ -506,4 +511,13 @@ const StyledDataSection = styled(DataSection)`
   &:empty {
     display: none;
   }
+`;
+
+const GroupDivider = styled('hr')`
+  border-color: ${p => p.theme.border};
+  margin: 0 ${space(1)};
+`;
+
+const GroupContentPadding = styled('div')`
+  padding: ${space(1)} ${space(1.5)};
 `;
