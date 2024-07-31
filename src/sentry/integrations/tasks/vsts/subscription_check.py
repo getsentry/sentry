@@ -11,7 +11,7 @@ from sentry.tasks.base import instrumented_task, retry
 
 
 @instrumented_task(
-    name="sentry.integrations.vsts.subscription_check",
+    name="sentry.integrations.vsts.tasks.subscription_check",
     queue="integrations.control",
     default_retry_delay=60 * 5,
     max_retries=5,

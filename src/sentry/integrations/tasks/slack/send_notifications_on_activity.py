@@ -18,7 +18,7 @@ _TASK_QUEUED_METRIC = (
 
 
 @instrumented_task(
-    name="sentry.integrations.slack.send_activity_notifications_to_slack_threads",
+    name="sentry.integrations.slack.tasks.send_activity_notifications_to_slack_threads",
     queue="integrations_slack_activity_notify",
     silo_mode=SiloMode.REGION,
 )

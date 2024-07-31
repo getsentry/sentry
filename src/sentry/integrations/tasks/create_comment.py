@@ -9,7 +9,7 @@ from sentry.types.activity import ActivityType
 
 @region_silo_function
 @instrumented_task(
-    name="sentry.integrations.create_comment",
+    name="sentry.integrations.tasks.create_comment",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,

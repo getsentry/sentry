@@ -9,7 +9,7 @@ from sentry.types.activity import ActivityType
 
 
 @instrumented_task(
-    name="sentry.integrations.update_comment",
+    name="sentry.integrations.tasks.update_comment",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,

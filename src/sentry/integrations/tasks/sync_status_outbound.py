@@ -8,7 +8,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 
 
 @instrumented_task(
-    name="sentry.integrations.sync_status_outbound",
+    name="sentry.integrations.tasks.sync_status_outbound",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,

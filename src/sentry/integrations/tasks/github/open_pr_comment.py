@@ -407,7 +407,7 @@ def get_top_5_issues_by_count_for_file(
 
 
 @instrumented_task(
-    name="sentry.integrations.github.open_pr_comment_workflow", silo_mode=SiloMode.REGION
+    name="sentry.integrations.tasks.github.open_pr_comment_workflow", silo_mode=SiloMode.REGION
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
     logger.info("github.open_pr_comment.start_workflow")

@@ -1000,7 +1000,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
-        "task": "sentry.integrations.vsts.kickoff_vsts_subscription_check",
+        "task": "sentry.integrations.tasks.vsts.kickoff_vsts_subscription_check",
         # Run every 6 hours
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
@@ -1213,7 +1213,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
-        "task": "sentry.integrations.github.github_comment_reactions",
+        "task": "sentry.integrations.github.tasks.github_comment_reactions",
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
     },
