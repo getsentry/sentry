@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import qs from 'qs';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -25,6 +24,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
@@ -48,7 +48,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.PERFORMANCE_ONBOARDING;
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
-
+  const location = useLocation<{project: string[] | null}>();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
@@ -59,10 +59,9 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     filterProjects(projects);
 
   const priorityProjectIds: Set<string> | null = useMemo(() => {
-    const queryParams = qs.parse(location.search);
-    const decodedProjectIds = decodeProjectIds(queryParams.project);
+    const decodedProjectIds = decodeProjectIds(location.query.project);
     return decodedProjectIds === null ? null : new Set(decodedProjectIds);
-  }, []);
+  }, [location.query.project]);
 
   useEffect(() => {
     if (
