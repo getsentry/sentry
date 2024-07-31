@@ -177,7 +177,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         child=serializers.CharField(),
         required=False,
         allow_null=True,
-        help_text="""The fields, functions, or equations to request for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
+        help_text="""The fields, functions, or equations that can be requested for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
 - A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property.
     - example: `field=transaction`
 - A tag. Tags should use the `tag[]` formatting to avoid ambiguity with any fields
@@ -192,7 +192,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     orderby = serializers.CharField(
         required=False,
         allow_null=True,
-        help_text="What to order the results of the query by. Must be something in the `field` list, excluding equations.",
+        help_text="How to order the query results. Must be something in the `field` list, excluding equations.",
     )
 
     # This block of fields is only accepted by discover 1 which omits the version
@@ -242,7 +242,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         max_value=10,
         required=False,
         allow_null=True,
-        help_text="Number of top events timeseries to be visualized.",
+        help_text="Number of top events' timeseries to be visualized.",
     )
     interval = serializers.CharField(
         required=False, allow_null=True, help_text="Resolution of the time series."
