@@ -178,13 +178,13 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   const title = tct("You've exceeded your [billingInterval] [billingType]", {
     billingInterval: subscription?.planDetails.billingInterval ?? 'monthly',
     billingType: subscription?.planDetails.hasOnDemandModes
-      ? 'pay-as-you-go budget'
-      : 'quota',
+      ? t('pay-as-you-go budget')
+      : t('quota'),
   });
 
   const ctaText = subscription?.planDetails?.hasOnDemandModes
     ? t('Increase Budget')
-    : t('Set Budget');
+    : t('Increase Volumes');
 
   return (
     <Wrapper>
@@ -194,11 +194,11 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
         image={waitingForSpansImg}
         title={title}
         description={tct(
-          'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, [action] your budget.',
+          'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, increase your [billingType].',
           {
-            action: subscription?.planDetails?.hasOnDemandModes
-              ? t('increase')
-              : t('set'),
+            billingType: subscription?.planDetails?.hasOnDemandModes
+              ? t('budget')
+              : t('quota'),
           }
         )}
         onSecondaryButtonClick={() => {
