@@ -89,11 +89,7 @@ const HIGH_CARDINALITY_TAGS = new Set([
 ]);
 
 const isHighCardinalityTag = (tag: string): boolean => {
-  if (HIGH_CARDINALITY_TAGS.has(tag as SpanIndexedField)) {
-    return true;
-  }
-
-  return false;
+  return HIGH_CARDINALITY_TAGS.has(tag as SpanIndexedField);
 };
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
