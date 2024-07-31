@@ -47,6 +47,7 @@ from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.seer.anomaly_detection.types import AnomalyType
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.dataset import Dataset
@@ -630,8 +631,8 @@ class SubscriptionProcessor:
         """
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
-        if anomaly_type == "anomaly_high" or (
-            label == WARNING_TRIGGER_LABEL and anomaly_type == "anomaly_low"
+        if anomaly_type == AnomalyType.HIGH_CONFIDENCE or (
+            label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE
         ):
             return True
         return False
