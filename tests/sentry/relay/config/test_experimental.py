@@ -82,20 +82,20 @@ def test_build_safe_config_returns_results_from_function_in_args():
 
 @patch("sentry.relay.config.experimental._FEATURE_BUILD_TIMEOUT", timedelta(seconds=1))
 @patch("sentry.relay.config.experimental.logger.exception")
-def test_build_safe_config_returns_default_value_on_timeout_exception(mock_logger):
+def test_build_safe_config_returns_none_on_timeout_exception(mock_logger):
     def dummy(timeout: TimeChecker, *args, **kwargs):
         sleep(1)
         timeout.check()
 
-    result = build_safe_config("key", dummy, default_return="bar")
+    result = build_safe_config("key", dummy)
 
-    assert result == "bar"
+    assert result is None
 
 
-def test_build_safe_config_returns_value_passed_as_arg_on_exception():
+def test_build_safe_config_returns_none_on_non_timeout_exception():
     def dummy(*args, **kwargs):
         raise ValueError("foo")
 
-    result = build_safe_config("key", dummy, default_return="bar")
+    result = build_safe_config("key", dummy)
 
-    assert result == "bar"
+    assert result is None
