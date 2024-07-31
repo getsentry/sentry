@@ -1,13 +1,15 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {AssigneeSelector} from 'sentry/components/assigneeSelector';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
-import {useHandleAssigneeChange} from 'sentry/components/group/assignedTo';
+import {
+  AssigneeSelector,
+  useHandleAssigneeChange,
+} from 'sentry/components/group/assigneeSelector';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -112,7 +114,11 @@ export default function StreamlinedGroupHeader({
           </TitleWrapper>
         </TitleHeading>
         <MessageWrapper>
-          <EventMessage message={message} type={group.type} level={group.level} />
+          <EventMessage
+            message={message}
+            type={group.type}
+            showUnhandled={group.isUnhandled}
+          />
           <Divider />
           <div>{t('First Seen in')}</div>
           <Version version={firstRelease?.version || ''} projectId={project.id} />

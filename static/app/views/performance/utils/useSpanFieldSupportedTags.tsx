@@ -69,6 +69,7 @@ export function useSpanFieldSupportedTags(options?: {
     [
       SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
       SpanIndexedField.SPAN_CATEGORY,
+      SpanIndexedField.SPAN_GROUP,
       ...excludedTags,
     ],
     DiscoverDatasets.SPANS_INDEXED

@@ -1,7 +1,7 @@
 import type {Layout} from 'react-grid-layout';
 
 import type {User} from 'sentry/types/user';
-import type {DatasetSource} from 'sentry/utils/discover/types';
+import {type DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
@@ -53,6 +53,11 @@ export enum OnDemandExtractionState {
   ENABLED_MANUAL = 'enabled:manual',
   ENABLED_CREATION = 'enabled:creation',
 }
+
+export const WIDGET_TYPE_TO_SAVED_QUERY_DATASET = {
+  [WidgetType.ERRORS]: SavedQueryDatasets.ERRORS,
+  [WidgetType.TRANSACTIONS]: SavedQueryDatasets.TRANSACTIONS,
+};
 
 interface WidgetQueryOnDemand {
   enabled: boolean;
