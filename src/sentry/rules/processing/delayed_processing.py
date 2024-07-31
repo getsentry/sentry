@@ -498,11 +498,7 @@ def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
     with metrics.timer("delayed_processing.process_batch.duration"):
         items = iter(rulegroup_to_event_data.items())
 
-        while True:
-            batch = dict(islice(items, batch_size))
-            if not batch:
-                break
-
+        while batch := dict(islice(items, batch_size)):
             batch_key = str(uuid.uuid4())
 
             for field, value in batch.items():
