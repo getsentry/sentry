@@ -9,7 +9,6 @@ import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/t
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {FieldValueType} from 'sentry/utils/fields';
-import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
 type ParametersComboboxProps = {
   onCommit: () => void;
@@ -195,13 +194,6 @@ export function SearchQueryBuilderParametersCombobox({
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Default combobox behavior stops events from propagating outside of input
-      // Certain keys like ctrl+z should be handled handled in useQueryBuilderGrid()
-      // so we need to continue propagation for those.
-      if (e.key === 'z' && isCtrlKeyPressed(e)) {
-        e.continuePropagation();
-      }
-
       // If there's nothing in the input and we hit a delete key, we should focus the filter
       if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
         onDelete();

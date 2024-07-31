@@ -70,7 +70,8 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
 }
 
 /**
- * Replaces the focused parametr (at cursorPosition) with the new value.
+ * Replaces the focused parameter (at cursorPosition) with the new value.
+ * If cursorPosition is null, will default to the end of the string.
  *
  * Example:
  * replaceCommaSeparatedValue('foo,bar,baz', 5, 'new') => 'foo,new,baz'

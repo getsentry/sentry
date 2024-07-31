@@ -38,6 +38,7 @@ export function AggregateKey({
 
   const [isEditing, setIsEditing] = useState(false);
 
+  // Enters edit mode when focusOverride is set to this item
   useLayoutEffect(() => {
     if (
       !isEditing &&
