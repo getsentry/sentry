@@ -386,7 +386,9 @@ export function MetricsExtractionRuleForm({
               disabled={isUnitDisabled}
               placeholder={t('Select unit')}
               creatable
-              formatCreateLabel={value => `Create "${value}"`}
+              formatCreateLabel={value =>
+                tct('Create "[value]"', {value: <strong>{value}</strong>})
+              }
               onCreateOption={value => {
                 setCustomUnit(value);
                 model.setValue('unit', value);
@@ -435,7 +437,9 @@ export function MetricsExtractionRuleForm({
               />
             }
             creatable
-            formatCreateLabel={value => `Create "${value}"`}
+            formatCreateLabel={value =>
+              tct('Create "[value]"', {value: <strong>{value}</strong>})
+            }
             onCreateOption={value => {
               setCustomAttributes(curr => [...curr, value]);
               const currentTags = model.getValue('tags') as string[];
