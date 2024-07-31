@@ -81,6 +81,7 @@ class BufferHookRegistry:
 redis_buffer_registry = BufferHookRegistry()
 
 
+# Note HMSET is not supported after redis 4.0.0, after updating we can use HSET directly.
 class RedisOperation(Enum):
     SORTED_SET_ADD = "zadd"
     SORTED_SET_GET_RANGE = "zrangebyscore"
