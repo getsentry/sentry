@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
@@ -10,6 +11,8 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 
 MAX_COMMIT_DATA_REQUESTS = 90
+
+logger = logging.getLogger(__name__)
 
 
 class VstsRepositoryProvider(IntegrationRepositoryProvider):
@@ -73,7 +76,18 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         self, repo: Repository, commit_list: Sequence[Commit], organization_id: int
     ) -> Sequence[Commit]:
         installation = self.get_installation(repo.integration_id, organization_id)
-        client = installation.get_client(base_url=repo.config["instance"])
+        instance = repo.config["instance"]
+        if installation.instance != instance:
+            logger.info(
+                "integrations.vsts.mismatched_instance",
+                extra={
+                    "repo_instance": instance,
+                    "installation_instance": installation.instance,
+                    "org_integration_id": repo.integration_id,
+                    "repo_id": repo.id,
+                },
+            )
+        client = installation.get_client(base_url=instance)
         n = 0
         for commit in commit_list:
             # Azure will truncate commit comments to only the first line.
@@ -100,6 +114,16 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         """TODO(mgaeta): This function is kinda a mess."""
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         instance = repo.config["instance"]
+        if installation.instance != instance:
+            logger.info(
+                "integrations.vsts.mismatched_instance",
+                extra={
+                    "repo_instance": instance,
+                    "installation_instance": installation.instance,
+                    "org_integration_id": repo.integration_id,
+                    "repo_id": repo.id,
+                },
+            )
         client = installation.get_client(base_url=instance)
 
         try:

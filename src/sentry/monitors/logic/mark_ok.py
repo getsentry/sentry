@@ -20,8 +20,11 @@ class _Params(TypedDict):
     status: NotRequired[int]
 
 
-def mark_ok(checkin: MonitorCheckIn, ts: datetime):
+def mark_ok(checkin: MonitorCheckIn, ts: datetime) -> None:
     monitor_env = checkin.monitor_environment
+
+    if monitor_env is None:
+        return None
 
     next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)

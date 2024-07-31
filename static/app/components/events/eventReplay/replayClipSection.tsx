@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,6 +18,8 @@ import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForI
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
   event: Event;
@@ -80,9 +81,9 @@ export function ReplayClipSection({event, group, replayId}: Props) {
 
   return (
     <ReplaySectionMinHeight
-      type="replay"
       title={t('Session Replay')}
       actions={seeAllReplaysButton}
+      type={FoldSectionKey.REPLAY}
     >
       <ErrorBoundary mini>
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
@@ -118,7 +119,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
 }
 
 // The min-height here is due to max-height that is set in replayPreview.tsx
-const ReplaySectionMinHeight = styled(EventDataSection)`
+const ReplaySectionMinHeight = styled(InterimSection)`
   min-height: 557px;
 `;
 

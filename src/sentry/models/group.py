@@ -831,7 +831,7 @@ class Group(Model):
     def get_first_release(self) -> str | None:
         from sentry.models.release import Release
 
-        if self.first_release_id is None:
+        if self.first_release is None:
             return Release.objects.get_group_release_version(self.project_id, self.id)
 
         return self.first_release.version

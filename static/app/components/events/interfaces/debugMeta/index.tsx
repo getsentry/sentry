@@ -7,20 +7,23 @@ import styled from '@emotion/styled';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
 import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -535,8 +538,8 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     );
 
     return (
-      <EventDataSection
-        type="images-loaded"
+      <InterimSection
+        type={FoldSectionKey.DEBUGMETA}
         guideTarget="images-loaded"
         title={t('Images Loaded')}
         help={t(
@@ -564,7 +567,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
             </StyledPanelTable>
           </Fragment>
         )}
-      </EventDataSection>
+      </InterimSection>
     );
   }
 }

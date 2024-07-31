@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {css} from '@emotion/react';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -109,7 +110,7 @@ export default function FeedbackPanel() {
 }
 
 function FeedbackListItem({item}: {item: FeedbackIssueListItem}) {
-  const {projectSlug, projectId, trackAnalytics} = useConfiguration();
+  const {projectSlug, projectId} = useConfiguration();
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
 
   const hasReplayId = feedbackHasReplay(item.id);
@@ -120,71 +121,67 @@ function FeedbackListItem({item}: {item: FeedbackIssueListItem}) {
   const hasComments = item.numComments > 0;
 
   return (
-    <div css={listItemGridCss}>
-      <TextOverflow css={smallCss} style={{gridArea: 'name'}}>
-        <SentryAppLink
-          to={{
-            url: '/feedback/',
-            query: {project: projectId, feedbackSlug: `${projectSlug}:${item.id}`},
-          }}
-          onClick={() => {
-            trackAnalytics?.({
-              eventKey: `devtoolbar.feedback-list.item.click`,
-              eventName: `devtoolbar: Click feedback-list item`,
-            });
-          }}
-        >
-          <strong>
-            {item.metadata.name ?? item.metadata.contact_email ?? 'Anonymous User'}
-          </strong>
-        </SentryAppLink>
-      </TextOverflow>
-
-      <div
-        css={[gridFlexEndCss, xSmallCss]}
-        style={{gridArea: 'time', color: 'var(--gray300)'}}
-      >
-        <TimeSince date={item.firstSeen} unitStyle="extraShort" />
-      </div>
-
-      <div style={{gridArea: 'message'}}>
-        <TextOverflow css={[smallCss, textOverflowTwoLinesCss]}>
-          {item.metadata.message}
+    <AnalyticsProvider nameVal="item" keyVal="item">
+      <div css={listItemGridCss}>
+        <TextOverflow css={smallCss} style={{gridArea: 'name'}}>
+          <SentryAppLink
+            to={{
+              url: '/feedback/',
+              query: {project: projectId, feedbackSlug: `${projectSlug}:${item.id}`},
+            }}
+          >
+            <strong>
+              {item.metadata.name ?? item.metadata.contact_email ?? 'Anonymous User'}
+            </strong>
+          </SentryAppLink>
         </TextOverflow>
-      </div>
 
-      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'owner'}}>
-        {item.project ? (
-          <ProjectBadge
-            css={css({'&& img': {boxShadow: 'none'}})}
-            project={item.project}
-            avatarSize={16}
-            hideName
-            avatarProps={{hasTooltip: false}}
-          />
-        ) : null}
-        <TextOverflow>{item.shortId}</TextOverflow>
-      </div>
+        <div
+          css={[gridFlexEndCss, xSmallCss]}
+          style={{gridArea: 'time', color: 'var(--gray300)'}}
+        >
+          <TimeSince date={item.firstSeen} unitStyle="extraShort" />
+        </div>
 
-      <div css={gridFlexEndCss} style={{gridArea: 'icons'}}>
-        {/* IssueTrackingSignals could have some refactoring so it doesn't
+        <div style={{gridArea: 'message'}}>
+          <TextOverflow css={[smallCss, textOverflowTwoLinesCss]}>
+            {item.metadata.message}
+          </TextOverflow>
+        </div>
+
+        <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'owner'}}>
+          {item.project ? (
+            <ProjectBadge
+              css={css({'&& img': {boxShadow: 'none'}})}
+              project={item.project}
+              avatarSize={16}
+              hideName
+              avatarProps={{hasTooltip: false}}
+            />
+          ) : null}
+          <TextOverflow>{item.shortId}</TextOverflow>
+        </div>
+
+        <div css={gridFlexEndCss} style={{gridArea: 'icons'}}>
+          {/* IssueTrackingSignals could have some refactoring so it doesn't
             depend on useOrganization, and so the filenames match up better with
             the exported functions */}
-        {/* <IssueTrackingSignals group={item as unknown as Group} /> */}
+          {/* <IssueTrackingSignals group={item as unknown as Group} /> */}
 
-        {hasComments ? <IconChat size="sm" /> : null}
-        {isFatal ? <IconFatal size="xs" color="red400" /> : null}
-        {hasReplayId ? <IconPlay size="xs" /> : null}
-        {hasAttachments ? <IconImage size="xs" /> : null}
-        {item.assignedTo ? (
-          <ActorAvatar
-            actor={item.assignedTo}
-            size={16}
-            tooltipOptions={{containerDisplayMode: 'flex'}}
-          />
-        ) : null}
+          {hasComments ? <IconChat size="sm" /> : null}
+          {isFatal ? <IconFatal size="xs" color="red400" /> : null}
+          {hasReplayId ? <IconPlay size="xs" /> : null}
+          {hasAttachments ? <IconImage size="xs" /> : null}
+          {item.assignedTo ? (
+            <ActorAvatar
+              actor={item.assignedTo}
+              size={16}
+              tooltipOptions={{containerDisplayMode: 'flex'}}
+            />
+          ) : null}
+        </div>
       </div>
-    </div>
+    </AnalyticsProvider>
   );
 }
 
