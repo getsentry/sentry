@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import TypedDict
 
 
@@ -23,3 +24,10 @@ class StoreDataRequest(TypedDict):
     alert: AlertInSeer
     config: AnomalyDetectionConfig
     timeseries: list[TimeSeriesPoint]
+
+
+class AnomalyType(Enum):
+    HIGH_CONFIDENCE = "anomaly_higher_confidence"
+    LOW_CONFIDENCE = "anomaly_lower_confidence"
+    NONE = "none"
+    NO_DATA = "no_data"
