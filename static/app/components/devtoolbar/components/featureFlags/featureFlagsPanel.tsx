@@ -6,7 +6,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 
 import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
-import {resetFlexRowCss} from '../../styles/reset';
 import {smallCss} from '../../styles/typography';
 import AnalyticsProvider from '../analyticsProvider';
 import PanelLayout from '../panelLayout';
@@ -44,10 +43,14 @@ export default function FeatureFlagsPanel() {
               setSearchTerm={setSearchTerm}
             />
           </div>
-          <div css={[resetFlexRowCss, {contain: 'strict'}]}>
-            <AnalyticsProvider keyVal="flag-table" nameVal="Flag Table">
-              <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
-            </AnalyticsProvider>
+          <div
+            css={[{contain: 'strict', flexDirection: 'column', alignItems: 'stretch'}]}
+          >
+            <div>
+              <AnalyticsProvider keyVal="flag-table" nameVal="Flag Table">
+                <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
+              </AnalyticsProvider>
+            </div>
           </div>
           <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
             <AnalyticsProvider keyVal="custom-override" nameVal="Custom Override">
