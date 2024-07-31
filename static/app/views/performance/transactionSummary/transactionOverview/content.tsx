@@ -18,6 +18,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {ActionBarItem} from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -38,6 +39,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {FieldKey} from 'sentry/utils/fields';
 import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -79,6 +81,28 @@ import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
+
+// TODO: We may want to reuse these filter key sections for other searchbars in the future, when we upgrade to SearchQueryBuilder in multiple pages.
+// Refactor and move this constant accordingly when that happens
+const FITLER_KEY_SECTIONS: FilterKeySection[] = [
+  {
+    value: 'user_identification_fields',
+    label: 'User Identification Fields',
+    children: [
+      FieldKey.USER,
+      FieldKey.USER_DISPLAY,
+      FieldKey.USER_EMAIL,
+      FieldKey.USER_ID,
+      FieldKey.USER_IP,
+      FieldKey.USER_USERNAME,
+    ],
+  },
+  {
+    value: 'span_duration_fields',
+    label: 'Span Duration Fields',
+    children: SPAN_OP_BREAKDOWN_FIELDS,
+  },
+];
 
 type Props = {
   error: QueryError | null;
@@ -378,6 +402,7 @@ function SummaryContent({
             initialQuery={query}
             searchSource={'transaction_summary'}
             getTagValues={getTransactionFilterTagValues}
+            filterKeySections={FITLER_KEY_SECTIONS}
             disallowFreeText
             disallowUnsupportedFilters
           />
