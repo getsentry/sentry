@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {AssigneeSelector} from 'sentry/components/assigneeSelector';
@@ -8,9 +8,10 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {useHandleAssigneeChange} from 'sentry/components/group/assignedTo';
-import SeenInfo from 'sentry/components/group/seenInfo';
 import {useFirstLastSeen} from 'sentry/components/group/useFirstLastSeen';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -22,7 +23,6 @@ import type {
   TeamParticipant,
   UserParticipant,
 } from 'sentry/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -79,8 +79,7 @@ export default function StreamlinedGroupHeader({
       project,
     });
 
-  const {shortEnvironmentLabel, hasRelease, projectSlug, projectId, allEnvironments} =
-    useFirstLastSeen({group, project});
+  const {hasRelease, projectSlug, projectId} = useFirstLastSeen({group, project});
 
   const activeUser = ConfigStore.get('user');
 
@@ -118,42 +117,33 @@ export default function StreamlinedGroupHeader({
         </TitleHeading>
         <MessageWrapper>
           <EventMessage message={message} type={group.type} level={group.level} />
-          <Divider />
-          <div>{t('First Seen in')}</div>
-          {allEnvironments ? (
-            <SeenInfo
-              organization={organization}
-              projectId={projectId}
-              projectSlug={projectSlug}
-              date={getDynamicText({
-                value: group.firstSeen,
-                fixed: '2015-08-13T03:08:25Z',
-              })}
-              dateGlobal={allEnvironments.firstSeen}
-              hasRelease={hasRelease}
-              environment={shortEnvironmentLabel}
-              release={firstRelease}
-              title={t('First seen')}
-            />
-          ) : null}
-          <Divider />
-          <div>{t('Last Seen in')}</div>
-          {allEnvironments ? (
-            <SeenInfo
-              organization={organization}
-              projectId={projectId}
-              projectSlug={projectSlug}
-              date={getDynamicText({
-                value: group.lastSeen,
-                fixed: '2016-01-13T03:08:25Z',
-              })}
-              dateGlobal={allEnvironments.lastSeen}
-              hasRelease={hasRelease}
-              environment={shortEnvironmentLabel}
-              release={lastRelease}
-              title={t('Last Seen')}
-            />
-          ) : null}
+          {hasRelease && firstRelease && lastRelease && (
+            <Fragment>
+              <Divider />
+              <ReleaseWrapper>
+                {t('Releases')}
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={projectSlug}
+                  releaseVersion={firstRelease.version}
+                >
+                  <span>
+                    <Version version={firstRelease.version} projectId={projectId} />
+                  </span>
+                </VersionHoverCard>
+                -
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={projectSlug}
+                  releaseVersion={lastRelease.version}
+                >
+                  <span>
+                    <Version version={lastRelease.version} projectId={projectId} />
+                  </span>
+                </VersionHoverCard>
+              </ReleaseWrapper>
+            </Fragment>
+          )}
         </MessageWrapper>
         <StyledBreak />
         <InfoWrapper isResolved={group.status === 'resolved'}>
@@ -272,4 +262,16 @@ const Wrapper = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
   padding-left: ${space(0.75)};
+`;
+
+const ReleaseWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+
+  a {
+    color: ${p => p.theme.gray300};
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
 `;
