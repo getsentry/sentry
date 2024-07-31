@@ -29,10 +29,6 @@ from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
-from sentry.organizations.absolute_url import (  # noqa: F401 # XXX: for compatibility, remove after getsentry is updated
-    customer_domain_path,
-    generate_organization_url,
-)
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationMember,
