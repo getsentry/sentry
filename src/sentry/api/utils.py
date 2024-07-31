@@ -394,7 +394,7 @@ def get_auth_api_token_type(auth: object) -> str | None:
 
 
 @contextmanager
-def handle_query_errors() -> Generator[None, None, None]:
+def handle_query_errors() -> Generator[None]:
     try:
         yield
     except InvalidSearchQuery as error:
