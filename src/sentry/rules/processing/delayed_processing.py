@@ -549,7 +549,6 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     project = fetch_project(project_id)
-
     if not project:
         return
 
