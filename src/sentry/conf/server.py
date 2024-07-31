@@ -1649,6 +1649,11 @@ SENTRY_DIGESTS_OPTIONS: dict[str, Any] = {}
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 
+# Prevent superuser access backend
+SENTRY_PREVENT_SUPERUSER_ACCESS_BACKEND = (
+    "sentry.superuser_access.prevent_superuser_access_backend.PreventSuperuserAccess"
+)
+
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}

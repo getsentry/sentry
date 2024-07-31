@@ -179,6 +179,17 @@ SENTRY_BUFFER = "sentry.buffer.redis.RedisBuffer"
 
 SENTRY_QUOTAS = "sentry.quotas.redis.RedisQuota"
 
+
+##########
+# Prevent Superuser Access #
+##########
+
+# Determines if we should prevent superuser access
+
+SENTRY_PREVENT_SUPERUSER_ACCESS_BACKEND = (
+    "sentry.superuser_access.prevent_superuser_access_backend.PreventSuperuserAccess"
+)
+
 ########
 # TSDB #
 ########
