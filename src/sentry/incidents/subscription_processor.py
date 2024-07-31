@@ -631,8 +631,8 @@ class SubscriptionProcessor:
         """
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
-        if anomaly_type == AnomalyType.HIGH_CONFIDENCE or (
-            label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE
+        if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
+            label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE.value
         ):
             return True
         return False

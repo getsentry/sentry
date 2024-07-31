@@ -449,7 +449,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_1 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.7, "anomaly_type": AnomalyType.LOW_CONFIDENCE},
+                    "anomaly": {
+                        "anomaly_score": 0.7,
+                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
+                    },
                     "timestamp": 1,
                     "value": 5,
                 }
@@ -486,7 +489,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_2 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE},
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
                     "timestamp": 1,
                     "value": 10,
                 }
@@ -523,7 +529,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_3 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE},
+                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
                     "value": 1,
                 }
@@ -558,19 +564,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule = self.dynamic_rule
         # test alert ABOVE
         anomaly1 = {
-            "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE},
+            "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
         anomaly2 = {
-            "anomaly": {"anomaly_score": 0.6, "anomaly_type": AnomalyType.LOW_CONFIDENCE},
+            "anomaly": {"anomaly_score": 0.6, "anomaly_type": AnomalyType.LOW_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
         not_anomaly = {
-            "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE},
+            "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
             "timestamp": 1,
             "value": 10,
         }
