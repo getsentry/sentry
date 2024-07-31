@@ -1069,7 +1069,8 @@ def _get_project_config(
             config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
         )
 
-        add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
+        if metric_extraction := get_metric_extraction_config(project):
+            config["metricExtraction"] = metric_extraction
 
     config["sessionMetrics"] = {
         "version": (
