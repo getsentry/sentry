@@ -581,7 +581,7 @@ class GetStacktraceStringTest(TestCase):
             ["OuterException: no way"]
             + [
                 f'\n  File "hello.py", function hello_there\n    {{snip}}outer line {i}{{snip}}'
-                for i in range(1, 16)  #
+                for i in range(1, 16)
             ]
             + ["\nMiddleException: un-uh"]
             + [
