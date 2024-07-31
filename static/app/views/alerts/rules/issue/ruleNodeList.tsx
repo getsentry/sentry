@@ -25,6 +25,7 @@ import {
 import {AlertRuleComparisonType} from '../metric/types';
 
 import RuleNode from './ruleNode';
+import {Button} from 'sentry/components/button';
 
 type Props = {
   disabled: boolean;
@@ -52,6 +53,7 @@ type Props = {
   incompatibleBanner?: number | null;
   incompatibleRules?: number[] | null;
   selectType?: 'grouped';
+  additionalStaticNode?: React.ReactNode;
 };
 
 const createSelectOptions = (
@@ -250,6 +252,7 @@ class RuleNodeList extends Component<Props> {
       selectType,
       incompatibleRules,
       incompatibleBanner,
+      additionalStaticNode,
     } = this.props;
 
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
@@ -281,7 +284,9 @@ class RuleNodeList extends Component<Props> {
               />
             )
           )}
+          {t('If you installed an integration but do not see it, refresh this list')}
         </RuleNodes>
+
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
