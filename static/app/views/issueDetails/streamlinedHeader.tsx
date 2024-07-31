@@ -135,7 +135,7 @@ export default function StreamlinedGroupHeader({
                     <Version version={firstRelease.version} projectId={project.id} />
                   </span>
                 </VersionHoverCard>
-                <p>-</p>
+                -
                 <VersionHoverCard
                   organization={organization}
                   projectSlug={project.slug}
