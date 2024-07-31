@@ -1,14 +1,21 @@
 import {useCallback, useMemo} from 'react';
-import {css} from '@emotion/react';
+import {css, type SerializedStyles} from '@emotion/react';
 import {useId} from '@react-aria/utils';
 
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
+import {
+  SearchQueryBuilder,
+  type SearchQueryBuilderProps,
+} from 'sentry/components/searchQueryBuilder';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {MRI} from 'sentry/types/metrics';
-import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import {
+  hasMetricsNewInputs,
+  hasMetricsNewSearchQueryBuilder,
+} from 'sentry/utils/metrics/features';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
@@ -40,7 +47,7 @@ export function MetricSearchBar({
   id: idProp,
   ...props
 }: MetricSearchBarProps) {
-  const org = useOrganization();
+  const organization = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
   const selectedProjects = useSelectedProjects();
@@ -82,16 +89,19 @@ export function MetricSearchBar({
 
   const fetchTagValues = useCallback(
     (tagKey: string, search: string) => {
-      return api.requestPromise(`/organizations/${org.slug}/metrics/tags/${tagKey}/`, {
-        query: {
-          prefix: search,
-          metric: mri,
-          useCase: getUseCaseFromMRI(mri),
-          project: selection.projects,
-        },
-      });
+      return api.requestPromise(
+        `/organizations/${organization.slug}/metrics/tags/${tagKey}/`,
+        {
+          query: {
+            prefix: search,
+            metric: mri,
+            useCase: getUseCaseFromMRI(mri),
+            project: selection.projects,
+          },
+        }
+      );
     },
-    [api, mri, org.slug, selection.projects]
+    [api, mri, organization.slug, selection.projects]
   );
 
   const getTagValues = useCallback(
@@ -118,47 +128,52 @@ export function MetricSearchBar({
     [onChange, searchConfig]
   );
 
-  if (hasMetricsNewInputs(org)) {
-    return (
-      <QueryFieldGroup.SmartSearchBar
-        id={id}
-        disabled={disabled}
-        maxMenuHeight={220}
-        organization={org}
-        onGetTagValues={getTagValues}
-        // don't highlight tags while loading as we don't know yet if they are supported
-        highlightUnsupportedTags={!isLoading}
-        onClose={handleChange}
-        onSearch={handleChange}
-        placeholder={t('Filter by tags')}
-        query={query}
-        savedSearchType={SavedSearchType.METRIC}
-        {...searchConfig}
-        {...props}
-        css={wideSearchBarCss(disabled)}
-      />
-    );
+  const searchQueryBuilderProps: SearchQueryBuilderProps & {css: SerializedStyles} = {
+    disabled,
+    onChange: (value, {queryIsValid}) => handleChange(value, {validSearch: queryIsValid}),
+    placeholder: t('Filter by tags'),
+    initialQuery: query ?? '',
+    getTagValues,
+    recentSearches: SavedSearchType.METRIC,
+    // don't highlight tags while loading as we don't know yet if they are supported
+    disallowUnsupportedFilters: !isLoading,
+    filterKeys: searchConfig.supportedTags,
+    disallowFreeText: searchConfig.disallowFreeText,
+    searchSource: props.searchSource ?? 'metrics',
+    css: wideSearchBarCss(disabled),
+  };
+
+  const smartSearchProps: Partial<SmartSearchBarProps> & {css: SerializedStyles} = {
+    id,
+    disabled,
+    maxMenuHeight: 220,
+    organization,
+    onGetTagValues: getTagValues,
+    // don't highlight tags while loading as we don't know yet if they are supported
+    highlightUnsupportedTags: !isLoading,
+    onClose: handleChange,
+    onSearch: handleChange,
+    placeholder: t('Filter by tags'),
+    query,
+    savedSearchType: SavedSearchType.METRIC,
+    css: wideSearchBarCss(disabled),
+    ...props,
+    ...searchConfig,
+  };
+
+  if (hasMetricsNewInputs(organization)) {
+    if (hasMetricsNewSearchQueryBuilder(organization)) {
+      return <QueryFieldGroup.SearchQueryBuilder {...searchQueryBuilderProps} />;
+    }
+
+    return <QueryFieldGroup.SmartSearchBar {...smartSearchProps} />;
   }
 
-  return (
-    <SmartSearchBar
-      id={id}
-      disabled={disabled}
-      maxMenuHeight={220}
-      organization={org}
-      onGetTagValues={getTagValues}
-      // don't highlight tags while loading as we don't know yet if they are supported
-      highlightUnsupportedTags={!isLoading}
-      onClose={handleChange}
-      onSearch={handleChange}
-      placeholder={t('Filter by tags')}
-      query={query}
-      savedSearchType={SavedSearchType.METRIC}
-      {...searchConfig}
-      {...props}
-      css={wideSearchBarCss(disabled)}
-    />
-  );
+  if (hasMetricsNewSearchQueryBuilder(organization)) {
+    return <SearchQueryBuilder {...searchQueryBuilderProps} />;
+  }
+
+  return <SmartSearchBar {...smartSearchProps} />;
 }
 
 function wideSearchBarCss(disabled?: boolean) {

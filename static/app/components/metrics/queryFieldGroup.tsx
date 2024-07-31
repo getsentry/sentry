@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,6 +11,7 @@ import {
   type SingleSelectProps,
 } from 'sentry/components/compactSelect';
 import {DebouncedInput as _DebouncedInput} from 'sentry/components/modals/metricWidgetViewerModal/queries';
+import {SearchQueryBuilder as _SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import _SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
@@ -103,15 +105,23 @@ const ComboBox = styled(_ComboBox)`
   }
 `;
 
-const SmartSearchBar = styled(_SmartSearchBar)`
+const searchCss = (theme: Theme) => css`
   border-radius: 0;
   :last-child {
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    border-radius: 0 ${theme.borderRadius} ${theme.borderRadius} 0;
   }
 
   label {
-    color: ${p => p.theme.gray500};
+    color: ${theme.gray500};
   }
+`;
+
+const SmartSearchBar = styled(_SmartSearchBar)`
+  ${p => searchCss(p.theme)}
+`;
+
+const SearchQueryBuilder = styled(_SearchQueryBuilder)`
+  ${p => searchCss(p.theme)}
 `;
 
 const FieldGroup = styled('div')`
@@ -162,5 +172,6 @@ QueryFieldGroup.Label = Label;
 QueryFieldGroup.CompactSelect = CompactSelect;
 QueryFieldGroup.ComboBox = ComboBox;
 QueryFieldGroup.SmartSearchBar = SmartSearchBar;
+QueryFieldGroup.SearchQueryBuilder = SearchQueryBuilder;
 QueryFieldGroup.DebouncedInput = DebouncedInput;
 QueryFieldGroup.DeleteButton = DeleteButton;
