@@ -69,7 +69,7 @@ class LeakyBucketRateLimiter:
 
         try:
             incr_by = int(incr_by)
-            # TODO: do we want to support float incr_by? Right now it would just work.
+            # TODO: do we want to support float incr_by? Right now it would just work if we'd cast it to float instead.
             if incr_by <= 0:
                 raise ValueError
         except ValueError:
