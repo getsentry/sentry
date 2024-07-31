@@ -86,6 +86,15 @@ import UserStats from './userStats';
 // Refactor and move this constant accordingly when that happens
 const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   {
+    value: 'transaction_fields',
+    label: 'Transaction',
+    children: [
+      FieldKey.TRANSACTION_DURATION,
+      FieldKey.TRANSACTION_OP,
+      FieldKey.TRANSACTION_STATUS,
+    ],
+  },
+  {
     value: 'user_identification_fields',
     label: 'User Identification',
     children: [
