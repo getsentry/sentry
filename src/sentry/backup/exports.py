@@ -85,14 +85,14 @@ def _export(
             )
 
             # Note: `user_id` can be NULL (for invited members that have not yet responded), but
-            # this is okay, because `Filter[int]`s constructor explicitly filters out `None` members
+            # this is okay, because `Filter`s constructor explicitly filters out `None` members
             # from the set.
             user_pks = set(
                 OrganizationMember.objects.filter(organization_id__in=org_pks).values_list(
                     "user_id", flat=True
                 )
             )
-            filters.append(Filter[int](User, "pk", set(user_pks)))
+            filters.append(Filter(User, "pk", set(user_pks)))
         elif filter_by.model == User:
             if filter_by.field not in {"pk", "id", "username"}:
                 raise ValueError("Filter arguments must only apply to `User`'s `username` field")
@@ -171,7 +171,7 @@ def export_in_user_scope(
         dest,
         ExportScope.User,
         encryptor=encryptor,
-        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         indent=indent,
         printer=printer,
     )
@@ -198,7 +198,7 @@ def export_in_organization_scope(
         dest,
         ExportScope.Organization,
         encryptor=encryptor,
-        filter_by=Filter[str](Organization, "slug", org_filter) if org_filter is not None else None,
+        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         indent=indent,
         printer=printer,
     )
@@ -223,9 +223,7 @@ def export_in_config_scope(
         dest,
         ExportScope.Config,
         encryptor=encryptor,
-        filter_by=Filter[int](
-            User, "pk", import_export_service.get_all_globally_privileged_users()
-        ),
+        filter_by=Filter(User, "pk", import_export_service.get_all_globally_privileged_users()),
         indent=indent,
         printer=printer,
     )
