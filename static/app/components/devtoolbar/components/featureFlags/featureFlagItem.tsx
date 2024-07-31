@@ -18,7 +18,8 @@ import {useFeatureFlagsContext} from './featureFlagsContext';
 type FeatureFlag = {name: string; override: FlagValue; value: FlagValue};
 
 export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
-  const {featureFlags} = useConfiguration();
+  const {featureFlags, trackAnalytics} = useConfiguration();
+  const {eventName, eventKey} = useContext(AnalyticsContext);
 
   return (
     <Fragment>
@@ -27,6 +28,12 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
           <ExternalLink
             css={[smallCss, inlineLinkCss]}
             href={featureFlags.urlTemplate(flag.name)}
+            onClick={() => {
+              trackAnalytics?.({
+                eventKey: eventKey + '.click',
+                eventName: eventName + ' clicked',
+              });
+            }}
           >
             {flag.name}
           </ExternalLink>
