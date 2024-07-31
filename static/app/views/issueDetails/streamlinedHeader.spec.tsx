@@ -13,12 +13,12 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('UpdatedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['issue-details-streamline']});
   const project = ProjectFixture({
     platform: 'javascript',
     teams: [TeamFixture()],
   });
-  const group = GroupFixture({issueCategory: IssueCategory.ERROR});
+  const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -80,6 +80,9 @@ describe('UpdatedGroupHeader', () => {
       );
 
       expect(await screen.findByText('RequestError')).toBeInTheDocument();
+
+      expect(await screen.findByText('Warning')).toBeInTheDocument();
+      expect(await screen.findByText('Unhandled')).toBeInTheDocument();
 
       expect(await screen.findByText('First Seen in')).toBeInTheDocument();
       expect(await screen.findByText('Last Seen in')).toBeInTheDocument();
