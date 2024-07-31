@@ -139,7 +139,7 @@ def fetch_historical_data(
         dataset_label = "errors"
     dataset = get_dataset(dataset_label)
 
-    if not project or not dataset:
+    if not project or not dataset or not alert_rule.organization:
         return None
 
     historical_data = dataset.timeseries_query(
