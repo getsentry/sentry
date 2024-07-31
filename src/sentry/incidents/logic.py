@@ -645,7 +645,7 @@ def create_alert_rule(
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            if not features.has("organizations:anomaly-detection-alerts", organization, actor=user):
+            if not features.has("organizations:anomaly-detection-alerts", organization):
                 alert_rule.delete()
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
