@@ -1,11 +1,11 @@
 import datetime
 import enum
-from typing import TypedDict
 
 import orjson
 import requests
 from django.conf import settings
 from pydantic import BaseModel
+from typing_extensions import TypedDict
 
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
