@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.core.signing import SignatureExpired
 
+from sentry.integrations.msteams.constants import SALT
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -23,7 +24,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
     def test_map_params(self):
         config_view = MsTeamsExtensionConfigurationView()
         data = {"my_param": "test"}
-        signed_data = sign(**data)
+        signed_data = sign(salt=SALT, **data)
         params = {"signed_params": signed_data}
         assert data == config_view.map_params_to_state(params)
 
