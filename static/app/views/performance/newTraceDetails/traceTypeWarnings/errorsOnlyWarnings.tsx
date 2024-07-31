@@ -133,6 +133,7 @@ type Subscription = {
     };
   };
   planDetails: {
+    billingInterval: 'monthly' | 'annual';
     hasOnDemandModes: boolean;
   };
 };
@@ -174,9 +175,13 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     return null;
   }
 
-  const title = subscription?.planDetails?.hasOnDemandModes
-    ? t("You've exceeded your monthly pay-as-you-go budget")
-    : t("You've exceeded your monthly quota");
+  const title = tct("You've exceeded your [billingInterval] [billingType]", {
+    billingInterval: subscription?.planDetails.billingInterval ?? 'monthly',
+    billingType: subscription?.planDetails.hasOnDemandModes
+      ? 'pay-as-you-go budget'
+      : 'quota',
+  });
+
   const ctaText = subscription?.planDetails?.hasOnDemandModes
     ? t('Increase Budget')
     : t('Set Budget');
@@ -189,7 +194,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
         image={waitingForSpansImg}
         title={title}
         description={tct(
-          'Spans are being dropped and monitoring is impacted. To start seeing traces associated with spans, [action] your budget.',
+          'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, [action] your budget.',
           {
             action: subscription?.planDetails?.hasOnDemandModes
               ? t('increase')
