@@ -48,6 +48,7 @@ class ProjectMetricsUsageEndpoint(ProjectEndpoint):
         widgets = (
             DashboardWidget.objects.get_for_metrics(project.organization, metric_mris)
             .order_by("id")
+            .select_related("dashboard")
             .prefetch_related("dashboardwidgetquery_set")
         )
         widgets_serialized = MetricsUsageWidgetSerializer(

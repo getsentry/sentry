@@ -25,6 +25,7 @@ class MetricsUsageWidgetSerializer(serializers.Serializer):
     metricMRI = serializers.SerializerMethodField(read_only=True)
     widgetId = serializers.IntegerField(read_only=True, source="id")
     dashboardId = serializers.IntegerField(read_only=True, source="dashboard_id")
+    dashboardTitle = serializers.CharField(read_only=True, source="dashboard.title")
     title = serializers.CharField(read_only=True)
     queries = DashboardWidgetQuerySerializer(
         many=True, read_only=True, source="dashboardwidgetquery_set"
