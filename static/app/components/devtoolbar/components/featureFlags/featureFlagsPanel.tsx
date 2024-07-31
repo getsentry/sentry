@@ -8,6 +8,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
 import {resetFlexRowCss} from '../../styles/reset';
 import {smallCss} from '../../styles/typography';
+import AnalyticsProvider from '../analyticsProvider';
 import PanelLayout from '../panelLayout';
 
 import CreateOverride from './createOverride';
@@ -49,7 +50,9 @@ export default function FeatureFlagsPanel() {
             <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
           </div>
           <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-            <CreateOverride />
+            <AnalyticsProvider keyVal="override" nameVal="override">
+              <CreateOverride />
+            </AnalyticsProvider>
           </div>
         </div>
       </PanelLayout>

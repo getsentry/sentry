@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useContext, useState} from 'react';
 
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
@@ -6,11 +6,14 @@ import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 
 import useConfiguration from '../../hooks/useConfiguration';
+import {AnalyticsContext} from '../analyticsProvider';
 
 import {useFeatureFlagsContext} from './featureFlagsContext';
 
 export default function CreateOverride() {
   const {featureFlags, trackAnalytics} = useConfiguration();
+
+  const {eventName, eventKey} = useContext(AnalyticsContext);
 
   const {hasOverride} = useFeatureFlagsContext();
 
@@ -46,8 +49,8 @@ export default function CreateOverride() {
         toggle={() => {
           setIsActive(!isActive);
           trackAnalytics?.({
-            eventKey: 'devtoolbar.feature-flag-list-item-override',
-            eventName: 'devtoolbar: Override a feature-flag value',
+            eventKey: eventKey + '.toggled',
+            eventName: eventName + ' toggled',
           });
         }}
       />
