@@ -248,6 +248,8 @@ def save_issue_from_occurrence(
             except Exception:
                 logger.exception("Failed process assignment for occurrence")
 
+    elif existing_grouphash.group is None:
+        return None
     else:
         group = existing_grouphash.group
         if group.issue_category.value != occurrence.type.category:

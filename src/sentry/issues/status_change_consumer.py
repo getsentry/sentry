@@ -136,8 +136,10 @@ def bulk_get_groups_from_fingerprints(
             ).select_related("group")
         )
 
-    result: dict[tuple[int, str], Group] = {
-        (grouphash.project_id, grouphash.hash): grouphash.group for grouphash in query
+    result = {
+        (grouphash.project_id, grouphash.hash): grouphash.group
+        for grouphash in query
+        if grouphash.group is not None
     }
 
     found_fingerprints = set(result.keys())
