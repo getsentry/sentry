@@ -5,6 +5,7 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventOrGroupType, type Level} from 'sentry/types/event';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   type: EventOrGroupType;
@@ -51,6 +52,7 @@ function EventMessage({
   type,
   showUnhandled = false,
 }: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   return (
     <LevelMessageContainer className={className}>
       <EventOrGroupLevel
@@ -59,7 +61,7 @@ function EventMessage({
         type={type}
         showUnhandled={showUnhandled}
       />
-      {showUnhandled ? <UnhandledTag /> : null}
+      {showUnhandled && !hasStreamlinedUI ? <UnhandledTag /> : null}
       {message ? (
         <Message>{message}</Message>
       ) : (
