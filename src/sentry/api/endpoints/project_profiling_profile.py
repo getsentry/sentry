@@ -13,10 +13,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.utils import generate_organization_url
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.models.release import Release
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,

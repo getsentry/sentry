@@ -23,7 +23,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.types import OrganizationSerializerResponse
-from sentry.api.utils import generate_organization_url, generate_region_url
+from sentry.api.utils import generate_region_url
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
@@ -64,6 +64,7 @@ from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.users.services.user.service import user_service
 

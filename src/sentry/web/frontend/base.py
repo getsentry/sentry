@@ -25,7 +25,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
+from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -33,6 +33,7 @@ from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationSummary,

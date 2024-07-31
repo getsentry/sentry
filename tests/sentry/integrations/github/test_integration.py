@@ -14,7 +14,6 @@ from django.urls import reverse
 
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
-from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import (
     API_ERRORS,
@@ -29,6 +28,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
