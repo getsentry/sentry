@@ -37,6 +37,7 @@ CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
         },
     ],
     "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
+    "use_reranking": False,
 }
 
 
