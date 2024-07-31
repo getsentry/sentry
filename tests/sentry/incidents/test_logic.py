@@ -875,7 +875,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.store_data.logger")
-    def test_anomaly_detection_alert_seer_timeout_max_retry(self, mock_logger, mock_seer_request):
+    def test_create_alert_rule_anomaly_detection_seer_timeout_max_retry(
+        self, mock_logger, mock_seer_request
+    ):
         mock_seer_request.side_effect = TimeoutError
 
         with pytest.raises(TimeoutError):

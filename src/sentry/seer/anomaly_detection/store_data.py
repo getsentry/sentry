@@ -114,9 +114,8 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
                 "project_id": project.id,
             },
         )
-        base_error_response.reason = TIMEOUT_ERROR_TEXT
-        base_error_response.status = status.HTTP_408_REQUEST_TIMEOUT
-        return base_error_response
+        alert_rule.delete()
+        raise TimeoutError
 
     # TODO warn if there isn't at least 7 days of data
     return resp
