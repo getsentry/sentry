@@ -49,7 +49,7 @@ class RpcModel(pydantic.BaseModel):
         from_attributes=True, use_enum_values=True, coerce_numbers_to_str=True
     )
 
-    def __setstate__(self, state: dict[Any, Any]):
+    def __setstate__(self, state: dict[Any, Any]) -> None:
         """
         __setstate__ override to alleviate an unpickling issue in production with the pydantic version upgrade.
         """
