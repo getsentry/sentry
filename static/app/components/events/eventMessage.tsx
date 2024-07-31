@@ -31,9 +31,12 @@ function EventOrGroupLevel({
   level,
   levelIndicatorSize,
   type,
-}: Pick<Props, 'level' | 'levelIndicatorSize' | 'type'>) {
+  showUnhandled,
+}: Pick<Props, 'level' | 'levelIndicatorSize' | 'type' | 'showUnhandled'>) {
   if (level && EVENT_TYPES_WITH_LOG_LEVEL.has(type)) {
-    return <ErrorLevel level={level} size={levelIndicatorSize} />;
+    return (
+      <ErrorLevel level={level} size={levelIndicatorSize} showUnhandled={showUnhandled} />
+    );
   }
 
   return null;
@@ -54,6 +57,7 @@ function EventMessage({
         level={level}
         levelIndicatorSize={levelIndicatorSize}
         type={type}
+        showUnhandled={showUnhandled}
       />
       {showUnhandled ? <UnhandledTag /> : null}
       {message ? (
