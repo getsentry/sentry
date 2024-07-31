@@ -36,6 +36,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         enable_ingestion = False
         skip_processed_projects = False
         skip_project_ids = None
+        use_reranking = False
 
         if request.data.get("last_processed_id"):
             last_processed_id = int(request.data["last_processed_id"])
@@ -52,6 +53,9 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         if request.data.get("skip_project_ids"):
             skip_project_ids = request.data["skip_project_ids"]
 
+        if request.data.get("use_reranking"):
+            use_reranking = True
+
         backfill_seer_grouping_records_for_project.delay(
             current_project_id=project.id,
             last_processed_group_id_input=last_processed_id,
@@ -59,5 +63,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
+            use_reranking=use_reranking,
         )
         return Response(status=204)

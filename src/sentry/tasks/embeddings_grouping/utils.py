@@ -373,12 +373,14 @@ def send_group_and_stacktrace_to_seer(
     groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
     nodestore_results,
     project_id,
+    use_reranking,
 ):
     return _make_seer_call(
         CreateGroupingRecordsRequest(
             group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             data=nodestore_results["data"],
             stacktrace_list=nodestore_results["stacktrace_list"],
+            use_reranking=use_reranking,
         ),
         project_id,
     )
@@ -390,6 +392,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
     groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
     nodestore_results,
     project_id,
+    use_reranking,
 ):
     def process_chunk(chunk_data, chunk_stacktrace):
         return _make_seer_call(
@@ -397,6 +400,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
                 group_id_list=chunk_data["group_ids"],
                 data=chunk_data["data"],
                 stacktrace_list=chunk_stacktrace,
+                use_reranking=use_reranking,
             ),
             project_id,
         )
