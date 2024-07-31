@@ -1,7 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import qs from 'qs';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 import waitingForSpansImg from 'sentry-images/spot/performance-waiting-for-span.svg';
@@ -109,7 +108,7 @@ function PerformanceSetupBanner({
         browserHistory.replace({
           pathname: location.pathname,
           query: {
-            ...qs.parse(location.search),
+            ...location.query,
             project: projectsWithOnboardingChecklist.map(project => project.id),
           },
           hash: '#performance-sidequest',
