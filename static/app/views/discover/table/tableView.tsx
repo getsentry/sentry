@@ -118,7 +118,7 @@ function TableView(props: TableViewProps) {
     columnIndex: number,
     nextColumn: TableColumn<keyof TableDataRow>
   ) {
-    const {location, eventView} = props;
+    const {location, eventView, organization, queryDataset} = props;
 
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
     const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
@@ -126,7 +126,10 @@ function TableView(props: TableViewProps) {
     pushEventViewToLocation({
       location,
       nextEventView,
-      extraQuery: pickRelevantLocationQueryStrings(location),
+      extraQuery: {
+        ...pickRelevantLocationQueryStrings(location),
+        ...appendQueryDatasetParam(organization, queryDataset),
+      },
     });
   }
 
@@ -213,7 +216,7 @@ function TableView(props: TableViewProps) {
           query: {...location.query, referrer: 'discover-events-table'},
         };
       } else {
-        if (!dataRow.trace) {
+        if (dataRow && !dataRow.trace) {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
           );
@@ -360,7 +363,7 @@ function TableView(props: TableViewProps) {
           query: {...location.query, referrer: 'discover-events-table'},
         };
       } else {
-        if (!dataRow.trace) {
+        if (dataRow && !dataRow.trace) {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
           );
