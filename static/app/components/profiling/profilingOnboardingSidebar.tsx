@@ -8,6 +8,7 @@ import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/s
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -38,6 +39,14 @@ const PROFILING_ONBOARDING_STEPS = [
 ];
 
 export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
+  if (props.currentPanel !== SidebarPanelKey.PROFILING_ONBOARDING) {
+    return null;
+  }
+
+  return <ProfilingOnboarding {...props} />;
+}
+
+function ProfilingOnboarding(props: CommonSidebarProps) {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
