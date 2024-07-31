@@ -171,21 +171,20 @@ function TableActions(props: Props) {
   const numSamples = tableData?.data?.length ?? null;
   const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
 
-  const isNotTransactionsView =
-    hasDatasetSelector(organization) &&
-    queryDataset &&
-    queryDataset !== SavedQueryDatasets.TRANSACTIONS;
+  const isTransactions =
+    hasDatasetSelector(organization) && queryDataset === SavedQueryDatasets.TRANSACTIONS;
 
   return (
     <Fragment>
-      {supportsInvestigationRule && !isNotTransactionsView && (
-        <InvestigationRuleCreation
-          {...props}
-          buttonProps={{size: 'sm'}}
-          numSamples={totalNumSamples}
-          key="investigationRuleCreation"
-        />
-      )}
+      {supportsInvestigationRule &&
+        (!hasDatasetSelector(organization) || isTransactions) && (
+          <InvestigationRuleCreation
+            {...props}
+            buttonProps={{size: 'sm'}}
+            numSamples={totalNumSamples}
+            key="investigationRuleCreation"
+          />
+        )}
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>
