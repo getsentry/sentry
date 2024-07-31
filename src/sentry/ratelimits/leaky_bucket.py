@@ -58,11 +58,23 @@ class LeakyBucketRateLimiter:
             raise InvalidConfiguration(str(e))
 
     def use_and_get_info(
-        self, key: str | None = None, timestamp: float | None = None
+        self,
+        key: str | None = None,
+        timestamp: float | None = None,
+        incr_by: int = 1,
     ) -> LeakyBucketLimitInfo:
         """
         Consumes a request from the bucket and returns the current state of the bucket.
         """
+
+        try:
+            incr_by = int(incr_by)
+            # TODO: do we want to support float incr_by? Right now it would just work.
+            if incr_by <= 0:
+                raise ValueError
+        except ValueError:
+            raise ValueError("incr_by must be an integer greater than 0")
+
         if timestamp is None:
             timestamp = time()
 
@@ -70,7 +82,7 @@ class LeakyBucketRateLimiter:
         try:
             bucket_size, drip_rate, last_drip, current_level, wait_time = leaky_bucket_info(
                 [redis_key],
-                [self.burst_limit, self.drip_rate, timestamp],
+                [self.burst_limit, self.drip_rate, timestamp, incr_by],
                 client=self.client,
             )
             last_drip, current_level, wait_time = (
@@ -86,8 +98,10 @@ class LeakyBucketRateLimiter:
         # fail open
         return LeakyBucketLimitInfo(self.burst_limit, self.drip_rate)
 
-    def is_limited(self, key: str | None = None, timestamp: float | None = None) -> bool:
-        return bool(self.use_and_get_info(key, timestamp).wait_time)
+    def is_limited(
+        self, key: str | None = None, timestamp: float | None = None, incr_by: int = 1
+    ) -> bool:
+        return bool(self.use_and_get_info(key, timestamp, incr_by).wait_time)
 
     def get_bucket_state(self, key: str | None = None) -> LeakyBucketLimitInfo:
         """
@@ -138,6 +152,7 @@ class LeakyBucketRateLimiter:
         be ignored when the rate limit is exceeded
 
 
+        Important limitation: the decorator does not allow passing incr_by, thus falls back to defualt value of 1
 
         usage:
 

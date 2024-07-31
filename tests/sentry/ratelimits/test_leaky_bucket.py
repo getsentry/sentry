@@ -29,6 +29,20 @@ class LeakyBucketRateLimiterTest(TestCase):
             for _ in range(3):
                 assert self.limiter.is_limited("foo")
 
+    def test_incr_by(self) -> None:
+        with freeze_time("2077-09-13"):
+            assert not self.limiter.is_limited("foo", incr_by=3)
+            assert self.limiter.is_limited("foo", incr_by=3)
+
+    def test_invalid_incr_by(self) -> None:
+        with pytest.raises(ValueError) as ex:
+            self.limiter.is_limited("foo", incr_by=0)
+            assert ex.value.args[0] == "incr_by must be an integer greater than 0"
+
+        with pytest.raises(ValueError) as ex:
+            self.limiter.is_limited("foo", incr_by="foo")  # type: ignore[arg-type]
+            assert ex.value.args[0] == "incr_by must be an integer greater than 0"
+
     def test_default_key(self) -> None:
         limiter = LeakyBucketRateLimiter(burst_limit=5, drip_rate=2, key="my_default_key")
 
