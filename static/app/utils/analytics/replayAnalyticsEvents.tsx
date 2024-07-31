@@ -51,6 +51,7 @@ export type ReplayEventParameters = {
     title: string;
   };
   'replay.details-tab-changed': {
+    mobile: boolean;
     tab: string;
   };
   'replay.details-time-spent': {
@@ -88,6 +89,7 @@ export type ReplayEventParameters = {
   'replay.list-view-setup-sidebar': {};
   'replay.play-pause': {
     context: string;
+    mobile: boolean;
     play: boolean;
     user_email: string;
   };

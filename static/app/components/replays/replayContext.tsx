@@ -544,9 +544,10 @@ export function Provider({
         user_email: user.email,
         play,
         context: analyticsContext,
+        mobile: isVideoReplay,
       });
     },
-    [organization, user.email, analyticsContext, getCurrentPlayerTime]
+    [organization, user.email, analyticsContext, getCurrentPlayerTime, isVideoReplay]
   );
 
   useEffect(() => {
