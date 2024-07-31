@@ -1123,7 +1123,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRANSACTION_DURATION]: {
-    desc: t('Duration, in milliseconds, of the transaction'),
+    desc: t('Duration of the transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
