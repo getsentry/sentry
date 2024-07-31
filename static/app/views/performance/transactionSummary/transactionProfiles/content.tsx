@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -309,46 +309,57 @@ function ProfileDigest({query}: TransactionProfilesContentProps) {
   );
 }
 
-type SortOption = 'newest' | 'oldest' | 'slowest' | 'fastest';
+const ALLOWED_SORTS = [
+  '-timestamp',
+  'timestamp',
+  '-transaction.duration',
+  'transaction.duration',
+] as const;
+type SortOption = (typeof ALLOWED_SORTS)[number];
 
 const sortOptions: SelectOption<SortOption>[] = [
-  {value: 'newest', label: t('Newest Events')},
-  {value: 'oldest', label: t('Oldest Events')},
-  {value: 'slowest', label: t('Slowest Events')},
-  {value: 'fastest', label: t('Fastest Events')},
+  {value: '-timestamp', label: t('Newest Events')},
+  {value: 'timestamp', label: t('Oldest Events')},
+  {value: '-transaction.duration', label: t('Slowest Events')},
+  {value: 'transaction.duration', label: t('Fastest Events')},
 ];
 
+const PROFILES_SORT = 'profilesSort';
 const PROFILES_CURSOR = 'profilesCursor';
 
 function ProfileList({query: userQuery, transaction}: TransactionProfilesContentProps) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const [selectedSort, setSelectedSort] = useState<SortOption>('newest');
-  const onSelectedSortChange = useCallback(
-    (value: {value: SortOption}) => {
-      setSelectedSort(value.value);
-    },
-    [setSelectedSort]
-  );
+  const sortValue = useMemo(() => {
+    const rawSort = decodeScalar(location.query[PROFILES_SORT]);
+    if (ALLOWED_SORTS.includes(rawSort as any)) {
+      return rawSort as SortOption;
+    }
+    return '-timestamp' as const;
+  }, [location.query]);
 
   const sort = useMemo(() => {
-    if (selectedSort === 'fastest') {
-      return {key: 'transaction.duration', order: 'asc'} as const;
+    if (sortValue === '-timestamp') {
+      return {key: 'timestamp', order: 'desc'} as const;
     }
 
-    if (selectedSort === 'slowest') {
-      return {key: 'transaction.duration', order: 'desc'} as const;
-    }
-
-    if (selectedSort === 'oldest') {
+    if (sortValue === 'timestamp') {
       return {key: 'timestamp', order: 'asc'} as const;
     }
 
-    return {key: 'timestamp', order: 'desc'} as const;
-  }, [selectedSort]);
+    if (sortValue === '-transaction.duration') {
+      return {key: 'timestamp', order: 'desc'} as const;
+    }
 
-  const profilesCursor = useMemo(
+    if (sortValue === 'transaction.duration') {
+      return {key: 'timestamp', order: 'asc'} as const;
+    }
+
+    throw new Error(`Unsupport sort: ${sortValue}`);
+  }, [sortValue]);
+
+  const cursor = useMemo(
     () => decodeScalar(location.query[PROFILES_CURSOR]),
     [location.query]
   );
@@ -369,17 +380,31 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
     query: userQuery,
     sort,
     referrer: 'api.profiling.profile-summary-table',
-    cursor: profilesCursor,
+    cursor,
     limit: 10,
     continuousProfilingCompat: organization.features.includes(
       'continuous-profiling-compat'
     ),
   });
 
-  const handleCursor = useCallback((cursor, pathname, query) => {
+  const handleSort = useCallback(
+    (value: {value: SortOption}) => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          [PROFILES_SORT]: value,
+          [PROFILES_CURSOR]: undefined,
+        },
+      });
+    },
+    [location]
+  );
+
+  const handleCursor = useCallback((newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [PROFILES_CURSOR]: cursor},
+      query: {...query, [PROFILES_CURSOR]: newCursor},
     });
   }, []);
 
@@ -387,8 +412,8 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
     <ProfileListContainer>
       <ProfileListControls>
         <CompactSelect
-          onChange={onSelectedSortChange}
-          value={selectedSort}
+          onChange={handleSort}
+          value={sortValue}
           size="xs"
           options={sortOptions}
         />
