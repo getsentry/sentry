@@ -9,7 +9,6 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F, Model, Q
 from django.db.models.expressions import BaseExpression, CombinedExpression, Value
 from django.db.models.fields import Field
-from django.db.models.signals import post_save
 
 if TYPE_CHECKING:
     from sentry.db.models.base import BaseModel
@@ -95,24 +94,10 @@ def update(instance: BaseModel, using: str | None = None, **kwargs: Any) -> int:
         if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(instance, False)
 
-    affected = (
-        instance.__class__.objects.using(using)
-        .filter(pk=instance.pk)
-        # Disable the post update query signal since we're going to send a more specific `post_save` signal here.
-        .with_post_update_signal(False)
-        .update(**kwargs)
-    )
+    affected = instance.__class__.objects.using(using).filter(pk=instance.pk).update(**kwargs)
     for k, v in kwargs.items():
         setattr(instance, k, _handle_value(instance, v))
-    if affected == 1:
-        post_save.send(
-            sender=instance.__class__,
-            instance=instance,
-            created=False,
-            update_fields=list(kwargs.keys()),
-        )
-        return affected
-    elif affected == 0:
+    if affected > 0:
         return affected
     elif affected < 0:
         raise ValueError(
