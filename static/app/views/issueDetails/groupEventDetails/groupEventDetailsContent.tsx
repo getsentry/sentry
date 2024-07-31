@@ -26,6 +26,8 @@ import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalD
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
+import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
+import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
@@ -115,6 +117,7 @@ function DefaultGroupEventDetailsContent({
   const organization = useOrganization();
   const location = useLocation();
   const hasNewTimelineUI = useHasNewTimelineUI();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const tagsRef = useRef<HTMLDivElement>(null);
 
   const projectSlug = project.slug;
@@ -334,14 +337,21 @@ function DefaultGroupEventDetailsContent({
         entryType={EntryType.REQUEST}
         {...eventEntryProps}
       />
-      <div ref={tagsRef}>
-        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
-      </div>
+      {hasStreamlinedUI ? (
+        <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+      ) : (
+        <div ref={tagsRef}>
+          <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+        </div>
+      )}
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventViewHierarchy event={event} project={project} />
+      {hasStreamlinedUI && (
+        <ScreenshotDataSection event={event} projectSlug={project.slug} />
+      )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event.groupID && (

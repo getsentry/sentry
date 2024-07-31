@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {forwardRef, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -89,15 +89,18 @@ interface FoldSectionProps {
   preventCollapse?: boolean;
 }
 
-export function FoldSection({
-  children,
-  title,
-  actions,
-  sectionKey,
-  initialCollapse = false,
-  preventCollapse = false,
-  ...props
-}: FoldSectionProps) {
+export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
+  {
+    children,
+    title,
+    actions,
+    sectionKey,
+    initialCollapse = false,
+    preventCollapse = false,
+    ...props
+  },
+  ref
+) {
   const organization = useOrganization();
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
@@ -121,7 +124,7 @@ export function FoldSection({
   );
 
   return (
-    <section {...props}>
+    <section {...props} ref={ref}>
       <details open={!isCollapsed || preventCollapse}>
         <Summary
           preventCollapse={preventCollapse}
@@ -152,7 +155,7 @@ export function FoldSection({
       </details>
     </section>
   );
-}
+});
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};
