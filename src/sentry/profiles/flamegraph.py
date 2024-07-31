@@ -285,7 +285,7 @@ class ContinuousProfileCandidate(TypedDict):
 class ProfileCandidates(TypedDict):
     transaction: list[TransactionProfileCandidate]
     continuous: list[ContinuousProfileCandidate]
-    generate_metrics: bool | None
+    generate_metrics: NotRequired[bool]
 
 
 @dataclass(frozen=True)
