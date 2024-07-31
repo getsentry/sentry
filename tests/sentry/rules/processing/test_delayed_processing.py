@@ -1344,30 +1344,22 @@ class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_no_redis_data(self, mock_apply_delayed):
-        mock_delayed = Mock()
-        mock_apply_delayed.delayed = mock_delayed
         process_rulegroups_in_batches(self.project.id)
-
-        mock_delayed.assert_called_once_with(self.project.id)
+        mock_apply_delayed.delayed.assert_called_once_with(self.project.id)
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_basic(self, mock_apply_delayed):
-        mock_delayed = Mock()
-        mock_apply_delayed.delayed = mock_delayed
-
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
         process_rulegroups_in_batches(self.project.id)
-        mock_delayed.assert_called_once_with(self.project.id)
+        mock_apply_delayed.delayed.assert_called_once_with(self.project.id)
 
     @override_options({"delayed_processing.batch_size": 2})
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_batch(self, mock_apply_delayed):
-        mock_delayed = Mock()
-        mock_apply_delayed.delayed = mock_delayed
-
+        mock_delayed = mock_apply_delayed.delayed
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
@@ -1440,8 +1432,6 @@ class CleanupRedisBufferTest(CreateEventTestCase):
     @override_options({"delayed_processing.batch_size": 2})
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_batched_cleanup(self, mock_apply_delayed):
-        mock_delayed = Mock()
-        mock_apply_delayed.delayed = mock_delayed
         group_two = self.create_group(self.project)
         group_three = self.create_group(self.project)
 
@@ -1455,8 +1445,8 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_three.id)
 
         process_rulegroups_in_batches(self.project.id)
-        batch_one_key = mock_delayed.call_args_list[0][0][1]
-        batch_two_key = mock_delayed.call_args_list[1][0][1]
+        batch_one_key = mock_apply_delayed.delayed.call_args_list[0][0][1]
+        batch_two_key = mock_apply_delayed.delayed.call_args_list[1][0][1]
 
         # Verify process_rulegroups_in_batches removed the data from the buffer
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
