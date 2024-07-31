@@ -1,12 +1,13 @@
 import {memo, useState} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {getKnownData, getKnownStructuredData} from '../contexts/utils';
 
@@ -39,8 +40,8 @@ export const EventExtraData = memo(
     }
 
     return (
-      <EventDataSection
-        type="extra"
+      <InterimSection
+        type={FoldSectionKey.EXTRA}
         title={t('Additional Data')}
         actions={
           <SegmentedControl
@@ -57,7 +58,7 @@ export const EventExtraData = memo(
         }
       >
         {contextBlock}
-      </EventDataSection>
+      </InterimSection>
     );
   },
   (prevProps: Props, nextProps: Props) => prevProps.event.id === nextProps.event.id
