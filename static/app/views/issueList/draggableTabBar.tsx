@@ -1,6 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Key, Node} from '@react-types/shared';
 
@@ -85,12 +85,8 @@ export function DraggableTabBar({
   onSaveTempView,
 }: DraggableTabBarProps) {
   const [selectedTabKey, setSelectedTabKey] = useState<Key>(tabs[0].key);
-  const [isEditingTabTitle, setIsEditingTabTitle] = useState<{
-    isEditing: boolean;
-    editingTabKey?: string; // Should be undefined when isEditing = false
-  }>({isEditing: false, editingTabKey: undefined});
-
-  const tabLabelRef = useRef<HTMLInputElement>(null);
+  // TODO: Extract this to a separate component encompassing Tab.Item in the future
+  const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!showTempTab && selectedTabKey === 'temporary-tab') {
@@ -138,13 +134,6 @@ export function DraggableTabBar({
     onAddView?.(e);
   };
 
-  const handleOnRename = (tab: Tab) => {
-    setIsEditingTabTitle({
-      isEditing: true,
-      editingTabKey: tab.key,
-    });
-  };
-
   const handleOnTabRenamed = (newLabel: string, tabKey: string) => {
     const tab = tabs.find(tb => tb.key === tabKey);
     if (tab && newLabel !== tab.label) {
@@ -162,7 +151,7 @@ export function DraggableTabBar({
     }
     if (tab.hasUnsavedChanges) {
       return makeUnsavedChangesMenuOptions({
-        onRename: () => handleOnRename(tab),
+        onRename: () => setEditingTabKey(tab.key),
         onDuplicate: () => handleOnDuplicate(tab),
         onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
         onSave,
@@ -170,7 +159,7 @@ export function DraggableTabBar({
       });
     }
     return makeDefaultMenuOptions({
-      onRename: () => handleOnRename(tab),
+      onRename: () => setEditingTabKey(tab.key),
       onDuplicate: () => handleOnDuplicate(tab),
       onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
     });
@@ -195,20 +184,9 @@ export function DraggableTabBar({
             <TabContentWrap>
               <EditableTabTitle
                 label={tab.label}
-                isEditing={
-                  isEditingTabTitle.editingTabKey === tab.key &&
-                  isEditingTabTitle.isEditing
-                }
-                setIsEditing={isEditing =>
-                  setIsEditingTabTitle({
-                    isEditing,
-                    editingTabKey: isEditing ? tab.key : undefined,
-                  })
-                }
+                isEditing={editingTabKey === tab.key}
+                setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
                 onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
-                inputRef={
-                  isEditingTabTitle.editingTabKey === tab.key ? tabLabelRef : undefined
-                }
               />
               {tab.key !== 'temporary-tab' && tab.queryCount && (
                 <StyledBadge>
