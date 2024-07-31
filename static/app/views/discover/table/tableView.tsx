@@ -216,7 +216,7 @@ function TableView(props: TableViewProps) {
           query: {...location.query, referrer: 'discover-events-table'},
         };
       } else {
-        if (dataRow && !dataRow.trace) {
+        if (!dataRow.trace) {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
           );
@@ -363,7 +363,7 @@ function TableView(props: TableViewProps) {
           query: {...location.query, referrer: 'discover-events-table'},
         };
       } else {
-        if (dataRow && !dataRow.trace) {
+        if (!dataRow.trace) {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
           );
