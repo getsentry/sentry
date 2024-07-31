@@ -485,7 +485,7 @@ def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
     we shouldn't pass complex objects in the celery task arguments, and we can't send a page of data in the
     batch becaues redis may not maintain the sort of the hash response.
 
-    In `apply_delayed` will will fetch the batch from redis and process the rules.
+    `apply_delayed` will fetch the batch from redis and process the rules.
     """
     event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
 
