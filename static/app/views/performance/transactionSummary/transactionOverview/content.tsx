@@ -3,21 +3,28 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import Feature from 'sentry/components/acl/feature';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import SearchBar from 'sentry/components/events/searchBar';
+import {
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_SPAN_TAGS,
+} from 'sentry/components/events/searchBarFieldConstants';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {ActionBarItem} from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined, generateQueryWithTag} from 'sentry/utils';
@@ -72,14 +79,6 @@ import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
-import Feature from 'sentry/components/acl/feature';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {Tag, TagCollection} from 'sentry/types';
-import useTags from 'sentry/utils/useTags';
-import {
-  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
-  STATIC_SPAN_TAGS,
-} from 'sentry/components/events/searchBarFieldConstants';
 
 type Props = {
   error: QueryError | null;
@@ -379,6 +378,8 @@ function SummaryContent({
             initialQuery={query}
             searchSource={'transaction_summary'}
             getTagValues={getTransactionFilterTagValues}
+            disallowFreeText
+            disallowUnsupportedFilters
           />
         </Feature>
       </StyledSearchBarWrapper>
