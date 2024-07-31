@@ -75,8 +75,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const prevEvent = usePrevious(event);
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   // load the data
   useSentryAppComponentsData({projectId});
 
