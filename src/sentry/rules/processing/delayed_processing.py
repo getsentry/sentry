@@ -47,7 +47,6 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.rules.delayed_processing")
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
-CHUNK_BATCH_SIZE = options.get("delayed_processing.batch_size")
 
 
 class UniqueConditionQuery(NamedTuple):
@@ -473,7 +472,7 @@ def bucket_num_groups(num_groups: int) -> str:
     return "1"
 
 
-def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
+def process_rulegroups_in_batches(project_id: int):
     """
     This will check the number of rulegroup_to_event_data items in the Redis buffer for a project.
 
@@ -487,6 +486,7 @@ def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
 
     `apply_delayed` will fetch the batch from redis and process the rules.
     """
+    batch_size = options.get("delayed_processing.batch_size")
     event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
 
     if event_count < batch_size:

@@ -40,6 +40,7 @@ from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -1360,6 +1361,7 @@ class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
         process_rulegroups_in_batches(self.project.id)
         mock_delayed.assert_called_once_with(self.project.id)
 
+    @override_options({"delayed_processing.batch_size": 2})
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_batch(self, mock_apply_delayed):
         mock_delayed = Mock()
@@ -1369,7 +1371,7 @@ class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_rulegroups_in_batches(self.project.id, batch_size=2)
+        process_rulegroups_in_batches(self.project.id)
         assert mock_delayed.call_count == 2
 
         # Validate the batches are created correctly
