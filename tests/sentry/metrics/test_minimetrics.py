@@ -87,8 +87,8 @@ def test_incr_with_tag(backend, scope):
     (span,) = scope.client.transport.get_spans()
 
     assert span["op"] == "test"
-    assert span["tags"] == {"x": "y"}
     assert span["data"]["foo"] == 1
+    assert span["data"]["x"] == "y"
 
 
 def test_incr_multi(backend, scope):
@@ -101,8 +101,8 @@ def test_incr_multi(backend, scope):
     (span,) = scope.client.transport.get_spans()
 
     assert span["op"] == "test"
-    assert span["tags"] == {"x": "z"}  # NB: Restriction of the interface
     assert span["data"]["foo"] == 1  # NB: SDK has no get_data() -> incr impossible
+    assert span["data"]["x"] == "z"
 
 
 def test_gauge(backend, scope):
@@ -141,7 +141,7 @@ def test_timing(backend, scope):
 
     assert parent["op"] == "test"
     assert child["op"] == "foo"
-    assert child["tags"] == {"x": "y"}
+    assert child["data"]["x"] == "y"
 
     duration = datetime.fromisoformat(child["timestamp"]) - datetime.fromisoformat(
         child["start_timestamp"]
@@ -160,8 +160,9 @@ def test_timing_duplicate(backend, scope):
     (span,) = scope.client.transport.get_spans()
 
     assert span["op"] == "test"
-    assert span["tags"] == {"x": "y"}
     assert "test" not in span["data"]
+    assert span["data"]["x"] == "y"
+
     # NB: Explicit timing is discarded
 
 
