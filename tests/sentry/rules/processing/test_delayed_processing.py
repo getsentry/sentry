@@ -25,6 +25,7 @@ from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     bucket_num_groups,
     bulk_fetch_events,
+    cleanup_redis_buffer,
     generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
@@ -1417,3 +1418,62 @@ class DataAndGroupsTest(TestCase):
             repr(condition)
             == "<DataAndGroups data: {'id': 'sentry.rules.conditions.event_frequency.EventFrequencyCondition', 'value': 1, 'interval': '1h'} group_ids: {1, 2}>"
         )
+
+
+class CleanupRedisBufferTest(CreateEventTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.project = self.create_project()
+        self.group = self.create_group(self.project)
+        self.rule = self.create_alert_rule()
+
+    def test_cleanup_redis(self):
+        self.push_to_hash(self.project.id, self.rule.id, self.group.id)
+        rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
+        rules_to_groups[self.rule.id].add(self.group.id)
+
+        cleanup_redis_buffer(self.project.id, rules_to_groups, None)
+        rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
+        assert rule_group_data == {}
+
+    @override_options({"delayed_processing.batch_size": 2})
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed")
+    def test_batched_cleanup(self, mock_apply_delayed):
+        mock_delayed = Mock()
+        mock_apply_delayed.delayed = mock_delayed
+        group_two = self.create_group(self.project)
+        group_three = self.create_group(self.project)
+
+        self.push_to_hash(self.project.id, self.rule.id, self.group.id)
+        self.push_to_hash(self.project.id, self.rule.id, group_two.id)
+        self.push_to_hash(self.project.id, self.rule.id, group_three.id)
+
+        rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
+        rules_to_groups[self.rule.id].add(self.group.id)
+        rules_to_groups[self.rule.id].add(group_two.id)
+        rules_to_groups[self.rule.id].add(group_three.id)
+
+        process_rulegroups_in_batches(self.project.id)
+        batch_one_key = mock_delayed.call_args_list[0][0][1]
+        batch_two_key = mock_delayed.call_args_list[1][0][1]
+
+        # Verify process_rulegroups_in_batches removed the data from the buffer
+        rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
+        assert rule_group_data == {}
+
+        cleanup_redis_buffer(self.project.id, rules_to_groups, batch_one_key)
+
+        # Verify the batch we "executed" is removed
+        rule_group_data = buffer.backend.get_hash(
+            Project, {"project_id": self.project.id, "batch_key": batch_one_key}
+        )
+        assert rule_group_data == {}
+
+        # Verify the batch we didn't execute is still in redis
+        rule_group_data = buffer.backend.get_hash(
+            Project, {"project_id": self.project.id, "batch_key": batch_two_key}
+        )
+        assert rule_group_data == {
+            f"{self.rule.id}:{group_three.id}": '{"event_id":null,"occurrence_id":null}',
+        }

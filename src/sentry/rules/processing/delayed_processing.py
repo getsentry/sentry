@@ -456,13 +456,17 @@ def fire_rules(
                 safe_execute(callback, groupevent, futures)
 
 
-def cleanup_redis_buffer(project_id: int, rules_to_groups: DefaultDict[int, set[int]]) -> None:
+def cleanup_redis_buffer(
+    project_id: int, rules_to_groups: DefaultDict[int, set[int]], batch_key: str | None
+) -> None:
     hashes_to_delete = [
         f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
     ]
-    buffer.backend.delete_hash(
-        model=Project, filters={"project_id": project_id}, fields=hashes_to_delete
-    )
+    filters: dict[str, models.Model | str | int] = {"project_id": project_id}
+    if batch_key:
+        filters["batch_key"] = batch_key
+
+    buffer.backend.delete_hash(model=Project, filters=filters, fields=hashes_to_delete)
 
 
 def bucket_num_groups(num_groups: int) -> str:
@@ -583,7 +587,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     with metrics.timer("delayed_processing.fire_rules.duration"):
         fire_rules(rules_to_fire, parsed_rulegroup_to_event_data, alert_rules, project)
 
-    cleanup_redis_buffer(project_id, rules_to_groups)
+    cleanup_redis_buffer(project_id, rules_to_groups, batch_key)
 
 
 if not redis_buffer_registry.has(BufferHookEvent.FLUSH):
