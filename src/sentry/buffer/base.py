@@ -75,6 +75,14 @@ class Buffer(Service):
     ) -> None:
         return None
 
+    def push_to_hash_bulk(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        data: dict[str, str],
+    ) -> None:
+        raise NotImplementedError
+
     def delete_hash(
         self,
         model: type[models.Model],

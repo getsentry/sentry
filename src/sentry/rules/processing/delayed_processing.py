@@ -506,13 +506,11 @@ def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
         while batch := dict(islice(items, batch_size)):
             batch_key = str(uuid.uuid4())
 
-            for field, value in batch.items():
-                buffer.backend.push_to_hash(
-                    model=Project,
-                    filters={"project_id": project_id, "batch_key": batch_key},
-                    field=field,
-                    value=value,
-                )
+            buffer.backend.push_to_hash_bulk(
+                model=Project,
+                filters={"project_id": project_id, "batch_key": batch_key},
+                data=batch,
+            )
 
             # remove the batched items from the project rulegroup_to_event_data
             buffer.backend.delete_hash(

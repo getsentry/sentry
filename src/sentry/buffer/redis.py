@@ -86,6 +86,7 @@ class RedisOperation(Enum):
     SORTED_SET_GET_RANGE = "zrangebyscore"
     SORTED_SET_DELETE_RANGE = "zremrangebyscore"
     HASH_ADD = "hset"
+    HASH_ADD_BULK = "hmset"
     HASH_GET_ALL = "hgetall"
     HASH_DELETE = "hdel"
     HASH_LENGTH = "hlen"
@@ -296,6 +297,15 @@ class RedisBuffer(Buffer):
     ) -> None:
         key = self._make_key(model, filters)
         self._execute_redis_operation(key, RedisOperation.HASH_ADD, field, value)
+
+    def push_to_hash_bulk(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        data: dict[str, str],
+    ) -> None:
+        key = self._make_key(model, filters)
+        self._execute_redis_operation(key, RedisOperation.HASH_ADD_BULK, data)
 
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
