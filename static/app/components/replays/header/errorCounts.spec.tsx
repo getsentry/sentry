@@ -40,6 +40,7 @@ describe('ErrorCounts', () => {
       hasMore: false,
       initiallyLoaded: true,
       onSearch: () => Promise.resolve(),
+      reloadProjects: jest.fn(),
       placeholders: [],
     });
   });

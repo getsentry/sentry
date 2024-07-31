@@ -168,6 +168,7 @@ const setupMocks = () => {
     initiallyLoaded: true,
     projects: [ProjectFixture({hasInsightsAssets: true})],
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
   });
 };

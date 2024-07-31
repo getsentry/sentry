@@ -29,6 +29,7 @@ jest.mocked(useProjects).mockReturnValue({
   hasMore: false,
   initiallyLoaded: true,
   onSearch: () => Promise.resolve(),
+  reloadProjects: jest.fn(),
   placeholders: [],
 });
 
