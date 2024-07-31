@@ -107,7 +107,7 @@ def get_repos(
     # These commits are in order so they should end up in the list of commits still in order.
     for commit in commits:
         # Get the user object if it exists
-        user_option = users_by_email.get(commit.author.email) if commit.author_id else None
+        user_option = users_by_email.get(commit.author.email) if commit.author is not None else None
         repositories_by_id[commit.repository_id]["commits"].append((commit, user_option))
 
     return list(repositories_by_id.values())
