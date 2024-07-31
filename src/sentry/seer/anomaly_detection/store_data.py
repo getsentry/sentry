@@ -31,7 +31,6 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
-TIMEOUT_ERROR_TEXT = "Timeout error when hitting Seer store data endpoint"
 
 
 def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
@@ -108,7 +107,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
         logger.warning(
-            TIMEOUT_ERROR_TEXT,
+            "Timeout error when hitting Seer store data endpoint",
             extra={
                 "rule_id": alert_rule.id,
                 "project_id": project.id,
