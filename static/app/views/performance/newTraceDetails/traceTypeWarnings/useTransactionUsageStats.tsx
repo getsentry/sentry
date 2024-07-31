@@ -4,7 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {TraceTree} from '../traceModels/traceTree';
 
 // 1 hour in milliseconds
-const ONE_HOUR = 3600 * 1000;
+const ONE_HOUR = 60 * 60 * 1000;
 
 export type TransactionStatsGroup = {
   by: {
