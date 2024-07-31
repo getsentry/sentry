@@ -1,11 +1,18 @@
-from typing import Any, cast
+from __future__ import annotations
+
+from collections.abc import Callable
+
+from django.http.request import HttpRequest
 
 from sentry import options
 from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME, ChannelName
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider
+from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.plugins.base.response import DeferredResponse
 
 from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL
-from .views import FetchUser, FlyConfigureView, FlyOAuth2Login
+from .views import FetchUser, FlyOAuth2Login, fly_configure_view
 
 
 class FlyOAuth2Provider(OAuth2Provider):
@@ -24,10 +31,12 @@ class FlyOAuth2Provider(OAuth2Provider):
     def get_client_secret(self):
         return options.get("auth-fly.client-secret")
 
-    def get_configure_view(self):
+    def get_configure_view(
+        self,
+    ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse]:
         # Utilized from organization_auth_settings.py when configuring the app
         # Injected into the configuration form
-        return FlyConfigureView.as_view()
+        return fly_configure_view
 
     def get_auth_pipeline(self):
         return [
@@ -44,13 +53,13 @@ class FlyOAuth2Provider(OAuth2Provider):
         return ACCESS_TOKEN_URL
 
     @classmethod
-    def build_config(self, resource: Any | None = None):
+    def build_config(self, resource):
         """
         On configuration, we determine which provider organization to configure sentry SSO for.
         This configuration is then stored and passed into the pipeline instances during SSO
         to determine whether the Auth'd user has the appropriate access to the provider org
         """
-        return {"org": {"id": cast(dict, resource).get("id")}}
+        return {"org": {"id": resource.get("id")}}
 
     def build_identity(self, state):
         """
