@@ -782,7 +782,7 @@ def filter_exceptions_for_exception_groups(
     # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
     def get_top_level_exceptions(
         exception: SingleException,
-    ) -> Generator[SingleException, None, None]:
+    ) -> Generator[SingleException]:
         if exception.mechanism.is_exception_group:
             children = get_child_exceptions(exception)
             yield from itertools.chain.from_iterable(
@@ -793,7 +793,7 @@ def filter_exceptions_for_exception_groups(
 
     # This recursive generator gets the "first-path" of exceptions, and is used below.
     # The first path follows from the root to a leaf node, but only following the first child of each node.
-    def get_first_path(exception: SingleException) -> Generator[SingleException, None, None]:
+    def get_first_path(exception: SingleException) -> Generator[SingleException]:
         yield exception
         children = get_child_exceptions(exception)
         if children:

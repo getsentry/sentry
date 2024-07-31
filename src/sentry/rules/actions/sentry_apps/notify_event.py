@@ -142,7 +142,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

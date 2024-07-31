@@ -828,7 +828,7 @@ def select_from_fields(fields: list[str], user_id: int | None) -> list[Column | 
     return selection
 
 
-def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, None, None]:
+def _extract_children(expression: ParenExpression) -> Generator[SearchFilter]:
     for child in expression.children:
         if isinstance(child, SearchFilter):
             yield child

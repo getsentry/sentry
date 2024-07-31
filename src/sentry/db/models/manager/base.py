@@ -103,7 +103,7 @@ class BaseManager(_base_manager_base[M]):
 
     @staticmethod
     @contextmanager
-    def local_cache() -> Generator[None, None, None]:
+    def local_cache() -> Generator[None]:
         """Enables local caching for the entire process."""
         global _local_cache_enabled, _local_cache_generation
         if _local_cache_enabled:
@@ -513,7 +513,7 @@ class BaseManager(_base_manager_base[M]):
     @contextmanager
     def register_trigger(
         self, condition: ModelManagerTriggerCondition, action: ModelManagerTriggerAction
-    ) -> Generator[None, None, None]:
+    ) -> Generator[None]:
         """Register a callback for when an operation is executed inside the context.
 
         There is no guarantee whether the action will be called before or after the

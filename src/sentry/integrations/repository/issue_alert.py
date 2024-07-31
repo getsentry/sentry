@@ -158,7 +158,7 @@ class IssueAlertNotificationMessageRepository:
 
     def get_all_parent_notification_messages_by_filters(
         self, group_ids: list[int] | None = None, project_ids: list[int] | None = None
-    ) -> Generator[IssueAlertNotificationMessage, None, None]:
+    ) -> Generator[IssueAlertNotificationMessage]:
         """
         If no filters are passed, then all parent notification objects are returned.
 

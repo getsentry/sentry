@@ -321,7 +321,7 @@ def _get_open_port() -> int:
 
 
 @contextmanager
-def gcloud_manager(ctx: click.Context, project: str) -> Generator[None, None, None]:
+def gcloud_manager(ctx: click.Context, project: str) -> Generator[None]:
     """
     Handles call(s) into the `gcloud` binary gracefully.
     """

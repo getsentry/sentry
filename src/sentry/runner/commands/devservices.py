@@ -52,7 +52,7 @@ else:
 
 
 @contextlib.contextmanager
-def get_docker_client() -> Generator[docker.DockerClient, None, None]:
+def get_docker_client() -> Generator[docker.DockerClient]:
     import docker
 
     def _client() -> ContextManager[docker.DockerClient]:

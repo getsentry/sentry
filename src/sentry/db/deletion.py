@@ -74,7 +74,7 @@ class BulkDeleteQuery:
             cursor.execute(query)
             results = cursor.rowcount > 0
 
-    def iterator(self, chunk_size=100, batch_size=100000) -> Generator[tuple[int, ...], None, None]:
+    def iterator(self, chunk_size=100, batch_size=100000) -> Generator[tuple[int, ...]]:
         assert self.days is not None
         assert self.dtfield is not None and self.dtfield == self.order_by
 

@@ -505,7 +505,7 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
 @contextmanager
 def retry_task_or_fail_relocation(
     relocation: Relocation, task: OrderedTask, attempts_left: int, reason: str = ""
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     """
     Catches all exceptions, and does one of two things: calls into `fail_relocation` if there are no
     retry attempts forthcoming, or simply bubbles them up (thereby triggering a celery retry) if

@@ -82,7 +82,7 @@ class RegressionDetector(ABC):
         cls,
         projects: list[Project],
         start: datetime,
-    ) -> Generator[DetectorPayload, None, None]:
+    ) -> Generator[DetectorPayload]:
         projects_per_query = options.get("statistical_detectors.query.batch_size")
         assert projects_per_query > 0
 
@@ -104,7 +104,7 @@ class RegressionDetector(ABC):
     @classmethod
     def detect_trends(
         cls, projects: list[Project], start: datetime, batch_size=100
-    ) -> Generator[TrendBundle, None, None]:
+    ) -> Generator[TrendBundle]:
         unique_project_ids: set[int] = set()
 
         total_count = 0
@@ -173,7 +173,7 @@ class RegressionDetector(ABC):
     @classmethod
     def all_timeseries(
         cls, objects: list[tuple[Project, int | str]], start: datetime, function: str, chunk_size=25
-    ) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
+    ) -> Generator[tuple[int, int | str, SnubaTSResult]]:
         # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
         # 336 data points per transaction name, so we can safely get 25 transaction
         # timeseries.
@@ -200,7 +200,7 @@ class RegressionDetector(ABC):
         start: datetime,
         function: str,
         timeseries_per_batch=10,
-    ) -> Generator[BreakpointData, None, None]:
+    ) -> Generator[BreakpointData]:
         serializer = SnubaTSResultSerializer(None, None, None)
 
         for chunk in chunked(cls.all_timeseries(objects, start, function), timeseries_per_batch):
@@ -243,9 +243,9 @@ class RegressionDetector(ABC):
     @classmethod
     def limit_regressions_by_project(
         cls,
-        bundles: Generator[TrendBundle, None, None],
+        bundles: Generator[TrendBundle],
         ratelimit: int | None = None,
-    ) -> Generator[TrendBundle, None, None]:
+    ) -> Generator[TrendBundle]:
         if ratelimit is None:
             ratelimit = options.get("statistical_detectors.ratelimit.ema")
 
@@ -288,9 +288,9 @@ class RegressionDetector(ABC):
     @classmethod
     def get_regression_groups(
         cls,
-        bundles: Generator[TrendBundle, None, None],
+        bundles: Generator[TrendBundle],
         batch_size=100,
-    ) -> Generator[TrendBundle, None, None]:
+    ) -> Generator[TrendBundle]:
         for trend_chunk in chunked(bundles, batch_size):
             active_regression_groups = {
                 (group.project_id, group.fingerprint): group
@@ -325,10 +325,10 @@ class RegressionDetector(ABC):
     @classmethod
     def redirect_resolutions(
         cls,
-        bundles: Generator[TrendBundle, None, None],
+        bundles: Generator[TrendBundle],
         timestamp: datetime,
         batch_size=100,
-    ) -> Generator[TrendBundle, None, None]:
+    ) -> Generator[TrendBundle]:
         groups_to_resolve = []
 
         for bundle in bundles:
@@ -373,10 +373,10 @@ class RegressionDetector(ABC):
     @classmethod
     def redirect_escalations(
         cls,
-        bundles: Generator[TrendBundle, None, None],
+        bundles: Generator[TrendBundle],
         timestamp: datetime,
         batch_size=100,
-    ) -> Generator[TrendBundle, None, None]:
+    ) -> Generator[TrendBundle]:
         escalated = 0
 
         candidates = []
@@ -459,7 +459,7 @@ class RegressionDetector(ABC):
         cls,
         bundles_to_escalate: list[TrendBundle],
         batch_size=100,
-    ) -> Generator[TrendBundle, None, None]:
+    ) -> Generator[TrendBundle]:
         for bundles in chunked(bundles_to_escalate, batch_size):
             pairs = {
                 generate_issue_group_key(
@@ -493,9 +493,9 @@ class RegressionDetector(ABC):
     @classmethod
     def get_regression_versions(
         cls,
-        regressions: Generator[BreakpointData, None, None],
+        regressions: Generator[BreakpointData],
         batch_size=100,
-    ) -> Generator[tuple[int, datetime | None, BreakpointData], None, None]:
+    ) -> Generator[tuple[int, datetime | None, BreakpointData]]:
         active_regressions = []
 
         for regression_chunk in chunked(regressions, batch_size):
@@ -565,9 +565,9 @@ class RegressionDetector(ABC):
     @classmethod
     def save_regressions_with_versions(
         cls,
-        regressions: Generator[BreakpointData, None, None],
+        regressions: Generator[BreakpointData],
         batch_size=100,
-    ) -> Generator[BreakpointData, None, None]:
+    ) -> Generator[BreakpointData]:
         versioned_regressions = cls.get_regression_versions(regressions)
 
         for regression_chunk in chunked(versioned_regressions, batch_size):

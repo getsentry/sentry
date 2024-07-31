@@ -11,7 +11,7 @@ from sentry.utils import assets
 
 
 @pytest.fixture(autouse=True)
-def reset_cache() -> Generator[None, None, None]:
+def reset_cache() -> Generator[None]:
     # https://github.com/python/mypy/issues/5107
     assets._frontend_versions.cache_clear()  # type: ignore[attr-defined]
     yield
@@ -19,7 +19,7 @@ def reset_cache() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def self_hosted(tmp_path: pathlib.Path) -> Generator[None, None, None]:
+def self_hosted(tmp_path: pathlib.Path) -> Generator[None]:
     with mock.patch.object(settings, "STATIC_FRONTEND_APP_URL", "/_static/dist/"):
         conf_dir = tmp_path.joinpath("conf")
         conf_dir.mkdir()
@@ -28,7 +28,7 @@ def self_hosted(tmp_path: pathlib.Path) -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def getsentry_no_configmap(tmp_path: pathlib.Path) -> Generator[None, None, None]:
+def getsentry_no_configmap(tmp_path: pathlib.Path) -> Generator[None]:
     # shouldn't actually happen -- but make sure it still works!
     with mock.patch.object(
         settings, "STATIC_FRONTEND_APP_URL", "https://static.example.com/_static/dist/"
@@ -40,7 +40,7 @@ def getsentry_no_configmap(tmp_path: pathlib.Path) -> Generator[None, None, None
 
 
 @pytest.fixture
-def getsentry(tmp_path: pathlib.Path) -> Generator[None, None, None]:
+def getsentry(tmp_path: pathlib.Path) -> Generator[None]:
     with mock.patch.object(
         settings, "STATIC_FRONTEND_APP_URL", "https://static.example.com/_static/dist/"
     ):

@@ -42,7 +42,7 @@ class Lock:
             ) from error
 
         @contextmanager
-        def releaser() -> Generator[None, None, None]:
+        def releaser() -> Generator[None]:
             try:
                 yield
             finally:

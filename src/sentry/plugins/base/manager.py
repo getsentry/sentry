@@ -22,18 +22,18 @@ class PluginManager(InstanceManager):
         return sum(1 for i in self.all())
 
     @overload
-    def all(self) -> Generator[Plugin, None, None]:
+    def all(self) -> Generator[Plugin]:
         ...
 
     @overload
-    def all(self, *, version: Literal[2]) -> Generator[Plugin2, None, None]:
+    def all(self, *, version: Literal[2]) -> Generator[Plugin2]:
         ...
 
     @overload
-    def all(self, *, version: None) -> Generator[Plugin | Plugin2, None, None]:
+    def all(self, *, version: None) -> Generator[Plugin | Plugin2]:
         ...
 
-    def all(self, version: int | None = 1) -> Generator[Plugin | Plugin2, None, None]:
+    def all(self, version: int | None = 1) -> Generator[Plugin | Plugin2]:
         for plugin in sorted(super().all(), key=lambda x: x.get_title()):
             if not plugin.is_enabled():
                 continue
@@ -41,7 +41,7 @@ class PluginManager(InstanceManager):
                 continue
             yield plugin
 
-    def plugin_that_can_be_configured(self) -> Generator[Plugin | Plugin2, None, None]:
+    def plugin_that_can_be_configured(self) -> Generator[Plugin | Plugin2]:
         for plugin in self.all(version=None):
             if plugin.has_project_conf():
                 yield plugin

@@ -38,7 +38,7 @@ class EventAction(RuleBase, abc.ABC):
     @abc.abstractmethod
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         """
         Executed after a Rule matches.
 
