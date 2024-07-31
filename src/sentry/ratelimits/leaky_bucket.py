@@ -65,6 +65,8 @@ class LeakyBucketRateLimiter:
     ) -> LeakyBucketLimitInfo:
         """
         Consumes a request from the bucket and returns the current state of the bucket.
+
+        The state of the bucket changes if and only if the request is not limited.
         """
 
         try:
