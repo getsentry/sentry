@@ -113,6 +113,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             )
             profile_candidates = executor.get_profile_candidates()
 
+        profile_candidates["generate_metrics"] = "generate_metrics" in request.query_params
         return proxy_profiling_service(
             method="POST",
             path=f"/organizations/{organization.id}/flamegraph",
