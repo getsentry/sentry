@@ -124,23 +124,9 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
 }
 
 function getLinesToHighlight(suggestedFix: AutofixRootCauseCodeContext): number[] {
-  function getBacktickSubstrings(input: string): Set<string> {
-    // Regular expression to match substrings wrapped in backticks
-    const regex = /`([^`]+)`/g;
-    const result = new Set<string>();
-    let match: RegExpExecArray | null;
-    do {
-      match = regex.exec(input);
-      if (match) {
-        result.add(match[1]);
-      }
-    } while (match);
-    return result;
-  }
-
   function findLinesWithSubstrings(
     input: string | undefined,
-    substrings: Set<string>
+    substring: string
   ): number[] {
     if (!input) {
       return [];
@@ -149,11 +135,8 @@ function getLinesToHighlight(suggestedFix: AutofixRootCauseCodeContext): number[
     const result: number[] = [];
 
     lines.forEach((line, index) => {
-      for (const substring of substrings) {
-        if (line.includes(substring)) {
-          result.push(index + 1); // line numbers are 1-based
-          break;
-        }
+      if (line.includes(substring)) {
+        result.push(index + 1); // line numbers are 1-based
       }
     });
 
@@ -162,7 +145,7 @@ function getLinesToHighlight(suggestedFix: AutofixRootCauseCodeContext): number[
 
   const lineNumbersToHighlight = findLinesWithSubstrings(
     suggestedFix.snippet?.snippet,
-    getBacktickSubstrings(suggestedFix.description)
+    '***'
   );
   return lineNumbersToHighlight;
 }
