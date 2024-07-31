@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -208,6 +208,30 @@ function AddToDashboardModal({
 
   const canSubmit = selectedDashboardId !== null;
 
+  const options = useMemo(() => {
+    if (dashboards === null) {
+      return null;
+    }
+
+    return [
+      allowCreateNewDashboard && {
+        label: t('+ Create New Dashboard'),
+        value: 'new',
+      },
+      ...dashboards.map(({title, id, widgetDisplay}) => ({
+        label: title,
+        value: id,
+        disabled: widgetDisplay.length >= MAX_WIDGETS,
+        tooltip:
+          widgetDisplay.length >= MAX_WIDGETS &&
+          tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+            maxWidgets: MAX_WIDGETS,
+          }),
+        tooltipOptions: {position: 'right'},
+      })),
+    ].filter(Boolean) as SelectValue<string>[];
+  }, [allowCreateNewDashboard, dashboards]);
+
   return (
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
@@ -221,25 +245,7 @@ function AddToDashboardModal({
             name="dashboard"
             placeholder={t('Select Dashboard')}
             value={selectedDashboardId}
-            options={
-              dashboards && [
-                allowCreateNewDashboard && {
-                  label: t('+ Create New Dashboard'),
-                  value: 'new',
-                },
-                ...dashboards.map(({title, id, widgetDisplay}) => ({
-                  label: title,
-                  value: id,
-                  disabled: widgetDisplay.length >= MAX_WIDGETS,
-                  tooltip:
-                    widgetDisplay.length >= MAX_WIDGETS &&
-                    tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                      maxWidgets: MAX_WIDGETS,
-                    }),
-                  tooltipOptions: {position: 'right'},
-                })),
-              ]
-            }
+            options={options}
             onChange={(option: SelectValue<string>) => {
               if (option.disabled) {
                 return;
