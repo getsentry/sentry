@@ -84,7 +84,7 @@ class DiscoverSavedQueryModelSerializer(Serializer):
             "topEvents",
             "interval",
         ]
-        data = {
+        data: DiscoverSavedQueryResponse = {
             "id": str(obj.id),
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
