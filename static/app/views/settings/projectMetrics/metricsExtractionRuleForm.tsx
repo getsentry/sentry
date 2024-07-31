@@ -308,6 +308,11 @@ export function MetricsExtractionRuleForm({
     [onSubmit]
   );
 
+  const isCustomSpanAttribute = useCallback((value: string) => {
+    return !attributeOptions.some(option => option.value === value);
+    // attributeOptions is being mutated when a new custom attribute is created
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <Form onSubmit={onSubmit && handleSubmit} {...props}>
       {({model}) => (
@@ -566,14 +571,18 @@ export function MetricsExtractionRuleForm({
                     <Fragment>
                       <b>{t('Why that?')}</b>
                       <p>
-                        {tct(
-                          'We’ll only collect data from spans sent after you created the metric and not before. If you haven’t already, please [link:instrument your custom attribute.]',
-                          {
-                            link: (
-                              <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
-                            ),
-                          }
-                        )}
+                        {isCustomSpanAttribute(model.getValue('spanAttribute'))
+                          ? tct(
+                              'We’ll only collect data from spans sent after you created the metric and not before. If you haven’t already, please [link:instrument your custom attribute.]',
+                              {
+                                link: (
+                                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                                ),
+                              }
+                            )
+                          : t(
+                              'Well, it’s because we’ll only collect data once you’ve created a metric and not before. Likewise, if you deleted an existing metric, then we’ll stop collecting data for that metric.'
+                            )}
                       </p>
                     </Fragment>
                   }

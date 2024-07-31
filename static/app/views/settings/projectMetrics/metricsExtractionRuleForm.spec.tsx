@@ -1,5 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {INITIAL_DATA} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
@@ -47,7 +48,7 @@ describe('Metrics Extraction Rule Form', function () {
     );
   });
 
-  it('by changing the form an info about ingest delay shall be displayed', async function () {
+  it('by selecting a custom attribute the alert about delay in ingestion shall render different info', async function () {
     const {project} = initializeOrg();
 
     renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
@@ -67,9 +68,18 @@ describe('Metrics Extraction Rule Form', function () {
         /collect data from spans sent after you created the metric and not before/
       )
     ).toBeInTheDocument();
+
     expect(screen.getByText(/instrument your custom attribute/)).toHaveAttribute(
       'href',
       'https://docs.sentry.io/product/explore/metrics/metrics-set-up/'
     );
+
+    await selectEvent.select(screen.getByText('new-metric'), 'browser.name');
+
+    expect(
+      screen.getByText(
+        /if you deleted an existing metric, then we’ll stop collecting data/
+      )
+    ).toBeInTheDocument();
   });
 });
