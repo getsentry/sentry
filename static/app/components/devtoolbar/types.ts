@@ -16,7 +16,7 @@ export type Configuration = {
   SentrySDK?: typeof SentrySDK;
   domId?: string;
   featureFlags?: {
-    clear?: () => void;
+    clearOverrides?: () => void;
     getFeatureFlagMap?: () => FeatureFlagMap;
     setOverrideValue?: (name: string, override: FlagValue) => void;
     urlTemplate?: (name: string) => string | undefined;

@@ -11,14 +11,13 @@ import {AnalyticsContext} from '../analyticsProvider';
 import {useFeatureFlagsContext} from './featureFlagsContext';
 
 export default function CustomOverride() {
-  const {featureFlags, trackAnalytics} = useConfiguration();
-
   const {eventName, eventKey} = useContext(AnalyticsContext);
-
-  const {hasOverride} = useFeatureFlagsContext();
+  const {trackAnalytics} = useConfiguration();
+  const {setOverride} = useFeatureFlagsContext();
 
   const [name, setName] = useState('');
   const [isActive, setIsActive] = useState(false);
+
   return (
     <form
       css={[
@@ -32,8 +31,7 @@ export default function CustomOverride() {
       ]}
       onSubmit={e => {
         e.preventDefault();
-        featureFlags?.setOverrideValue?.(name, isActive);
-        hasOverride();
+        setOverride(name, isActive);
         setName('');
         setIsActive(false);
         trackAnalytics?.({

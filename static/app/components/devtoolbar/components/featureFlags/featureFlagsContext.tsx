@@ -2,18 +2,39 @@ import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useState} from 'react';
 
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
-import type {FeatureFlagMap} from 'sentry/components/devtoolbar/types';
+import type {FeatureFlagMap, FlagValue} from 'sentry/components/devtoolbar/types';
 
-const FeatureFlagContext = createContext<{
+interface Context {
+  /**
+   * Call through to the user-supplied clearOverrides() function to reset override state.
+   */
   clearOverrides: () => void;
+
+  /**
+   * The map of effective feature flags.
+   */
   featureFlagMap: FeatureFlagMap;
-  hasOverride: () => void;
+
+  /**
+   * Whether the state of overridden flags has changed in this session. After
+   * state is changed you must reload the page to ensure that you're getting a
+   * consistent experience.
+   */
   isDirty: boolean;
-}>({
+
+  /**
+   * Set an override. Marks the state as dirty.
+   *
+   * Setting an override back to default will not un-mark the dirty flag.
+   */
+  setOverride: (name: string, value: FlagValue) => void;
+}
+
+const FeatureFlagContext = createContext<Context>({
   clearOverrides: () => {},
   featureFlagMap: {},
-  hasOverride: () => {},
   isDirty: false,
+  setOverride: () => {},
 });
 
 export function FeatureFlagsContextProvider({children}: {children: ReactNode}) {
@@ -24,20 +45,24 @@ export function FeatureFlagsContextProvider({children}: {children: ReactNode}) {
     () => featureFlags?.getFeatureFlagMap?.() ?? {}
   );
 
-  const hasOverride = useCallback(() => {
-    setIsDirty(true);
-    setFeatureFlagMap(() => featureFlags?.getFeatureFlagMap?.() ?? {});
-  }, [featureFlags]);
+  const setOverride = useCallback(
+    (name: string, value: FlagValue) => {
+      featureFlags?.setOverrideValue?.(name, value);
+      setIsDirty(true);
+      setFeatureFlagMap(featureFlags?.getFeatureFlagMap?.() ?? {});
+    },
+    [featureFlags]
+  );
 
   const clearOverrides = useCallback(() => {
-    featureFlags?.clear?.();
+    featureFlags?.clearOverrides?.();
     setIsDirty(true);
-    setFeatureFlagMap(() => featureFlags?.getFeatureFlagMap?.() ?? {});
+    setFeatureFlagMap(featureFlags?.getFeatureFlagMap?.() ?? {});
   }, [featureFlags]);
 
   return (
     <FeatureFlagContext.Provider
-      value={{isDirty, featureFlagMap, hasOverride, clearOverrides}}
+      value={{isDirty, featureFlagMap, setOverride, clearOverrides}}
     >
       {children}
     </FeatureFlagContext.Provider>

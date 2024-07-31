@@ -40,7 +40,7 @@ export default function useDevToolbar({enabled}: {enabled: boolean}) {
               FeatureFlagOverrides.singleton().setStoredOverride(name, value);
             }
           },
-          clear: () => {
+          clearOverrides: () => {
             FeatureFlagOverrides.singleton().clear();
           },
         },

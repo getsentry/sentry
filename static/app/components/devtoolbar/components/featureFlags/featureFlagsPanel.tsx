@@ -18,16 +18,14 @@ import {FeatureFlagsContextProvider, useFeatureFlagsContext} from './featureFlag
 type Prefilter = 'all' | 'overrides';
 
 export default function FeatureFlagsPanel() {
-  const [prefilter, setPreFilter] = useState<Prefilter>('all');
+  const [prefilter, setPrefilter] = useState<Prefilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
     <FeatureFlagsContextProvider>
       <PanelLayout title="Feature Flags">
         <div css={{display: 'grid', gridTemplateRows: 'auto auto 1fr auto', flexGrow: 1}}>
-          <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-            <IsDirtyMessage />
-          </div>
+          <IsDirtyMessage />
           <div
             css={[
               smallCss,
@@ -41,13 +39,13 @@ export default function FeatureFlagsPanel() {
             ]}
           >
             <Filters
-              setPreFilter={setPreFilter}
+              setPrefilter={setPrefilter}
               prefilter={prefilter}
               setSearchTerm={setSearchTerm}
             />
           </div>
           <div css={[resetFlexRowCss, {contain: 'strict'}]}>
-            <AnalyticsProvider keyVal="flag-table" nameVal="flag-table">
+            <AnalyticsProvider keyVal="flag-table" nameVal="Flag Table">
               <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
             </AnalyticsProvider>
           </div>
@@ -65,23 +63,29 @@ export default function FeatureFlagsPanel() {
 function IsDirtyMessage() {
   const {isDirty} = useFeatureFlagsContext();
 
-  return <span>{isDirty ? 'Reload to see changes' : ''}</span>;
+  return isDirty ? (
+    <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
+      <span>Reload to see changes</span>
+    </div>
+  ) : (
+    <div />
+  );
 }
 
 function Filters({
-  setPreFilter,
+  setPrefilter,
   prefilter,
   setSearchTerm,
 }: {
   prefilter: Prefilter;
-  setPreFilter: Dispatch<SetStateAction<Prefilter>>;
+  setPrefilter: Dispatch<SetStateAction<Prefilter>>;
   setSearchTerm: Dispatch<SetStateAction<string>>;
 }) {
   const {clearOverrides} = useFeatureFlagsContext();
   return (
     <Fragment>
       <div css={{gridArea: 'segments'}}>
-        <SegmentedControl<Prefilter> onChange={setPreFilter} size="xs" value={prefilter}>
+        <SegmentedControl<Prefilter> onChange={setPrefilter} size="xs" value={prefilter}>
           <SegmentedControl.Item key="all">All Flags</SegmentedControl.Item>
           <SegmentedControl.Item key="overrides">Overrides Only</SegmentedControl.Item>
         </SegmentedControl>
@@ -143,7 +147,7 @@ function FlagTable({prefilter, searchTerm}: {prefilter: string; searchTerm: stri
       stickyHeaders
     >
       {names?.map(name => (
-        <AnalyticsProvider key={name} keyVal="flag-item" nameVal="flag-item">
+        <AnalyticsProvider key={name} keyVal="flag-item" nameVal="Flag Item">
           <FeatureFlagItem flag={{name, ...filtered[name]}} />
         </AnalyticsProvider>
       ))}

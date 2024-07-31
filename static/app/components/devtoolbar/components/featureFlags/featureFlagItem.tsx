@@ -62,12 +62,11 @@ function FlagValueInput({flag}: {flag: FeatureFlag}) {
 }
 
 function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
-  const {featureFlags, trackAnalytics} = useConfiguration();
   const {eventName, eventKey} = useContext(AnalyticsContext);
+  const {trackAnalytics} = useConfiguration();
+  const {setOverride} = useFeatureFlagsContext();
 
-  const {hasOverride} = useFeatureFlagsContext();
-
-  const [isActive, setState] = useState(
+  const [isActive, setIsActive] = useState(
     flag.override !== undefined ? Boolean(flag.override) : Boolean(flag.value)
   );
 
@@ -86,9 +85,8 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
         id={`toggle-${flag.name}`}
         isActive={isActive}
         toggle={() => {
-          featureFlags?.setOverrideValue?.(flag.name, !isActive);
-          setState(!isActive);
-          hasOverride();
+          setOverride(flag.name, !isActive);
+          setIsActive(!isActive);
           trackAnalytics?.({
             eventKey: eventKey + '.toggled',
             eventName: eventName + ' toggled',
