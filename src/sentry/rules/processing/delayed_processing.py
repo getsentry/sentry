@@ -492,6 +492,11 @@ def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
     if event_count < batch_size:
         return apply_delayed.delayed(project_id)
 
+    logger.info(
+        "delayed_processing.process_large_batch",
+        extra={"project_id": project_id, "count": event_count},
+    )
+
     # if the dictionary is large, get the items and chunk them.
     rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
 
@@ -547,7 +552,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     """
     project = fetch_project(project_id)
 
-    if project is None:
+    if not project:
         return
 
     rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id, batch_key)
