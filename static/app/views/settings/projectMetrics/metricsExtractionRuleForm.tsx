@@ -18,7 +18,7 @@ import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
@@ -70,56 +70,27 @@ const HIGH_CARDINALITY_TAGS = new Set([
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+  SpanMetricsField.AI_TOTAL_TOKENS_USED,
+  SpanMetricsField.AI_PROMPT_TOKENS_USED,
+  SpanMetricsField.AI_COMPLETION_TOKENS_USED,
+  SpanMetricsField.AI_INPUT_MESSAGES,
+  SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
+  SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE,
+  SpanMetricsField.CACHE_ITEM_SIZE,
+  SpanMetricsField.CACHE_KEY,
+  SpanMetricsField.THREAD_ID,
+  SpanMetricsField.SENTRY_FRAMES_FROZEN,
+  SpanMetricsField.SENTRY_FRAMES_SLOW,
+  SpanMetricsField.SENTRY_FRAMES_TOTAL,
+  SpanMetricsField.FRAMES_DELAY,
+  SpanMetricsField.URL_FULL,
+  SpanMetricsField.USER_AGENT_ORIGINAL,
+  SpanMetricsField.FRAMES_DELAY,
 ]);
 
-const HIGH_CARDINALITY_KEYWORDS = new Set([
-  'id',
-  'slug',
-  'duration',
-  'time',
-  'timestamp',
-  'size',
-  'length',
-  'len',
-  'count',
-  'uuid',
-  'guid',
-]);
-
-/**
- * Generates permutations of how a keyword can be formatted in a tag.
- */
-const generateTagNamePermutation = (keyword: string): string[] => [
-  `_${keyword}`,
-  `${keyword}_`,
-  `.${keyword}`,
-  `${keyword}.`,
-  `-${keyword}`,
-  `${keyword}-`,
-  `:${keyword}`,
-  `${keyword}:`,
-  keyword.charAt(0).toUpperCase() + keyword.slice(1), // capitalize first letter
-  keyword.toUpperCase(), // uppercase version of tag
-];
-
-/**
- * Checks if the tag is well known high cardinality tag or one of the known high cardinality keywords
- * is in the tag. Permutations of a keyword are used as a heuristic to decrease the chance of
- * false positives - e.g. 'idealTag' would not be considered high cardinality.
- * NOTE: this is a heuristic and not a perfect solution - it can still result
- * in false positives (e.g. 'myIdealTag' will be flagged as high cardinality tag)
- */
 const isHighCardinalityTag = (tag: string): boolean => {
   if (HIGH_CARDINALITY_TAGS.has(tag as SpanIndexedField)) {
     return true;
-  }
-
-  for (const keyword of HIGH_CARDINALITY_KEYWORDS) {
-    for (const permutation of generateTagNamePermutation(keyword)) {
-      if (tag.includes(permutation)) {
-        return true;
-      }
-    }
   }
 
   return false;
@@ -318,15 +289,14 @@ export function MetricsExtractionRuleForm({
   }, [allAttributeOptions, extractionRules]);
 
   const tagOptions = useMemo(() => {
-    return allAttributeOptions
-      .filter(
-        // We don't want to suggest numeric fields as tags as they would explode cardinality
-        option => !isHighCardinalityTag(option)
-      )
-      .map<SelectValue<string>>(option => ({
-        label: option,
-        value: option,
-      }));
+    return allAttributeOptions.map<SelectValue<string>>(option => ({
+      label: option,
+      value: option,
+      disabled: isHighCardinalityTag(option),
+      tooltip: isHighCardinalityTag(option)
+        ? t('This tag has high cardinality.')
+        : undefined,
+    }));
   }, [allAttributeOptions]);
 
   const unitOptions = useMemo(() => {
