@@ -73,7 +73,7 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
 
   return (
     <label
-      htmlFor="mask"
+      htmlFor={`toggle-${flag.name}`}
       css={{
         display: 'flex',
         alignItems: 'flex-end',
@@ -83,6 +83,7 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
     >
       <code>{String(isActive)}</code>
       <Switch
+        id={`toggle-${flag.name}`}
         isActive={isActive}
         toggle={() => {
           featureFlags?.setOverrideValue?.(flag.name, !isActive);
