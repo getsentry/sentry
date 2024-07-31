@@ -403,6 +403,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                     },
                 ],
                 "continuous": [],  # TODO: this isn't supported yet
+                "generate_metrics": False,
             },
         )
 
@@ -517,6 +518,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                         "end": str(int(profiler_transaction["timestamp"] * 1e9)),
                     },
                 ],
+                "generate_metrics": False,
             },
         )
 
@@ -611,6 +613,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                             "chunk_id": chunk["chunk_id"],
                         },
                     ],
+                    "generate_metrics": False,
                 },
             )
 
