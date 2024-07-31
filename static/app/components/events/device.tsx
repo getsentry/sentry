@@ -1,7 +1,8 @@
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import KeyValueList from './interfaces/keyValueList';
 
@@ -23,7 +24,7 @@ export function EventDevice({event}: Props) {
   }
 
   return (
-    <EventDataSection type="device" title={t('Device')}>
+    <InterimSection type={FoldSectionKey.DEVICE} title={t('Device')}>
       <KeyValueList
         shouldSort={false}
         data={[
@@ -45,6 +46,6 @@ export function EventDevice({event}: Props) {
           ...extras,
         ]}
       />
-    </EventDataSection>
+    </InterimSection>
   );
 }

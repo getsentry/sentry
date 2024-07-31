@@ -5,7 +5,6 @@ import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -16,6 +15,8 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -46,7 +47,7 @@ export default function ReplayInlineOnboardingPanel({
   }
 
   return (
-    <EventDataSection type="replay" title={t('Session Replay')}>
+    <InterimSection type={FoldSectionKey.REPLAY} title={t('Session Replay')}>
       <BannerWrapper>
         <div>
           <BannerTitle>
@@ -103,7 +104,7 @@ export default function ReplayInlineOnboardingPanel({
           ]}
         />
       </BannerWrapper>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

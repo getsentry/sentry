@@ -16,7 +16,6 @@ import {
   getEnhancedBreadcrumbs,
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
@@ -38,6 +37,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -155,9 +156,9 @@ export default function BreadcrumbsDataSection({
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
 
   return (
-    <EventDataSection
+    <InterimSection
       key="breadcrumbs"
-      type="breadcrmbs"
+      type={FoldSectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}
@@ -187,7 +188,7 @@ export default function BreadcrumbsDataSection({
           </ViewAllContainer>
         )}
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

@@ -5,7 +5,7 @@ import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {StackView} from 'sentry/types/stacktrace';
 
-import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {StackTraceContent} from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -54,8 +54,7 @@ export function StackTrace({
       stackTraceNotFound={stackTraceNotFound}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
-      title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
-      wrapTitle={false}
+      title={t('Stack Trace')}
       hasMinified={false}
       hasVerboseFunctionNames={
         !!data.frames?.some(

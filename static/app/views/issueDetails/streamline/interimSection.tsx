@@ -12,9 +12,6 @@ import {
 } from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-interface InterimSectionProps extends EventDataSectionProps {
-  sectionKey: FoldSectionKey;
-}
 /**
  * This section is meant to provide a shared component while the streamline UI
  * for issue details is being developed. Once GA'd, all occurances should be replaced
@@ -22,22 +19,22 @@ interface InterimSectionProps extends EventDataSectionProps {
  */
 export function InterimSection({
   children,
-  sectionKey,
   title,
+  type,
   actions = null,
   ...props
-}: InterimSectionProps) {
+}: EventDataSectionProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   return hasStreamlinedUI ? (
     <Fragment>
-      <FoldSection sectionKey={sectionKey} title={title} actions={actions}>
+      <FoldSection sectionKey={type as FoldSectionKey} title={title} actions={actions}>
         {children}
       </FoldSection>
       <Divider />
     </Fragment>
   ) : (
-    <EventDataSection title={title} actions={actions} {...props}>
+    <EventDataSection title={title} actions={actions} type={type} {...props}>
       {children}
     </EventDataSection>
   );

@@ -2,7 +2,6 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   getSentryDefaultTags,
   TagFilter,
@@ -15,6 +14,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {EventTags} from '../eventTags';
 
@@ -72,7 +73,7 @@ function Tags({event, projectSlug}: Props) {
       actions={actions}
       data-test-id="event-tags"
       guideTarget="tags"
-      type="tags"
+      type={FoldSectionKey.TAGS}
     >
       <EventTags
         event={event}
@@ -86,7 +87,7 @@ function Tags({event, projectSlug}: Props) {
 
 export default Tags;
 
-const StyledEventDataSection = styled(EventDataSection)`
+const StyledEventDataSection = styled(InterimSection)`
   padding: ${space(0.5)} ${space(2)} ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
