@@ -57,9 +57,9 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import EventNavigation from 'sentry/views/issueDetails/eventNavigation';
-import {GroupContentItem} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+import {EventFilter} from 'sentry/views/issueDetails/streamline/eventFilter';
+import EventNavigation from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -479,17 +479,20 @@ export default function GroupEventDetailsContent({
     }
     default: {
       return hasStreamlinedUI ? (
-        <GroupContentItem>
-          <EventNavigation event={event} group={group} />
-          <GroupDivider />
-          <GroupContentPadding>
-            <DefaultGroupEventDetailsContent
-              group={group}
-              event={event}
-              project={project}
-            />
-          </GroupContentPadding>
-        </GroupContentItem>
+        <Fragment>
+          <EventFilter />
+          <GroupContentItem>
+            <EventNavigation event={event} group={group} />
+            <GroupDivider />
+            <GroupContentPadding>
+              <DefaultGroupEventDetailsContent
+                group={group}
+                event={event}
+                project={project}
+              />
+            </GroupContentPadding>
+          </GroupContentItem>
+        </Fragment>
       ) : (
         <DefaultGroupEventDetailsContent group={group} event={event} project={project} />
       );
@@ -511,6 +514,12 @@ const StyledDataSection = styled(DataSection)`
   &:empty {
     display: none;
   }
+`;
+
+const GroupContentItem = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const GroupDivider = styled('hr')`

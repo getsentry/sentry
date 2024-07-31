@@ -49,6 +49,12 @@ const EventNavLabels = {
   [EventNavOptions.OLDEST]: t('First Event'),
 };
 
+const EventNavOrder = [
+  EventNavOptions.RECOMMENDED,
+  EventNavOptions.OLDEST,
+  EventNavOptions.LATEST,
+];
+
 const eventDataSections: SectionDefinition[] = [
   {section: 'event-highlights', label: t('Event Highlights'), condition: () => true},
   {
@@ -131,7 +137,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
       <EventNavigationWrapper>
         <Tabs>
           <TabList hideBorder variant="floating">
-            {Object.keys(EventNavLabels).map(label => {
+            {EventNavOrder.map(label => {
               return (
                 <TabList.Item
                   to={{

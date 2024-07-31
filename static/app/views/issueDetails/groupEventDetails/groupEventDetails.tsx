@@ -247,12 +247,6 @@ const GroupContent = styled(Layout.Main)`
   padding: ${space(1.5)};
 `;
 
-export const GroupContentItem = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
 const StyledLayoutSide = styled(Layout.Side)`
   padding: ${space(3)} ${space(2)} ${space(3)};
 

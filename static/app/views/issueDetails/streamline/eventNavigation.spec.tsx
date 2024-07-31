@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 import * as useMedia from 'sentry/utils/useMedia';
-import EventNavigation from 'sentry/views/issueDetails/eventNavigation';
+import EventNavigation from 'sentry/views/issueDetails/streamline/eventNavigation';
 
 describe('EventNavigation', () => {
   const testEvent = EventFixture({
