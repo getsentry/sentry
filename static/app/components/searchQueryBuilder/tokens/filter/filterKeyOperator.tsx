@@ -365,19 +365,16 @@ export function FilterKeyOperator({
     case FilterType.AGGREGATE_PERCENTAGE:
     case FilterType.AGGREGATE_RELATIVE_DATE:
     case FilterType.AGGREGATE_SIZE:
-      if (token.key.args) {
-        return (
-          <AggregateFilterKeyOperator
-            token={token}
-            state={state}
-            item={item}
-            onOpenChange={onOpenChange}
-            filterRef={filterRef}
-            gridCellProps={gridCellProps}
-          />
-        );
-      }
-      break;
+      return (
+        <AggregateFilterKeyOperator
+          token={token}
+          state={state}
+          item={item}
+          onOpenChange={onOpenChange}
+          filterRef={filterRef}
+          gridCellProps={gridCellProps}
+        />
+      );
     default:
       break;
   }

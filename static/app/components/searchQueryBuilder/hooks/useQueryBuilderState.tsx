@@ -82,7 +82,7 @@ type DeleteLastMultiSelectFilterValueAction = {
 };
 
 type UpdateAggregateArgsAction = {
-  token: TokenResult<Token.KEY_AGGREGATE_ARGS>;
+  token: TokenResult<Token.KEY_AGGREGATE_ARGS> | TokenResult<Token.SPACES>;
   type: 'UPDATE_AGGREGATE_ARGS';
   value: string;
 };

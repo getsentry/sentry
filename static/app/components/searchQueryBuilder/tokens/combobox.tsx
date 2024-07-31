@@ -77,6 +77,10 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   displayTabbedMenu?: boolean;
   filterValue?: string;
   isLoading?: boolean;
+  /**
+   * When passing `isOpen`, the open state is controlled by the parent.
+   */
+  isOpen?: boolean;
   maxOptions?: number;
   onClick?: (e: React.MouseEvent) => void;
   /**
@@ -149,6 +153,7 @@ function menuIsOpen({
   displayTabbedMenu,
   isLoading,
   hasCustomMenu,
+  isOpen,
 }: {
   hiddenOptions: Set<SelectKey>;
   state: ComboBoxState<any>;
@@ -156,14 +161,17 @@ function menuIsOpen({
   displayTabbedMenu?: boolean;
   hasCustomMenu?: boolean;
   isLoading?: boolean;
+  isOpen?: boolean;
 }) {
+  const openState = isOpen ?? state.isOpen;
+
   if (displayTabbedMenu || isLoading || hasCustomMenu) {
-    return state.isOpen;
+    return openState;
   }
 
   // When the tabbed menu is not being displayed and we aren't loading anything,
   // only show when there is something to select from.
-  return state.isOpen && totalOptions > hiddenOptions.size;
+  return openState && totalOptions > hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
@@ -483,6 +491,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     isLoading,
     onClick,
     customMenu,
+    isOpen: incomingIsOpen,
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
@@ -529,6 +538,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the tabbed menu
     shouldCloseOnBlur: false,
+    selectedKey: null,
     ...comboBoxProps,
   });
 
@@ -596,6 +606,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     displayTabbedMenu,
     isLoading,
     hasCustomMenu,
+    isOpen: incomingIsOpen,
   });
 
   useEffect(() => {

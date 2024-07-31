@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -34,9 +34,22 @@ export function AggregateKey({
   filterRef,
 }: AggregateKeyProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {disabled} = useSearchQueryBuilder();
+  const {dispatch, focusOverride, disabled} = useSearchQueryBuilder();
 
   const [isEditing, setIsEditing] = useState(false);
+
+  // Enters edit mode when focusOverride is set to this item
+  useLayoutEffect(() => {
+    if (
+      !isEditing &&
+      focusOverride?.itemKey === item.key &&
+      focusOverride.part === 'key'
+    ) {
+      setIsEditing(true);
+      onActiveChange(true);
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, isEditing, item.key, onActiveChange]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: () => {
@@ -124,10 +137,6 @@ const UnfocusedText = styled('span')`
 
 const Parameters = styled('span')`
   height: 100%;
-
-  &:not(:empty) {
-    padding: 0 ${space(0.25)};
-  }
 `;
 
 const KeyEditing = styled('div')`
