@@ -1,10 +1,12 @@
 import {Fragment, useCallback, useId, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
+import Option from 'sentry/components/forms/controls/selectOption';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form, {type FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -331,13 +333,38 @@ export function MetricsExtractionRuleForm({
                   )}
                 />
               }
-              placeholder={t('Select span attribute')}
-              creatable
-              formatCreateLabel={value => `Custom: "${value}"`}
               onCreateOption={value => {
                 setCustomAttributes(curr => [...curr, value]);
                 model.setValue('spanAttribute', value);
               }}
+              components={{
+                // Replaces the dropdown options
+                Option: containerProps => {
+                  if (containerProps.data.__isNew__) {
+                    return (
+                      <Fragment>
+                        <OptionInfo>
+                          {tct(
+                            'Select an attribute or create one. [link:See how to instrument a custom attribute.]',
+                            {
+                              link: (
+                                <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                              ),
+                            }
+                          )}
+                        </OptionInfo>
+                        <Option {...containerProps} />
+                      </Fragment>
+                    );
+                  }
+                  return <Option {...containerProps} />;
+                },
+              }}
+              placeholder={t('Select span attribute')}
+              creatable
+              formatCreateLabel={value =>
+                tct('Create "[value]"', {value: <strong>{value}</strong>})
+              }
               onChange={value => {
                 model.setValue('spanAttribute', value);
                 if (value in FIXED_UNITS_BY_ATTRIBUTE) {
@@ -357,18 +384,16 @@ export function MetricsExtractionRuleForm({
               name="unit"
               options={unitOptions}
               disabled={isUnitDisabled}
-              label={
-                <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">
-                  {t('Create Custom Attribute?')}
-                </ExternalLink>
-              }
               placeholder={t('Select unit')}
               creatable
-              formatCreateLabel={value => `Custom: "${value}"`}
+              formatCreateLabel={value => `Create "${value}"`}
               onCreateOption={value => {
                 setCustomUnit(value);
                 model.setValue('unit', value);
               }}
+              css={css`
+                min-width: 150px;
+              `}
             />
           </SpanAttributeUnitWrapper>
 
@@ -410,7 +435,7 @@ export function MetricsExtractionRuleForm({
               />
             }
             creatable
-            formatCreateLabel={value => `Custom: "${value}"`}
+            formatCreateLabel={value => `Create "${value}"`}
             onCreateOption={value => {
               setCustomAttributes(curr => [...curr, value]);
               const currentTags = model.getValue('tags') as string[];
@@ -537,8 +562,13 @@ export function MetricsExtractionRuleForm({
                     <Fragment>
                       <b>{t('Why that?')}</b>
                       <p>
-                        {t(
-                          'Well, it’s because we’ll only collect data once you’ve created a metric and not before. Likewise, if you deleted an existing metric, then we’ll stop collecting data for that metric.'
+                        {tct(
+                          'We’ll only collect data from spans sent after you created the metric and not before. If you haven’t already, please [link:instrument your custom attribute.]',
+                          {
+                            link: (
+                              <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                            ),
+                          }
                         )}
                       </p>
                     </Fragment>
@@ -565,6 +595,10 @@ function TooltipIconLabel({label, help}) {
     </TooltipIconLabelWrapper>
   );
 }
+
+const OptionInfo = styled('div')`
+  padding: ${space(1)};
+`;
 
 const TooltipIconLabelWrapper = styled('span')`
   display: inline-flex;
