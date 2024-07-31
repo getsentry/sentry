@@ -12,6 +12,7 @@ from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, nodestore
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
+from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -87,8 +88,15 @@ def fetch_project(project_id: int) -> Project | None:
         return None
 
 
-def fetch_rulegroup_to_event_data(project_id: int) -> dict[str, str]:
-    return buffer.backend.get_hash(model=Project, field={"project_id": project_id})
+def fetch_rulegroup_to_event_data(project_id: int, batch_key: str | None = None) -> dict[str, str]:
+    field: dict[str, models.Model | int | str] = {
+        "project_id": project_id,
+    }
+
+    if batch_key:
+        field["batch_key"] = batch_key
+
+    return buffer.backend.get_hash(model=Project, field=field)
 
 
 def get_rules_to_groups(rulegroup_to_event_data: dict[str, str]) -> DefaultDict[int, set[int]]:
@@ -466,6 +474,19 @@ def bucket_num_groups(num_groups: int) -> str:
 
 
 def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
+    """
+    This will check the number of rulegroup_to_event_data items in the Redis buffer for a project.
+
+    If the number is larger than the batch size, it will chunk the items and process them in batches.
+
+    The batches are replicated into a new redis hash with a unique filter (a uuid) to identify the batch.
+    We need to use a UUID because these batches can be created in multiple processes and we need to ensure
+    uniqueness across all of them for the centralized redis buffer. The batches are stored in redis because
+    we shouldn't pass complex objects in the celery task arguments, and we can't send a page of data in the
+    batch becaues redis may not maintain the sort of the hash response.
+
+    In `apply_delayed` will will fetch the batch from redis and process the rules.
+    """
     event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
 
     if event_count < batch_size:
@@ -533,13 +554,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     if project is None:
         return
 
-    if batch_key is None:
-        rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
-    else:
-        rulegroup_to_event_data = buffer.backend.get_hash(
-            model=Project, field={"project_id": project_id, "batch_key": batch_key}
-        )
-
+    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id, batch_key)
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
     alert_rules = fetch_alert_rules(list(rules_to_groups.keys()))
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
