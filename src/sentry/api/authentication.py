@@ -404,7 +404,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        user: AnonymousUser | RpcUser | None = AnonymousUser()
+        user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
             request, token_str

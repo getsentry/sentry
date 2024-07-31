@@ -10,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {getMetaDateTimeParams} from './index';
 
-const SPAN_DURATION_MRI = 'd:spans/duration@millisecond';
+export const SPAN_DURATION_MRI = 'd:spans/duration@millisecond';
 const ALLOWED_SPAN_DURATION_TAGS = [
   'span.category',
   'span.description',

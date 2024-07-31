@@ -41,7 +41,7 @@ class OAuthUserInfoEndpoint(Endpoint):
             raise InsufficientScopesError
 
         user = token_details.user
-        user_output = {"sub": user.id}
+        user_output: dict[str, object] = {"sub": user.id}
         if "profile" in scopes:
             profile_details = {
                 "name": user.name,

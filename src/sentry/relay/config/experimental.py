@@ -1,7 +1,7 @@
 import logging
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 import sentry_sdk
 
@@ -60,11 +60,32 @@ def add_experimental_config(
     NOTE: Only use this function if you expect Relay to behave reasonably
     if ``key`` is missing from the config.
     """
+
+    if subconfig := build_safe_config(key, function, *args, **kwargs):
+        config[key] = subconfig
+
+
+R = TypeVar("R")
+R_default = TypeVar("R_default")
+
+
+def build_safe_config(
+    key: str,
+    function: Callable[..., R],
+    *args: Any,
+    default_return: R_default | None = None,
+    **kwargs: Any,
+) -> R | R_default | None:
+    """
+    Runs a config builder function with a timeout.
+    If the function call raises an exception, we log it to sentry and return value passed as
+    `default_return` parameter (by default this is `None`).
+    """
     timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
-    with sentry_sdk.start_span(op=f"project_config.experimental_config.{key}"):
+    with sentry_sdk.start_span(op=f"project_config.build_safe_config.{key}"):
         try:
-            subconfig = function(timeout, *args, **kwargs)
+            return function(timeout, *args, **kwargs)
         except TimeoutException as e:
             logger.exception(
                 "Project config feature build timed out: %s",
@@ -73,6 +94,5 @@ def add_experimental_config(
             )
         except Exception:
             logger.exception("Exception while building Relay project config field")
-        else:
-            if subconfig is not None:
-                config[key] = subconfig
+
+    return default_return
