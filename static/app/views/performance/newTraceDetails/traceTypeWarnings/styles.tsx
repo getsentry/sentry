@@ -54,7 +54,7 @@ function Banner(props: BannerProps) {
           </ActionButton>
           <ActionButton>
             <Button
-              onClick={() => props.onSecondaryButtonClick()}
+              onClick={props.onSecondaryButtonClick}
               href={props.docsRoute}
               external
             >
