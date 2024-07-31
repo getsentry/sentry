@@ -4,6 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -36,7 +37,15 @@ describe('InvestigationRule', function () {
     };
   }
 
-  function initComponentEnvironment({hasRule}) {
+  function initComponentEnvironment({
+    hasRule,
+    dataset,
+    query,
+  }: {
+    hasRule: boolean;
+    dataset?: DiscoverDatasets;
+    query?: string;
+  }) {
     initialize();
 
     if (hasRule) {
@@ -60,7 +69,8 @@ describe('InvestigationRule', function () {
       version: 2,
       fields: ['transaction', 'count()'],
       projects: [project.id],
-      query: 'event.type:transaction',
+      query: query ?? 'event.type:transaction',
+      dataset,
     });
   }
 
@@ -212,6 +222,48 @@ describe('InvestigationRule', function () {
     expect(buttons).toHaveLength(0);
     // check we did call the endpoint to check if the newly created rule exists
     expect(sencondResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it('appends event type condiiton if dataset is transactions', async function () {
+    initComponentEnvironment({
+      hasRule: false,
+      dataset: DiscoverDatasets.TRANSACTIONS,
+      query: 'branch:main',
+    });
+    organization.features = ['performance-discover-dataset-selector'];
+
+    const createRule = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      method: 'POST',
+    });
+
+    render(
+      <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
+      {organization}
+    );
+    // wait for the button to appear
+    const button = await screen.findByRole('button', {name: buttonText});
+    expect(button).toBeInTheDocument();
+    // make sure we are not showing the label
+    const labels = screen.queryAllByText(labelText);
+    expect(labels).toHaveLength(0);
+
+    // check we did call the endpoint to check if a rule exists
+    expect(getRuleMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'event.type:transaction (branch:main)'}),
+      })
+    );
+
+    // now the user creates a rule
+    await userEvent.click(button);
+    expect(createRule).toHaveBeenCalledWith(
+      '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      expect.objectContaining({
+        data: expect.objectContaining({query: 'event.type:transaction (branch:main)'}),
+      })
+    );
   });
 
   it('should show an error when creating a new rule fails', async function () {
