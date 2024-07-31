@@ -68,7 +68,7 @@ def issue_occurrence_options() -> list[click.Option]:
         click.Option(
             ["--mode", "mode"],
             type=click.Choice(["batched-parallel", "parallel"]),
-            default="parallel",
+            default="batched-parallel",
             help="The mode to process occurrences in. Batched-parallel uses batched in parallel to guarantee messages are processed in order per group, parallel uses multi-processing.",
         ),
     ]
@@ -234,6 +234,10 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "monitors-clock-tasks": {
         "topic": Topic.MONITORS_CLOCK_TASKS,
         "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
+    },
+    "uptime-results": {
+        "topic": Topic.UPTIME_RESULTS,
+        "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
     },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,

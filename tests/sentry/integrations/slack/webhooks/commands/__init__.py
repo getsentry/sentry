@@ -2,22 +2,26 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import orjson
+import pytest
 from django.http.response import HttpResponse
 from django.urls import reverse
 from rest_framework import status
+from slack_sdk.web import SlackResponse
+from slack_sdk.webhook import WebhookResponse
 
 from sentry import options
 from sentry.integrations.slack.utils import set_signing_secret
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.identity import Identity
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
 class SlackCommandsTest(APITestCase, TestCase):
@@ -42,7 +46,7 @@ class SlackCommandsTest(APITestCase, TestCase):
             )
         self.login_as(self.user)
 
-    def send_slack_message(self, command: str, **kwargs: Any) -> Mapping[str, str]:
+    def send_slack_message(self, command: str, **kwargs: Any) -> dict[str, str]:
         response = self.get_slack_response(
             {
                 "text": command,
@@ -81,3 +85,32 @@ class SlackCommandsTest(APITestCase, TestCase):
         )
         assert response.status_code == (status_code or status.HTTP_200_OK)
         return response
+
+    @pytest.fixture(autouse=True)
+    def mock_webhook_send(self):
+        with patch(
+            "slack_sdk.webhook.WebhookClient.send",
+            return_value=WebhookResponse(
+                url="",
+                body='{"ok": true}',
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_webhook:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with patch(
+            "slack_sdk.web.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            yield

@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
@@ -18,6 +18,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -36,9 +37,8 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.silo.base import region_silo_function
+from sentry.users.services.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
@@ -87,12 +87,17 @@ def get_group_counts_by_project(
     )
 
 
+class _RepoCommitsDict(TypedDict):
+    name: str
+    commits: list[tuple[Commit, RpcUser | None]]
+
+
 def get_repos(
     commits: Iterable[Commit],
     users_by_email: Mapping[str, RpcUser],
     organization: Organization,
-) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, RpcUser | None]]]]:
-    repositories_by_id = {
+) -> list[_RepoCommitsDict]:
+    repositories_by_id: dict[int, _RepoCommitsDict] = {
         repository_id: {"name": repository_name, "commits": []}
         for repository_id, repository_name in Repository.objects.filter(
             organization_id=organization.id,
@@ -102,7 +107,7 @@ def get_repos(
     # These commits are in order so they should end up in the list of commits still in order.
     for commit in commits:
         # Get the user object if it exists
-        user_option = users_by_email.get(commit.author.email) if commit.author_id else None
+        user_option = users_by_email.get(commit.author.email) if commit.author is not None else None
         repositories_by_id[commit.repository_id]["commits"].append((commit, user_option))
 
     return list(repositories_by_id.values())

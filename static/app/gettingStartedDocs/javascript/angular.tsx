@@ -16,6 +16,7 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -45,6 +46,10 @@ const getNextStep = (
     nextStepDocs = nextStepDocs.filter(
       step => step.id !== ProductSolution.SESSION_REPLAY
     );
+  }
+
+  if (params.isProfilingSelected) {
+    nextStepDocs = nextStepDocs.filter(step => step.id !== ProductSolution.PROFILING);
   }
   return nextStepDocs;
 };
@@ -133,6 +138,9 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
       ...params,
@@ -168,7 +176,7 @@ export const nextSteps = [
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/tracing/',
   },
   {
     id: 'session-replay',
@@ -187,6 +195,7 @@ function getSdkSetupSnippet(params: Params) {
   import * as Sentry from "@sentry/angular";
 
   import { AppModule } from "./app/app.module";
+import { getProfilingDocumentHeaderConfigurationStep } from '../../components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
   Sentry.init({
     dsn: "${params.dsn}",
@@ -194,6 +203,11 @@ function getSdkSetupSnippet(params: Params) {
       params.isPerformanceSelected
         ? `
           Sentry.browserTracingIntegration(),`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+          Sentry.browserProfilingIntegration(),`
         : ''
     }${
       params.isFeedbackSelected
@@ -223,6 +237,12 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
         // Session Replay
         replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
         replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+        // Profiling
+        profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
       : ''
   }
   });`;

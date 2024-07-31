@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 function EmptyState() {
   return (
     <Panel>
-      <EmptyMessage>{t('No Keys Registered.')}</EmptyMessage>
+      <EmptyMessage>{t('No Keys Registered')}</EmptyMessage>
     </Panel>
   );
 }

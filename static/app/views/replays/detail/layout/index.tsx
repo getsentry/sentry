@@ -2,6 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Placeholder from 'sentry/components/placeholder';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
@@ -26,7 +27,9 @@ const DIVIDER_SIZE = 16;
 function ReplayLayout({
   isVideoReplay = false,
   replayRecord,
+  isLoading,
 }: {
+  isLoading: boolean;
   replayRecord: ReplayRecord | undefined;
   isVideoReplay?: boolean;
 }) {
@@ -44,7 +47,7 @@ function ReplayLayout({
   const video = (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} />
+        <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
       </ErrorBoundary>
     </VideoSection>
   );
@@ -52,8 +55,9 @@ function ReplayLayout({
   const controller = (
     <ErrorBoundary mini>
       <ReplayController
+        isLoading={isLoading}
         toggleFullscreen={toggleFullscreen}
-        disableSettings={isVideoReplay}
+        disableFastForward={isVideoReplay}
       />
     </ErrorBoundary>
   );
@@ -67,7 +71,9 @@ function ReplayLayout({
     );
   }
 
-  const focusArea = (
+  const focusArea = isLoading ? (
+    <Placeholder width="100%" height="100%" />
+  ) : (
     <FluidPanel title={<SmallMarginFocusTabs isVideoReplay={isVideoReplay} />}>
       <ErrorBoundary mini>
         <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />

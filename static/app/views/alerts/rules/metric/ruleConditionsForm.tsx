@@ -3,6 +3,7 @@ import type {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -17,6 +18,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
+import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
@@ -40,7 +42,6 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
-import {MetricSearchBar} from 'sentry/views/metrics/metricSearchBar';
 
 import {getProjectOptions} from '../utils';
 
@@ -142,6 +143,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
+    const {alertType} = this.props;
+
+    if (alertType === 'custom_metrics' || alertType === 'span_metrics') {
+      // Do not show ONE MINUTE interval as an option for custom_metrics alert
+      options = omit(options, TimeWindow.ONE_MINUTE.toString());
+    }
 
     if (isCrashFreeAlert(this.props.dataset)) {
       options = pick(TIME_WINDOW_MAP, [
@@ -643,7 +650,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         }}
                         searchSource="alert_builder"
                         defaultQuery={initialData?.query ?? ''}
-                        metricAlert
                         {...getSupportedAndOmittedTags(dataset, organization)}
                         includeSessionTagsValues={dataset === Dataset.SESSIONS}
                         disabled={disabled || isErrorMigration}
@@ -656,7 +662,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         highlightUnsupportedTags={
                           organization.features.includes('alert-allow-indexed') ||
                           (hasOnDemandMetricAlertFeature(organization) &&
-                            isOnDemandQueryString(initialData.query))
+                            isOnDemandQueryString(value))
                             ? false
                             : dataset === Dataset.GENERIC_METRICS
                         }

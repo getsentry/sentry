@@ -150,7 +150,7 @@ class Buffer(Service):
                     # continue
                     pass
                 else:
-                    group.update(**update_kwargs)
+                    group.update(using=None, **update_kwargs)
                 created = False
             else:
                 _, created = model.objects.create_or_update(values=update_kwargs, **filters)

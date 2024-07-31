@@ -1,6 +1,7 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {BaseRole} from 'sentry/types/organization';
 import slugify from 'sentry/utils/slugify';
 
@@ -41,6 +42,7 @@ const formGroups: JsonFormObject[] = [
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter/" />
           ),
         }),
+        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
       {
         name: 'aiSuggestedSolution',
@@ -54,6 +56,14 @@ const formGroups: JsonFormObject[] = [
             ),
           }
         ),
+        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
+      },
+      {
+        name: 'uptimeAutodetection',
+        type: 'boolean',
+        label: t('Automatically Configure Uptime Alerts'),
+        help: t('Detect most-used URLs for uptime monitoring.'),
+        visible: ({features}) => features.has('uptime-settings'),
       },
     ],
   },

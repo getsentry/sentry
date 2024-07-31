@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -14,13 +15,12 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
 
 def format_actor_options(
-    actors: Sequence[Team | RpcUser], use_block_kit: bool = False
+    actors: Iterable[Team | RpcUser], use_block_kit: bool = False
 ) -> Sequence[Mapping[str, str]]:
     sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
     if use_block_kit:
@@ -67,8 +67,9 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
 
     else:
         group = getattr(obj, "group", obj)
-        if isinstance(obj, GroupEvent) and obj.occurrence is not None:
-            title = obj.occurrence.issue_title
+        if isinstance(obj, GroupEvent):
+            if obj.occurrence is not None:
+                title = obj.occurrence.issue_title
         else:
             event = group.get_latest_event()
             if event is not None and event.occurrence is not None:

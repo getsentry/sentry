@@ -8,9 +8,10 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry.eventstore.models import Event
 from sentry.integrations.github import GitHubCreateTicketAction, client
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 
@@ -36,9 +37,9 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             },
         )
 
-        self.installation: GitHubIntegration = self.integration.get_installation(
-            self.organization.id
-        )  # type: ignore[assignment]
+        self.installation = get_installation_of_type(
+            GitHubIntegration, self.integration, self.organization.id
+        )
 
         self.login_as(user=self.user)
         responses.add(

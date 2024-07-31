@@ -18,7 +18,6 @@ from django.db import models, router
 from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -26,6 +25,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
@@ -411,7 +411,7 @@ def update_artifact_index(
         name=archive_file.name,
         release_id=release.id,
         organization_id=release.organization_id,
-        dist_id=dist.id if dist else dist,
+        dist_id=dist.id if dist is not None else dist,
         file=archive_file,
         artifact_count=0,  # Artifacts will be counted with artifact index
     )

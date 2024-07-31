@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import {semverCompare} from 'sentry/utils/versions';
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
 type Opts = {
   minVersion: string;

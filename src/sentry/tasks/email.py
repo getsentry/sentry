@@ -2,10 +2,10 @@ import logging
 
 from sentry.auth import access
 from sentry.models.group import Group
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
 
 logger = logging.getLogger(__name__)

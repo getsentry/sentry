@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -32,6 +31,10 @@ class SlackOptionsLoadEndpoint(Endpoint):
     slack_request_class = SlackOptionsLoadRequest
 
     def is_substring(self, string, substring):
+        # in case either have special characters, we want to preserve the strings
+        # as is, so we escape both before applying re.match
+        string = re.escape(string)
+        substring = re.escape(substring)
         return bool(re.match(substring, string, re.I))
 
     def get_filtered_option_groups(
@@ -91,14 +94,11 @@ class SlackOptionsLoadEndpoint(Endpoint):
             .first()
         )
 
-        if not group or not features.has(
-            "organizations:slack-block-kit", group.project.organization
-        ):
+        if not group:
             logger.exception(
                 "slack.options_load.request-error",
                 extra={
-                    "group_id": group.id if group else None,
-                    "organization_id": group.project.organization.id if group else None,
+                    "group_id": slack_request.group_id,
                     "request_data": orjson.dumps(slack_request.data).decode(),
                 },
             )

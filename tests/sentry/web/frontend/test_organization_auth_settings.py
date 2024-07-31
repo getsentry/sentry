@@ -27,7 +27,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase, PermissionTestCase
@@ -230,7 +230,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         ).exists()
         assert not logger.info.called
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     @patch("sentry.auth.helper.logger")
     def test_basic_flow_customer_domain(self, logger):
         organization, auth_provider = self.create_org_and_auth_provider()
@@ -435,7 +435,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert result.data == {"require_link": "to False", "default_role": "to owner"}
 
@@ -466,7 +466,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert result.data == {"require_link": "to False"}
 
@@ -497,7 +497,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
         assert result.data == {"default_role": "to owner"}
 
     def test_edit_sso_settings__no_change(self):
@@ -681,7 +681,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert audit_logs.data == {
             "x509cert": "to bar_x509_cert",

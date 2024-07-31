@@ -97,7 +97,7 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                     memory.percentage,
                 )
         except Exception as e:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("service", name)
                 sentry_sdk.capture_exception(e)
             unhealthy_services[name] = e

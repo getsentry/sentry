@@ -23,10 +23,14 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
+    AlertRuleDetectionType,
     AlertRuleExcludedProjects,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
+    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
@@ -44,15 +48,15 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
     DuplicateDisplayNameError,
@@ -94,6 +98,10 @@ NOT_SET = object()
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
+DYNAMIC_TIME_WINDOWS = {15, 30, 60}
+DYNAMIC_TIME_WINDOWS_SECONDS = {window * 60 for window in DYNAMIC_TIME_WINDOWS}
+INVALID_TIME_WINDOW = f"Invalid time window for dynamic alert (valid windows are {', '.join(map(str, DYNAMIC_TIME_WINDOWS))} minutes)"
+INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +130,7 @@ def create_incident(
     user=None,
     alert_rule=None,
     activation=None,
+    subscription=None,
 ):
     if date_detected is None:
         date_detected = date_started
@@ -137,6 +146,7 @@ def create_incident(
             date_detected=date_detected,
             alert_rule=alert_rule,
             activation=activation,
+            subscription=subscription,
         )
         if projects:
             incident_projects = [
@@ -332,7 +342,7 @@ def build_incident_query_builder(
     start: datetime | None = None,
     end: datetime | None = None,
     windowed_stats: bool = False,
-) -> QueryBuilder:
+) -> BaseQueryBuilder:
     snuba_query = incident.alert_rule.snuba_query
     start, end = calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
     project_ids = list(
@@ -511,8 +521,12 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
-    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+    monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
+    description: str | None = None,
+    sensitivity: AlertRuleSensitivity | None = None,
+    seasonality: AlertRuleSeasonality | None = None,
+    detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
     **kwargs,
 ):
     """
@@ -542,13 +556,43 @@ def create_alert_rule(
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
+    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
+    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
+    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
 
     :return: The created `AlertRule`
     """
-    if monitor_type == AlertRuleMonitorType.ACTIVATED and not activation_condition:
+    if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
     resolution = get_alert_resolution(time_window, organization)
+
+    if detection_type == AlertRuleDetectionType.DYNAMIC:
+        if not (sensitivity and seasonality):
+            raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
+        if time_window not in DYNAMIC_TIME_WINDOWS:
+            raise ValidationError(INVALID_TIME_WINDOW)
+    else:
+        if sensitivity or seasonality:
+            raise ValidationError(
+                "Sensitivity and seasonality are not valid fields for this alert type"
+            )
+        if threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW:
+            raise ValidationError(
+                "Above and below is not a valid threshold type for this alert type"
+            )
+
+    if detection_type == AlertRuleDetectionType.PERCENT:
+        if comparison_delta is None:
+            raise ValidationError("Percentage-based alerts require a comparison delta")
+    else:
+        if comparison_delta is not None:
+            if not (sensitivity or seasonality):
+                # this is a user setting up a percent-based metric alert who doesn't know about the new field
+                detection_type = AlertRuleDetectionType.PERCENT
+            else:
+                # this is an incorrect field selection
+                raise ValidationError("Comparison delta is not a valid field for this alert type")
 
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
@@ -578,7 +622,11 @@ def create_alert_rule(
             include_all_projects=include_all_projects,
             comparison_delta=comparison_delta,
             owner=owner,
-            monitor_type=monitor_type.value,
+            monitor_type=monitor_type,
+            description=description,
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            detection_type=detection_type,
         )
 
         if user:
@@ -603,7 +651,7 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
-        if monitor_type == AlertRuleMonitorType.ACTIVATED and activation_condition:
+        if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and activation_condition:
             # NOTE: if monitor_type is activated, activation_condition is required
             AlertRuleActivationCondition.objects.create(
                 alert_rule=alert_rule, condition_type=activation_condition.value
@@ -690,7 +738,11 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
-    monitor_type: AlertRuleMonitorType | None = None,
+    monitor_type: AlertRuleMonitorTypeInt | None = None,
+    description: str | None = None,
+    sensitivity: AlertRuleSensitivity | None | object = NOT_SET,
+    seasonality: AlertRuleSeasonality | None | object = NOT_SET,
+    detection_type: AlertRuleDetectionType | None = None,
     **kwargs,
 ):
     """
@@ -718,12 +770,22 @@ def update_alert_rule(
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
+    :param description: An optional str that will be rendered in the notification
+    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
+    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
+    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
     updated_query_fields = {}
     if name:
         updated_fields["name"] = name
+    if description:
+        updated_fields["description"] = description
+    if sensitivity is not NOT_SET:
+        updated_fields["sensitivity"] = sensitivity
+    if seasonality is not NOT_SET:
+        updated_fields["seasonality"] = seasonality
     if query is not None:
         updated_query_fields["query"] = query
     if aggregate is not None:
@@ -756,6 +818,12 @@ def update_alert_rule(
             comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
         updated_fields["comparison_delta"] = comparison_delta
+    if detection_type is None:
+        if "comparison_delta" in updated_fields:  # some value changed -> update type if necessary
+            if comparison_delta is not None:
+                detection_type = AlertRuleDetectionType.PERCENT
+            else:
+                detection_type = AlertRuleDetectionType.STATIC
 
     # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
     if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
@@ -777,6 +845,25 @@ def update_alert_rule(
             )
         else:
             updated_query_fields["resolution"] = timedelta(minutes=resolution)
+
+    if detection_type:
+        updated_fields["detection_type"] = detection_type
+        # make sure we clear the incorrect fields for each detection type
+        if detection_type == AlertRuleDetectionType.STATIC:
+            updated_fields["sensitivity"] = None
+            updated_fields["seasonality"] = None
+            updated_fields["comparison_delta"] = None
+        elif detection_type == AlertRuleDetectionType.PERCENT:
+            updated_fields["sensitivity"] = None
+            updated_fields["seasonality"] = None
+        elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            updated_fields["comparison_delta"] = None
+            if (
+                time_window not in DYNAMIC_TIME_WINDOWS
+                or time_window is None
+                and alert_rule.snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS
+            ):
+                raise ValidationError(INVALID_TIME_WINDOW)
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -997,6 +1084,9 @@ def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_proje
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
         raise AlertRuleTriggerLabelAlreadyUsedError()
 
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
+        raise ValidationError(INVALID_ALERT_THRESHOLD)
+
     excluded_subs = []
     if excluded_projects:
         excluded_subs = get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
@@ -1032,6 +1122,9 @@ def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, exclude
         .exists()
     ):
         raise AlertRuleTriggerLabelAlreadyUsedError()
+
+    if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
+        raise ValidationError(INVALID_ALERT_THRESHOLD)
 
     updated_fields = {}
     if label is not None:
@@ -1392,9 +1485,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(
-            organization, integration, name, use_async_lookup
-        )
+        channel_data = get_channel_id(organization, integration, name, use_async_lookup)
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1403,18 +1494,18 @@ def get_alert_rule_trigger_action_slack_channel_id(
             % (e, domain)
         )
 
-    if timed_out:
+    if channel_data.timed_out:
         raise ChannelLookupTimeoutError(
             "Could not find channel %s. We have timed out trying to look for it." % name
         )
 
-    if channel_id is None:
+    if channel_data.channel_id is None:
         raise InvalidTriggerActionError(
             "Could not find channel %s. Channel may not exist, or Sentry may not "
             "have been granted permission to access it" % name
         )
 
-    return channel_id
+    return channel_data.channel_id
 
 
 def get_alert_rule_trigger_action_discord_channel_id(
@@ -1513,12 +1604,9 @@ def get_alert_rule_trigger_action_opsgenie_team(
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
-    from sentry.services.hybrid_cloud.app import app_service
+    from sentry.sentry_apps.services.app import app_service
 
     if installations is None:
-        # TODO(hybrid-cloud): this rpc invocation is fairly deeply buried within this transaction
-        # https://github.com/getsentry/sentry/blob/2b7077a785ea394c70f4e7f12de11a039ef6634e/src/sentry/incidents/serializers/alert_rule.py#L424
-        # which we would like to avoid. We should refactor to obviate the need for this watermark
         installations = app_service.get_installed_for_organization(organization_id=organization.id)
 
     for installation in installations:
@@ -1550,7 +1638,7 @@ def get_available_action_integrations_for_org(organization) -> list[RpcIntegrati
 
     providers = [
         registration.integration_provider
-        for registration in AlertRuleTriggerAction.get_registered_types()
+        for registration in AlertRuleTriggerAction.get_registered_factories()
         if registration.integration_provider is not None
     ]
     return integration_service.get_integrations(

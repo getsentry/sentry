@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db import router, transaction
-from django.db.models import F
+from django.db.models import F, QuerySet
 from django.db.models.functions import TruncMinute
 from django.utils.crypto import get_random_string
 from rest_framework.request import Request
@@ -184,6 +184,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 ).values_list("id", flat=True)
             )
         with transaction.atomic(router.db_for_write(MonitorEnvironment)):
+            monitor_objects: QuerySet[MonitorEnvironment] | QuerySet[Monitor]
             if env_ids:
                 monitor_objects = (
                     MonitorEnvironment.objects.filter(
@@ -206,7 +207,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 event = audit_log.get_event_id("MONITOR_ENVIRONMENT_REMOVE")
                 issue_alert_rule_id = None
             else:
-                monitor_objects = Monitor.objects.filter(id=monitor.id).exclude(
+                monitor_objects = monitor_monitor_objects = Monitor.objects.filter(
+                    id=monitor.id
+                ).exclude(
                     status__in=[
                         ObjectStatus.PENDING_DELETION,
                         ObjectStatus.DELETION_IN_PROGRESS,
@@ -215,11 +218,13 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 event = audit_log.get_event_id("MONITOR_REMOVE")
 
                 # Mark rule for deletion if present and monitor is being deleted
-                monitor = monitor_objects.first()
-                issue_alert_rule_id = monitor.config.get("alert_rule_id") if monitor else None
+                first_monitor = monitor_monitor_objects.first()
+                issue_alert_rule_id = (
+                    first_monitor.config.get("alert_rule_id") if first_monitor else None
+                )
 
             # create copy of queryset as update will remove objects
-            monitor_objects_list = list(monitor_objects)
+            monitor_objects_list: list[MonitorEnvironment | Monitor] = list(monitor_objects)
             if not monitor_objects or not monitor_objects.update(
                 status=ObjectStatus.PENDING_DELETION
             ):

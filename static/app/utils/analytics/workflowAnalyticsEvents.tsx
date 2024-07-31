@@ -73,6 +73,11 @@ export type TeamInsightsEventParameters = {
     project_id: string;
     type: string;
   };
+  'edit_alert_rule.delete_row': {
+    name: string;
+    project_id: string;
+    type: string;
+  };
   'edit_alert_rule.incompatible_rule': {};
   'edit_alert_rule.notification_test': {success: boolean};
   'edit_alert_rule.viewed': RuleViewed;
@@ -135,6 +140,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
+  'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
@@ -166,6 +172,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
+  'edit_alert_rule.delete_row': 'Edit Alert Rule: Delete Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
@@ -201,6 +208,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Suspect Pull Request Clicked',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
   'issue_details.merged_tab.unmerge_clicked': 'Issue Details: Unmerge Clicked',
+  'issue_stream.updated_empty_state_viewed': 'Issue Stream: Updated Empty State Viewed',
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',

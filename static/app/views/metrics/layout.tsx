@@ -13,6 +13,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -20,11 +21,16 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetrics,
+  hasCustomMetricsExtractionRules,
+} from 'sentry/utils/metrics/features';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
@@ -34,20 +40,44 @@ import BackgroundSpace from 'sentry/views/discover/backgroundSpace';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
+import {MetricsApiChangeAlert} from 'sentry/views/metrics/metricsApiChangeAlert';
+import {MetricsStopIngestionAlert} from 'sentry/views/metrics/metricsIngestionStopAlert';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 import {Queries} from 'sentry/views/metrics/queries';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';
 import {WidgetDetails} from 'sentry/views/metrics/widgetDetails';
 
+function showEmptyState({
+  organization,
+  isEmptyStateDismissed,
+  hasPerformanceMetrics,
+  hasSentCustomMetrics,
+}: {
+  hasPerformanceMetrics: boolean;
+  hasSentCustomMetrics: boolean;
+  isEmptyStateDismissed: boolean;
+  organization: Organization;
+}) {
+  if (hasCustomMetricsExtractionRules(organization)) {
+    return !hasSentCustomMetrics && !hasPerformanceMetrics;
+  }
+  return !isEmptyStateDismissed && !hasSentCustomMetrics;
+}
+
 export const MetricsLayout = memo(() => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const selectedProjects = pageFilters.selection.projects.join();
+
   const {
     hasCustomMetrics: hasSentCustomMetrics,
     hasPerformanceMetrics,
     isHasMetricsLoading,
   } = useMetricsContext();
+  const virtualMetrics = useVirtualMetricsContext();
+
+  const isLoading = isHasMetricsLoading || virtualMetrics.isLoading;
+
   const {activateSidebar} = useMetricsOnboardingSidebar();
   const {dismiss: emptyStateDismiss, isDismissed: isEmptyStateDismissed} =
     useDismissAlert({
@@ -56,8 +86,6 @@ export const MetricsLayout = memo(() => {
   const theme = useTheme();
   const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const [isBannerDismissed] = useLocalStorageState('metrics-banner-dismissed', false);
-
-  const showOnboardingPanel = !isEmptyStateDismissed && !hasSentCustomMetrics;
 
   const addCustomMetric = useCallback(
     (referrer: 'header' | 'onboarding_panel' | 'banner') => {
@@ -82,6 +110,13 @@ export const MetricsLayout = memo(() => {
     });
     emptyStateDismiss();
   }, [emptyStateDismiss, organization]);
+
+  const showOnboardingPanel = showEmptyState({
+    organization,
+    isEmptyStateDismissed,
+    hasPerformanceMetrics,
+    hasSentCustomMetrics,
+  });
 
   if (!hasCustomMetrics(organization)) {
     return (
@@ -109,8 +144,10 @@ export const MetricsLayout = memo(() => {
         <Layout.HeaderActions>
           {!showOnboardingPanel ? (
             <PageHeaderActions
-              showCustomMetricButton={
-                hasSentCustomMetrics || (isEmptyStateDismissed && isBannerDismissed)
+              showAddMetricButton={
+                hasCustomMetricsExtractionRules(organization) ||
+                hasSentCustomMetrics ||
+                (isEmptyStateDismissed && isBannerDismissed)
               }
               addCustomMetric={() => addCustomMetric('header')}
             />
@@ -120,23 +157,33 @@ export const MetricsLayout = memo(() => {
       <Layout.Body>
         <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
-          {isEmptyStateDismissed && !hasSentCustomMetrics && (
-            <Banner
-              title={t('Custom Metrics')}
-              subtitle={t(
-                "Track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
-              )}
-              backgroundComponent={<BackgroundSpace />}
-              dismissKey="metrics"
-            >
-              <Button
-                size={isSmallBanner ? 'xs' : undefined}
-                translucentBorder
-                onClick={() => addCustomMetric('banner')}
+          {isEmptyStateDismissed &&
+            !hasSentCustomMetrics &&
+            !hasCustomMetricsExtractionRules(organization) && (
+              <Banner
+                title={t('Custom Metrics')}
+                subtitle={t(
+                  "Track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
+                )}
+                backgroundComponent={<BackgroundSpace />}
+                dismissKey="metrics"
               >
-                {t('Set Up')}
-              </Button>
-            </Banner>
+                <Button
+                  size={isSmallBanner ? 'xs' : undefined}
+                  translucentBorder
+                  onClick={() => addCustomMetric('banner')}
+                >
+                  {t('Set Up')}
+                </Button>
+              </Banner>
+            )}
+
+          {hasCustomMetricsExtractionRules(organization) ? (
+            !isLoading && hasSentCustomMetrics ? (
+              <MetricsStopIngestionAlert />
+            ) : null
+          ) : (
+            <MetricsApiChangeAlert />
           )}
 
           <FilterContainer>
@@ -147,7 +194,8 @@ export const MetricsLayout = memo(() => {
             </PageFilterBar>
             <IntervalSelect />
           </FilterContainer>
-          {isHasMetricsLoading ? (
+
+          {isLoading ? (
             <LoadingIndicator />
           ) : !showOnboardingPanel ? (
             <Fragment>
@@ -159,27 +207,51 @@ export const MetricsLayout = memo(() => {
           ) : (
             <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
               <h3>{t('Track and solve what matters')}</h3>
-              <p>
-                {t(
-                  'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Performance Monitoring.'
-                )}
-              </p>
-              <ButtonList gap={1}>
-                <Button
-                  priority="primary"
-                  onClick={() => addCustomMetric('onboarding_panel')}
-                >
-                  {t('Set Up Custom Metric')}
-                </Button>
-                <Button href={METRICS_DOCS_URL} external>
-                  {t('Read Docs')}
-                </Button>
-                {hasPerformanceMetrics && (
-                  <Button onClick={viewPerformanceMetrics}>
-                    {t('View Performance Metrics')}
+              {hasCustomMetricsExtractionRules(organization) ? (
+                <Fragment>
+                  <p>
+                    {tct(
+                      'Query and plot metrics extracted from your span data to visualise trends and identify anomalies. To get started, you need to enable [link:tracing].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/" />
+                        ),
+                      }
+                    )}
+                  </p>
+                  <Button
+                    priority="primary"
+                    href="https://docs.sentry.io/product/performance/getting-started/"
+                    external
+                  >
+                    {t('Set Up Tracing')}
                   </Button>
-                )}
-              </ButtonList>
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <p>
+                    {t(
+                      'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Performance Monitoring.'
+                    )}
+                  </p>
+                  <ButtonList gap={1}>
+                    <Button
+                      priority="primary"
+                      onClick={() => addCustomMetric('onboarding_panel')}
+                    >
+                      {t('Set Up Custom Metric')}
+                    </Button>
+                    <Button href={METRICS_DOCS_URL} external>
+                      {t('Read Docs')}
+                    </Button>
+                    {hasPerformanceMetrics && (
+                      <Button onClick={viewPerformanceMetrics}>
+                        {t('View Performance Metrics')}
+                      </Button>
+                    )}
+                  </ButtonList>
+                </Fragment>
+              )}
             </OnboardingPanel>
           )}
         </Layout.Main>

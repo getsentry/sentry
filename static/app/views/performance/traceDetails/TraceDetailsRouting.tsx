@@ -7,7 +7,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {getTraceDetailsUrl} from './utils';
+import {getTraceDetailsUrl, shouldForceRouteToOldView} from './utils';
 
 type Props = {
   children: JSX.Element;
@@ -25,20 +25,24 @@ function TraceDetailsRouting(props: Props) {
     return children;
   }
 
-  if (organization.features.includes('trace-view-v1')) {
+  if (
+    organization.features.includes('trace-view-v1') &&
+    !shouldForceRouteToOldView(organization, getEventTimestamp(event))
+  ) {
     if (event?.groupID && event?.eventID) {
       const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
       browserHistory.replace({
         pathname: issuesLocation,
       });
     } else {
-      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl({
         organization,
-        traceId,
-        datetimeSelection,
-        getEventTimestamp(event),
-        event.eventID
-      );
+        traceSlug: traceId,
+        dateSelection: datetimeSelection,
+        timestamp: getEventTimestamp(event),
+        eventId: event.eventID,
+        location,
+      });
 
       const query = {...traceDetailsLocation.query};
       if (location.hash.includes('span')) {

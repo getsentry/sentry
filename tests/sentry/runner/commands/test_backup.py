@@ -24,9 +24,9 @@ from sentry.backup.crypto import (
 from sentry.backup.dependencies import get_model_name
 from sentry.backup.findings import InstanceID
 from sentry.backup.imports import ImportingError
+from sentry.backup.services.import_export.model import RpcImportError, RpcImportErrorKind
 from sentry.models.email import Email
 from sentry.runner.commands.backup import backup, export, import_
-from sentry.services.hybrid_cloud.import_export.model import RpcImportError, RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
@@ -751,7 +751,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
 @patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
 class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self, get_importer_for_model):
-        importer_mock_fn = lambda model_name, scope, flags, filter_by, pk_map, json_data, min_ordinal: RpcImportError(
+        importer_mock_fn = lambda import_model_name, scope, flags, filter_by, pk_map, json_data, min_ordinal: RpcImportError(
             kind=RpcImportErrorKind.IntegrityError,
             on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
             reason="Test integrity error",

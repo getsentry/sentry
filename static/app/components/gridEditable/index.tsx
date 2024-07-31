@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {Component, createRef, Fragment} from 'react';
-import type {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -94,7 +93,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
       rowIndex?: number
     ) => React.ReactNode[];
   };
-  location: Location;
   'aria-label'?: string;
   emptyMessage?: React.ReactNode;
   error?: unknown | null;

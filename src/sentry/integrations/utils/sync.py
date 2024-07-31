@@ -5,17 +5,17 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
 from sentry import features
+from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.silo.base import region_silo_function
 from sentry.tasks.integrations import sync_assignee_outbound
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.integrations.services.integration import RpcIntegration
 
 
 @region_silo_function

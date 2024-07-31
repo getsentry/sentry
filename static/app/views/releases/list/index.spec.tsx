@@ -20,7 +20,7 @@ import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', () => {
-  const {organization, router, routerProps} = initializeOrg();
+  const {organization, projects, router, routerProps} = initializeOrg();
   const semverVersionInfo = {
     buildHash: null,
     description: '1.2.3',
@@ -64,7 +64,7 @@ describe('ReleasesList', () => {
   let endpointMock, sessionApiMock;
 
   beforeEach(() => {
-    act(() => ProjectsStore.loadInitialData(organization.projects));
+    act(() => ProjectsStore.loadInitialData(projects));
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -124,7 +124,8 @@ describe('ReleasesList', () => {
     expect(within(items.at(0)!).getByText('1.0.0')).toBeInTheDocument();
     expect(within(items.at(0)!).getByText('Adoption')).toBeInTheDocument();
     expect(within(items.at(1)!).getByText('1.0.1')).toBeInTheDocument();
-    expect(within(items.at(1)!).getByText('0%')).toBeInTheDocument();
+    // Crash free rate loads separately
+    expect(await within(items.at(1)!).findByText('0%')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('af4f231ec9a8')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('Project Name')).toBeInTheDocument();
   });
@@ -144,8 +145,8 @@ describe('ReleasesList', () => {
       name: 'test-name-2',
       features: [],
     });
-    const org = OrganizationFixture({projects: [project, projectWithouReleases]});
-    ProjectsStore.loadInitialData(org.projects);
+    const org = OrganizationFixture();
+    ProjectsStore.loadInitialData([project, projectWithouReleases]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],

@@ -17,10 +17,10 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -153,7 +153,7 @@ class OpsgenieIntegration(IntegrationInstallation):
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         # add the integration ID to a newly added row
         if not self.org_integration:

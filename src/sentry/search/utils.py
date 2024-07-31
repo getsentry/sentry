@@ -19,10 +19,11 @@ from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.base import ANY
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.search.events.constants import MAX_PARAMETERS_IN_ARRAY
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 from sentry.utils.eventuser import KEYWORD_MAP, EventUser
 
 
@@ -828,3 +829,15 @@ def map_device_class_level(device_class: str) -> str | None:
         if device_class in value:
             return key
     return None
+
+
+def validate_snuba_array_parameter(parameter: Sequence[str]) -> bool:
+    """Returns whether parameter is within a reasonable length to be used as a snuba parameter"""
+    # 4 here is for the 2 quotes around the string + a comma + a space
+    # this should be roughly equivalent to len(str(parameter)), but runs 2x as fast
+    # python -m timeit -n 10000 -s "array=['abcdef123456']*1000" "sum(len(x) for x in array) + 4 * len(array)"
+    # 10000 loops, best of 5: 23.6 usec per loop
+    # python -m timeit -n 10000 -s "array=['abcdef123456']*1000" "len(str(array))"
+    # 10000 loops, best of 5: 42.6 usec per loop
+    converted_length = sum(len(item) for item in parameter) + (4 * len(parameter))
+    return converted_length <= MAX_PARAMETERS_IN_ARRAY

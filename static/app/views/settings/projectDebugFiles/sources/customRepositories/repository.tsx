@@ -1,18 +1,10 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {CustomRepo} from 'sentry/types/debugFiles';
-import {CustomRepoType} from 'sentry/types/debugFiles';
 
 import CustomRepositoryActions from './actions';
-import Details from './details';
-import Status from './status';
 import {customRepoTypeLabel} from './utils';
 
 type Props = {
@@ -20,76 +12,11 @@ type Props = {
   hasFeature: boolean;
   onDelete: (repositoryId: string) => void;
   onEdit: (repositoryId: string) => void;
-  onSyncNow: (repositoryId: string) => void;
   repository: CustomRepo;
 };
 
-function Repository({
-  repository,
-  onSyncNow,
-  onDelete,
-  onEdit,
-  hasFeature,
-  hasAccess,
-}: Props) {
-  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props) {
   const {id, name, type} = repository;
-
-  if (repository.type === CustomRepoType.APP_STORE_CONNECT) {
-    const authenticated = repository.details?.credentials.status !== 'invalid';
-    const detailsAvailable = repository.details !== undefined;
-
-    return (
-      <StyledPanelItem>
-        <ToggleDetails
-          size="sm"
-          aria-label={t('Toggle details')}
-          onClick={() =>
-            detailsAvailable ? setIsDetailsExpanded(!isDetailsExpanded) : undefined
-          }
-          direction={isDetailsExpanded ? 'down' : 'up'}
-        />
-        <Name>{name}</Name>
-        <TypeAndStatus>
-          {customRepoTypeLabel[type]}
-          <Status details={repository.details} onEditRepository={() => onEdit(id)} />
-        </TypeAndStatus>
-        <CustomRepositoryActions
-          repositoryName={name}
-          repositoryType={type}
-          hasFeature={hasFeature}
-          hasAccess={hasAccess}
-          onDelete={() => onDelete(id)}
-          onEdit={() => onEdit(id)}
-          disabled={repository.details === undefined}
-          syncNowButton={
-            <Button
-              size="sm"
-              onClick={() => onSyncNow(id)}
-              icon={<IconRefresh />}
-              disabled={!detailsAvailable || !authenticated || !hasFeature || !hasAccess}
-              title={
-                !hasFeature
-                  ? undefined
-                  : !hasAccess
-                    ? t(
-                        'You do not have permission to edit custom repositories configurations.'
-                      )
-                    : !authenticated
-                      ? t(
-                          'Authentication is required before this repository can sync with App Store Connect.'
-                        )
-                      : undefined
-              }
-            >
-              {t('Sync Now')}
-            </Button>
-          }
-        />
-        {isDetailsExpanded && <Details details={repository.details} />}
-      </StyledPanelItem>
-    );
-  }
 
   return (
     <StyledPanelItem>
@@ -97,7 +24,6 @@ function Repository({
       <TypeAndStatus>{customRepoTypeLabel[type]}</TypeAndStatus>
       <CustomRepositoryActions
         repositoryName={name}
-        repositoryType={type}
         hasFeature={hasFeature}
         hasAccess={hasAccess}
         onDelete={() => onDelete(id)}
@@ -145,8 +71,4 @@ const TypeAndStatus = styled('div')`
     grid-row: 2/2;
     gap: ${space(1)};
   }
-`;
-
-const ToggleDetails = styled(IconChevron)`
-  cursor: pointer;
 `;

@@ -13,13 +13,13 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.utils.hashlib import md5_text
 from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
 
 from ..models import Organization
-from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore

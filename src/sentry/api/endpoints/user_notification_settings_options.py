@@ -21,7 +21,7 @@ class UserNotificationSettingsOptionsEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
     # TODO(Steve): Make not private when we launch new system
     private = True
 

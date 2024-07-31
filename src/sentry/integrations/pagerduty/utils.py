@@ -9,14 +9,12 @@ from django.http import Http404
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
-
-from .client import PagerDutyClient
+from sentry.silo.base import control_silo_function
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -144,20 +142,36 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
+    from sentry.integrations.pagerduty.integration import PagerDutyIntegration
+
     integration_id = action.integration_id
     organization_id = incident.organization_id
 
-    service: PagerDutyServiceDict | None = None
-    org_integration = integration_service.get_organization_integration(
-        integration_id=integration_id,
+    result = integration_service.organization_context(
         organization_id=organization_id,
+        integration_id=integration_id,
     )
+    integration = result.integration
+    org_integration = result.organization_integration
+    if integration is None:
+        logger.info(
+            "pagerduty.integration.missing",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+            },
+        )
+        raise Http404
+
     org_integration_id: int | None = None
     if org_integration:
         org_integration_id = org_integration.id
     else:
         org_integrations = None
-        org_integration_id = infer_org_integration(integration_id=integration_id, ctx_logger=logger)
+        if integration_id is not None:
+            org_integration_id = infer_org_integration(
+                integration_id=integration_id, ctx_logger=logger
+            )
         if org_integration_id:
             org_integrations = integration_service.get_organization_integrations(
                 org_integration_ids=[org_integration_id]
@@ -165,29 +179,24 @@ def send_incident_alert_notification(
         if org_integrations:
             org_integration = org_integrations[0]
 
-    if org_integration and action.target_identifier:
-        service = get_service(org_integration, action.target_identifier)
-
-    if service is None:
+    install = integration.get_installation(organization_id=organization_id)
+    assert isinstance(install, PagerDutyIntegration)
+    try:
+        client = install.get_keyring_client(str(action.target_identifier))
+    except ValueError:
         # service has been removed after rule creation
         logger.info(
             "fetch.fail.pagerduty_metric_alert",
             extra={
                 "integration_id": integration_id,
-                "organization_id": incident.organization_id,
+                "organization_id": organization_id,
                 "target_identifier": action.target_identifier,
             },
         )
         raise Http404
 
-    integration_key = service["integration_key"]
-    # TODO(hybridcloud) This should use the integration.installation client workflow instead.
-    client = PagerDutyClient(
-        integration_id=integration_id,
-        integration_key=integration_key,
-    )
     attachment = build_incident_attachment(
-        incident, integration_key, new_status, metric_value, notification_uuid
+        incident, client.integration_key, new_status, metric_value, notification_uuid
     )
     attachment = attach_custom_severity(attachment, action, new_status)
 
@@ -199,8 +208,7 @@ def send_incident_alert_notification(
             "rule.fail.pagerduty_metric_alert",
             extra={
                 "error": str(e),
-                "service_name": service["service_name"],
-                "service_id": service["id"],
+                "service_id": action.target_identifier,
                 "integration_id": integration_id,
             },
         )

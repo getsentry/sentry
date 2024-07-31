@@ -23,8 +23,8 @@ from sentry.monitors.models import (
     MonitorEnvBrokenDetection,
     MonitorIncident,
 )
+from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tasks.base import instrumented_task
 from sentry.types.actor import Actor
 from sentry.utils.email import MessageBuilder
@@ -66,12 +66,12 @@ def generate_monitor_detail_url(
 
 
 def update_user_monitor_dictionary(
-    user_monitor_entries: dict[str, dict[str, Any]],
+    user_monitor_entries: dict[str, dict[int, Any]],
     user_email: str,
     open_incident: MonitorIncident,
     project: Project,
     environment_name: str,
-):
+) -> None:
     user_monitor_entry = user_monitor_entries[user_email][open_incident.monitor.id]
     user_monitor_entry.update(
         {
@@ -115,7 +115,7 @@ def get_user_emails_from_monitor(monitor: Monitor, project: Project):
     user_ids = get_user_ids_to_notify_from_monitor(monitor, project)
     actors = [Actor.from_id(user_id=id) for id in user_ids]
     recipients = notifications_service.get_notification_recipients(
-        type=NotificationSettingEnum.APPROVAL,
+        type=NotificationSettingEnum.BROKEN_MONITORS,
         recipients=actors,
         organization_id=project.organization_id,
         project_ids=[project.id],
@@ -188,13 +188,13 @@ def detect_broken_monitor_envs_for_org(org_id: int):
         return
 
     # Map user email to a dictionary of monitors and their earliest incident start date amongst its broken environments
-    user_broken_envs: dict[str, dict[str, Any]] = defaultdict(
+    user_broken_envs: dict[str, dict[int, Any]] = defaultdict(
         lambda: defaultdict(
             lambda: {"environment_names": [], "earliest_start": django_timezone.now()}
         )
     )
     # Same as above but for monitors that will be automatically muted by us
-    user_muted_envs: dict[str, dict[str, Any]] = defaultdict(
+    user_muted_envs: dict[str, dict[int, Any]] = defaultdict(
         lambda: defaultdict(
             lambda: {"environment_names": [], "earliest_start": django_timezone.now()}
         )

@@ -1,11 +1,11 @@
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 
 @register(OrganizationAccessRequest)
 class OrganizationAccessRequestSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         serialized_user = None
         if obj.requester_id:
             serialized_users = user_service.serialize_many(filter=dict(user_ids=[obj.requester_id]))

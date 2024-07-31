@@ -38,7 +38,7 @@ class ProjectProcessingErrorsDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Delete a processing error for a Monitor",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.PROCESSING_ERROR_ID,
         ],

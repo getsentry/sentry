@@ -9,7 +9,8 @@ Query timeout. Please try again. If the problem persists try a smaller date rang
 filter on the transaction field if you're filtering performance data.
 """
 TIMEOUT_SPAN_ERROR_MESSAGE = """
-Query timeout. Please try again. If the problem persists try a smaller date range or filtering on transaction or tag fields when filtering span data.
+Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
+filter on the transaction field or tags.
 """
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
@@ -88,6 +89,14 @@ VITAL_THRESHOLDS: dict[str, ThresholdDict] = {
         "poor": 0.25,
         "meh": 0.1,
     },
+}
+
+WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
+    "lcp": 0.30,
+    "fcp": 0.15,
+    "cls": 0.15,
+    "ttfb": 0.10,
+    "inp": 0.30,
 }
 
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
@@ -418,3 +427,7 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "count_unique",
     ],
 }
+
+# The limit in snuba currently for a single query is 131,535bytes, including room for other parameters picking 120,000
+# for now
+MAX_PARAMETERS_IN_ARRAY = 120_000

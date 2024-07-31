@@ -20,13 +20,15 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
   ExampleTransaction,
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type TableColumnKeys =
   | 'id'
@@ -110,7 +112,6 @@ export default function SpanTable(props: Props) {
               suspectSpan
             ),
           }}
-          location={location}
         />
       </VisuallyCompleteWithData>
       <Pagination pageLinks={pageLinks ?? null} />
@@ -169,6 +170,7 @@ function renderBodyCellWithMeta(
         organization,
         spanId: worstSpan.id,
         transactionName: transactionName,
+        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
       });
 
       rendered = <Link to={target}>{rendered}</Link>;
@@ -246,8 +248,9 @@ export function SpanDurationBar(props: SpanDurationBarProps) {
     <DurationBar>
       <div style={{width: toPercent(widthPercentage)}}>
         <Tooltip
-          title={tct('[percentage] of the transaction', {
+          title={tct('[percentage] of the transaction ([duration])', {
             percentage: formatPercentage(widthPercentage),
+            duration: formatTraceDuration(transactionDuration),
           })}
           containerDisplayMode="block"
         >

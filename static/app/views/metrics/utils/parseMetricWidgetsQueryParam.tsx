@@ -1,10 +1,6 @@
-import type {MRI} from 'sentry/types/metrics';
-import {getDefaultAggregate} from 'sentry/utils/metrics';
-import {
-  DEFAULT_SORT_STATE,
-  emptyMetricsQueryWidget,
-  NO_QUERY_ID,
-} from 'sentry/utils/metrics/constants';
+import type {MetricAggregation} from 'sentry/types/metrics';
+import {getDefaultAggregation, isMetricsAggregation} from 'sentry/utils/metrics';
+import {DEFAULT_SORT_STATE, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {isMRI} from 'sentry/utils/metrics/mri';
 import {
   type BaseWidgetParams,
@@ -102,13 +98,7 @@ function parseSortParam(widget: Record<string, unknown>, key: string): SortState
       ? sort.order
       : DEFAULT_SORT_STATE.order;
 
-  if (
-    name === 'name' ||
-    name === 'avg' ||
-    name === 'min' ||
-    name === 'max' ||
-    name === 'sum'
-  ) {
+  if (name && (name === 'name' || isMetricsAggregation(name))) {
     return {name, order};
   }
 
@@ -129,6 +119,17 @@ function parseQueryType(
     : undefined;
 }
 
+function parseAggregation(
+  widget: Record<string, unknown>
+): MetricAggregation | undefined {
+  const aggregation =
+    parseStringParam(widget, 'aggregation') ?? parseStringParam(widget, 'op');
+  if (!aggregation) {
+    return undefined;
+  }
+  return aggregation as MetricAggregation;
+}
+
 function parseQueryWidget(
   widget: Record<string, unknown>,
   baseWidgetParams: BaseWidgetParams
@@ -141,7 +142,8 @@ function parseQueryWidget(
 
   return {
     mri,
-    op: parseStringParam(widget, 'op') ?? getDefaultAggregate(mri),
+    aggregation: parseAggregation(widget) ?? getDefaultAggregation(mri),
+    condition: parseNumberParam(widget, 'condition'),
     query: parseStringParam(widget, 'query') ?? '',
     groupBy: parseArrayParam(widget, 'groupBy', entry =>
       typeof entry === 'string' ? entry : undefined
@@ -192,10 +194,7 @@ function fillIds(
   return entries;
 }
 
-export function parseMetricWidgetsQueryParam(
-  queryParam?: string,
-  defaultMRI?: MRI
-): MetricsWidget[] {
+export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget[] {
   let currentWidgets: unknown = undefined;
 
   try {
@@ -282,18 +281,6 @@ export function parseMetricWidgetsQueryParam(
         break;
     }
   });
-
-  // Iterate over the widgets without an id and assign them a unique one
-
-  if (queries.length === 0) {
-    const mri = defaultMRI || emptyMetricsQueryWidget.mri;
-
-    queries.push({
-      ...emptyMetricsQueryWidget,
-      mri,
-      op: getDefaultAggregate(mri),
-    });
-  }
 
   // We can reset the id if there is only one widget
   if (queries.length === 1) {

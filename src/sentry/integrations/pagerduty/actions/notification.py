@@ -123,7 +123,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         yield self.future(send_notification, key=key)
 
     def get_services(self) -> Sequence[tuple[int, str]]:
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         organization_integrations = integration_service.get_organization_integrations(
             providers=[self.provider], organization_id=self.project.organization_id

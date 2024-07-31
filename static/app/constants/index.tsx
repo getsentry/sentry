@@ -222,8 +222,7 @@ export const MAX_PICKABLE_DAYS = 90;
 
 export const DEFAULT_STATS_PERIOD = '14d';
 
-export const DEFAULT_QUERY = 'is:unresolved';
-export const NEW_DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
+export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -312,7 +311,7 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
-    apiName: 'span',
+    apiName: 'span_indexed',
     plural: 'spans',
     displayName: 'spans',
     titleName: t('Spans'),
@@ -333,18 +332,6 @@ export const DATA_CATEGORY_INFO = {
     displayName: 'profile hours',
     titleName: t('Profile Hours'),
     uid: 17,
-  },
-  /**
-   * Used to display metrics on the stats page
-   */
-  [DataCategoryExact.METRICS]: {
-    name: DataCategoryExact.METRICS,
-    apiName: 'metricOutcomes',
-    plural: 'metrics',
-    displayName: 'metrics',
-    titleName: t('Metrics'),
-    // Metrics has no uid, is only used on stats page
-    uid: -1,
   },
   [DataCategoryExact.METRIC_SECOND]: {
     name: DataCategoryExact.METRIC_SECOND,

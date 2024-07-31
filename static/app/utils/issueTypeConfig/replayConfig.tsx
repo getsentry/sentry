@@ -27,7 +27,6 @@ const replayConfig: IssueCategoryConfigMapping = {
     evidence: {title: t('Evidence')},
     resources: null,
     usesIssuePlatform: true,
-    traceTimeline: false,
   },
 };
 

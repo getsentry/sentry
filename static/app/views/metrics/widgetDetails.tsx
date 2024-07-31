@@ -1,8 +1,7 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
@@ -11,30 +10,22 @@ import {
   SearchableMetricSamplesTable,
 } from 'sentry/components/metrics/metricSamplesTable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {isCustomMetric} from 'sentry/utils/metrics';
+import {isVirtualMetric} from 'sentry/utils/metrics';
 import type {FocusedMetricsSeries, MetricsWidget} from 'sentry/utils/metrics/types';
 import {isMetricsEquationWidget} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
-import {generateTracesRouteWithQuery} from 'sentry/views/performance/traces/utils';
-
-enum Tab {
-  SAMPLES = 'samples',
-  CODE_LOCATIONS = 'codeLocations',
-}
+import {generateTracesRouteWithQuery} from 'sentry/views/traces/utils';
 
 export function WidgetDetails() {
   const {
@@ -43,6 +34,7 @@ export function WidgetDetails() {
     focusArea,
     setHighlightedSampleId,
     setMetricsSamples,
+    hasPerformanceMetrics,
   } = useMetricsContext();
 
   const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
@@ -58,27 +50,31 @@ export function WidgetDetails() {
     return <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
-  const {mri, op, query, focusedSeries} = selectedWidget;
+  const {mri, aggregation, query, condition, focusedSeries} = selectedWidget;
 
   return (
     <MetricDetails
       mri={mri}
-      op={op}
+      aggregation={aggregation}
+      condition={condition}
       query={query}
       focusedSeries={focusedSeries}
       onRowHover={handleSampleRowHover}
       setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
+      hasPerformanceMetrics={hasPerformanceMetrics}
     />
   );
 }
 
 interface MetricDetailsProps {
+  aggregation?: MetricAggregation;
+  condition?: number;
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
+  hasPerformanceMetrics?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
-  op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
@@ -87,23 +83,18 @@ interface MetricDetailsProps {
 
 export function MetricDetails({
   mri,
-  op,
+  aggregation,
+  condition,
   query,
   focusedSeries,
   onRowHover,
   focusArea,
   setMetricsSamples,
+  hasPerformanceMetrics,
 }: MetricDetailsProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
-
-  const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
-
-  const isCodeLocationsDisabled = mri && !isCustomMetric({mri});
-
-  if (isCodeLocationsDisabled && selectedTab === Tab.CODE_LOCATIONS) {
-    setSelectedTab(Tab.SAMPLES);
-  }
+  const {getCondition} = useVirtualMetricsContext();
 
   const queryWithFocusedSeries = useMemo(
     () =>
@@ -115,114 +106,102 @@ export function MetricDetails({
     [focusedSeries, query]
   );
 
-  const handleTabChange = useCallback(
-    (tab: Tab) => {
-      if (tab === Tab.CODE_LOCATIONS) {
-        trackAnalytics('ddm.code-locations', {
-          organization,
-        });
-      }
-      setSelectedTab(tab);
-    },
-    [organization]
-  );
-
   const selectionRange = focusArea?.selection?.range;
-  const selectionDatetime =
-    defined(selectionRange) && defined(selectionRange) && defined(selectionRange)
-      ? ({
-          start: selectionRange.start,
-          end: selectionRange.end,
-        } as PageFilters['datetime'])
-      : undefined;
 
-  const tracesTarget = generateTracesRouteWithQuery({
-    orgSlug: organization.slug,
-    metric:
-      op && mri
-        ? {
-            max: selectionRange?.max,
-            min: selectionRange?.min,
-            op: op,
-            query: queryWithFocusedSeries,
-            mri,
-          }
-        : undefined,
-    query: {
-      project: selection.projects as unknown as string[],
-      environment: selection.environments,
-      ...normalizeDateTimeParams(selectionDatetime ?? selection.datetime),
-    },
-  });
+  const tracesTarget = useMemo(() => {
+    const selectionDatetime =
+      defined(selectionRange) && defined(selectionRange) && defined(selectionRange)
+        ? ({
+            start: selectionRange.start,
+            end: selectionRange.end,
+          } as PageFilters['datetime'])
+        : undefined;
+
+    if (mri && isVirtualMetric({mri})) {
+      const conditionQuery = getCondition(mri, condition || -1)?.value || '';
+
+      return generateTracesRouteWithQuery({
+        orgSlug: organization.slug,
+        query: {
+          project: selection.projects as unknown as string[],
+          environment: selection.environments,
+          ...normalizeDateTimeParams(selectionDatetime ?? selection.datetime),
+          query: `${conditionQuery.trim()} ${queryWithFocusedSeries?.trim()}`,
+        },
+      });
+    }
+    if (aggregation && mri) {
+      return generateTracesRouteWithQuery({
+        orgSlug: organization.slug,
+        metric: {
+          max: selectionRange?.max,
+          min: selectionRange?.min,
+          op: aggregation,
+          query: queryWithFocusedSeries,
+          mri: mri,
+        },
+        query: {
+          project: selection.projects as unknown as string[],
+          environment: selection.environments,
+          ...normalizeDateTimeParams(selectionDatetime ?? selection.datetime),
+        },
+      });
+    }
+    return '';
+  }, [
+    aggregation,
+    mri,
+    organization.slug,
+    queryWithFocusedSeries,
+    selection,
+    selectionRange,
+    condition,
+    getCondition,
+  ]);
 
   return (
     <TrayWrapper>
-      <Tabs value={selectedTab} onChange={handleTabChange}>
-        <TabsAndAction>
-          <TabList>
-            <TabList.Item textValue={t('Span Samples')} key={Tab.SAMPLES}>
-              <GuideAnchor target="metrics_table" position="top">
-                {t('Span Samples')}
-              </GuideAnchor>
-            </TabList.Item>
-            <TabList.Item
-              textValue={t('Code Location')}
-              key={Tab.CODE_LOCATIONS}
-              disabled={isCodeLocationsDisabled}
-            >
-              <Tooltip
-                title={t(
-                  'This metric is automatically collected by Sentry. It is not bound to a specific line of your code.'
-                )}
-                disabled={!isCodeLocationsDisabled}
-              >
-                <span style={{pointerEvents: 'all'}}>{t('Code Location')}</span>
-              </Tooltip>
-            </TabList.Item>
-          </TabList>
-          <Feature
-            features={[
-              'performance-trace-explorer-with-metrics',
-              'performance-trace-explorer',
-            ]}
-            requireAll
-          >
-            <OpenInTracesButton to={tracesTarget} size="sm">
-              {t('Open in Traces')}
-            </OpenInTracesButton>
-          </Feature>
-        </TabsAndAction>
-        <ContentWrapper>
-          <TabPanels>
-            <TabPanels.Item key={Tab.SAMPLES}>
-              <MetricSampleTableWrapper organization={organization}>
-                {organization.features.includes('metrics-samples-list-search') ? (
-                  <SearchableMetricSamplesTable
-                    focusArea={selectionRange}
-                    mri={mri}
-                    onRowHover={onRowHover}
-                    op={op}
-                    query={queryWithFocusedSeries}
-                    setMetricsSamples={setMetricsSamples}
-                  />
-                ) : (
-                  <MetricSamplesTable
-                    focusArea={selectionRange}
-                    mri={mri}
-                    onRowHover={onRowHover}
-                    op={op}
-                    query={queryWithFocusedSeries}
-                    setMetricsSamples={setMetricsSamples}
-                  />
-                )}
-              </MetricSampleTableWrapper>
-            </TabPanels.Item>
-            <TabPanels.Item key={Tab.CODE_LOCATIONS}>
-              <CodeLocations mri={mri} {...focusArea?.selection?.range} />
-            </TabPanels.Item>
-          </TabPanels>
-        </ContentWrapper>
-      </Tabs>
+      <TabsAndAction>
+        <Heading>{t('Span Samples')}</Heading>
+        <Feature
+          features={[
+            'performance-trace-explorer-with-metrics',
+            'performance-trace-explorer',
+          ]}
+          requireAll
+        >
+          <OpenInTracesButton to={tracesTarget} size="sm">
+            {t('Open in Traces')}
+          </OpenInTracesButton>
+        </Feature>
+      </TabsAndAction>
+      <ContentWrapper>
+        <MetricSampleTableWrapper organization={organization}>
+          {organization.features.includes('metrics-samples-list-search') ? (
+            <SearchableMetricSamplesTable
+              focusArea={selectionRange}
+              mri={mri}
+              onRowHover={onRowHover}
+              aggregation={aggregation}
+              condition={condition}
+              query={queryWithFocusedSeries}
+              setMetricsSamples={setMetricsSamples}
+              hasPerformance={hasPerformanceMetrics}
+            />
+          ) : (
+            <MetricSamplesTable
+              focusArea={selectionRange}
+              mri={mri}
+              onRowHover={onRowHover}
+              aggregation={aggregation}
+              condition={condition}
+              query={queryWithFocusedSeries}
+              setMetricsSamples={setMetricsSamples}
+              hasPerformance={hasPerformanceMetrics}
+            />
+          )}
+        </MetricSampleTableWrapper>
+      </ContentWrapper>
     </TrayWrapper>
   );
 }
@@ -232,6 +211,10 @@ const MetricSampleTableWrapper = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
+const Heading = styled('h6')`
+  margin-bottom: ${space(0.5)};
+`;
+
 const TrayWrapper = styled('div')`
   padding-top: ${space(4)};
   display: grid;
@@ -240,16 +223,14 @@ const TrayWrapper = styled('div')`
 
 const ContentWrapper = styled('div')`
   position: relative;
-  padding-top: ${space(2)};
+  padding-top: ${space(1)};
 `;
 
-const OpenInTracesButton = styled(Button)`
-  margin-top: ${space(0.75)};
-`;
+const OpenInTracesButton = styled(Button)``;
 
 const TabsAndAction = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   gap: ${space(4)};
-  align-items: center;
+  align-items: end;
 `;

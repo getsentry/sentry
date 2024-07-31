@@ -7,11 +7,11 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.strings import oxfordize_list
 
 
@@ -205,7 +205,6 @@ Required if **service_type** is `slack` or `opsgenie`.
 
         channel_name = data.get("target_display")
         channel_id = data.get("target_identifier")
-
         if not channel_name:
             raise serializers.ValidationError(
                 {"target_display": "Did not receive a slack user or channel name."}
@@ -227,7 +226,7 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've only received a channel name, ask slack for its id
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
-            (_prefix, channel_id, timed_out,) = get_channel_id(
+            channel_data = get_channel_id(
                 organization=self.context["organization"],
                 integration=self.integration,
                 channel_name=channel_name,
@@ -235,16 +234,16 @@ Required if **service_type** is `slack` or `opsgenie`.
         except Exception:
             raise serializers.ValidationError({"target_display": generic_error_message})
 
-        if not channel_id:
+        if not channel_data.channel_id:
             raise serializers.ValidationError({"target_display": generic_error_message})
 
-        if timed_out:
+        if channel_data.timed_out:
             raise serializers.ValidationError(
                 {
                     "target_identifier": "Please provide a slack channel id, we encountered an error while searching for it via the channel name."
                 }
             )
-        data["target_identifier"] = channel_id
+        data["target_identifier"] = channel_data.channel_id
         return data
 
     def validate_discord_channel(

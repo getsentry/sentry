@@ -58,16 +58,28 @@ describe('GroupHeader', () => {
       expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
 
       await userEvent.click(screen.getByRole('tab', {name: /activity/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/activity/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/activity/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /user feedback/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/feedback/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/feedback/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /attachments/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/attachments/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/attachments/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/tags/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -76,10 +88,16 @@ describe('GroupHeader', () => {
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/merged/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/merged/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /replays/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/replays/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/replays/',
+        query: {},
+      });
 
       expect(screen.queryByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
@@ -100,7 +118,7 @@ describe('GroupHeader', () => {
       });
       const mobileProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
-        platform: 'apple-ios',
+        platform: 'unity',
       });
 
       const MOCK_GROUP = GroupFixture();
@@ -123,7 +141,10 @@ describe('GroupHeader', () => {
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/similar/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/similar/',
+        query: {},
+      });
 
       expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
     });
@@ -170,7 +191,10 @@ describe('GroupHeader', () => {
       expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/tags/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -194,6 +218,29 @@ describe('GroupHeader', () => {
         url: '/organizations/org-slug/prompts-activity/',
         body: {data: {dismissed_ts: null}},
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/replay-count/',
+        body: {},
+      });
+    });
+
+    it('shows priority even if stats is off', async () => {
+      render(
+        <GroupHeader
+          baseUrl=""
+          organization={OrganizationFixture()}
+          group={GroupFixture({
+            priority: PriorityLevel.HIGH,
+            // Setting an issue category where stats are turned off
+            issueCategory: IssueCategory.UPTIME,
+          })}
+          project={ProjectFixture()}
+          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+        />
+      );
+
+      expect(await screen.findByText('Priority')).toBeInTheDocument();
+      expect(await screen.findByText('High')).toBeInTheDocument();
     });
 
     it('can change priority', async () => {
@@ -202,15 +249,11 @@ describe('GroupHeader', () => {
         method: 'PUT',
         body: {},
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/replay-count/',
-        body: {},
-      });
 
       render(
         <GroupHeader
           baseUrl=""
-          organization={OrganizationFixture({features: ['issue-priority-ui']})}
+          organization={OrganizationFixture()}
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
           groupReprocessingStatus={ReprocessingStatus.NO_STATUS}

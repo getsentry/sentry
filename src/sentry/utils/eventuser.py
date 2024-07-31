@@ -9,6 +9,7 @@ from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any
 
+from django.db.models import QuerySet
 from snuba_sdk import (
     BooleanCondition,
     BooleanOp,
@@ -117,7 +118,7 @@ class EventUser:
     @classmethod
     def for_projects(
         self,
-        projects: list[Project],
+        projects: QuerySet[Project] | list[Project],
         keyword_filters: Mapping[str, list[Any]],
         filter_boolean: BooleanOp = BooleanOp.AND,
         result_offset: int = 0,

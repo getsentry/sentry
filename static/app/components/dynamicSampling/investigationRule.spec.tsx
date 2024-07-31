@@ -60,6 +60,7 @@ describe('InvestigationRule', function () {
       version: 2,
       fields: ['transaction', 'count()'],
       projects: [project.id],
+      query: 'event.type:transaction',
     });
   }
 
@@ -116,7 +117,7 @@ describe('InvestigationRule', function () {
     expect(getRuleMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does render disabled when the rule is not a transaction rule', async function () {
+  it("does render disabled when the query does not contain event.type='transaction'", async function () {
     initComponentEnvironment({hasRule: false});
     const getRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
@@ -125,7 +126,18 @@ describe('InvestigationRule', function () {
       body: {query: ['not_transaction_query']},
     });
     render(
-      <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
+      <InvestigationRuleCreation
+        buttonProps={{}}
+        eventView={EventView.fromSavedQuery({
+          id: 'query-id',
+          name: 'some query',
+          version: 2,
+          fields: ['transaction', 'count()'],
+          projects: [project.id],
+          query: '',
+        })}
+        numSamples={1}
+      />,
       {organization}
     );
 
@@ -138,8 +150,8 @@ describe('InvestigationRule', function () {
     expect(labels).toHaveLength(0);
 
     expect(addErrorMessage).not.toHaveBeenCalled();
-    // check we did call the endpoint to check if a rule exists
-    expect(getRule).toHaveBeenCalledTimes(1);
+    // the endpoint shall not be called
+    expect(getRule).toHaveBeenCalledTimes(0);
   });
 
   it('does not render when there is an unknown error but shows an error', async function () {

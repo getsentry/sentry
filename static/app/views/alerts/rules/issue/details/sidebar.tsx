@@ -137,13 +137,13 @@ function Sidebar({rule, teams, projectSlug}: Props) {
           />
           {rule.dateCreated && (
             <KeyValueTableRow
-              keyName={t('Date Created')}
+              keyName={t('Date created')}
               value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
             />
           )}
           {rule.createdBy && (
             <KeyValueTableRow
-              keyName={t('Created By')}
+              keyName={t('Created by')}
               value={
                 <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
               }

@@ -10,8 +10,8 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 
 
 @control_silo_endpoint

@@ -100,7 +100,7 @@ class SystemToken:
 
 def is_system_auth(auth: object) -> bool:
     """:returns True when Sentry itself is hitting the API."""
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.auth.services.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "system"

@@ -4,12 +4,14 @@ import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, NamedTuple
+from urllib.parse import urlparse
 
 import sentry_sdk
 
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
@@ -298,7 +300,7 @@ def normalize_stacktraces_for_grouping(
 ) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
-    This also trims functions if necessary.
+    This also trims functions and pulls query strings off of filenames if necessary.
     """
 
     stacktrace_frames = []
@@ -323,9 +325,25 @@ def normalize_stacktraces_for_grouping(
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
     with sentry_sdk.start_span(op=op, description="iterate_frames"):
+        stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
                 _update_frame(frame, platform)
+
+                if platform == "javascript":
+                    try:
+                        parsed_filename = urlparse(frame.get("filename", ""))
+                        if parsed_filename.query:
+                            stripped_querystring = True
+                            frame["filename"] = frame["filename"].replace(
+                                f"?{parsed_filename.query}", ""
+                            )
+                    # ignore unparsable filenames
+                    except Exception:
+                        pass
+        if stripped_querystring:
+            # Fires once per event, regardless of how many frames' filenames were stripped
+            metrics.incr("sentry.grouping.stripped_filename_querystrings")
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
@@ -572,7 +590,9 @@ def dedup_errors(errors):
 
 
 @sentry_sdk.tracing.trace
-def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
+def process_stacktraces(
+    data: MutableMapping[str, Any], make_processors=None, set_raw_stacktrace: bool = True
+) -> MutableMapping[str, Any] | None:
     infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:
         processors = get_processors_for_stacktraces(data, infos)
@@ -582,7 +602,7 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
     # Early out if we have no processors.  We don't want to record a timer
     # in that case.
     if not processors:
-        return
+        return None
 
     changed = False
 
@@ -651,3 +671,5 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
 
     if changed:
         return data
+    else:
+        return None

@@ -11,9 +11,7 @@ from django.db.models import Q
 from django.utils.text import get_text_list
 from django.utils.translation import gettext_lazy as _
 
-from sentry import features
 from sentry.issues.grouptype import MonitorIncidentType
-from sentry.models.organization import Organization
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,
@@ -32,7 +30,7 @@ def mark_failed(
     failed_checkin: MonitorCheckIn,
     ts: datetime,
     received: datetime | None = None,
-):
+) -> bool:
     """
     Given a failing check-in, mark the monitor environment as failed and trigger
     side effects for creating monitor incidents and issues.
@@ -43,6 +41,10 @@ def mark_failed(
     computed based on the tasks reference time.
     """
     monitor_env = failed_checkin.monitor_environment
+
+    if monitor_env is None:
+        return False
+
     failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 1)
     if not failure_issue_threshold:
         failure_issue_threshold = 1
@@ -89,16 +91,7 @@ def mark_failed(
     monitor_env.refresh_from_db()
 
     # Create incidents + issues
-    try:
-        organization = Organization.objects.get_from_cache(id=monitor_env.monitor.organization_id)
-        use_issue_platform = features.has("organizations:issue-platform", organization=organization)
-    except Organization.DoesNotExist:
-        use_issue_platform = False
-
-    if use_issue_platform:
-        return mark_failed_threshold(failed_checkin, failure_issue_threshold, received)
-    else:
-        return mark_failed_no_threshold(failed_checkin)
+    return mark_failed_threshold(failed_checkin, failure_issue_threshold, received)
 
 
 class SimpleCheckIn(TypedDict):
@@ -111,10 +104,13 @@ def mark_failed_threshold(
     failed_checkin: MonitorCheckIn,
     failure_issue_threshold: int,
     received: datetime | None,
-):
+) -> bool:
     from sentry.signals import monitor_environment_failed
 
     monitor_env = failed_checkin.monitor_environment
+
+    if monitor_env is None:
+        return False
 
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
@@ -151,6 +147,7 @@ def mark_failed_threshold(
 
         starting_checkin = previous_checkins[0]
 
+        incident: MonitorIncident | None
         incident, _ = MonitorIncident.objects.get_or_create(
             monitor_environment=monitor_env,
             resolving_checkin=None,
@@ -196,69 +193,20 @@ def mark_failed_threshold(
     return True
 
 
-def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
-    from sentry.signals import monitor_environment_failed
-
-    monitor_env = failed_checkin.monitor_environment
-
-    monitor_env.update(status=MonitorStatus.ERROR)
-
-    # Do not create event if monitor or monitor environment is muted
-    if monitor_env.monitor.is_muted or monitor_env.is_muted:
-        return True
-
-    create_legacy_event(failed_checkin)
-
-    monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
-
-    return True
-
-
-def create_legacy_event(failed_checkin: MonitorCheckIn):
-    from sentry.coreapi import insert_data_to_database_legacy
-    from sentry.event_manager import EventManager
-    from sentry.models.project import Project
-
-    monitor_env = failed_checkin.monitor_environment
-    context = get_monitor_environment_context(monitor_env)
-
-    # XXX(epurkhiser): This matches up with the occurrence_data reason
-    reason_map = {
-        CheckInStatus.MISSED: "missed_checkin",
-        CheckInStatus.TIMEOUT: "duration",
-    }
-    reason = reason_map.get(failed_checkin.status, "unknown")
-
-    event_manager = EventManager(
-        {
-            "logentry": {"message": f"Monitor failure: {monitor_env.monitor.name} ({reason})"},
-            "contexts": {"monitor": context},
-            "fingerprint": ["monitor", str(monitor_env.monitor.guid), reason],
-            "environment": monitor_env.get_environment().name,
-            # TODO: Both of these values should be get transformed from context to tags
-            # We should understand why that is not happening and remove these when it correctly is
-            "tags": {
-                "monitor.id": str(monitor_env.monitor.guid),
-                "monitor.slug": monitor_env.monitor.slug,
-            },
-        },
-        project=Project(id=monitor_env.monitor.project_id),
-    )
-    event_manager.normalize()
-    data = event_manager.get_data()
-    insert_data_to_database_legacy(data)
-
-
 def create_issue_platform_occurrence(
     failed_checkins: Sequence[SimpleCheckIn],
     failed_checkin: MonitorCheckIn,
     incident: MonitorIncident,
     received: datetime | None,
-):
+) -> None:
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
     from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 
     monitor_env = failed_checkin.monitor_environment
+
+    if monitor_env is None:
+        return
+
     current_timestamp = datetime.now(timezone.utc)
 
     # Get last successful check-in to show in evidence display

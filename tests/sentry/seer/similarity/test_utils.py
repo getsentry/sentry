@@ -1,12 +1,14 @@
 import copy
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal, cast
 from uuid import uuid1
 
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     SEER_ELIGIBLE_PLATFORMS,
+    _is_snipped_context_line,
     event_content_is_seer_eligible,
+    filter_null_from_event_title,
     get_stacktrace_string,
 )
 from sentry.testutils.cases import TestCase
@@ -394,7 +396,19 @@ class GetStacktraceStringTest(TestCase):
         contributes: bool = True,
         start_index: int = 1,
         context_line_factory: Callable[[int], str] = lambda i: f"test = {i}!",
+        minified_frames: Literal["all", "some", "none"] = "none",
     ) -> list[dict[str, Any]]:
+        if minified_frames == "all":
+            make_context_line = lambda i: "{snip}" + context_line_factory(i) + "{snip}"
+        elif minified_frames == "some":
+            make_context_line = lambda i: (
+                "{snip}" + context_line_factory(i) + "{snip}"
+                if i % 2 == 0
+                else context_line_factory(i)
+            )
+        else:
+            make_context_line = context_line_factory
+
         frames = []
         for i in range(start_index, start_index + num_frames):
             frames.append(
@@ -423,7 +437,7 @@ class GetStacktraceStringTest(TestCase):
                             "name": None,
                             "contributes": contributes,
                             "hint": None,
-                            "values": [context_line_factory(i)],
+                            "values": [make_context_line(i)],
                         },
                     ],
                 }
@@ -487,44 +501,138 @@ class GetStacktraceStringTest(TestCase):
                 exception_type_str="InnerException",
                 exception_value="nope",
                 frames=self.create_frames(
-                    num_frames=30, context_line_factory=lambda i: f"inner line {i}"
+                    num_frames=25, context_line_factory=lambda i: f"inner line {i}"
                 ),
             ),
             self.create_exception(
                 exception_type_str="MiddleException",
                 exception_value="un-uh",
                 frames=self.create_frames(
-                    num_frames=30, context_line_factory=lambda i: f"middle line {i}"
+                    num_frames=25, context_line_factory=lambda i: f"middle line {i}"
                 ),
             ),
             self.create_exception(
                 exception_type_str="OuterException",
                 exception_value="no way",
                 frames=self.create_frames(
-                    num_frames=30, context_line_factory=lambda i: f"outer line {i}"
+                    num_frames=25, context_line_factory=lambda i: f"outer line {i}"
                 ),
             ),
         ]
         stacktrace_str = get_stacktrace_string(data_chained_exception)
 
         # The stacktrace string should be:
-        #    30 frames from OuterExcepton (with lines counting up from 1 to 30), followed by
-        #    20 frames from MiddleExcepton (with lines counting up from 11 to 30), followed by
+        #    25 frames from OuterExcepton (with lines counting up from 1 to 25), followed by
+        #    5 frames from MiddleExcepton (with lines counting up from 21 to 25), followed by
         #    no frames from InnerExcepton (though the type and value are in there)
         expected = "".join(
             ["OuterException: no way"]
             + [
                 f'\n  File "hello.py", function hello_there\n    outer line {i}'
-                for i in range(1, 31)  #
+                for i in range(1, 26)  #
             ]
             + ["\nMiddleException: un-uh"]
             + [
                 f'\n  File "hello.py", function hello_there\n    middle line {i}'
-                for i in range(11, 31)
+                for i in range(21, 26)
             ]
             + ["\nInnerException: nope"]
         )
         assert stacktrace_str == expected
+
+    def test_chained_too_many_frames_all_minified_js(self):
+        data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
+        data_chained_exception["app"]["component"]["values"][0]["values"] = [
+            self.create_exception(
+                exception_type_str="InnerException",
+                exception_value="nope",
+                frames=self.create_frames(
+                    num_frames=15,
+                    context_line_factory=lambda i: f"inner line {i}",
+                    minified_frames="all",
+                ),
+            ),
+            self.create_exception(
+                exception_type_str="MiddleException",
+                exception_value="un-uh",
+                frames=self.create_frames(
+                    num_frames=15,
+                    context_line_factory=lambda i: f"middle line {i}",
+                    minified_frames="all",
+                ),
+            ),
+            self.create_exception(
+                exception_type_str="OuterException",
+                exception_value="no way",
+                frames=self.create_frames(
+                    num_frames=15,
+                    context_line_factory=lambda i: f"outer line {i}",
+                    minified_frames="all",
+                ),
+            ),
+        ]
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
+
+        # The stacktrace string should be:
+        #    15 frames from OuterExcepton (with lines counting up from 1 to 15), followed by
+        #    5 frames from MiddleExcepton (with lines counting up from 11 to 15), followed by
+        #    no frames from InnerExcepton (though the type and value are in there)
+        expected = "".join(
+            ["OuterException: no way"]
+            + [
+                f'\n  File "hello.py", function hello_there\n    {{snip}}outer line {i}{{snip}}'
+                for i in range(1, 16)  #
+            ]
+            + ["\nMiddleException: un-uh"]
+            + [
+                f'\n  File "hello.py", function hello_there\n    {{snip}}middle line {i}{{snip}}'
+                for i in range(11, 16)
+            ]
+            + ["\nInnerException: nope"]
+        )
+        assert stacktrace_str == expected
+
+    def test_chained_too_many_frames_minified_js_frame_limit(self):
+        """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 50 frames."""
+        for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
+            data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
+            data_chained_exception["app"]["component"]["values"][0]["values"] = [
+                self.create_exception(
+                    exception_type_str="InnerException",
+                    exception_value="nope",
+                    frames=self.create_frames(
+                        num_frames=25,
+                        context_line_factory=lambda i: f"inner line {i}",
+                        minified_frames=cast(Literal["all", "some", "none"], minified_frames),
+                    ),
+                ),
+                self.create_exception(
+                    exception_type_str="MiddleException",
+                    exception_value="un-uh",
+                    frames=self.create_frames(
+                        num_frames=25,
+                        context_line_factory=lambda i: f"middle line {i}",
+                        minified_frames=cast(Literal["all", "some", "none"], minified_frames),
+                    ),
+                ),
+                self.create_exception(
+                    exception_type_str="OuterException",
+                    exception_value="no way",
+                    frames=self.create_frames(
+                        num_frames=25,
+                        context_line_factory=lambda i: f"outer line {i}",
+                        minified_frames=cast(Literal["all", "some", "none"], minified_frames),
+                    ),
+                ),
+            ]
+            stacktrace_str = get_stacktrace_string(data_chained_exception)
+
+            assert (
+                stacktrace_str.count("outer line")
+                + stacktrace_str.count("middle line")
+                + stacktrace_str.count("inner line")
+                == expected_frame_count
+            )
 
     def test_thread(self):
         stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
@@ -551,42 +659,65 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    def test_over_50_contributing_frames(self):
-        """Check that when there are over 50 contributing frames, the last 50 are included."""
+    def test_over_30_contributing_frames(self):
+        """Check that when there are over 50 contributing frames, the last 30 are included."""
 
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
-        # Create 30 contributing frames, 1-30 -> last 20 should be included
+        # Create 30 contributing frames, 1-20 -> last 10 should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
-            30, True
+            20, True
         )
-        # Create 20 non-contributing frames, 31-50 -> none should be included
+        # Create 20 non-contributing frames, 21-40 -> none should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
-            20, False, 31
+            20, False, 21
         )
-        # Create 30 contributing frames, 51-80 -> all should be included
+        # Create 20 contributing frames, 41-60 -> all should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
-            30, True, 51
+            20, True, 41
         )
         stacktrace_str = get_stacktrace_string(data_frames)
 
         num_frames = 0
         for i in range(1, 11):
             assert ("test = " + str(i) + "!") not in stacktrace_str
-        for i in range(11, 31):
+        for i in range(11, 21):
             num_frames += 1
             assert ("test = " + str(i) + "!") in stacktrace_str
-        for i in range(31, 51):
+        for i in range(21, 41):
             assert ("test = " + str(i) + "!") not in stacktrace_str
-        for i in range(51, 81):
+        for i in range(41, 61):
             num_frames += 1
             assert ("test = " + str(i) + "!") in stacktrace_str
-        assert num_frames == 50
+        assert num_frames == 30
+
+    def test_too_many_frames_minified_js_frame_limit(self):
+        """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 50 frames."""
+        for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
+            data_frames = copy.deepcopy(self.BASE_APP_DATA)
+            data_frames["app"]["component"]["values"] = [
+                self.create_exception(
+                    frames=self.create_frames(
+                        num_frames=40,
+                        context_line_factory=lambda i: f"context line {i}",
+                        minified_frames=cast(Literal["all", "some", "none"], minified_frames),
+                    ),
+                ),
+            ]
+            stacktrace_str = get_stacktrace_string(data_frames)
+
+            assert stacktrace_str.count("context line") == expected_frame_count
 
     def test_no_exception(self):
         data_no_exception = copy.deepcopy(self.BASE_APP_DATA)
         data_no_exception["app"]["component"]["values"][0]["id"] = "not-exception"
         stacktrace_str = get_stacktrace_string(data_no_exception)
         assert stacktrace_str == ""
+
+    def test_recognizes_snip_at_start_or_end(self):
+        assert _is_snipped_context_line("{snip} dogs are great") is True
+        assert _is_snipped_context_line("dogs are great {snip}") is True
+        assert _is_snipped_context_line("{snip} dogs are great {snip}") is True
+        assert _is_snipped_context_line("dogs are great") is False
 
 
 class EventContentIsSeerEligibleTest(TestCase):
@@ -613,7 +744,7 @@ class EventContentIsSeerEligibleTest(TestCase):
             "platform": "python",
         }
 
-    def test_no_stacktrace_no_title(self):
+    def test_no_stacktrace(self):
         good_event_data = self.get_eligible_event_data()
         good_event = Event(
             project_id=self.project.id,
@@ -622,7 +753,6 @@ class EventContentIsSeerEligibleTest(TestCase):
         )
 
         bad_event_data = self.get_eligible_event_data()
-        bad_event_data["title"] = "<untitled>"
         del bad_event_data["exception"]
         bad_event = Event(
             project_id=self.project.id,
@@ -653,3 +783,9 @@ class EventContentIsSeerEligibleTest(TestCase):
         assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
+
+
+class SeerUtilsTest(TestCase):
+    def test_filter_null_from_event_title(self):
+        title_with_null = 'Title with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
+        assert filter_null_from_event_title(title_with_null) == 'Title with null , "" is null'

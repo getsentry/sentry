@@ -6,14 +6,26 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import pytest
 import responses
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.vsts import VstsIntegrationProvider
+from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):
     provider = VstsIntegrationProvider()
+
+    def _get_integration_and_install(self) -> tuple[Integration, VstsIntegration]:
+        integration = Integration.objects.get(provider="vsts")
+        installation = get_installation_of_type(
+            VstsIntegration,
+            integration,
+            integration.organizationintegration_set.get().organization_id,
+        )
+        return integration, installation
 
     @pytest.fixture(autouse=True)
     def setup_data(self):

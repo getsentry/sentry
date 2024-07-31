@@ -1,15 +1,20 @@
 import {useCallback, useMemo} from 'react';
 
+import {parseFormula} from 'sentry/components/metrics/equationInput/syntax/parser';
+import {
+  type TokenList,
+  TokenType,
+} from 'sentry/components/metrics/equationInput/syntax/types';
+import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {
   isMetricsEquationWidget,
   isMetricsQueryWidget,
   type MetricsQueryWidget,
 } from 'sentry/utils/metrics/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useMetricsContext} from 'sentry/views/metrics/context';
-import {parseFormula} from 'sentry/views/metrics/formulaParser/parser';
-import {type TokenList, TokenType} from 'sentry/views/metrics/formulaParser/types';
-import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 interface FormulaDependencies {
   dependencies: MetricsQueryWidget[];
@@ -17,23 +22,28 @@ interface FormulaDependencies {
 }
 
 export function useFormulaDependencies() {
+  const organization = useOrganization();
   const {widgets} = useMetricsContext();
+
+  const metricsNewInputs = hasMetricsNewInputs(organization);
+
   const queriesLookup = useMemo(() => {
     const lookup = new Map<string, MetricsQueryWidget>();
     widgets.forEach(widget => {
       if (isMetricsQueryWidget(widget)) {
-        lookup.set(getQuerySymbol(widget.id), widget);
+        lookup.set(getQuerySymbol(widget.id, metricsNewInputs), widget);
       }
     });
     return lookup;
-  }, [widgets]);
+  }, [widgets, metricsNewInputs]);
 
   const getFormulaQueryDependencies = useCallback(
     (formula: string): FormulaDependencies => {
       let tokens: TokenList = [];
 
       try {
-        tokens = parseFormula(unescapeMetricsFormula(formula));
+        const form = metricsNewInputs ? formula.toUpperCase() : formula;
+        tokens = parseFormula(unescapeMetricsFormula(form));
       } catch {
         // We should not end up here, but if we do, we should not crash the UI
         return {dependencies: [], isError: true};
@@ -44,7 +54,9 @@ export function useFormulaDependencies() {
 
       tokens.forEach(token => {
         if (token.type === TokenType.VARIABLE) {
-          const widget = queriesLookup.get(token.content);
+          const widget = queriesLookup.get(
+            metricsNewInputs ? token.content.toUpperCase() : token.content
+          );
           if (widget) {
             dependencies.push(widget);
           } else {
@@ -55,7 +67,7 @@ export function useFormulaDependencies() {
 
       return {dependencies, isError};
     },
-    [queriesLookup]
+    [queriesLookup, metricsNewInputs]
   );
 
   const formulaDependencies = useMemo(() => {

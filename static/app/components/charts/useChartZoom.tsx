@@ -6,7 +6,7 @@ import type {
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';

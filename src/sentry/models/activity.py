@@ -11,10 +11,9 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
@@ -23,6 +22,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
 from sentry.types.group import PriorityLevel
@@ -30,7 +30,7 @@ from sentry.types.group import PriorityLevel
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 _default_logger = logging.getLogger(__name__)
@@ -40,19 +40,15 @@ class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
-        initial_priority = None
 
-        if not features.has("projects:issue-priority", group.project):
-            activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
-        else:
-            # Check if 'initial_priority' is available and the feature flag is on
-            initial_priority_value = group.get_event_metadata().get(
-                "initial_priority", None
-            ) or group.get_event_metadata().get("initial_priority", None)
+        # Check if 'initial_priority' is available
+        initial_priority_value = group.get_event_metadata().get(
+            "initial_priority", None
+        ) or group.get_event_metadata().get("initial_priority", None)
 
-            initial_priority = (
-                PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
-            )
+        initial_priority = (
+            PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
+        )
 
         prev_sig = None
         sig = None
@@ -119,7 +115,7 @@ class Activity(Model):
     # if the user is not set, it's assumed to be the system
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
-    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(null=True)
 
     objects: ClassVar[ActivityManager] = ActivityManager()
 
@@ -172,7 +168,7 @@ class Activity(Model):
             return
 
         # HACK: support Group.num_comments
-        if self.type == ActivityType.NOTE.value:
+        if self.type == ActivityType.NOTE.value and self.group is not None:
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") + 1)
@@ -185,7 +181,7 @@ class Activity(Model):
         super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
-        if self.type == ActivityType.NOTE.value:
+        if self.type == ActivityType.NOTE.value and self.group is not None:
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") - 1)

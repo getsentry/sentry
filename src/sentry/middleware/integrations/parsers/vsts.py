@@ -6,12 +6,12 @@ import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vsts.webhooks import WorkItemWebhook, get_vsts_external_id
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.silo.base import control_silo_function
 
 logger = logging.getLogger(__name__)
 

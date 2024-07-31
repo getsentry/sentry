@@ -77,7 +77,7 @@ def create_recording(replay_id, project_id, timestamp):
         store_replay_segments(replay_id, project_id, segment_id, segment)
 
 
-def store_replay_segments(replay_id: str, project_id: str, segment_id: int, segment):
+def store_replay_segments(replay_id: str, project_id: int, segment_id: int, segment) -> None:
     f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
     f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
     ReplayRecordingSegment.objects.create(

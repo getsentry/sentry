@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -11,10 +11,10 @@ from parsimonious.nodes import Node, NodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
@@ -80,7 +80,7 @@ class Rule(namedtuple("Rule", "matcher owners")):
         )
         return f"{self.matcher} {owners_str}"
 
-    def dump(self) -> Mapping[str, Sequence[Owner]]:
+    def dump(self) -> dict[str, Sequence[Owner]]:
         return {"matcher": self.matcher.dump(), "owners": [o.dump() for o in self.owners]}
 
     @classmethod
@@ -109,7 +109,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     def __str__(self) -> str:
         return f"{self.type}:{self.pattern}"
 
-    def dump(self) -> Mapping[str, str]:
+    def dump(self) -> dict[str, str]:
         return {"type": self.type, "pattern": self.pattern}
 
     @classmethod
@@ -206,7 +206,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return False
 
 
-class Owner(namedtuple("Owner", "type identifier")):
+class Owner(NamedTuple):
     """
     An Owner represents a User or Team who owns this Rule.
 
@@ -217,7 +217,10 @@ class Owner(namedtuple("Owner", "type identifier")):
         #team
     """
 
-    def dump(self) -> Mapping[str, str]:
+    type: str
+    identifier: str
+
+    def dump(self) -> dict[str, str]:
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
@@ -228,7 +231,7 @@ class Owner(namedtuple("Owner", "type identifier")):
 class OwnershipVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
 
-    def visit_ownership(self, node: Node, children: Sequence[Rule | None]) -> Sequence[Rule]:
+    def visit_ownership(self, node: Node, children: Sequence[Rule | None]) -> list[Rule]:
         return [_f for _f in children if _f]
 
     def visit_line(self, node: Node, children: tuple[Node, Sequence[Rule | None], Any]) -> Any:
@@ -252,7 +255,7 @@ class OwnershipVisitor(NodeVisitor):
         type, _ = tag
         return str(type[0].text)
 
-    def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> Sequence[Owner]:
+    def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> list[Owner]:
         _, owners = children
         return owners
 
@@ -277,7 +280,7 @@ class OwnershipVisitor(NodeVisitor):
     def visit_quoted_identifier(self, node: Node, children: Sequence[Any]) -> str:
         return str(node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape"))
 
-    def generic_visit(self, node: Node, children: Sequence[Any]) -> Sequence[Node] | Node:
+    def generic_visit(self, node: Node, children: Sequence[Any]) -> list[Node] | Node:
         return children or node
 
 
@@ -287,12 +290,12 @@ def parse_rules(data: str) -> Any:
     return OwnershipVisitor().visit(tree)
 
 
-def dump_schema(rules: Sequence[Rule]) -> Mapping[str, Any]:
+def dump_schema(rules: Sequence[Rule]) -> dict[str, Any]:
     """Convert a Rule tree into a JSON schema"""
     return {"$version": VERSION, "rules": [r.dump() for r in rules]}
 
 
-def load_schema(schema: Mapping[str, Any]) -> Sequence[Rule]:
+def load_schema(schema: Mapping[str, Any]) -> list[Rule]:
     """Convert a JSON schema into a Rule tree"""
     if schema["$version"] != VERSION:
         raise RuntimeError("Invalid schema $version: %r" % schema["$version"])
@@ -345,6 +348,14 @@ def get_codeowners_path_and_owners(rule: str) -> tuple[str, Sequence[str]]:
     # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
     pattern = re.compile(r"(?<!\\)\s")
     path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
+
+    # Find index of # in code_owners, assume everything after is a comment
+    try:
+        comment_index = code_owners.index("#")
+        code_owners = code_owners[:comment_index]
+    except ValueError:
+        pass
+
     return path, code_owners
 
 
@@ -412,7 +423,7 @@ def convert_codeowners_syntax(
     return result
 
 
-def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, Actor]:
+def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Actor]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
@@ -506,7 +517,7 @@ def create_schema_from_issue_owners(
     issue_owners: str | None,
     add_owner_ids: bool = False,
     remove_deleted_owners: bool = False,
-) -> Mapping[str, Any] | None:
+) -> dict[str, Any] | None:
     if issue_owners is None:
         return None
 

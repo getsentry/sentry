@@ -13,11 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import type {
-  Configuration as DevServerConfig,
-  ProxyConfigArray,
-  Static,
-} from 'webpack-dev-server';
+import type {ProxyConfigArray, Static} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -28,15 +24,6 @@ import packageJson from './package.json';
 type MinimizerPluginOptions = {
   targets: lightningcss.TransformAttributeOptions['targets'];
 };
-
-/**
- * Merges the devServer config into the webpack config
- *
- * See: https://github.com/DefinitelyTyped/DefinitelyTyped/issues/43232
- */
-interface Configuration extends webpack.Configuration {
-  devServer?: DevServerConfig;
-}
 
 const {env} = process;
 
@@ -60,7 +47,9 @@ const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION
+  ? 'production'
+  : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
@@ -175,7 +164,7 @@ const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 type CacheGroups = Exclude<
-  NonNullable<Configuration['optimization']>['splitChunks'],
+  NonNullable<webpack.Configuration['optimization']>['splitChunks'],
   false | undefined
 >['cacheGroups'];
 
@@ -234,7 +223,7 @@ const babelLoaderConfig = {
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig: Configuration = {
+const appConfig: webpack.Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -280,8 +269,8 @@ const appConfig: Configuration = {
         },
       },
       {
-        test: /\.pegjs/,
-        use: {loader: 'pegjs-loader'},
+        test: /\.pegjs$/,
+        use: ['pegjs-loader?cache=false&optimize=speed'],
       },
       {
         test: /\.css/,
@@ -348,15 +337,13 @@ const appConfig: Configuration = {
      * Defines environment specific flags.
      */
     new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
-        DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
-        EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
-        SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
-        SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
-        USE_REACT_QUERY_DEVTOOL: JSON.stringify(USE_REACT_QUERY_DEVTOOL),
-      },
+      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
+      'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+      'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+      'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
+      'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
+      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
     }),
 
     /**
@@ -372,9 +359,9 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
+              memoryLimit: 4096,
             },
             devServer: false,
-            // memorylimit is configured in package.json
           }),
         ]
       : []),
@@ -549,13 +536,16 @@ if (
     headers: {
       'Document-Policy': 'js-profiling',
     },
-    // Cover the various environments we use (vercel, getsentry-dev, localhost)
+    // Cover the various environments we use (vercel, getsentry-dev, localhost, ngrok)
     allowedHosts: [
       '.sentry.dev',
       '.dev.getsentry.net',
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      '.ngrok.dev',
+      '.ngrok.io',
+      '.ngrok.app',
     ],
     static: {
       directory: './src/sentry/static/sentry',

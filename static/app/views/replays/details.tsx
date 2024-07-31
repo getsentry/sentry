@@ -101,6 +101,14 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     replayStartTimestampMs: replayRecord?.started_at?.getTime(),
   });
 
+  const rrwebFrames = replay?.getRRWebFrames();
+  // The replay data takes a while to load in, which causes `isVideoReplay`
+  // to return an early `false`, which used to cause UI jumping.
+  // One way to check whether it's finished loading is by checking the length
+  // of the rrweb frames, which should always be > 1 for any given replay.
+  // By default, the 1 frame is replay.end
+  const isLoading = !rrwebFrames || (rrwebFrames && rrwebFrames.length <= 1);
+
   if (replayRecord?.is_archived) {
     return (
       <Page
@@ -169,10 +177,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  const isVideoReplay = Boolean(
-    organization.features.includes('session-replay-mobile-player') &&
-      replay?.isVideoReplay()
-  );
+  const isVideoReplay = replay?.isVideoReplay();
 
   return (
     <ReplayContextProvider
@@ -189,8 +194,13 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           replayRecord={replayRecord}
           projectSlug={projectSlug}
           replayErrors={replayErrors}
+          isLoading={isLoading}
         >
-          <ReplaysLayout isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
+          <ReplaysLayout
+            isVideoReplay={isVideoReplay}
+            replayRecord={replayRecord}
+            isLoading={isLoading}
+          />
         </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>

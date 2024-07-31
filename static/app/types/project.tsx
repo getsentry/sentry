@@ -23,14 +23,23 @@ export type Project = {
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
+  extrapolateMetrics: boolean;
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
-  groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
+  hasInsightsAppStart: boolean;
+  hasInsightsAssets: boolean;
+  hasInsightsCaches: boolean;
+  hasInsightsDb: boolean;
+  hasInsightsHttp: boolean;
+  hasInsightsLlmMonitoring: boolean;
+  hasInsightsQueues: boolean;
+  hasInsightsScreenLoad: boolean;
+  hasInsightsVitals: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
@@ -43,8 +52,8 @@ export type Project = {
   isMember: boolean;
   name: string;
   organization: Organization;
-  plugins: Plugin[];
 
+  plugins: Plugin[];
   processingIssues: number;
   relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
@@ -211,6 +220,7 @@ export type PlatformKey =
   | 'javascript-nextjs'
   | 'javascript-react'
   | 'javascript-remix'
+  | 'javascript-solid'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
   | 'javascript-vue'

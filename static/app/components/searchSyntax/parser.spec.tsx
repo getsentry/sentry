@@ -208,6 +208,29 @@ describe('searchSyntax/parser', function () {
     });
   });
 
+  it('applies disallowNegation', () => {
+    const result = parseSearch('!foo:bar', {
+      disallowNegation: true,
+      invalidMessages: {
+        [InvalidReason.NEGATION_NOT_ALLOWED]: 'Custom message',
+      },
+    });
+
+    // check with error to satisfy type checker
+    if (result === null) {
+      throw new Error('Parsed result as null');
+    }
+    expect(result).toHaveLength(3);
+
+    const foo = result[1] as TokenResult<Token.FILTER>;
+
+    expect(foo.negated).toEqual(true);
+    expect(foo.invalid).toEqual({
+      type: InvalidReason.NEGATION_NOT_ALLOWED,
+      reason: 'Custom message',
+    });
+  });
+
   describe('flattenParenGroups', () => {
     it('tokenizes mismatched parens with flattenParenGroups=true', () => {
       const result = parseSearch('foo(', {

@@ -8,8 +8,8 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")

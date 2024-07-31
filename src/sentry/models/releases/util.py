@@ -4,6 +4,7 @@ import logging
 from collections import namedtuple
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Self
 
 from django.db import models
 from django.db.models import Case, F, Func, Q, Subquery, Value, When
@@ -11,10 +12,14 @@ from django.db.models.signals import pre_save
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
-from sentry.db.models import ArrayField, BaseQuerySet
+from sentry.db.models import ArrayField
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.utils.numbers import validate_bigint
+
+if TYPE_CHECKING:
+    from sentry.models.release import Release  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +38,7 @@ class SemverFilter:
     negated: bool = False
 
 
-class ReleaseQuerySet(BaseQuerySet):
+class ReleaseQuerySet(BaseQuerySet["Release"]):
     def annotate_prerelease_column(self):
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
@@ -46,7 +51,7 @@ class ReleaseQuerySet(BaseQuerySet):
             )
         )
 
-    def filter_to_semver(self):
+    def filter_to_semver(self) -> Self:
         """
         Filters the queryset to only include semver compatible rows
         """
@@ -59,7 +64,7 @@ class ReleaseQuerySet(BaseQuerySet):
         build: str,
         project_ids: Sequence[int] | None = None,
         negated: bool = False,
-    ) -> models.QuerySet:
+    ) -> Self:
         """
         Filters released by build. If the passed `build` is a numeric string, we'll filter on
         `build_number` and make use of the passed operator.
@@ -91,7 +96,7 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         semver_filter: SemverFilter,
         project_ids: Sequence[int] | None = None,
-    ) -> models.QuerySet:
+    ) -> Self:
         """
         Filters releases based on a based `SemverFilter` instance.
         `SemverFilter.version_parts` can contain up to 6 components, which should map
@@ -137,7 +142,7 @@ class ReleaseQuerySet(BaseQuerySet):
         value,
         project_ids: Sequence[int] | None = None,
         environments: list[str] | None = None,
-    ) -> models.QuerySet:
+    ) -> Self:
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
 
@@ -175,7 +180,7 @@ class ReleaseQuerySet(BaseQuerySet):
         qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
         return qs
 
-    def order_by_recent(self):
+    def order_by_recent(self) -> Self:
         return self.order_by("-date_added", "-id")
 
     @staticmethod

@@ -1,4 +1,4 @@
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
@@ -6,7 +6,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {DetailedOrganization} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -61,10 +61,7 @@ mockUseReplayReader.mockImplementation(() => {
   };
 });
 
-const render = (
-  children: React.ReactElement,
-  orgParams: Partial<DetailedOrganization> = {}
-) => {
+const render = (children: React.ReactElement, orgParams: Partial<Organization> = {}) => {
   const {router, organization} = initializeOrg({
     organization: {slug: mockOrgSlug, ...orgParams},
     router: {

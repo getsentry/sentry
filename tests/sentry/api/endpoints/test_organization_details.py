@@ -97,7 +97,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" not in response.data["features"]
 
     def test_include_feature_flag_query_param(self):
         response = self.get_success_response(
@@ -126,16 +125,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" in response.data["features"]
 
-        with self.feature({"organizations:customer-domains": False}):
+        with self.feature({"system:multi-region": False}):
             HTTP_HOST = f"{self.organization.slug}.testserver"
             response = self.get_success_response(
                 self.organization.slug,
                 extra_headers={"HTTP_HOST": HTTP_HOST},
                 qs_params={"include_feature_flags": 1},
             )
-            assert "customer-domains" in response.data["features"]
 
     def test_org_mismatch_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"
@@ -409,9 +406,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        "sentry.integrations.github.GitHubApiClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
+    @with_feature("organizations:metrics-extrapolation")
     @with_feature("organizations:codecov-integration")
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
@@ -430,6 +428,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "openMembership": False,
             "isEarlyAdopter": True,
             "codecovAccess": True,
+            "allowSuperuserAccess": False,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
@@ -452,8 +451,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "genAIConsent": True,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
-            "metricsActivatePercentiles": True,
+            "metricsActivatePercentiles": False,
             "metricsActivateLastForGauges": True,
+            "extrapolateMetrics": True,
+            "uptimeAutodetection": False,
         }
 
         # needed to set require2FA
@@ -470,6 +471,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert org.flags.early_adopter
         assert org.flags.codecov_access
+        assert org.flags.prevent_superuser_access
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
@@ -487,8 +489,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
-        assert options.get("sentry:metrics_activate_percentiles") is True
+        assert options.get("sentry:metrics_activate_percentiles") is False
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
+        assert options.get("sentry:extrapolate_metrics") is True
+        assert options.get("sentry:uptime_autodetection") is False
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -499,6 +503,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
         assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
         assert "to {}".format(data["codecovAccess"]) in log.data["codecov_access"]
+        assert (
+            "to {}".format(not data["allowSuperuserAccess"]) in log.data["prevent_superuser_access"]
+        )
         assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
         assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
         assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]
@@ -529,10 +536,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "to {}".format(data["metricsActivateLastForGauges"])
             in log.data["metricsActivateLastForGauges"]
         )
+        assert "to {}".format(data["extrapolateMetrics"]) in log.data["extrapolateMetrics"]
+        assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        "sentry.integrations.github.GitHubApiClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
@@ -930,6 +939,22 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_org_mapping_already_taken(self):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
+
+    @with_feature("organizations:metrics-extrapolation")
+    def test_extrapolate_metrics_with_permission(self):
+        # test when the value is set to False
+        resp = self.get_success_response(self.organization.slug, **{"extrapolateMetrics": False})
+        assert self.organization.get_option("sentry:extrapolate_metrics") is False
+        assert b"extrapolateMetrics" in resp.content
+
+        # test when the value is set to True
+        resp = self.get_success_response(self.organization.slug, **{"extrapolateMetrics": True})
+        assert self.organization.get_option("sentry:extrapolate_metrics") is True
+        assert b"extrapolateMetrics" in resp.content
+
+    def test_extrapolate_metrics_without_permission(self):
+        resp = self.get_response(self.organization.slug, **{"extrapolateMetrics": False})
+        assert resp.status_code == 400
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):

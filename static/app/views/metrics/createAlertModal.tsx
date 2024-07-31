@@ -17,7 +17,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {
@@ -142,11 +143,11 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const alertChartQuery = useMemo(
     () => ({
       mri: metricsQuery.mri,
-      op: metricsQuery.op,
+      aggregation: metricsQuery.aggregation,
       query: metricsQuery.query,
       name: 'query',
     }),
-    [metricsQuery.mri, metricsQuery.op, metricsQuery.query]
+    [metricsQuery.mri, metricsQuery.aggregation, metricsQuery.query]
   );
 
   const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
@@ -248,7 +249,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   ]);
 
   const unit = parseMRI(metricsQuery.mri)?.unit ?? 'none';
-  const operation = metricsQuery.op;
+  const operation = metricsQuery.aggregation;
   const chartOptions = useMemo(() => {
     const bucketSize =
       (chartSeries?.[0]?.data[1]?.name ?? 0) - (chartSeries?.[0]?.data[0]?.name ?? 0);

@@ -5,6 +5,14 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {expressionsToWidget, getMetricExpressions, toMetricDisplayType} from './utils';
 
+const mockGetVirtualMRIQuery = jest.fn(() => {
+  return {
+    mri: 'v:custom/span.duration@milisecond' as const,
+    conditionId: 1,
+    aggregation: 'sum' as const,
+  };
+});
+
 describe('getMetricExpressions function', () => {
   it('should return a query', () => {
     const widget = {
@@ -19,19 +27,20 @@ describe('getMetricExpressions function', () => {
       ],
     } as Widget;
 
-    const metricQueries = getMetricExpressions(widget);
+    const metricQueries = getMetricExpressions(widget, undefined, mockGetVirtualMRIQuery);
     expect(metricQueries).toEqual([
       {
         groupBy: ['release'],
         id: 0,
         mri: 'd:transactions/duration@milisecond',
-        op: 'avg',
+        aggregation: 'avg',
         query: 'foo:bar',
         type: MetricExpressionType.QUERY,
         orderBy: 'asc',
         isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
+    expect(mockGetVirtualMRIQuery).not.toHaveBeenCalled();
   });
 
   it('should return an equation', () => {
@@ -46,7 +55,7 @@ describe('getMetricExpressions function', () => {
       ],
     } as Widget;
 
-    const metricQueries = getMetricExpressions(widget);
+    const metricQueries = getMetricExpressions(widget, undefined, mockGetVirtualMRIQuery);
     expect(metricQueries).toEqual([
       {
         id: 0,
@@ -77,14 +86,18 @@ describe('getMetricExpressions function', () => {
       ],
     } as Widget;
 
-    const metricQueries = getMetricExpressions(widget, {release: ['1.0']});
+    const metricQueries = getMetricExpressions(
+      widget,
+      {release: ['1.0']},
+      mockGetVirtualMRIQuery
+    );
 
     expect(metricQueries).toEqual([
       {
         groupBy: ['release'],
         id: 0,
         mri: 'd:transactions/duration@milisecond',
-        op: 'avg',
+        aggregation: 'avg',
         query: 'foo:bar release:1.0',
         type: MetricExpressionType.QUERY,
         orderBy: 'desc',
@@ -94,7 +107,7 @@ describe('getMetricExpressions function', () => {
         groupBy: [],
         id: 1,
         mri: 'd:transactions/duration@milisecond',
-        op: 'avg',
+        aggregation: 'avg',
         query: 'foo:baz release:1.0',
         type: MetricExpressionType.QUERY,
         orderBy: undefined,
@@ -115,17 +128,51 @@ describe('getMetricExpressions function', () => {
       ],
     } as Widget;
 
-    const metricQueries = getMetricExpressions(widget, {release: ['1.0', '2.0']});
+    const metricQueries = getMetricExpressions(
+      widget,
+      {release: ['1.0', '2.0']},
+      mockGetVirtualMRIQuery
+    );
 
     expect(metricQueries).toEqual([
       {
         groupBy: ['release'],
         id: 1,
         mri: 'd:transactions/duration@milisecond',
-        op: 'avg',
+        aggregation: 'avg',
         query: 'release:[1.0,2.0]',
         type: MetricExpressionType.QUERY,
         orderBy: undefined,
+        isHidden: false,
+      } satisfies DashboardMetricsExpression,
+    ]);
+  });
+
+  it('should map span extracted metrics to virtual metrics', () => {
+    const widget = {
+      queries: [
+        {
+          aggregates: ['sum(g:custom/span_attribute_123@milisecond)'],
+          conditions: 'foo:bar',
+          columns: ['release'],
+          name: '0',
+          orderby: 'desc',
+        },
+      ],
+    } as Widget;
+
+    const metricQueries = getMetricExpressions(widget, undefined, mockGetVirtualMRIQuery);
+
+    expect(metricQueries).toEqual([
+      {
+        groupBy: ['release'],
+        id: 0,
+        mri: 'v:custom/span.duration@milisecond',
+        aggregation: 'sum',
+        condition: 1,
+        query: 'foo:bar',
+        type: MetricExpressionType.QUERY,
+        orderBy: 'desc',
         isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
@@ -155,7 +202,7 @@ describe('expressionsToWidget', () => {
         groupBy: ['release'],
         id: 0,
         mri: 'd:transactions/duration@milisecond',
-        op: 'avg',
+        aggregation: 'avg',
         query: 'foo:bar',
         type: MetricExpressionType.QUERY,
         orderBy: 'asc',
@@ -225,7 +272,7 @@ describe('expressionsToWidget', () => {
         groupBy: ['release'],
         id: 0,
         mri: 'd:transactions/duration@milisecond',
-        op: 'avg',
+        aggregation: 'avg',
         query: 'foo:bar',
         type: MetricExpressionType.QUERY,
         orderBy: 'asc',
@@ -241,6 +288,8 @@ describe('expressionsToWidget', () => {
 
     const widget = expressionsToWidget(metricExpressions, 'title', DisplayType.LINE);
 
-    expect(getMetricExpressions(widget)).toEqual(metricExpressions);
+    expect(getMetricExpressions(widget, undefined, mockGetVirtualMRIQuery)).toEqual(
+      metricExpressions
+    );
   });
 });

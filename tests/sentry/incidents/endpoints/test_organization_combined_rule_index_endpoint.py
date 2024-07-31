@@ -11,6 +11,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.actor import Actor
+from sentry.uptime.models import UptimeStatus
 from sentry.utils import json
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -64,7 +65,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org, teams=[self.team], name="Elephant"
         )
         self.projects = [self.project, self.project2]
-        self.project_ids = [self.project.id, self.project2.id]
+        self.project_ids = [str(self.project.id), str(self.project2.id)]
         self.alert_rule = self.create_alert_rule(
             name="alert rule",
             organization=self.org,
@@ -128,7 +129,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.setup_project_and_rules()
         # Test Limit as 1, no cursor:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "1", "project": self.project.id, "sort": "name", "asc": 1}
+            request_data = {
+                "per_page": "1",
+                "project": str(self.project.id),
+                "sort": "name",
+                "asc": "1",
+            }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -145,9 +151,9 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             request_data = {
                 "cursor": next_cursor,
                 "per_page": "1",
-                "project": self.project.id,
+                "project": str(self.project.id),
                 "sort": "name",
-                "asc": 1,
+                "asc": "1",
             }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -183,7 +189,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         # Test Limit as 1, no cursor:
         url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "1", "project": self.project.id, "sort": "name", "asc": 1}
+            request_data = {
+                "per_page": "1",
+                "project": str(self.project.id),
+                "sort": "name",
+                "asc": "1",
+            }
             response = self.client.get(
                 path=url,
                 data=request_data,
@@ -202,9 +213,9 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             request_data = {
                 "cursor": next_cursor,
                 "per_page": "1",
-                "project": self.project.id,
+                "project": str(self.project.id),
                 "sort": "name",
-                "asc": 1,
+                "asc": "1",
             }
             response = self.client.get(path=url, data=request_data, content_type="application/json")
         assert response.status_code == 200
@@ -234,7 +245,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
         # Test Limit as 1, next page of previous request:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"cursor": next_cursor, "per_page": "1", "project": self.project.id}
+            request_data = {"cursor": next_cursor, "per_page": "1", "project": str(self.project.id)}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -360,30 +371,55 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project2]
         )
+        proj_uptime_monitor = self.create_project_uptime_subscription(project=self.project)
+        proj2_uptime_monitor = self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(url="http://santry.io"),
+            project=self.project2,
+        )
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "2", "project": [self.project.id]}
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
+            request_data = {"project": [self.project.id]}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
 
         result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(self.one_alert_rule, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(self.two_alert_rule, result[1], skip_dates=True)
+        assert [r["id"] for r in result] == [
+            f"{proj_uptime_monitor.id}",
+            f"{self.one_alert_rule.id}",
+            f"{self.two_alert_rule.id}",
+            f"{self.yet_another_alert_rule.id}",
+            f"{self.issue_rule.id}",
+            f"{self.alert_rule.id}",
+        ]
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "2", "project": [self.project2.id]}
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
+            request_data = {"project": [self.project2.id]}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
 
         result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
+        assert [r["id"] for r in result] == [
+            f"{proj2_uptime_monitor.id}",
+            f"{self.three_alert_rule.id}",
+            f"{self.one_alert_rule.id}",
+            f"{self.other_alert_rule.id}",
+        ]
 
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
@@ -529,6 +565,54 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 2
 
+        team_uptime_monitor = self.create_project_uptime_subscription(
+            owner=self.team, name="Uptime owned"
+        )
+        unowned_uptime_monitor = self.create_project_uptime_subscription(
+            name="Uptime unowned",
+            uptime_subscription=self.create_uptime_subscription(url="http://santry.io"),
+        )
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id],
+                "name": "Uptime",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [f"{team_uptime_monitor.id}"]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": ["unassigned"],
+                "name": "Uptime",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [f"{unowned_uptime_monitor.id}"]
+
     def test_myteams_filter_superuser(self):
         superuser = self.create_user(is_superuser=True)
         another_org = self.create_organization(owner=superuser, name="Rowdy Tiger")
@@ -561,7 +645,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
                 "per_page": "10",
-                "project": [another_project.id],
+                "project": [str(another_project.id)],
                 "team": ["myteams"],
             }
             response = self.client.get(
@@ -573,7 +657,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
                 "per_page": "10",
-                "project": [another_project.id],
+                "project": [str(another_project.id)],
                 "team": [another_org_team.id],
             }
             response = self.client.get(
@@ -599,7 +683,18 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
     def test_name_filter(self):
         self.setup_project_and_rules()
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        uptime_monitor = self.create_project_uptime_subscription(name="Uptime")
+        another_uptime_monitor = self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+            name="yet another Uptime",
+        )
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id],
@@ -610,10 +705,18 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 1
-        assert result[0]["name"] == "yet another alert rule"
+        assert [r["id"] for r in result] == [
+            f"{another_uptime_monitor.id}",
+            f"{self.yet_another_alert_rule.id}",
+        ]
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id],
@@ -624,10 +727,15 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 1
-        assert result[0]["name"] == "Issue Rule Test"
+        assert [r["id"] for r in result] == [f"{self.issue_rule.id}"]
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id, self.project2.id],
@@ -640,7 +748,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 3
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id, self.project2.id],
@@ -653,7 +767,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 0
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id, self.project2.id],
@@ -665,6 +785,25 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 4
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "uptime",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [f"{another_uptime_monitor.id}", f"{uptime_monitor.id}"]
 
     def test_status_and_date_triggered_sort_order(self):
         self.setup_project_and_rules()
@@ -723,7 +862,18 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             alert_rule_trigger=trigger3,
             status=TriggerStatus.ACTIVE.value,
         )
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        uptime_monitor = self.create_project_uptime_subscription()
+        failed_uptime_monitor = self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+            uptime_status=UptimeStatus.FAILED,
+        )
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id, self.project2.id],
@@ -734,9 +884,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
-        assert len(result) == 7
-        # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
+        # Assert failed uptime monitor is first, critical rule is next, then warnings (sorted by triggered date),
+        # then issue rules and finally uptime monitors in ok status.
         assert [r["id"] for r in result] == [
+            f"{failed_uptime_monitor.id}",
             f"{alert_rule_critical.id}",
             f"{another_alert_rule_warning.id}",
             f"{alert_rule_warning.id}",
@@ -744,10 +895,17 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{self.other_alert_rule.id}",
             f"{self.yet_another_alert_rule.id}",
             f"{self.issue_rule.id}",
+            f"{uptime_monitor.id}",
         ]
 
         # Test paging with the status setup:
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
             request_data = {
                 "per_page": "2",
                 "project": [self.project.id, self.project2.id],
@@ -758,15 +916,23 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(alert_rule_critical, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(another_alert_rule_warning, result[1], skip_dates=True)
+        assert [r["id"] for r in result] == [
+            f"{failed_uptime_monitor.id}",
+            f"{alert_rule_critical.id}",
+        ]
+
         links = requests.utils.parse_header_links(
             response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
         # Get next page, we should be between the two status':
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:uptime-rule-api",
+            ]
+        ):
             request_data = {
                 "cursor": next_cursor,
                 "per_page": "2",
@@ -778,8 +944,37 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(alert_rule_warning, result[0], skip_dates=True)
+        assert [r["id"] for r in result] == [
+            f"{another_alert_rule_warning.id}",
+            f"{alert_rule_warning.id}",
+        ]
+
+    def test_uptime_feature(self):
+        self.setup_project_and_rules()
+        uptime_monitor = self.create_project_uptime_subscription(name="Uptime Monitor")
+        other_uptime_monitor = self.create_project_uptime_subscription(
+            name="Other Uptime Monitor",
+            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+        )
+
+        request_data = {"name": "Uptime", "project": [self.project.id]}
+        response = self.client.get(
+            path=self.combined_rules_url, data=request_data, content_type="application/json"
+        )
+        assert response.status_code == 200, response.content
+        assert [r["id"] for r in json.loads(response.content)] == []
+
+        with self.feature("organizations:uptime-rule-api"):
+            request_data = {"name": "Uptime", "project": [self.project.id]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [
+            f"{other_uptime_monitor.id}",
+            f"{uptime_monitor.id}",
+        ]
 
     def test_expand_latest_incident(self):
         self.setup_project_and_rules()
@@ -851,7 +1046,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
     @freeze_time()
     def test_last_triggered(self):
         self.login_as(user=self.user)
-        rule = Rule.objects.filter(project=self.project).first()
+        rule = Rule.objects.filter(project=self.project).get()
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] is None
         RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)

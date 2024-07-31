@@ -12,15 +12,14 @@ from requests.exceptions import Timeout
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
+from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.integrations.utils import get_redis_key
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
@@ -36,12 +35,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -240,6 +239,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -310,6 +310,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -405,6 +406,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(safe_urlopen.mock_calls) == 2
@@ -441,7 +443,6 @@ class TestInstallationWebhook(TestCase):
         assert len(run.mock_calls) == 0
 
 
-@override_options({"sentryapps.get_installation_cached": 1.0})
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestCommentWebhook(TestCase):
     def setUp(self):
@@ -469,7 +470,7 @@ class TestCommentWebhook(TestCase):
         self.data = {
             "comment_id": self.note.id,
             "timestamp": self.note.datetime,
-            "comment": self.note.data.get("text"),
+            "comment": self.note.data["text"],
             "project_slug": self.note.project.slug,
         }
 

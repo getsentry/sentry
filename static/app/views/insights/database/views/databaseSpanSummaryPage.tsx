@@ -1,0 +1,313 @@
+import {Fragment} from 'react';
+import type {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
+
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
+import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
+import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
+import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
+import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
+import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
+import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
+import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+
+type Query = {
+  transaction: string;
+  transactionMethod: string;
+  [QueryParameterNames.TRANSACTIONS_SORT]: string;
+  aggregate?: string;
+};
+
+type Props = RouteComponentProps<Query, {groupId: string}>;
+
+export function DatabaseSpanSummaryPage({params}: Props) {
+  const location = useLocation<Query>();
+
+  const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
+
+  const {groupId} = params;
+  const {transaction, transactionMethod} = location.query;
+
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+  };
+
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
+
+  // TODO: Fetch sort information using `useLocationQuery`
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
+
+  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+
+  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        SpanMetricsField.SPAN_OP,
+        SpanMetricsField.SPAN_DESCRIPTION,
+        SpanMetricsField.SPAN_ACTION,
+        SpanMetricsField.SPAN_DOMAIN,
+        'count()',
+        `${SpanFunction.SPM}()`,
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+      ],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics'
+  );
+
+  const spanMetrics = data[0] ?? {};
+
+  const {
+    isLoading: isTransactionsListLoading,
+    data: transactionsList,
+    meta: transactionsListMeta,
+    error: transactionsListError,
+    pageLinks: transactionsListPageLinks,
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        'transaction',
+        'transaction.method',
+        'spm()',
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        'time_spent_percentage()',
+        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+      ],
+      sorts: [sort],
+      limit: TRANSACTIONS_TABLE_ROW_COUNT,
+      cursor,
+    },
+    'api.starfish.span-transaction-metrics'
+  );
+
+  const span = {
+    ...spanMetrics,
+    [SpanMetricsField.SPAN_GROUP]: groupId,
+  } as {
+    [SpanMetricsField.SPAN_OP]: string;
+    [SpanMetricsField.SPAN_DESCRIPTION]: string;
+    [SpanMetricsField.SPAN_ACTION]: string;
+    [SpanMetricsField.SPAN_DOMAIN]: string[];
+    [SpanMetricsField.SPAN_GROUP]: string;
+  };
+
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: ['spm()'],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics-chart'
+  );
+
+  const {
+    isLoading: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics-chart'
+  );
+
+  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+
+  const crumbs = useModuleBreadcrumbs('db');
+
+  return (
+    <Fragment>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs
+            crumbs={[
+              ...crumbs,
+              {
+                label: 'Query Summary',
+              },
+            ]}
+          />
+          <Layout.Title>{t('Query Summary')}</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <HeaderContainer>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+                </ToolRibbon>
+
+                <ReadoutRibbon>
+                  <MetricReadout
+                    title={getThroughputTitle('db')}
+                    value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                    unit={RateUnit.PER_MINUTE}
+                    isLoading={areSpanMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={DataTitles.avg}
+                    value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                    unit={DurationUnit.MILLISECOND}
+                    isLoading={areSpanMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={DataTitles.timeSpent}
+                    value={spanMetrics?.['sum(span.self_time)']}
+                    unit={DurationUnit.MILLISECOND}
+                    tooltip={getTimeSpentExplanation(
+                      spanMetrics?.['time_spent_percentage()'],
+                      'db'
+                    )}
+                    isLoading={areSpanMetricsLoading}
+                  />
+                </ReadoutRibbon>
+              </HeaderContainer>
+            </ModuleLayout.Full>
+
+            {groupId && (
+              <DescriptionContainer>
+                <DatabaseSpanDescription
+                  groupId={groupId}
+                  preliminaryDescription={spanMetrics?.['span.description']}
+                />
+              </DescriptionContainer>
+            )}
+
+            <ModuleLayout.Full>
+              <ChartContainer>
+                <ThroughputChart
+                  series={throughputData['spm()']}
+                  isLoading={isThroughputDataLoading}
+                  error={throughputError}
+                />
+
+                <DurationChart
+                  series={[
+                    durationData[
+                      `${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`
+                    ],
+                  ]}
+                  isLoading={isDurationDataLoading}
+                  error={durationError}
+                />
+              </ChartContainer>
+            </ModuleLayout.Full>
+
+            {span && (
+              <ModuleLayout.Full>
+                <QueryTransactionsTable
+                  span={span}
+                  data={transactionsList}
+                  error={transactionsListError}
+                  isLoading={isTransactionsListLoading}
+                  meta={transactionsListMeta}
+                  pageLinks={transactionsListPageLinks}
+                  sort={sort}
+                />
+              </ModuleLayout.Full>
+            )}
+          </ModuleLayout.Layout>
+
+          <SampleList
+            groupId={span[SpanMetricsField.SPAN_GROUP]}
+            moduleName={ModuleName.DB}
+            transactionName={transaction}
+            transactionMethod={transactionMethod}
+            referrer={TraceViewSources.QUERIES_MODULE}
+          />
+        </Layout.Main>
+      </Layout.Body>
+    </Fragment>
+  );
+}
+
+const DEFAULT_SORT = {
+  kind: 'desc' as const,
+  field: 'time_spent_percentage()' as const,
+};
+
+const TRANSACTIONS_TABLE_ROW_COUNT = 25;
+
+const ChartContainer = styled('div')`
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr 1fr;
+    gap: ${space(2)};
+  }
+`;
+
+const DescriptionContainer = styled(ModuleLayout.Full)`
+  line-height: 1.2;
+`;
+
+function PageWithProviders(props) {
+  return (
+    <ModulePageProviders
+      moduleName="db"
+      pageTitle={t('Query Summary')}
+      features="insights-initial-modules"
+    >
+      <DatabaseSpanSummaryPage {...props} />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;

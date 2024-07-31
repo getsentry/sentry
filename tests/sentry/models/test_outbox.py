@@ -591,7 +591,7 @@ class OutboxAggregationTest(TestCase):
                     shard_identifier=shard_id,
                     category=OutboxCategory.WEBHOOK_PROXY,
                     object_identifier=shard_id * 10000 + i,
-                    payload='{"foo": "bar"}',
+                    payload={"foo": "bar"},
                 ).save()
 
     def test_calculate_sharding_depths(self):

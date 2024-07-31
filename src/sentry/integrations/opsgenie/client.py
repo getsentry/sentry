@@ -4,9 +4,9 @@ from typing import Literal
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.client.base import BaseApiResponseX
 
 OPSGENIE_API_VERSION = "v2"

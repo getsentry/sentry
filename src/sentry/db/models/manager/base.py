@@ -6,16 +6,18 @@ import weakref
 from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import Any, Generic
+from typing import Any
 
 from django.conf import settings
 from django.db import models, router
 from django.db.models import Model
-from django.db.models.manager import BaseManager as DjangoBaseManager
+from django.db.models.fields import Field
+from django.db.models.manager import Manager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
+from django.utils.encoding import smart_str
 
-from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.db.models.manager.types import M
 from sentry.db.models.query import create_or_update
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.silo.base import SiloLimit
@@ -29,7 +31,7 @@ _local_cache_generation = 0
 _local_cache_enabled = False
 
 
-def flush_manager_local_cache():
+def flush_manager_local_cache() -> None:
     global _local_cache
     _local_cache = threading.local()
 
@@ -43,21 +45,54 @@ class ModelManagerTriggerCondition(IntEnum):
 ModelManagerTriggerAction = Callable[[type[Model]], None]
 
 
-class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore[misc]
+def __prep_value(model: Any, key: str, value: Model | int | str) -> str:
+    val = value
+    if isinstance(value, Model):
+        val = value.pk
+    return str(val)
+
+
+def __prep_key(model: Any, key: str) -> str:
+    if key == "pk":
+        return str(model._meta.pk.name)
+    return key
+
+
+def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -> str:
+    kwargs_bits = []
+    for k, v in sorted(kwargs.items()):
+        k = __prep_key(model, k)
+        v = smart_str(__prep_value(model, k, v))
+        kwargs_bits.append(f"{k}={v}")
+    kwargs_bits_str = ":".join(kwargs_bits)
+
+    return f"{prefix}:{model.__name__}:{md5_text(kwargs_bits_str).hexdigest()}"
+
+
+_base_manager_base = DjangoBaseManager.from_queryset(BaseQuerySet, "_base_manager_base")
+
+
+class BaseManager(_base_manager_base[M]):
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
     _queryset_class = BaseQuerySet
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        cache_fields: Sequence[str] | None = None,
+        cache_ttl: int = 60 * 5,
+        **kwargs: Any,
+    ) -> None:
         #: Model fields for which we should build up a cache to be used with
         #: Model.objects.get_from_cache(fieldname=value)`.
         #:
         #: Note that each field by its own needs to be a potential primary key
         #: (uniquely identify a row), so for example organization slug is ok,
         #: project slug is not.
-        self.cache_fields = kwargs.pop("cache_fields", [])
-        self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
+        self.cache_fields = cache_fields if cache_fields is not None else ()
+        self.cache_ttl = cache_ttl
         self._cache_version: str | None = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
 
@@ -238,6 +273,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         if key == "pk":
             return instance.pk
         field = instance._meta.get_field(key)
+        assert isinstance(field, Field), field
         return getattr(instance, field.attname)
 
     def contribute_to_class(self, model: type[Model], name: str) -> None:
@@ -308,7 +344,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
         return retval
 
-    def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]):
+    def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]) -> tuple[str, str, int]:
         if not kwargs or len(kwargs) > 1:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
@@ -449,17 +485,17 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
         cache.delete(cache_key, version=self.cache_version)
 
-    def post_save(self, instance: M, **kwargs: Any) -> None:
+    def post_save(self, *, instance: M, created: bool, **kwargs: object) -> None:  # type: ignore[misc]  # python/mypy#6178
         """
         Triggered when a model bound to this manager is saved.
         """
 
-    def post_delete(self, instance: M, **kwargs: Any) -> None:
+    def post_delete(self, instance: M, **kwargs: Any) -> None:  # type: ignore[misc]  # python/mypy#6178
         """
         Triggered when a model bound to this manager is deleted.
         """
 
-    def get_queryset(self) -> BaseQuerySet:
+    def get_queryset(self) -> BaseQuerySet[M]:
         """
         Returns a new QuerySet object.  Subclasses can override this method to
         easily customize the behavior of the Manager.

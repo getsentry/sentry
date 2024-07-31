@@ -21,11 +21,12 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
+from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
@@ -37,14 +38,13 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -104,23 +104,27 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     @staticmethod
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
-        get_range = functools.partial(
-            tsdb.backend.get_range,
-            environment_ids=environment_ids,
-            tenant_ids={"organization_id": group.project.organization_id},
-        )
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.backend.rollup(
-            get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
+            tsdb.backend.get_range(
+                model=model,
+                keys=[group.id],
+                end=now,
+                start=now - timedelta(days=1),
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
+            ),
             3600,
         )[group.id]
         daily_stats = tsdb.backend.rollup(
-            get_range(
+            tsdb.backend.get_range(
                 model=model,
                 keys=[group.id],
                 end=now,
                 start=now - timedelta(days=30),
+                environment_ids=environment_ids,
+                tenant_ids={"organization_id": group.project.organization_id},
             ),
             3600 * 24,
         )[group.id]
@@ -230,9 +234,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 data.update({"integrationIssues": integration_issues})
 
             if "sentryAppIssues" in expand:
-                external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
+                platform_external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
                 sentry_app_issues = serialize(
-                    list(external_issues), request, serializer=PlatformExternalIssueSerializer()
+                    list(platform_external_issues),
+                    request,
+                    serializer=PlatformExternalIssueSerializer(),
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
 

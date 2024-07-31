@@ -75,7 +75,6 @@ export default function SuspectSpansTable(props: Props) {
           project
         ),
       }}
-      location={location}
     />
   );
 }

@@ -402,7 +402,6 @@ class Table extends Component<Props, State> {
                   ) as any,
                   prependColumnWidths: ['max-content'],
                 }}
-                location={location}
               />
               <Pagination pageLinks={pageLinks} />
             </Fragment>

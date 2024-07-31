@@ -1,8 +1,8 @@
 import logging
 
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.types.integrations import ExternalProviderEnum
 
 _default_logger = logging.getLogger(__name__)
 

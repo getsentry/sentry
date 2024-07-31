@@ -8,8 +8,8 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.user import UserEndpoint
 from sentry.models.avatars.user_avatar import UserAvatar
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 
 
 @control_silo_endpoint

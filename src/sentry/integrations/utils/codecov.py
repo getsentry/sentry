@@ -7,13 +7,13 @@ from typing import Any, NotRequired, TypedDict
 
 import requests
 from rest_framework import status
-from sentry_sdk import configure_scope
+from sentry_sdk import Scope
 
 from sentry import options
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.stacktrace_link import RepositoryLinkOutcome
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
 
 LineCoverage = Sequence[tuple[int, int]]
 CODECOV_REPORT_URL = (
@@ -102,37 +102,38 @@ def get_codecov_data(repo: str, service: str, path: str) -> tuple[LineCoverage |
     )
 
     line_coverage, codecov_url = None, None
-    with configure_scope() as scope:
-        response = requests.get(
-            url,
-            params={"walk_back": 10},
-            headers={"Authorization": f"Bearer {codecov_token}"},
-            timeout=CODECOV_TIMEOUT,
-        )
-        response.raise_for_status()
+    scope = Scope.get_isolation_scope()
 
-        tags = {
-            "codecov.request_url": url,
-            "codecov.request_path": path,
-            "codecov.http_code": response.status_code,
-        }
+    response = requests.get(
+        url,
+        params={"walk_back": 10},
+        headers={"Authorization": f"Bearer {codecov_token}"},
+        timeout=CODECOV_TIMEOUT,
+    )
+    response.raise_for_status()
 
-        response_json = response.json()
+    tags = {
+        "codecov.request_url": url,
+        "codecov.request_path": path,
+        "codecov.http_code": response.status_code,
+    }
 
-        tags["codecov.new_endpoint"] = True
-        line_coverage = response_json.get("line_coverage")
+    response_json = response.json()
 
-        coverage_found = line_coverage not in [None, [], [[]]]
-        codecov_url = response_json.get("commit_file_url", "")
-        tags.update(
-            {
-                "codecov.coverage_found": coverage_found,
-                "codecov.coverage_url": codecov_url,
-            },
-        )
+    tags["codecov.new_endpoint"] = True
+    line_coverage = response_json.get("line_coverage")
 
-        for key, value in tags.items():
-            scope.set_tag(key, value)
+    coverage_found = line_coverage not in [None, [], [[]]]
+    codecov_url = response_json.get("commit_file_url", "")
+    tags.update(
+        {
+            "codecov.coverage_found": coverage_found,
+            "codecov.coverage_url": codecov_url,
+        },
+    )
+
+    for key, value in tags.items():
+        scope.set_tag(key, value)
 
     return line_coverage, codecov_url
 
@@ -176,10 +177,10 @@ def fetch_codecov_data(config: CodecovConfig) -> CodecovData:
         if error.response.status_code != status.HTTP_404_NOT_FOUND:
             message = f"Codecov HTTP error: {error.response.status_code}. Continuing execution."
     except requests.Timeout:
-        with configure_scope() as scope:
-            scope.set_tag("codecov.timeout", True)
-            scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
-            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOUT)
+        scope = Scope.get_isolation_scope()
+        scope.set_tag("codecov.timeout", True)
+        scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
+        scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOUT)
         data = {"status": status.HTTP_408_REQUEST_TIMEOUT}
     except Exception as error:
         data = {"status": status.HTTP_500_INTERNAL_SERVER_ERROR}

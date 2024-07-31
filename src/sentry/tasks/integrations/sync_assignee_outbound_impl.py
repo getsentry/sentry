@@ -1,12 +1,12 @@
 from sentry import analytics, features
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.users.services.user.service import user_service
 
 
 @instrumented_task(

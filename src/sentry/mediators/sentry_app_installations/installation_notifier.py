@@ -8,7 +8,7 @@ from sentry.mediators.param import Param
 from sentry.models.apigrant import ApiGrant
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 

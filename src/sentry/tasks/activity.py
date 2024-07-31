@@ -2,7 +2,6 @@ import logging
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -17,10 +16,6 @@ def get_activity_notifiers(project):
     for plugin in plugins.for_project(project, version=1):
         if isinstance(plugin, NotificationPlugin):
             results.append(plugin)
-
-    for plugin in plugins.for_project(project, version=2):
-        for notifier in safe_execute(plugin.get_notifiers) or ():
-            results.append(notifier)
 
     results.append(mail_adapter)
 

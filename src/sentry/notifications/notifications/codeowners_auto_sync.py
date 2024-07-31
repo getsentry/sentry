@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.db.models import Model

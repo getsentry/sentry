@@ -1,22 +1,46 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
+import orjson
+import pytest
 import responses
 from responses.matchers import query_string_matcher
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
 from sentry import audit_log
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
+@patch(
+    "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+    return_value={
+        "body": orjson.dumps(
+            {
+                "ok": True,
+                "team": {
+                    "domain": "test-slack-workspace",
+                    "icon": {"image_132": "http://example.com/ws_icon.jpg"},
+                },
+            }
+        ).decode(),
+        "headers": {},
+        "status": 200,
+    },
+)
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
+
+    def setUp(self):
+        super().setUp()
 
     def assert_setup_flow(
         self,
@@ -59,48 +83,46 @@ class SlackIntegrationTest(IntegrationTestCase):
         }
         responses.add(responses.POST, "https://slack.com/api/oauth.v2.access", json=access_json)
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            match=[query_string_matcher(f"limit={SLACK_GET_USERS_PAGE_SIZE}")],
-            json={
-                "ok": True,
-                "members": [
-                    {
-                        "id": authorizing_user_id,
-                        "team_id": team_id,
-                        "deleted": False,
-                        "profile": {
-                            "email": self.user.email,
-                            "team": team_id,
-                        },
+        response_json = {
+            "ok": True,
+            "members": [
+                {
+                    "id": authorizing_user_id,
+                    "team_id": team_id,
+                    "deleted": False,
+                    "profile": {
+                        "email": self.user.email,
+                        "team": team_id,
                     },
-                ],
-                "response_metadata": {"next_cursor": ""},
-            },
-        )
-        responses.add(
-            responses.GET,
-            "https://slack.com/api/team.info",
-            json={
-                "ok": True,
-                "team": {
-                    "domain": "test-slack-workspace",
-                    "icon": {"image_132": "http://example.com/ws_icon.jpg"},
                 },
-            },
-        )
-        resp = self.client.get(
-            "{}?{}".format(
-                self.setup_path,
-                urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
+            ],
+            "response_metadata": {"next_cursor": ""},
+        }
+        with patch(
+            "slack_sdk.web.client.WebClient.users_list",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="GET",
+                api_url="https://slack.com/api/users.list",
+                req_args={},
+                data=response_json,
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            resp = self.client.get(
+                "{}?{}".format(
+                    self.setup_path,
+                    urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
+                )
             )
-        )
 
-        if customer_domain:
-            assert resp.status_code == 302
-            assert resp["Location"].startswith(f"http://{customer_domain}/extensions/slack/setup/")
-            resp = self.client.get(resp["Location"], **kwargs)
+            if customer_domain:
+                assert resp.status_code == 302
+                assert resp["Location"].startswith(
+                    f"http://{customer_domain}/extensions/slack/setup/"
+                )
+                resp = self.client.get(resp["Location"], **kwargs)
 
         mock_request = responses.calls[0].request
         req_params = parse_qs(mock_request.body)
@@ -114,7 +136,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_bot_flow(self):
+    def test_bot_flow(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow()
 
@@ -142,7 +164,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
-    def test_bot_flow_customer_domains(self):
+    def test_bot_flow_customer_domains(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow(customer_domain=f"{self.organization.slug}.testserver")
 
@@ -170,7 +192,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
-    def test_multiple_integrations(self):
+    def test_multiple_integrations(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow()
         with self.tasks():
@@ -200,7 +222,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identities[0].idp != identities[1].idp
 
     @responses.activate
-    def test_reassign_user(self):
+    def test_reassign_user(self, mock_api_call):
         """Test that when you install and then later re-install and the user who installs it
         has a different external ID, their Identity is updated to reflect that
         """
@@ -214,6 +236,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identity.external_id == "UXXXXXXX2"
 
 
+@patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
 @control_silo_test
 class SlackIntegrationPostInstallTest(APITestCase):
     def setUp(self):
@@ -258,60 +281,68 @@ class SlackIntegrationPostInstallTest(APITestCase):
             scopes=[],
         )
 
+        self.response_json = {
+            "ok": True,
+            "members": [
+                {
+                    "id": "UXXXXXXX1",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": self.user.email,
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX2",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": self.user2.email,
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX3",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": "wrongemail@example.com",
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX4",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": "ialreadyexist@example.com",
+                        "team": "TXXXXXXX1",
+                    },
+                },
+            ],
+            "response_metadata": {"next_cursor": ""},
+        }
+
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/users.list",
             match=[query_string_matcher(f"limit={SLACK_GET_USERS_PAGE_SIZE}")],
-            json={
-                "ok": True,
-                "members": [
-                    {
-                        "id": "UXXXXXXX1",
-                        "team_id": "TXXXXXXX1",
-                        "deleted": False,
-                        "profile": {
-                            "email": self.user.email,
-                            "team": "TXXXXXXX1",
-                        },
-                    },
-                    {
-                        "id": "UXXXXXXX2",
-                        "team_id": "TXXXXXXX1",
-                        "deleted": False,
-                        "profile": {
-                            "email": self.user2.email,
-                            "team": "TXXXXXXX1",
-                        },
-                    },
-                    {
-                        "id": "UXXXXXXX3",
-                        "team_id": "TXXXXXXX1",
-                        "deleted": False,
-                        "profile": {
-                            "email": "wrongemail@example.com",
-                            "team": "TXXXXXXX1",
-                        },
-                    },
-                    {
-                        "id": "UXXXXXXX4",
-                        "team_id": "TXXXXXXX1",
-                        "deleted": False,
-                        "profile": {
-                            "email": "ialreadyexist@example.com",
-                            "team": "TXXXXXXX1",
-                        },
-                    },
-                ],
-                "response_metadata": {"next_cursor": ""},
-            },
+            json=self.response_json,
         )
 
     @responses.activate
-    def test_link_multiple_users(self):
+    def test_link_multiple_users(self, mock_api_call):
         """
         Test that with an organization with multiple users, we create Identity records for them
         if their Sentry email matches their Slack email
         """
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
         with self.tasks():
             SlackIntegrationProvider().post_install(self.integration, self.organization)
 
@@ -326,10 +357,97 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user2_identity.user.email == "foo@example.com"
 
     @responses.activate
-    def test_email_no_match(self):
+    def test_link_multiple_users_pagination(self, mock_api_call):
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(
+                    self.response_json,
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps(
+                    {
+                        "ok": True,
+                        "members": [
+                            {
+                                "id": "UXXXXXXX5",
+                                "team_id": "TXXXXXXX1",
+                                "deleted": False,
+                                "profile": {
+                                    "email": "hello@example.com",
+                                    "team": "TXXXXXXX1",
+                                },
+                            }
+                        ],
+                    },
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        user5 = self.create_user("hello@example.com")
+        self.create_member(
+            user=user5,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
+
+        user5_identity = Identity.objects.get(user=user5)
+        assert user5_identity
+        assert user5_identity.external_id == "UXXXXXXX5"
+        assert user5_identity.user.email == "hello@example.com"
+
+    @responses.activate
+    def test_link_multiple_users_pagination_error(self, mock_api_call):
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(
+                    self.response_json,
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps({"ok": False}).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        user5 = self.create_user("hello@example.com")
+        self.create_member(
+            user=user5,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+
+        with self.tasks(), pytest.raises(SlackApiError):
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
+
+        user5_identity = Identity.objects.filter(user=user5).first()
+        assert user5_identity is None
+
+    @responses.activate
+    def test_email_no_match(self, mock_api_call):
         """
         Test that a user whose email does not match does not have an Identity created
         """
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
         with self.tasks():
             SlackIntegrationProvider().post_install(self.integration, self.organization)
 
@@ -337,11 +455,17 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert identities.count() == 3
 
     @responses.activate
-    def test_update_identity(self):
+    def test_update_identity(self, mock_api_call):
         """
         Test that when an additional user who already has an Identity's Slack external ID
         changes, that we update the Identity's external ID to match
         """
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
         with self.tasks():
             SlackIntegrationProvider().post_install(self.integration, self.organization)
 

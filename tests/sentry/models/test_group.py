@@ -254,7 +254,7 @@ class GroupTest(TestCase, SnubaTestCase):
         url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_get_absolute_url_customer_domains(self):
         project = self.create_project()
         event = self.store_event(
@@ -383,9 +383,10 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
             project_id=self.project.id,
         )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         group_event = group.get_latest_event()
+        assert group_event is not None
 
         assert group_event.event_id == "b" * 32
         assert group_event.occurrence is None
@@ -403,9 +404,10 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
             data={"event_id": "b" * 32, "fingerprint": ["group-1"], "timestamp": self.min_ago},
             project_id=self.project.id,
         )
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         group_event = group.get_latest_event()
+        assert group_event is not None
 
         assert group_event.event_id == "b" * 32
         assert group_event.occurrence is None
@@ -421,10 +423,11 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
             },
         )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
         group.update(type=ProfileFileIOGroupType.type_id)
 
         group_event = group.get_latest_event()
+        assert group_event is not None
         assert group_event.event_id == event_id
         self.assert_occurrences_identical(group_event.occurrence, occurrence)
 
@@ -451,7 +454,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
                 replay1_id,
             )
         )
-        group = Group.objects.first()
+        group = Group.objects.get()
         assert group.has_replays() is True
 
         # test caching

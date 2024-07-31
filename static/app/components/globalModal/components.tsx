@@ -99,7 +99,7 @@ const makeClosableHeader = (closeModal: () => void) => {
  */
 const makeCloseButton = (closeModal: () => void) =>
   function (props: Omit<ButtonProps, 'aria-label'>) {
-    return <CloseButton {...props} onClick={closeModal} />;
+    return <CloseButton onClick={closeModal} {...props} />;
   };
 
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter};

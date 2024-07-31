@@ -25,14 +25,14 @@ class TestUpdater(TestCase):
         self.updater.call()
         with assume_test_silo_mode_of(User):
             self.user = User.objects.get(id=self.user.id)
-        assert self.rule.owner_user_id == self.user.id
-        assert self.rule.owner_team_id is None
+
+        assert (self.rule.owner_user_id, self.rule.owner_team_id) == (self.user.id, None)
 
         team = self.create_team()
         self.updater.owner = Actor.from_id(team_id=team.id)
         self.updater.call()
-        assert self.rule.owner_team_id == team.id
-        assert self.rule.owner_user_id is None
+
+        assert (self.rule.owner_user_id, self.rule.owner_team_id) == (None, team.id)
 
         self.updater.owner = None
         self.updater.call()

@@ -25,7 +25,7 @@ import type {BreadcrumbProps} from './breadcrumb';
 import {Breadcrumb} from './breadcrumb';
 
 const PANEL_MIN_HEIGHT = 200;
-const PANEL_INITIAL_HEIGHT = 400;
+export const PANEL_INITIAL_HEIGHT = 400;
 
 const noop = () => void 0;
 
@@ -149,7 +149,7 @@ function Breadcrumbs({
       {
         query: {
           query: `id:[${sentryTransactionIds}]`,
-          field: ['title'],
+          field: ['title', 'trace', 'timestamp'],
           project: [maybeProject?.id],
         },
       },

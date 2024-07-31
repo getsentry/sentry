@@ -24,7 +24,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
     from sentry.db.models.base import BaseModel, ModelSiloLimit
@@ -337,7 +337,9 @@ expected to pass with the current silo mode set to REGION.
 
 
 @contextmanager
-def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) -> Any:
+def assume_test_silo_mode(
+    desired_silo: SiloMode, can_be_monolith: bool = True, region_name: str | None = None
+) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
     In monolith mode, this context manager has no effect.
@@ -356,8 +358,12 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     with override_settings(SILO_MODE=desired_silo):
         if desired_silo == SiloMode.REGION:
             region_dir = get_test_env_directory()
-            with region_dir.swap_to_default_region():
-                yield
+            if region_name is None:
+                with region_dir.swap_to_default_region():
+                    yield
+            else:
+                with region_dir.swap_to_region_by_name(region_name):
+                    yield
         else:
             with override_settings(SENTRY_REGION=None):
                 yield
@@ -601,7 +607,7 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 
 def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
     # HybridCloudForeignKey can point to region models if they have snowflake ids
-    if issubclass(related_model, SnowflakeIdMixin):
+    if uses_snowflake_id(related_model):
         return
 
     # but they cannot point to region models otherwise.

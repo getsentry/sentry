@@ -21,7 +21,6 @@ coverage:
     - src/*/migrations/
     - src/bitfield/
     - src/sentry/debug/
-    - src/sentry/lint/
     - src/sentry/runner/
     - src/social_auth/
     - static/app/routes.tsx
@@ -88,6 +87,7 @@ comment:
   require_changes: true
   require_base: true # must have a base report to post
   require_head: true # must have a head report to post
+  require_bundle_changes: True # only post a comment when there are bundle size changes
 
 cli:
   # This would be used when uploading the ats results

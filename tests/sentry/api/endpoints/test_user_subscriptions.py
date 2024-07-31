@@ -3,6 +3,7 @@ from django.conf import settings
 
 from sentry import newsletter
 from sentry.models.useremail import UserEmail
+from sentry.newsletter.dummy import DummyNewsletter
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -16,15 +17,14 @@ class UserSubscriptionsNewsletterTest(APITestCase):
     endpoint = "sentry-api-0-user-subscriptions"
     method = "put"
 
+    @pytest.fixture(autouse=True)
+    def enable_newsletter(self):
+        with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
+            yield
+
     def setUp(self):
         self.user = self.create_user(email="foo@example.com")
         self.login_as(self.user)
-
-        def disable_newsletter():
-            newsletter.backend.disable()
-
-        self.addCleanup(disable_newsletter)
-        newsletter.backend.enable()
 
     def test_get_subscriptions(self):
         self.get_success_response(self.user.id, method="get")

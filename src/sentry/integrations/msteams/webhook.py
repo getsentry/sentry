@@ -11,21 +11,21 @@ from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
-from sentry import analytics, audit_log, eventstore, features, options
+from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.identity.services.identity import identity_service
+from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
+from sentry.users.services.user.service import user_service
 from sentry.utils import jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
@@ -48,6 +48,7 @@ from .card_builder.installation import (
 )
 from .card_builder.issues import MSTeamsIssueMessageBuilder
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
+from .constants import SALT
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
 from .utils import ACTION_TYPE, get_preinstall_client
@@ -326,7 +327,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             )
 
         # sign the params so this can't be forged
-        signed_params = sign(**installation_params)
+        signed_params = sign(salt=SALT, **installation_params)
 
         # send welcome message to the team
         preinstall_client = get_preinstall_client(installation_params["service_url"])
@@ -433,7 +434,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             },
         )
         # sign the params so this can't be forged
-        signed_params = sign(**params)
+        signed_params = sign(salt=SALT, **params)
 
         # send welcome message to the team
         client = get_preinstall_client(data["serviceUrl"])
@@ -488,7 +489,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         integration_service.delete_integration(integration_id=integration.id)
         return self.respond(status=204)
 
-    def make_action_data(self, data, user_id, has_escalating_issues=False):
+    def make_action_data(self, data, user_id):
         action_data = {}
         action_type = data["payload"]["actionType"]
         if action_type == ACTION_TYPE.UNRESOLVE:
@@ -509,8 +510,6 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             ignore_count = data.get("ignoreInput")
             if ignore_count:
                 action_data = {"status": "ignored"}
-                if has_escalating_issues:
-                    action_data.update({"substatus": "archived_until_condition_met"})
                 if int(ignore_count) > 0:
                     action_data.update({"statusDetails": {"ignoreCount": int(ignore_count)}})
         elif action_type == ACTION_TYPE.ASSIGN:
@@ -527,10 +526,6 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
 
-        has_escalating_issues = features.has(
-            "organizations:escalating-issues-msteams", group.project.organization
-        )
-
         # undoing the enum structure of ACTION_TYPE to
         # get a more sensible analytics_event
         action_types = {
@@ -540,7 +535,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             ACTION_TYPE.UNRESOLVE: "unresolve",
             ACTION_TYPE.UNASSIGN: "unassign",
         }
-        action_data = self.make_action_data(data, identity.user_id, has_escalating_issues)
+        action_data = self.make_action_data(data, identity.user_id)
         status = action_types[data["payload"]["actionType"]]
         analytics_event = f"integrations.msteams.{status}"
         analytics.record(

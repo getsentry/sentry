@@ -6,13 +6,15 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import responses
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -199,7 +201,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             },
         )
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_repositories("ex")
         assert result == [
             {"identifier": "test/example", "name": "example", "default_branch": "main"},
@@ -231,7 +235,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.example.org/Test-Organization/foo/blob/1234567/README.md"
@@ -261,7 +267,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
             status=404,
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -294,7 +302,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
         ).delete()
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -328,7 +338,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.example.org/Test-Organization/foo/blob/master/README.md"
@@ -349,7 +361,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 config={"name": "Test-Organization/foo"},
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
 
         file = SourceLineInfo(
             path="src/github.py",

@@ -2,7 +2,7 @@ from copy import deepcopy
 from datetime import UTC, datetime
 
 from django.conf import settings
-from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
@@ -35,9 +35,10 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializerResponse,
     CombinedRuleSerializer,
 )
+from sentry.incidents.endpoints.utils import parse_team_params
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
@@ -45,13 +46,13 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
+from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
 from sentry.utils.cursors import Cursor, StringCursor
-
-from .utils import parse_team_params
 
 
 class AlertRuleIndexMixin(Endpoint):
@@ -118,8 +119,15 @@ class AlertRuleIndexMixin(Endpoint):
                 }
                 find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)
+                # TODO handle slack channel lookup AND anomaly detection
             else:
                 alert_rule = serializer.save()
+                if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+                    resp = send_historical_data_to_seer(alert_rule=alert_rule, user=request.user)
+                    if resp.status != 200:
+                        alert_rule.delete()
+                        return Response({"detail": resp.reason}, status=status.HTTP_400_BAD_REQUEST)
+
                 referrer = request.query_params.get("referrer")
                 session_id = request.query_params.get("sessionId")
                 duplicate_rule = request.query_params.get("duplicateRule")
@@ -152,7 +160,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         """
-        Fetches (metric) alert rules and legacy (issue alert) rules for an organization
+        Fetches metric, issue and uptime alert rules for an organization
         """
         project_ids = self.get_requested_project_ids_unchecked(request) or None
         if project_ids == {-1}:  # All projects for org:
@@ -196,6 +204,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             project__in=projects,
         )
 
+        uptime_rules = ProjectUptimeSubscription.objects.filter(project__in=projects)
+
+        if not features.has("organizations:uptime-rule-api", organization):
+            uptime_rules = ProjectUptimeSubscription.objects.none()
+
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
@@ -208,8 +221,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         name = request.GET.get("name", None)
         if name:
-            alert_rules = alert_rules.filter(Q(name__icontains=name))
-            issue_rules = issue_rules.filter(Q(label__icontains=name))
+            alert_rules = alert_rules.filter(name__icontains=name)
+            issue_rules = issue_rules.filter(label__icontains=name)
+            uptime_rules = uptime_rules.filter(name__icontains=name)
 
         if teams_query is not None:
             team_ids = teams_query.values_list("id", flat=True)
@@ -220,6 +234,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 team_rule_condition = team_rule_condition | Q(owner_team_id__isnull=True)
             alert_rules = alert_rules.filter(team_alert_condition)
             issue_rules = issue_rules.filter(team_rule_condition)
+            uptime_rules = uptime_rules.filter(team_rule_condition)
 
         expand = request.GET.getlist("expand", [])
         if "latestIncident" in expand:
@@ -255,6 +270,14 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             issue_rules = issue_rules.annotate(
                 incident_status=Value(-2, output_field=IntegerField())
             )
+            uptime_rules = uptime_rules.annotate(
+                incident_status=Case(
+                    # If an uptime monitor is failing we want to treat it the same as if an alert is failing, so sort
+                    # by the critical status
+                    When(uptime_status=UptimeStatus.FAILED, then=IncidentStatus.CRITICAL.value),
+                    default=-2,
+                )
+            )
 
         if "date_triggered" in sort_key:
             far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
@@ -269,22 +292,20 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ),
             )
             issue_rules = issue_rules.annotate(date_triggered=far_past_date)
-        alert_rules_count = alert_rules.count()
-        issue_rules_count = issue_rules.count()
+            uptime_rules = uptime_rules.annotate(date_triggered=far_past_date)
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
         rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
+        uptime_intermediary = CombinedQuerysetIntermediary(uptime_rules, rule_sort_key)
         response = self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer(expand=expand)),
             default_per_page=25,
-            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            intermediaries=[alert_rule_intermediary, rule_intermediary, uptime_intermediary],
             desc=not is_asc,
             cursor_cls=StringCursor if case_insensitive else Cursor,
             case_insensitive=case_insensitive,
         )
-        response["X-Sentry-Issue-Rule-Hits"] = issue_rules_count
-        response[ALERT_RULES_COUNT_HEADER] = alert_rules_count
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
 

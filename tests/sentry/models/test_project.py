@@ -1,10 +1,13 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -28,7 +31,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -265,6 +267,7 @@ class ProjectTest(APITestCase, TestCase):
         )
 
         assert EnvironmentProject.objects.count() == 1
+        assert snuba_query.environment is not None
         assert snuba_query.environment.id == environment.id
 
         project.transfer_to(organization=to_org)
@@ -362,7 +365,7 @@ class ProjectTest(APITestCase, TestCase):
             == f"http://testserver/organizations/{self.organization.slug}/issues/?q=all&project={self.project.id}"
         )
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_get_absolute_url_customer_domains(self):
         url = self.project.get_absolute_url()
         assert (
@@ -405,6 +408,68 @@ class ProjectTest(APITestCase, TestCase):
         alert_rule.refresh_from_db()
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
+
+
+class ProjectOptionsTests(TestCase):
+    """
+    These tests validate that the project model will correctly merge the
+    options from the project and the project template.
+
+    When returning getting options for a project the following hierarchy is used:
+    - Project
+    - Project Template
+    - Default
+
+    If a project has a template option set, it will override the default.
+    If a project has an option set, it will override the template option.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.option_key = "sentry:test_data"
+        self.project = self.create_project()
+
+        self.project_template = self.create_project_template(organization=self.project.organization)
+        self.project.template = self.project_template
+
+    def tearDown(self):
+        super().tearDown()
+
+        self.project_template.delete()
+        self.project.delete()
+
+    def test_get_option(self):
+        assert self.project.get_option(self.option_key) is None
+        ProjectOption.objects.set_value(self.project, self.option_key, True)
+        assert self.project.get_option(self.option_key) is True
+
+    def test_get_template_option(self):
+        assert self.project.get_option(self.option_key) is None
+        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
+        assert self.project.get_option(self.option_key) == "test"
+
+    def test_get_option__override_template(self):
+        assert self.project.get_option(self.option_key) is None
+        ProjectOption.objects.set_value(self.project, self.option_key, True)
+        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
+
+        assert self.project.get_option(self.option_key) is True
+
+    def test_get_option__without_template(self):
+        self.project.template = None
+        assert self.project.get_option(self.option_key) is None
+        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
+
+        assert self.project.get_option(self.option_key) is None
+
+    def test_get_option__without_template_and_value(self):
+        self.project.template = None
+        assert self.project.get_option(self.option_key) is None
+
+        ProjectOption.objects.set_value(self.project, self.option_key, True)
+        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
+
+        assert self.project.get_option(self.option_key) is True
 
 
 class CopyProjectSettingsTest(TestCase):

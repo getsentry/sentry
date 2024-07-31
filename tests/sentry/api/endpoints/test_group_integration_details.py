@@ -1,16 +1,16 @@
 from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.http import absolute_uri
 
 pytestmark = [requires_snuba]
@@ -212,6 +212,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "provider": "Example",
                 "location": "https://example/issues/APP-123",
                 "label": "display name: APP-123",
+                "new": False,
             }
 
     def test_put_feature_disabled(self):
@@ -281,6 +282,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "provider": "Example",
                 "location": "https://example/issues/APP-123",
                 "label": "display name: APP-123",
+                "new": True,
             }
 
     def test_post_feature_disabled(self):

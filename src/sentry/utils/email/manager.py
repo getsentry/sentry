@@ -4,9 +4,9 @@ import logging
 from collections.abc import Iterable, Mapping
 
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.user.model import UserIdEmailArgs
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
+from sentry.users.services.user.model import UserIdEmailArgs
+from sentry.users.services.user.service import user_service
+from sentry.users.services.user_option import RpcUserOption, user_option_service
 
 from .faker import is_fake_email
 
@@ -49,7 +49,7 @@ def get_email_addresses(
         user_option_service.delete_options(option_ids=[o.id for o in to_delete])
 
     if pending:
-        users = user_service.get_many(filter={"user_ids": list(pending)})
+        users = user_service.get_many_by_id(ids=list(pending))
         for user_id, email in [(user.id, user.email) for user in users]:
             if email and not is_fake_email(email):
                 results[user_id] = email

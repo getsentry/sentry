@@ -1,13 +1,16 @@
-import type {MRI, Organization, PageFilters} from 'sentry/types';
-import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
+import type {PageFilters} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
+import {getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {getMetaDateTimeParams} from './index';
 
-const SPAN_DURATION_MRI = 'd:spans/duration@millisecond';
+export const SPAN_DURATION_MRI = 'd:spans/duration@millisecond';
 const ALLOWED_SPAN_DURATION_TAGS = [
   'span.category',
   'span.description',
@@ -52,12 +55,15 @@ export function useMetricsTags(
   blockedTags?: string[]
 ) {
   const organization = useOrganization();
-  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
+  const {getTags} = useVirtualMetricsContext();
+  const parsedMRI = parseMRI(mri);
+  const useCase = parsedMRI?.useCase ?? 'custom';
+  const isVirtualMetric = parsedMRI?.type === 'v';
 
   const tagsQuery = useApiQuery<MetricTag[]>(
     getMetricsTagsQueryKey(organization, mri, pageFilters),
     {
-      enabled: !!mri,
+      enabled: !!mri && !isVirtualMetric,
       staleTime: Infinity,
     }
   );
@@ -69,6 +75,13 @@ export function useMetricsTags(
         ?.find(meta => meta.mri === mri)
         ?.blockingStatus?.flatMap(s => s.blockedTags)) ??
     [];
+
+  if (isVirtualMetric && mri) {
+    return {
+      isLoading: false,
+      data: getTags(mri),
+    };
+  }
 
   if (!filterBlockedTags) {
     return tagsQuery;

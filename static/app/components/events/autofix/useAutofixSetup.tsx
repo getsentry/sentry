@@ -47,11 +47,11 @@ export function useAutofixSetup(
 
   return {
     ...queryData,
-    hasSuccessfulSetup: Boolean(
+    canStartAutofix: Boolean(
       queryData.data?.integration.ok &&
-        queryData.data?.githubWriteIntegration.ok &&
         queryData.data?.genAIConsent.ok &&
         queryData.data?.codebaseIndexing.ok
     ),
+    canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration.ok),
   };
 }

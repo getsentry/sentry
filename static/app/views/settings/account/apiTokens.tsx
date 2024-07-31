@@ -3,131 +3,143 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {InternalAppApiToken, Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import type {InternalAppApiToken} from 'sentry/types/user';
+import {
+  getApiQueryData,
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
-  organization: Organization;
-} & DeprecatedAsyncView['props'];
+const PAGE_TITLE = t('User Auth Tokens');
+const API_TOKEN_QUERY_KEY = ['/api-tokens/'] as const;
 
-type State = {
-  tokenList: InternalAppApiToken[] | null;
-} & DeprecatedAsyncView['state'];
+export function ApiTokens() {
+  const api = useApi();
+  const queryClient = useQueryClient();
 
-export class ApiTokens extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    return t('User Auth Tokens');
-  }
+  const {
+    data: tokenList,
+    isLoading,
+    isError,
+    refetch,
+  } = useApiQuery<InternalAppApiToken[]>(API_TOKEN_QUERY_KEY, {staleTime: 0});
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      tokenList: [],
-    };
-  }
+  const {mutate: deleteToken} = useMutation(
+    (token: InternalAppApiToken) => {
+      return api.requestPromise('/api-tokens/', {
+        method: 'DELETE',
+        data: {tokenId: token.id},
+      });
+    },
+    {
+      onMutate: token => {
+        addLoadingMessage();
+        queryClient.cancelQueries(API_TOKEN_QUERY_KEY);
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    return [['tokenList', '/api-tokens/']];
-  }
+        const previous = getApiQueryData<InternalAppApiToken[]>(
+          queryClient,
+          API_TOKEN_QUERY_KEY
+        );
 
-  handleRemoveToken = (token: InternalAppApiToken) => {
-    addLoadingMessage();
-    const oldTokenList = this.state.tokenList;
+        setApiQueryData<InternalAppApiToken[]>(
+          queryClient,
+          API_TOKEN_QUERY_KEY,
+          oldTokenList => {
+            return oldTokenList?.filter(tk => tk.id !== token.id);
+          }
+        );
 
-    this.setState(
-      state => ({
-        tokenList: state.tokenList?.filter(tk => tk.id !== token.id) ?? [],
-      }),
-      async () => {
-        try {
-          await this.api.requestPromise('/api-tokens/', {
-            method: 'DELETE',
-            data: {tokenId: token.id},
-          });
+        return {previous};
+      },
+      onSuccess: _data => {
+        addSuccessMessage(t('Removed token'));
+      },
+      onError: (_error, _variables, context) => {
+        addErrorMessage(t('Unable to remove token. Please try again.'));
 
-          addSuccessMessage(t('Removed token'));
-        } catch (_err) {
-          addErrorMessage(t('Unable to remove token. Please try again.'));
-          this.setState({
-            tokenList: oldTokenList,
-          });
+        if (context?.previous) {
+          setApiQueryData<InternalAppApiToken[]>(
+            queryClient,
+            API_TOKEN_QUERY_KEY,
+            context.previous
+          );
         }
-      }
-    );
-  };
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries(API_TOKEN_QUERY_KEY);
+      },
+    }
+  );
 
-  renderBody() {
-    const {organization} = this.props;
-    const {tokenList} = this.state;
-
-    const isEmpty = !Array.isArray(tokenList) || tokenList.length === 0;
-
-    const action = (
-      <Button
-        priority="primary"
-        size="sm"
-        to="/settings/account/api/auth-tokens/new-token/"
-        data-test-id="create-token"
-      >
-        {t('Create New Token')}
-      </Button>
-    );
-
-    return (
-      <div>
-        <SettingsPageHeader title={this.getTitle()} action={action} />
-        <AlertLink to={`/settings/${organization?.slug ?? ''}/auth-tokens/`}>
-          {t(
-            "User Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using Organization Auth Tokens to create/manage tokens tied to the organization instead."
-          )}
-        </AlertLink>
-        <TextBlock>
-          {t(
-            "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-          )}
-        </TextBlock>
-        <TextBlock>
-          {tct(
-            'For more information on how to use the web API, see our [link:documentation].',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/api/" />,
-            }
-          )}
-        </TextBlock>
-        <Panel>
-          <PanelHeader>{t('Auth Token')}</PanelHeader>
-
-          <PanelBody>
-            {isEmpty && (
-              <EmptyMessage>
-                {t("You haven't created any authentication tokens yet.")}
-              </EmptyMessage>
-            )}
-
-            {tokenList?.map(token => (
-              <ApiTokenRow
-                key={token.id}
-                token={token}
-                onRemove={this.handleRemoveToken}
-              />
-            ))}
-          </PanelBody>
-        </Panel>
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const isEmpty = !Array.isArray(tokenList) || tokenList.length === 0;
+
+  const action = (
+    <Button
+      priority="primary"
+      size="sm"
+      to="/settings/account/api/auth-tokens/new-token/"
+    >
+      {t('Create New Token')}
+    </Button>
+  );
+
+  return (
+    <SentryDocumentTitle title={PAGE_TITLE}>
+      <SettingsPageHeader title={PAGE_TITLE} action={action} />
+      <TextBlock>
+        {t(
+          "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+        )}
+      </TextBlock>
+      <TextBlock>
+        {tct(
+          'For more information on how to use the web API, see our [link:documentation].',
+          {
+            link: <ExternalLink href="https://docs.sentry.io/api/" />,
+          }
+        )}
+      </TextBlock>
+      <Panel>
+        <PanelHeader>{t('Auth Token')}</PanelHeader>
+
+        <PanelBody>
+          {isEmpty && (
+            <EmptyMessage>
+              {t("You haven't created any authentication tokens yet.")}
+            </EmptyMessage>
+          )}
+
+          {tokenList?.map(token => (
+            <ApiTokenRow key={token.id} token={token} onRemove={deleteToken} canEdit />
+          ))}
+        </PanelBody>
+      </Panel>
+    </SentryDocumentTitle>
+  );
 }
 
-export default withOrganization(ApiTokens);
+export default ApiTokens;

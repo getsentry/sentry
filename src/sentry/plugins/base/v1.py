@@ -18,7 +18,7 @@ from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.projects.services.project import RpcProject
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
@@ -117,10 +117,10 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return True
 
-    def reset_options(self, project=None, user=None):
+    def reset_options(self, project=None):
         from sentry.plugins.helpers import reset_options
 
-        return reset_options(self.get_conf_key(), project, user)
+        return reset_options(self.get_conf_key(), project)
 
     def get_option(self, key, project=None, user=None):
         """
@@ -507,13 +507,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     def view_configure(self, request, project, **kwargs):
         if request.method == "GET":
-            return Response(
-                self.get_configure_plugin_fields(
-                    request=request,  # DEPRECATED: this param should not be used
-                    project=project,
-                    **kwargs,
-                )
-            )
+            return Response(self.get_configure_plugin_fields(project=project, **kwargs))
         self.configure(project, request.data)
         return Response({"message": "Successfully updated configuration."})
 

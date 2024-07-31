@@ -16,6 +16,7 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.avatars.user_avatar import UserAvatar
@@ -27,9 +28,8 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRoleUser
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -80,6 +80,10 @@ class _UserOptions(TypedDict):
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
+    # NOTE: There is a bug here where trying to move these fields to
+    # UserSerializerResponse and using NotRequired. "identities" is marked as
+    # required for places where UserSerializerResponse is used as a field (e.g
+    # OrganizationMemberResponse).
     identities: list[_Identity]
     avatar: SerializedAvatarFields
     authenticators: list[Any]  # TODO: find out what type this is

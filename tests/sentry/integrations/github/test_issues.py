@@ -12,9 +12,9 @@ from pytest import fixture
 from sentry.integrations.github import client
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

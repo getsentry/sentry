@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -45,7 +45,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.models.team import Team
     from sentry.ownership.grammar import Rule
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -335,7 +335,7 @@ def handle_group_owners(
     from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     logging_params = {
@@ -512,7 +512,8 @@ def post_process_group(
     cache_key,
     group_id=None,
     occurrence_id: str | None = None,
-    project_id: int | None = None,
+    *,
+    project_id: int,
     **kwargs,
 ):
     """
@@ -748,7 +749,7 @@ def run_post_process_job(job: PostProcessJob) -> None:
             )
 
 
-def process_event(data: dict, group_id: int | None) -> Event:
+def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
     from sentry.eventstore.models import Event
     from sentry.models.event import EventDict
 
@@ -1107,7 +1108,7 @@ def process_commits(job: PostProcessJob) -> None:
                 )
                 has_integrations = cache.get(integration_cache_key)
                 if has_integrations is None:
-                    from sentry.services.hybrid_cloud.integration import integration_service
+                    from sentry.integrations.services.integration import integration_service
 
                     org_integrations = integration_service.get_organization_integrations(
                         organization_id=event.project.organization_id,
@@ -1419,6 +1420,7 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
                 project,
                 FeedbackCreationSource.USER_REPORT_ENVELOPE,
             )
+            metrics.incr("event_manager.save._update_user_reports_with_event_link.shim_to_feedback")
 
         user_reports_updated = user_reports_without_group.update(
             group_id=group.id, environment_id=event.get_environment().id
@@ -1511,6 +1513,13 @@ def detect_new_escalation(job: PostProcessJob):
         return
 
 
+def detect_base_urls_for_uptime(job: PostProcessJob):
+    from sentry.uptime.detectors.detector import detect_base_url_for_project
+
+    url = get_path(job["event"].data, "request", "url")
+    detect_base_url_for_project(job["event"].project, url)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1532,6 +1541,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         sdk_crash_monitoring,
         process_replay_link,
         link_event_to_user_report,
+        detect_base_urls_for_uptime,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

@@ -6,6 +6,7 @@ import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -169,7 +170,7 @@ export function PerformanceLanding(props: Props) {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               {!showOnboarding && (
-                <ButtonBar gap={3}>
+                <ButtonBar gap={1}>
                   <Button
                     size="sm"
                     priority="primary"
@@ -178,6 +179,7 @@ export function PerformanceLanding(props: Props) {
                   >
                     {t('View Trends')}
                   </Button>
+                  <FeedbackWidgetButton />
                 </ButtonBar>
               )}
             </Layout.HeaderActions>

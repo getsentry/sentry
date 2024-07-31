@@ -6,9 +6,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
 
 
 @region_silo_endpoint

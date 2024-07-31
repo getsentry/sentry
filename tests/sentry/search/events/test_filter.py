@@ -11,7 +11,7 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.releases.util import SemverFilter
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import (
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
@@ -101,13 +101,15 @@ class DiscoverFunctionTest(unittest.TestCase):
 
     def test_no_optional_not_enough_arguments(self):
         with pytest.raises(
-            InvalidSearchQuery, match=r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery,
+            match=r"fn_wo_optionals\(\): expected 2 argument\(s\) but got 1 argument\(s\)",
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
         with pytest.raises(
-            InvalidSearchQuery, match=r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery,
+            match=r"fn_wo_optionals\(\): expected 2 argument\(s\) but got 3 argument\(s\)",
         ):
             self.fn_wo_optionals.validate_argument_count(
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
@@ -120,13 +122,15 @@ class DiscoverFunctionTest(unittest.TestCase):
 
     def test_optional_not_enough_arguments(self):
         with pytest.raises(
-            InvalidSearchQuery, match=r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+            InvalidSearchQuery,
+            match=r"fn_w_optionals\(\): expected at least 1 argument\(s\) but got 0 argument\(s\)",
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
         with pytest.raises(
-            InvalidSearchQuery, match=r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+            InvalidSearchQuery,
+            match=r"fn_w_optionals\(\): expected at most 2 argument\(s\) but got 3 argument\(s\)",
         ):
             self.fn_w_optionals.validate_argument_count(
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]

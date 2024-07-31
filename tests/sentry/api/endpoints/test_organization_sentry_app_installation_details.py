@@ -7,10 +7,10 @@ from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.services.user.service import user_service
 
 
 class SentryAppInstallationDetailsTest(APITestCase):

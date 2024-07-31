@@ -15,7 +15,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.permissions import RelayPermission
 from sentry.models.project import Project
-from sentry.remote_config.storage import BlobDriver, make_storage
+from sentry.remote_config.storage import make_api_backend, make_configuration_backend
 from sentry.silo.base import SiloMode
 from sentry.utils import json, metrics
 
@@ -59,11 +59,15 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
         ):
             return Response("Disabled", status=404)
 
-        remote_config = make_storage(project).get()
+        remote_config, source = make_api_backend(project).get()
         if remote_config is None:
             return Response("Not found.", status=404)
 
-        return Response({"data": remote_config}, status=200)
+        return Response(
+            {"data": remote_config},
+            status=200,
+            headers={"X-Sentry-Data-Source": source},
+        )
 
     def post(self, request: Request, project: Project) -> Response:
         """Set remote configuration in project options."""
@@ -78,7 +82,7 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
 
         result = validator.validated_data["data"]
 
-        make_storage(project).set(result)
+        make_api_backend(project).set(result)
         metrics.incr("remote_config.configuration.write")
         return Response({"data": result}, status=201)
 
@@ -89,7 +93,7 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
         ):
             return Response("Disabled", status=404)
 
-        make_storage(project).pop()
+        make_api_backend(project).pop()
         metrics.incr("remote_config.configuration.delete")
         return Response("", status=204)
 
@@ -127,7 +131,7 @@ class ProjectConfigurationProxyEndpoint(Endpoint):
             metrics.incr("remote_config.configuration.flag_disabled")
             return Response("Disabled", status=404)
 
-        result = BlobDriver(project).get()
+        result, source = make_configuration_backend(project).get()
         if result is None:
             metrics.incr("remote_config.configuration.not_found")
             return Response("Not found", status=404)
@@ -143,5 +147,6 @@ class ProjectConfigurationProxyEndpoint(Endpoint):
             headers={
                 "Cache-Control": "public, max-age=3600",
                 "ETag": hashlib.sha1(result_str.encode()).hexdigest(),
+                "X-Sentry-Data-Source": source,
             },
         )

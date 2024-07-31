@@ -6,7 +6,6 @@ import hashlib
 import logging
 import os
 import os.path
-import random
 import re
 import shutil
 import tempfile
@@ -25,7 +24,6 @@ from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -33,9 +31,9 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
-from sentry.reprocessing import resolve_processing_issue
 from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
@@ -67,10 +65,9 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
 
         found = ProjectDebugFile.objects.filter(
             checksum__in=checksums, project_id=project.id
-        ).values("checksum")
+        ).values_list("checksum", flat=True)
 
-        for values in found:
-            missing.discard(list(values.values())[0])
+        missing.difference_update(checksum for checksum in found if checksum is not None)
 
         return sorted(missing)
 
@@ -132,7 +129,7 @@ class ProjectDebugFile(Model):
     project_id = BoundedBigIntegerField(null=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
-    data = JSONField(null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     date_accessed = models.DateTimeField(default=timezone.now)
 
     objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
@@ -337,8 +334,6 @@ def create_dif_from_id(
     # assume a successful upload. The DIF will be reported to the uploader and
     # reprocessing can start.
     clean_redundant_difs(project, meta.debug_id)
-
-    resolve_processing_issue(project=project, scope="native", object="dsym:%s" % meta.debug_id)
 
     return dif, True
 
@@ -630,16 +625,6 @@ class DIFCache:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
-
-        # If this call is for proguard purposes, we probabilistically cut this function short
-        # right here so we don't overload filestore.
-        # Note: this random rollout is reversed because it is an early return
-        if features is not None:
-            if "mapping" in features and random.random() >= options.get(
-                "filestore.proguard-throttle"
-            ):
-                return {}
-
         debug_ids = [str(debug_id).lower() for debug_id in debug_ids]
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 

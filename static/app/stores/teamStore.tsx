@@ -4,7 +4,7 @@ import type {Team} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 import ProjectsStore from './projectsStore';
-import type {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 type State = {
   cursor: string | null;
@@ -14,11 +14,10 @@ type State = {
   teams: Team[];
 };
 
-interface TeamStoreDefinition extends CommonStoreDefinition<State> {
+interface TeamStoreDefinition extends StrictStoreDefinition<State> {
   getAll(): Team[];
   getById(id: string): Team | null;
   getBySlug(slug: string): Team | null;
-  init(): void;
   initialized: boolean;
   loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null): void;
   loadUserTeams(userTeams: Team[]): void;
@@ -27,8 +26,7 @@ interface TeamStoreDefinition extends CommonStoreDefinition<State> {
   onUpdateSuccess(itemId: string, response: Team): void;
   reset(): void;
   setTeams(teams: Team[], hasMore?: boolean | null, cursor?: string | null): void;
-
-  state: State;
+  updateTeams(teams: Team[]): Team[];
 }
 
 const teamStoreConfig: TeamStoreDefinition = {

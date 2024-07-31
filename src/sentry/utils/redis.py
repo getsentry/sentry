@@ -323,7 +323,7 @@ def validate_dynamic_cluster(
         else:
             raise AssertionError("unreachable")
     except Exception as e:
-        raise InvalidConfiguration(str(e))
+        raise InvalidConfiguration(str(e)) from e
 
 
 def check_cluster_versions(
@@ -338,7 +338,7 @@ def check_cluster_versions(
         cluster.disconnect_pools()
     except Exception as e:
         # Any connection issues should be caught here.
-        raise InvalidConfiguration(str(e))
+        raise InvalidConfiguration(str(e)) from e
 
     versions = {}
     for id, info in results.value.items():

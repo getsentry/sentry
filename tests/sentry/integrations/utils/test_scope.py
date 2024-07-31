@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration.serial import serialize_organization_integration
 from sentry.integrations.utils.scope import bind_org_context_from_integration, get_org_integrations
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.integration.serial import serialize_organization_integration
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode

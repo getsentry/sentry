@@ -34,3 +34,12 @@ class CatchallTestCase(APITestCase):
         assert response.json() == {
             "info": "Route not found, did you forget a trailing slash? try: /api/0/bad_url/"
         }
+
+    def test_missing_route_response_includes_cors(self):
+        res = self.client.get("/api/0/bad_url/")
+        assert res.status_code == 404
+        assert "x-frame-options" in res
+        assert "access-control-allow-methods" in res
+        assert "access-control-allow-headers" in res
+        assert "access-control-expose-headers" in res
+        assert "access-control-allow-origin" in res

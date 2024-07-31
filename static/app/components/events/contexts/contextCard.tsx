@@ -8,9 +8,14 @@ import {
   getContextTitle,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
-import * as KeyValueData from 'sentry/components/keyValueData/card';
-import type {Event, Group, KeyValueListDataItem, Project} from 'sentry/types';
+import KeyValueData, {
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
+import type {Event} from 'sentry/types/event';
+import type {Group, KeyValueListDataItem} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
@@ -73,6 +78,7 @@ export default function ContextCard({
   project,
   value = {},
 }: ContextCardProps) {
+  const location = useLocation();
   const organization = useOrganization();
   if (isEmptyObject(value)) {
     return null;
@@ -85,11 +91,12 @@ export default function ContextCard({
     contextType: type,
     organization,
     project,
+    location,
   });
 
-  const contentItems = contextItems.map<KeyValueData.ContentProps>(item => {
-    const itemMeta: KeyValueData.ContentProps['meta'] = meta?.[item?.key];
-    const itemErrors: KeyValueData.ContentProps['errors'] = itemMeta?.['']?.err ?? [];
+  const contentItems = contextItems.map<KeyValueDataContentProps>(item => {
+    const itemMeta: KeyValueDataContentProps['meta'] = meta?.[item?.key];
+    const itemErrors: KeyValueDataContentProps['errors'] = itemMeta?.['']?.err ?? [];
     return {
       item,
       meta: itemMeta,

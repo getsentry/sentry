@@ -10,13 +10,13 @@ from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework import status
 
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
+    from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
     from sentry.middleware.integrations.integration_control import ResponseHandler
-    from sentry.middleware.integrations.parsers.base import BaseRequestParser
 
 
 class BaseClassification(abc.ABC):
@@ -124,12 +124,12 @@ class IntegrationClassification(BaseClassification):
 
         parser_class = self.integration_parsers.get(provider)
         if not parser_class:
-            with sentry_sdk.configure_scope() as scope:
-                scope.set_tag("provider", provider)
-                scope.set_tag("path", request.path)
-                sentry_sdk.capture_exception(
-                    Exception("Unknown provider was extracted from integration extension url")
-                )
+            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope.set_tag("provider", provider)
+            scope.set_tag("path", request.path)
+            sentry_sdk.capture_exception(
+                Exception("Unknown provider was extracted from integration extension url")
+            )
             return self.response_handler(request)
 
         parser = parser_class(

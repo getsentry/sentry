@@ -2,7 +2,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.test import override_settings
 
 from sentry.db.postgres.transactions import (
@@ -10,10 +10,10 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
     in_test_hide_transaction_boundary,
 )
+from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.models.organization import Organization
 from sentry.models.outbox import outbox_context
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
@@ -30,11 +30,8 @@ class CaseMixin:
             User.objects.filter(username="user1").first()
 
             with transaction.atomic(using=router.db_for_write(Organization)):
-                try:
-                    with transaction.atomic(using=router.db_for_write(Organization)):
-                        Organization.objects.create(name=None)
-                except (IntegrityError, MaxSnowflakeRetryError):
-                    pass
+                with pytest.raises(MaxSnowflakeRetryError):
+                    Organization.objects.create(name=None)  # type: ignore[misc]  # intentional to trigger error
 
             with transaction.atomic(using=router.db_for_write(Organization)):
                 Organization.objects.create(name="org3")
@@ -199,7 +196,7 @@ class TestDelegatedByOpenTransaction(TestCase):
 
 @no_silo_test
 class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
-    @patch("sentry.services.hybrid_cloud.in_test_environment", return_value=False)
+    @patch("sentry.hybridcloud.rpc.in_test_environment", return_value=False)
     def test_selects_mode_in_transaction_or_default(self, patch):
         service: Any = silo_mode_delegation(
             {

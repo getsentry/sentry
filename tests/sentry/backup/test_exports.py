@@ -20,7 +20,7 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import (
-    BackupTestCase,
+    BackupTransactionTestCase,
     ValidationError,
     export_to_encrypted_tarball,
     export_to_file,
@@ -29,7 +29,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from tests.sentry.backup import get_matching_exportable_models
 
 
-class ExportTestCase(BackupTestCase):
+class ExportTestCase(BackupTransactionTestCase):
     @staticmethod
     def count(data: Any, model: type[models.base.BaseModel]) -> int:
         return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))

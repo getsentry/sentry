@@ -666,7 +666,7 @@ def compute_sliding_window_sample_rate(
         state.num_iterations += 1
         context.set_function_state(func_name, state)
     if extrapolated_volume is None:
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("org_id", org_id)
             scope.set_extra("window_size", window_size)
             sentry_sdk.capture_message("The volume of the current month can't be extrapolated.")

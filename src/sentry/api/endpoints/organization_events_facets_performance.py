@@ -16,7 +16,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.fields import DateArg
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -272,7 +272,7 @@ def query_tag_data(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", filter_query)
-        tag_query = QueryBuilder(
+        tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params=params,
             query=filter_query,
@@ -401,7 +401,7 @@ def query_facet_performance(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", filter_query)
-        tag_query = QueryBuilder(
+        tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params=params,
             query=filter_query,

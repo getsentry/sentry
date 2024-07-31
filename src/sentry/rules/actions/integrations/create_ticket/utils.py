@@ -8,12 +8,12 @@ from rest_framework.response import Response
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 

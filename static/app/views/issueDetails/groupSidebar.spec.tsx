@@ -259,10 +259,7 @@ describe('GroupSidebar', function () {
         <GroupSidebar
           group={group}
           project={{...project, platform: 'react-native'}}
-          organization={{
-            ...organization,
-            features: [...organization.features, 'issue-details-tag-improvements'],
-          }}
+          organization={organization}
           event={EventFixture()}
           environments={[environment]}
         />
@@ -278,10 +275,7 @@ describe('GroupSidebar', function () {
         <GroupSidebar
           group={group}
           project={project}
-          organization={{
-            ...organization,
-            features: [...organization.features, 'issue-details-tag-improvements'],
-          }}
+          organization={organization}
           event={EventFixture()}
           environments={[environment]}
         />

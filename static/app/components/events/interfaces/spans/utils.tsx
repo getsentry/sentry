@@ -1,17 +1,15 @@
 import type {Theme} from '@emotion/react';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
-import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
 import type {
   AggregateEntrySpans,
   AggregateEventTransaction,
   EntrySpans,
-  Event,
   EventTransaction,
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -20,13 +18,11 @@ import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
   TraceError,
   TraceFullDetailed,
 } from 'sentry/utils/performance/quickTrace/types';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import type SpanTreeModel from './spanTreeModel';
@@ -463,37 +459,6 @@ export function getTraceContext(
   event: Readonly<EventTransaction | AggregateEventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
-}
-
-export function handleTraceDetailsRouting(
-  metaResults: TraceMetaQueryChildrenProps | undefined,
-  event: Event,
-  organization: Organization,
-  location: Location
-) {
-  const traceId = event.contexts?.trace?.trace_id ?? '';
-
-  if (
-    organization.features.includes('performance-trace-details') &&
-    metaResults?.meta &&
-    metaResults?.meta.transactions <= 200
-  ) {
-    const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
-      organization,
-      traceId,
-      event.title,
-      getEventTimestamp(event),
-      event.eventID
-    );
-
-    browserHistory.replace({
-      pathname: traceDetailsLocation.pathname,
-      query: {
-        transaction: traceDetailsLocation.query?.transaction,
-      },
-      hash: transactionTargetHash(event.eventID) + location.hash,
-    });
-  }
 }
 
 export function parseTrace(

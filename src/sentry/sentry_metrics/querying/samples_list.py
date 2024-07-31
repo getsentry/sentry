@@ -9,11 +9,10 @@ from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry import options
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.search.events.builder import (
-    MetricsSummariesQueryBuilder,
-    QueryBuilder,
-    SpansIndexedQueryBuilder,
-)
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.metrics_summaries import MetricsSummariesQueryBuilder
+from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -343,7 +342,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         if mri_column not in fields:
             fields.append(mri_column)
 
-        builder = QueryBuilder(
+        builder = DiscoverQueryBuilder(
             Dataset.Transactions,
             self.params,
             snuba_params=self.snuba_params,
@@ -419,7 +418,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         column = self.mri_to_column(self.mri)
         assert column is not None
 
-        builder = QueryBuilder(
+        builder = DiscoverQueryBuilder(
             Dataset.Transactions,
             self.params,
             snuba_params=self.snuba_params,
@@ -483,7 +482,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
         return span_keys, summaries
 
-    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+    def get_additional_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         raise NotImplementedError
 
     def get_min_max_conditions(self, column: Column) -> list[Condition]:
@@ -506,7 +505,7 @@ class TransactionDurationSamplesListExecutor(SegmentsSamplesListExecutor):
             return "transaction.duration"
         return None
 
-    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+    def get_additional_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         return []
 
 
@@ -526,7 +525,7 @@ class TransactionMeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
             return parsed_mri.name[len("measurements:") :]
         return None
 
-    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+    def get_additional_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         name = self.mri_to_measurement_name(self.mri)
         return [Condition(Function("has", [Column("measurements.key"), name]), Op.EQ, 1)]
 
@@ -765,10 +764,12 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         return []
 
     @abstractmethod
-    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+    def get_additional_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         raise NotImplementedError
 
-    def dataset_segmentation_conditions(self) -> list[Callable[[QueryBuilder], list[Condition]]]:
+    def dataset_segmentation_conditions(
+        self,
+    ) -> list[Callable[[BaseQueryBuilder], list[Condition]]]:
         return [lambda builder: []]
 
     def get_min_max_conditions(self, column: SelectType) -> list[Condition]:
@@ -792,10 +793,12 @@ class SpansTimingsSamplesListExecutor(SpansSamplesListExecutor):
     def mri_to_column(cls, mri) -> str | None:
         return cls.MRI_MAPPING.get(mri)
 
-    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+    def get_additional_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         return []
 
-    def dataset_segmentation_conditions(self) -> list[Callable[[QueryBuilder], list[Condition]]]:
+    def dataset_segmentation_conditions(
+        self,
+    ) -> list[Callable[[BaseQueryBuilder], list[Condition]]]:
         return [
             # This grouping makes the assumption that spans are divided into 2 groups right now.
             # Those that are classified with a non zero group, and those that are unclassified
@@ -860,7 +863,7 @@ class SpansMeasurementsSamplesListExecutor(SpansSamplesListExecutor):
 
         return None
 
-    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+    def get_additional_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         name = self.mri_measurement_name(self.mri)
         return [Condition(Function("has", [Column("measurements.key"), name]), Op.EQ, 1)]
 
@@ -1145,14 +1148,14 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
 
         return span_keys, summaries
 
-    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+    def get_additional_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         return [
             builder.convert_search_filter_to_condition(
                 SearchFilter(SearchKey("metric"), "=", SearchValue(self.mri)),
             )
         ]
 
-    def get_min_max_conditions(self, builder: QueryBuilder) -> list[Condition]:
+    def get_min_max_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         conditions = []
 
         column = builder.resolve_column(

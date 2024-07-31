@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
@@ -17,7 +18,6 @@ from sentry.integrations.utils.code_mapping import (
     get_sorted_code_mapping_configs,
     should_include,
 )
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -376,6 +376,13 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
             stack_root="sentry/",
             source_root="src/sentry/",
         )
+        self.code_mapping_backslash = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="C:\\Users\\Foo\\",
+            source_root="/",
+        )
 
     def test_convert_stacktrace_frame_path_to_source_path_empty(self):
         assert (
@@ -410,6 +417,19 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 sdk_name="sentry.java",
             )
             == "src/sentry/module/File.java"
+        )
+
+    def test_convert_stacktrace_frame_path_to_source_path_backslashes(self):
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                EventFrame(
+                    filename="file.rs", abs_path="C:\\Users\\Foo\\src\\sentry\\folder\\file.rs"
+                ),
+                code_mapping=self.code_mapping_backslash,
+                platform="rust",
+                sdk_name="sentry.rust",
+            )
+            == "src/sentry/folder/file.rs"
         )
 
 

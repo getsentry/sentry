@@ -41,7 +41,7 @@ class SendRequestEmailTest(TestCase):
         assert len(mail.outbox) == 2, [m.subject for m in mail.outbox]
         assert sorted(m.to[0] for m in mail.outbox) == sorted([owner.email, team_admin.email])
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_sends_no_email_to_invited_member(self):
         owner = self.create_user("owner@example.com")
 
@@ -59,7 +59,7 @@ class SendRequestEmailTest(TestCase):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_sends_email_with_link(self):
         owner = self.create_user("owner@example.com")
         requesting_user = self.create_user("requesting@example.com")

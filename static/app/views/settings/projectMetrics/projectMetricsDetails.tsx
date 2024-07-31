@@ -15,14 +15,10 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  MetricsAggregate,
-  MetricType,
-  MRI,
-  Organization,
-  Project,
-} from 'sentry/types';
-import {getMetricsUrl} from 'sentry/utils/metrics';
+import type {MRI} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {getDefaultAggregation, getMetricsUrl} from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -30,28 +26,13 @@ import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
-import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
-
-function getSettingsOperationForType(type: MetricType): MetricsAggregate {
-  switch (type) {
-    case 'c':
-      return 'sum';
-    case 's':
-      return 'count_unique';
-    case 'd':
-      return 'count';
-    case 'g':
-      return 'count';
-    default:
-      return 'sum';
-  }
-}
 
 type Props = {
   organization: Organization;
@@ -71,12 +52,12 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
   const blockMetricMutation = useBlockMetric(project);
-  const {hasAccess} = useAccess({access: ['project:write']});
+  const {hasAccess} = useAccess({access: ['project:write'], project});
 
   const {type, name, unit} = parseMRI(mri) ?? {};
-  const operation = getSettingsOperationForType(type ?? 'c');
+  const aggregation = getDefaultAggregation(mri);
   const {data: metricsData, isLoading} = useMetricsQuery(
-    [{mri, op: operation, name: 'query'}],
+    [{mri, aggregation, name: 'query'}],
     {
       datetime: {
         period: '30d',
@@ -90,7 +71,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
     {interval: '1d'}
   );
 
-  const field = MRIToField(mri, operation);
+  const field = MRIToField(mri, aggregation);
   const series = [
     {
       seriesName: formatMRIField(field) ?? 'Metric',
@@ -145,7 +126,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
                   {
                     mri,
                     displayType: MetricDisplayType.BAR,
-                    op: operation,
+                    aggregation,
                     query: '',
                     groupBy: undefined,
                   },

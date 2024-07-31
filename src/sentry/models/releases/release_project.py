@@ -13,7 +13,7 @@ from sentry.db.models import (
     Model,
     region_silo_model,
 )
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -59,7 +59,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             activator=release.version,
         )
 
-    def post_save(self, instance, created, **kwargs):
+    def post_save(self, *, instance: ReleaseProject, created: bool, **kwargs: object) -> None:
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
         if created:
             self.subscribe_project_to_alert_rule(

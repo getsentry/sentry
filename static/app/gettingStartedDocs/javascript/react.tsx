@@ -16,6 +16,7 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -34,6 +35,11 @@ Sentry.init({
     params.isPerformanceSelected
       ? `
         Sentry.browserTracingIntegration(),`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+          Sentry.browserProfilingIntegration(),`
       : ''
   }${
     params.isFeedbackSelected
@@ -56,6 +62,12 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
+    : ''
+}${
+  params.isProfilingSelected
+    ? `
+      // Profiling
+      profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
     : ''
 }${
   params.isReplaySelected
@@ -129,6 +141,9 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
     }),
@@ -174,7 +189,7 @@ const onboarding: OnboardingConfig = {
       description: t(
         'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
       ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/performance/',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/react/tracing/',
     },
     {
       id: 'session-replay',

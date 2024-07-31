@@ -36,7 +36,6 @@ export function initializeData(settings?: InitializeDataSettings) {
 
   const organization = OrganizationFixture({
     features,
-    projects,
   });
   const routerLocation: {query: {project?: string}} = {
     query: {
@@ -49,7 +48,7 @@ export function initializeData(settings?: InitializeDataSettings) {
   const router = {
     location: routerLocation,
   };
-  const initialData = initializeOrg({organization, projects, project, router});
+  const initialData = initializeOrg({organization, projects, router});
   const location = initialData.router.location;
   const eventView = EventView.fromLocation(location);
 

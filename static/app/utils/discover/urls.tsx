@@ -1,11 +1,12 @@
+import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTimeStampFromTableDateField} from '../dates';
 import {getTransactionDetailsUrl} from '../performance/urls';
-import {normalizeUrl} from '../withDomainRequired';
 
 import type {EventData} from './eventView';
 import EventView from './eventView';
@@ -52,17 +53,19 @@ export function generateLinkToEventInTraceView({
   transactionName,
   eventView,
   demo,
+  source,
   type = 'performance',
 }: {
   eventId: string;
   location: Location;
-  organization: Pick<Organization, 'slug' | 'features'>;
+  organization: Organization;
   projectSlug: string;
   timestamp: string | number;
   traceSlug: string;
   demo?: string;
   eventView?: EventView;
   isHomepage?: boolean;
+  source?: string;
   spanId?: string;
   transactionName?: string;
   type?: 'performance' | 'discover';
@@ -72,16 +75,26 @@ export function generateLinkToEventInTraceView({
   const normalizedTimestamp = getTimeStampFromTableDateField(timestamp);
   const eventSlug = generateEventSlug({id: eventId, project: projectSlug});
 
+  if (!traceSlug) {
+    Sentry.withScope(scope => {
+      scope.setExtras({traceSlug, source});
+      scope.setLevel('warning' as any);
+      Sentry.captureException(new Error('Trace slug is missing'));
+    });
+  }
+
   if (organization.features.includes('trace-view-v1')) {
-    return getTraceDetailsUrl(
+    return getTraceDetailsUrl({
       organization,
-      String(traceSlug),
+      traceSlug,
       dateSelection,
-      normalizedTimestamp,
+      timestamp: normalizedTimestamp,
       eventId,
       spanId,
-      demo
-    );
+      demo,
+      location,
+      source,
+    });
   }
 
   if (type === 'performance') {

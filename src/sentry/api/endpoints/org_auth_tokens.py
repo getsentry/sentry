@@ -20,11 +20,11 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.models.user import User
-from sentry.security.utils import capture_security_activity
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+from sentry.security.utils import capture_security_activity
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,
     generate_token,

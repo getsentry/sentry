@@ -27,16 +27,13 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.identity import Identity
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.service import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -44,7 +41,10 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
+from sentry.silo.base import all_silo_function
+from sentry.tasks.integrations.migrate_issues import migrate_issues
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -518,7 +518,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return fields
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key: str) -> str:
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:

@@ -1,57 +1,21 @@
 from __future__ import annotations
 
-import operator
 from collections.abc import Container
-from typing import Any
+from typing import TYPE_CHECKING, Any, Generic, Self, overload
 from uuid import uuid4
 
-from django.db.models import F, Field, Model
-from django.db.models.expressions import BaseExpression, CombinedExpression, Value
+from django.db.models import Field, Model
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 
-from sentry.db.exceptions import CannotResolveExpression
+from sentry.db.models.fields.types import FieldGetType, FieldSetType
 
-COMBINED_EXPRESSION_CALLBACKS = {
-    CombinedExpression.ADD: operator.add,
-    CombinedExpression.SUB: operator.sub,
-    CombinedExpression.MUL: operator.mul,
-    CombinedExpression.DIV: operator.floordiv,
-    CombinedExpression.MOD: operator.mod,
-    CombinedExpression.BITAND: operator.and_,
-    CombinedExpression.BITOR: operator.or_,
-}
-
-
-def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseExpression:
-    def _resolve(instance: Model, node: BaseExpression | F) -> BaseExpression:
-        if isinstance(node, Value):
-            return node.value
-        if isinstance(node, F):
-            return getattr(instance, node.name)
-        if isinstance(node, CombinedExpression):
-            return resolve_combined_expression(instance, node)
-        return node
-
-    if isinstance(node, Value):
-        return node.value
-    if not hasattr(node, "connector"):
-        raise CannotResolveExpression
-    op = COMBINED_EXPRESSION_CALLBACKS.get(node.connector, None)
-    if not op:
-        raise CannotResolveExpression
-    if hasattr(node, "children"):
-        children = node.children
-    else:
-        children = [node.lhs, node.rhs]
-    runner = _resolve(instance, children[0])
-    for n in children[1:]:
-        runner = op(runner, _resolve(instance, n))
-    return runner
+if TYPE_CHECKING:
+    from sentry.db.models.base import Model as SentryModel
 
 
 def unique_db_instance(
-    inst: Model,
+    inst: SentryModel,
     base_value: str,
     reserved: Container[str] = (),
     max_length: int = 30,
@@ -62,7 +26,7 @@ def unique_db_instance(
     if base_value is not None:
         base_value = base_value.strip()
         if base_value in reserved:
-            base_value = None
+            base_value = ""
 
     if not base_value:
         base_value = uuid4().hex[:12]
@@ -105,7 +69,7 @@ def unique_db_instance(
 
 
 def slugify_instance(
-    inst: Model,
+    inst: SentryModel,
     label: str,
     reserved: Container[str] = (),
     max_length: int = 30,
@@ -119,20 +83,28 @@ def slugify_instance(
     return unique_db_instance(inst, value, reserved, max_length, field_name, *args, **kwargs)
 
 
-class Creator:
+class Creator(Generic[FieldSetType, FieldGetType]):
     """
     A descriptor that invokes `to_python` when attributes are set.
     This provides backwards compatibility for fields that used to use
     SubfieldBase which will be removed in Django1.10
     """
 
-    def __init__(self, field: Field):
+    def __init__(self, field: Field[FieldSetType, FieldGetType]) -> None:
         self.field = field
 
-    def __get__(self, obj: Model, type: Any = None) -> Any:
-        if obj is None:
+    @overload
+    def __get__(self, inst: Model, owner: type[Any]) -> Any:
+        ...
+
+    @overload
+    def __get__(self, inst: None, owner: type[Any]) -> Self:
+        ...
+
+    def __get__(self, inst: Model | None, owner: type[Any]) -> Self | Any:
+        if inst is None:
             return self
-        return obj.__dict__[self.field.name]
+        return inst.__dict__[self.field.name]
 
     def __set__(self, obj: Model, value: Any) -> None:
         obj.__dict__[self.field.name] = self.field.to_python(value)

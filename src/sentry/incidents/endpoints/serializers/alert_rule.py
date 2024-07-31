@@ -23,13 +23,16 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident
+from sentry.models.integrations.sentry_app_installation import prepare_ui_component
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.models import SnubaQueryEventType
+from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +53,9 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     totalThisWeek: int | None
     snooze: bool | None
     latestIncident: datetime | None
+    errors: list[str] | None
+    sensitivity: str | None
+    seasonality: str | None
 
 
 @extend_schema_serializer(
@@ -62,6 +68,10 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "weeklyAvg",
         "totalThisWeek",
         "latestIncident",
+        "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
+        "sensitivity",  # For anomaly detection, which is behind a feature flag
+        "seasonality",  # For anomaly detection, which is behind a feature flag
+        "detection_type",  # For anomaly detection, which is behind a feature flag
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
@@ -75,7 +85,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     status: int
     query: str
     aggregate: str
-    timeWindow: int
+    timeWindow: float
     resolution: float
     thresholdPeriod: int
     triggers: list[dict]
@@ -85,6 +95,9 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     monitorType: int
     activations: list[dict]
+    activationCondition: int | None
+    description: str
+    detection_type: str
 
 
 @register(AlertRule)
@@ -93,8 +106,9 @@ class AlertRuleSerializer(Serializer):
     Serializer for returning an alert rule to the client
     """
 
-    def __init__(self, expand: list[str] | None = None):
+    def __init__(self, expand: list[str] | None = None, prepare_component_fields: bool = False):
         self.expand = expand or []
+        self.prepare_component_fields = prepare_component_fields
 
     def get_attrs(
         self, item_list: Sequence[Any], user: User | RpcUser, **kwargs: Any
@@ -110,30 +124,56 @@ class AlertRuleSerializer(Serializer):
             alert_rule_trigger__alert_rule_id__in=alert_rules.keys()
         ).exclude(Q(sentry_app_config__isnull=True) | Q(sentry_app_id__isnull=True))
 
-        sentry_app_installations_by_sentry_app_id = app_service.get_related_sentry_app_components(
-            organization_ids=[alert_rule.organization_id for alert_rule in alert_rules.values()],
-            sentry_app_ids=list(trigger_actions.values_list("sentry_app_id", flat=True)),
-            type="alert-rule-action",
-        )
+        sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext] = {}
+        organization_ids = list({alert_rule.organization_id for alert_rule in alert_rules.values()})
+        if self.prepare_component_fields:
+            sentry_app_ids = list(trigger_actions.values_list("sentry_app_id", flat=True))
+            install_contexts = app_service.get_component_contexts(
+                filter={"app_ids": sentry_app_ids, "organization_id": organization_ids[0]},
+                component_type="alert-rule-action",
+            )
+            sentry_app_installations_by_sentry_app_id = {
+                str(context.installation.sentry_app.id): context
+                for context in install_contexts
+                if context.installation.sentry_app
+            }
 
         for trigger, serialized in zip(triggers, serialized_triggers):
-            alert_rule_triggers = result[alert_rules[trigger.alert_rule_id]].setdefault(
-                "triggers", []
-            )
+            errors = []
+            alert_rule = alert_rules[trigger.alert_rule_id]
+            alert_rule_triggers = result[alert_rule].setdefault("triggers", [])
             for action in serialized.get("actions", []):
                 if action is None:
                     continue
 
+                # Prepare AlertRuleTriggerActions that are SentryApp components
+                install_context = None
                 sentry_app_id = str(action.get("sentryAppId"))
-                install = None
                 if sentry_app_id:
-                    install = sentry_app_installations_by_sentry_app_id.get(sentry_app_id)
-                if install:
-                    action["_sentry_app_component"] = install.get("sentry_app_component")
-                    action["_sentry_app_installation"] = install.get("sentry_app_installation")
-                    action["sentryAppInstallationUuid"] = install.get(
-                        "sentry_app_installation"
-                    ).get("uuid")
+                    install_context = sentry_app_installations_by_sentry_app_id.get(sentry_app_id)
+                if install_context:
+                    rpc_install = install_context.installation
+                    rpc_component = install_context.component
+                    rpc_app = rpc_install.sentry_app
+                    assert rpc_app
+
+                    action["sentryAppInstallationUuid"] = rpc_install.uuid
+
+                    component = prepare_ui_component(
+                        rpc_install,
+                        rpc_component,
+                        None,
+                        action.get("settings"),
+                    )
+                    if component is None:
+                        errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})
+                        action["disabled"] = True
+                        continue
+
+                    action["formFields"] = component.app_schema.get("settings", {})
+
+            if errors:
+                result[alert_rule]["errors"] = errors
             alert_rule_triggers.append(serialized)
 
         alert_activations_ranked = AlertRuleActivations.objects.annotate(
@@ -143,9 +183,9 @@ class AlertRuleSerializer(Serializer):
                 order_by=F("date_added").desc(),
             )
         )
-        activations = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
+        activations_qs = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
         activations_by_alert_rule_id = defaultdict(list)
-        for activation in activations:
+        for activation in activations_qs:
             activations_by_alert_rule_id[activation.alert_rule_id].append(activation)
 
         alert_rule_projects = set()
@@ -174,12 +214,15 @@ class AlertRuleSerializer(Serializer):
 
         user_by_user_id: MutableMapping[int, RpcUser] = {
             user.id: user
-            for user in user_service.get_many(
-                filter=dict(user_ids=[r.user_id for r in rule_activities if r.user_id is not None])
+            for user in user_service.get_many_by_id(
+                ids=[r.user_id for r in rule_activities if r.user_id is not None]
             )
         }
         for rule_activity in rule_activities:
-            rpc_user = user_by_user_id.get(rule_activity.user_id)
+            if rule_activity.user_id is not None:
+                rpc_user = user_by_user_id.get(rule_activity.user_id)
+            else:
+                rpc_user = None
             if rpc_user:
                 created_by = dict(
                     id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
@@ -230,6 +273,7 @@ class AlertRuleSerializer(Serializer):
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
+        assert obj.snuba_query is not None
         env = obj.snuba_query.environment
         allow_mri = features.has(
             "organizations:custom-metrics",
@@ -240,6 +284,7 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(
             obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
         )
+        condition_type = obj.activation_condition.values_list("condition_type", flat=True).first()
 
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
@@ -268,7 +313,12 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
+            "activationCondition": condition_type,
             "activations": attrs.get("activations", None),
+            "description": obj.description if obj.description is not None else "",
+            "sensitivity": obj.sensitivity,
+            "seasonality": obj.seasonality,
+            "detection_type": obj.detection_type,
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
@@ -278,6 +328,8 @@ class AlertRuleSerializer(Serializer):
 
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
+        if "errors" in attrs:
+            data["errors"] = attrs["errors"]
 
         return data
 
@@ -345,6 +397,14 @@ class CombinedRuleSerializer(Serializer):
             serialized_rule["id"]: serialized_rule for serialized_rule in serialized_issue_rules
         }
 
+        serialized_uptime_monitors = serialize(
+            [x for x in item_list if isinstance(x, ProjectUptimeSubscription)],
+            user=user,
+        )
+        serialized_uptime_monitor_map_by_id = {
+            item["id"]: item for item in serialized_uptime_monitors
+        }
+
         for item in item_list:
             item_id = str(item.id)
             if item_id in serialized_alert_rule_map_by_id:
@@ -368,6 +428,9 @@ class CombinedRuleSerializer(Serializer):
             elif item_id in serialized_issue_rule_map_by_id:
                 # This is an issue alert rule
                 results[item] = serialized_issue_rule_map_by_id[item_id]
+            elif item_id in serialized_uptime_monitor_map_by_id:
+                # This is an uptime monitor
+                results[item] = serialized_uptime_monitor_map_by_id[item_id]
             else:
                 logger.error(
                     "Alert Rule found but dropped during serialization",
@@ -382,18 +445,18 @@ class CombinedRuleSerializer(Serializer):
 
     def serialize(
         self,
-        obj: Rule | AlertRule,
+        obj: Rule | AlertRule | ProjectUptimeSubscription,
         attrs: Mapping[Any, Any],
         user: User | RpcUser,
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
+        updated_attrs = {**attrs}
         if isinstance(obj, AlertRule):
-            alert_rule_attrs: MutableMapping[Any, Any] = {**attrs}
-            alert_rule_attrs["type"] = "alert_rule"
-            return alert_rule_attrs
+            updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
-            rule_attrs: MutableMapping[Any, Any] = {**attrs}
-            rule_attrs["type"] = "rule"
-            return rule_attrs
+            updated_attrs["type"] = "rule"
+        elif isinstance(obj, ProjectUptimeSubscription):
+            updated_attrs["type"] = "uptime"
         else:
             raise AssertionError(f"Invalid rule to serialize: {type(obj)}")
+        return updated_attrs

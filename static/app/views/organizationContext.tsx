@@ -1,10 +1,10 @@
 import {
   createContext,
   type ReactNode,
-  useCallback,
   useContext,
   useEffect,
   useRef,
+  useState,
 } from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
@@ -24,7 +24,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface OrganizationLoaderContextProps {
-  loadOrganization: () => Promise<void>;
+  organizationPromise: Promise<unknown> | null;
 }
 
 interface Props {
@@ -39,22 +39,23 @@ export const OrganizationContext = createContext<Organization | null>(null);
 /**
  * Holds a function to load the organization.
  */
-export const OrganizationLoaderContext =
-  createContext<OrganizationLoaderContextProps | null>(null);
+export const OrganizationLoaderContext = createContext<OrganizationLoaderContextProps>({
+  organizationPromise: null,
+});
 
 /**
  * Ensures that an organization is loaded when the hook is used. This will only
  * be done on first render and if an organization is not already loaded.
  */
 export function useEnsureOrganization() {
-  const {loadOrganization} = useContext(OrganizationLoaderContext) || {};
+  const {organizationPromise} = useContext(OrganizationLoaderContext);
 
   useEffect(() => {
     async function fetchData() {
-      await loadOrganization?.();
+      await organizationPromise;
     }
     fetchData();
-  }, [loadOrganization]);
+  }, [organizationPromise]);
 }
 
 /**
@@ -71,6 +72,9 @@ export function OrganizationContextProvider({children}: Props) {
 
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
+  const [organizationPromise, setOrganizationPromise] = useState<Promise<unknown> | null>(
+    null
+  );
 
   const lastOrganizationSlug: string | null =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
@@ -84,29 +88,21 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
-  const loadOrganization = useCallback(
-    () =>
-      new Promise<void>((resolve, reject) => {
-        // Nothing to do if we already have the organization loaded
-        if (organization && organization.slug === orgSlug) {
-          resolve();
-          return;
-        }
+  useEffect(() => {
+    // Nothing to do if we already have the organization loaded
+    if (organization && organization.slug === orgSlug) {
+      return;
+    }
 
-        if (!orgSlug) {
-          OrganizationStore.setNoOrganization();
-          resolve();
-          return;
-        }
+    if (!orgSlug) {
+      OrganizationStore.setNoOrganization();
+      return;
+    }
 
-        metric.mark({name: 'organization-details-fetch-start'});
+    metric.mark({name: 'organization-details-fetch-start'});
 
-        fetchOrganizationDetails(api, orgSlug, false, true)
-          .then(() => resolve())
-          .catch(reject);
-      }),
-    [api, orgSlug, organization]
-  );
+    setOrganizationPromise(fetchOrganizationDetails(api, orgSlug, false, true));
+  }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the
   // new state is applied
@@ -183,7 +179,7 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   return (
-    <OrganizationLoaderContext.Provider value={{loadOrganization}}>
+    <OrganizationLoaderContext.Provider value={{organizationPromise}}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>

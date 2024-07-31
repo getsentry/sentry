@@ -172,6 +172,10 @@ export interface ControlProps
    */
   onClear?: () => void;
   /**
+   * Called when the menu is opened or closed.
+   */
+  onOpenChange?: (newOpenState: boolean) => void;
+  /**
    * Called when the search input's value changes (applicable only when `searchable`
    * is true).
    */
@@ -233,6 +237,7 @@ export function Control({
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
+  onOpenChange,
 
   // Select props
   size = 'md',
@@ -247,6 +252,7 @@ export function Control({
   children,
   ...wrapperProps
 }: ControlProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
   const [listStates, setListStates] = useState<ListState<any>[]>([]);
@@ -326,6 +332,8 @@ export function Control({
     preventOverflowOptions,
     flipOptions,
     onOpenChange: open => {
+      onOpenChange?.(open);
+
       nextFrameCallback(() => {
         if (open) {
           // Focus on search box if present
@@ -358,7 +366,14 @@ export function Control({
         setSearchInputValue('');
         setSearch('');
 
-        triggerRef.current?.focus();
+        // Only restore focus if it's already here or lost to the body.
+        // This prevents focus from being stolen from other elements.
+        if (
+          document.activeElement === document.body ||
+          wrapperRef.current?.contains(document.activeElement)
+        ) {
+          triggerRef.current?.focus();
+        }
       });
     },
   });
@@ -444,6 +459,8 @@ export function Control({
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault(); // Prevent scroll
         overlayState.open();
+      } else {
+        e.continuePropagation();
       }
     },
   });

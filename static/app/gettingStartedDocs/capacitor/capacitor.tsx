@@ -20,7 +20,6 @@ import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 export enum SiblingOption {
@@ -64,6 +63,50 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
+function getIntegrations(params: Params, siblingOption: string) {
+  const integrations: string[] = ['SentrySibling.browserTracingIntegration()'];
+
+  if (params.isPerformanceSelected) {
+    integrations.push(`
+          new ${getSiblingImportName(siblingOption)}.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          ${
+            params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
+          }})`);
+  }
+
+  if (params.isFeedbackSelected) {
+    const feedbackIntegration: string[] = [
+      `// Additional SDK configuration goes in here, for example:
+        colorScheme: "system"`,
+    ];
+    const feedbackConfigOptions = getFeedbackConfigOptions(params.feedbackOptions);
+
+    if (feedbackConfigOptions) {
+      feedbackIntegration.push(feedbackConfigOptions);
+    }
+
+    integrations.push(
+      `
+        Sentry.feedbackIntegration({
+          ${feedbackIntegration.join(',')}
+        }),`
+    );
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `
+        new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions(
+          params.replayOptions
+        )}),`
+    );
+  }
+
+  return integrations.join(',');
+}
+
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `${
     siblingOption === SiblingOption.VUE2
@@ -72,33 +115,10 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
         ? 'app,'
         : ''
   }dsn: "${params.dsn}",
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-          new ${getSiblingImportName(siblingOption)}.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          ${
-            params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
-          }})`
-      : ''
-  }${
-    params.isFeedbackSelected
-      ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "system",
-${getFeedbackConfigOptions(params.feedbackOptions)}}),`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-          new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions(
-            params.replayOptions
-          )}),`
-      : ''
-  }
-  ],${
+   integrations: [
+    ${getIntegrations(params, siblingOption)}
+   ],
+  ${
     params.isPerformanceSelected
       ? `
         // Performance Monitoring
@@ -112,30 +132,6 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
         replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
       : ''
   }`;
-};
-
-const getNextStep = (
-  params: Params
-): {
-  description: string;
-  id: string;
-  link: string;
-  name: string;
-}[] => {
-  let nextStepDocs = [...nextSteps];
-
-  if (params.isPerformanceSelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
-  }
-
-  if (params.isReplaySelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
-    );
-  }
-  return nextStepDocs;
 };
 
 const isAngular = (siblingOption: string): boolean =>
@@ -167,62 +163,60 @@ const performanceAngularErrorHandler = `,
   multi: true,
 },`;
 
-const getInstallStep = (params: Params) => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct(
-          `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
-          {
-            codeYarn: <code />,
-            codeNpm: <code />,
-            siblingName: getSiblingName(params.platformOptions.siblingOption),
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: [
-          {
-            label: 'npm',
-            value: 'npm',
-            language: 'bash',
-            code: `npm install --save @sentry/capacitor ${getNpmPackage(
-              params.platformOptions.siblingOption
-            )}@^7`,
-          },
-          {
-            label: 'yarn',
-            value: 'yarn',
-            language: 'bash',
-            code: `yarn add @sentry/capacitor ${getNpmPackage(
-              params.platformOptions.siblingOption
-            )}@^7 --exact`,
-          },
-        ],
-      },
-      {
-        additionalInfo: (
-          <p>
-            {tct(
-              `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
-              {
-                code: <code />,
-                siblingName: getSiblingName(params.platformOptions.siblingOption),
-              }
-            )}
-          </p>
-        ),
-      },
-    ],
-  },
-];
-
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  install: params => getInstallStep(params),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: (
+        <p>
+          {tct(
+            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
+            {
+              codeYarn: <code />,
+              codeNpm: <code />,
+              siblingName: getSiblingName(params.platformOptions.siblingOption),
+            }
+          )}
+        </p>
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: [
+            {
+              label: 'npm',
+              value: 'npm',
+              language: 'bash',
+              code: `npm install --save @sentry/capacitor ${getNpmPackage(
+                params.platformOptions.siblingOption
+              )}@^7`,
+            },
+            {
+              label: 'yarn',
+              value: 'yarn',
+              language: 'bash',
+              code: `yarn add @sentry/capacitor ${getNpmPackage(
+                params.platformOptions.siblingOption
+              )}@^7 --exact`,
+            },
+          ],
+        },
+        {
+          additionalInfo: (
+            <p>
+              {tct(
+                `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
+                {
+                  code: <code />,
+                  siblingName: getSiblingName(params.platformOptions.siblingOption),
+                }
+              )}
+            </p>
+          ),
+        },
+      ],
+    },
+  ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
@@ -248,35 +242,37 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: params => getNextStep(params),
+  nextSteps: params => [
+    {
+      id: 'capacitor-android-setup',
+      name: t('Capacitor 2 Setup'),
+      description: t(
+        'If you are using Capacitor 2 or older, follow this step to add required changes in order to initialize the Capacitor SDK on Android.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/?#capacitor-2---android-specifics',
+    },
+    params.isPerformanceSelected
+      ? null
+      : {
+          id: 'performance-monitoring',
+          name: t('Performance Monitoring'),
+          description: t(
+            'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
+          ),
+          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/tracing/',
+        },
+    params.isReplaySelected
+      ? null
+      : {
+          id: 'session-replay',
+          name: t('Session Replay'),
+          description: t(
+            'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
+          ),
+          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
+        },
+  ],
 };
-
-export const nextSteps = [
-  {
-    id: 'capacitor-android-setup',
-    name: t('Capacitor 2 Setup'),
-    description: t(
-      'If you are using Capacitor 2 or older, follow this step to add required changes in order to initialize the Capacitor SDK on Android.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/?#capacitor-2---android-specifics',
-  },
-  {
-    id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
-    description: t(
-      'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/performance/',
-  },
-  {
-    id: 'session-replay',
-    name: t('Session Replay'),
-    description: t(
-      'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
-  },
-];
 
 function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {
@@ -425,7 +421,7 @@ function getSiblingImportName(siblingOption: string): string {
 }
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: params => getInstallStep(params),
+  install: params => onboarding.install(params),
   configure: params => [
     {
       type: StepType.CONFIGURE,
@@ -445,7 +441,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: Params) => getInstallStep(params),
+  install: (params: Params) => onboarding.install(params),
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,

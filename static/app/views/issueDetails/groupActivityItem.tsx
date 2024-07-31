@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import CommitLink from 'sentry/components/commitLink';
 import {DateTime} from 'sentry/components/dateTime';
@@ -519,10 +519,7 @@ function GroupActivityItem({
         );
       }
       case GroupActivityType.FIRST_SEEN:
-        if (
-          organization.features.includes('issue-priority-ui') &&
-          activity.data.priority
-        ) {
+        if (activity.data.priority) {
           return tct(
             '[author] first saw this issue and marked it as [priority] priority',
             {author, priority: activity.data.priority}

@@ -11,13 +11,13 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
     control_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
 
@@ -75,11 +75,11 @@ class ApiApplication(Model):
     def __str__(self):
         return self.name
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         with outbox_context(transaction.atomic(router.db_for_write(ApiApplication)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
-            return super().delete(**kwargs)
+            return super().delete(*args, **kwargs)
 
     def outboxes_for_update(self) -> list[ControlOutbox]:
         return [

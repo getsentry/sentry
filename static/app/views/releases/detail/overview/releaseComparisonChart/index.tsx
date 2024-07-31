@@ -17,24 +17,22 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Organization,
-  PlatformKey,
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
-} from 'sentry/types';
 import {
+  type PlatformKey,
   ReleaseComparisonChartType,
+  type ReleaseProject,
+  type ReleaseWithHealth,
+  type SessionApiResponse,
   SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
 import type {Color} from 'sentry/utils/theme';
@@ -1031,7 +1029,7 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
-const Change = styled('div')<{color?: Color}>`
+export const Change = styled('div')<{color?: Color}>`
   font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;

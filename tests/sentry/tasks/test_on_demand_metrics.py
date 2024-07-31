@@ -39,7 +39,7 @@ def organization(owner: User) -> None:
 
 
 @pytest.fixture
-def project(organization: Organization) -> None:
+def project(organization: Organization) -> Project:
     return Factories.create_project(organization=organization)
 
 
@@ -454,7 +454,7 @@ def test_schedule_on_demand_check(
     ],
 )
 @mock.patch("sentry.tasks.on_demand_metrics._set_cardinality_cache")
-@mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+@mock.patch("sentry.search.events.builder.base.raw_snql_query")
 @django_db_all
 def test_process_widget_specs(
     raw_snql_query: Any,

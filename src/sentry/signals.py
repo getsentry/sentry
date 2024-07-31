@@ -55,7 +55,7 @@ class receivers_raise_on_send:
 
 
 class BetterSignal(Signal):
-    def connect(self, receiver=None, **kwargs):
+    def connect(self, receiver=None, *args, **kwargs):
         """
         Support decorator syntax:
 
@@ -66,7 +66,7 @@ class BetterSignal(Signal):
         """
 
         def wrapped(func):
-            return super(BetterSignal, self).connect(func, **kwargs)
+            return super(BetterSignal, self).connect(func, *args, **kwargs)
 
         if receiver is None:
             return wrapped
@@ -117,6 +117,7 @@ first_cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"
 cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
 first_cron_checkin_received = BetterSignal()  # ["project", "monitor_id"]
 first_custom_metric_received = BetterSignal()  # ["project"]
+first_insight_span_received = BetterSignal()  # ["project", "module"]
 member_invited = BetterSignal()  # ["member", "user"]
 member_joined = BetterSignal()  # ["organization_member_id", "organization_id", "user_id"]
 issue_tracker_used = BetterSignal()  # ["plugin", "project", "user"]

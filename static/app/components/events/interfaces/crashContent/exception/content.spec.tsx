@@ -19,7 +19,7 @@ import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({});
+  const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});

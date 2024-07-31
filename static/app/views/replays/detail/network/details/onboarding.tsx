@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -68,10 +69,12 @@ export function Setup({
     projectId: [projectId],
   });
   const sdkNeedsUpdate = !isFetching && Boolean(needsUpdate);
+  const {replay} = useReplayContext();
+  const isVideoReplay = replay?.isVideoReplay();
 
   const url = item.description || 'http://example.com';
 
-  return (
+  return isVideoReplay ? null : (
     <SetupInstructions
       minVersion="7.53.1"
       sdkNeedsUpdate={sdkNeedsUpdate}
@@ -126,7 +129,7 @@ function SetupInstructions({
 
   const code = `Sentry.init({
   integrations: [
-    new Replay({${urlSnippet + (includeHeadersSnippet ? headersSnippet : '')}
+    Sentry.replayIntegration({${urlSnippet + (includeHeadersSnippet ? headersSnippet : '')}
     }),
   ],
 })`;

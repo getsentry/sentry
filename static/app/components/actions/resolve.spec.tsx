@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {
@@ -227,5 +228,40 @@ describe('ResolveActions', function () {
       />
     );
     expect(screen.queryByLabelText('More resolve options')).not.toBeInTheDocument();
+  });
+
+  it('does render next release option with subtitle', async function () {
+    const onUpdate = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/',
+      body: [ReleaseFixture()],
+    });
+    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(await screen.findByText('The next release')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The next release after the current one')
+    ).toBeInTheDocument();
+  });
+
+  it('does render in upcoming release', async function () {
+    const organization = OrganizationFixture({
+      features: ['resolve-in-upcoming-release'],
+    });
+    const onUpdate = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/',
+      body: [ReleaseFixture()],
+    });
+    render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(await screen.findByText('The upcoming release')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The next release that is not yet released')
+    ).toBeInTheDocument();
   });
 });

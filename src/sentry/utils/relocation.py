@@ -7,6 +7,7 @@ from enum import Enum, unique
 from functools import lru_cache
 from string import Template
 from typing import Any
+from uuid import UUID
 
 from django.utils import timezone
 
@@ -17,7 +18,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
 logger = logging.getLogger("sentry.relocation.tasks")
@@ -27,26 +28,32 @@ logger = logging.getLogger("sentry.relocation.tasks")
 # weird out-of-order executions.
 @unique
 class OrderedTask(Enum):
+    # Note: the numerical values should always be in execution order (ie, the order the tasks should
+    # be completed in). It is safe to edit the numbers assigned to any given task, as we only store
+    # tasks in the database by name.
     NONE = 0
-    UPLOADING_COMPLETE = 1
-    PREPROCESSING_SCAN = 2
-    PREPROCESSING_TRANSFER = 3
-    PREPROCESSING_BASELINE_CONFIG = 4
-    PREPROCESSING_COLLIDING_USERS = 5
-    PREPROCESSING_COMPLETE = 6
-    VALIDATING_START = 7
-    VALIDATING_POLL = 8
-    VALIDATING_COMPLETE = 9
-    IMPORTING = 10
-    POSTPROCESSING = 11
-    NOTIFYING_USERS = 12
-    NOTIFYING_OWNER = 13
-    COMPLETED = 14
+    UPLOADING_START = 1
+    UPLOADING_COMPLETE = 2
+    PREPROCESSING_SCAN = 3
+    PREPROCESSING_TRANSFER = 4
+    PREPROCESSING_BASELINE_CONFIG = 5
+    PREPROCESSING_COLLIDING_USERS = 6
+    PREPROCESSING_COMPLETE = 7
+    VALIDATING_START = 8
+    VALIDATING_POLL = 9
+    VALIDATING_COMPLETE = 10
+    IMPORTING = 11
+    POSTPROCESSING = 12
+    NOTIFYING_UNHIDE = 13
+    NOTIFYING_USERS = 14
+    NOTIFYING_OWNER = 15
+    COMPLETED = 16
 
 
 # Match each `OrderedTask` to the `Relocation.Step` it is part of.
 TASK_TO_STEP: dict[OrderedTask, Relocation.Step] = {
     OrderedTask.NONE: Relocation.Step.UNKNOWN,
+    OrderedTask.UPLOADING_START: Relocation.Step.UPLOADING,
     OrderedTask.UPLOADING_COMPLETE: Relocation.Step.UPLOADING,
     OrderedTask.PREPROCESSING_SCAN: Relocation.Step.PREPROCESSING,
     OrderedTask.PREPROCESSING_TRANSFER: Relocation.Step.PREPROCESSING,
@@ -58,13 +65,12 @@ TASK_TO_STEP: dict[OrderedTask, Relocation.Step] = {
     OrderedTask.VALIDATING_COMPLETE: Relocation.Step.VALIDATING,
     OrderedTask.IMPORTING: Relocation.Step.IMPORTING,
     OrderedTask.POSTPROCESSING: Relocation.Step.POSTPROCESSING,
+    OrderedTask.NOTIFYING_UNHIDE: Relocation.Step.NOTIFYING,
     OrderedTask.NOTIFYING_USERS: Relocation.Step.NOTIFYING,
     OrderedTask.NOTIFYING_OWNER: Relocation.Step.NOTIFYING,
     OrderedTask.COMPLETED: Relocation.Step.COMPLETED,
 }
-
-
-assert list(OrderedTask._member_map_.keys()) == [k.name for k in TASK_TO_STEP.keys()]
+assert set(OrderedTask._member_map_.keys()) == {k.name for k in TASK_TO_STEP.keys()}
 
 
 # The file type for a relocation export tarball of any kind.
@@ -305,7 +311,7 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
 # A custom logger that roughly matches the parts of the `click.echo` interface that the
 # `import_*` methods rely on.
 class LoggingPrinter(Printer):
-    def __init__(self, uuid: str):
+    def __init__(self, uuid: UUID):
         self.uuid = uuid
         super().__init__()
 
@@ -320,13 +326,13 @@ class LoggingPrinter(Printer):
             logger.error(
                 "Import failed: %s",
                 text,
-                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
+                extra={"uuid": str(self.uuid), "task": OrderedTask.IMPORTING.name},
             )
         else:
             logger.info(
                 "Import info: %s",
                 text,
-                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
+                extra={"uuid": str(self.uuid), "task": OrderedTask.IMPORTING.name},
             )
 
 
@@ -359,7 +365,7 @@ def send_relocation_update_email(
 
 
 def start_relocation_task(
-    uuid: str, task: OrderedTask, allowed_task_attempts: int
+    uuid: UUID, task: OrderedTask, allowed_task_attempts: int
 ) -> tuple[Relocation | None, int]:
     """
     All tasks for relocation are done sequentially, and take the UUID of the `Relocation` model as
@@ -368,7 +374,7 @@ def start_relocation_task(
     Returns a tuple of relocation model and the number of attempts remaining for this task.
     """
 
-    logger_data = {"uuid": uuid}
+    logger_data = {"uuid": str(uuid)}
     try:
         relocation: Relocation = Relocation.objects.get(uuid=uuid)
     except Relocation.DoesNotExist:
@@ -483,7 +489,9 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     relocation.status = Relocation.Status.FAILURE.value
     relocation.save()
 
-    logger.info("Task failed", extra={"uuid": relocation.uuid, "task": task.name, "reason": reason})
+    logger.info(
+        "Task failed", extra={"uuid": str(relocation.uuid), "task": task.name, "reason": reason}
+    )
     send_relocation_update_email(
         relocation,
         Relocation.EmailKind.FAILED,
@@ -508,7 +516,7 @@ def retry_task_or_fail_relocation(
     instead.
     """
 
-    logger_data = {"uuid": relocation.uuid, "task": task.name, "attempts_left": attempts_left}
+    logger_data = {"uuid": str(relocation.uuid), "task": task.name, "attempts_left": attempts_left}
     try:
         yield
     except Exception:
@@ -688,3 +696,10 @@ def create_cloudbuild_validation_step(
         timeout=str(timeout) + "s",
         wait_for=make_cloudbuild_step_args(3, wait_for),
     )
+
+
+def uuid_to_identifier(uuid: UUID) -> int:
+    """
+    Take a UUID object and generated a unique-enough 64-bit identifier from it's final 64 bits.
+    """
+    return uuid.int & ((1 << 63) - 1)

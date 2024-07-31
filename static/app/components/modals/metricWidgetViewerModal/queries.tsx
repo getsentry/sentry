@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -8,6 +8,11 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Input, {type InputProps} from 'sentry/components/input';
 import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
+import {EquationInput} from 'sentry/components/metrics/equationInput';
+import {EquationSymbol} from 'sentry/components/metrics/equationSymbol';
+import {QueryBuilder} from 'sentry/components/metrics/queryBuilder';
+import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
+import {getQuerySymbol, QuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION, SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {
@@ -23,7 +28,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import {hasMetricAlertFeature} from 'sentry/utils/metrics/features';
+import {hasMetricAlertFeature, hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -33,13 +38,14 @@ import type {
   DashboardMetricsExpression,
   DashboardMetricsQuery,
 } from 'sentry/views/dashboards/metrics/types';
-import {getMetricQueryName} from 'sentry/views/dashboards/metrics/utils';
+import {
+  formatAlias,
+  getMetricQueryName,
+  isVirtualAlias,
+  isVirtualExpression,
+} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
-import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
-import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 interface Props {
   addEquation: () => void;
@@ -65,10 +71,12 @@ export const Queries = memo(function Queries({
   removeEquation,
 }: Props) {
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
 
   const availableVariables = useMemo(
-    () => new Set(metricQueries.map(query => getQuerySymbol(query.id))),
-    [metricQueries]
+    () => new Set(metricQueries.map(query => getQuerySymbol(query.id, metricsNewInputs))),
+    [metricQueries, metricsNewInputs]
   );
 
   const handleEditQueryAlias = useCallback(
@@ -99,7 +107,7 @@ export const Queries = memo(function Queries({
   return (
     <ExpressionsWrapper>
       {metricQueries.map((query, index) => (
-        <ExpressionWrapper key={index}>
+        <ExpressionWrapper key={query.id}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={query.isHidden}
@@ -143,7 +151,7 @@ export const Queries = memo(function Queries({
         </ExpressionWrapper>
       ))}
       {metricEquations.map((equation, index) => (
-        <ExpressionWrapper key={index}>
+        <ExpressionWrapper key={equation.id}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={equation.isHidden}
@@ -164,6 +172,7 @@ export const Queries = memo(function Queries({
                   onChange={formula => onEquationChange({formula}, index)}
                   value={equation.formula}
                   availableVariables={availableVariables}
+                  metricsNewInputs={metricsNewInputs}
                 />
               </EquationInputWrapper>
               {equation.alias !== undefined && (
@@ -196,7 +205,7 @@ export const Queries = memo(function Queries({
 });
 
 /**
- * Wrapper for  the QueryBuilder to memoize the onChange handler
+ * Wrapper for the QueryBuilder to memoize the onChange handler
  */
 function WrappedQueryBuilder({
   index,
@@ -290,7 +299,7 @@ function QueryContextMenu({
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'settings',
-      label: t('Metric Settings'),
+      label: t('Configure Metric'),
       disabled: !customMetric,
       onAction: () => {
         navigateTo(
@@ -444,28 +453,56 @@ function ExpressionAliasForm({
   onChange: (alias: string | undefined) => void;
   hasContextMenu?: boolean;
 }) {
+  const organization = useOrganization();
+
   return (
     <ExpressionAliasWrapper hasOwnRow={hasContextMenu}>
-      <StyledLabel>as</StyledLabel>
-      <StyledDebouncedInput
-        type="text"
-        value={expression.alias}
-        onChange={e => onChange(e.target.value)}
-        placeholder={t('Add alias')}
-      />
-      <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
-        <StyledButton
-          icon={<IconDelete size="xs" />}
-          aria-label={t('Clear Alias')}
-          onClick={() => onChange(undefined)}
-        />
-      </Tooltip>
+      {hasMetricsNewInputs(organization) ? (
+        <QueryFieldGroup>
+          <QueryFieldGroup.Label>As</QueryFieldGroup.Label>
+          <QueryFieldGroup.DebouncedInput
+            type="text"
+            value={formatAlias(expression.alias)}
+            onChange={e => {
+              if (isVirtualAlias(expression.alias)) {
+                onChange(`v|${e.target.value}`);
+              } else {
+                onChange(e.target.value);
+              }
+            }}
+            placeholder={t('Add alias')}
+          />
+          <QueryFieldGroup.DeleteButton
+            disabled={isVirtualExpression(expression)}
+            title={t('Clear Alias')}
+            onClick={() => onChange(undefined)}
+          />
+        </QueryFieldGroup>
+      ) : (
+        <Fragment>
+          <StyledLabel>as</StyledLabel>
+          <StyledDebouncedInput
+            type="text"
+            value={formatAlias(expression.alias)}
+            onChange={e => onChange(e.target.value)}
+            placeholder={t('Add alias')}
+          />
+          <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
+            <StyledButton
+              disabled={isVirtualExpression(expression)}
+              icon={<IconDelete size="xs" />}
+              aria-label={t('Clear Alias')}
+              onClick={() => onChange(undefined)}
+            />
+          </Tooltip>
+        </Fragment>
+      )}
     </ExpressionAliasWrapper>
   );
 }
 
 // TODO: Move this to a shared component
-function DebouncedInput({
+export function DebouncedInput({
   onChange,
   wait = DEFAULT_DEBOUNCE_DURATION,
   ...inputProps
@@ -473,6 +510,10 @@ function DebouncedInput({
   const [value, setValue] = useState<string | number | readonly string[] | undefined>(
     inputProps.value
   );
+
+  useEffect(() => {
+    setValue(inputProps.value);
+  }, [inputProps.value]);
 
   const handleChange = useMemo(
     () =>

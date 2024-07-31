@@ -1,6 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -23,7 +22,6 @@ describe('Discover > MiniGraph', function () {
   beforeEach(() => {
     organization = OrganizationFixture({
       features,
-      projects: [ProjectFixture()],
     });
     initialData = initializeOrg({
       organization,

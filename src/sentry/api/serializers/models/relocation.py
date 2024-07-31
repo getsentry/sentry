@@ -2,13 +2,14 @@ import dataclasses
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.db.models import QuerySet
+
 from sentry.api.serializers import Serializer, register
-from sentry.db.models.manager.base import BaseManager
 from sentry.models.importchunk import BaseImportChunk, ControlImportChunkReplica, RegionImportChunk
 from sentry.models.relocation import Relocation
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 NEEDED_USER_FIELDS = {"email", "id", "username"}
 
@@ -29,7 +30,7 @@ class RelocationMetadata:
     imported_org_ids: list[int]
 
 
-def get_all_imported_ids_of_model(chunks: BaseManager[BaseImportChunk]) -> list[int]:
+def get_all_imported_ids_of_model(chunks: QuerySet[BaseImportChunk]) -> list[int]:
     all_imported_ids = set()
     for chunk in chunks:
         all_imported_ids |= (
@@ -92,17 +93,10 @@ class RelocationSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "uuid": str(obj.uuid),
             "creator": creator,
-            # TODO(azaslavsky): delete these 3 fields after clients are migrated
-            "creatorEmail": creator["email"] if creator else None,
-            "creatorId": creator["id"] if creator else None,
-            "creatorUsername": creator["username"] if creator else None,
             "owner": owner,
-            # TODO(azaslavsky): delete these 3 fields after clients are migrated
-            "ownerEmail": owner["email"] if owner else None,
-            "ownerId": owner["id"] if owner else None,
-            "ownerUsername": owner["username"] if owner else None,
             "status": Relocation.Status(obj.status).name,
             "step": Relocation.Step(obj.step).name,
+            "provenance": Relocation.Provenance(obj.provenance).name,
             "failureReason": obj.failure_reason,
             "scheduledPauseAtStep": scheduled_at_pause_step,
             "scheduledCancelAtStep": scheduled_at_cancel_step,

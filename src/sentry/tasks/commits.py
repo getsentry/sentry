@@ -17,11 +17,11 @@ from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.repository import Repository
 from sentry.models.user import User
 from sentry.plugins.base import bindings
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -264,9 +264,7 @@ def get_emails_for_user_or_org(user: RpcUser | None, orgId: int):
         organization = Organization.objects.get(id=orgId)
         members = organization.get_members_with_org_roles(roles=["owner"])
         user_ids = [m.user_id for m in members if m.user_id]
-        emails = list(
-            {u.email for u in user_service.get_many(filter={"user_ids": user_ids}) if u.email}
-        )
+        emails = list({u.email for u in user_service.get_many_by_id(ids=user_ids) if u.email})
     else:
         emails = [user.email]
 

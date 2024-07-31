@@ -25,18 +25,11 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
-from sentry.constants import ObjectStatus, SentryAppStatus
+from sentry.constants import ObjectStatus
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.updater import Updater
-from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import (
-    SentryAppInstallation,
-    prepare_ui_component,
-)
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
@@ -128,65 +121,14 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         # Serialize Rule object
-        serialized_rule = serialize(
-            rule, request.user, RuleSerializer(request.GET.getlist("expand", []))
+        rule_serializer = RuleSerializer(
+            expand=request.GET.getlist("expand", []),
+            prepare_component_fields=True,
+            project_slug=project.slug,
         )
-
-        errors = []
+        serialized_rule = serialize(rule, request.user, rule_serializer)
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
-            if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-                # TODO(hybridcloud) This is nasty and should be fixed.
-                # Because all of the prepare_* functions currently operate on ORM
-                # records we need to convert our RpcSentryApp and dict data into detached
-                # ORM models and stitch together relations used in preparing UI components.
-                installation = SentryAppInstallation(
-                    **action.get("_sentry_app_installation", {}),
-                )
-                # The api_token_id field is nulled out to prevent relation traversal as these
-                # ORM objects are turned back into RPC objects.
-                installation.api_token_id = None
-
-                rpc_app = action.get("_sentry_app")
-                installation.sentry_app = SentryApp(
-                    id=rpc_app.id,
-                    scope_list=rpc_app.scope_list,
-                    application_id=rpc_app.application_id,
-                    application=ApiApplication(
-                        id=rpc_app.application.id,
-                        client_id=rpc_app.application.client_id,
-                        client_secret=rpc_app.application.client_secret,
-                    ),
-                    proxy_user_id=rpc_app.proxy_user_id,
-                    owner_id=rpc_app.owner_id,
-                    name=rpc_app.name,
-                    slug=rpc_app.slug,
-                    uuid=rpc_app.uuid,
-                    events=rpc_app.events,
-                    webhook_url=rpc_app.webhook_url,
-                    status=SentryAppStatus.as_int(rpc_app.status),
-                    metadata=rpc_app.metadata,
-                )
-                component = prepare_ui_component(
-                    installation,
-                    SentryAppComponent(**action.get("_sentry_app_component")),
-                    project.slug,
-                    action.get("settings"),
-                )
-
-                if component is None:
-                    errors.append(
-                        {"detail": f"Could not fetch details from {installation.sentry_app.name}"}
-                    )
-                    action["disabled"] = True
-                    continue
-
-                action["formFields"] = component.schema.get("settings", {})
-
-                # Delete meta fields
-                del action["_sentry_app_installation"]
-                del action["_sentry_app_component"]
-
             # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of
             #                  the selected choice and not save all the choices.
             if action.get("id") in (JiraCreateTicketAction.id, JiraServerCreateTicketAction.id):
@@ -197,9 +139,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                             for p in field.get("choices", [])
                             if isinstance(p[0], str) and isinstance(p[1], str)
                         ]
-
-        if len(errors):
-            serialized_rule["errors"] = errors
 
         return Response(serialized_rule)
 

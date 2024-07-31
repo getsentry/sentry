@@ -8,7 +8,10 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
+from sentry.search.events.builder.profiles import (
+    ProfilesQueryBuilder,
+    ProfilesTimeseriesQueryBuilder,
+)
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.snuba.dataset import Dataset

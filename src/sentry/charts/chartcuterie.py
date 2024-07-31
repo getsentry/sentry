@@ -52,9 +52,7 @@ class Chartcuterie(ChartRenderer):
         if not self.service_url:
             raise InvalidConfiguration("`chart-rendering.chartcuterie.url` is not configured")
 
-    def generate_chart(
-        self, style: ChartType, data: Any, upload: bool = True, size: ChartSize | None = None
-    ) -> str | bytes:
+    def generate_chart(self, style: ChartType, data: Any, size: ChartSize | None = None) -> str:
         request_id = uuid4().hex
 
         payload = {
@@ -87,9 +85,6 @@ class Chartcuterie(ChartRenderer):
 
             if resp.status_code != 200:
                 raise RuntimeError(f"Chartcuterie responded with {resp.status_code}: {resp.text}")
-
-        if not upload:
-            return resp.content
 
         file_name = f"{request_id}.png"
 

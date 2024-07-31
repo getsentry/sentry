@@ -49,7 +49,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         if group_tag_key.count is None:
             group_tag_key.count = tagstore.backend.get_group_tag_value_count(
-                group.project_id, group.id, environment_id, lookup_key, tenant_ids=tenant_ids
+                group, environment_id, lookup_key, tenant_ids=tenant_ids
             )
 
         if group_tag_key.top_values is None:

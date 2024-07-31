@@ -64,6 +64,10 @@ describe('SavedIssueSearches', function () {
     localStorageWrapper.setItem(SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY, 'true');
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   it('displays saved searches with correct text and in correct sections', async function () {

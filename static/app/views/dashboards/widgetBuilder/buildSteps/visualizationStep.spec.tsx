@@ -74,7 +74,7 @@ function mockRequests(orgSlug: Organization['slug']) {
 }
 
 describe('VisualizationStep', function () {
-  const {organization, router} = initializeOrg({
+  const {organization, projects, router} = initializeOrg({
     organization: {
       features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
     },
@@ -88,7 +88,7 @@ describe('VisualizationStep', function () {
   });
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
   });
 
   it('debounce works as expected and requests are not triggered often', async function () {

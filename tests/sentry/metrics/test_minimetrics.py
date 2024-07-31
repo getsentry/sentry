@@ -1,53 +1,23 @@
-from typing import Any
+from datetime import datetime, timedelta
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
-from sentry_sdk import Client, Hub, Transport
+import sentry_sdk
+import sentry_sdk.scope
+from sentry_sdk import Client, Transport
 
 from sentry.metrics.composite_experimental import CompositeExperimentalMetricsBackend
-from sentry.metrics.minimetrics import MiniMetricsMetricsBackend, before_emit_metric
+from sentry.metrics.minimetrics import MiniMetricsMetricsBackend
 from sentry.testutils.helpers import override_options
 
 
-def full_flush(hub):
+def full_flush(scope):
     # first flush flushes the metrics
-    hub.client.flush()
+    scope.client.flush()
 
     # second flush should really not do anything unless the first
     # flush accidentally created more metrics
-    hub.client.flush()
-
-
-def parse_metrics(bytes: bytes):
-    rv = []
-    for line in bytes.splitlines():
-        pieces = line.decode("utf-8").split("|")
-        payload = pieces[0].split(":")
-        name = payload[0]
-        values = payload[1:]
-        ty = pieces[1]
-        ts = None
-        tags: dict[str, Any] = {}
-        for piece in pieces[2:]:
-            if piece[0] == "#":
-                for pair in piece[1:].split(","):
-                    k, v = pair.split(":", 1)
-                    old = tags.get(k)
-                    if old is not None:
-                        if isinstance(old, list):
-                            old.append(v)
-                        else:
-                            tags[k] = [old, v]
-                    else:
-                        tags[k] = v
-            elif piece[0] == "T":
-                ts = int(piece[1:])
-            else:
-                raise ValueError(f"unknown piece {piece!r}")
-        rv.append((ts, name, ty, values, tags))
-    rv.sort(key=lambda x: (x[0], x[1], tuple(sorted(tags.items()))))
-    return rv
+    scope.client.flush()
 
 
 class DummyTransport(Transport):
@@ -57,30 +27,32 @@ class DummyTransport(Transport):
     def capture_envelope(self, envelope):
         self.captured.append(envelope)
 
-    def get_metrics(self):
-        result = []
+    def get_spans(self):
+        tx = self.get_transaction()
+        if tx is None:
+            return []
+
+        return tx["spans"]
+
+    def get_transaction(self):
         for envelope in self.captured:
             for item in envelope.items:
-                if item.headers.get("type") == "statsd":
-                    result.extend(parse_metrics(item.payload.get_bytes()))
-        result.sort(key=lambda x: (x[0], x[1], x[2]))
-        return result
+                if item.headers.get("type") == "transaction":
+                    return item.payload.json
 
 
 @pytest.fixture(scope="function")
-def hub():
-    hub = Hub(
-        Client(
+def scope():
+    scope = sentry_sdk.Scope(
+        ty=sentry_sdk.scope.ScopeType.CURRENT,
+        client=Client(
             dsn="http://foo@example.invalid/42",
             transport=DummyTransport,
-            _experiments={
-                "enable_metrics": True,
-                "before_emit_metric": before_emit_metric,  # type: ignore[typeddict-item]
-            },
-        )
+            traces_sample_rate=1.0,
+        ),
     )
-    with hub:
-        yield hub
+    with sentry_sdk.scope.use_scope(scope):
+        yield scope
 
 
 @pytest.fixture(scope="function")
@@ -94,130 +66,115 @@ def backend():
         yield rv
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
-def test_incr_called_with_no_tags(backend, hub):
-    backend.incr(key="foo", tags={"x": "y"})
-    full_flush(hub)
+def test_incr(backend, scope):
+    with scope.start_transaction():
+        with scope.start_span(op="test"):
+            backend.incr(key="foo")
 
-    metrics = hub.client.transport.get_metrics()
+    full_flush(scope)
+    (span,) = scope.client.transport.get_spans()
 
-    assert len(metrics) == 1
-    assert metrics[0][1] == "sentrytest.foo@none"
-    assert metrics[0][2] == "c"
-    assert metrics[0][3] == ["1.0"]
-    assert metrics[0][4]["release"] != ""
-    assert metrics[0][4]["environment"] != ""
-    assert metrics[0][4]["x"] == "y"
-
-    assert len(hub.client.metrics_aggregator.buckets) == 0
+    assert span["op"] == "test"
+    assert span["data"]["foo"] == 1
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": False,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
-def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
-    backend.incr(key="foo", tags={"x": "y"})
-    full_flush(hub)
+def test_incr_with_tag(backend, scope):
+    with scope.start_transaction():
+        with scope.start_span(op="test"):
+            backend.incr(key="foo", tags={"x": "y"})
 
-    metrics = hub.client.transport.get_metrics()
+    full_flush(scope)
+    (span,) = scope.client.transport.get_spans()
 
-    assert len(metrics) == 1
-    assert metrics[0][1] == "sentrytest.foo@none"
-    assert metrics[0][2] == "c"
-    assert metrics[0][3] == ["1.0"]
-    assert metrics[0][4].get("release") is None
-    assert metrics[0][4].get("environment") is None
-    assert metrics[0][4]["x"] == "y"
-
-    assert len(hub.client.metrics_aggregator.buckets) == 0
+    assert span["op"] == "test"
+    assert span["data"]["foo"] == 1
+    assert span["data"]["x"] == "y"
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
-def test_incr_called_with_tag_value_as_list(backend, hub):
-    # The minimetrics backend supports the list type.
-    backend.incr(key="foo", tags={"x": ["bar", "baz"]})
-    full_flush(hub)
+def test_incr_multi(backend, scope):
+    with scope.start_transaction():
+        with scope.start_span(op="test"):
+            backend.incr(key="foo", tags={"x": "y"})
+            backend.incr(key="foo", tags={"x": "z"})
 
-    metrics = hub.client.transport.get_metrics()
+    full_flush(scope)
+    (span,) = scope.client.transport.get_spans()
 
-    assert len(metrics) == 1
-    assert metrics[0][1] == "sentrytest.foo@none"
-    assert metrics[0][4]["x"] == ["bar", "baz"]
-
-    assert len(hub.client.metrics_aggregator.buckets) == 0
+    assert span["op"] == "test"
+    assert span["data"]["foo"] == 1  # NB: SDK has no get_data() -> incr impossible
+    assert span["data"]["x"] == "z"
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.emit_gauges": False,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
-def test_gauge_as_count(backend, hub):
-    # The minimetrics backend supports the list type.
-    backend.gauge(key="foo", value=42.0)
-    full_flush(hub)
+def test_gauge(backend, scope):
+    with scope.start_transaction():
+        with scope.start_span(op="test"):
+            backend.gauge(key="foo", value=0)
+            backend.gauge(key="foo", value=42.0)
 
-    metrics = hub.client.transport.get_metrics()
+    full_flush(scope)
+    (span,) = scope.client.transport.get_spans()
 
-    assert len(metrics) == 1
-    assert metrics[0][1] == "sentrytest.foo@none"
-    assert metrics[0][2] == "c"
-    assert metrics[0][3] == ["42.0"]
-
-    assert len(hub.client.metrics_aggregator.buckets) == 0
+    assert span["op"] == "test"
+    assert span["data"]["foo"] == 42.0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.emit_gauges": True,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
-def test_gauge(backend, hub):
-    # The minimetrics backend supports the list type.
-    backend.gauge(key="foo", value=42.0)
-    full_flush(hub)
+def test_distribution(backend, scope):
+    with scope.start_transaction():
+        with scope.start_span(op="test"):
+            backend.distribution(key="foo", value=0)
+            backend.distribution(key="foo", value=42.0)
 
-    metrics = hub.client.transport.get_metrics()
+    full_flush(scope)
+    (span,) = scope.client.transport.get_spans()
 
-    assert len(metrics) == 1
-    assert metrics[0][1] == "sentrytest.foo@none"
-    assert metrics[0][2] == "g"
-    assert metrics[0][3] == ["42.0", "42.0", "42.0", "42.0", "1"]
-
-    assert len(hub.client.metrics_aggregator.buckets) == 0
+    assert span["op"] == "test"
+    assert span["data"]["foo"] == 42.0
 
 
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
-def test_composite_backend_does_not_recurse(hub):
+def test_timing(backend, scope):
+    with scope.start_transaction():
+        with scope.start_span(op="test"):
+            backend.timing(key="foo", value=42.1, tags={"x": "y"})
+
+    full_flush(scope)
+    (parent, child) = scope.client.transport.get_spans()
+
+    assert parent["op"] == "test"
+    assert child["op"] == "foo"
+    assert child["data"]["x"] == "y"
+
+    duration = datetime.fromisoformat(child["timestamp"]) - datetime.fromisoformat(
+        child["start_timestamp"]
+    )
+    assert duration == timedelta(seconds=42.1)
+
+
+def test_timing_duplicate(backend, scope):
+    with scope.start_transaction():
+        # We often manually track a span + a timer with same name. In this case
+        # we want no additional span.
+        with scope.start_span(op="test"):
+            backend.timing(key="test", value=42.0, tags={"x": "y"})
+
+    full_flush(scope)
+    (span,) = scope.client.transport.get_spans()
+
+    assert span["op"] == "test"
+    assert "test" not in span["data"]
+    assert span["data"]["x"] == "y"
+
+    # NB: Explicit timing is discarded
+
+
+def test_no_transaction(backend, scope):
+    backend.incr(key="foo")
+
+    full_flush(scope)
+    assert not scope.client.transport.get_spans()
+
+
+@override_options({"delightful_metrics.minimetrics_sample_rate": 1.0})
+def test_composite_backend_does_not_recurse(scope):
     composite_backend = CompositeExperimentalMetricsBackend(
         primary_backend="sentry.metrics.dummy.DummyMetricsBackend"
     )
@@ -225,120 +182,16 @@ def test_composite_backend_does_not_recurse(hub):
 
     class TrackingCompositeBackend:
         def __getattr__(self, name):
+            assert name not in accessed
             accessed.add(name)
             return getattr(composite_backend, name)
 
     # make sure the backend feeds back to itself
-    with mock.patch("sentry.utils.metrics.backend", new=TrackingCompositeBackend()):
-        composite_backend.incr(key="sentrytest.composite", tags={"x": "bar"})
-        full_flush(hub)
+    with mock.patch("sentry.utils.metrics.backend", new=TrackingCompositeBackend()) as backend:
+        with scope.start_transaction():
+            with scope.start_span(op="test"):
+                backend.incr(key="sentrytest.composite", tags={"x": "bar"})
+        full_flush(scope)
 
-    # make sure that we did actually internally forward to the composite
-    # backend so the test does not accidentally succeed.
-    assert "incr" in accessed
-    assert "distribution" in accessed
-
-    metrics = hub.client.transport.get_metrics()
-
-    # the minimetrics.add metric must not show up
-    assert len(metrics) == 1
-    assert metrics[0][1] == "sentry.sentrytest.composite@none"
-    assert metrics[0][4]["x"] == "bar"
-
-    assert len(hub.client.metrics_aggregator.buckets) == 0
-
-
-@override_options(
-    {
-        "delightful_metrics.minimetrics_sample_rate": 1.0,
-    }
-)
-@patch("sentry.metrics.minimetrics.sentry_sdk")
-@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
-def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
-    backend = MiniMetricsMetricsBackend(prefix="")
-
-    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
-
-    # We want to mutate the params since `value` is passed as `amount`.
-    incr_params = params.copy()
-    del incr_params["value"]
-    incr_params["amount"] = params["value"]
-    backend.incr(**incr_params)
-    assert sentry_sdk.metrics.incr.call_args.kwargs == {
-        **params,
-        "unit": expected_unit,
-        "stacklevel": 1,
-    }
-
-
-@override_options(
-    {
-        "delightful_metrics.minimetrics_sample_rate": 1.0,
-    }
-)
-@patch("sentry.metrics.minimetrics.sentry_sdk")
-@pytest.mark.parametrize("unit,expected_unit", [(None, "second"), ("second", "second")])
-def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit):
-    backend = MiniMetricsMetricsBackend(prefix="")
-
-    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}}
-
-    backend.timing(**params)  # type: ignore[arg-type]
-    assert sentry_sdk.metrics.distribution.call_args.kwargs == {
-        **params,
-        "unit": expected_unit,
-        "stacklevel": 1,
-    }
-
-
-@override_options(
-    {"delightful_metrics.minimetrics_sample_rate": 1.0, "delightful_metrics.emit_gauges": True}
-)
-@patch("sentry.metrics.minimetrics.sentry_sdk")
-@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
-def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit):
-    backend = MiniMetricsMetricsBackend(prefix="")
-
-    params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}, "unit": unit}
-
-    backend.gauge(**params)
-    assert sentry_sdk.metrics.gauge.call_args.kwargs == {
-        **params,
-        "unit": expected_unit,
-        "stacklevel": 1,
-    }
-
-
-@override_options(
-    {
-        "delightful_metrics.minimetrics_sample_rate": 1.0,
-    }
-)
-@patch("sentry.metrics.minimetrics.sentry_sdk")
-@pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
-def test_unit_is_correctly_propagated_for_distribution(sentry_sdk, unit, expected_unit):
-    backend = MiniMetricsMetricsBackend(prefix="")
-
-    params = {"key": "sentrytest.unit", "value": 15.0, "tags": {"x": "bar"}, "unit": unit}
-
-    backend.distribution(**params)
-    assert sentry_sdk.metrics.distribution.call_args.kwargs == {
-        **params,
-        "unit": expected_unit,
-        "stacklevel": 1,
-    }
-
-
-@pytest.mark.parametrize(
-    "unit,default,expected_result",
-    [
-        (None, None, "none"),
-        (None, "my_default", "my_default"),
-        ("second", None, "second"),
-        ("second", "my_default", "second"),
-    ],
-)
-def test_to_minimetrics_unit(unit, default, expected_result):
-    result = MiniMetricsMetricsBackend._to_minimetrics_unit(unit, default)
-    assert result == expected_result
+    (span,) = scope.client.transport.get_spans()
+    assert span["data"]["sentrytest.composite"] == 1

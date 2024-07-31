@@ -46,6 +46,7 @@ const accountNotifications = [
   'quota',
   'spikeProtection',
   'reports',
+  'brokenMonitors',
 ];
 
 type ANBPProps = {

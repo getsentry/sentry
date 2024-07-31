@@ -12,13 +12,13 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import OptionManager, Value
+from sentry.db.models.manager.option import OptionManager
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
@@ -43,8 +43,8 @@ class UserOptionManager(OptionManager["UserOption"]):
         return super()._make_key(metakey)
 
     def get_value(
-        self, user: User | RpcUser, key: str, default: Value | None = None, **kwargs: Any
-    ) -> Value:
+        self, user: User | RpcUser, key: str, default: Any | None = None, **kwargs: Any
+    ) -> Any:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
@@ -71,7 +71,7 @@ class UserOptionManager(OptionManager["UserOption"]):
             return
         self._option_cache[metakey].pop(key, None)
 
-    def set_value(self, user: User | int, key: str, value: Value, **kwargs: Any) -> None:
+    def set_value(self, user: User | int, key: str, value: Any, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
         project_id = kwargs.get("project_id", None)
@@ -106,7 +106,7 @@ class UserOptionManager(OptionManager["UserOption"]):
         project: Project | int | None = None,
         organization: Organization | int | None = None,
         force_reload: bool = False,
-    ) -> Mapping[str, Value]:
+    ) -> Mapping[str, Any]:
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
@@ -128,7 +128,7 @@ class UserOptionManager(OptionManager["UserOption"]):
 
         return self._option_cache.get(metakey, {})
 
-    def post_save(self, instance: UserOption, **kwargs: Any) -> None:
+    def post_save(self, *, instance: UserOption, created: bool, **kwargs: object) -> None:
         self.get_all_values(
             instance.user, instance.project_id, instance.organization_id, force_reload=True
         )

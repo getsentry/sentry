@@ -15,15 +15,15 @@ from rest_framework.exceptions import (
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import capture_exception, configure_scope
+from sentry_sdk import Scope, capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
+from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, RpcResolutionException
-from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
 
@@ -78,8 +78,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        with configure_scope() as scope:
-            scope.set_tag("seer_rpc_auth", True)
+        Scope.get_isolation_scope().set_tag("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 

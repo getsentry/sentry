@@ -9,7 +9,7 @@ from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events import builder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -22,7 +22,7 @@ from sentry.search.events.fields import (
     SnQLFunction,
     with_default,
 )
-from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, SelectType, WhereType
 
 
 class Kind(Enum):
@@ -107,9 +107,7 @@ COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
 class ProfileColumnArg(ColumnArg):
-    def normalize(
-        self, value: str, params: ParamsType, combinator: Combinator | None
-    ) -> NormalizedArg:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         column = COLUMN_MAP.get(value)
 
         # must be a known column or field alias
@@ -164,7 +162,7 @@ class ProfilesDatasetConfig(DatasetConfig):
         "project_id",
     }
 
-    def __init__(self, builder: builder.QueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
 
     @property

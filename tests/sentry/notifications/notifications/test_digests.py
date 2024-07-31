@@ -2,7 +2,7 @@ import uuid
 from unittest import mock
 from unittest.mock import ANY, patch
 
-import responses
+import orjson
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
@@ -15,7 +15,6 @@ from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -154,7 +153,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 
 class DigestSlackNotification(SlackActivityNotificationTest):
-    @responses.activate
     @mock.patch.object(sentry, "digests")
     def test_slack_digest_notification_block(self, digests):
         """
@@ -205,8 +203,9 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         with self.tasks():
             deliver_digest(key)
 
-        assert len(responses.calls) >= 1
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert self.mock_post.call_count == 1
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
             == f"<!date^{timestamp_secs}^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"

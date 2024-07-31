@@ -18,10 +18,7 @@ import {
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {
-  getReplayConfigureDescription,
-  getReplaySDKSetupSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {getReplaySDKSetupSnippet} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -56,9 +53,15 @@ export default defineConfig({
 
 const getVerifyAstroSnippet = () => `
 <!-- your-page.astro -->
-<button onclick="throw new Error('This is a test error')">
-  Throw test error
-</button>
+---
+---
+<button id="error-button">Throw test error</button>
+<script>
+  function handleClick () {
+    throw new Error('This is a test error');
+  }
+  document.querySelector("#error-button").addEventListener("click", handleClick);
+</script>
 `;
 
 const getInstallConfig = () => [
@@ -192,7 +195,7 @@ const onboarding: OnboardingConfig = {
       description: t(
         'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
       ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/performance/',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/tracing/',
     },
     {
       id: 'session-replay',
@@ -206,31 +209,96 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
+  install: () => [
+    {
+      ...getInstallConfig()[0],
+      additionalInfo:
+        'Session Replay is enabled by default when you install the Astro SDK!',
+    },
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/',
-      }),
+      description: tct(
+        'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+        {
+          link: (
+            <ExternalLink
+              href={
+                'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/'
+              }
+            />
+          ),
+        }
+      ),
       configurations: [
+        {
+          description: tct(
+            'You can set sample rates directly in your [code:astro.config.js] file:',
+            {
+              code: <code />,
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'astro.config.js',
+              code: `
+import { defineConfig } from "astro/config";
+import sentry from "@sentry/astro";
+
+export default defineConfig({
+  integrations: [
+    sentry({
+      dsn: "${params.dsn}",
+      replaysSessionSampleRate: 0.2, // defaults to 0.1
+      replaysOnErrorSampleRate: 1.0, // defaults to 1.0
+    }),
+  ],
+});
+              `,
+            },
+          ],
+          additionalInfo: tct(
+            'Further Replay options, like privacy settings, can be set in a [code:sentry.client.config.js] file:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
           code: [
             {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
+              filename: 'sentry.client.config.js',
               code: getReplaySDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/astro";`,
+                importStatement: `// This file overrides \`astro.config.mjs\` for the browser-side.
+// SDK options from \`astro.config.mjs\` will not apply.
+import * as Sentry from "@sentry/astro";`,
                 dsn: params.dsn,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
             },
           ],
+          additionalInfo: tct(
+            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code2:astro.config.js] file. Learn more about this [link:here].`,
+            {
+              code: <code />,
+              code2: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/#manual-sdk-initialization" />
+              ),
+            }
+          ),
         },
       ],
       additionalInfo: <TracePropagationMessage />,
+      isOptional: true,
     },
   ],
   verify: () => [],

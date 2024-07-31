@@ -1,10 +1,10 @@
+import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import type {MRI} from 'sentry/types/metrics';
 import {getDateTimeParams} from 'sentry/utils/metrics';
 import type {MetricMetaCodeLocation} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {SelectionRange} from 'sentry/views/metrics/chart/types';
 
 type MetricCorrelationOpts = SelectionRange & {
   codeLocations?: boolean;

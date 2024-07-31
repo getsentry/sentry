@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import builder, constants, fields
+from sentry.search.events import constants, fields
+from sentry.search.events.builder import spans_metrics
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import SnQLStringArg, get_function_alias
@@ -18,11 +20,21 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 
 
+class Args(TypedDict):
+    scope: str
+    column: str
+
+
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
-    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
+    nullable_metrics = {
+        constants.SPAN_MESSAGING_LATENCY,
+        constants.SPAN_METRICS_MAP["cache.item_size"],
+        constants.SPAN_METRICS_MAP["ai.total_cost"],
+        constants.SPAN_METRICS_MAP["ai.total_tokens.used"],
+    }
 
-    def __init__(self, builder: builder.SpansMetricsQueryBuilder):
+    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
         self.builder = builder
         self.total_span_duration: float | None = None
 
@@ -130,6 +142,66 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "count_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("span.self_time"),
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [self.builder.column(args["if_col"]), args["if_val"]],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "division_if",
+                    required_args=[
+                        fields.MetricArg(
+                            # the dividend, needs to be named column, otherwise the query builder won't be able to determine the correct target table
+                            "column",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "divisorColumn",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    snql_gauge=self._resolve_division_if,
+                    snql_distribution=self._resolve_division_if,
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "sum",
@@ -708,7 +780,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         if self.total_span_duration is not None:
             return Function("toFloat64", [self.total_span_duration], alias)
 
-        total_query = builder.SpansMetricsQueryBuilder(
+        total_query = spans_metrics.SpansMetricsQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -728,9 +800,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self.total_span_duration = results["data"][0][get_function_alias(f"sum({column})")]
         return Function("toFloat64", [self.total_span_duration], alias)
 
-    def _resolve_time_spent_percentage(
-        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
-    ) -> SelectType:
+    def _resolve_time_spent_percentage(self, args: Args, alias: str) -> SelectType:
         total_time = self._resolve_total_span_duration(
             constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"], args["column"]
         )
@@ -1041,10 +1111,17 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         condition: str,
         alias: str | None = None,
     ) -> SelectType:
+        timestamp = args["timestamp"]
         if condition == "greater":
-            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
+            assert isinstance(self.builder.params.end, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.end: {self.builder.params.end} - timestamp: {timestamp}"
+            interval = (self.builder.params.end - timestamp).total_seconds()
         elif condition == "less":
-            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
+            assert isinstance(self.builder.params.start, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.start: {self.builder.params.start} - timestamp: {timestamp}"
+            interval = (timestamp - self.builder.params.start).total_seconds()
         else:
             raise InvalidSearchQuery(f"Unsupported condition for epm: {condition}")
 
@@ -1086,6 +1163,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         condition: str,
         alias: str | None = None,
     ) -> SelectType:
+        column = args["column"]
+        assert isinstance(column, str), f"column: {column}"
         conditional_aggregate = Function(
             "avgIf",
             [
@@ -1097,7 +1176,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "equals",
                             [
                                 Column("metric_id"),
-                                self.resolve_metric(args["column"]),
+                                self.resolve_metric(column),
                             ],
                         ),
                         Function(condition, [Column("timestamp"), args["timestamp"]]),
@@ -1120,6 +1199,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
+        op = args["op"]
+        assert isinstance(op, str), f"op: {op}"
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -1132,7 +1213,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 "equals",
                 [
                     self.builder.column("span.op"),
-                    self.builder.resolve_tag_value(args["op"]),
+                    self.builder.resolve_tag_value(op),
                 ],
             ),
             alias,
@@ -1170,6 +1251,48 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
             ],
+            alias,
+        )
+
+    def _resolve_sum_if(
+        self,
+        metric_name: str,
+        if_col_name: str,
+        if_val: SelectType,
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric(metric_name),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [self.builder.column(if_col_name), if_val],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_division_if(
+        self,
+        args: Mapping[str, str | Column | SelectType],
+        alias: str,
+    ) -> SelectType:
+        return function_aliases.resolve_division(
+            self._resolve_sum_if(args["column"], args["if_col"], args["if_val"]),
+            self._resolve_sum_if(args["divisorColumn"], args["if_col"], args["if_val"]),
             alias,
         )
 
@@ -1240,7 +1363,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 class SpansMetricsLayerDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: builder.SpansMetricsQueryBuilder):
+    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
         self.builder = builder
         self.total_span_duration: float | None = None
 

@@ -46,7 +46,6 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from ..services.hybrid_cloud import rpcmetrics
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -132,7 +131,7 @@ def apply_cors_headers(
         allowed_methods = []
     allow = ", ".join(allowed_methods)
     if not allow or "*" in allow:
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_level("warning")
             scope.set_context(
                 "cors_headers",
@@ -222,10 +221,11 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: RateLimitConfig | dict[
-        str, dict[RateLimitCategory, RateLimit]
+    rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]] | Callable[
+        ..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
+    snuba_methods: list[HTTP_METHOD_NAME] = []
 
     def build_link_header(self, request: Request, path: str, rel: str):
         # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
@@ -449,8 +449,7 @@ class Endpoint(APIView):
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
             ) as span:
-                with rpcmetrics.wrap_sdk_span(span):
-                    response = handler(request, *args, **kwargs)
+                response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -630,11 +629,13 @@ class StatsMixin:
         rollups that may put strain on the system.
         """
         try:
-            resolution = request.GET.get("resolution")
-            if resolution:
-                resolution = self._parse_resolution(resolution)
+            resolution_s = request.GET.get("resolution")
+            if resolution_s:
+                resolution = self._parse_resolution(resolution_s)
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
+            else:
+                resolution = None
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
@@ -669,7 +670,7 @@ class StatsMixin:
             "environment_ids": environment_id and [environment_id],
         }
 
-    def _parse_resolution(self, value):
+    def _parse_resolution(self, value: str) -> int:
         if value.endswith("h"):
             return int(value[:-1]) * ONE_HOUR
         elif value.endswith("d"):

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import copy
-from typing import Any
+from collections.abc import MutableMapping
+from typing import TYPE_CHECKING, Any
 
 import orjson
 import sentry_sdk
@@ -15,6 +16,9 @@ from sentry_relay.processing import (
 
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 
 def get_pii_config(project):
@@ -85,7 +89,7 @@ def get_all_pii_configs(project):
 
 
 @sentry_sdk.tracing.trace
-def scrub_data(project, event):
+def scrub_data(project: Project, event: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     for config in get_all_pii_configs(project):
         metrics.distribution(
             "datascrubbing.config.num_applications", len(config.get("applications") or ())
@@ -98,7 +102,9 @@ def scrub_data(project, event):
 
         metrics.distribution("datascrubbing.config.rules.size", total_rules)
 
-        event = pii_strip_event(config, event, json_loads=orjson.loads, json_dumps=orjson.dumps)
+        event = pii_strip_event(
+            config, dict(event), json_loads=orjson.loads, json_dumps=orjson.dumps
+        )
 
     return event
 

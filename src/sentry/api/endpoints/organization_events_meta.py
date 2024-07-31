@@ -23,6 +23,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
         try:
@@ -37,7 +38,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 selected_columns=["count()"],
                 params=params,
                 query=request.query_params.get("query"),
-                referrer="api.organization-events-meta",
+                referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
             )
 
         return Response({"count": result["data"][0]["count"]})
@@ -93,10 +94,10 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 query_kwargs["actor"] = request.user
 
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
-                results = search.backend.query(**query_kwargs)
+                results_cursor = search.backend.query(**query_kwargs)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="serialize_results") as span:
-            results = list(results)
+            results = list(results_cursor)
             span.set_data("result_length", len(results))
             context = serialize(
                 results,
@@ -114,6 +115,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
         try:

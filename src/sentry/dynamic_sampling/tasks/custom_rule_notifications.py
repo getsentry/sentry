@@ -3,7 +3,6 @@ Task for sending notifications when custom rules have gathered enough samples.
 """
 
 from datetime import datetime, timezone
-from typing import Any
 
 from django.http import QueryDict
 
@@ -16,10 +15,11 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task_with_context,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.search.events.types import ParamsType
 from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
+from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
 MIN_SAMPLES_FOR_NOTIFICATION = 10
@@ -82,18 +82,24 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         # org rule get all projects for org
         projects = rule.organization.project_set.filter(status=ObjectStatus.ACTIVE)
 
-    params: dict[str, Any] = {
+    project_id = []
+    project_objects = []
+    for project in projects:
+        project_id.append(project.id)
+        project_objects.append(project)
+
+    params: ParamsType = {
         "start": rule.start_date,
         "end": rule.end_date,
-        "project_id": [p.id for p in projects],
-        "project_objects": projects,
+        "project_id": project_id,
+        "project_objects": project_objects,
         "organization_id": rule.organization.id,
     }
 
     result = discover.query(
         selected_columns=["count()"],
         params=params,
-        query=rule.query,
+        query=rule.query if rule.query is not None else "",
         referrer="dynamic_sampling.tasks.custom_rule_notifications",
     )
 

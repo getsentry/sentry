@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
 from re import Match
@@ -647,7 +647,7 @@ def parse_function(field, match=None, err_msg=None):
     )
 
 
-def is_function(field: str) -> Match[str] | None:
+def is_function(field: NormalizedArg) -> Match[str] | None:
     function_match = FUNCTION_PATTERN.search(field)
     if function_match:
         return function_match
@@ -1365,7 +1365,7 @@ class DiscoverFunction:
         columns: list[str],
         params: ParamsType,
         combinator: Combinator | None = None,
-    ) -> Mapping[str, NormalizedArg]:
+    ) -> dict[str, NormalizedArg]:
         columns = self.add_default_arguments(field, columns, params)
 
         arguments = {}
@@ -1455,14 +1455,16 @@ class DiscoverFunction:
         if args_count != total_args_count:
             required_args_count = self.required_args_count
             if required_args_count == total_args_count:
-                raise InvalidSearchQuery(f"{field}: expected {total_args_count:g} argument(s)")
+                raise InvalidSearchQuery(
+                    f"{field}: expected {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
+                )
             elif args_count < required_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at least {required_args_count:g} argument(s)"
+                    f"{field}: expected at least {required_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
             elif args_count > total_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at most {total_args_count:g} argument(s)"
+                    f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
     def validate_result_type(self, result_type):
@@ -2111,6 +2113,29 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     return f"{match.group(1)}({aggregate_arg})"
 
 
+def custom_time_processor(interval, time_column):
+    """For when snuba doesn't have a time processor for a dataset"""
+    return Function(
+        "toDateTime",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [
+                            time_column,
+                            interval,
+                        ],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        "time",
+    )
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
@@ -2142,7 +2167,7 @@ class MetricArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        allowed_columns: Sequence[str] | None = None,
+        allowed_columns: Iterable[str] | None = None,
         allow_custom_measurements: bool | None = True,
         validate_only: bool | None = True,
         allow_mri: bool = True,
@@ -2234,3 +2259,39 @@ class FunctionDetails(NamedTuple):
     field: str
     instance: DiscoverFunction
     arguments: Mapping[str, NormalizedArg]
+
+
+def resolve_datetime64(
+    raw_value: datetime | str | float | None, precision: int = 6
+) -> Function | None:
+    """
+    This is normally handled by the snuba-sdk but it assumes that the underlying
+    table uses DateTime. Because we use DateTime64(6) as the underlying column,
+    we need to cast to the same type or we risk truncating the timestamp which
+    can lead to subtle errors.
+
+    raw_value - Can be one of several types
+        - None: Resolves to `None`
+        - float: Assumed to be a epoch timestamp in seconds with fractional parts
+        - str: Assumed to be isoformat timestamp in UTC time (without timezone info)
+        - datetime: Will be formatted as a isoformat timestamp in UTC time
+    """
+
+    value: str | float | None = None
+
+    if isinstance(raw_value, datetime):
+        if raw_value.tzinfo is not None:
+            # This is adapted from snuba-sdk
+            # See https://github.com/getsentry/snuba-sdk/blob/2f7f014920b4f527a87f18c05b6aa818212bec6e/snuba_sdk/visitors.py#L168-L172
+            delta = raw_value.utcoffset()
+            assert delta is not None
+            raw_value -= delta
+            raw_value = raw_value.replace(tzinfo=None)
+        value = raw_value.isoformat()
+    elif isinstance(raw_value, float):
+        value = raw_value
+
+    if value is None:
+        return None
+
+    return Function("toDateTime64", [value, precision])

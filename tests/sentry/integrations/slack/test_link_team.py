@@ -1,25 +1,26 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, Optional
+from unittest.mock import patch
 from urllib.parse import urlencode
 
-import orjson
-import responses
+import pytest
 from django.db.models import QuerySet
 from django.http.response import HttpResponseBase
 from rest_framework import status
+from slack_sdk.web import SlackResponse
 
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviders
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
+from sentry.testutils.helpers import add_identity, install_slack, link_team
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.integrations import ExternalProviders
 
 
 class SlackIntegrationLinkTeamTestBase(TestCase):
@@ -37,20 +38,21 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.integration = install_slack(self.organization)
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=status.HTTP_200_OK,
-            content_type="application/json",
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=status.HTTP_200_OK,
-            content_type="application/json",
-        )
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with patch(
+            "slack_sdk.web.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            yield
 
     def get_success_response(self, data: Mapping[str, Any] | None = None) -> HttpResponseBase:
         """This isn't in APITestCase so this isn't really an override."""
@@ -126,7 +128,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             organization=self.organization, name="Mariachi Band", members=[self.user]
         )
 
-    @responses.activate
     def test_link_team(self):
         """Test that we successfully link a team to a Slack channel"""
         response = self.get_success_response()
@@ -139,11 +140,11 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(external_actors) == 1
         assert external_actors[0].team_id == self.team.id
 
-        assert len(responses.calls) >= 1
-        data = orjson.loads(responses.calls[0].request.body)
+        assert self.mock_post.call_count == 1
+        text = self.mock_post.call_args.kwargs["text"]
         assert (
             f"The {self.team.slug} team will now receive issue alert notifications in the {external_actors[0].external_name} channel."
-            in get_response_text(data)
+            in text
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -157,14 +158,12 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             )
             assert len(team_settings) == 1
 
-    @responses.activate
     def test_link_team_valid_through_team_admin(self):
         """Test that we successfully link a team to a Slack channel as a valid team admin"""
         self._create_user_valid_through_team_admin()
 
         self.test_link_team()
 
-    @responses.activate
     def test_link_team_already_linked(self):
         """Test that if a team has already been linked to a Slack channel when a user tries
         to link them again, we reject the attempt and reply with the ALREADY_LINKED_MESSAGE"""
@@ -172,21 +171,16 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
 
         response = self.get_success_response(data={"team": self.team.id})
         self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
-        assert len(responses.calls) >= 1
-        data = orjson.loads(responses.calls[0].request.body)
-        assert (
-            f"The {self.team.slug} team has already been linked to a Slack channel."
-            in get_response_text(data)
-        )
+        assert self.mock_post.call_count == 1
+        text = self.mock_post.call_args.kwargs["text"]
+        assert f"The {self.team.slug} team has already been linked to a Slack channel." in text
 
-    @responses.activate
     def test_error_page(self):
         """Test that we successfully render an error page when bad form data is sent."""
         self.get_error_response(
             data={"team": ["some", "garbage"]}, status_code=status.HTTP_400_BAD_REQUEST
         )
 
-    @responses.activate
     def test_link_team_multiple_organizations(self):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
@@ -206,20 +200,18 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             )
             assert len(external_actors) == 1
 
-    @responses.activate
     @with_feature("organizations:team-workflow-notifications")
     def test_message_includes_workflow(self):
         self.get_success_response(data={"team": self.team.id})
         external_actors = self.get_linked_teams()
 
-        assert len(responses.calls) >= 1
-        data = orjson.loads(responses.calls[0].request.body)
+        assert self.mock_post.call_count == 1
+        text = self.mock_post.call_args.kwargs["text"]
         assert (
             f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
-            in get_response_text(data)
+            in text
         )
 
-    @responses.activate
     @with_feature("organizations:team-workflow-notifications")
     def test_link_team_v2(self):
         """Test that we successfully link a team to a Slack channel"""
@@ -233,11 +225,11 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(external_actors) == 1
         assert external_actors[0].team_id == self.team.id
 
-        assert len(responses.calls) >= 1
-        data = orjson.loads(responses.calls[0].request.body)
+        assert self.mock_post.call_count == 1
+        text = self.mock_post.call_args.kwargs["text"]
         assert (
             f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
-            in get_response_text(data)
+            in text
         )
 
         # Test that we didn't make an NotificationSetting object
@@ -249,7 +241,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(team_settings) == 0
 
 
-class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
+class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
 
@@ -263,7 +255,22 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
             response_url=self.response_url,
         )
 
-    @responses.activate
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with patch(
+            "slack_sdk.web.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            yield
+
     def test_unlink_team(self):
         """Test that a team can be unlinked from a Slack channel"""
         response = self.get_success_response()
@@ -275,25 +282,23 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         external_actors = self.get_linked_teams()
         assert len(external_actors) == 0
 
-        assert len(responses.calls) >= 1
-        data = orjson.loads(responses.calls[0].request.body)
+        assert self.mock_post.call_count == 1
+        text = self.mock_post.call_args.kwargs["text"]
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
-            in get_response_text(data)
+            in text
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
 
-    @responses.activate
     def test_unlink_team_valid_through_team_admin(self):
         """Test that a team can be unlinked from a Slack channel as a valid team admin"""
         self._create_user_valid_through_team_admin()
 
         self.test_unlink_team()
 
-    @responses.activate
     def test_unlink_multiple_teams(self):
         """
         Test that if you have linked multiple teams to a single channel, when
@@ -316,18 +321,17 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         external_actors = self.get_linked_teams([self.team.id, team2.id])
         assert len(external_actors) == 0
 
-        assert len(responses.calls) >= 1
-        data = orjson.loads(responses.calls[0].request.body)
+        assert self.mock_post.call_count >= 1
+        text = self.mock_post.call_args_list[0].kwargs["text"]
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
-            in get_response_text(data)
+            in text
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
 
-    @responses.activate
     def test_unlink_team_multiple_organizations(self):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
@@ -362,7 +366,6 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
             )
             assert len(external_actors) == 0
 
-    @responses.activate
     def test_unlink_team_invalid_method(self):
         """Test for an invalid method response"""
         response = self.client.put(self.url, content_type="application/x-www-form-urlencoded")

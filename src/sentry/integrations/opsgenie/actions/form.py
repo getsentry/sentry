@@ -8,8 +8,8 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 from sentry.integrations.opsgenie.utils import get_team
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import (
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import (
     RpcIntegration,
     RpcOrganizationIntegration,
 )
@@ -113,7 +113,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
             raise forms.ValidationError(
                 _(
                     'The provided API key is invalid. Please make sure that the Opsgenie API \
-                  key is an integration key of type "Sentry".'
+                  key is an integration key of type "Sentry" that has configuration access.'
                 ),
                 code="invalid_key",
                 params=params,

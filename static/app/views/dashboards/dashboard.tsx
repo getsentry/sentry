@@ -23,10 +23,11 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -280,7 +281,18 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+    const {
+      organization,
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    } = this.props;
+
+    trackAnalytics('dashboards_views.widget.delete', {
+      organization,
+      widget_type: widgetToDelete.displayType,
+    });
 
     let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     nextList = generateWidgetsAfterCompaction(nextList);
@@ -293,7 +305,18 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+    const {
+      organization,
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    } = this.props;
+
+    trackAnalytics('dashboards_views.widget.duplicate', {
+      organization,
+      widget_type: widget.displayType,
+    });
 
     const widgetCopy = cloneDeep(
       assignTempId({...widget, id: undefined, tempId: undefined})
@@ -311,8 +334,12 @@ class Dashboard extends Component<Props, State> {
 
   handleEditWidget = (index: number) => () => {
     const {organization, router, location, paramDashboardId} = this.props;
-
     const widget = this.props.dashboard.widgets[index];
+
+    trackAnalytics('dashboards_views.widget.edit', {
+      organization,
+      widget_type: widget.displayType,
+    });
 
     if (widget.widgetType === WidgetType.METRICS && hasCustomMetrics(organization)) {
       // TODO(ddm): open preview modal
@@ -487,7 +514,8 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditingDashboard, dashboard, widgetLimitReached, organization} = this.props;
+    const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
+      this.props;
     let {widgets} = dashboard;
     // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
@@ -537,14 +565,16 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {(isEditingDashboard || displayInlineAddWidget) && !widgetLimitReached && (
-          <AddWidgetWrapper
-            key={ADD_WIDGET_BUTTON_DRAG_ID}
-            data-grid={this.addWidgetLayout}
-          >
-            <AddWidget onAddWidget={this.handleStartAdd} />
-          </AddWidgetWrapper>
-        )}
+        {(isEditingDashboard || displayInlineAddWidget) &&
+          !widgetLimitReached &&
+          !isPreview && (
+            <AddWidgetWrapper
+              key={ADD_WIDGET_BUTTON_DRAG_ID}
+              data-grid={this.addWidgetLayout}
+            >
+              <AddWidget onAddWidget={this.handleStartAdd} />
+            </AddWidgetWrapper>
+          )}
       </GridLayout>
     );
   }

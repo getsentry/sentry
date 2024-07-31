@@ -9,15 +9,20 @@ import {
 } from 'sentry/components/replays/breadcrumbs/gridlines';
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
+import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {divide} from 'sentry/components/replays/utils';
+import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
+import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export default function ReplayTimeline() {
-  const {replay, currentTime, timelineScale} = useReplayContext();
+  const {replay, currentTime} = useReplayContext();
+  const [timelineScale] = useTimelineScale();
+  const organization = useOrganization();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -65,6 +70,13 @@ export default function ReplayTimeline() {
         <MinorGridlines durationMs={durationMs} width={width} />
         <MajorGridlines durationMs={durationMs} width={width} />
         <TimelineScrubber />
+        {organization.features.includes('session-replay-timeline-gap') ? (
+          <TimelineGaps
+            durationMs={durationMs}
+            startTimestampMs={startTimestampMs}
+            frames={chapterFrames}
+          />
+        ) : null}
         <TimelineEventsContainer>
           <ReplayTimelineEvents
             durationMs={durationMs}

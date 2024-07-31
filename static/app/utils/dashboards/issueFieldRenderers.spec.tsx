@@ -17,7 +17,6 @@ describe('getIssueFieldRenderer', function () {
     context = initializeOrg({
       organization,
       router: {},
-      project: ProjectFixture(),
       projects: [ProjectFixture()],
     });
     organization = context.organization;
@@ -53,7 +52,7 @@ describe('getIssueFieldRenderer', function () {
       filteredEvents: 3000,
       events: 6000,
       period: '7d',
-      links: ['<a href="sentry.io">ANNO-123</a>'],
+      links: [{url: 'sentry.io', displayName: 'ANNO-123'}],
     };
 
     MockApiClient.addMockResponse({
@@ -154,8 +153,8 @@ describe('getIssueFieldRenderer', function () {
           data,
           ...{
             links: [
-              '<a href="sentry.io">ANNO-123</a>',
-              '<a href="sentry.io">ANNO-456</a>',
+              {url: 'sentry.io', displayName: 'ANNO-123'},
+              {url: 'sentry.io', displayName: 'ANNO-456'},
             ],
           },
         },

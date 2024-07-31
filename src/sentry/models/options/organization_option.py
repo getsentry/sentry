@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
@@ -8,7 +8,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
-from sentry.db.models.manager import OptionManager, ValidateFunction, Value
+from sentry.db.models.manager.option import OptionManager
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -30,9 +30,9 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         self,
         organization: Organization,
         key: str,
-        default: Value | None = None,
-        validate: ValidateFunction | None = None,
-    ) -> Value:
+        default: Any | None = None,
+        validate: Callable[[object], bool] | None = None,
+    ) -> Any:
         result = self.get_all_values(organization)
         return result.get(key, default)
 
@@ -44,14 +44,14 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         inst.delete()
         self.reload_cache(organization.id, "organizationoption.unset_value")
 
-    def set_value(self, organization: Organization, key: str, value: Value) -> bool:
+    def set_value(self, organization: Organization, key: str, value: Any) -> bool:
         inst, created = self.create_or_update(
             organization=organization, key=key, values={"value": value}
         )
         self.reload_cache(organization.id, "organizationoption.set_value")
         return bool(created) or inst > 0
 
-    def get_all_values(self, organization: Organization | int) -> Mapping[str, Value]:
+    def get_all_values(self, organization: Organization | int) -> Mapping[str, Any]:
         if isinstance(organization, models.Model):
             organization_id = organization.id
         else:
@@ -67,7 +67,7 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
 
         return self._option_cache.get(cache_key, {})
 
-    def reload_cache(self, organization_id: int, update_reason: str) -> Mapping[str, Value]:
+    def reload_cache(self, organization_id: int, update_reason: str) -> Mapping[str, Any]:
         from sentry.tasks.relay import schedule_invalidate_project_config
 
         if update_reason != "organizationoption.get_all_values":
@@ -81,7 +81,7 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         self._option_cache[cache_key] = result
         return result
 
-    def post_save(self, instance: OrganizationOption, **kwargs: Any) -> None:
+    def post_save(self, *, instance: OrganizationOption, created: bool, **kwargs: object) -> None:
         self.reload_cache(instance.organization_id, "organizationoption.post_save")
 
     def post_delete(self, instance: OrganizationOption, **kwargs: Any) -> None:

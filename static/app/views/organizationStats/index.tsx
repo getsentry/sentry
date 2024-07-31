@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -18,15 +18,14 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, DateString, PageFilters} from 'sentry/types/core';
+import type {DataCategoryInfo, PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -44,11 +43,6 @@ export const PAGE_QUERY_PARAMS = [
   'start',
   'end',
   'utc',
-  // TODO(Leander): Remove date selector props once project-stats flag is GA
-  'pageEnd',
-  'pageStart',
-  'pageStatsPeriod',
-  'pageStatsUtc',
   // From data category selector
   'dataCategory',
   // From UsageOrganizationStats
@@ -58,6 +52,8 @@ export const PAGE_QUERY_PARAMS = [
   'query',
   'cursor',
   'spikeCursor',
+  // From show data discarded on client toggle
+  'clientDiscard',
 ];
 
 export type OrganizationStatsProps = {
@@ -123,6 +119,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     }
 
     return {period: DEFAULT_STATS_PERIOD};
+  }
+
+  get clientDiscard(): boolean {
+    return this.props.location?.query?.clientDiscard === 'true';
   }
 
   // Validation and type-casting should be handled by chart
@@ -192,14 +192,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
    */
   setStateOnUrl = (
     nextState: {
+      clientDiscard?: boolean;
       cursor?: string;
       dataCategory?: DataCategoryInfo['plural'];
-      // TODO(Leander): Remove date selector props once project-stats flag is GA
-      pageEnd?: DateString;
-      pageStart?: DateString;
-      pageStatsPeriod?: string | null;
-      pageStatsUtc?: string | null;
-      pageUtc?: boolean | null;
       query?: string;
       sort?: string;
       transform?: ChartDataTransform;
@@ -230,13 +225,14 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
   renderProjectPageControl = () => {
     const {organization} = this.props;
+    const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+      if (isSelfHostedErrorsOnly) {
+        return opt.value === DATA_CATEGORY_INFO.error.plural;
+      }
       if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
         return organization.features.includes('session-replay');
-      }
-      if (opt.value === DATA_CATEGORY_INFO.metrics.plural) {
-        return hasCustomMetrics(organization);
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
         return organization.features.includes('spans-usage-tracking');
@@ -245,7 +241,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if (DATA_CATEGORY_INFO.profileDuration.plural === opt.value) {
-        return organization.features.includes('continuous-profiling');
+        return organization.features.includes('continuous-profiling-stats');
+      }
+      if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
+        return !organization.features.includes('continuous-profiling-stats');
       }
       return true;
     });
@@ -266,29 +265,6 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     );
   };
 
-  // TODO(Leander): Remove the following method once the project-stats flag is GA
-  handleUpdateDatetime = (datetime: ChangeData): LocationDescriptorObject => {
-    const {start, end, relative, utc} = datetime;
-
-    if (start && end) {
-      const parser = utc ? moment.utc : moment;
-
-      return this.setStateOnUrl({
-        pageStatsPeriod: undefined,
-        pageStart: parser(start).format(),
-        pageEnd: parser(end).format(),
-        pageUtc: utc ?? undefined,
-      });
-    }
-
-    return this.setStateOnUrl({
-      pageStatsPeriod: relative || undefined,
-      pageStart: undefined,
-      pageEnd: undefined,
-      pageUtc: undefined,
-    });
-  };
-
   /**
    * This method is replaced by the hook "component:enhanced-org-stats"
    */
@@ -301,8 +277,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         organization={organization}
         dataCategory={this.dataCategory}
         dataCategoryName={this.dataCategoryInfo.titleName}
+        dataCategoryApiName={this.dataCategoryInfo.apiName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
+        clientDiscard={this.clientDiscard}
         handleChangeState={this.setStateOnUrl}
         router={router}
         location={location}

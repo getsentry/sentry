@@ -74,16 +74,15 @@ class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_redirect_to_event_customer_domain(self):
         self.org.refresh_from_db()
-        with self.feature("organizations:customer-domains"):
-            resp = self.client.get(
-                reverse(
-                    "sentry-project-event-redirect",
-                    args=[self.org.slug, self.project.slug, self.event.event_id],
-                )
+        resp = self.client.get(
+            reverse(
+                "sentry-project-event-redirect",
+                args=[self.org.slug, self.project.slug, self.event.event_id],
             )
+        )
         assert (
             resp["Location"]
             == f"http://{self.org.slug}.testserver/issues/{self.event.group_id}/events/{self.event.event_id}/"

@@ -85,19 +85,27 @@ Makefile                                                 @getsentry/owners-sentr
 /bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
 /static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
-## Relocation - getsentry/team-ospo#153
-/src/sentry/api/endpoints/relocation/                    @getsentry/open-source
+## Backup - getsentry/team-ospo#153
 /src/sentry/backup/                                      @getsentry/open-source
 /src/sentry/runner/commands/backup.py                    @getsentry/open-source
-/src/sentry/services/hybrid-cloud/import_export/         @getsentry/open-source
-/src/sentry/tasks/relocation.py                          @getsentry/open-source
 /src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
-/src/sentry/utils/relocation.py                          @getsentry/open-source
-/tests/sentry/api/endpoints/relocation                   @getsentry/open-source
-/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
-/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
 /tests/sentry/backup/                                    @getsentry/open-source
 /tests/sentry/runner/commands/test_backup.py             @getsentry/open-source
+
+## Relocation - getsentry/team-ospo#153
+/src/sentry/analytics/events/relocation_*.py             @getsentry/open-source
+/src/sentry/api/endpoints/organization_fork.py           @getsentry/open-source
+/src/sentry/api/endpoints/relocation/                    @getsentry/open-source
+/src/sentry/api/serialiers/models/relocation/            @getsentry/open-source
+/src/sentry/models/relocation/                           @getsentry/open-source
+/src/sentry/relocation/                                  @getsentry/open-source
+/src/sentry/tasks/relocation.py                          @getsentry/open-source
+/src/sentry/utils/relocation.py                          @getsentry/open-source
+/tests/sentry/api/endpoints/relocation                   @getsentry/open-source
+/tests/sentry/api/endpoints/test_organization_fork.py    @getsentry/open-source
+/tests/sentry/api/serializer/test_relocation.py          @getsentry/open-source
+/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
+/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
@@ -143,8 +151,6 @@ yarn.lock                                                @getsentry/owners-js-de
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
 /src/sentry/hybridcloud                                  @getsentry/hybrid-cloud
-/src/sentry/services/hybrid_cloud/                       @getsentry/hybrid-cloud
-/src/sentry/middleware/api_gateway.py                    @getsentry/hybrid-cloud
 /src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
@@ -159,6 +165,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/releases/                               @getsentry/alerts-notifications
+/src/sentry/rules/processing/delayed_processing.py        @getsentry/alerts-notifications
 
 /static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
 
@@ -175,6 +182,12 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
 /tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-notifications
+/src/sentry/api/endpoints/notification_defaults.py                          @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_email.py                        @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_options_detail.py      @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_options.py             @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_providers.py           @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_details.py                      @getsentry/alerts-notifications
 ## Endof Alerts & Notifications
 
 
@@ -216,6 +229,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/utils/performance_issues/                                     @getsentry/performance
 /src/sentry/spans/                                                        @getsentry/performance
 
+/static/app/views/traces/                                                 @getsentry/performance
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
@@ -265,7 +279,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/performance
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/performance
 
-/static/app/views/starfish/                                                         @getsentry/performance
+/static/app/views/insights/                                                         @getsentry/performance
 ## Endof Performance
 
 
@@ -421,7 +435,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## Telemetry Experience
 /src/sentry/api/endpoints/organization_ddm.py                                    @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_ddm_meta.py                        @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_metric*                                   @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric*                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
@@ -429,6 +443,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/api/endpoints/test_projects_metrics_visibility.py                  @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
+/src/sentry/api/endpoints/project_metrics_extraction_rules*                      @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_project_metrics_extraction_rules.py             @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
@@ -479,11 +495,13 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/middleware/ratelimit.py                         @getsentry/issues
 /src/sentry/middleware/access_log.py                        @getsentry/issues
 /src/sentry/ratelimits/                                     @getsentry/issues
+/src/sentry/seer/similarity/                                @getsentry/issues
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issues
 /src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issues
 /src/sentry/tasks/codeowners/                               @getsentry/issues
 /src/sentry/tasks/commits.py                                @getsentry/issues
 /src/sentry/tasks/commit_context.py                         @getsentry/issues
+/src/sentry/tasks/embeddings_grouping/                      @getsentry/issues
 /src/sentry/tasks/post_process.py                           @getsentry/issues
 /src/sentry/tasks/unmerge.py                                @getsentry/issues
 /src/sentry/search/snuba/                                   @getsentry/issues
@@ -526,14 +544,11 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/event_reprocessable.py                     @getsentry/processing
 /src/sentry/api/endpoints/project_reprocessing.py                    @getsentry/processing
 /src/sentry/api/endpoints/chunk.py                                   @getsentry/processing
-/src/sentry/api/endpoints/project_app_store_connect_credentials.py   @getsentry/processing
 /src/sentry/lang/native/                                             @getsentry/processing
 /src/sentry/processing/realtime_metrics/                             @getsentry/processing
-/src/sentry/tasks/app_store_connect.py                               @getsentry/processing
 /src/sentry/tasks/assemble.py                                        @getsentry/processing
 /src/sentry/tasks/low_priority_symbolication.py                      @getsentry/processing
 /src/sentry/tasks/symbolication.py                                   @getsentry/processing
-/src/sentry/utils/appleconnect/                                      @getsentry/processing
 /tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/processing
 /src/sentry/tasks/reprocessing.py                                    @getsentry/processing
 /src/sentry/tasks/reprocessing2.py                                   @getsentry/processing

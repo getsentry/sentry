@@ -8,7 +8,7 @@ import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
@@ -24,8 +24,7 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
-import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD, NEW_DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -56,8 +55,8 @@ import {
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -332,9 +331,7 @@ class IssueListOverview extends Component<Props, State> {
       return decodeScalar(query, '');
     }
 
-    return this.props.organization.features.includes('issue-priority-ui')
-      ? NEW_DEFAULT_QUERY
-      : DEFAULT_QUERY;
+    return DEFAULT_QUERY;
   }
 
   getSortFromSavedSearchOrLocation({
@@ -469,8 +466,10 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   fetchTags() {
-    const {api, organization, selection} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
+    if (!this.props.organization.features.includes('issue-stream-search-query-builder')) {
+      const {api, organization, selection} = this.props;
+      loadOrganizationTags(api, organization.slug, selection);
+    }
   }
 
   fetchStats = (groups: string[]) => {
@@ -517,12 +516,11 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
-    const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
 
     const endpointParams = this.getEndpointParams();
-    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const tabQueriesWithCounts = getTabsWithCounts();
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
@@ -628,7 +626,7 @@ class IssueListOverview extends Component<Props, State> {
     if (
       this.props.organization.features.includes('issue-stream-performance') &&
       this.props.savedSearchLoading &&
-      !this.props.location.query.query
+      !defined(this.props.location.query.query)
     ) {
       delete requestParams.query;
     }
@@ -819,13 +817,11 @@ class IssueListOverview extends Component<Props, State> {
     const {organization, location} = this.props;
     const page = location.query.page;
     const endpointParams = this.getEndpointParams();
-    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const tabQueriesWithCounts = getTabsWithCounts();
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
-    const tab = getTabs(organization).find(
-      ([tabQuery]) => currentTabQuery === tabQuery
-    )?.[1];
+    const tab = getTabs().find(([tabQuery]) => currentTabQuery === tabQuery)?.[1];
 
     const numPerfIssues = groups.filter(
       group => GroupStore.get(group)?.issueCategory === IssueCategory.PERFORMANCE
@@ -1213,8 +1209,8 @@ class IssueListOverview extends Component<Props, State> {
     const query = this.getQuery();
 
     const modifiedQueryCount = Math.max(queryCount, 0);
-    const projectIds = selection?.projects?.map(p => p.toString());
 
+    // TODO: these two might still be in use for reprocessing2
     const showReprocessingTab = this.displayReprocessingTab();
     const displayReprocessingActions = this.displayReprocessingLayout(
       showReprocessingTab,
@@ -1260,11 +1256,6 @@ class IssueListOverview extends Component<Props, State> {
                 />
               )}
               <PanelBody>
-                <ProcessingIssueList
-                  organization={organization}
-                  projectIds={projectIds}
-                  showProject
-                />
                 <VisuallyCompleteWithData
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"

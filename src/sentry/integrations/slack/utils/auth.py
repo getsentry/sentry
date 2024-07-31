@@ -33,10 +33,3 @@ def set_signing_secret(secret: str, data: bytes) -> SigningSecretKwargs:
         "HTTP_X_SLACK_REQUEST_TIMESTAMP": timestamp,
         "HTTP_X_SLACK_SIGNATURE": signature,
     }
-
-
-def check_signing_secret(signing_secret: str, data: bytes, timestamp: str, signature: str) -> bool:
-    # Taken from: https://github.com/slackapi/python-slack-events-api/blob/master/slackeventsapi/server.py#L47
-    # Slack docs on this here: https://api.slack.com/authentication/verifying-requests-from-slack#about
-    request_hash = _encode_data(signing_secret, data, timestamp)
-    return hmac.compare_digest(request_hash.encode("utf-8"), signature.encode("utf-8"))

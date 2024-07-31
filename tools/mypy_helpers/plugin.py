@@ -1,11 +1,24 @@
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable
 
+from mypy.errorcodes import ATTR_DEFINED
+from mypy.messages import format_type
 from mypy.nodes import ARG_POS
-from mypy.plugin import ClassDefContext, FunctionSigContext, Plugin
+from mypy.plugin import AttributeContext, ClassDefContext, FunctionSigContext, Plugin
 from mypy.plugins.common import add_attribute_to_class
-from mypy.types import AnyType, CallableType, FunctionLike, Instance, NoneType, TypeOfAny, UnionType
+from mypy.subtypes import find_member
+from mypy.types import (
+    AnyType,
+    CallableType,
+    FunctionLike,
+    Instance,
+    NoneType,
+    Type,
+    TypeOfAny,
+    UnionType,
+)
 
 
 def _make_using_required_str(ctx: FunctionSigContext) -> CallableType:
@@ -78,6 +91,29 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         add_attribute_to_class(ctx.api, ctx.cls, "superuser", AnyType(TypeOfAny.explicit))
 
 
+def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type:
+    # we use `Any` as the `__getattr__` return value
+    # allow existing attributes to be returned as normal if they are not `Any`
+    if not isinstance(ctx.default_attr_type, AnyType):
+        return ctx.default_attr_type
+
+    assert isinstance(ctx.type, Instance), ctx.type
+    assert len(ctx.type.args) == 1, ctx.type
+    assert isinstance(ctx.type.args[0], Instance), ctx.type
+    generic_type = ctx.type.args[0]
+
+    member = find_member(attr, generic_type, generic_type)
+    if member is None:
+        ctx.api.fail(
+            f'{format_type(ctx.type, ctx.api.options)} has no attribute "{attr}"',
+            ctx.context,
+            code=ATTR_DEFINED,
+        )
+        return ctx.default_attr_type
+    else:
+        return member
+
+
 class SentryMypyPlugin(Plugin):
     def get_function_signature_hook(
         self, fullname: str
@@ -88,6 +124,13 @@ class SentryMypyPlugin(Plugin):
         # XXX: this is a hack -- I don't know if there's a better callback to modify a class
         if fullname == "io.BytesIO":
             return _adjust_http_request_members
+        else:
+            return None
+
+    def get_attribute_hook(self, fullname: str) -> Callable[[AttributeContext], Type] | None:
+        if fullname.startswith("sentry.utils.lazy_service_wrapper.LazyServiceWrapper."):
+            _, attr = fullname.rsplit(".", 1)
+            return functools.partial(_lazy_service_wrapper_attribute, attr=attr)
         else:
             return None
 

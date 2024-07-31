@@ -74,7 +74,7 @@ export interface OnboardingConfig<
       install: StepProps[];
       verify: StepProps[];
       introduction?: React.ReactNode | React.ReactNode[];
-      nextSteps?: NextStep[];
+      nextSteps?: (NextStep | null)[];
     },
     DocsParams<PlatformOptions>
   > {}

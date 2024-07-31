@@ -1,5 +1,5 @@
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud.organization_actions.impl import (
+from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
 
@@ -21,11 +21,11 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.incidents.models.incident import Incident
+        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.artifactbundle import ArtifactBundle
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
         from sentry.models.environment import Environment
-        from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.project import Project
         from sentry.models.promptsactivity import PromptsActivity

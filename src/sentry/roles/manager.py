@@ -35,7 +35,7 @@ class Role(abc.ABC):
         cls: type[R],
         parent: RoleManager,
         priority: int,
-        desc: str = "",
+        desc: str,
         scopes: Iterable[str] = (),
         **kwargs: Any,
     ) -> R:
@@ -86,6 +86,7 @@ class RoleLevel(Generic[R]):
         self._id_map = {r.id: r for r in self._priority_seq}
 
         self._choices = tuple((r.id, r.name) for r in self._priority_seq)
+        self._descriptions = tuple((r.id, r.desc) for r in self._priority_seq)
         self._default = self._id_map[default_id] if default_id else self._priority_seq[0]
         self._top_dog = self._priority_seq[-1]
 
@@ -103,6 +104,9 @@ class RoleLevel(Generic[R]):
 
     def get_choices(self) -> Sequence[tuple[str, str]]:
         return self._choices
+
+    def get_descriptions(self) -> Sequence[tuple[str, str]]:
+        return self._descriptions
 
     def get_default(self) -> R:
         return self._default

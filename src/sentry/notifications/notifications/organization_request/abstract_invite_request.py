@@ -6,15 +6,15 @@ from typing import TYPE_CHECKING, Any
 
 from django.urls import reverse
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
     MemberWriteRoleRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.user import User
@@ -54,7 +54,10 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             )
         else:
             inviter_name = ""
-            inviter = user_service.get_user(user_id=self.pending_member.inviter_id)
+            if self.pending_member.inviter_id is not None:
+                inviter = user_service.get_user(user_id=self.pending_member.inviter_id)
+            else:
+                inviter = None
             if inviter:
                 context["inviter_name"] = inviter.get_salutation_name()
             context["inviter_name"] = inviter_name
@@ -75,7 +78,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             MessageAction(
                 name="Reject",
                 style="danger",
-                action_id="approve_request",
+                action_id="reject_request",
                 value="reject_member",
                 label="Reject",
             ),

@@ -28,7 +28,7 @@ function renderComponent(component, router, organization) {
 }
 
 describe('PageFiltersContainer', function () {
-  const {organization, router} = initializeOrg({
+  const {organization, projects, router} = initializeOrg({
     organization: {features: ['global-views']},
     projects: [
       {
@@ -59,7 +59,7 @@ describe('PageFiltersContainer', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
     OrganizationStore.onUpdate(organization);
     OrganizationsStore.addOrReplace(organization);
 
@@ -560,9 +560,9 @@ describe('PageFiltersContainer', function () {
         })
       );
       const project = ProjectFixture({id: '3', isMember: false});
-      const org = OrganizationFixture({projects: [project]});
+      const org = OrganizationFixture();
 
-      ProjectsStore.loadInitialData(org.projects);
+      ProjectsStore.loadInitialData([project]);
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -587,9 +587,9 @@ describe('PageFiltersContainer', function () {
 
     it('selects first project if none (i.e. all) is requested', function () {
       const project = ProjectFixture({id: '3'});
-      const org = OrganizationFixture({projects: [project]});
+      const org = OrganizationFixture();
 
-      ProjectsStore.loadInitialData(org.projects);
+      ProjectsStore.loadInitialData([project]);
 
       const initializationObj = initializeOrg({
         organization: org,

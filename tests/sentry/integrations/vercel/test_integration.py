@@ -7,9 +7,9 @@ from rest_framework.serializers import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.identity.vercel import VercelIdentityProvider
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -397,6 +397,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization.id)
         dynamic_display_info = installation.get_dynamic_display_information()
+        assert dynamic_display_info is not None
         instructions = dynamic_display_info["configure_integration"]["instructions"]
         assert len(instructions) == 1
         assert "configure your repositories." in instructions[0]

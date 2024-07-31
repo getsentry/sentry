@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import zipfile
 from io import BytesIO
+from typing import Any
 
 import orjson
 from django.core.files.base import ContentFile
@@ -33,16 +36,14 @@ def create_exception_with_frame(frame):
     }
 
 
-def create_exception_with_frames(raw_frames=None, frames=None):
-    ex = {
-        "type": "Error",
-    }
+def create_exception_with_frames(raw_frames=None, frames=None) -> dict[str, Any]:
+    ex: dict[str, Any] = {"type": "Error"}
 
     if raw_frames is not None:
-        ex["raw_stacktrace"] = {"frames": raw_frames}  # type: ignore[assignment]
+        ex["raw_stacktrace"] = {"frames": raw_frames}
 
     if frames is not None:
-        ex["stacktrace"] = {"frames": frames}  # type: ignore[assignment]
+        ex["stacktrace"] = {"frames": frames}
 
     return ex
 

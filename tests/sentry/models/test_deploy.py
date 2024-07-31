@@ -22,6 +22,7 @@ class DeployNotifyTest(TestCase):
 
         # make sure activity has been created
         record = Activity.objects.get(type=ActivityType.DEPLOY.value, project=project)
+        assert record.ident is not None
         assert release.version.startswith(record.ident)
 
     def test_already_notified(self):
@@ -58,15 +59,10 @@ class DeployNotifyTest(TestCase):
         Deploy.notify_if_ready(deploy.id)
 
         # make sure activity has been created
-        assert Activity.objects.filter(
+        activity = Activity.objects.get(
             type=ActivityType.DEPLOY.value, project=project, ident=release.version
-        ).exists()
-        assert (
-            Activity.objects.get(
-                type=ActivityType.DEPLOY.value, project=project, ident=release.version
-            ).data["deploy_id"]
-            == deploy.id
         )
+        assert activity.data["deploy_id"] == deploy.id
         assert Deploy.objects.get(id=deploy.id).notified is True
 
     def test_head_commits_fetch_not_complete(self):
@@ -113,13 +109,8 @@ class DeployNotifyTest(TestCase):
         Deploy.notify_if_ready(deploy.id, fetch_complete=True)
 
         # make sure activity has been created
-        assert Activity.objects.filter(
+        activity = Activity.objects.get(
             type=ActivityType.DEPLOY.value, project=project, ident=release.version
-        ).exists()
-        assert (
-            Activity.objects.get(
-                type=ActivityType.DEPLOY.value, project=project, ident=release.version
-            ).data["deploy_id"]
-            == deploy.id
         )
+        assert activity.data["deploy_id"] == deploy.id
         assert Deploy.objects.get(id=deploy.id).notified is True

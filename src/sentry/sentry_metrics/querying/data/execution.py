@@ -547,7 +547,7 @@ class QueryResult:
             # It can happen that the groups in series are not matching the groups in totals, due to Snuba bugs or just
             # limiting taking place in queries. Since this is a problem, we want to keep track of it.
             if indexes is None:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.isolation_scope() as scope:
                     scope.set_tag("organization_id", organization.id)
                     scope.set_extra("totals_query", self.totals_query)
                     scope.set_extra("series_query", self.series_query)

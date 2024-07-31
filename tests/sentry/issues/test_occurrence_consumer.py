@@ -29,7 +29,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
@@ -177,7 +177,6 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
-    @with_feature("projects:issue-priority")
     def test_issue_platform_default_priority(self) -> None:
         # test default priority of LOW
         message = get_test_message(self.project.id)
@@ -186,10 +185,9 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assert group.priority == PriorityLevel.LOW
 
-    @with_feature("projects:issue-priority")
     @with_feature("projects:first-event-severity-calculation")
     @mock.patch("sentry.event_manager._get_severity_score")
     def test_issue_platform_override_priority(
@@ -204,7 +202,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         occurrence = result[0]
         assert occurrence is not None
         assert mock_get_severity_score.call_count == 0
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
 
@@ -215,7 +213,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assignee = GroupAssignee.objects.get(group=group)
         assert assignee.user_id == self.user.id
 
@@ -226,7 +224,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assignee = GroupAssignee.objects.get(group=group)
         assert assignee.team_id == self.team.id
 
@@ -238,7 +236,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         with pytest.raises(GroupAssignee.DoesNotExist):
             GroupAssignee.objects.get(group=group)
 
@@ -577,3 +575,18 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == status
+
+
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class IssueOccurrenceProcessMessageWithPruningTest(IssueOccurrenceProcessMessageTest):
+    pass
+
+
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class IssueOccurrenceLookupEventIdWithPruningTest(IssueOccurrenceLookupEventIdTest):
+    pass
+
+
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class ParseEventPayloadWithPruningTest(ParseEventPayloadTest):
+    pass

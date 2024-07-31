@@ -93,9 +93,6 @@
     "/api/0/organizations/{organization_id_or_slug}/eventids/{event_id}/": {
       "$ref": "paths/organizations/event-id-lookup.json"
     },
-    "/api/0/organizations/{organization_id_or_slug}/": {
-      "$ref": "paths/organizations/details.json"
-    },
     "/api/0/organizations/{organization_id_or_slug}/repos/": {
       "$ref": "paths/organizations/repos.json"
     },
@@ -119,9 +116,6 @@
     },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/stats/": {
       "$ref": "paths/projects/stats.json"
-    },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/": {
-      "$ref": "paths/projects/user-feedback.json"
     },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/": {
       "$ref": "paths/projects/service-hooks.json"

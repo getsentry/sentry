@@ -11,7 +11,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 type RedirectRemainingOrganizationParams = {
   /**

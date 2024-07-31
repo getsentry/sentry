@@ -10,10 +10,11 @@ from rest_framework import status
 
 from sentry import audit_log, options
 from sentry.http import safe_urlopen
+from sentry.integrations.base import is_response_error, is_response_success
+from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations.sentry_app import SentryApp, track_response_code
-from sentry.models.integrations.utils import get_redis_key, is_response_error, is_response_success
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.audit import create_system_audit_entry
@@ -21,7 +22,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:
     from sentry.api.serializers import AppPlatformEvent
-    from sentry.services.hybrid_cloud.app.model import RpcSentryApp
+    from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 
 TIMEOUT_STATUS_CODE = 0
@@ -50,7 +51,7 @@ def ignore_unpublished_app_errors(
 
 
 def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str) -> None:
-    from sentry.services.hybrid_cloud.app.service import app_service
+    from sentry.sentry_apps.services.app.service import app_service
 
     redis_key = get_redis_key(sentryapp, org_id)
     buffer = IntegrationRequestBuffer(redis_key)

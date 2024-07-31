@@ -6,6 +6,7 @@ from django.conf import settings
 from rediscluster import RedisCluster
 
 from sentry.models.dynamicsampling import CUSTOM_RULE_START
+from sentry.relay.types import RuleCondition
 from sentry.utils import redis
 
 BOOSTED_RELEASES_LIMIT = 10
@@ -89,68 +90,10 @@ class TimeRange(TypedDict):
     end: str
 
 
-class EqConditionOptions(TypedDict):
-    ignoreCase: bool
-
-
-class EqCondition(TypedDict):
-    op: Literal["eq"]
-    name: str
-    value: list[str] | None
-    options: EqConditionOptions
-
-
-class GteCondition(TypedDict):
-    name: str
-    value: list[str] | None
-
-
-class GtCondition(TypedDict):
-    name: str
-    value: list[str] | None
-
-
-class LteCondition(TypedDict):
-    name: str
-    value: list[str] | None
-
-
-class LtCondition(TypedDict):
-    name: str
-    value: list[str] | None
-
-
-class GlobCondition(TypedDict):
-    op: Literal["glob"]
-    name: str
-    value: list[str]
-
-
-class Condition(TypedDict):
-    op: Literal["and", "or", "not"]
-    inner: (
-        EqCondition
-        | GteCondition
-        | GtCondition
-        | LteCondition
-        | LtCondition
-        | GlobCondition
-        | list[EqCondition | GlobCondition]
-    )
-
-
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: (
-        Condition
-        | EqCondition
-        | GteCondition
-        | GtCondition
-        | LteCondition
-        | LtCondition
-        | GlobCondition
-    )
+    condition: RuleCondition
     id: int
 
 

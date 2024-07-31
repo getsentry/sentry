@@ -7,7 +7,7 @@ from rest_framework.exceptions import APIException
 
 from sentry.app import env
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.utils.auth import construct_link_with_query
 from sentry.utils.http import is_using_customer_domain
 
@@ -132,24 +132,6 @@ class TwoFactorRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "2fa-required"
     message = "Organization requires two-factor authentication to be enabled"
-
-
-class AppConnectForbiddenError(SentryAPIException):
-    status_code = status.HTTP_403_FORBIDDEN
-    code = "app-connect-forbidden-error"
-    message = "App connect Forbidden error"
-
-
-class AppConnectAuthenticationError(SentryAPIException):
-    status_code = status.HTTP_401_UNAUTHORIZED
-    code = "app-connect-authentication-error"
-    message = "App connect authentication error"
-
-
-class AppConnectMultipleSourcesError(SentryAPIException):
-    status_code = status.HTTP_401_UNAUTHORIZED
-    code = "app-connect-multiple-sources-error"
-    message = "Only one Apple App Store Connect application is allowed in this project"
 
 
 class ConflictError(APIException):

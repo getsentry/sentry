@@ -15,7 +15,6 @@ type Props = {
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
   customRepositories: CustomRepo[];
-  isLoading: boolean;
   location: Location;
   organization: Organization;
   project: Project;
@@ -31,7 +30,6 @@ function Sources({
   project,
   location,
   router,
-  isLoading,
 }: Props) {
   return (
     <Fragment>
@@ -41,7 +39,6 @@ function Sources({
         builtinSymbolSources={builtinSymbolSources}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}
         project={project}
-        isLoading={isLoading}
       />
       <CustomRepositories
         api={api}
@@ -50,7 +47,6 @@ function Sources({
         organization={organization}
         customRepositories={customRepositories}
         project={project}
-        isLoading={isLoading}
       />
     </Fragment>
   );

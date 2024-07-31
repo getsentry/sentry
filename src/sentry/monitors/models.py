@@ -21,7 +21,6 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -33,6 +32,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.environment import Environment

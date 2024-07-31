@@ -44,6 +44,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
             created_by_id=self.user.id,
             name="Test query",
             query=self.query,
+            dataset=DiscoverSavedQueryTypes.DISCOVER,
             is_homepage=True,
         )
         with self.feature(FEATURES):
@@ -53,6 +54,9 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
                     "name": "A new homepage query update",
                     "projects": self.project_ids,
                     "fields": ["field1", "field2"],
+                    "queryDataset": DiscoverSavedQueryTypes.get_type_name(
+                        DiscoverSavedQueryTypes.TRANSACTION_LIKE
+                    ),
                 },
             )
 
@@ -61,6 +65,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         saved_query.refresh_from_db()
         assert response.data == serialize(saved_query)
         assert saved_query.query["fields"] == ["field1", "field2"]
+        assert saved_query.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
         assert set(saved_query.projects.values_list("id", flat=True)) == set(self.project_ids)
 
     def test_put_creates_new_discover_saved_query_if_none_exists(self):

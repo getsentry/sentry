@@ -9,7 +9,7 @@ import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -521,7 +521,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -586,7 +585,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -663,7 +661,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
           (links?.previous?.results || links?.next?.results) && (

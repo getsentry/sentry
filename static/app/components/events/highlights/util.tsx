@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {
   type ContextItem,
   getOrderedContextItems,
@@ -79,9 +81,11 @@ export function getHighlightContextData({
   highlightContext,
   project,
   organization,
+  location,
 }: {
   event: Event;
   highlightContext: HighlightContext;
+  location: Location;
   organization: Organization;
   project: Project;
 }) {
@@ -112,6 +116,7 @@ export function getHighlightContextData({
         contextValue: value,
         organization,
         project,
+        location,
       }),
     })
   );

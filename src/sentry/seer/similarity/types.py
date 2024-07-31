@@ -22,10 +22,13 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     project_id: int
     stacktrace: str
     message: str
+    exception_type: str | None
     hash: str
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
     read_only: NotRequired[bool]
+    event_id: NotRequired[str]
+    referrer: NotRequired[str]
 
 
 class RawSeerSimilarIssueData(TypedDict):
@@ -110,6 +113,5 @@ class SeerSimilarIssueData:
 
 @dataclass
 class SeerSimilarIssuesMetadata:
-    request_hash: str
     results: list[SeerSimilarIssueData]
     similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION

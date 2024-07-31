@@ -22,17 +22,17 @@ from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubEnterpriseAppsClient
+from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
@@ -141,7 +141,7 @@ class GitHubEnterpriseIntegration(
             raise IntegrationError("Organization Integration does not exist")
 
         base_url = self.model.metadata["domain_name"].split("/")[0]
-        return GitHubEnterpriseAppsClient(
+        return GitHubEnterpriseApiClient(
             base_url=base_url,
             integration=self.model,
             private_key=self.model.metadata["installation"]["private_key"],
@@ -174,13 +174,6 @@ class GitHubEnterpriseIntegration(
 
     def search_issues(self, query):
         return self.get_client().search_issues(query)
-
-    def reinstall(self):
-        installation_id = self.model.external_id.split(":")[1]
-        metadata = self.model.metadata
-        metadata["installation_id"] = installation_id
-        self.model.update(metadata=metadata)
-        self.reinstall_repositories()
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):

@@ -13,6 +13,7 @@ import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItem
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types/group';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
+import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -79,11 +80,6 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 
-type DisabledAppStoreConnectMultiple = {
-  children: React.ReactNode;
-  organization: Organization;
-};
-
 type DisabledCustomSymbolSources = {
   children: React.ReactNode;
   organization: Organization;
@@ -92,11 +88,6 @@ type DisabledCustomSymbolSources = {
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
-
-type MetricsSubscriptionCTAProps = {
-  organization: Organization;
-  children?: React.ReactNode;
-};
 
 type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
 
@@ -195,9 +186,9 @@ export type ComponentHooks = {
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
+  'component:data-consent-org-creation-checkbox': () => React.ComponentType<{}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
   'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
-  'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
@@ -207,10 +198,8 @@ export type ComponentHooks = {
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
-  'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
+  'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
-  'component:metrics-onboarding-panel-primary-action': () => React.ComponentType<MetricsSubscriptionCTAProps>;
-  'component:metrics-subscription-alert': () => React.ComponentType<MetricsSubscriptionCTAProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
@@ -224,6 +213,7 @@ export type ComponentHooks = {
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
+  'component:replay-settings-alert': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
@@ -316,7 +306,6 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': () => React.ComponentType<{}>;
   'onboarding:block-hide-sidebar': () => boolean;
-  'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
@@ -664,6 +653,15 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
   }) => React.ReactElement;
   id: string;
 }>;
+
+/**
+ * Insights upsell hook takes in a insights module name
+ * and renders either the applicable upsell page or the children inside the hook.
+ */
+type InsightsUpsellHook = {
+  children: React.ReactNode;
+  moduleName: TitleableModuleNames;
+};
 
 /**
  * Invite Modal customization allows for a render-prop component to add

@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 import type {Organization, ServiceHook} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';

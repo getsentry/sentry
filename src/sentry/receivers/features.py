@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
+from sentry.integrations.services.integration import integration_service
 from sentry.models.featureadoption import FeatureAdoption
 from sentry.models.group import Group
 from sentry.models.grouptombstone import GroupTombstone
@@ -12,7 +13,6 @@ from sentry.models.project import Project
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,

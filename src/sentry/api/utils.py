@@ -26,19 +26,20 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.search.utils import InvalidQuery, parse_datetime_string
-from sentry.services.hybrid_cloud import extract_id_from
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationMember,
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
@@ -293,7 +294,6 @@ def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
     if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
         region_name = get_local_region().name
-    # TODO(hybridcloud) Remove this once the silo split is complete.
     if (
         region_name is None
         and SiloMode.get_current_mode() == SiloMode.MONOLITH
@@ -467,14 +467,20 @@ def handle_query_errors() -> Generator[None, None, None]:
 
 
 def update_snuba_params_with_timestamp(
-    request: HttpRequest, params: MutableMapping[str, Any], timestamp_key: str = "timestamp"
+    request: HttpRequest,
+    params: MutableMapping[str, Any] | SnubaParams | ParamsType,
+    timestamp_key: str = "timestamp",
 ) -> None:
     """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
     send the timestamp of something in that event or trace and we'll query data near that event only which should be
     faster than the default 7d or 14d queries"""
     # during the transition this is optional but it will become required for the trace view
     sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
-    if timestamp_key in request.GET and "start" in params and "end" in params:
+    if isinstance(params, SnubaParams):
+        has_dates = params.start is not None and params.end is not None
+    else:
+        has_dates = "start" in params and "end" in params
+    if timestamp_key in request.GET and has_dates:
         example_timestamp = parse_datetime_string(request.GET[timestamp_key])
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
@@ -484,5 +490,13 @@ def update_snuba_params_with_timestamp(
         example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
         # the client should just not pass a timestamp if we need to overwrite this logic for any reason
-        params["start"] = max(params["start"], example_start)
-        params["end"] = min(params["end"], example_end)
+        if isinstance(params, SnubaParams):
+            # Typing gets mad that start is optional still but has_dates has checked it
+            assert params.start is not None
+            assert params.end is not None
+
+            params.start = max(params.start, example_start)
+            params.end = min(params.end, example_end)
+        else:
+            params["start"] = max(params["start"], example_start)
+            params["end"] = min(params["end"], example_end)

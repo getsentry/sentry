@@ -35,7 +35,7 @@ from sentry.db.postgres.transactions import (
     enforce_constraints,
     in_test_assert_no_transaction,
 )
-from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
+from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
@@ -96,6 +96,9 @@ class OutboxCategory(IntEnum):
     ORG_AUTH_TOKEN_UPDATE = 33
     ISSUE_COMMENT_UPDATE = 34
     EXTERNAL_ACTOR_UPDATE = 35
+
+    RELOCATION_EXPORT_REQUEST = 36
+    RELOCATION_EXPORT_REPLY = 37
 
     @classmethod
     def as_choices(cls):
@@ -163,7 +166,7 @@ class OutboxCategory(IntEnum):
     def as_region_outbox(
         self,
         model: Any | None = None,
-        payload: Any | None = None,
+        payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
         outbox: type[RegionOutboxBase] | None = None,
@@ -188,7 +191,7 @@ class OutboxCategory(IntEnum):
         self,
         region_names: Collection[str],
         model: Any | None = None,
-        payload: Any | None = None,
+        payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
         outbox: type[ControlOutboxBase] | None = None,
@@ -343,6 +346,9 @@ class OutboxScope(IntEnum):
         },
     )
     SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})
+    RELOCATION_SCOPE = scope_categories(
+        10, {OutboxCategory.RELOCATION_EXPORT_REQUEST, OutboxCategory.RELOCATION_EXPORT_REPLY}
+    )
 
     def __str__(self):
         return self.name
@@ -504,7 +510,7 @@ class OutboxBase(Model):
     object_identifier = BoundedBigIntegerField(null=False)
 
     # payload is used for webhook payloads.
-    payload: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    payload: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.
     scheduled_from = models.DateTimeField(null=False, default=timezone.now)

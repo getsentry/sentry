@@ -110,7 +110,7 @@ class ProjectKeyTest(TestCase):
             assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
 
     def test_get_dsn_org_subdomain(self):
-        with self.feature("organizations:org-subdomains"), self.options(
+        with self.feature("organizations:org-ingest-subdomains"), self.options(
             {"system.region-api-url-template": ""}
         ):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
@@ -151,7 +151,7 @@ class ProjectKeyTest(TestCase):
 
     @override_settings(SENTRY_REGION="us")
     def test_get_dsn_org_subdomain_and_multiregion(self):
-        with self.feature("organizations:org-subdomains"):
+        with self.feature("organizations:org-ingest-subdomains"):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest." + (
                 "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
@@ -193,6 +193,6 @@ def test_key_saved_projconfig_invalidated(inv_proj_config, default_project):
 
     key = ProjectKey.objects.get(project=default_project)
     manager = ProjectKeyManager()
-    manager.post_save(key)
+    manager.post_save(instance=key, created=False)
 
     assert inv_proj_config.call_count == 1

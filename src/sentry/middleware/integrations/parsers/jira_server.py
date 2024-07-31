@@ -11,7 +11,7 @@ from sentry.integrations.jira_server.webhooks import (
     JiraServerIssueUpdatedWebhook,
     get_integration_from_token,
 )
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
 
 logger = logging.getLogger(__name__)

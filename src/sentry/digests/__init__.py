@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import datetime as datetime_mod
-from collections import namedtuple
 from collections.abc import MutableMapping
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Any, NamedTuple, TypeAlias
 
 from django.conf import settings
 
@@ -23,13 +22,20 @@ backend = LazyServiceWrapper(
 backend.expose(locals())
 
 
-class Record(namedtuple("Record", "key value timestamp")):
+class Record(NamedTuple):
+    key: str
+    value: Any  # TODO: I think this is `Notification` ?
+    timestamp: float
+
     @property
-    def datetime(self) -> datetime_mod.datetime | None:
+    def datetime(self) -> datetime_mod.datetime:
         return to_datetime(self.timestamp)
 
 
-ScheduleEntry = namedtuple("ScheduleEntry", "key timestamp")
+class ScheduleEntry(NamedTuple):
+    key: str
+    timestamp: float
+
 
 OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
 

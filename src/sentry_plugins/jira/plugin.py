@@ -55,7 +55,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         )
         return _patterns
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         if not self.get_option("default_project", project):
             return False
         return True
@@ -263,10 +263,10 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return {"title": issue["fields"]["summary"]}
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return issue_id
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         instance = self.get_option("instance_url", group.project)
         return f"{instance}/browse/{issue_id}"
 
@@ -303,83 +303,101 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 return Response({field: issues})
 
         jira_url = request.GET.get("jira_url")
-        if jira_url:
-            jira_url = unquote_plus(jira_url)
-            parsed = list(urlsplit(jira_url))
-            jira_query = parse_qs(parsed[3])
+        if not jira_url:
+            return Response(
+                {
+                    "error_type": "validation",
+                    "errors": [{"jira_url": "missing required parameter"}],
+                },
+                status=400,
+            )
 
-            jira_client = self.get_jira_client(group.project)
+        jira_url = unquote_plus(jira_url)
+        parsed = urlsplit(jira_url)
+        instance_url = self.get_option("instance_url", group.project)
 
-            is_user_api = re.search("/rest/api/(latest|[0-9])/user/", jira_url)
+        if parsed.netloc != urlsplit(instance_url).netloc:
+            return Response(
+                {
+                    "error_type": "validation",
+                    "errors": [{"jira_url": "domain must match"}],
+                },
+                status=400,
+            )
 
-            is_user_picker = "/rest/api/1.0/users/picker" in jira_url
+        parsed = list(parsed)
+        jira_query = parse_qs(parsed[3])
 
-            if is_user_api:  # its the JSON version of the autocompleter
-                is_xml = False
-                jira_query["username"] = query
-                jira_query.pop(
-                    "issueKey", False
-                )  # some reason JIRA complains if this key is in the URL.
-                jira_query["project"] = project
-            elif is_user_picker:
-                is_xml = False
-                # for whatever reason, the create meta api returns an
-                # invalid path, so let's just use the correct, documented one here:
-                # https://docs.atlassian.com/jira/REST/cloud/#api/2/user
-                # also, only pass path so saved instance url will be used
-                parsed[0] = ""
-                parsed[1] = ""
-                parsed[2] = "/rest/api/2/user/picker"
-                jira_query["query"] = query
-            else:  # its the stupid XML version of the API.
-                is_xml = True
-                jira_query["query"] = query
-                if jira_query.get("fieldName"):
-                    # for some reason its a list.
-                    jira_query["fieldName"] = jira_query["fieldName"][0]
+        jira_client = self.get_jira_client(group.project)
 
-            parsed[3] = urlencode(jira_query)
-            final_url = urlunsplit(parsed)
+        is_user_api = re.search("/rest/api/(latest|[0-9])/user/", jira_url)
 
-            autocomplete_response = jira_client.get_cached(final_url)
+        is_user_picker = "/rest/api/1.0/users/picker" in jira_url
 
-            if is_user_picker:
-                autocomplete_response = autocomplete_response["users"]
+        if is_user_api:  # its the JSON version of the autocompleter
+            is_xml = False
+            jira_query["username"] = query
+            jira_query.pop(
+                "issueKey", False
+            )  # some reason JIRA complains if this key is in the URL.
+            jira_query["project"] = project
+        elif is_user_picker:
+            is_xml = False
+            # for whatever reason, the create meta api returns an
+            # invalid path, so let's just use the correct, documented one here:
+            # https://docs.atlassian.com/jira/REST/cloud/#api/2/user
+            # also, only pass path so saved instance url will be used
+            parsed[0] = ""
+            parsed[1] = ""
+            parsed[2] = "/rest/api/2/user/picker"
+            jira_query["query"] = query
+        else:  # its the stupid XML version of the API.
+            is_xml = True
+            jira_query["query"] = query
+            if jira_query.get("fieldName"):
+                # for some reason its a list.
+                jira_query["fieldName"] = jira_query["fieldName"][0]
 
-            users = []
+        parsed[3] = urlencode(jira_query)
+        final_url = urlunsplit(parsed)
 
-            if is_xml:
-                for userxml in autocomplete_response.xml.findAll("users"):
-                    users.append(
-                        {"id": userxml.find("name").text, "text": userxml.find("html").text}
-                    )
-            else:
-                for user in autocomplete_response:
-                    if user.get("name"):
-                        users.append(self._get_formatted_user(user))
+        autocomplete_response = jira_client.get_cached(final_url)
 
-            # if JIRA user doesn't have proper permission for user api,
-            # try the assignee api instead
-            if not users and is_user_api:
-                try:
-                    autocomplete_response = jira_client.search_users_for_project(
-                        jira_query.get("project"), jira_query.get("username")
-                    )
-                except (ApiUnauthorized, ApiError) as e:
+        if is_user_picker:
+            autocomplete_response = autocomplete_response["users"]
 
-                    return Response(
-                        {
-                            "error_type": "validation",
-                            "errors": [{"__all__": self.message_from_error(e)}],
-                        },
-                        status=400,
-                    )
+        users = []
 
-                for user in autocomplete_response:
-                    if user.get("name"):
-                        users.append(self._get_formatted_user(user))
+        if is_xml:
+            for userxml in autocomplete_response.xml.findAll("users"):
+                users.append({"id": userxml.find("name").text, "text": userxml.find("html").text})
+        else:
+            for user in autocomplete_response:
+                if user.get("name"):
+                    users.append(self._get_formatted_user(user))
 
-            return Response({field: users})
+        # if JIRA user doesn't have proper permission for user api,
+        # try the assignee api instead
+        if not users and is_user_api:
+            try:
+                autocomplete_response = jira_client.search_users_for_project(
+                    jira_query.get("project"), jira_query.get("username")
+                )
+            except (ApiUnauthorized, ApiError) as e:
+
+                return Response(
+                    {
+                        "error_type": "validation",
+                        "errors": [{"__all__": self.message_from_error(e)}],
+                    },
+                    status=400,
+                )
+
+            for user in autocomplete_response:
+                if user.get("name"):
+                    users.append(self._get_formatted_user(user))
+
+        return Response({field: users})
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiUnauthorized):
@@ -396,7 +414,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         cleaned_data = {}
 
         # protect against mis-configured plugin submitting a form without an
@@ -506,7 +524,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return config
 
-    def get_configure_plugin_fields(self, request: Request, project, **kwargs):
+    def get_configure_plugin_fields(self, project, **kwargs):
         instance = self.get_option("instance_url", project)
         username = self.get_option("username", project)
         pw = self.get_option("password", project)

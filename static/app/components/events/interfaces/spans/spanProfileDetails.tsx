@@ -14,7 +14,7 @@ import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
 import {EntryType} from 'sentry/types/event';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
@@ -151,6 +151,7 @@ export function SpanProfileDetails({
       query: {
         tid: String(profile.threadId),
         spanId: span.span_id,
+        sorting: 'call order',
       },
     });
 

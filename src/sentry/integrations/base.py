@@ -12,21 +12,24 @@ from urllib.request import Request
 
 from rest_framework.exceptions import NotFound
 
-from sentry import audit_log
+from sentry import audit_log, features
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
+from sentry.identity.services.identity import identity_service
+from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.notify_disable import notify_disable
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.identity import Identity
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.integration import Integration
 from sentry.models.team import Team
-from sentry.pipeline import PipelineProvider
-from sentry.pipeline.views.base import PipelineView
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationSummary,
     organization_service,
 )
+from sentry.pipeline import PipelineProvider
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -40,12 +43,14 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
     UnsupportedResponseType,
 )
-from sentry.utils.audit import create_audit_entry
-from sentry.utils.sdk import configure_scope
+from sentry.utils.audit import create_audit_entry, create_system_audit_entry
+from sentry.utils.sdk import Scope
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration
-    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+    from sentry.integrations.services.integration import RpcOrganizationIntegration
+    from sentry.integrations.services.integration.model import RpcIntegration
+
+logger = logging.getLogger(__name__)
 
 FeatureDescription = namedtuple(
     "FeatureDescription",
@@ -308,7 +313,7 @@ class IntegrationInstallation:
 
     @property
     def org_integration(self) -> RpcOrganizationIntegration | None:
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         if not hasattr(self, "_org_integration"):
             self._org_integration = integration_service.get_organization_integration(
@@ -342,7 +347,7 @@ class IntegrationInstallation:
         """
         Update the configuration field for an organization integration.
         """
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         if not self.org_integration:
             return
@@ -388,10 +393,10 @@ class IntegrationInstallation:
             filter={"id": self.org_integration.default_auth_id}
         )
         if identity is None:
-            with configure_scope() as scope:
-                scope.set_tag("integration_provider", self.model.get_provider().name)
-                scope.set_tag("org_integration_id", self.org_integration.id)
-                scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
+            scope = Scope.get_isolation_scope()
+            scope.set_tag("integration_provider", self.model.get_provider().name)
+            scope.set_tag("org_integration_id", self.org_integration.id)
+            scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
             raise Identity.DoesNotExist
         return identity
 
@@ -463,3 +468,72 @@ class IntegrationInstallation:
 
     def remove_notification_settings(self, actor_id: int, provider: str) -> None:
         pass
+
+
+def is_response_success(resp: Any) -> bool:
+    if resp.status_code and resp.status_code < 300:
+        return True
+    return False
+
+
+def is_response_error(resp: Any) -> bool:
+    if not resp.status_code:
+        return False
+    return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
+
+
+def disable_integration(
+    buffer: IntegrationRequestBuffer, redis_key: str, integration_id: int | None = None
+) -> None:
+    from sentry.integrations.services.integration import integration_service
+
+    result = integration_service.organization_contexts(integration_id=integration_id)
+    rpc_integration = result.integration
+    rpc_org_integrations = result.organization_integrations
+    if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
+        return None
+
+    org = None
+    if len(rpc_org_integrations) > 0:
+        org_context = organization_service.get_organization_by_id(
+            id=rpc_org_integrations[0].organization_id,
+            include_projects=False,
+            include_teams=False,
+        )
+        if org_context:
+            org = org_context.organization
+
+    extra = {
+        "integration_id": integration_id,
+        "buffer_record": buffer._get_all_from_buffer(),
+    }
+    extra["provider"] = "unknown" if rpc_integration is None else rpc_integration.provider
+    extra["organization_id"] = (
+        "unknown" if len(rpc_org_integrations) == 0 else rpc_org_integrations[0].organization_id
+    )
+
+    logger.info(
+        "integration.disabled",
+        extra=extra,
+    )
+
+    if org and (
+        (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
+        or (rpc_integration.provider == "github")
+        or (
+            features.has("organizations:gitlab-disable-on-broken", org)
+            and rpc_integration.provider == "gitlab"
+        )
+    ):
+        integration_service.update_integration(
+            integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
+        )
+        notify_disable(org, rpc_integration.provider, redis_key)
+        buffer.clear()
+        create_system_audit_entry(
+            organization_id=org.id,
+            target_object=org.id,
+            event=audit_log.get_event_id("INTEGRATION_DISABLED"),
+            data={"provider": rpc_integration.provider},
+        )
+    return None

@@ -13,25 +13,25 @@ from sentry.app import env
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.outbox import OutboxCategory
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 class TeamManager(BaseManager["Team"]):
@@ -119,13 +119,11 @@ class TeamManager(BaseManager["Team"]):
                     projects_by_team[team_id].append(project)
 
             # these kinds of queries make people sad :(
-            for idx, team in enumerate(results):
-                team_projects = projects_by_team[team.id]
-                results[idx] = (team, team_projects)
+            return [(team, projects_by_team[team.id]) for team in results]
 
         return results
 
-    def post_save(self, instance, **kwargs):
+    def post_save(self, *, instance: Team, created: bool, **kwargs: object) -> None:
         self.process_resource_change(instance, **kwargs)
 
     def post_delete(self, instance, **kwargs):
@@ -157,8 +155,9 @@ class TeamStatus:
     DELETION_IN_PROGRESS = 2
 
 
+@snowflake_id_model
 @region_silo_model
-class Team(ReplicatedRegionModel, SnowflakeIdMixin):
+class Team(ReplicatedRegionModel):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
@@ -199,8 +198,8 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
         return f"{self.name} ({self.slug})"
 
     def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
-        from sentry.services.hybrid_cloud.replica import control_replica_service
+        from sentry.hybridcloud.services.replica import control_replica_service
+        from sentry.organizations.services.organization.serial import serialize_rpc_team
 
         control_replica_service.upsert_replicated_team(team=serialize_rpc_team(self))
 
@@ -211,8 +210,10 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
                 slugify_instance(self, self.name, organization=self.organization)
         if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "team_snowflake_key"
-            self.save_with_snowflake_id(
-                snowflake_redis_key, lambda: super(Team, self).save(*args, **kwargs)
+            save_with_snowflake_id(
+                instance=self,
+                snowflake_redis_key=snowflake_redis_key,
+                save_callback=lambda: super(Team, self).save(*args, **kwargs),
             )
         else:
             super().save(*args, **kwargs)

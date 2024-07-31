@@ -1,5 +1,13 @@
 from django.db import router, transaction
 
+from sentry.hybridcloud.services.organization_mapping import (
+    RpcOrganizationMappingUpdate,
+    organization_mapping_service,
+)
+from sentry.hybridcloud.services.organization_mapping.model import CustomerId
+from sentry.hybridcloud.services.organization_mapping.serial import (
+    update_organization_mapping_from_instance,
+)
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import (
@@ -7,14 +15,6 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservationType,
 )
 from sentry.models.outbox import outbox_context
-from sentry.services.hybrid_cloud.organization_mapping import (
-    RpcOrganizationMappingUpdate,
-    organization_mapping_service,
-)
-from sentry.services.hybrid_cloud.organization_mapping.model import CustomerId
-from sentry.services.hybrid_cloud.organization_mapping.serial import (
-    update_organization_mapping_from_instance,
-)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.silo import (
@@ -47,6 +47,10 @@ def assert_matching_organization_mapping(
         )
         assert org_mapping.require_email_verification == bool(org.flags.require_email_verification)
         assert org_mapping.codecov_access == bool(org.flags.codecov_access)
+        assert org_mapping.disable_member_project_creation == bool(
+            org.flags.disable_member_project_creation
+        )
+        assert org_mapping.prevent_superuser_access == bool(org.flags.prevent_superuser_access)
 
 
 @control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)

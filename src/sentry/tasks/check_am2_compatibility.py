@@ -17,8 +17,8 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.events.builder import MetricsQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.builder.metrics import MetricsQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import query as discover_query
@@ -468,21 +468,22 @@ class CheckAM2Compatibility:
         return outdated_sdks_per_project
 
     @classmethod
-    def get_sdks_version_used(cls, organization_id, project_objects):
+    def get_sdks_version_used(cls, organization, project_objects):
         # We use the count() operation in order to group by project, sdk.name and sdk.version.
         selected_columns = ["count()", "project", "sdk.name", "sdk.version"]
-        params = {
-            "organization_id": organization_id,
-            "project_objects": project_objects,
-            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
-            "end": datetime.now(tz=timezone.utc),
-        }
+        params = SnubaParams(
+            start=datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            end=datetime.now(tz=timezone.utc),
+            organization=organization,
+            projects=project_objects,
+        )
 
         try:
             results = discover_query(
                 selected_columns=selected_columns,
                 query="event.type:transaction",
-                params=params,
+                params={},
+                snuba_params=params,
                 referrer="api.organization-events",
             )
 
@@ -603,7 +604,7 @@ class CheckAM2Compatibility:
                 ondemand_supported_widgets[dashboard_id].append((widget_id, fields, conditions))
 
             if supports_metrics is None:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.isolation_scope() as scope:
                     scope.set_tag("org_id", organization.id)
                     scope.set_extra("widget_id", widget_id)
                     scope.set_extra("fields", fields)
@@ -623,7 +624,7 @@ class CheckAM2Compatibility:
                 aggregate, query
             ) or cls.is_metrics_data(organization.id, all_projects, query)
             if supports_metrics is None:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.isolation_scope() as scope:
                     scope.set_tag("org_id", organization.id)
                     scope.set_extra("alert_id", alert_id)
                     scope.set_extra("aggregate", aggregate)
@@ -637,9 +638,9 @@ class CheckAM2Compatibility:
                 # We mark whether a metric is not supported.
                 unsupported_alerts.append((alert_id, aggregate, query))
 
-        outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects)
+        outdated_sdks_per_project = cls.get_sdks_version_used(organization, all_projects)
         if outdated_sdks_per_project is None:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("org_id", organization.id)
 
                 sentry_sdk.capture_message("Can't figure out outdated SDKs.")

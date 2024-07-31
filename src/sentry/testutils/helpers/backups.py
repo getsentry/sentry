@@ -41,9 +41,8 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
-from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -53,6 +52,10 @@ from sentry.incidents.models.incident import (
     TimeSeriesSnapshot,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.project_integration import ProjectIntegration
+from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
@@ -69,10 +72,12 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.project_integration import ProjectIntegration
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
@@ -97,10 +102,15 @@ from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.sentry_metrics.models import (
+    SpanAttributeExtractionRuleCondition,
+    SpanAttributeExtractionRuleConfig,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
 from sentry.utils import json
@@ -323,11 +333,8 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
     return actual
 
 
-class BackupTestCase(TransactionTestCase):
-    """
-    Instruments a database state that includes an instance of every Sentry model with every field
-    set to a non-default, non-null value. This is useful for exhaustive conformance testing.
-    """
+class ExhaustiveFixtures(Fixtures):
+    """Helper fixtures for creating 'exhaustive' (that is, maximally filled out, with all child models included) versions of common top-level models like users, organizations, etc."""
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_user(
@@ -371,7 +378,7 @@ class BackupTestCase(TransactionTestCase):
         accepted_invites: dict[User, list[User]] | None = None,
     ) -> Organization:
         org = self.create_organization(name=slug, owner=owner)
-        owner_id: BoundedBigAutoField = owner.id
+        owner_id: int = owner.id
         invited = self.create_member(organization=org, user=member, role="member")
         if other_members:
             for user in other_members:
@@ -399,7 +406,7 @@ class BackupTestCase(TransactionTestCase):
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
         self.create_team_membership(user=owner, team=team)
-        OrganizationAccessRequest.objects.create(member=invited, team=team)
+        OrganizationAccessRequest.objects.create(member=invited, team=team, requester_id=owner_id)
 
         # Project*
         project_template = ProjectTemplate.objects.create(name=f"template-{slug}", organization=org)
@@ -408,7 +415,7 @@ class BackupTestCase(TransactionTestCase):
         )
 
         # TODO (@saponifi3d): Add project template to project
-        project = self.create_project(name=f"project-{slug}", teams=[team])
+        project = self.create_project(name=f"project-{slug}", teams=[team], organization=org)
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
         ProjectOwnership.objects.create(
@@ -430,8 +437,10 @@ class BackupTestCase(TransactionTestCase):
         )
 
         # Rule*
-        rule = self.create_project_rule(project=project)
-        RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
+        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
+        RuleActivity.objects.create(
+            rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
+        )
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
         NeglectedRule.objects.create(
             rule=rule,
@@ -441,6 +450,7 @@ class BackupTestCase(TransactionTestCase):
             sent_final_email_date=timezone.now(),
         )
         CustomDynamicSamplingRule.update_or_create(
+            created_by_id=owner_id,
             condition={"op": "equals", "name": "environment", "value": "prod"},
             start=timezone.now(),
             end=timezone.now() + timedelta(hours=1),
@@ -449,6 +459,19 @@ class BackupTestCase(TransactionTestCase):
             num_samples=100,
             sample_rate=0.5,
             query="environment:prod event.type:transaction",
+        )
+        span_attribute_extraction_rule_config = SpanAttributeExtractionRuleConfig.objects.create(
+            project=project,
+            span_attribute="my_attribute",
+            created_by_id=owner.id,
+            unit="none",
+            tags=["tag1", "tag2"],
+            aggregates=["count", "sum", "avg", "min", "max", "p50", "p75", "p90", "p95", "p99"],
+        )
+        SpanAttributeExtractionRuleCondition.objects.create(
+            created_by_id=owner.id,
+            value="key:value",
+            config=span_attribute_extraction_rule_config,
         )
 
         # Environment*
@@ -460,6 +483,7 @@ class BackupTestCase(TransactionTestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            owner_user_id=owner_id,
         )
 
         # AlertRule*
@@ -469,13 +493,16 @@ class BackupTestCase(TransactionTestCase):
             projects=[project],
             include_all_projects=True,
             excluded_projects=[other_project],
+            user=owner,
         )
+        alert.user_id = owner_id
+        alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
             organization=org,
             projects=[project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         self.create_alert_rule_activation(
@@ -494,6 +521,7 @@ class BackupTestCase(TransactionTestCase):
             incident=incident,
             type=1,
             comment=f"hello {slug}",
+            user_id=owner_id,
         )
         IncidentSnapshot.objects.create(
             incident=incident,
@@ -551,6 +579,7 @@ class BackupTestCase(TransactionTestCase):
             name=f"Saved query for {slug}",
             query=f"saved query for {slug}",
             visibility=Visibility.ORGANIZATION,
+            owner_id=owner_id,
         )
 
         # misc
@@ -565,7 +594,8 @@ class BackupTestCase(TransactionTestCase):
         repo.external_id = "https://git.example.com:1234"
         repo.save()
 
-        # View
+        # Group*
+        group = self.create_group(project=project)
         GroupSearchView.objects.create(
             name=f"View 1 for {slug}",
             user_id=owner_id,
@@ -574,6 +604,18 @@ class BackupTestCase(TransactionTestCase):
             query_sort="date",
             position=0,
         )
+        Activity.objects.create(
+            project=project,
+            group=group,
+            user_id=owner_id,
+            type=1,
+        )
+        for group_model in (GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription):
+            group_model.objects.create(
+                project=project,
+                group=group,
+                user_id=owner_id,
+            )
 
         return org
 
@@ -594,6 +636,7 @@ class BackupTestCase(TransactionTestCase):
         )
         OrgAuthToken.objects.create(
             organization_id=org.id,
+            created_by=owner,
             name=f"token 1 for {org.slug}",
             token_hashed=f"ABCDEF{org.slug}",
             token_last_characters="xyz1",
@@ -799,3 +842,17 @@ class BackupTestCase(TransactionTestCase):
         data = self.generate_tmp_users_json()
         with open(tmp_path, "w+") as tmp_file:
             json.dump(data, tmp_file)
+
+
+class BackupTestCase(TestCase, ExhaustiveFixtures):
+    """
+    Instruments a database state that includes an instance of every Sentry model with every field
+    set to a non-default, non-null value. This is useful for exhaustive conformance testing.
+    """
+
+
+class BackupTransactionTestCase(TransactionTestCase, ExhaustiveFixtures):
+    """
+    Instruments a database state that includes an instance of every Sentry model with every field
+    set to a non-default, non-null value. This is useful for exhaustive conformance testing. Unlike `BackupTestCase`, this completely resets the database between each test, which can be an expensive operation.
+    """

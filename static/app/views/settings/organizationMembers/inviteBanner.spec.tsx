@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 import {MemberFixture} from 'sentry-fixture/member';
 import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -60,7 +60,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if no option', function () {
-    const org = OrganizationFixture({});
+    const org = OrganizationFixture();
 
     const {container} = render(
       <InviteBanner

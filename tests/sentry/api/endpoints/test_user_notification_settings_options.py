@@ -83,13 +83,13 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             status_code=status.HTTP_201_CREATED,
             value="always",
         )
-        row = NotificationSettingOption.objects.filter(
+        row = NotificationSettingOption.objects.get(
             user_id=self.user.id,
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=self.organization.id,
             type=NotificationSettingEnum.ISSUE_ALERTS.value,
             value=NotificationSettingsOptionEnum.ALWAYS.value,
-        ).first()
+        )
         assert response.data["id"] == str(row.id)
 
     def test_user_scope(self):
@@ -208,11 +208,11 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             status_code=status.HTTP_201_CREATED,
             value="always",
         )
-        row = NotificationSettingOption.objects.filter(
+        row = NotificationSettingOption.objects.get(
             user_id=self.user.id,
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=self.organization.id,
             type=NotificationSettingEnum.REPORTS.value,
             value=NotificationSettingsOptionEnum.ALWAYS.value,
-        ).first()
+        )
         assert response.data["id"] == str(row.id)

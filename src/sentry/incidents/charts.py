@@ -22,7 +22,9 @@ from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.utils import build_query_strings
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -99,7 +101,7 @@ def fetch_metric_alert_events_timeseries(
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
                 "yAxis": rule_aggregate,
-                "referrer": "api.alerts.chartcuterie",
+                "referrer": Referrer.API_ALERTS_CHARTCUTERIE.value,
                 **query_params,
             },
         )
@@ -162,9 +164,15 @@ def build_metric_alert_chart(
     end: str | None = None,
     user: Optional["User"] = None,
     size: ChartSize | None = None,
+    subscription: QuerySubscription | None = None,
 ) -> str | None:
-    """Builds the dataset required for metric alert chart the same way the frontend would"""
-    snuba_query: SnubaQuery = alert_rule.snuba_query
+    """
+    Builds the dataset required for metric alert chart the same way the frontend would
+    """
+    if alert_rule.snuba_query is None:
+        return None
+
+    snuba_query = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
@@ -203,19 +211,21 @@ def build_metric_alert_chart(
     )
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
     # If we allow alerts to be across multiple orgs this will break
+    # TODO: determine whether this validation is necessary
     first_subscription_or_none = snuba_query.subscriptions.first()
     if first_subscription_or_none is None:
         return None
 
-    project_id = first_subscription_or_none.project_id
+    project_id = subscription.project_id if subscription else first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
+    query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     query = (
-        snuba_query.query
+        query_str
         if is_crash_free_alert
         else apply_dataset_query_conditions(
             SnubaQuery.Type(snuba_query.type),
-            snuba_query.query,
+            query_str,
             snuba_query.event_types,
             discover=True,
         )

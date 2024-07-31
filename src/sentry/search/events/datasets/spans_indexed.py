@@ -6,7 +6,8 @@ from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events import builder, constants
+from sentry.search.events import constants
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
@@ -26,7 +27,11 @@ from sentry.search.utils import DEVICE_CLASS
 
 
 class SpansIndexedDatasetConfig(DatasetConfig):
-    def __init__(self, builder: builder.QueryBuilder):
+    optimize_wildcard_searches = True
+    subscriptables_with_index = {"tags"}
+    non_nullable_keys = {"id", "span_id", "trace", "trace_id", "profile.id", "profile_id"}
+
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
         self.total_count: int | None = None
         self.total_sum_transaction_duration: float | None = None

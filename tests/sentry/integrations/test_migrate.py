@@ -1,10 +1,10 @@
 from sentry.integrations.example import ExampleIntegrationProvider
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.testutils.cases import TestCase
 
 

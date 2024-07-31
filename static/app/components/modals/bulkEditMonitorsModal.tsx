@@ -78,7 +78,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
     const resp = await bulkEditMonitors(
       api,
       organization.slug,
-      selectedMonitors.map(monitor => monitor.slug),
+      selectedMonitors.map(monitor => monitor.id),
       operation
     );
     setSelectedMonitors([]);

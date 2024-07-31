@@ -7,10 +7,10 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -175,7 +175,7 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         with mock.patch(
-            "sentry.middleware.integrations.parsers.base.ratelimiter.is_limited"
+            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
         ) as mock_is_limited:
             mock_is_limited.return_value = True
             parser = GitlabRequestParser(request=request, response_handler=self.get_response)

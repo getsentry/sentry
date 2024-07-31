@@ -16,7 +16,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import toPercent from 'sentry/utils/number/toPercent';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
@@ -211,7 +211,7 @@ function ProfilingMeasurements({
                 onMouseDown={onStartWindowSelection}
               >
                 <MemoizedChart
-                  data={data}
+                  data={data as Profiling.Measurement}
                   type={measurementType}
                   transactionDuration={transactionDurationInMs}
                 />

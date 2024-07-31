@@ -23,6 +23,8 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features, roles
+from sentry.auth.services.access.service import access_service
+from sentry.auth.services.auth import RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
@@ -34,13 +36,11 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
+from sentry.organizations.services.organization import RpcTeamMember, RpcUserOrganizationContext
+from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud.access.service import access_service
-from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState
-from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrganizationContext
-from sentry.services.hybrid_cloud.organization.serial import summarize_member
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 
@@ -293,7 +293,7 @@ class DbAccess(Access):
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
-        if self._member:
+        if self._member and self._member.user_id is not None:
             return has_role_in_organization(
                 role=role, organization=organization, user_id=self._member.user_id
             )
@@ -1061,7 +1061,7 @@ def _from_sentry_app(
     if not sentry_app_query.exists():
         return NoAccess()
 
-    sentry_app = sentry_app_query.first()
+    sentry_app = sentry_app_query.get()
 
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
@@ -1070,7 +1070,7 @@ def _from_sentry_app(
 
 
 def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
-    from sentry.services.hybrid_cloud.app import app_service
+    from sentry.sentry_apps.services.app import app_service
 
     if not context or context.user_id is None:
         return NoAccess()
@@ -1129,7 +1129,7 @@ def from_member(
     else:
         scope_intersection = member.get_scopes()
 
-    if is_superuser or is_staff:
+    if (is_superuser or is_staff) and member.user_id is not None:
         # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
         # have them, you can only use them when you are acting, as a superuser or staff. This is intentional.
         permissions = access_service.get_permissions_for_user(member.user_id)

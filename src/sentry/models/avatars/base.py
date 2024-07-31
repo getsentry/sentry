@@ -34,6 +34,7 @@ class AvatarBase(Model):
     # abstract
     AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]]
     FILE_TYPE: ClassVar[str]
+    avatar_type: models.Field[int, int]
 
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 
@@ -49,6 +50,9 @@ class AvatarBase(Model):
 
     def get_file(self):
         file_id = getattr(self, self.file_write_fk(), None)
+        if file_id is None:
+            return None
+
         file_class = self.file_class()
         try:
             return file_class.objects.get(pk=file_id)

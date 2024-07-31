@@ -8,6 +8,7 @@ import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {space} from 'sentry/styles/space';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
@@ -17,10 +18,11 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {CanvasSupportNotice} from './canvasSupportNotice';
 
 type Props = {
+  isLoading: boolean;
   toggleFullscreen: () => void;
 };
 
-function ReplayView({toggleFullscreen}: Props) {
+function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {isFetching, replay} = useReplayContext();
@@ -31,8 +33,16 @@ function ReplayView({toggleFullscreen}: Props) {
       <PlayerBreadcrumbContainer>
         <PlayerContainer>
           <ContextContainer>
-            {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
-            <BrowserOSIcons showBrowser={!isVideoReplay} />
+            {isLoading ? (
+              <TextCopyInput size="sm" disabled>
+                {''}
+              </TextCopyInput>
+            ) : isVideoReplay ? (
+              <ReplayCurrentScreen />
+            ) : (
+              <ReplayCurrentUrl />
+            )}
+            <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
             {isFullscreen ? (
               <ReplaySidebarToggleButton
                 isOpen={isSidebarOpen}
@@ -60,7 +70,7 @@ function ReplayView({toggleFullscreen}: Props) {
       {isFullscreen ? (
         <ReplayController
           toggleFullscreen={toggleFullscreen}
-          disableSettings={isVideoReplay}
+          disableFastForward={isVideoReplay}
         />
       ) : null}
     </Fragment>
@@ -77,7 +87,7 @@ const Panel = styled(FluidHeight)`
 const ContextContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(1)};
 `;
@@ -86,7 +96,7 @@ const PlayerContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
-  gap: ${space(1)};
+  gap: 10px;
   flex-grow: 1;
 `;
 

@@ -23,7 +23,8 @@ import {
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import type {MRI, Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -40,7 +41,11 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  type SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
@@ -57,6 +62,7 @@ import type {
 import {
   DashboardFilterKeys,
   DisplayType,
+  WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
@@ -309,7 +315,13 @@ export function getWidgetDiscoverUrl(
   isMetricsData: boolean = false
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
-  const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+  const discoverLocation = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) && widget.widgetType
+      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      : undefined
+  );
 
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
@@ -419,10 +431,11 @@ export function getWidgetMetricsUrl(
     project,
     environment: selection.environments,
     widgets: _widget.queries.map(query => {
-      const {mri: mri, op} = parseField(query.aggregates[0]) ?? {mri: '', op: ''};
+      const parsed = parseField(query.aggregates[0]);
+
       return {
-        mri: mri as MRI,
-        op,
+        mri: parsed?.mri,
+        aggregation: parsed?.aggregation,
         groupBy: query.columns,
         query: query.conditions ?? '',
         displayType: getMetricDisplayType(_widget.displayType),
@@ -668,4 +681,18 @@ export function dashboardFiltersToString(
 
 export function connectDashboardCharts(groupName: string) {
   connect?.(groupName);
+}
+
+export function hasDatasetSelector(organization: Organization): boolean {
+  return organization.features.includes('performance-discover-dataset-selector');
+}
+
+export function appendQueryDatasetParam(
+  organization: Organization,
+  queryDataset?: SavedQueryDatasets
+) {
+  if (hasDatasetSelector(organization) && queryDataset) {
+    return {queryDataset: queryDataset};
+  }
+  return {};
 }

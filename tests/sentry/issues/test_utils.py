@@ -14,13 +14,18 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
+from sentry.issues.status_change_message import StatusChangeMessage, StatusChangeMessageData
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.helpers.datetime import iso_format
 
 
 class OccurrenceTestMixin:
-    def assert_occurrences_identical(self, o1: IssueOccurrence, o2: IssueOccurrence) -> None:
+    def assert_occurrences_identical(
+        self, o1: IssueOccurrence | None, o2: IssueOccurrence | None
+    ) -> None:
+        assert o1 is not None
+        assert o2 is not None
         assert o1.id == o2.id
         assert o1.event_id == o2.event_id
         assert o1.fingerprint == o2.fingerprint
@@ -80,6 +85,25 @@ class OccurrenceTestMixin:
         if "project_id" not in event_data:
             event_data["project_id"] = occurrence_data["project_id"]
         return process_event_and_issue_occurrence(occurrence_data, event_data)
+
+
+class StatusChangeTestMixin:
+    def build_statuschange_data(self, **overrides: Any) -> StatusChangeMessageData:
+        kwargs: StatusChangeMessageData = {
+            "id": uuid.uuid4().hex,
+            "project_id": 1,
+            "fingerprint": ["some-fingerprint"],
+            "new_status": 1,
+            "new_substatus": 1,
+        }
+        kwargs.update(overrides)  # type: ignore[typeddict-item]
+
+        process_occurrence_data(kwargs)
+        return kwargs
+
+    def build_statuschange(self, **overrides: Any) -> StatusChangeMessage:
+
+        return StatusChangeMessage(**self.build_statuschange_data(**overrides))
 
 
 class SearchIssueTestMixin(OccurrenceTestMixin):

@@ -75,7 +75,6 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 self.store_metric(
                     self.org_id,
                     self.project.id,
-                    metric_type,
                     mri,
                     {
                         "transaction": f"transaction_{i % 2}",
@@ -84,7 +83,6 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                     },
                     self.ts(self.hour_ago + timedelta(minutes=1 * i)),
                     value,
-                    UseCaseID.TRANSACTIONS,
                 )
         for mri, metric_type in self.metrics.items():
             assert metric_type in {"counter", "distribution", "set"}
@@ -93,14 +91,12 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 self.store_metric(
                     self.org_id,
                     self.project.id,
-                    metric_type,
                     mri,
                     {
                         "release": "release_even" if i % 2 == 0 else "release_odd",
                     },
                     self.ts(self.hour_ago + timedelta(minutes=1 * i)),
                     value,
-                    UseCaseID.SESSIONS,
                 )
 
     def test_basic_generic_metrics(self) -> None:
@@ -806,7 +802,6 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.org_id,
                 self.project.id,
-                "distribution",
                 mri,
                 {
                     "transaction": "transaction_1",
@@ -815,7 +810,6 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 },
                 self.ts(self.hour_ago + timedelta(minutes=5)),
                 1,
-                UseCaseID.CUSTOM,
             )
 
         query = MetricsQuery(
@@ -913,7 +907,6 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
                 self.store_metric(
                     self.org_id,
                     self.project.id,
-                    metric_type,
                     mri,
                     {
                         "transaction": f"transaction_{i % 2}",
@@ -922,7 +915,6 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
                     },
                     self.ts(self.hour_ago + timedelta(minutes=1 * i)),
                     value,
-                    UseCaseID.TRANSACTIONS,
                 )
 
     def test_fetch_metric_mris(self) -> None:
@@ -972,12 +964,10 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
         self.store_metric(
             self.org_id,
             new_project.id,
-            "gauge",
             "g:transactions/test_gauge@none",
             {"status_code": "524"},
             self.ts(self.hour_ago + timedelta(minutes=10)),
             10,
-            UseCaseID.TRANSACTIONS,
         )
 
         tag_values = fetch_metric_tag_values(

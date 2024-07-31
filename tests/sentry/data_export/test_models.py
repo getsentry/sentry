@@ -36,14 +36,17 @@ class ExportedDataTest(TestCase):
         )
 
     def test_status_property(self):
-        assert self.data_export.status == ExportStatus.Early
+        def _assert_status(status: ExportStatus) -> None:
+            assert self.data_export.status == status
+
+        _assert_status(ExportStatus.Early)
         self.data_export.update(
             date_expired=timezone.now() + timedelta(weeks=2),
             date_finished=timezone.now() - timedelta(weeks=2),
         )
-        assert self.data_export.status == ExportStatus.Valid
+        _assert_status(ExportStatus.Valid)
         self.data_export.update(date_expired=timezone.now() - timedelta(weeks=1))
-        assert self.data_export.status == ExportStatus.Expired
+        _assert_status(ExportStatus.Expired)
 
     def test_payload_property(self):
         assert isinstance(self.data_export.payload, dict)
@@ -117,7 +120,7 @@ class ExportedDataTest(TestCase):
             self.data_export.email_success()
         assert len(mail.outbox) == 1
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_email_success_customer_domains(self):
         self.data_export.finalize_upload(file=self.file1)
         with self.tasks():

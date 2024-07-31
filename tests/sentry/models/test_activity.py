@@ -3,7 +3,6 @@ import logging
 from sentry.event_manager import EventManager
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.utils.iterators import chunked
@@ -19,7 +18,6 @@ class ActivityTest(TestCase):
         assert len(act_for_group) == 1
         assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
 
-    @with_feature("projects:issue-priority")
     def test_get_activities_for_group_priority(self):
         manager = EventManager(make_event(level=logging.FATAL))
         project = self.create_project(name="test_activities_group")
@@ -53,7 +51,6 @@ class ActivityTest(TestCase):
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
         assert act_for_group[-1].data["priority"] == PriorityLevel.HIGH.to_str()
 
-    @with_feature("projects:issue-priority")
     def test_get_activities_for_group_simple_priority_ff_on_dups(self):
         manager = EventManager(make_event(level=logging.FATAL))
         project = self.create_project(name="test_activities_group")

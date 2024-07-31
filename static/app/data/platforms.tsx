@@ -320,6 +320,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/remix/',
   },
   {
+    id: 'javascript-solid',
+    name: 'Solid',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/solid/',
+  },
+  {
     id: 'javascript-svelte',
     name: 'Svelte',
     type: 'framework',

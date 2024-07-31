@@ -64,8 +64,10 @@ export const fields: Record<string, Field> = {
     },
 
     saveOnBlur: false,
-    saveMessageAlertType: 'info',
-    saveMessage: t('You will be redirected to the new project slug after saving'),
+    saveMessageAlertType: 'warning',
+    saveMessage: t(
+      "Changing a project's name will also change the project slug. This can break your build scripts! Please proceed carefully."
+    ),
   },
 
   platform: {

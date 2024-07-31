@@ -20,7 +20,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/{var}/{issue_id}/{var}/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
     "/api/0/{var}/{issue_id}/hashes/": {"GET", "DELETE"},
-    "/api/0/{var}/{issue_id}/hashes/split/": {"DELETE", "GET", "PUT"},
     "/api/0/{var}/{issue_id}/reprocessing/": {"POST"},
     "/api/0/{var}/{issue_id}/stats/": {"GET"},
     "/api/0/{var}/{issue_id}/tags/": {"GET"},
@@ -84,11 +83,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/hashes/": {
         "GET",
         "DELETE",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/hashes/split/": {
-        "DELETE",
-        "GET",
-        "PUT",
     },
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/reprocessing/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/stats/": {"GET"},
@@ -330,7 +324,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/audit-logs/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/auth-provider/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/auth-providers/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/auth-provider/send-reminders/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/avatar/": {"GET", "PUT"},
     "/api/0/organizations/{organization_id_or_slug}/artifactbundle/assemble/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/config/integrations/": {"GET"},

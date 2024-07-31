@@ -2,12 +2,12 @@ from sentry import features
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
 from sentry.models.group import Group
-from sentry.types.integrations import ExternalProviderEnum
 
 IMAGE_ALT = {
     PerformanceP95EndpointRegressionGroupType: "P95(transaction.duration)",
@@ -32,6 +32,6 @@ class ImageBlockBuilder(BlockSlackMessageBuilder, IssueAlertImageBuilder):
                 return self.get_image_block(
                     url=image_url,
                     title=self.group.title,
-                    alt=IMAGE_ALT.get(self.group.issue_category),
+                    alt=IMAGE_ALT.get(self.group.issue_type, "issue chart"),
                 )
         return None

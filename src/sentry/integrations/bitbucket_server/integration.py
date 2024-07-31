@@ -22,12 +22,12 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.repository import repository_service
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.repository import repository_service
-from sentry.services.hybrid_cloud.repository.model import RpcRepository
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
@@ -294,9 +294,6 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
 
         return list(filter(lambda repo: repo.name not in accessible_repos, repos))
-
-    def reinstall(self):
-        self.reinstall_repositories()
 
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):

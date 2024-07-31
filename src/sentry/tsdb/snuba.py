@@ -28,7 +28,7 @@ from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.snuba.dataset import Dataset
-from sentry.tsdb.base import BaseTSDB, TSDBModel
+from sentry.tsdb.base import BaseTSDB, TSDBItem, TSDBKey, TSDBModel
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba import (
@@ -705,18 +705,18 @@ class SnubaTSDB(BaseTSDB):
 
     def get_range(
         self,
-        model,
-        keys,
-        start,
-        end,
-        rollup=None,
-        environment_ids=None,
+        model: TSDBModel,
+        keys: Sequence[TSDBKey],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_ids: Sequence[int] | None = None,
         conditions=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
-    ):
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 
@@ -747,7 +747,14 @@ class SnubaTSDB(BaseTSDB):
         return {k: sorted(result[k].items()) for k in result}
 
     def get_distinct_counts_series(
-        self, model, keys, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+        self,
+        model,
+        keys: Sequence[int],
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        tenant_ids=None,
     ):
         result = self.get_data(
             model,
@@ -769,7 +776,7 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model,
-        keys,
+        keys: Sequence[int],
         start,
         end=None,
         rollup=None,
@@ -811,7 +818,7 @@ class SnubaTSDB(BaseTSDB):
     def get_most_frequent(
         self,
         model,
-        keys,
+        keys: Sequence[TSDBKey],
         start,
         end=None,
         rollup=None,
@@ -876,8 +883,15 @@ class SnubaTSDB(BaseTSDB):
         }
 
     def get_frequency_series(
-        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
-    ):
+        self,
+        model: TSDBModel,
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         result = self.get_data(
             model,
             items,
@@ -896,8 +910,15 @@ class SnubaTSDB(BaseTSDB):
         return {k: sorted(result[k].items()) for k in result}
 
     def get_frequency_totals(
-        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
-    ):
+        self,
+        model: TSDBModel,
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[TSDBKey, dict[TSDBItem, float]]:
         return self.get_data(
             model,
             items,

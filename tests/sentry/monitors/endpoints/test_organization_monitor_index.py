@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
@@ -443,7 +444,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
-        alert_rule_id = monitor.config.get("alert_rule_id")
+        alert_rule_id = monitor.config["alert_rule_id"]
         rule = Rule.objects.get(
             project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
         )
@@ -522,19 +523,19 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_valid_slugs(self):
-        self._create_monitor(slug="monitor_one")
+    def test_valid_ids(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
         self._create_monitor(slug="monitor_two")
 
         data = {
-            "slugs": ["monitor_three", "monitor_two"],
+            "ids": [uuid.uuid4().hex, monitor_one.guid],
             "isMuted": True,
         }
         response = self.get_error_response(self.organization.slug, **data)
         assert response.status_code == 400
         assert response.data == {
-            "slugs": [
-                ErrorDetail(string="Not all slugs are valid for this organization.", code="invalid")
+            "ids": [
+                ErrorDetail(string="Not all ids are valid for this organization.", code="invalid")
             ]
         }
 
@@ -543,7 +544,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two = self._create_monitor(slug="monitor_two")
 
         data = {
-            "slugs": ["monitor_one", "monitor_two"],
+            "ids": [monitor_one.guid, monitor_two.guid],
             "isMuted": True,
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -555,7 +556,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert monitor_two.is_muted
 
         data = {
-            "slugs": ["monitor_one", "monitor_two"],
+            "ids": [monitor_one.guid, monitor_two.guid],
             "isMuted": False,
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -570,7 +571,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
         data = {
-            "slugs": ["monitor_one", "monitor_two"],
+            "ids": [monitor_one.guid, monitor_two.guid],
             "status": "disabled",
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -582,7 +583,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert monitor_two.status == ObjectStatus.DISABLED
 
         data = {
-            "slugs": ["monitor_one", "monitor_two"],
+            "ids": [monitor_one.guid, monitor_two.guid],
             "status": "active",
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -605,7 +606,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         check_assign_monitor_seats.return_value = result
 
         data = {
-            "slugs": ["monitor_one", "monitor_two"],
+            "ids": [monitor_one.guid, monitor_two.guid],
             "status": "active",
         }
         response = self.get_error_response(self.organization.slug, **data)

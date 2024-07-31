@@ -4,7 +4,8 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {EventTransaction, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {EventTransaction} from 'sentry/types/event';
 import type {
   TraceFullDetailed,
   TraceSplitResults,
@@ -13,7 +14,6 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useParams} from 'sentry/utils/useParams';
 
 import type {TraceTree} from '../traceModels/traceTree';
 
@@ -35,8 +35,8 @@ const DEFAULT_LIMIT = 1_000;
 
 export function getTraceQueryParams(
   query: Location['query'],
-  filters: Partial<PageFilters> = {},
-  options: {limit?: number} = {}
+  filters?: Partial<PageFilters>,
+  options: {limit?: number; timestamp?: number} = {}
 ): {
   eventId: string | undefined;
   limit: number;
@@ -52,28 +52,24 @@ export function getTraceQueryParams(
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
-  const timestamp = decodeScalar(normalizedParams.timestamp);
-  let decodedLimit: string | number | undefined =
-    options.limit ?? decodeScalar(normalizedParams.limit);
-
-  if (typeof decodedLimit === 'string') {
-    decodedLimit = parseInt(decodedLimit, 10);
+  const timestamp = options.timestamp ?? decodeScalar(normalizedParams.timestamp);
+  let limit = options.limit ?? decodeScalar(normalizedParams.limit);
+  if (typeof limit === 'string') {
+    limit = parseInt(limit, 10);
   }
 
   const eventId = decodeScalar(normalizedParams.eventId);
 
   if (timestamp) {
-    decodedLimit = decodedLimit ?? DEFAULT_TIMESTAMP_LIMIT;
+    limit = limit ?? DEFAULT_TIMESTAMP_LIMIT;
   } else {
-    decodedLimit = decodedLimit ?? DEFAULT_LIMIT;
+    limit = limit ?? DEFAULT_LIMIT;
   }
-
-  const limit = decodedLimit;
 
   const otherParams: Record<string, string | string[] | undefined | null> = {
     end: normalizedParams.pageEnd,
     start: normalizedParams.pageStart,
-    statsPeriod: statsPeriod || filters.datetime?.period,
+    statsPeriod: statsPeriod || filters?.datetime?.period,
   };
 
   // We prioritize timestamp over statsPeriod as it makes the query more specific, faster
@@ -86,7 +82,7 @@ export function getTraceQueryParams(
     ...otherParams,
     demo,
     limit,
-    timestamp,
+    timestamp: timestamp?.toString(),
     eventId,
     useSpans: 1,
   };
@@ -190,30 +186,33 @@ function useDemoTrace(
 
 type UseTraceParams = {
   limit?: number;
+  timestamp?: number;
+  traceSlug?: string;
 };
 
-const DEFAULT_OPTIONS = {};
 export function useTrace(
-  options: Partial<UseTraceParams> = DEFAULT_OPTIONS
+  options: UseTraceParams
 ): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
   const filters = usePageFilters();
   const organization = useOrganization();
-  const params = useParams<{traceSlug?: string}>();
   const queryParams = useMemo(() => {
     const query = qs.parse(location.search);
-    return getTraceQueryParams(query, filters.selection, options);
+    return getTraceQueryParams(query, filters.selection, {
+      limit: options.limit,
+      timestamp: options.timestamp,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options]);
+  }, [options.limit, options.timestamp]);
   const mode = queryParams.demo ? 'demo' : undefined;
   const demoTrace = useDemoTrace(queryParams.demo, organization);
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
-      `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
+      `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
       {query: queryParams},
     ],
     {
       staleTime: Infinity,
-      enabled: !!params.traceSlug && !!organization.slug && mode !== 'demo',
+      enabled: !!options.traceSlug && !!organization.slug && mode !== 'demo',
     }
   );
 

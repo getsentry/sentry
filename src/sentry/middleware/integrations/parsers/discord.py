@@ -12,15 +12,15 @@ from sentry.integrations.discord.requests.base import DiscordRequest, DiscordReq
 from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityView
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
-from sentry.middleware.integrations.parsers.base import (
+from sentry.integrations.middleware.hybrid_cloud.parser import (
     BaseRequestParser,
     create_async_request_payload,
 )
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_discord_response
 from sentry.models.integrations import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
 from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
 
@@ -80,7 +80,7 @@ class DiscordRequestParser(BaseRequestParser):
                 external_id=discord_request.guild_id,
             ).first()
 
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("path", self.request.path)
             scope.set_extra("guild_id", str(discord_request.guild_id if discord_request else None))
             sentry_sdk.capture_exception(

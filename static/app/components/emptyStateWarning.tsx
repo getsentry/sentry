@@ -27,7 +27,7 @@ function EmptyStateWarning({small = false, withIcon = true, children, className}
   );
 }
 
-const EmptyStreamWrapper = styled('div')`
+export const EmptyStreamWrapper = styled('div')`
   text-align: center;
   font-size: 22px;
   padding: ${space(4)} ${space(2)};

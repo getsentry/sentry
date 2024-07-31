@@ -15,12 +15,12 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
+from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
-from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.signals import email_verified, terms_accepted
+from sentry.silo.base import control_silo_function
+from sentry.users.services.lost_password_hash import lost_password_hash_service
+from sentry.users.services.user.service import user_service
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
@@ -216,6 +216,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 # associated. We only need the first membership, since all of user's orgs will be in
                 # the same region.
                 membership = OrganizationMemberMapping.objects.filter(user=user).first()
+                assert membership is not None
                 mapping = OrganizationMapping.objects.get(
                     organization_id=membership.organization_id
                 )
@@ -247,7 +248,9 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 user.save()
 
                 # Ugly way of doing this, but Django requires the backend be set
-                user = authenticate(username=user.username, password=form.cleaned_data["password"])
+                auth = authenticate(username=user.username, password=form.cleaned_data["password"])
+                assert isinstance(auth, User), auth
+                user = auth
 
                 # Only log the user in if there is no two-factor on the
                 # account.

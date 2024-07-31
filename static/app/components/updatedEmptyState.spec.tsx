@@ -2,6 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import UpdatedEmptyState from 'sentry/components/updatedEmptyState';
 
@@ -19,6 +20,11 @@ describe('UpdatedEmptyState', function () {
       body: ProjectFixture({platform: 'python-django', firstEvent: null}),
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/sdks/`,
+      method: 'GET',
+    });
+
     render(<UpdatedEmptyState project={ProjectFixture({platform: 'python-django'})} />);
     expect(await screen.findByText('Get Started with Sentry Issues')).toBeInTheDocument();
     expect(await screen.findByText('Set up the Sentry SDK')).toBeInTheDocument();
@@ -26,7 +32,7 @@ describe('UpdatedEmptyState', function () {
 
     expect(
       await screen.findByText(
-        'Use the following command to install our Python Django SDK'
+        textWithMarkupMatcher('Install sentry-sdk from PyPI with the django extra')
       )
     ).toBeInTheDocument();
 
@@ -34,7 +40,7 @@ describe('UpdatedEmptyState', function () {
 
     expect(
       await screen.findByText(
-        'If you have the Django package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django settings.py file'
+        textWithMarkupMatcher('Initialize the Sentry SDK in your Django settings.py file')
       )
     ).toBeInTheDocument();
 
@@ -42,7 +48,7 @@ describe('UpdatedEmptyState', function () {
 
     expect(
       await screen.findByText(
-        'Add this intentional error to your application to test that everything is working right away.'
+        'You can easily verify your Sentry installation by creating a route that triggers an error:'
       )
     ).toBeInTheDocument();
 

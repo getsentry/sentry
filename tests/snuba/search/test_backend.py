@@ -38,7 +38,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import xfail_if_not_postgres
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -2400,10 +2400,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         # searched on without returning type errors and other schema related
         # issues.
         def test_query(query):
-            try:
-                self.make_query(search_filter_query=query)
-            except SnubaError as e:
-                self.fail(f"Query {query} errored. Error info: {e}")  # type:ignore[attr-defined]
+            self.make_query(search_filter_query=query)
 
         for key in SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id", "performance.issue_ids", "status"]:
@@ -3025,7 +3022,6 @@ class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         query_executor = self.backend._get_query_executor()
         with self.feature(
             [
-                "organizations:issue-platform",
                 ProfileFileIOGroupType.build_visible_feature_name(),
             ]
         ):
@@ -3072,7 +3068,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
                 "noise_config",
                 new=NoiseConfig(0, timedelta(minutes=1)),
             ),
-            self.feature("organizations:issue-platform"),
         ):
             self.store_event(
                 data={
@@ -3140,7 +3135,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
     def test_performance_query(self):
         with self.feature(
             [
-                "organizations:issue-platform",
                 self.perf_group_1.issue_type.build_visible_feature_name(),
             ]
         ):
@@ -3158,7 +3152,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         # issue platform. We'd end up reading the same issue twice and duplicate it in the response.
         with self.feature(
             [
-                "organizations:issue-platform",
                 self.perf_group_1.issue_type.build_visible_feature_name(),
             ]
         ):
@@ -3171,7 +3164,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert list(results) == []
         with self.feature(
             [
-                "organizations:issue-platform",
                 self.perf_group_1.issue_type.build_visible_feature_name(),
             ]
         ):
@@ -3181,7 +3173,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
     def test_error_performance_query(self):
         with self.feature(
             [
-                "organizations:issue-platform",
                 self.perf_group_1.issue_type.build_visible_feature_name(),
             ]
         ):
@@ -3215,7 +3206,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
     def test_cursor_performance_issues(self):
         with self.feature(
             [
-                "organizations:issue-platform",
                 self.perf_group_1.issue_type.build_visible_feature_name(),
             ]
         ):
@@ -3269,7 +3259,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
                 "noise_config",
                 new=NoiseConfig(0, timedelta(minutes=1)),
             ),
-            self.feature("organizations:issue-platform"),
         ):
             tx = self.store_event(
                 data={
@@ -3297,7 +3286,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         assert created_group == find_group
         with self.feature(
             [
-                "organizations:issue-platform",
                 created_group.issue_type.build_visible_feature_name(),
             ]
         ):
@@ -3334,7 +3322,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
                 "noise_config",
                 new=NoiseConfig(0, timedelta(minutes=1)),
             ),
-            self.feature("organizations:issue-platform"),
         ):
             self.store_event(
                 data={
@@ -3375,7 +3362,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
         with self.feature(
             [
-                "organizations:issue-platform",
                 perf_issue.issue_type.build_visible_feature_name(),
             ]
         ):
@@ -3518,9 +3504,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         assert list(results) == []
 
     def test_generic_query(self):
-        with self.feature(
-            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
-        ):
+        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.profile_group_1, self.profile_group_2]
             results = self.make_query(
@@ -3529,9 +3513,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             assert list(results) == [self.profile_group_1, self.profile_group_2]
 
     def test_generic_query_message(self):
-        with self.feature(
-            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
-        ):
+        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
             results = self.make_query(search_filter_query="File I/O")
             assert list(results) == [self.profile_group_1, self.profile_group_2]
 
@@ -3558,11 +3540,8 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 )
                 assert group_info is not None
 
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:2")
-            assert list(results) == []
             with self.feature(
                 [
-                    "organizations:issue-platform",
                     group_type.build_visible_feature_name(),
                     "organizations:performance-issues-search",
                 ]
@@ -3571,9 +3550,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         assert list(results) == [group_info.group]
 
     def test_error_generic_query(self):
-        with self.feature(
-            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
-        ):
+        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
             results = self.make_query(search_filter_query="my_tag:1")
             assert list(results) == [
                 self.profile_group_1,
@@ -3602,9 +3579,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             ]
 
     def test_cursor_profile_issues(self):
-        with self.feature(
-            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
-        ):
+        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:performance my_tag:1",
@@ -3643,9 +3618,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         Any queries with `error.handled` or `error.unhandled` filters querying the search_issues dataset
         should be rejected and return empty results.
         """
-        with self.feature(
-            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
-        ):
+        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:performance error.unhandled:0",
@@ -3705,9 +3678,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             )
 
     def test_feedback_category_hidden_default(self):
-        with self.feature(
-            ["organizations:issue-platform", FeedbackGroup.build_visible_feature_name()]
-        ):
+        with self.feature([FeedbackGroup.build_visible_feature_name()]):
             event_id_1 = uuid.uuid4().hex
             self.process_occurrence(
                 **{
@@ -3734,7 +3705,6 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
     def test_feedback_category_show_when_filtered_on(self):
         with self.feature(
             [
-                "organizations:issue-platform",
                 FeedbackGroup.build_visible_feature_name(),
                 FeedbackGroup.build_ingest_feature_name(),
             ]

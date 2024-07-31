@@ -1,6 +1,6 @@
 from sentry import analytics
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.utils.email import MessageBuilder
 
 provider_types = {

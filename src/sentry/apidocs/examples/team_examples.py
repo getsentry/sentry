@@ -1,4 +1,12 @@
+from copy import deepcopy
+
 from drf_spectacular.utils import OpenApiExample
+
+from sentry.apidocs.examples.organization_member_examples import ORGANIZATION_MEMBER
+
+ORGANIZATION_MEMBER_ON_TEAM = deepcopy(ORGANIZATION_MEMBER)
+ORGANIZATION_MEMBER_ON_TEAM["teamRole"] = "member"
+ORGANIZATION_MEMBER_ON_TEAM["teamSlug"] = "powerful-abolitionist"
 
 
 class TeamExamples:
@@ -102,6 +110,15 @@ class TeamExamples:
         )
     ]
 
+    LIST_TEAM_MEMBERS = [
+        OpenApiExample(
+            "List Team Members",
+            value=[ORGANIZATION_MEMBER_ON_TEAM],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
     LIST_ORG_TEAMS = [
         OpenApiExample(
             "Get list of organization's teams",
@@ -193,7 +210,18 @@ class TeamExamples:
                             "hasMonitors": True,
                             "hasProfiles": False,
                             "hasReplays": False,
+                            "hasFeedbacks": False,
+                            "hasNewFeedbacks": False,
                             "hasSessions": True,
+                            "hasInsightsHttp": True,
+                            "hasInsightsDb": False,
+                            "hasInsightsAssets": True,
+                            "hasInsightsAppStart": False,
+                            "hasInsightsScreenLoad": False,
+                            "hasInsightsVitals": False,
+                            "hasInsightsCaches": False,
+                            "hasInsightsQueues": False,
+                            "hasInsightsLlmMonitoring": False,
                             "isInternal": False,
                             "isPublic": False,
                             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
@@ -240,7 +268,18 @@ class TeamExamples:
                             "hasMonitors": True,
                             "hasProfiles": False,
                             "hasReplays": False,
+                            "hasFeedbacks": False,
+                            "hasNewFeedbacks": False,
                             "hasSessions": False,
+                            "hasInsightsHttp": False,
+                            "hasInsightsDb": True,
+                            "hasInsightsAssets": True,
+                            "hasInsightsAppStart": True,
+                            "hasInsightsScreenLoad": True,
+                            "hasInsightsVitals": False,
+                            "hasInsightsCaches": False,
+                            "hasInsightsQueues": False,
+                            "hasInsightsLlmMonitoring": False,
                             "isInternal": False,
                             "isPublic": False,
                             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
@@ -316,8 +355,19 @@ class TeamExamples:
                     "hasProfiles": False,
                     "hasReplays": False,
                     "hasMonitors": False,
+                    "hasFeedbacks": False,
+                    "hasNewFeedbacks": False,
                     "hasMinifiedStackTrace": False,
                     "hasCustomMetrics": False,
+                    "hasInsightsHttp": True,
+                    "hasInsightsDb": False,
+                    "hasInsightsAssets": False,
+                    "hasInsightsAppStart": False,
+                    "hasInsightsScreenLoad": False,
+                    "hasInsightsVitals": False,
+                    "hasInsightsCaches": True,
+                    "hasInsightsQueues": True,
+                    "hasInsightsLlmMonitoring": False,
                     "platform": "node-express",
                     "platforms": [],
                     "latestRelease": None,
@@ -376,8 +426,19 @@ class TeamExamples:
                     "hasProfiles": False,
                     "hasReplays": False,
                     "hasMonitors": False,
+                    "hasFeedbacks": False,
+                    "hasNewFeedbacks": False,
                     "hasMinifiedStackTrace": True,
                     "hasCustomMetrics": False,
+                    "hasInsightsHttp": False,
+                    "hasInsightsDb": False,
+                    "hasInsightsAssets": False,
+                    "hasInsightsAppStart": False,
+                    "hasInsightsScreenLoad": False,
+                    "hasInsightsVitals": False,
+                    "hasInsightsCaches": False,
+                    "hasInsightsQueues": False,
+                    "hasInsightsLlmMonitoring": True,
                     "platform": "javascript",
                     "platforms": ["javascript"],
                     "latestRelease": None,
@@ -411,7 +472,6 @@ class TeamExamples:
                     "require2FA": False,
                     "slug": "the-interstellar-jurisdiction",
                     "status": {"id": "active", "name": "active"},
-                    "requireEmailVerification": False,
                     "features": ["session-replay-videos"],
                     "hasAuthProvider": True,
                     "links": {
@@ -463,6 +523,18 @@ class TeamExamples:
                 ],
                 "flags": {"idp:provisioned": False},
                 "teamRole": "contributor",
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    UPDATE_TEAM_ROLE = [
+        OpenApiExample(
+            "Update a Team Role",
+            value={
+                "isActive": True,
+                "teamRole": "admin",
             },
             status_codes=["200"],
             response_only=True,

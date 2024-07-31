@@ -26,12 +26,7 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
-from sentry.db.models.paranoia import ParanoidModel
-from sentry.models.importchunk import ControlImportChunkReplica
-from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxCategory, OutboxFlushError, OutboxScope, RegionOutbox
-from sentry.nodestore.django.models import Node
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcFilter,
     RpcImportError,
     RpcImportErrorKind,
@@ -39,7 +34,12 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.import_export.service import ImportExportService
+from sentry.backup.services.import_export.service import ImportExportService
+from sentry.db.models.paranoia import ParanoidModel
+from sentry.models.importchunk import ControlImportChunkReplica
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.outbox import OutboxCategory, OutboxFlushError, OutboxScope, RegionOutbox
+from sentry.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils.env import is_split_db
@@ -72,7 +72,7 @@ def _clear_model_tables_before_import():
     for model in reversed:
         using = router.db_for_write(model)
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
-        manager.all().delete()  # type: ignore[attr-defined]
+        manager.all().delete()
 
         # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
         # solution.
@@ -317,7 +317,7 @@ def _import(
         logger.info("import_by_model.request_import", extra=extra)
 
         result = import_by_model(
-            model_name=model_name_str,
+            import_model_name=model_name_str,
             scope=import_write_context.scope,
             flags=import_write_context.flags,
             filter_by=import_write_context.filter_by,

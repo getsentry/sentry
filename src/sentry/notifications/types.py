@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING
 
-from sentry.services.hybrid_cloud import ValueEqualityEnum
+from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -33,6 +33,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
+    BROKEN_MONITORS = "brokenMonitors"
 
 
 class NotificationSettingsOptionEnum(ValueEqualityEnum):
@@ -143,6 +144,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.REPORTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.BROKEN_MONITORS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },

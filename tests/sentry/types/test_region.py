@@ -7,7 +7,7 @@ from django.db import router
 from django.test import RequestFactory, override_settings
 
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase

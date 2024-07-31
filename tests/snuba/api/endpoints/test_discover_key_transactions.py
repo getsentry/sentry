@@ -885,7 +885,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
                 data={
-                    "project": [project.id],
+                    "project": [str(project.id)],
                     "team": ["myteams"],
                 },
                 format="json",
@@ -906,7 +906,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
                 data={
-                    "project": [project.id],
+                    "project": [str(project.id)],
                     "team": ["myteams"],
                     "cursor": links["next"]["cursor"],
                 },

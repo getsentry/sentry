@@ -14,7 +14,7 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.notify_disable import notify_disable
@@ -26,6 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -37,7 +38,7 @@ GITHUB_CODEOWNERS = {
 }
 
 
-class GitHubAppsClientTest(TestCase):
+class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
         ten_days = timezone.now() + timedelta(days=10)
@@ -59,9 +60,9 @@ class GitHubAppsClientTest(TestCase):
             external_id=123,
             integration_id=self.integration.id,
         )
-        install = self.integration.get_installation(organization_id=self.organization.id)
-        assert isinstance(install, GitHubIntegration)
-        self.install = install
+        self.install = get_installation_of_type(
+            GitHubIntegration, self.integration, self.organization.id
+        )
         self.github_client = self.install.get_client()
 
     @responses.activate
@@ -331,6 +332,40 @@ class GitHubAppsClientTest(TestCase):
         del stored_reactions["url"]
         assert reactions == stored_reactions
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_merge_commit_sha_from_commit(self, get_jwt):
+        merge_commit_sha = "jkl123"
+        pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]
+        commit_sha = "asdf"
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/commits/{commit_sha}/pulls",
+            json=pull_requests,
+        )
+
+        sha = self.github_client.get_merge_commit_sha_from_commit(
+            repo=self.repo.name, sha=commit_sha
+        )
+        assert sha == merge_commit_sha
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_merge_commit_sha_from_commit_open_pr(self, get_jwt):
+        merge_commit_sha = "jkl123"
+        pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "open"}]
+        commit_sha = "asdf"
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/commits/{commit_sha}/pulls",
+            json=pull_requests,
+        )
+
+        sha = self.github_client.get_merge_commit_sha_from_commit(
+            repo=self.repo.name, sha=commit_sha
+        )
+        assert sha is None
+
     @responses.activate
     def test_disable_email(self):
         with self.tasks():
@@ -419,22 +454,22 @@ class GithubProxyClientTest(TestCase):
             # Regular API requests should use access tokens
             token = self.gh_client._get_token(prepared_request=access_token_request)
             self.integration.refresh_from_db()
-            assert mock_jwt.called
-            assert mock_refresh_token.called
+            assert mock_jwt.call_count == 1
+            assert mock_refresh_token.call_count == 1
             assert token == self.access_token == self.integration.metadata["access_token"]
 
             # If the access token isn't expired, don't refresh it with an API call
             mock_refresh_token.reset_mock()
             mock_jwt.reset_mock()
             token = self.gh_client._get_token(prepared_request=access_token_request)
-            assert not mock_refresh_token.called
-            assert not mock_jwt.called
+            assert mock_refresh_token.call_count == 0
+            assert mock_jwt.call_count == 0
             assert token == self.access_token == self.integration.metadata["access_token"]
 
             # Meta, app-installation requests should use jwts
             token = self.gh_client._get_token(prepared_request=jwt_request)
-            assert mock_jwt.called
-            assert not mock_refresh_token.called
+            assert mock_jwt.call_count == 1
+            assert mock_refresh_token.call_count == 0
             assert token == self.jwt
 
     @responses.activate
@@ -487,7 +522,7 @@ class GithubProxyClientTest(TestCase):
         "sentry.integrations.github.client.GithubProxyClient._get_token", return_value=access_token
     )
     def test_integration_proxy_is_active(self, mock_get_token):
-        class GithubProxyTestClient(GitHubAppsClient):
+        class GithubProxyTestClient(GitHubApiClient):
             _use_proxy_url_for_tests = True
 
             def assert_proxy_request(self, request, is_proxy=True):
@@ -647,6 +682,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             code_mapping=None,  # type: ignore[arg-type]
         )
 
+    @pytest.mark.skip("Feature is temporarily disabled")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
     @responses.activate
     def test_fatal_and_disable_integration(self, get_jwt):
@@ -663,7 +699,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             },
         )
 
-        self.github_client.integration = None
         with pytest.raises(Exception):
             self.github_client.get_blame_for_files([self.file], extra={})
 
@@ -713,7 +748,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
                 "message": "Not found",
             },
         )
-        self.github_client.integration = None
         with pytest.raises(Exception):
             self.github_client.get_blame_for_files([self.file], extra={})
         with pytest.raises(Exception):
@@ -746,13 +780,13 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             with freeze_time(now - timedelta(days=i)):
                 buffer.record_error()
                 buffer.record_success()
-        self.github_client.integration = None
         with pytest.raises(Exception):
             self.github_client.get_blame_for_files([self.file], extra={})
         assert buffer.is_integration_broken() is False
         self.integration.refresh_from_db()
         assert self.integration.status == ObjectStatus.ACTIVE
 
+    @pytest.mark.skip("Feature is temporarily disabled")
     @responses.activate
     @freeze_time("2022-01-01 03:30:00")
     def test_a_slow_integration_is_broken(self):
@@ -771,7 +805,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
                 buffer.record_error()
-        self.github_client.integration = None
         assert self.integration.status == ObjectStatus.ACTIVE
         with pytest.raises(Exception):
             self.github_client.get_blame_for_files([self.file], extra={})
@@ -1363,18 +1396,24 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                 ),
             ],
         )
-        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        cached_1 = self.github_client.check_cache(cache_key)
+        assert isinstance(cached_1, dict)
+        assert cached_1["data"] == self.data
         # Calling a second time should work
         response = self.github_client.get_blame_for_files(
             [self.file1, self.file2, self.file3], extra={}
         )
-        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        cached_2 = self.github_client.check_cache(cache_key)
+        assert isinstance(cached_2, dict)
+        assert cached_2["data"] == self.data
         # Calling again after the cache has been cleared should still work
         cache.delete(cache_key)
         response = self.github_client.get_blame_for_files(
             [self.file1, self.file2, self.file3], extra={}
         )
-        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        cached_3 = self.github_client.check_cache(cache_key)
+        assert isinstance(cached_3, dict)
+        assert cached_3["data"] == self.data
         assert (
             self.github_client.get_blame_for_files([self.file1, self.file2], extra={}) != response
         )

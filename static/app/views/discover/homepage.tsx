@@ -15,6 +15,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {Results} from './results';
 
@@ -77,7 +78,10 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
 
       browserHistory.replace({
         ...this.props.location,
-        query,
+        query: {
+          ...query,
+          queryDataset: this.state.savedQuery?.queryDataset,
+        },
       });
     }
   }
@@ -96,18 +100,35 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
   }
 
   onRequestSuccess({stateKey, data}) {
+    const {organization} = this.props;
     // No homepage query results in a 204, returning an empty string
     if (stateKey === 'savedQuery' && data === '') {
       this.setState({savedQuery: null});
+      return;
+    }
+    if (stateKey === 'savedQuery') {
+      this.setState({
+        savedQuery: organization.features.includes(
+          'performance-discover-dataset-selector'
+        )
+          ? getSavedQueryWithDataset(data)
+          : data,
+      });
     }
   }
 
   setSavedQuery = (newSavedQuery?: SavedQuery) => {
-    this.setState({savedQuery: newSavedQuery});
+    const {organization} = this.props;
+    this.setState({
+      savedQuery: organization.features.includes('performance-discover-dataset-selector')
+        ? (getSavedQueryWithDataset(newSavedQuery) as SavedQuery)
+        : newSavedQuery,
+    });
   };
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
+
     return (
       <Results
         {...this.props}

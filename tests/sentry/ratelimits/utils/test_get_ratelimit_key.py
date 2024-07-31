@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
 from sentry.models.apitoken import ApiToken
@@ -13,7 +14,6 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 from sentry.models.user import User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -131,9 +131,11 @@ class GetRateLimitKeyTest(TestCase):
 
     def test_api_token_replica(self):
         with assume_test_silo_mode_of(ApiToken):
-            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+            apitoken = ApiToken.objects.create(
+                user=self.user, scope_list=["event:read", "org:read"]
+            )
         with assume_test_silo_mode_of(ApiTokenReplica):
-            token = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            token = ApiTokenReplica.objects.get(apitoken_id=apitoken.id)
         self.request.auth = token
         self.request.user = self.user
 
@@ -146,7 +148,7 @@ class GetRateLimitKeyTest(TestCase):
 
     def test_authenticated_token(self):
         # Ensure AuthenticatedToken kinds are registered
-        import sentry.services.hybrid_cloud.auth.impl  # noqa: F401
+        import sentry.auth.services.auth.service  # noqa: F401
 
         with assume_test_silo_mode_of(ApiToken):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])

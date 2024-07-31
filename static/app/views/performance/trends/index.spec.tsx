@@ -31,7 +31,7 @@ const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
-jest.mock('moment', () => {
+jest.mock('moment-timezone', () => {
   const moment = jest.requireActual('moment');
   moment.now = jest.fn().mockReturnValue(1601251200000);
   return moment;
@@ -129,10 +129,7 @@ function initializeTrendsData(
   const features = extraFeatures
     ? ['transaction-event', 'performance-view', ...extraFeatures]
     : ['transaction-event', 'performance-view'];
-  const organization = OrganizationFixture({
-    features,
-    projects: _projects,
-  });
+  const organization = OrganizationFixture({features});
 
   const newQuery = {...(includeDefaultQuery ? trendsViewQuery : {}), ...query};
 
@@ -144,10 +141,9 @@ function initializeTrendsData(
       },
     },
     projects: _projects,
-    project: projects ? projects[0] : undefined,
   });
 
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
 
   return initialData;
 }

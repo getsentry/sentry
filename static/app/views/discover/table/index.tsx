@@ -15,10 +15,12 @@ import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import withApi from 'sentry/utils/withApi';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import TableView from './tableView';
 
@@ -33,7 +35,10 @@ type TableProps = {
   setError: (msg: string, code: number) => void;
   showTags: boolean;
   title: string;
+  dataset?: DiscoverDatasets;
   isHomepage?: boolean;
+  queryDataset?: SavedQueryDatasets;
+  setSplitDecision?: (value: SavedQueryDatasets) => void;
   setTips?: (tips: string[]) => void;
 };
 
@@ -100,8 +105,15 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, setError, confirmedQuery, setTips} =
-      this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      setError,
+      confirmedQuery,
+      setTips,
+      setSplitDecision,
+    } = this.props;
 
     if (!eventView.isValid() || !confirmedQuery) {
       return;
@@ -144,6 +156,10 @@ class Table extends PureComponent<TableProps, TableState> {
       apiPayload.field.push('timestamp');
     }
 
+    if (hasDatasetSelector(organization) && eventView.id) {
+      apiPayload.discoverSavedQueryId = eventView.id;
+    }
+
     apiPayload.referrer = 'api.discover.query-table';
 
     setError('', 200);
@@ -179,6 +195,13 @@ class Table extends PureComponent<TableProps, TableState> {
           meta: {...fields, ...nonFieldsMeta},
         };
 
+        trackAnalytics('discover_search.success', {
+          has_results: tableData.data.length > 0,
+          organization: this.props.organization,
+          search_type: 'events',
+          search_source: 'discover_search',
+        });
+
         this.setState(prevState => ({
           isLoading: false,
           tableFetchID: undefined,
@@ -196,6 +219,10 @@ class Table extends PureComponent<TableProps, TableState> {
           tips.push(columns);
         }
         setTips?.(tips);
+        const splitDecision = tableData?.meta?.discoverSplitDecision;
+        if (splitDecision) {
+          setSplitDecision?.(splitDecision);
+        }
       })
       .catch(err => {
         metric.measure({
@@ -225,7 +252,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, onCursor} = this.props;
+    const {eventView, onCursor, dataset, queryDataset} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -256,6 +283,8 @@ class Table extends PureComponent<TableProps, TableState> {
                       measurementKeys={measurementKeys}
                       spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
+                      dataset={dataset}
+                      queryDataset={queryDataset}
                     />
                   </VisuallyCompleteWithData>
                 )}

@@ -32,6 +32,7 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
+from sentry.backup.services.import_export.model import RpcImportErrorKind
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
@@ -44,7 +45,7 @@ from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -65,7 +66,6 @@ from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
-from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
@@ -73,7 +73,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
-    BackupTestCase,
+    BackupTransactionTestCase,
     clear_database,
     export_to_file,
     generate_rsa_key_pair,
@@ -88,7 +88,7 @@ from tests.sentry.backup import (
 )
 
 
-class ImportTestCase(BackupTestCase):
+class ImportTestCase(BackupTransactionTestCase):
     def export_to_tmp_file_and_clear_database(self, tmp_dir) -> Path:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
         export_to_file(tmp_path, ExportScope.Global)
@@ -1416,7 +1416,7 @@ class CollisionTests(ImportTestCase):
 
         # Take note of a `Monitor` that was created by the exhaustive organization - this is the
         # one we'll be importing.
-        colliding = Monitor.objects.filter().first()
+        colliding = Monitor.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1449,16 +1449,18 @@ class CollisionTests(ImportTestCase):
         # Take note of the `OrgAuthToken` that was created by the exhaustive organization - this is
         # the one we'll be importing.
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding = OrgAuthToken.objects.filter().first()
+            colliding = OrgAuthToken.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
 
             # After exporting and clearing the database, insert a copy of the same `OrgAuthToken` as
             # the one found in the import.
+            new_user = self.create_user("new")
             org = self.create_organization()
 
             with assume_test_silo_mode(SiloMode.CONTROL):
+                colliding.created_by = new_user
                 colliding.organization_id = org.id
                 colliding.project_last_used_id = self.create_project(organization=org).id
                 colliding.save()
@@ -1497,7 +1499,7 @@ class CollisionTests(ImportTestCase):
 
         # Take note of a `ProjectKey` that was created by the exhaustive organization - this is the
         # one we'll be importing.
-        colliding = ProjectKey.objects.filter().first()
+        colliding = ProjectKey.objects.all()[0]
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1539,10 +1541,10 @@ class CollisionTests(ImportTestCase):
 
             # Take note of the `QuerySubscription` that was created by the exhaustive organization -
             # this is the one we'll be importing.
-            colliding_snuba_query = SnubaQuery.objects.all().first()
-            colliding_query_subscription = QuerySubscription.objects.filter(
+            colliding_snuba_query = SnubaQuery.objects.all()[0]
+            colliding_query_subscription = QuerySubscription.objects.get(
                 snuba_query=colliding_snuba_query
-            ).first()
+            )
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1616,16 +1618,16 @@ class CollisionTests(ImportTestCase):
         self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
+        colliding_option = Option.objects.get()
+        colliding_relay = Relay.objects.get()
+        colliding_relay_usage = RelayUsage.objects.get()
 
         old_relay_public_key = colliding_relay.public_key
         old_relay_usage_public_key = colliding_relay_usage.public_key
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
+            colliding_control_option = ControlOption.objects.get()
+            colliding_user_role = UserRole.objects.get()
             old_user_role_permissions = colliding_user_role.permissions
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1696,7 +1698,7 @@ class CollisionTests(ImportTestCase):
                 assert ControlOption.objects.count() == 1
                 assert ControlOption.objects.filter(value__exact="b").exists()
 
-                actual_user_role = UserRole.objects.first()
+                actual_user_role = UserRole.objects.get()
                 assert len(actual_user_role.permissions) == len(old_user_role_permissions)
                 for i, actual_permission in enumerate(actual_user_role.permissions):
                     assert actual_permission == old_user_role_permissions[i]
@@ -1712,13 +1714,13 @@ class CollisionTests(ImportTestCase):
         self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
+        colliding_option = Option.objects.get()
+        colliding_relay = Relay.objects.get()
+        colliding_relay_usage = RelayUsage.objects.get()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
+            colliding_control_option = ControlOption.objects.get()
+            colliding_user_role = UserRole.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1789,7 +1791,7 @@ class CollisionTests(ImportTestCase):
                 assert ControlOption.objects.filter(value__exact="z").exists()
 
                 assert UserRole.objects.count() == 1
-                actual_user_role = UserRole.objects.first()
+                actual_user_role = UserRole.objects.get()
                 assert len(actual_user_role.permissions) == 1
                 assert actual_user_role.permissions[0] == "other.admin"
 
@@ -2172,6 +2174,34 @@ class CustomImportBehaviorTests(ImportTestCase):
     down (think on the order of 5-10 seconds per test case), we encourage combining model test cases
     as much as reasonably possible.
     """
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
+    def test_hide_organizations_import_flag(self, expected_models: list[type[Model]]):
+        owner = self.create_exhaustive_user("owner", email="owner@test.com")
+        member = self.create_exhaustive_user("member", email="member@test.com")
+        self.create_exhaustive_organization(
+            slug="test-org",
+            owner=owner,
+            member=member,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    org_filter={"test-org"},
+                    flags=ImportFlags(hide_organizations=True),
+                    printer=NOOP_PRINTER,
+                )
+
+            assert (
+                Organization.objects.get(slug="test-org").status
+                == OrganizationStatus.RELOCATION_PENDING_APPROVAL.value
+            )
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
     def test_organization_member_inviter_id(self, expected_models: list[type[Model]]):

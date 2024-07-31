@@ -138,7 +138,10 @@ function GeneralInfo({
         linkTarget={transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
           transaction: node.value.transaction,
-          query: omit(location.query, Object.values(PAGE_URL_PARAM)),
+          // Omit the query from the target url, as we dont know where it may have came from
+          // and if its syntax is supported on the target page. In this example, txn search does
+          // not support is:filter type expressions (and possibly other expressions we dont know about)
+          query: omit(location.query, Object.values(PAGE_URL_PARAM).concat('query')),
           projectID: String(node.value.project_id),
         })}
         linkText={t('View transaction summary')}

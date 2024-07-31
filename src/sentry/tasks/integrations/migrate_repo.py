@@ -1,10 +1,10 @@
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import repository_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger

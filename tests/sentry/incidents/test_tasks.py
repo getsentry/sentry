@@ -31,13 +31,13 @@ from sentry.incidents.tasks import (
 from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
@@ -133,6 +133,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
             self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
         )
         recipient = self.create_user()
+        assert activity.user_id is not None
         user = user_service.get_user(user_id=activity.user_id)
         assert user is not None
         self.run_test(
@@ -145,6 +146,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
         activity.type = IncidentActivityType.STATUS_CHANGE
         activity.value = str(IncidentStatus.CLOSED.value)
         activity.previous_value = str(IncidentStatus.WARNING.value)
+        assert activity.user_id is not None
         user = user_service.get_user(user_id=activity.user_id)
         assert user is not None
         self.run_test(
@@ -206,7 +208,7 @@ class HandleTriggerActionTest(TestCase):
         )
 
     def test(self):
-        with patch.object(AlertRuleTriggerAction, "_type_registrations", new={}):
+        with patch.object(AlertRuleTriggerAction, "_factory_registrations", new={}):
             mock_handler = Mock()
             AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
                 mock_handler

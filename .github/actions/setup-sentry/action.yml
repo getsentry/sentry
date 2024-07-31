@@ -35,10 +35,6 @@ inputs:
     description: 'Is symbolicator required?'
     required: false
     default: 'false'
-  peanutbutter:
-    description: 'Is peanutbutter required?'
-    required: false
-    default: 'false'
   python-version:
     description: 'python version to install'
     required: false
@@ -150,7 +146,6 @@ runs:
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
         NEED_REDIS_CLUSTER: ${{ inputs.redis_cluster }}
         NEED_SYMBOLICATOR: ${{ inputs.symbolicator }}
-        NEED_PEANUTBUTTER: ${{ inputs.peanutbutter }}
         WORKDIR: ${{ inputs.workdir }}
         PG_VERSION: ${{ inputs.pg-version }}
         ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
@@ -183,10 +178,6 @@ runs:
 
         if [ "$NEED_SYMBOLICATOR" = "true" ]; then
           services+=(symbolicator)
-        fi
-
-        if [ "$NEED_PEANUTBUTTER" = "true" ]; then
-          services+=(peanutbutter)
         fi
 
         if [ "$NEED_KAFKA" = "true" ]; then

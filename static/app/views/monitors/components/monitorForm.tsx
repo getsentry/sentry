@@ -25,10 +25,9 @@ import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
-import useOrganization from 'sentry/utils/useOrganization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
 import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
@@ -175,7 +174,6 @@ function MonitorForm({
       mapFormErrors: mapMonitorFormErrors,
     })
   );
-  const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
@@ -227,8 +225,6 @@ function MonitorForm({
     },
     ...envOptions,
   ];
-
-  const hasIssuePlatform = organization.features.includes('issue-platform');
 
   return (
     <Form
@@ -431,38 +427,36 @@ function MonitorForm({
             </PanelBody>
           </Panel>
         </InputGroup>
-        {hasIssuePlatform && (
-          <Fragment>
-            <StyledListItem>{t('Set thresholds')}</StyledListItem>
-            <ListItemSubText>
-              {t('Configure when an issue is created or resolved.')}
-            </ListItemSubText>
-            <InputGroup>
-              <Panel>
-                <PanelBody>
-                  <NumberField
-                    name="config.failureIssueThreshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
-                    )}
-                    label={t('Failure Tolerance')}
-                  />
-                  <NumberField
-                    name="config.recoveryThreshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
-                    )}
-                    label={t('Recovery Tolerance')}
-                  />
-                </PanelBody>
-              </Panel>
-            </InputGroup>
-          </Fragment>
-        )}
+        <Fragment>
+          <StyledListItem>{t('Set thresholds')}</StyledListItem>
+          <ListItemSubText>
+            {t('Configure when an issue is created or resolved.')}
+          </ListItemSubText>
+          <InputGroup>
+            <Panel>
+              <PanelBody>
+                <NumberField
+                  name="config.failureIssueThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Create a new issue when this many consecutive missed or error check-ins are processed.'
+                  )}
+                  label={t('Failure Tolerance')}
+                />
+                <NumberField
+                  name="config.recoveryThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Resolve the issue when this many consecutive healthy check-ins are processed.'
+                  )}
+                  label={t('Recovery Tolerance')}
+                />
+              </PanelBody>
+            </Panel>
+          </InputGroup>
+        </Fragment>
         <StyledListItem>{t('Set Owner')}</StyledListItem>
         <ListItemSubText>
           {t(

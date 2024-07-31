@@ -1,13 +1,13 @@
 import * as Sentry from '@sentry/react';
-import type {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
-import {IncrementalSource} from '@sentry-internal/rrweb';
+import type {eventWithTime} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
-import {type Duration, duration} from 'moment';
+import {type Duration, duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
+import extractHtml from 'sentry/utils/replays/extractHtml';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -16,18 +16,20 @@ import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 import {
   clipEndFrame,
   recordingEndFrame,
-  recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
+import replayerStepper from 'sentry/utils/replays/replayerStepper';
 import type {
   BreadcrumbFrame,
   ClipWindow,
   ErrorFrame,
   fullSnapshotEvent,
+  incrementalSnapshotEvent,
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
+  ReplayFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
@@ -36,10 +38,12 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
+  getNodeId,
+  IncrementalSource,
   isDeadClick,
   isDeadRageClick,
-  isLCPFrame,
   isPaintFrame,
+  isWebVitalFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -69,6 +73,11 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
+
+  /**
+   * The org's feature flags
+   */
+  featureFlags?: string[];
 }
 
 type RequiredNotNull<T> = {
@@ -133,14 +142,73 @@ function removeDuplicateNavCrumbs(
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
 
+const extractDomNodes = {
+  shouldVisitFrame: frame => {
+    const nodeId = getNodeId(frame);
+    return nodeId !== undefined && nodeId !== -1;
+  },
+  onVisitFrame: (frame, collection, replayer) => {
+    const mirror = replayer.getMirror();
+    const nodeId = getNodeId(frame);
+    const html = extractHtml(nodeId as number, mirror);
+    collection.set(frame as ReplayFrame, {
+      frame,
+      html,
+      timestamp: frame.timestampMs,
+    });
+  },
+};
+
+const countDomNodes = function (frames: eventWithTime[]) {
+  let frameCount = 0;
+  const length = frames?.length ?? 0;
+  const frameStep = Math.max(Math.round(length * 0.007), 1);
+
+  let prevIds: number[] = [];
+
+  return {
+    shouldVisitFrame() {
+      frameCount++;
+      return frameCount % frameStep === 0;
+    },
+    onVisitFrame(frame, collection, replayer) {
+      const ids = replayer.getMirror().getIds(); // gets list of DOM nodes present
+      const count = ids.length;
+      const added = ids.filter(id => !prevIds.includes(id)).length;
+      const removed = prevIds.filter(id => !ids.includes(id)).length;
+      collection.set(frame as RecordingFrame, {
+        count,
+        added,
+        removed,
+        timestampMs: frame.timestamp,
+        startTimestampMs: frame.timestamp,
+        endTimestampMs: frame.timestamp,
+      });
+      prevIds = ids;
+    },
+  };
+};
+
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord, clipWindow}: ReplayReaderParams) {
+  static factory({
+    attachments,
+    errors,
+    replayRecord,
+    clipWindow,
+    featureFlags,
+  }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord, clipWindow});
+      return new ReplayReader({
+        attachments,
+        errors,
+        replayRecord,
+        featureFlags,
+        clipWindow,
+      });
     } catch (err) {
       Sentry.captureException(err);
 
@@ -151,6 +219,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
+        featureFlags,
         replayRecord,
         clipWindow,
       });
@@ -160,6 +229,7 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
+    featureFlags,
     replayRecord,
     clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
@@ -205,6 +275,7 @@ export default class ReplayReader {
 
     // Hydrate the data we were given
     this._replayRecord = replayRecord;
+    this._featureFlags = featureFlags;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
@@ -215,11 +286,7 @@ export default class ReplayReader {
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.
-    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
-      replayRecord,
-      breadcrumbFrames,
-      this._sortedRRWebEvents
-    )
+    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(replayRecord, breadcrumbFrames)
       .concat(feedbackFrames)
       .sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
@@ -228,8 +295,29 @@ export default class ReplayReader {
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
-    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
-    this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
+    // e.g. we have buffered events from browser that happen *before* replay
+    // recording is started these can show up in the timeline (navigation) and
+    // in Network table
+    //
+    // We fake the start time so that the timelines of these UI components and
+    // the replay recording all match up
+    this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
+    const startTimestampMs = replayRecord.started_at.getTime();
+    const firstMeta = rrwebFrames.find(frame => frame.type === EventType.Meta);
+    const firstSnapshot = rrwebFrames.find(
+      frame => frame.type === EventType.FullSnapshot
+    );
+    if (firstMeta && firstSnapshot && firstMeta.timestamp > startTimestampMs) {
+      this._sortedRRWebEvents.unshift({
+        ...firstSnapshot,
+        timestamp: startTimestampMs,
+      });
+      this._sortedRRWebEvents.unshift({
+        ...firstMeta,
+        timestamp: startTimestampMs,
+      });
+    }
+
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
     this._duration = replayRecord.duration;
@@ -244,6 +332,7 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
+  private _featureFlags: string[] | undefined = [];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -375,6 +464,34 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
+  getCountDomNodes = memoize(async () => {
+    const {onVisitFrame, shouldVisitFrame} = countDomNodes(this.getRRWebMutations());
+
+    const results = await replayerStepper({
+      frames: this.getRRWebMutations(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame,
+      shouldVisitFrame,
+    });
+
+    return results;
+  });
+
+  getExtractDomNodes = memoize(async () => {
+    const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
+
+    const results = await replayerStepper({
+      frames: this.getDOMFrames(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame,
+      shouldVisitFrame,
+    });
+
+    return results;
+  });
+
   getClipWindow = () => this._clipWindow;
 
   /**
@@ -403,6 +520,8 @@ export default class ReplayReader {
   };
 
   getRRWebFrames = () => this._sortedRRWebEvents;
+
+  getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
 
   getRRWebMutations = () =>
     this._sortedRRWebEvents.filter(
@@ -469,6 +588,7 @@ export default class ReplayReader {
     this._trimFramesToClipWindow(
       [
         ...this.getPerfFrames(),
+        ...this.getWebVitalFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
           [
             'replay.hydrate-error',
@@ -506,7 +626,12 @@ export default class ReplayReader {
     return [...uniqueCrumbs, ...spans].sort(sortFrames);
   });
 
-  getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
+  getWebVitalFrames = memoize(() => {
+    if (this._featureFlags?.includes('session-replay-web-vitals')) {
+      return this._sortedSpanFrames.filter(isWebVitalFrame);
+    }
+    return [];
+  });
 
   getVideoEvents = () => this._videoEvents;
 

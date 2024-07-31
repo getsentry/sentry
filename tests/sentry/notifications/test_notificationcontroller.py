@@ -1,4 +1,5 @@
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
@@ -15,7 +16,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 def add_notification_setting_option(
@@ -156,17 +156,19 @@ class NotificationControllerTest(TestCase):
         )
         providers = controller._get_layered_setting_providers()
         assert (
-            providers[self.user][NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.MSTEAMS]
+            providers[self.user][NotificationSettingEnum.ISSUE_ALERTS][
+                ExternalProviderEnum.MSTEAMS.value
+            ]
             == NotificationSettingsOptionEnum.NEVER
         )
         assert (
-            providers[self.user][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.SLACK]
+            providers[self.user][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.SLACK.value]
             == NotificationSettingsOptionEnum.COMMITTED_ONLY
         )
 
         enabled_settings = controller.get_combined_settings()[self.user]
         assert (
-            enabled_settings[NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.SLACK]
+            enabled_settings[NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.SLACK.value]
             == NotificationSettingsOptionEnum.ALWAYS
         )
         assert controller.get_notification_recipients(
@@ -282,15 +284,17 @@ class NotificationControllerTest(TestCase):
         )
         providers = controller._get_layered_setting_providers()
         assert (
-            providers[self.user][NotificationSettingEnum.WORKFLOW][ExternalProviderEnum.EMAIL].value
+            providers[self.user][NotificationSettingEnum.WORKFLOW][
+                ExternalProviderEnum.EMAIL.value
+            ].value
             == top_level_provider.value
         )
         assert (
-            providers[self.user][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.EMAIL]
+            providers[self.user][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.EMAIL.value]
             == NotificationSettingsOptionEnum.COMMITTED_ONLY
         )
         assert (
-            providers[self.user][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.MSTEAMS]
+            providers[self.user][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.MSTEAMS.value]
             == NotificationSettingsOptionEnum.NEVER
         )
 
@@ -360,15 +364,17 @@ class NotificationControllerTest(TestCase):
         options = controller._get_layered_setting_providers()
         user_options = options[self.user]
         assert (
-            user_options[NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.MSTEAMS].value
+            user_options[NotificationSettingEnum.ISSUE_ALERTS][
+                ExternalProviderEnum.MSTEAMS.value
+            ].value
             == self.setting_providers[1].value
         )
         assert (
-            user_options[NotificationSettingEnum.DEPLOY][ExternalProviderEnum.SLACK].value
+            user_options[NotificationSettingEnum.DEPLOY][ExternalProviderEnum.SLACK.value].value
             == self.setting_providers[0].value
         )
         assert (
-            user_options[NotificationSettingEnum.WORKFLOW][ExternalProviderEnum.EMAIL].value
+            user_options[NotificationSettingEnum.WORKFLOW][ExternalProviderEnum.EMAIL.value].value
             == self.setting_providers[2].value
         )
 
@@ -390,22 +396,24 @@ class NotificationControllerTest(TestCase):
         options = controller._get_layered_setting_providers()
         assert (
             options[new_user][NotificationSettingEnum.ISSUE_ALERTS][
-                ExternalProviderEnum.MSTEAMS
+                ExternalProviderEnum.MSTEAMS.value
             ].value
             == setting_provider_1.value
         )
 
         user_options = options[self.user]
         assert (
-            user_options[NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.MSTEAMS].value
+            user_options[NotificationSettingEnum.ISSUE_ALERTS][
+                ExternalProviderEnum.MSTEAMS.value
+            ].value
             == self.setting_providers[1].value
         )
         assert (
-            user_options[NotificationSettingEnum.DEPLOY][ExternalProviderEnum.SLACK].value
+            user_options[NotificationSettingEnum.DEPLOY][ExternalProviderEnum.SLACK.value].value
             == self.setting_providers[0].value
         )
         assert (
-            user_options[NotificationSettingEnum.WORKFLOW][ExternalProviderEnum.EMAIL].value
+            user_options[NotificationSettingEnum.WORKFLOW][ExternalProviderEnum.EMAIL.value].value
             == self.setting_providers[2].value
         )
 
@@ -438,39 +446,39 @@ class NotificationControllerTest(TestCase):
         enabled_settings = controller.get_combined_settings()
 
         # Settings for self.user
-        for (type, expected_setting) in [
+        for type, expected_setting in [
             (
                 NotificationSettingEnum.DEPLOY,
                 {
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
-                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.SLACK.value: NotificationSettingsOptionEnum.ALWAYS,
                 },
             ),
             (
                 NotificationSettingEnum.WORKFLOW,
                 {
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
-                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                    ExternalProviderEnum.SLACK.value: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 },
             ),
             (
                 NotificationSettingEnum.ISSUE_ALERTS,
                 {
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
-                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.SLACK.value: NotificationSettingsOptionEnum.ALWAYS,
                 },
             ),
             (
                 NotificationSettingEnum.REPORTS,
                 {
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.ALWAYS,
                 },
             ),
             (
                 NotificationSettingEnum.QUOTA,
                 {
-                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.SLACK.value: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.ALWAYS,
                 },
             ),
         ]:
@@ -478,40 +486,40 @@ class NotificationControllerTest(TestCase):
             assert provider_settings == expected_setting
 
         # Settings for new_user
-        for (type, expected_setting) in [
+        for type, expected_setting in [
             (
                 NotificationSettingEnum.DEPLOY,
                 {
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.COMMITTED_ONLY,
-                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.COMMITTED_ONLY,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.COMMITTED_ONLY,
+                    ExternalProviderEnum.SLACK.value: NotificationSettingsOptionEnum.COMMITTED_ONLY,
                 },
             ),
             (
                 NotificationSettingEnum.WORKFLOW,
                 {
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
-                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+                    ExternalProviderEnum.SLACK.value: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
                 },
             ),
             (
                 NotificationSettingEnum.ISSUE_ALERTS,
                 {
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
-                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
-                    ExternalProviderEnum.MSTEAMS: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.SLACK.value: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.MSTEAMS.value: NotificationSettingsOptionEnum.ALWAYS,
                 },
             ),
             (
                 NotificationSettingEnum.REPORTS,
                 {
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.ALWAYS,
                 },
             ),
             (
                 NotificationSettingEnum.QUOTA,
                 {
-                    ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
-                    ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.SLACK.value: NotificationSettingsOptionEnum.ALWAYS,
+                    ExternalProviderEnum.EMAIL.value: NotificationSettingsOptionEnum.ALWAYS,
                 },
             ),
         ]:

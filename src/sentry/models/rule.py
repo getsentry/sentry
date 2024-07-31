@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
 from enum import Enum, IntEnum
 from typing import Any, ClassVar, Self
@@ -17,7 +19,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.types.actor import Actor
 from sentry.utils.cache import cache
 
@@ -46,7 +48,7 @@ class Rule(Model):
     environment_id = BoundedPositiveIntegerField(null=True)
     label = models.CharField(max_length=256)
     # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
-    data = GzippedDictField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField()
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE,
         choices=((ObjectStatus.ACTIVE, "Active"), (ObjectStatus.DISABLED, "Disabled")),

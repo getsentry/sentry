@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import orjson
 import sentry_sdk
@@ -33,14 +33,17 @@ from sentry import (
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
+    INSIGHT_MODULE_FILTERS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
     DataCategory,
+    InsightModules,
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
@@ -53,7 +56,7 @@ from sentry.grouping.api import (
 from sentry.grouping.ingest.config import (
     is_in_transition,
     project_uses_optimized_grouping,
-    update_grouping_config_if_needed,
+    update_grouping_config_if_permitted,
 )
 from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
@@ -106,9 +109,11 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
+    first_insight_span_received,
     first_transaction_received,
     issue_unresolved,
 )
@@ -121,7 +126,6 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
@@ -204,7 +208,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
         return {
             "sdk": {
                 "name": sdk_metadata.get("name") or "unknown",
-                "name_normalized": normalized_sdk_tag_from_event(event),
+                "name_normalized": normalized_sdk_tag_from_event(event.data),
             }
         }
     except Exception:
@@ -219,6 +223,27 @@ def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
         if result is not None:
             return bool(result)
     return True
+
+
+def get_project_insight_flag(project: Project, module: InsightModules):
+    if module == InsightModules.HTTP:
+        return project.flags.has_insights_http
+    elif module == InsightModules.DB:
+        return project.flags.has_insights_db
+    elif module == InsightModules.ASSETS:
+        return project.flags.has_insights_assets
+    elif module == InsightModules.APP_START:
+        return project.flags.has_insights_app_start
+    elif module == InsightModules.SCREEN_LOAD:
+        return project.flags.has_insights_screen_load
+    elif module == InsightModules.VITAL:
+        return project.flags.has_insights_vitals
+    elif module == InsightModules.CACHE:
+        return project.flags.has_insights_caches
+    elif module == InsightModules.QUEUE:
+        return project.flags.has_insights_queues
+    elif module == InsightModules.LLM_MONITORING:
+        return project.flags.has_insights_llm_monitoring
 
 
 def has_pending_commit_resolution(group: Group) -> bool:
@@ -253,7 +278,17 @@ def has_pending_commit_resolution(group: Group) -> bool:
         return True
 
 
-def get_max_crashreports(model: Project | Organization, allow_none: bool = False) -> int | None:
+@overload
+def get_max_crashreports(model: Project | Organization) -> int:
+    ...
+
+
+@overload
+def get_max_crashreports(model: Project | Organization, *, allow_none: Literal[True]) -> int | None:
+    ...
+
+
+def get_max_crashreports(model: Project | Organization, *, allow_none: bool = False) -> int | None:
     value = model.get_option("sentry:store_crash_reports")
     return convert_crashreport_count(value, allow_none=allow_none)
 
@@ -297,7 +332,15 @@ class ScoreClause(Func):
         # This is used within create_or_update and friends
         return self.group.get_score() if self.group else 0
 
-    def as_sql(self, compiler, connection, function=None, template=None):
+    def as_sql(
+        self,
+        compiler,
+        connection,
+        function=None,
+        template=None,
+        arg_joiner: str | None = None,
+        **extra_context,
+    ) -> tuple[str, list[str | int]]:
         has_values = self.last_seen is not None and self.times_seen is not None
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
@@ -323,7 +366,7 @@ class EventManager:
 
     def __init__(
         self,
-        data: dict[str, Any],
+        data: MutableMapping[str, Any],
         version: str = "5",
         project: Project | None = None,
         grouping_config: GroupingConfig | None = None,
@@ -391,9 +434,7 @@ class EventManager:
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(
-            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
-        )
+        self._data = rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -465,6 +506,11 @@ class EventManager:
                     project=project, event=jobs[0]["event"], sender=Project
                 )
 
+            for module, is_module in INSIGHT_MODULE_FILTERS.items():
+                if not get_project_insight_flag(project, module) and is_module(job["data"]):
+                    first_insight_span_received.send_robust(
+                        project=project, module=module, sender=Project
+                    )
             return jobs[0]["event"]
         elif event_type == "generic":
             job["data"]["project"] = project.id
@@ -477,7 +523,7 @@ class EventManager:
             job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
-                "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "sdk": normalized_sdk_tag_from_event(job["event"].data),
                 "using_transition_optimization": job["optimized_grouping"],
                 "in_transition": job["in_grouping_transition"],
             }
@@ -705,8 +751,8 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 @sentry_sdk.tracing.trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    jobs_with_releases: dict[tuple[int, Release], list[Job]] = {}
-    release_date_added: dict[tuple[int, Release], datetime] = {}
+    jobs_with_releases: dict[tuple[int, str], list[Job]] = {}
+    release_date_added: dict[tuple[int, str], datetime] = {}
 
     for job in jobs:
         if not job["release"]:
@@ -1150,7 +1196,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
         if not job["groups"]:
-            group_states = None
+            group_states: list[GroupState] | None = None
             is_new = False
             is_regression = False
             is_new_group_environment = False
@@ -1221,7 +1267,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
         )
 
 
-def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
+def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
     return eventstore.backend.create_event(
         project_id=project_id,
         event_id=data.get("event_id"),
@@ -1354,10 +1400,10 @@ def _save_aggregate(
     has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
-    # hashes, we're free to perform a config update if needed. Future events will use the new
-    # config, but will also be grandfathered into the current config for a week, so as not to
+    # hashes, we're free to perform a config update if permitted. Future events will use the new
+    # config, but will also be grandfathered into the current config for a month, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_needed(project)
+    update_grouping_config_if_permitted(project)
 
     _materialize_metadata_many([job])
     metadata = dict(job["event_metadata"])
@@ -1489,7 +1535,14 @@ def _save_aggregate(
             if existing_grouphash is None:
                 seer_matched_group = None
 
-                if should_call_seer_for_grouping(event, project):
+                if should_call_seer_for_grouping(event, primary_hashes):
+                    metrics.incr(
+                        "grouping.similarity.did_call_seer",
+                        # TODO: Consider lowering this (in all the spots this metric is
+                        # collected) once we roll Seer grouping out more widely
+                        sample_rate=1.0,
+                        tags={"call_made": True, "blocker": "none"},
+                    )
                     try:
                         # If the `projects:similarity-embeddings-grouping` feature is disabled,
                         # we'll still get back result metadata, but `seer_matched_group` will be None
@@ -1497,13 +1550,6 @@ def _save_aggregate(
                             event, primary_hashes
                         )
                         event.data["seer_similarity"] = seer_response_data
-
-                        # We only want to add this data to new groups, while we're testing
-                        # TODO: Remove this once we're out of the testing phase
-                        if not seer_matched_group:
-                            group_creation_kwargs["data"]["metadata"][
-                                "seer_similarity"
-                            ] = seer_response_data
 
                     # Insurance - in theory we shouldn't ever land here
                     except Exception as e:
@@ -1550,7 +1596,7 @@ def _save_aggregate(
                         skip_internal=True,
                         tags={
                             "platform": event.platform or "unknown",
-                            "sdk": normalized_sdk_tag_from_event(event),
+                            "sdk": normalized_sdk_tag_from_event(event.data),
                         },
                     )
 
@@ -1564,7 +1610,7 @@ def _save_aggregate(
                             sample_rate=1.0,
                             tags={
                                 "platform": event.platform or "unknown",
-                                "sdk": normalized_sdk_tag_from_event(event),
+                                "sdk": normalized_sdk_tag_from_event(event.data),
                                 "frame_mix": frame_mix,
                             },
                         )
@@ -1723,7 +1769,7 @@ def _save_aggregate_new(
     # hashes, we're free to perform a config update if needed. Future events will use the new
     # config, but will also be grandfathered into the current config for a week, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_needed(project)
+    update_grouping_config_if_permitted(project)
 
     return group_info
 
@@ -1886,17 +1932,20 @@ def create_group_with_grouphashes(
             )
 
 
-def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) -> Group:
+def _create_group(
+    project: Project,
+    event: Event,
+    *,
+    first_release: Release | None = None,
+    **group_creation_kwargs: Any,
+) -> Group:
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
     # when we queried for the release and now, so
     # make sure it still exists
-    first_release = group_creation_kwargs.pop("first_release", None)
     group_creation_kwargs["first_release_id"] = (
-        Release.objects.filter(id=cast(Release, first_release).id)
-        .values_list("id", flat=True)
-        .first()
+        Release.objects.filter(id=first_release.id).values_list("id", flat=True).first()
         if first_release
         else None
     )
@@ -1919,15 +1968,13 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
             extra={"event_id": event.event_id},
         )
 
-    if features.has("projects:issue-priority", project, actor=None):
-        # the kwargs only include priority for non-error issue platform events, which takes precedence.
-        priority = group_creation_kwargs.get("priority", None)
-        if priority is None:
-            priority = _get_priority_for_group(severity, group_creation_kwargs)
+    # the kwargs only include priority for non-error issue platform events, which takes precedence.
+    priority = group_creation_kwargs.get("priority", None)
+    if priority is None:
+        priority = _get_priority_for_group(severity, group_creation_kwargs)
 
-        group_creation_kwargs["priority"] = priority
-        group_data["metadata"]["initial_priority"] = priority
-
+    group_creation_kwargs["priority"] = priority
+    group_data["metadata"]["initial_priority"] = priority
     group_creation_kwargs["data"] = group_data
 
     try:
@@ -2306,17 +2353,24 @@ def _get_severity_metadata_for_group(
         metrics.incr("issues.severity.seer_killswitch_enabled")
         return {}
 
+    seer_based_priority_enabled = features.has(
+        "organizations:seer-based-priority", event.project.organization, actor=None
+    )
     feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
-    if not feature_enabled:
+    if not seer_based_priority_enabled and not feature_enabled:
         return {}
 
-    is_supported_platform = (
-        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
-        if event.platform
-        else False
-    )
+    if not seer_based_priority_enabled:
+        is_supported_platform = (
+            any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
+            if event.platform
+            else False
+        )
+        if not is_supported_platform:
+            return {}
+
     is_error_group = group_type == ErrorGroupType.type_id if group_type else True
-    if not is_supported_platform or not is_error_group:
+    if not is_error_group:
         return {}
 
     passthrough_data = options.get(
@@ -2494,11 +2548,10 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timout",
                     settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
-                response = severity_connection_pool.urlopen(
-                    "POST",
+                response = make_signed_seer_api_request(
+                    severity_connection_pool,
                     "/v0/issues/severity-score",
                     body=orjson.dumps(payload),
-                    headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
                 severity = orjson.loads(response.data).get("severity")
@@ -2589,7 +2642,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
         skip_internal=True,
         tags={
             "platform": job["platform"],
-            "sdk": normalized_sdk_tag_from_event(job["event"]),
+            "sdk": normalized_sdk_tag_from_event(job["event"].data),
         },
     )
 
@@ -2646,10 +2699,6 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     max_crashreports = get_max_crashreports(project, allow_none=True)
     if max_crashreports is None:
         max_crashreports = get_max_crashreports(project.organization)
-
-    max_crashreports = cast(
-        int, max_crashreports
-    )  # this is safe since the second call doesn't allow None
 
     # The number of crash reports is cached per group
     crashreports_key = get_crashreport_key(event.group_id)
@@ -2793,7 +2842,7 @@ def save_attachment(
             project_id=project.id,
             key_id=key_id,
             outcome=Outcome.RATE_LIMITED,
-            reason=f"Too many attachments ({num_requests}) uploaded in a 5 minute window, will reset at {reset_time}",
+            reason="rate_limited",
             timestamp=timestamp,
             event_id=event_id,
             category=DataCategory.ATTACHMENT,
@@ -2895,7 +2944,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 amount=len(unique_default_hashes),
                 tags={
                     "platform": job["platform"] or "unknown",
-                    "sdk": normalized_sdk_tag_from_event(event),
+                    "sdk": normalized_sdk_tag_from_event(event.data),
                 },
             )
         except Exception:

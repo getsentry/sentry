@@ -1,10 +1,12 @@
 import {Client} from 'sentry/api';
+import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
+import type {Organization} from 'sentry/types';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 // import types
 export type ImportDashboard = {
   description: string;
@@ -64,8 +66,9 @@ export type ParseResult = {
 export async function parseDashboard(
   dashboard: ImportDashboard,
   availableMetrics: MetricMeta[],
-  orgSlug: string
+  organization: Organization
 ): Promise<ParseResult> {
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const {widgets = []} = dashboard;
 
   const flatWidgets = widgets.flatMap(widget => {
@@ -78,7 +81,12 @@ export async function parseDashboard(
 
   const results = await Promise.all(
     flatWidgets.map(widget => {
-      const parser = new WidgetParser(widget, availableMetrics, orgSlug);
+      const parser = new WidgetParser(
+        widget,
+        availableMetrics,
+        organization.slug,
+        metricsNewInputs
+      );
       return parser.parse();
     })
   );
@@ -94,7 +102,7 @@ export async function parseDashboard(
 const SUPPORTED_COLUMNS = new Set(['avg', 'max', 'min', 'sum', 'value']);
 const SUPPORTED_WIDGET_TYPES = new Set(['timeseries']);
 
-const METRIC_SUFFIX_TO_OP = {
+const METRIC_SUFFIX_TO_AGGREGATION = {
   avg: 'avg',
   max: 'max',
   min: 'min',
@@ -113,15 +121,18 @@ export class WidgetParser {
   private importedWidget: ImportWidget;
   private availableMetrics: MetricMeta[];
   private orgSlug: string;
+  private metricsNewInputs: boolean;
 
   constructor(
     importedWidget: ImportWidget,
     availableMetrics: MetricMeta[],
-    orgSlug: string
+    orgSlug: string,
+    metricsNewInputs: boolean
   ) {
     this.importedWidget = importedWidget;
     this.availableMetrics = availableMetrics;
     this.orgSlug = orgSlug;
+    this.metricsNewInputs = metricsNewInputs;
   }
 
   // Parsing functions
@@ -241,7 +252,7 @@ export class WidgetParser {
   private parseEquations(queries: any[], formulas: Formula[]) {
     const queryNames = queries.map(q => q.name);
     const queryNameMap = queries.reduce((acc, query, index) => {
-      acc[query.name] = getQuerySymbol(index);
+      acc[query.name] = getQuerySymbol(index, this.metricsNewInputs);
       return acc;
     }, {});
 
@@ -289,8 +300,8 @@ export class WidgetParser {
   }
 
   private parseQueryString(str: string) {
-    const operationMatch = str.match(/^(sum|avg|max|min):/);
-    let op = operationMatch ? operationMatch[1] : undefined;
+    const aggregationMatch = str.match(/^(sum|avg|max|min):/);
+    let aggregation = aggregationMatch ? aggregationMatch[1] : undefined;
 
     const metricNameMatch = str.match(/:(\S*){/);
     let metric = metricNameMatch ? metricNameMatch[1] : undefined;
@@ -298,10 +309,10 @@ export class WidgetParser {
     if (metric?.includes('.')) {
       const lastIndex = metric.lastIndexOf('.');
       const metricName = metric.slice(0, lastIndex);
-      const operationSuffix = metric.slice(lastIndex + 1);
+      const aggregationSuffix = metric.slice(lastIndex + 1);
 
-      if (METRIC_SUFFIX_TO_OP[operationSuffix]) {
-        op = METRIC_SUFFIX_TO_OP[operationSuffix];
+      if (METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix]) {
+        aggregation = METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix];
         metric = metricName;
       }
     }
@@ -315,9 +326,11 @@ export class WidgetParser {
     const appliedFunctionMatch = str.match(/\.(\w+)\(\)/);
     const appliedFunction = appliedFunctionMatch ? appliedFunctionMatch[1] : undefined;
 
-    if (!op) {
-      this.errors.push(`widget.request.query - could not parse op: ${str}, assuming sum`);
-      op = 'sum';
+    if (!aggregation) {
+      this.errors.push(
+        `widget.request.query - could not parse aggregation: ${str}, assuming sum`
+      );
+      aggregation = 'sum';
     }
 
     if (!metric) {
@@ -330,7 +343,7 @@ export class WidgetParser {
     // TODO: check which other functions are supported
     if (appliedFunction) {
       if (appliedFunction === 'as_count') {
-        op = 'sum';
+        aggregation = 'sum';
         this.errors.push(
           `widget.request.query - unsupported function ${appliedFunction}, assuming sum`
         );
@@ -342,7 +355,7 @@ export class WidgetParser {
     }
 
     return {
-      op,
+      aggregation,
       metric,
       filters,
       groupBy,
@@ -383,7 +396,7 @@ export class WidgetParser {
 
   // Mapping functions
   private async mapToMetricsQuery(widget): Promise<MetricsQuery | null> {
-    const {metric, op, filters} = widget;
+    const {metric, aggregation, filters} = widget;
 
     // @ts-expect-error name is actually defined on MetricMeta
     const metricMeta = this.availableMetrics.find(m => m.name === metric);
@@ -400,7 +413,7 @@ export class WidgetParser {
 
     return {
       mri: metricMeta.mri,
-      op,
+      aggregation,
       query,
       groupBy,
     };

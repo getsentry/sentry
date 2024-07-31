@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.text import slugify
 
 from sentry.api.endpoints.organization_projects_experiment import (
+    DISABLED_FEATURE_ERROR_STRING,
     OrganizationProjectsExperimentEndpoint,
     fetch_slugifed_email_username,
 )
@@ -265,3 +266,25 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
                 "detail": "You must be a member of the organization to join a new team as a Team Admin",
             }
         assert Team.objects.count() == prior_team_count
+
+    @with_feature(["organizations:team-roles"])
+    def test_disable_member_project_creation(self):
+        test_org = self.create_organization(flags=256)
+
+        test_member = self.create_user(is_superuser=False)
+        self.create_member(user=test_member, organization=test_org, role="member", teams=[])
+        self.login_as(user=test_member)
+        response = self.get_error_response(
+            test_org.slug,
+            name="foo",
+            status_code=403,
+        )
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
+        test_manager = self.create_user(is_superuser=False)
+        self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
+        self.login_as(user=test_manager)
+        self.get_success_response(
+            test_org.slug,
+            name="foo",
+            status_code=201,
+        )

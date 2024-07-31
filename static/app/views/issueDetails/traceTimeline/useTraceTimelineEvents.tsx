@@ -7,9 +7,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
+  culprit: string; // Used for default events & subtitles
   id: string;
   'issue.id': number;
-  message: string;
   project: string;
   'project.name': string;
   timestamp: string;
@@ -17,13 +17,23 @@ interface BaseEvent {
   transaction: string;
 }
 
-interface TimelineDiscoverEvent extends BaseEvent {}
 interface TimelineIssuePlatformEvent extends BaseEvent {
-  'event.type': string;
+  'event.type': '';
+  message: string; // Used for message for issue platform events
+}
+interface TimelineDefaultEvent extends BaseEvent {
+  'event.type': 'default';
+}
+export interface TimelineErrorEvent extends BaseEvent {
+  'error.value': string[]; // Used for message for error events
+  'event.type': 'error';
   'stack.function': string[];
 }
 
-export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
+export type TimelineEvent =
+  | TimelineDefaultEvent
+  | TimelineErrorEvent
+  | TimelineIssuePlatformEvent;
 
 export interface TraceEventResponse {
   data: TimelineEvent[];
@@ -43,6 +53,10 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   traceEvents: TimelineEvent[];
 } {
   const organization = useOrganization();
+  // If the org has global views, we want to look across all projects,
+  // otherwise, just look at the current project.
+  const hasGlobalViews = organization.features.includes('global-views');
+  const project = hasGlobalViews ? -1 : event.projectID;
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
   const traceId = event.contexts?.trace?.trace_id ?? '';
@@ -56,15 +70,25 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
       `/organizations/${organization.slug}/events/`,
       {
         query: {
-          // Get performance issues
+          // Get issue platform issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
-          field: ['message', 'title', 'project', 'timestamp', 'issue.id', 'transaction'],
+          field: [
+            'message',
+            'title',
+            'project',
+            'timestamp',
+            'issue.id',
+            'transaction',
+            'culprit', // Used for the subtitle
+            'event.type', // This is useful for typing TimelineEvent
+          ],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
           sort: '-timestamp',
           start,
           end,
+          project: project,
         },
       },
     ],
@@ -85,7 +109,6 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
           field: [
-            'message',
             'title',
             'project',
             'timestamp',
@@ -93,6 +116,8 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'transaction',
             'event.type',
             'stack.function',
+            'culprit', // Used for default events and subtitles
+            'error.value', // Used for message for error events
           ],
           per_page: 100,
           query: `trace:${traceId}`,
@@ -100,6 +125,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           sort: '-timestamp',
           start,
           end,
+          project: project,
         },
       },
     ],
@@ -129,6 +155,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
     const hasCurrentEvent = events.some(e => e.id === event.id);
     if (!hasCurrentEvent) {
       events.push({
+        culprit: event.culprit,
         id: event.id,
         'issue.id': Number(event.groupID),
         message: event.message,
@@ -138,6 +165,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         timestamp: event.dateCreated!,
         title: event.title,
         transaction: '',
+        'event.type': event['event.type'],
       });
     }
     const timestamps = events.map(e => new Date(e.timestamp).getTime());

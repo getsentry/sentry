@@ -77,7 +77,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
                     "reason": reason,
                 },
             )
-            with sentry_sdk.push_scope():
+            with sentry_sdk.isolation_scope():
                 sentry_sdk.set_tag("consumer", consumer_name)
                 sentry_sdk.set_tag("reason", reason)
                 logger.error(
@@ -100,7 +100,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
             alert_type="error",
             tags={"consumer": consumer_name, "reason": "error"},
         )
-        with sentry_sdk.push_scope():
+        with sentry_sdk.isolation_scope():
             sentry_sdk.set_tag("consumer", consumer_name)
             sentry_sdk.set_tag("reason", "error")
             logger.exception("Consumer `%s` stopped due to for reason `%s`", consumer_name, "error")
@@ -134,7 +134,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
                     alert_type="error" if isinstance(unhealthy_reasons, Exception) else "info",
                     tags={"service": name},
                 )
-                with sentry_sdk.push_scope():
+                with sentry_sdk.isolation_scope():
                     sentry_sdk.set_tag("service", name)
                     logger.error("Service `%s` marked as unhealthy", name, extra=extra)
 
@@ -156,7 +156,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
                     alert_type="error",
                     tags={"consumer": name},
                 )
-                with sentry_sdk.push_scope():
+                with sentry_sdk.isolation_scope():
                     sentry_sdk.set_tag("consumer", name)
                     logger.error(
                         "Consumer `%s` marked as unhealthy",

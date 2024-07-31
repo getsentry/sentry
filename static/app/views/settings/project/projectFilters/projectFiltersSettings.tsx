@@ -21,6 +21,7 @@ import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -58,7 +59,7 @@ const filterDescriptions = {
       'Filter transactions that match most [commonNamingPatterns:common naming patterns] for health checks.',
       {
         commonNamingPatterns: (
-          <ExternalLink href="https://docs.sentry.io/product/data-management-settings/filtering/#transactions-coming-from-health-check" />
+          <ExternalLink href="https://docs.sentry.io/concepts/data-management/filtering/#transactions-coming-from-health-check" />
         ),
       }
     ),
@@ -537,9 +538,22 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       type: 'boolean',
                       name: 'filters:react-hydration-errors',
                       label: t('Filter out hydration errors'),
-                      help: t(
-                        'React falls back to do a full re-render on a page and these errors are often not actionable.'
-                      ),
+                      help: organization.features.includes(
+                        'session-replay-hydration-error-issue-creation'
+                      )
+                        ? tct(
+                            'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
+                            {
+                              replaySettings: (
+                                <Link
+                                  to={`/settings/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                                />
+                              ),
+                            }
+                          )
+                        : t(
+                            'React falls back to do a full re-render on a page and these errors are often not actionable.'
+                          ),
                       disabled: !hasAccess,
                     }}
                   />

@@ -191,6 +191,12 @@ export const performance: PlatformKey[] = [
 export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
   'javascript',
   'javascript-react',
+  'javascript-nextjs',
+  'python',
+  'python-django',
+  'python-flask',
+  'php',
+  'node',
 ]);
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
@@ -346,13 +352,14 @@ export const replayBackendPlatforms: readonly PlatformKey[] = [
 
 // These are the frontend platforms that can set up replay.
 export const replayFrontendPlatforms: readonly PlatformKey[] = [
-  'capacitor',
-  'electron',
+  'javascript',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
   'javascript-capacitor',
+  'capacitor',
   'javascript-electron',
+  'electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
@@ -361,20 +368,25 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
-  'javascript',
+];
+
+// These are the mobile platforms that can set up replay.
+export const replayMobilePlatforms: PlatformKey[] = [
+  'android',
+  'apple-ios',
+  'react-native',
 ];
 
 // These are all the platforms that can set up replay.
 export const replayPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms,
   ...replayBackendPlatforms,
+  ...replayMobilePlatforms,
 ];
 
 /**
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `replayPlatforms`.
- * This should match sentry-docs: `/src/wizard/${platform}/replay-onboarding/${subPlatform}/`.
- * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms.filter(p => !['javascript-backbone'].includes(p)),
@@ -402,6 +414,7 @@ export const feedbackWidgetPlatforms: readonly PlatformKey[] = [
 // Feedback platforms that only show crash API instructions
 export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'android',
+  'apple',
   'apple-macos',
   'apple-ios',
   'dart',
@@ -463,6 +476,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'dart',
   'deno',
   'dotnet',
+  'dotnet-aspnet',
   'dotnet-aspnetcore',
   'dotnet-awslambda',
   'dotnet-gcpfunctions',

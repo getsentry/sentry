@@ -5,12 +5,12 @@ from datetime import timedelta
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
-from sentry.search.events.builder import (
+from sentry.search.events.builder.spans_indexed import (
     SpansIndexedQueryBuilder,
     TimeseriesSpanIndexedQueryBuilder,
     TopEventsSpanIndexedQueryBuilder,
 )
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -44,6 +44,7 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ):
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
@@ -78,6 +79,7 @@ def timeseries_query(
     params: dict[str, str],
     rollup: int,
     referrer: str,
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -93,11 +95,15 @@ def timeseries_query(
     """
     equations, columns = categorize_columns(selected_columns)
 
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     with sentry_sdk.start_span(op="spans_indexed", description="TimeseriesSpanIndexedQueryBuilder"):
         query = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
             rollup,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=columns,
             config=QueryBuilderConfig(
@@ -139,6 +145,7 @@ def top_events_timeseries(
     rollup,
     limit,
     organization,
+    snuba_params=None,
     equations=None,
     referrer=None,
     top_events=None,
@@ -160,6 +167,7 @@ def top_events_timeseries(
                 selected_columns,
                 query=user_query,
                 params=params,
+                snuba_params=snuba_params,
                 equations=equations,
                 orderby=orderby,
                 limit=limit,
@@ -175,6 +183,7 @@ def top_events_timeseries(
         params,
         rollup,
         top_events["data"],
+        snuba_params=snuba_params,
         other=False,
         query=user_query,
         selected_columns=selected_columns,
@@ -191,6 +200,7 @@ def top_events_timeseries(
             params,
             rollup,
             top_events["data"],
+            snuba_params=snuba_params,
             other=True,
             query=user_query,
             selected_columns=selected_columns,

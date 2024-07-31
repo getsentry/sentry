@@ -13,10 +13,12 @@ import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAl
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -62,6 +64,7 @@ function ReplayPreview({
     orgSlug,
     replaySlug,
   });
+  const organization = useOrganization();
 
   const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
   const initialTimeOffsetMs = useMemo(() => {
@@ -88,12 +91,16 @@ function ReplayPreview({
   }
 
   if (fetchError) {
+    trackAnalytics('replay.render-missing-replay-alert', {
+      organization,
+      surface: 'issue details - old preview',
+    });
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+      <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
         <LoadingIndicator />
       </StyledNegativeSpaceContainer>
     );

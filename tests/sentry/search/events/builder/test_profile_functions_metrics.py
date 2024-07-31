@@ -54,6 +54,7 @@ def params(now, today):
                 Function("has", parameters=[Column("tags.key"), 9223372036854776075]), Op("!="), 1
             ),
             id="empty package",
+            marks=pytest.mark.querybuilder,
         ),
         pytest.param(
             '!package:""',

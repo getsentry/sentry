@@ -125,7 +125,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:metric-alert-ignore-archived",
                 ]
             ),
         ):
@@ -140,6 +139,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "is:unresolved"
 
     def test_project_not_in_request(self):

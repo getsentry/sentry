@@ -241,6 +241,7 @@ class Symbolicator:
         stacktraces,
         modules,
         release_package,
+        classes,
         apply_source_context=True,
     ):
         """
@@ -262,6 +263,7 @@ class Symbolicator:
             "exceptions": exceptions,
             "stacktraces": stacktraces,
             "modules": modules,
+            "classes": classes,
             "options": {"apply_source_context": apply_source_context},
         }
 
@@ -369,7 +371,7 @@ class SymbolicatorSession:
                             unit="byte",
                         )
                 else:
-                    with sentry_sdk.push_scope():
+                    with sentry_sdk.isolation_scope():
                         sentry_sdk.set_extra("symbolicator_response", response.text)
                         sentry_sdk.capture_message("Symbolicator request failed")
 

@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -17,8 +18,7 @@ from sentry.models.organization import Organization
 from sentry.models.team import TeamStatus
 from sentry.models.user import User
 from sentry.models.userrole import UserRole
-from sentry.services.hybrid_cloud.access.service import access_service
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature

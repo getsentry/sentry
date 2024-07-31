@@ -1,4 +1,4 @@
-from sentry.search.events.builder import MetricsSummariesQueryBuilder
+from sentry.search.events.builder.metrics_summaries import MetricsSummariesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -29,6 +29,7 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ):
     builder = MetricsSummariesQueryBuilder(
         Dataset.MetricsSummaries,

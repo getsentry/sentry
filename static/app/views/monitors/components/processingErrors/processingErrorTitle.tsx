@@ -18,7 +18,7 @@ export function ProcessingErrorTitle({type}: {type: ProcessingErrorType}) {
     case ProcessingErrorType.MONITOR_DISABLED:
       return t('Monitor disabled');
     case ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA:
-      return t('Insufficient quota');
+      return t('Insufficient quota to upsert');
     case ProcessingErrorType.MONITOR_INVALID_CONFIG:
       return t('Invalid monitor payload');
     case ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT:
@@ -28,7 +28,7 @@ export function ProcessingErrorTitle({type}: {type: ProcessingErrorType}) {
     case ProcessingErrorType.MONITOR_NOT_FOUND:
       return t('Monitor not found');
     case ProcessingErrorType.MONITOR_OVER_QUOTA:
-      return t('Monitor not enabled due to insufficient quota');
+      return t('Monitor disabled');
     case ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED:
       return t('Environment limit exceeded');
     case ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED:

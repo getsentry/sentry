@@ -80,7 +80,7 @@ def fetch_filestore_segments_meta(
     limit: int,
 ) -> list[RecordingSegmentStorageMeta]:
     """Return filestore metadata derived from our Postgres table."""
-    segments: list[ReplayRecordingSegment] = (
+    segments = (
         ReplayRecordingSegment.objects.filter(project_id=project_id, replay_id=replay_id)
         .order_by("segment_id")
         .all()[offset : limit + offset]
@@ -264,12 +264,11 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
             download_segment,
             span=span,
         )
-        current_hub = sentry_sdk.Hub.current
 
         yield b"["
         # Map all of the segments to a worker process for download.
         with ThreadPoolExecutor(max_workers=10) as exe:
-            with sentry_sdk.Hub(current_hub):
+            with sentry_sdk.isolation_scope():
                 results = exe.map(download_segment_with_fixed_args, segments)
 
             for i, result in enumerate(results):

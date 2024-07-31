@@ -10,16 +10,16 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
 from sentry.db.models import Model
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_group
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.activity import Activity

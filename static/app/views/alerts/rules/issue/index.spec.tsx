@@ -1,5 +1,5 @@
 import type {PlainRoute} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
@@ -158,7 +158,7 @@ describe('IssueRuleEditor', function () {
     it('is visible without org-level alerts:write', async () => {
       createWrapper({
         organization: {access: []},
-        project: {access: []},
+        projects: [{access: []}],
       });
 
       expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('IssueRuleEditor', function () {
     it('is enabled with org-level alerts:write', async () => {
       createWrapper({
         organization: {access: ['alerts:write']},
-        project: {access: []},
+        projects: [{access: []}],
       });
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
@@ -178,7 +178,7 @@ describe('IssueRuleEditor', function () {
     it('is enabled with project-level alerts:write', async () => {
       createWrapper({
         organization: {access: []},
-        project: {access: ['alerts:write']},
+        projects: [{access: ['alerts:write']}],
       });
 
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
@@ -361,7 +361,9 @@ describe('IssueRuleEditor', function () {
     });
 
     it('renders environment selector in adopted release filter', async function () {
-      createWrapper({project: ProjectFixture({environments: ['production', 'staging']})});
+      createWrapper({
+        projects: [ProjectFixture({environments: ['production', 'staging']})],
+      });
 
       // Add the adopted release filter
       await selectEvent.select(

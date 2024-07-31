@@ -8,6 +8,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -46,6 +47,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         self.additional_params = dict()
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
+    @pytest.mark.querybuilder
     def test_throughput_epm_hour_rollup(self):
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -759,6 +761,175 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert response.status_code == 200, response.content
         data = response.data[f"{self.project.slug}"]
         assert data["order"] == 0
+
+    def test_split_decision_for_errors_widget(self):
+        error_data = load_data("python", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **error_data,
+                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+        _, widget, __ = create_widget(
+            ["count()", "error.type"], "error.type:blah", self.project, discover_widget_split=None
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count()", "error.type"],
+                "query": "error.type:blah",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+    def test_split_decision_for_transactions_widget(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.day_ago + timedelta(hours=1, minutes=30),
+        )
+        _, widget, __ = create_widget(
+            ["count()", "transaction.name"], "", self.project, discover_widget_split=None
+        )
+
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction.name"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+    def test_split_decision_for_top_events_errors_widget(self):
+        error_data = load_data("python", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **error_data,
+                "exception": {"values": [{"type": "test_error", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+        _, widget, __ = create_widget(
+            ["count()", "error.type"],
+            "error.type:test_error",
+            self.project,
+            discover_widget_split=None,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count()", "error.type"],
+                "query": "error.type:test_error",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+                "topEvents": 5,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        # Only a singular result for the test_error event
+        assert len(response.data) == 1
+
+        # Results are grouped by the error type
+        assert response.data.get("test_error").get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+    def test_split_decision_for_top_events_transactions_widget(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.day_ago + timedelta(hours=1, minutes=30),
+            tags={"transaction": "foo_transaction"},
+        )
+        _, widget, __ = create_widget(
+            ["count()", "transaction"], "", self.project, discover_widget_split=None
+        )
+
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+                "topEvents": 5,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        # Only a singular result for the transaction
+        assert len(response.data) == 1
+
+        # Results are grouped by the transaction
+        assert response.data.get("foo_transaction").get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+    def test_split_decision_for_ambiguous_widget_without_data(self):
+        _, widget, __ = create_widget(
+            ["count()", "transaction.name", "error.type"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction.name", "error.type"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(

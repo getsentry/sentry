@@ -17,7 +17,7 @@ describe('StacktraceBanners', () => {
   const org = OrganizationFixture({
     features: ['codecov-integration'],
   });
-  const project = ProjectFixture({});
+  const project = ProjectFixture();
 
   const eventEntryStacktrace = EventEntryStacktraceFixture();
   const inAppFrame = eventEntryStacktrace.data.frames![0]!;

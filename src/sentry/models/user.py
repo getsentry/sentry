@@ -26,29 +26,27 @@ from sentry.backup.dependencies import (
     NormalizedModelName,
     PrimaryKeyMap,
     get_model_name,
+    merge_users_for_model_in_org,
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    BaseModel,
-    BoundedBigAutoField,
-    control_silo_model,
-    sane_repr,
-)
+from sentry.db.models import Model, control_silo_model, sane_repr
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import unique_db_instance
+from sentry.db.postgres.transactions import enforce_constraints
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
-from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.organizations.services.organization import RpcRegionUser, organization_service
 from sentry.types.region import find_all_region_names, find_regions_for_user
+from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -59,15 +57,15 @@ RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
 
-class UserManager(BaseManager["User"], DjangoUserManager):
+class UserManager(BaseManager["User"], DjangoUserManager["User"]):
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
-    ) -> QuerySet:
+    ) -> QuerySet[User]:
         """
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        from sentry.models.integrations.organization_integration import OrganizationIntegration
+        from sentry.integrations.models.organization_integration import OrganizationIntegration
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         org_user_ids = OrganizationMemberMapping.objects.filter(
@@ -91,13 +89,12 @@ class UserManager(BaseManager["User"], DjangoUserManager):
 
 
 @control_silo_model
-class User(BaseModel, AbstractBaseUser):
+class User(Model, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
     __relocation_custom_ordinal__ = ["username"]
 
     replication_version: int = 2
 
-    id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
@@ -201,7 +198,7 @@ class User(BaseModel, AbstractBaseUser):
     def class_name(self):
         return "User"
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
@@ -210,7 +207,7 @@ class User(BaseModel, AbstractBaseUser):
                 avatar.delete()
             for outbox in self.outboxes_for_update(is_user_delete=True):
                 outbox.save()
-            return super().delete()
+            return super().delete(*args, **kwargs)
 
     def update(self, *args, **kwds):
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
@@ -332,7 +329,7 @@ class User(BaseModel, AbstractBaseUser):
             shard_identifier=identifier,
         )
 
-    def merge_to(from_user, to_user):
+    def merge_to(from_user: User, to_user: User) -> None:
         # TODO: we could discover relations automatically and make this useful
         from sentry.models.auditlogentry import AuditLogEntry
         from sentry.models.authenticator import Authenticator
@@ -343,33 +340,55 @@ class User(BaseModel, AbstractBaseUser):
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
         from sentry.models.useremail import UserEmail
 
+        from_user_id = from_user.id
+        to_user_id = to_user.id
+
         audit_logger.info(
-            "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
+            "user.merge", extra={"from_user_id": from_user_id, "to_user_id": to_user_id}
         )
 
-        organization_ids: list[int]
         organization_ids = OrganizationMemberMapping.objects.filter(
-            user_id=from_user.id
+            user_id=from_user_id
         ).values_list("organization_id", flat=True)
 
         for organization_id in organization_ids:
             organization_service.merge_users(
-                organization_id=organization_id, from_user_id=from_user.id, to_user_id=to_user.id
+                organization_id=organization_id, from_user_id=from_user_id, to_user_id=to_user_id
             )
 
-        model_list: tuple[type[BaseModel], ...] = (
+            # Update all organization control models to only use the new user id.
+            #
+            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
+            with enforce_constraints(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
+                control_side_org_models: tuple[type[Model], ...] = (
+                    OrgAuthToken,
+                    OrganizationMemberMapping,
+                )
+                for model in control_side_org_models:
+                    merge_users_for_model_in_org(
+                        model,
+                        organization_id=organization_id,
+                        from_user_id=from_user_id,
+                        to_user_id=to_user_id,
+                    )
+
+        # While it would be nice to make the following changes in a transaction, there are too many
+        # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
+        # the `IntegrityError`s.
+        user_related_models = (
             Authenticator,
             Identity,
             UserAvatar,
             UserEmail,
             UserOption,
         )
-
-        for model in model_list:
-            for obj in model.objects.filter(user_id=from_user.id):
+        for model in user_related_models:
+            for obj in model.objects.filter(user_id=from_user_id):
                 try:
                     with transaction.atomic(using=router.db_for_write(User)):
-                        obj.update(user_id=to_user.id)
+                        obj.update(user_id=to_user_id)
                 except IntegrityError:
                     pass
 
@@ -385,7 +404,7 @@ class User(BaseModel, AbstractBaseUser):
             for ai in AuthIdentity.objects.filter(
                 user=from_user,
                 auth_provider__organization_id__in=AuthIdentity.objects.filter(
-                    user_id=to_user.id
+                    user_id=to_user_id
                 ).values("auth_provider__organization_id"),
             ):
                 ai.delete()
@@ -463,7 +482,7 @@ class User(BaseModel, AbstractBaseUser):
                 SuperuserUserSerializer,
                 UserSerializer,
             )
-            from sentry.services.hybrid_cloud.lost_password_hash.impl import (
+            from sentry.users.services.lost_password_hash.impl import (
                 DatabaseLostPasswordHashService,
             )
 
@@ -528,16 +547,22 @@ class User(BaseModel, AbstractBaseUser):
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.hybridcloud.rpc.services.caching import region_caching_service
-        from sentry.services.hybrid_cloud.user.service import get_user
+        from sentry.hybridcloud.rpc.caching import region_caching_service
+        from sentry.users.services.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
+        region_caching_service.clear_key(
+            key=get_many_by_id.key_from(identifier), region_name=region_name
+        )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.services.caching import region_caching_service
-        from sentry.services.hybrid_cloud.user.service import get_user
+        from sentry.hybridcloud.rpc.caching import region_caching_service
+        from sentry.users.services.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)
+        region_caching_service.clear_key(
+            key=get_many_by_id.key_from(self.id), region_name=region_name
+        )
         organization_service.update_region_user(
             user=RpcRegionUser(
                 id=self.id,

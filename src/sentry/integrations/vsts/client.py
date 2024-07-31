@@ -12,9 +12,9 @@ from sentry.exceptions import InvalidIdentity
 from sentry.integrations.client import ApiClient
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.silo.base import control_silo_function
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -289,7 +289,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
 
         return self.patch(VstsApiPath.work_items.format(instance=self.base_url, id=id), data=data)
 
-    def get_work_item(self, id: str) -> Response:
+    def get_work_item(self, id: int) -> Response:
         return self.get(VstsApiPath.work_items.format(instance=self.base_url, id=id))
 
     def get_work_item_states(self, project: str) -> Response:
@@ -368,7 +368,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             params={"stateFilter": "WellFormed"},
         )
 
-    def get_projects(self) -> Response:
+    def get_projects(self) -> list[dict[str, Any]]:
         def gen_params(page_number: int, page_size: int) -> Mapping[str, str | int]:
             # ADO supports a continuation token in the response but only in the newer API version (
             # https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1
@@ -419,7 +419,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             api_preview=True,
         )
 
-    def check_file(self, repo: Repository, path: str, version: str) -> str | None:
+    def check_file(self, repo: Repository, path: str, version: str) -> Response:
         return self.get_cached(
             path=VstsApiPath.items.format(
                 instance=repo.config["instance"],

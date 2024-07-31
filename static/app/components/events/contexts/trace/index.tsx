@@ -1,7 +1,10 @@
+import type {Location} from 'history';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
@@ -29,6 +32,7 @@ const traceIgnoredDataValues = [];
 type Props = {
   data: TraceKnownData & Record<string, any>;
   event: Event;
+  location: Location;
   meta?: Record<string, any>;
 };
 
@@ -37,6 +41,7 @@ export function getKnownTraceContextData({
   event,
   meta,
   organization,
+  location,
 }: Props & {
   organization: Organization;
 }) {
@@ -44,7 +49,8 @@ export function getKnownTraceContextData({
     data,
     meta,
     knownDataTypes: traceKnownDataValues,
-    onGetKnownDataDetails: v => getTraceKnownDataDetails({...v, organization, event}),
+    onGetKnownDataDetails: v =>
+      getTraceKnownDataDetails({...v, organization, event, location}),
   }).map(v => ({
     ...v,
     subjectDataTestId: `trace-context-${v.key.toLowerCase()}-value`,
@@ -61,9 +67,9 @@ export function getUnknownTraceContextData({data, meta}: Pick<Props, 'data' | 'm
 
 export function TraceEventContext({event, data, meta: propsMeta}: Props) {
   const organization = useOrganization();
+  const location = useLocation();
   const meta = propsMeta ?? getContextMeta(event, 'trace');
-
-  const knownData = getKnownTraceContextData({data, event, meta, organization});
+  const knownData = getKnownTraceContextData({data, event, meta, organization, location});
   const knownStructuredData = getKnownStructuredData(knownData, meta);
   const unknownData = getUnknownTraceContextData({data, meta});
 

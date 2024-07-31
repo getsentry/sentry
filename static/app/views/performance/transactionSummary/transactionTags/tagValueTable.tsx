@@ -18,7 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {
   TableData,
   TableDataRow,
@@ -278,7 +278,6 @@ export class TagValueTable extends Component<Props, State> {
     const {
       eventView,
       tagKey,
-      location,
       isLoading,
       tableData,
       aggregateColumn,
@@ -320,7 +319,6 @@ export class TagValueTable extends Component<Props, State> {
               renderBodyCell: this.renderBodyCellWithData(this.props) as any,
               onResizeColumn: this.handleResizeColumn,
             }}
-            location={location}
           />
         </VisuallyCompleteWithData>
 

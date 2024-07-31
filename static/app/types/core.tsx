@@ -100,11 +100,6 @@ export enum DataCategoryExact {
   MONITOR_SEAT = 'monitorSeat',
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
-  /**
-   * Metrics does not actually exist as a data category, but is used on the stats page.
-   * See metricSecond instead.
-   */
-  METRICS = 'metrics',
   METRIC_SECOND = 'metricSecond',
 }
 
@@ -123,10 +118,11 @@ export enum Outcome {
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
   INVALID = 'invalid',
-  DROPPED = 'dropped', // this is not a real outcome coming from the server
+  ABUSE = 'abuse',
   RATE_LIMITED = 'rate_limited',
   CLIENT_DISCARD = 'client_discard',
   CARDINALITY_LIMITED = 'cardinality_limited',
+  DROPPED = 'dropped', // this is not a real outcome coming from the server
 }
 
 export type IntervalPeriod = ReturnType<typeof getInterval>;

@@ -65,6 +65,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ),
         }
     }
+    snuba_methods = ["GET"]
 
     def has_feature(self, organization, request):
         return features.has(
@@ -76,7 +77,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response([])
 
@@ -135,20 +136,18 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             used_project_ids = set({event["project_id"] for event in data})
 
             # Get new params with pruned projects
-            pruned_params = self.get_snuba_params(request, organization)
-            pruned_params["project_objects"] = [
+            pruned_snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            pruned_snuba_params.projects = [
                 project
-                for project in pruned_params["project_objects"]
+                for project in pruned_snuba_params.projects
                 if project.id in used_project_ids
-            ]
-            pruned_params["project_id"] = [
-                project.id for project in pruned_params["project_objects"]
             ]
 
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
-                pruned_params,
+                params={},
+                snuba_params=pruned_snuba_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
@@ -203,21 +202,23 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             for key, item in results.items():
                 formatted_results[key] = SnubaTSResult(
                     {
-                        "data": zerofill(
-                            item["data"],
-                            pruned_params["start"],
-                            pruned_params["end"],
-                            rollup,
-                            "time",
-                        )
-                        if zerofill_results
-                        else item["data"],
+                        "data": (
+                            zerofill(
+                                item["data"],
+                                pruned_snuba_params.start_date,
+                                pruned_snuba_params.end_date,
+                                rollup,
+                                ["time"],
+                            )
+                            if zerofill_results
+                            else item["data"]
+                        ),
                         "project": item["project_id"],
                         "isMetricsData": True,
                         "order": item["order"],
                     },
-                    pruned_params["start"],
-                    pruned_params["end"],
+                    pruned_snuba_params.start,
+                    pruned_snuba_params.end,
                     rollup,
                 )
             return formatted_results
@@ -244,7 +245,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 return {}
 
             # Fetch timeseries for each top transaction name
-            return get_timeseries(top_trending_transactions, params, rollup, zerofill_results)
+            return get_timeseries(top_trending_transactions, snuba_params, rollup, zerofill_results)
 
         def format_start_end(data):
             # format start and end
@@ -254,7 +255,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             data[1]["data_start"] = data_start
             data[1]["data_end"] = data_end
             # user requested start and end
-            data[1]["request_start"] = int(params["start"].timestamp())
+            data[1]["request_start"] = int(snuba_params.start_date.timestamp())
             data[1]["request_end"] = data_end
             return data
 
@@ -318,7 +319,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         idx = next(
                             i
                             for i, data in enumerate(selected_stats_data["data"])
-                            if data[0] >= params["start"].timestamp()
+                            if data[0] >= snuba_params.start_date.timestamp()
                         )
                         parsed_stats_data = selected_stats_data["data"][idx:]
                         selected_stats_data["data"] = parsed_stats_data
@@ -333,7 +334,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "events": self.handle_results_with_meta(
                     request,
                     organization,
-                    params["project_id"],
+                    snuba_params.project_ids,
                     {"data": results["data"], "meta": {"isMetricsData": True}},
                     True,
                 ),
@@ -347,7 +348,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 get_event_stats_metrics,
                 top_events=EVENTS_PER_QUERY,
                 query_column=trend_function,
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 query=query,
             )
 
@@ -360,7 +362,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "events": self.handle_results_with_meta(
                             request,
                             organization,
-                            params["project_id"],
+                            snuba_params.project_ids,
                             {"data": [], "meta": {"isMetricsData": True}},
                             True,
                         ),

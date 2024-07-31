@@ -84,7 +84,6 @@ export function ProfileEventsTable<F extends FieldType>(
           {location, organization, projects}
         ),
       }}
-      location={location}
     />
   );
 }
@@ -159,7 +158,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   }
 
   if (key === 'trace') {
-    const traceId = getShortEventId(props.dataRow[key] ?? '');
+    const traceId = props.dataRow[key] ?? '';
     if (!traceId) {
       return <Container>{t('n/a')}</Container>;
     }
@@ -171,14 +170,15 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     return (
       <Container>
         <Link
-          to={getTraceDetailsUrl(
-            props.baggage.organization,
-            props.dataRow[key] ?? '',
-            dataSelection,
-            timestamp
-          )}
+          to={getTraceDetailsUrl({
+            organization: props.baggage.organization,
+            traceSlug: traceId,
+            dateSelection: dataSelection,
+            timestamp,
+            location: props.baggage.location,
+          })}
         >
-          {traceId}
+          {getShortEventId(traceId)}
         </Link>
       </Container>
     );

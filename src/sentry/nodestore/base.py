@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from threading import local
 from typing import Any
@@ -129,6 +130,7 @@ class NodeStorage(local, Service):
     def _get_bytes(self, id: str) -> bytes | None:
         raise NotImplementedError
 
+    @metrics.wraps("nodestore.get.duration")
     def get(self, id: str, subkey: str | None = None) -> Any:
         """
         >>> nodestore.get('key1')
@@ -191,10 +193,11 @@ class NodeStorage(local, Service):
             else:
                 uncached_ids = id_list
 
-            items = {
-                id: self._decode(value, subkey=subkey)
-                for id, value in self._get_bytes_multi(uncached_ids).items()
-            }
+            with sentry_sdk.start_span(op="nodestore._get_bytes_multi_and_decode") as span:
+                items = {
+                    id: self._decode(value, subkey=subkey)
+                    for id, value in self._get_bytes_multi(uncached_ids).items()
+                }
             if subkey is None:
                 self._set_cache_items(items)
                 items.update(cache_items)
@@ -204,7 +207,7 @@ class NodeStorage(local, Service):
 
             return items
 
-    def _encode(self, data: dict[str | None, dict[str, str]]) -> bytes:
+    def _encode(self, data: dict[str | None, Mapping[str, Any]]) -> bytes:
         """
         Encode data dict in a way where its keys can be deserialized
         independently. A `None` key must always be present which is served as
@@ -231,7 +234,7 @@ class NodeStorage(local, Service):
     def _set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
         raise NotImplementedError
 
-    def set(self, item_id: str, data: dict[str, str], ttl: timedelta | None = None) -> None:
+    def set(self, item_id: str, data: Mapping[str, Any], ttl: timedelta | None = None) -> None:
         """
         Set value for `item_id`. Note that this deletes existing subkeys for `item_id` as
         well, use `set_subkeys` to write a value + subkeys.
@@ -242,7 +245,7 @@ class NodeStorage(local, Service):
 
     @sentry_sdk.tracing.trace
     def set_subkeys(
-        self, item_id: str, data: dict[str | None, dict[str, str]], ttl: timedelta | None = None
+        self, item_id: str, data: dict[str | None, Mapping[str, Any]], ttl: timedelta | None = None
     ) -> None:
         """
         Set value for `item_id` and its subkeys.
@@ -275,6 +278,7 @@ class NodeStorage(local, Service):
             return self.cache.get(item_id)
         return None
 
+    @sentry_sdk.tracing.trace
     def _get_cache_items(self, id_list: list[str]) -> dict[str, Any]:
         if self.cache:
             return self.cache.get_many(id_list)
@@ -284,6 +288,7 @@ class NodeStorage(local, Service):
         if self.cache and data:
             self.cache.set(item_id, data)
 
+    @sentry_sdk.tracing.trace
     def _set_cache_items(self, items: dict[Any, Any]) -> None:
         if self.cache:
             self.cache.set_many(items)

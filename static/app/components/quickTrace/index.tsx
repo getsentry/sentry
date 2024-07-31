@@ -18,7 +18,6 @@ import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategor
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -35,6 +34,7 @@ import Projects from 'sentry/utils/projects';
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
 
+import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 
 import {
@@ -67,7 +67,7 @@ type QuickTraceProps = Pick<
 > & {
   event: Event;
   location: Location;
-  organization: OrganizationSummary;
+  organization: Organization;
   quickTrace: QuickTraceType;
 };
 
@@ -288,18 +288,14 @@ export default function QuickTrace({
   return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
 }
 
-function handleNode(key: string, organization: OrganizationSummary) {
+function handleNode(key: string, organization: Organization) {
   trackAnalytics('quick_trace.node.clicked', {
     organization: organization.id,
     node_key: key,
   });
 }
 
-function handleDropdownItem(
-  key: string,
-  organization: OrganizationSummary,
-  extra: boolean
-) {
+function handleDropdownItem(key: string, organization: Organization, extra: boolean) {
   const eventKey = extra
     ? 'quick_trace.dropdown.clicked_extra'
     : 'quick_trace.dropdown.clicked';
@@ -316,7 +312,7 @@ type EventNodeSelectorProps = {
   events: QuickTraceEvent[];
   location: Location;
   nodeKey: keyof typeof TOOLTIP_PREFIX;
-  organization: OrganizationSummary;
+  organization: Organization;
   text: React.ReactNode;
   traceSlug: string;
   transactionDest: TransactionDestination;
@@ -410,10 +406,7 @@ function EventNodeSelector({
             projectSlug: events[0].project_slug,
             timestamp: events[0].timestamp,
             location,
-            organization: {
-              slug: organization.slug,
-              features: organization.features,
-            },
+            organization,
             transactionName: events[0].transaction,
             type: transactionDest,
           });
@@ -484,10 +477,7 @@ function EventNodeSelector({
             projectSlug: event.project_slug,
             eventId: event.event_id,
             location,
-            organization: {
-              slug: organization.slug,
-              features: organization.features,
-            },
+            organization,
             type: transactionDest,
             transactionName: event.transaction,
           });
@@ -510,7 +500,7 @@ function EventNodeSelector({
         })}
         {(errors.length > numEvents || events.length > numEvents) && (
           <DropdownItem
-            to={generateTraceTarget(currentEvent, organization)}
+            to={generateTraceTarget(currentEvent, organization, location)}
             allowDefaultEvent
             onSelect={() => handleDropdownItem(nodeKey, organization, true)}
           >
@@ -525,7 +515,7 @@ function EventNodeSelector({
 type DropdownNodeProps = {
   anchor: 'left' | 'right';
   event: TraceError | QuickTraceEvent | TracePerformanceIssue;
-  organization: OrganizationSummary;
+  organization: Organization;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
   subtext?: string;
@@ -663,8 +653,8 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
     const docPlatform = getDocsPlatform(platform, true);
     const docsHref =
       docPlatform === null || docPlatform === 'javascript'
-        ? 'https://docs.sentry.io/platforms/javascript/performance/connect-services/'
-        : `https://docs.sentry.io/platforms/${docPlatform}/performance/connect-services`;
+        ? 'https://docs.sentry.io/platforms/javascript/tracing/trace-propagation/'
+        : `https://docs.sentry.io/platforms/${docPlatform}/tracing/trace-propagation/`;
     return (
       <Fragment>
         {connectorSide === 'left' && <TraceConnector dashed />}

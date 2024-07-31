@@ -43,7 +43,6 @@ export const DEBUG_SOURCE_TYPES = {
   gcs: 'Google Cloud Storage',
   http: 'SymbolServer (HTTP)',
   s3: 'Amazon S3',
-  appStoreConnect: 'App Store Connect',
 } as const;
 
 export function getDebugSourceName(type: keyof typeof DEBUG_SOURCE_TYPES) {

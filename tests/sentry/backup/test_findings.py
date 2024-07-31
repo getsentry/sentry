@@ -13,13 +13,13 @@ from sentry.backup.findings import (
     FindingKind,
     InstanceID,
 )
-from sentry.models.email import Email
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
     RpcImportError,
     RpcImportErrorKind,
 )
+from sentry.models.email import Email
 from sentry.testutils.cases import TestCase
 
 encoder = FindingJSONEncoder(

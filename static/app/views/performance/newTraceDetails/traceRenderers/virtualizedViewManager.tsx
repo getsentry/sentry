@@ -4,14 +4,19 @@ import * as qs from 'query-string';
 
 import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
-import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
-import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
+import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
+
+import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
 
@@ -34,14 +39,6 @@ type ViewColumn = {
   width: number;
 };
 
-type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
-type EventStore = {
-  [K in keyof VirtualizedViewManagerEvents]: Set<VirtualizedViewManagerEvents[K]>;
-};
-interface VirtualizedViewManagerEvents {
-  ['divider resize end']: (list_width: number) => void;
-  ['virtualized list init']: () => void;
-}
 type VerticalIndicator = {
   ref: HTMLElement | null;
   timestamp: number | undefined;
@@ -51,31 +48,9 @@ type VerticalIndicator = {
  * Children components should call the appropriate register*Ref methods to register their
  * HTML elements.
  */
-
 export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
-  // Represents the space of the entire trace, for example
-  // a trace starting at 0 and ending at 1000 would have a space of [0, 1000]
-  to_origin: number = 0;
-  trace_space: TraceView = TraceView.Empty();
-  // The view defines what the user is currently looking at, it is a subset
-  // of the trace space. For example, if the user is currently looking at the
-  // trace from 500 to 1000, the view would be represented by [x, width] = [500, 500]
-  trace_view: TraceView = TraceView.Empty();
-  // Represents the pixel space of the entire trace - this is the container
-  // that we render to. For example, if the container is 1000px wide, the
-  // pixel space would be [0, 1000]
-  trace_physical_space: TraceView = TraceView.Empty();
-  container_physical_space: TraceView = TraceView.Empty();
-
-  events: EventStore = {
-    ['divider resize end']: new Set<VirtualizedViewManagerEvents['divider resize end']>(),
-    ['virtualized list init']: new Set<
-      VirtualizedViewManagerEvents['virtualized list init']
-    >(),
-  };
-
   row_measurer: TraceRowWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
     new TraceRowWidthMeasurer();
   indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
@@ -105,6 +80,7 @@ export class VirtualizedViewManager {
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
+  vertical_indicators: {[key: string]: VerticalIndicator} = {};
   span_bars: ({color: string; ref: HTMLElement; space: [number, number]} | undefined)[] =
     [];
   span_patterns: ({ref: HTMLElement; space: [number, number]} | undefined)[][] = [];
@@ -121,19 +97,19 @@ export class VirtualizedViewManager {
   span_text: ({ref: HTMLElement; space: [number, number]; text: string} | undefined)[] =
     [];
 
-  // Holds the span to px matrix so we dont keep recalculating it
-  span_to_px: mat3 = mat3.create();
   row_depth_padding: number = 22;
 
-  // Smallest of time that can be displayed across the entire view.
-  private readonly MAX_ZOOM_PRECISION = 1;
-  private readonly ROW_PADDING_PX = 16;
   private scrollbar_width: number = 0;
-
-  vertical_indicators: {[key: string]: VerticalIndicator} = {};
+  // the transformation matrix that is used to render scaled elements to the DOM
+  private span_to_px: mat3 = mat3.create();
+  private readonly ROW_PADDING_PX = 16;
+  private readonly span_matrix: [number, number, number, number, number, number] = [
+    1, 0, 0, 1, 0, 0,
+  ];
 
   timers: {
     onFovChange: {id: number} | null;
+    onListHorizontalScroll: {id: number} | null;
     onRowIntoView: number | null;
     onScrollEndSync: {id: number} | null;
     onWheelEnd: number | null;
@@ -141,6 +117,7 @@ export class VirtualizedViewManager {
   } = {
     onZoomIntoSpace: null,
     onWheelEnd: null,
+    onListHorizontalScroll: null,
     onRowIntoView: null,
     onScrollEndSync: null,
     onFovChange: null,
@@ -148,11 +125,17 @@ export class VirtualizedViewManager {
 
   // Column configuration
   columns: Record<'list' | 'span_list', ViewColumn>;
+  scheduler: TraceScheduler;
+  view: TraceView;
 
-  constructor(columns: {
-    list: Pick<ViewColumn, 'width'>;
-    span_list: Pick<ViewColumn, 'width'>;
-  }) {
+  constructor(
+    columns: {
+      list: Pick<ViewColumn, 'width'>;
+      span_list: Pick<ViewColumn, 'width'>;
+    },
+    trace_scheduler: TraceScheduler,
+    trace_view: TraceView
+  ) {
     this.columns = {
       list: {...columns.list, column_nodes: [], column_refs: [], translate: [0, 0]},
       span_list: {
@@ -162,6 +145,8 @@ export class VirtualizedViewManager {
         translate: [0, 0],
       },
     };
+    this.scheduler = trace_scheduler;
+    this.view = trace_view;
 
     this.registerResetZoomRef = this.registerResetZoomRef.bind(this);
     this.registerContainerRef = this.registerContainerRef.bind(this);
@@ -181,89 +166,6 @@ export class VirtualizedViewManager {
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
   }
 
-  once<K extends keyof VirtualizedViewManagerEvents>(eventName: K, cb: Function) {
-    const wrapper = (...args: any[]) => {
-      cb(...args);
-      this.off(eventName, wrapper);
-    };
-    this.on(eventName, wrapper);
-  }
-
-  on<K extends keyof VirtualizedViewManagerEvents>(
-    eventName: K,
-    cb: VirtualizedViewManagerEvents[K]
-  ): void {
-    const set = this.events[eventName] as unknown as Set<VirtualizedViewManagerEvents[K]>;
-    if (set.has(cb)) {
-      return;
-    }
-    set.add(cb);
-  }
-
-  off<K extends keyof VirtualizedViewManagerEvents>(
-    eventName: K,
-    cb: VirtualizedViewManagerEvents[K]
-  ): void {
-    const set = this.events[eventName] as unknown as Set<VirtualizedViewManagerEvents[K]>;
-
-    if (set.has(cb)) {
-      set.delete(cb);
-    }
-  }
-
-  dispatch<K extends keyof VirtualizedViewManagerEvents>(
-    event: K,
-    ...args: ArgumentTypes<VirtualizedViewManagerEvents[K]>
-  ): void {
-    for (const handler of this.events[event]) {
-      // @ts-expect-error
-      handler(...args);
-    }
-  }
-
-  updateTraceSpace(start: number, width: number) {
-    if (this.trace_space.width === width && this.to_origin === start) {
-      return;
-    }
-
-    this.to_origin = start;
-
-    // If view is scaled all the way out, then lets update it to match the new space, else
-    // we are implicitly zooming in, which may be even more confusing.
-    const preventImplicitZoom = this.trace_view.width === this.trace_space.width;
-    this.trace_space = new TraceView(0, 0, width, 1);
-    if (preventImplicitZoom) {
-      this.setTraceView({x: 0, width});
-    }
-
-    this.recomputeTimelineIntervals();
-    this.recomputeSpanToPxMatrix();
-  }
-
-  initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
-    this.to_origin = space[0];
-
-    this.trace_space = new TraceView(0, 0, space[2], space[3]);
-    this.trace_view = new TraceView(0, 0, space[2], space[3]);
-
-    this.recomputeTimelineIntervals();
-    this.recomputeSpanToPxMatrix();
-  }
-
-  initializePhysicalSpace(width: number, height: number) {
-    this.container_physical_space = new TraceView(0, 0, width, height);
-    this.trace_physical_space = new TraceView(
-      0,
-      0,
-      width * this.columns.span_list.width,
-      height
-    );
-
-    this.recomputeTimelineIntervals();
-    this.recomputeSpanToPxMatrix();
-  }
-
-  dividerScale: 1 | undefined = undefined;
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
 
@@ -272,7 +174,6 @@ export class VirtualizedViewManager {
       return;
     }
 
-    this.dividerScale = this.trace_view.width === this.trace_space.width ? 1 : undefined;
     this.dividerStartVec = [event.clientX, event.clientY];
     this.previousDividerClientVec = [event.clientX, event.clientY];
 
@@ -290,12 +191,14 @@ export class VirtualizedViewManager {
       return;
     }
 
-    this.dividerScale = undefined;
     const distance = event.clientX - this.dividerStartVec[0];
-    const distancePercentage = distance / this.container_physical_space.width;
+    const distancePercentage = distance / this.view.trace_container_physical_space.width;
 
-    this.columns.list.width = this.columns.list.width + distancePercentage;
-    this.columns.span_list.width = this.columns.span_list.width - distancePercentage;
+    const list = clamp(this.columns.list.width + distancePercentage, 0.1, 0.9);
+    const span_list = clamp(this.columns.span_list.width - distancePercentage, 0.1, 0.9);
+
+    this.columns.list.width = list;
+    this.columns.span_list.width = span_list;
 
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
@@ -307,7 +210,7 @@ export class VirtualizedViewManager {
     document.removeEventListener('mouseup', this.onDividerMouseUp);
     document.removeEventListener('mousemove', this.onDividerMouseMove);
 
-    this.dispatch('divider resize end', this.columns.list.width);
+    this.scheduler.dispatch('divider resize end', this.columns.list.width);
   }
 
   onDividerMouseMove(event: MouseEvent) {
@@ -316,31 +219,30 @@ export class VirtualizedViewManager {
     }
 
     const distance = event.clientX - this.dividerStartVec[0];
-    const distancePercentage = distance / this.container_physical_space.width;
+    const distancePercentage = distance / this.view.trace_container_physical_space.width;
 
-    this.trace_physical_space.width =
-      (this.columns.span_list.width - distancePercentage) *
-      this.container_physical_space.width;
+    const list = clamp(this.columns.list.width + distancePercentage, 0, 1);
+    const span_list = clamp(this.columns.span_list.width - distancePercentage, 0, 1);
 
-    const physical_distance = this.previousDividerClientVec[0] - event.clientX;
-    const config_distance_pct = physical_distance / this.trace_physical_space.width;
-    const config_distance = this.trace_view.width * config_distance_pct;
-
-    if (this.dividerScale) {
-      // just recompute the draw matrix and let the view scale itself
-      this.recomputeSpanToPxMatrix();
-    } else {
-      this.setTraceView({
-        x: this.trace_view.x - config_distance,
-        width: this.trace_view.width + config_distance,
-      });
+    if (span_list * this.view.trace_container_physical_space.width <= 100) {
+      return;
     }
-    this.recomputeTimelineIntervals();
-    this.draw({
-      list: this.columns.list.width + distancePercentage,
-      span_list: this.columns.span_list.width - distancePercentage,
+    if (list * this.view.trace_container_physical_space.width <= 100) {
+      return;
+    }
+
+    this.view.trace_physical_space.width =
+      span_list * this.view.trace_container_physical_space.width;
+
+    this.scheduler.dispatch('set trace view', {
+      x: this.view.trace_view.x,
+      width: this.view.trace_view.width,
     });
 
+    this.scheduler.dispatch('divider resize', {
+      list,
+      span_list,
+    });
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
@@ -349,7 +251,6 @@ export class VirtualizedViewManager {
       return;
     }
     this.scrollbar_width = width;
-    this.draw();
   }
 
   registerContainerRef(container: HTMLElement | null) {
@@ -499,7 +400,7 @@ export class VirtualizedViewManager {
       }
 
       ref.addEventListener('wheel', this.onWheel, {passive: false});
-      ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
+      ref.style.transform = `translateX(${this.transformXFromTimestamp(
         indicator.start
       )}px)`;
     }
@@ -535,25 +436,25 @@ export class VirtualizedViewManager {
     this.horizontal_scrollbar_container = ref;
   }
 
-  getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
-    const left_percentage = cursor.x / this.trace_physical_space.width;
-    const left_view = left_percentage * this.trace_view.width;
-
-    return [this.trace_view.x + left_view, 0];
-  }
-
   onWheel(event: WheelEvent) {
     if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
+      // If this is the first zoom event, then read the clientX and offset it from the container element as offset
+      // is relative to the **target element**. In subsequent events, we can use the offsetX property as
+      // the pointer-events are going to be disabled and we will receive the correct offsetX value
+      let offsetX = 0;
       if (!this.timers.onWheelEnd) {
+        offsetX =
+          (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()?.left ?? 0;
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
 
       const scale = 1 - event.deltaY * 0.01 * -1;
-      const configSpaceCursor = this.getConfigSpaceCursor({
-        x: event.offsetX,
-        y: event.offsetY,
+      const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
+      const configSpaceCursor = this.view.getConfigSpaceCursor({
+        x: x,
+        y: 0,
       });
 
       const center = vec2.fromValues(configSpaceCursor[0], 0);
@@ -567,12 +468,18 @@ export class VirtualizedViewManager {
         vec2.fromValues(-center[0], 0)
       );
 
-      const newView = this.trace_view.transform(centerScaleMatrix);
-      this.setTraceView({
-        x: newView[0],
+      const newView = this.view.trace_view.transform(centerScaleMatrix);
+
+      // When users zoom in, the matrix will compute a width value that is lower than the min,
+      // which results in the value of x being incorrectly set and the view moving to the right.
+      // To prevent this, we will only update the x position if the new width is greater than the min zoom precision.
+      this.scheduler.dispatch('set trace view', {
+        x:
+          newView[2] < this.view.MAX_ZOOM_PRECISION_MS
+            ? this.view.trace_view.x
+            : newView[0],
         width: newView[2],
       });
-      this.draw();
     } else {
       if (!this.timers.onWheelEnd) {
         this.onWheelStart();
@@ -591,13 +498,12 @@ export class VirtualizedViewManager {
         event.preventDefault();
       }
 
-      const physical_delta_pct = distance / this.trace_physical_space.width;
-      const view_delta = physical_delta_pct * this.trace_view.width;
+      const physical_delta_pct = distance / this.view.trace_physical_space.width;
+      const view_delta = physical_delta_pct * this.view.trace_view.width;
 
-      this.setTraceView({
-        x: this.trace_view.x + view_delta,
+      this.scheduler.dispatch('set trace view', {
+        x: this.view.trace_view.x + view_delta,
       });
-      this.draw();
     }
   }
 
@@ -607,42 +513,44 @@ export class VirtualizedViewManager {
       this.timers.onZoomIntoSpace = null;
     }
 
-    if (space[0] - this.to_origin > this.trace_view.x) {
+    if (space[0] - this.view.to_origin > this.view.trace_view.x) {
       this.onZoomIntoSpace([
-        space[0] + space[1] / 2 - this.trace_view.width / 2,
-        this.trace_view.width,
+        space[0] + space[1] / 2 - this.view.trace_view.width / 2,
+        this.view.trace_view.width,
       ]);
-    } else if (space[0] - this.to_origin < this.trace_view.x) {
+    } else if (space[0] - this.view.to_origin < this.view.trace_view.x) {
       this.onZoomIntoSpace([
-        space[0] + space[1] / 2 - this.trace_view.width / 2,
-        this.trace_view.width,
+        space[0] + space[1] / 2 - this.view.trace_view.width / 2,
+        this.view.trace_view.width,
       ]);
     }
   }
 
   animateViewTo(node_space: [number, number]) {
     const start = node_space[0];
-    const width = node_space[1] > 0 ? node_space[1] : this.trace_view.width;
+    const width = node_space[1] > 0 ? node_space[1] : this.view.trace_view.width;
     const margin = 0.2 * width;
 
-    this.setTraceView({x: start - margin - this.to_origin, width: width + margin * 2});
-    this.draw();
+    this.scheduler.dispatch('set trace view', {
+      x: start - margin - this.view.to_origin,
+      width: width + margin * 2,
+    });
   }
 
   onZoomIntoSpace(space: [number, number]) {
-    let distance_x = space[0] - this.to_origin - this.trace_view.x;
-    let final_x = space[0] - this.to_origin;
+    let distance_x = space[0] - this.view.to_origin - this.view.trace_view.x;
+    let final_x = space[0] - this.view.to_origin;
     let final_width = space[1];
-    const distance_width = this.trace_view.width - space[1];
+    const distance_width = this.view.trace_view.width - space[1];
 
-    if (space[1] < this.MAX_ZOOM_PRECISION) {
-      distance_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
-      final_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
-      final_width = this.MAX_ZOOM_PRECISION;
+    if (space[1] < this.view.MAX_ZOOM_PRECISION_MS) {
+      distance_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
+      final_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
+      final_width = this.view.MAX_ZOOM_PRECISION_MS;
     }
 
-    const start_x = this.trace_view.x;
-    const start_width = this.trace_view.width;
+    const start_x = this.view.trace_view.x;
+    const start_width = this.view.trace_view.width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
     const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
@@ -654,21 +562,22 @@ export class VirtualizedViewManager {
     const rafCallback = (now: number) => {
       const elapsed = now - start;
       const progress = elapsed / duration;
-
       const eased = easeOutSine(progress);
 
-      const x = start_x + distance_x * eased;
-      const width = start_width - distance_width * eased;
-
-      this.setTraceView({x, width});
-      this.draw();
-
-      if (progress < 1) {
+      if (progress <= 1) {
+        const x = start_x + distance_x * eased;
+        const width = start_width - distance_width * eased;
+        this.scheduler.dispatch('set trace view', {
+          x,
+          width,
+        });
         this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
       } else {
         this.timers.onZoomIntoSpace = null;
-        this.setTraceView({x: final_x, width: final_width});
-        this.draw();
+        this.scheduler.dispatch('set trace view', {
+          x: final_x,
+          width: final_width,
+        });
       }
     };
 
@@ -676,7 +585,7 @@ export class VirtualizedViewManager {
   }
 
   resetZoom() {
-    this.onZoomIntoSpace([this.to_origin, this.trace_space.width]);
+    this.onZoomIntoSpace([this.view.to_origin, this.view.trace_space.width]);
   }
 
   enqueueOnWheelEndRaf() {
@@ -687,7 +596,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 200) {
+      if (elapsed > 100) {
         this.onWheelEnd();
       } else {
         this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
@@ -698,6 +607,7 @@ export class VirtualizedViewManager {
   }
 
   onWheelStart() {
+    document.body.style.overscrollBehavior = 'none';
     for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
       const span_list = this.columns.span_list.column_refs[i];
       if (span_list?.children?.[0]) {
@@ -718,6 +628,7 @@ export class VirtualizedViewManager {
   }
 
   onWheelEnd() {
+    document.body.style.overscrollBehavior = '';
     this.timers.onWheelEnd = null;
 
     for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
@@ -745,39 +656,18 @@ export class VirtualizedViewManager {
       return;
     }
 
-    if (width <= 0 || width > this.trace_space.width) {
+    if (width <= 0 || width > this.view.trace_space.width) {
       return;
     }
 
-    if (x < 0 || x > this.trace_space.width) {
+    if (x < 0 || x > this.view.trace_space.width) {
       return;
     }
-    this.setTraceView({x, width});
+
+    this.scheduler.dispatch('set trace view', {x, width});
   }
 
-  setTraceView(view: {width?: number; x?: number}) {
-    // In cases where a trace might have a single error, there is no concept of a timeline
-    if (this.trace_view.width === 0) {
-      return;
-    }
-
-    const x = view.x ?? this.trace_view.x;
-    const width = view.width ?? this.trace_view.width;
-
-    this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(
-      width,
-      this.MAX_ZOOM_PRECISION,
-      this.trace_space.width - this.trace_view.x
-    );
-
-    this.recomputeTimelineIntervals();
-    this.recomputeSpanToPxMatrix();
-    this.enqueueFOVQueryParamSync();
-    this.syncResetZoomButton();
-  }
-
-  enqueueFOVQueryParamSync() {
+  enqueueFOVQueryParamSync(view: TraceView) {
     if (this.timers.onFovChange !== null) {
       window.cancelAnimationFrame(this.timers.onFovChange.id);
     }
@@ -787,7 +677,7 @@ export class VirtualizedViewManager {
         pathname: location.pathname,
         query: {
           ...qs.parse(location.search),
-          fov: `${this.trace_view.x},${this.trace_view.width}`,
+          fov: `${view.trace_view.x},${view.trace_view.width}`,
         },
       });
       this.timers.onFovChange = null;
@@ -811,7 +701,7 @@ export class VirtualizedViewManager {
   syncResetZoomButton() {
     if (!this.reset_zoom_button) return;
     this.reset_zoom_button.disabled =
-      this.trace_view.x === 0 && this.trace_view.width === this.trace_space.width;
+      this.view.trace_view.width === this.view.trace_space.width;
   }
 
   maybeSyncViewWithVerticalIndicator(key: string) {
@@ -820,12 +710,19 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const timestamp = indicator.timestamp - this.to_origin;
-    this.setTraceView({
-      x: timestamp - this.trace_view.width / 2,
-      width: this.trace_view.width,
+    const timestamp = indicator.timestamp - this.view.to_origin;
+    this.scheduler.dispatch('set trace view', {
+      x: timestamp - this.view.trace_view.width / 2,
+      width: this.view.trace_view.width,
     });
-    this.draw();
+  }
+
+  onHorizontalScrollbarScrollStart(): void {
+    document.body.style.overscrollBehavior = 'none';
+  }
+
+  onHorizontalScrollbarScrollEnd(): void {
+    document.body.style.overscrollBehavior = '';
   }
 
   onHorizontalScrollbarScroll(_event: Event) {
@@ -842,6 +739,10 @@ export class VirtualizedViewManager {
       return;
     }
 
+    if (!this.timers.onListHorizontalScroll) {
+      this.onHorizontalScrollbarScrollStart();
+    }
+
     this.enqueueOnScrollEndOutOfBoundsCheck();
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
@@ -852,6 +753,16 @@ export class VirtualizedViewManager {
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
     }
+
+    if (this.timers.onListHorizontalScroll) {
+      cancelAnimationTimeout(this.timers.onListHorizontalScroll);
+      this.timers.onListHorizontalScroll = null;
+    }
+
+    this.timers.onListHorizontalScroll = requestAnimationTimeout(() => {
+      this.onHorizontalScrollbarScrollEnd();
+      this.timers.onListHorizontalScroll = null;
+    }, 100);
   }
 
   onSyncedScrollbarScroll(event: WheelEvent) {
@@ -878,6 +789,10 @@ export class VirtualizedViewManager {
       this.timers.onRowIntoView = null;
     }
 
+    if (!this.timers.onListHorizontalScroll) {
+      this.onHorizontalScrollbarScrollStart();
+    }
+
     this.enqueueOnScrollEndOutOfBoundsCheck();
 
     const newTransform = this.clampRowTransform(
@@ -902,10 +817,21 @@ export class VirtualizedViewManager {
         this.columns.list.translate[0]
       );
     }
+
+    if (this.timers.onListHorizontalScroll) {
+      cancelAnimationTimeout(this.timers.onListHorizontalScroll);
+      this.timers.onListHorizontalScroll = null;
+    }
+
+    this.timers.onListHorizontalScroll = requestAnimationTimeout(() => {
+      this.onHorizontalScrollbarScrollEnd();
+      this.timers.onListHorizontalScroll = null;
+    }, 100);
   }
 
   clampRowTransform(transform: number): number {
-    const columnWidth = this.columns.list.width * this.container_physical_space.width;
+    const columnWidth =
+      this.columns.list.width * this.view.trace_container_physical_space.width;
     const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
 
     if (this.row_measurer.queue.length > 0) {
@@ -925,6 +851,40 @@ export class VirtualizedViewManager {
     }
 
     return transform;
+  }
+
+  recomputeSpanToPXMatrix() {
+    const traceViewToSpace = this.view.trace_space.between(this.view.trace_view);
+    const tracePhysicalToView = this.view.trace_physical_space.between(
+      this.view.trace_space
+    );
+
+    this.span_to_px = mat3.multiply(
+      this.span_to_px,
+      traceViewToSpace,
+      tracePhysicalToView
+    );
+  }
+
+  computeSpanCSSMatrixTransform(
+    space: [number, number]
+  ): [number, number, number, number, number, number] {
+    const scale = space[1] / this.view.trace_view.width;
+    this.span_matrix[0] = Math.max(
+      scale,
+      this.span_to_px[0] / this.view.trace_view.width
+    );
+    this.span_matrix[4] =
+      (space[0] - this.view.to_origin) / this.span_to_px[0] -
+      this.view.trace_view.x / this.span_to_px[0];
+
+    return this.span_matrix;
+  }
+
+  transformXFromTimestamp(timestamp: number): number {
+    return (
+      (timestamp - this.view.to_origin - this.view.trace_view.x) / this.span_to_px[0]
+    );
   }
 
   enqueueOnScrollEndOutOfBoundsCheck() {
@@ -969,17 +929,17 @@ export class VirtualizedViewManager {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
         translation + innerMostNode.depth * this.row_depth_padding >
-        this.columns.list.width * this.container_physical_space.width
+        this.columns.list.width * this.view.trace_container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       }
     }
   }
 
-  isOutsideOfViewOnKeyDown(node: TraceTreeNode<any>): boolean {
+  isOutsideOfView(node: TraceTreeNode<any>): boolean {
     const width = this.row_measurer.cache.get(node);
+
     if (width === undefined) {
-      // this is unlikely to happen, but we should trigger a sync measure event if it does
       return false;
     }
 
@@ -988,7 +948,7 @@ export class VirtualizedViewManager {
     return (
       translation + node.depth * this.row_depth_padding < 0 ||
       translation + node.depth * this.row_depth_padding >
-        (this.columns.list.width * this.container_physical_space.width) / 2
+        (this.columns.list.width * this.view.trace_container_physical_space.width) / 2
     );
   }
 
@@ -1006,12 +966,9 @@ export class VirtualizedViewManager {
   }
 
   animateScrollColumnTo(x: number, duration: number) {
-    const start = performance.now();
-
-    const startPosition = this.columns.list.translate[0];
-    const distance = x - startPosition;
-
     if (duration === 0) {
+      this.columns.list.translate[0] = x;
+
       const rows = Array.from(
         document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
       ) as HTMLElement[];
@@ -1020,13 +977,16 @@ export class VirtualizedViewManager {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
       }
 
-      this.columns.list.translate[0] = x;
       if (this.horizontal_scrollbar_container) {
         this.horizontal_scrollbar_container.scrollLeft = -x;
       }
       dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
       return;
     }
+
+    const start = performance.now();
+    const startPosition = this.columns.list.translate[0];
+    const distance = x - startPosition;
 
     const animate = (now: number) => {
       const elapsed = now - start;
@@ -1079,22 +1039,15 @@ export class VirtualizedViewManager {
         throw new Error('ResizeObserver entry is undefined');
       }
 
-      this.initializePhysicalSpace(entry.contentRect.width, entry.contentRect.height);
-      this.draw();
+      this.scheduler.dispatch('set container physical space', [
+        0,
+        0,
+        entry.contentRect.width,
+        entry.contentRect.height,
+      ]);
     });
 
     this.resize_observer.observe(container);
-  }
-
-  recomputeSpanToPxMatrix() {
-    const traceViewToSpace = this.trace_space.between(this.trace_view);
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
-
-    this.span_to_px = mat3.multiply(
-      this.span_to_px,
-      traceViewToSpace,
-      tracePhysicalToView
-    );
   }
 
   computeRelativeLeftPositionFromOrigin(
@@ -1105,7 +1058,7 @@ export class VirtualizedViewManager {
   }
 
   recomputeTimelineIntervals() {
-    if (this.trace_view.width === 0) {
+    if (this.view.trace_view.width === 0) {
       this.intervals[0] = 0;
       this.intervals[1] = 0;
       for (let i = 2; i < this.intervals.length; i++) {
@@ -1113,29 +1066,15 @@ export class VirtualizedViewManager {
       }
       return;
     }
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
+    const tracePhysicalToView = this.view.trace_physical_space.between(
+      this.view.trace_view
+    );
     const time_at_100 =
-      tracePhysicalToView[0] * (100 * window.devicePixelRatio) +
+      tracePhysicalToView[0] * (110 * window.devicePixelRatio) +
       tracePhysicalToView[6] -
-      this.trace_view.x;
+      this.view.trace_view.x;
 
-    computeTimelineIntervals(this.trace_view, time_at_100, this.intervals);
-  }
-
-  readonly span_matrix: [number, number, number, number, number, number] = [
-    1, 0, 0, 1, 0, 0,
-  ];
-
-  computeSpanCSSMatrixTransform(
-    space: [number, number]
-  ): [number, number, number, number, number, number] {
-    const scale = space[1] / this.trace_view.width;
-    this.span_matrix[0] = Math.max(scale, this.span_to_px[0] / this.trace_view.width);
-    this.span_matrix[4] =
-      (space[0] - this.to_origin) / this.span_to_px[0] -
-      this.trace_view.x / this.span_to_px[0];
-
-    return this.span_matrix;
+    computeTimelineIntervals(this.view, time_at_100, this.intervals);
   }
 
   scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
@@ -1145,116 +1084,85 @@ export class VirtualizedViewManager {
     this.list.scrollToRow(index, anchor);
   }
 
-  computeTransformXFromTimestamp(timestamp: number): number {
-    return (timestamp - this.to_origin - this.trace_view.x) / this.span_to_px[0];
-  }
-
   computeSpanTextPlacement(
     node: TraceTreeNode<TraceTree.NodeValue>,
     span_space: [number, number],
     text: string
   ): [number, number] {
-    const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
-    const width = this.text_measurer.measure(text);
-
-    const has_profiles = node && node.profiles.length > 0;
-    const has_error_icons =
-      node &&
-      (node.profiles.length > 0 ||
-        node.errors.size > 0 ||
-        node.performance_issues.size > 0);
-
-    const has_icons = has_profiles || has_error_icons;
-
-    const node_width = span_space[1] / this.span_to_px[0];
     const TEXT_PADDING = 2;
-    // This is inaccurate in the case of left anchored text. In order to determine a true overlap, we would need to compute
-    // the distance between the min timestamp of an icon and beginning of the span. Once we determine the distance, we can compute
-    // the width and see if there is an actual overlap. Since this is a rare case which only happens in the case where we anchor the text
-    // to the left (20% of the time) and the node may have many errors, this could be computationally expensive to do on every frame.
-    // We'll live with the inaccuracy for now as it is purely visual and just make sure to handle a single error case as it will be easy
-    // to determine if there is an overlap.
-    const TEXT_PADDING_LEFT = text_left && has_icons ? 10 : TEXT_PADDING;
 
-    const TEXT_PADDING_RIGHT =
-      !text_left && has_icons
-        ? node_width < 10
-          ? // If the node is too small, we need to make sure the text is anchored to the right edge of the icon.
-            // We take the distance from the right edge of the node to the right edge of the icon and subtract it from
-            // the base width (10) and the base padding when (expanded) to get the correct padding. If we take only 10px
-            // as our padding, the text can be anchored directly to the right edge of our icon - we want to preserve
-            // a min padding of 2px.
-            12 - node_width
-          : TEXT_PADDING
-        : TEXT_PADDING;
+    const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
+    const text_anchor_left =
+      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.8;
+    const text_width = this.text_measurer.measure(text);
+
+    const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
+    const text_left = Math.min(span_space[0], timestamps[0]);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
 
     // precompute all anchor points aot, so we make the control flow more readable.
-    // this wastes some cycles, but it's not a big deal as computers go brrrr when it comes to simple arithmetic.
     /// |---| text
-    const right_outside =
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) +
-      TEXT_PADDING_RIGHT;
+    const right_outside = this.transformXFromTimestamp(text_right) + TEXT_PADDING;
+    // |---text|
+    const right_inside =
+      this.transformXFromTimestamp(span_space[0] + span_space[1]) -
+      text_width -
+      TEXT_PADDING;
+    // |text---|
+    const left_inside = this.transformXFromTimestamp(span_space[0]) + TEXT_PADDING;
     /// text |---|
     const left_outside =
-      this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING_LEFT - width;
-
-    // |   text|
-    const right_inside =
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
-      width -
-      TEXT_PADDING;
-    // |text   |
-    const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
-      this.computeTransformXFromTimestamp(
-        this.to_origin + this.trace_view.left + this.trace_view.width
+      this.transformXFromTimestamp(
+        this.view.to_origin + this.view.trace_view.left + this.view.trace_view.width
       ) -
-      width -
+      text_width -
       TEXT_PADDING;
     const window_left =
-      this.computeTransformXFromTimestamp(this.to_origin + this.trace_view.left) +
+      this.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +
       TEXT_PADDING;
 
-    const view_left = this.trace_view.x;
-    const view_right = view_left + this.trace_view.width;
+    const view_left = this.view.trace_view.x;
+    const view_right = view_left + this.view.trace_view.width;
 
-    const span_left = span_space[0] - this.to_origin;
+    const span_left = span_space[0] - this.view.to_origin;
     const span_right = span_left + span_space[1];
 
     const space_right = view_right - span_right;
     const space_left = span_left - view_left;
 
     // Span is completely outside of the view on the left side
-    if (span_right < this.trace_view.x) {
-      return text_left ? [1, right_inside] : [0, right_outside];
+    if (span_right < this.view.trace_view.x) {
+      return text_anchor_left ? [1, right_inside] : [0, right_outside];
     }
 
     // Span is completely outside of the view on the right side
-    if (span_left > this.trace_view.right) {
-      return text_left ? [0, left_outside] : [1, left_inside];
+    if (span_left > this.view.trace_view.right) {
+      return text_anchor_left ? [0, left_outside] : [1, left_inside];
     }
 
     // Span "spans" the entire view
-    if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      return text_left ? [1, window_left] : [1, window_right];
+    if (span_left <= this.view.trace_view.x && span_right >= this.view.trace_view.right) {
+      return text_anchor_left ? [1, window_left] : [1, window_right];
     }
 
     const full_span_px_width = span_space[1] / this.span_to_px[0];
 
-    if (text_left) {
+    if (text_anchor_left) {
       // While we have space on the left, place the text there
       if (space_left > 0) {
         return [0, left_outside];
       }
 
-      const distance = span_right - this.trace_view.left;
+      const distance = span_right - this.view.trace_view.left;
       const visible_width = distance / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= width) {
+      if (visible_width - TEXT_PADDING >= text_width) {
         return [1, window_left];
       }
 
@@ -1275,23 +1183,26 @@ export class VirtualizedViewManager {
         // of the view would have been to compute the scaling matrix for a non zoomed view at 0,0
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
-        span_right > this.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < width
+        span_right > this.view.trace_space.right * 0.9 &&
+        space_right / this.span_to_px[0] < text_width
       ) {
-        return [1, right_inside];
+        if (full_span_px_width > text_width) {
+          return [1, right_inside];
+        }
+        return [0, left_outside];
       }
       return [0, right_outside];
     }
 
     // If text fits inside the span
-    if (full_span_px_width > width) {
-      const distance = span_right - this.trace_view.right;
+    if (full_span_px_width > text_width) {
+      const distance = span_right - this.view.trace_view.right;
       const visible_width =
         (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= width) {
+      if (visible_width - TEXT_PADDING >= text_width) {
         return [1, window_right];
       }
 
@@ -1305,6 +1216,9 @@ export class VirtualizedViewManager {
 
   last_indicator_width = 0;
   draw(options: {list?: number; span_list?: number} = {}) {
+    this.recomputeTimelineIntervals();
+    this.recomputeSpanToPXMatrix();
+
     const list_width = options.list ?? this.columns.list.width;
     const span_list_width = options.span_list ?? this.columns.span_list.width;
 
@@ -1324,9 +1238,10 @@ export class VirtualizedViewManager {
       }
 
       const outside_left =
-        span.space[0] - this.to_origin + span.space[1] < this.trace_view.x - error_margin;
+        span.space[0] - this.view.to_origin + span.space[1] <
+        this.view.trace_view.x - error_margin;
       const outside_right =
-        span.space[0] - this.to_origin - error_margin > this.trace_view.right;
+        span.space[0] - this.view.to_origin - error_margin > this.view.trace_view.right;
 
       if (outside_left || outside_right) {
         this.hideSpanBar(this.span_bars[i], this.span_text[i]);
@@ -1351,7 +1266,7 @@ export class VirtualizedViewManager {
         continue;
       }
 
-      if (indicator.indicator.start < this.to_origin + this.trace_view.left) {
+      if (indicator.indicator.start < this.view.to_origin + this.view.trace_view.left) {
         start_indicator++;
         continue;
       }
@@ -1365,7 +1280,10 @@ export class VirtualizedViewManager {
         end_indicator--;
         continue;
       }
-      if (last_indicator.indicator.start > this.to_origin + this.trace_view.right) {
+      if (
+        last_indicator.indicator.start >
+        this.view.to_origin + this.view.trace_view.right
+      ) {
         end_indicator--;
         continue;
       }
@@ -1386,10 +1304,10 @@ export class VirtualizedViewManager {
         continue;
       }
 
-      const transform = this.computeTransformXFromTimestamp(entry.indicator.start);
+      const transform = this.transformXFromTimestamp(entry.indicator.start);
       const label = entry.ref.children[0] as HTMLElement | undefined;
 
-      const indicator_max = this.trace_physical_space.width + 1;
+      const indicator_max = this.view.trace_physical_space.width + 1;
       const indicator_min = -1;
 
       const label_width = this.indicator_label_measurer.cache.get(entry.indicator);
@@ -1416,9 +1334,9 @@ export class VirtualizedViewManager {
           if (space_left < 0) {
             const left = -label_width / 2 + Math.abs(space_left);
             label.style.transform = `translateX(${left - 1}px)`;
-          } else if (space_right > this.trace_physical_space.width) {
+          } else if (space_right > this.view.trace_physical_space.width) {
             const right =
-              -label_width / 2 - (space_right - this.trace_physical_space.width) - 1;
+              -label_width / 2 - (space_right - this.view.trace_physical_space.width) - 1;
             label.style.transform = `translateX(${right}px)`;
           } else {
             label.style.transform = `translateX(${-label_width / 2}px)`;
@@ -1430,7 +1348,6 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
-    this.updateIndicatorContainerOffset();
     this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
@@ -1510,22 +1427,9 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const placement = this.computeTransformXFromTimestamp(indicator.timestamp);
+    const placement = this.transformXFromTimestamp(indicator.timestamp);
     indicator.ref.style.opacity = '1';
     indicator.ref.style.transform = `translateX(${placement}px)`;
-  }
-
-  updateIndicatorContainerOffset() {
-    if (!this.indicator_container) {
-      return;
-    }
-
-    const correction =
-      (this.scrollbar_width / this.container_physical_space.width) *
-      this.columns.span_list.width;
-    this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
-    this.indicator_container.style.width =
-      (this.columns.span_list.width - correction) * 100 + '%';
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
@@ -1539,7 +1443,7 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const placement = this.computeTransformXFromTimestamp(this.to_origin + interval);
+    const placement = this.transformXFromTimestamp(this.view.to_origin + interval);
 
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
@@ -1584,7 +1488,7 @@ export class VirtualizedViewManager {
       // 43 px offset is the width of a 0.00ms label, since we usually anchor the label to the right
       // side of the indicator, we need to offset it by the width of the label to make it look like
       // it is at the end of the timeline
-      last.style.transform = `translateX(${this.trace_physical_space.width - 43}px)`;
+      last.style.transform = `translateX(${this.view.trace_physical_space.width - 43}px)`;
       const firstLabel = first.children[0] as HTMLElement | undefined;
       if (firstLabel) {
         firstLabel.textContent = '0.00ms';
@@ -1623,9 +1527,9 @@ export class VirtualizedViewManager {
 
     if (this.indicator_container) {
       const correction =
-        (this.scrollbar_width / this.container_physical_space.width) *
+        (this.scrollbar_width / this.view.trace_container_physical_space.width) *
         options.span_list_width;
-      this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
+      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
       const new_indicator_container_width = options.span_list_width - correction;
 
       if (this.last_indicator_width !== new_indicator_container_width) {
@@ -1637,7 +1541,7 @@ export class VirtualizedViewManager {
     const dividerPosition =
       Math.round(
         (options.list_width *
-          (this.container_physical_space.width - this.scrollbar_width) -
+          (this.view.trace_container_physical_space.width - this.scrollbar_width) -
           DIVIDER_WIDTH / 2 -
           1) *
           10
@@ -1645,7 +1549,7 @@ export class VirtualizedViewManager {
 
     if (this.horizontal_scrollbar_container) {
       this.horizontal_scrollbar_container.style.width =
-        (dividerPosition / this.container_physical_space.width) * 100 + '%';
+        (dividerPosition / this.view.trace_container_physical_space.width) * 100 + '%';
     }
 
     if (this.divider) {
@@ -1653,9 +1557,9 @@ export class VirtualizedViewManager {
         ${dividerPosition}px, 0)`;
     }
   }
+
   last_list_column_width = 0;
   last_span_column_width = 0;
-
   drawInvisibleBars() {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];
@@ -1702,17 +1606,53 @@ export class VirtualizedViewManager {
   }
 }
 
-// Jest does not implement scroll updates, however since we have the
-// middleware to handle scroll updates, we can dispatch a scroll event ourselves
-function dispatchJestScrollUpdate(container: HTMLElement) {
-  if (!container) return;
-  if (process.env.NODE_ENV !== 'test') return;
-  // since we do not tightly control how browsers handle event dispatching, dispatch it async
-  window.requestAnimationFrame(() => {
-    container.dispatchEvent(new CustomEvent('scroll'));
-  });
+// Computes a min and max icon timestamp. This effectively extends or reduces the hitbox
+// of the span to include the icon. We need this because when the icon is close to the edge
+// it can extend it and cause overlaps with duration labels
+function getIconTimestamps(
+  node: TraceTreeNode<any>,
+  span_space: [number, number],
+  icon_width: number
+) {
+  let min_icon_timestamp = span_space[0];
+  let max_icon_timestamp = span_space[0] + span_space[1];
+
+  if (!node.errors.size && !node.performance_issues.size) {
+    return [min_icon_timestamp, max_icon_timestamp];
+  }
+
+  for (const issue of node.performance_issues) {
+    // Perf issues render icons at the start timestamp
+    if (typeof issue.start === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, issue.start * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, issue.start * 1e3 + icon_width);
+    }
+  }
+
+  for (const err of node.errors) {
+    if (typeof err.timestamp === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, err.timestamp * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, err.timestamp * 1e3 + icon_width);
+    }
+  }
+
+  min_icon_timestamp = clamp(
+    min_icon_timestamp,
+    span_space[0] - icon_width,
+    span_space[0] + span_space[1] + icon_width
+  );
+  max_icon_timestamp = clamp(
+    max_icon_timestamp,
+    span_space[0] - icon_width,
+    span_space[0] + span_space[1] + icon_width
+  );
+
+  return [min_icon_timestamp, max_icon_timestamp];
 }
 
+/**
+ * Finds timeline intervals based off the current zoom level.
+ */
 function computeTimelineIntervals(
   view: TraceView,
   targetInterval: number,
@@ -1727,12 +1667,12 @@ function computeTimelineIntervals(
     interval *= 2;
   }
 
-  let x = Math.ceil(view.x / interval) * interval;
+  let x = Math.ceil(view.trace_view.x / interval) * interval;
   let idx = -1;
   if (x > 0) {
     x -= interval;
   }
-  while (x <= view.right) {
+  while (x <= view.trace_view.right) {
     results[++idx] = x;
     x += interval;
   }
@@ -1787,4 +1727,15 @@ export class VirtualizedList {
     this.container.scrollTop = position;
     dispatchJestScrollUpdate(this.container);
   }
+}
+
+// Jest does not implement scroll updates, however since we have the
+// middleware to handle scroll updates, we can dispatch a scroll event ourselves
+function dispatchJestScrollUpdate(container: HTMLElement) {
+  if (!container) return;
+  if (process.env.NODE_ENV !== 'test') return;
+  // since we do not tightly control how browsers handle event dispatching, dispatch it async
+  window.requestAnimationFrame(() => {
+    container.dispatchEvent(new CustomEvent('scroll'));
+  });
 }

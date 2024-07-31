@@ -7,9 +7,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.integrations.github.integration import build_repository_query
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.integrations.github.integration import GitHubIntegration, build_repository_query
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -40,13 +41,16 @@ class GithubSharedSearchEndpoint(IntegrationEndpoint):
             return Response({"detail": "query is a required parameter"}, status=400)
 
         installation = integration.get_installation(organization.id)
+        assert isinstance(
+            installation, (GitHubIntegration, GitHubEnterpriseIntegration)
+        ), installation
         if field == "externalIssue":
             repo = request.GET.get("repo")
             if repo is None:
                 return Response({"detail": "repo is a required parameter"}, status=400)
 
             try:
-                response = installation.search_issues(query=(f"repo:{repo} {query}").encode())
+                response = installation.search_issues(query=f"repo:{repo} {query}")
             except ApiError as err:
                 if err.code == 403:
                     return Response({"detail": "Rate limit exceeded"}, status=429)

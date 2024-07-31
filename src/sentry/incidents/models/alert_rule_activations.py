@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.releases.constants import DB_VERSION_LENGTH
 
 if TYPE_CHECKING:
@@ -94,15 +94,3 @@ class AlertRuleActivations(Model):
         NOTE: AlertRule attr's may change and may not be reliable indicators of incident trigger reasons
         """
         return self.alert_rule.alertruletrigger_set.get()
-
-    def get_window(self):
-        """
-        Window represents the monitor window
-
-        NOTE: AlertRule attr's may change and may not be a reliable indicator of window periods for past activations
-        """
-        return {
-            "start": self.date_added,
-            "expected_end": self.date_added + self.alert_rule.snuba_query.time_window,
-            "actual_end": self.finished_at,
-        }

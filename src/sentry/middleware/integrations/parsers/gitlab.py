@@ -8,13 +8,13 @@ import orjson
 from django.http.response import HttpResponseBase
 
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

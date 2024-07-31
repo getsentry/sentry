@@ -4,15 +4,15 @@ import pydantic
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import capture_exception, configure_scope
+from sentry_sdk import Scope, capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RpcSignatureAuthentication
 from sentry.api.base import Endpoint, all_silo_endpoint
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.rpc import RpcResolutionException, dispatch_to_local_service
-from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
+from sentry.auth.services.auth import AuthenticationContext
+from sentry.hybridcloud.rpc.service import RpcResolutionException, dispatch_to_local_service
+from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
 
 
@@ -34,8 +34,7 @@ class InternalRpcServiceEndpoint(Endpoint):
         return False
 
     def post(self, request: Request, service_name: str, method_name: str) -> Response:
-        with configure_scope() as scope:
-            scope.set_tag("rpc_method", f"{service_name}.{method_name}")
+        Scope.get_isolation_scope().set_tag("rpc_method", f"{service_name}.{method_name}")
         if not self._is_authorized(request):
             raise PermissionDenied
 

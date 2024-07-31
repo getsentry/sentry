@@ -108,7 +108,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             # Otherwise we can skip this and default to the "production" environment label.
             eids = list(filter(lambda eid: eid is not None, monitor_environment_map.values()))
             if eids:
-                environments = Environment.objects.filter(id__in=eids)
+                environments = list(Environment.objects.filter(id__in=eids))
                 environment_map = {env.id: env.name for env in environments}
 
         check_ins = MonitorCheckIn.objects.filter(

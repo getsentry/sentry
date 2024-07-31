@@ -8,7 +8,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.alert_rule_activations import (
     AlertRuleActivationsSerializer,
 )
-from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -41,9 +41,9 @@ class AlertRuleActivationsBase(APITestCase):
 
 class AlertRuleActivationsListEndpointTest(AlertRuleActivationsBase):
     def test_simple(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         activation = self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
         )
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id)
@@ -56,23 +56,23 @@ class AlertRuleActivationsListEndpointTest(AlertRuleActivationsBase):
         assert resp.status_code == 404
 
     def test_filter_by_start_end(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         now = timezone.now()
         yesterday = now - timedelta(days=1)
         last_week = now - timedelta(days=7)
         with freeze_time(last_week):
             old_activation = self.create_alert_rule_activation(
-                alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
             )
 
         with freeze_time(yesterday):
             yesterday_activation = self.create_alert_rule_activation(
-                alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
             )
 
         with freeze_time(now):
             new_activation = self.create_alert_rule_activation(
-                alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
             )
 
         # NOTE: order matters here. API orders by date_added

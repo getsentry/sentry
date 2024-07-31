@@ -29,6 +29,7 @@ class GroupCategory(Enum):
     CRON = 4
     REPLAY = 5
     FEEDBACK = 6
+    UPTIME = 7
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
@@ -579,6 +580,18 @@ class FeedbackGroup(GroupType):
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig(context=[])
+
+
+@dataclass(frozen=True)
+class UptimeDomainCheckFailure(GroupType):
+    type_id = 7001
+    slug = "uptime_domain_failure"
+    description = "Uptime Domain Monitor Failure"
+    category = GroupCategory.UPTIME.value
+    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
 
 
 def should_create_group(

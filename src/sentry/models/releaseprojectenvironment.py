@@ -15,7 +15,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -56,7 +56,9 @@ class ReleaseProjectEnvironmentManager(BaseManager["ReleaseProjectEnvironment"])
             activator=activator,
         )
 
-    def post_save(self, instance, created, **kwargs):
+    def post_save(
+        self, *, instance: ReleaseProjectEnvironment, created: bool, **kwargs: object
+    ) -> None:
         if created:
             release = instance.release
             project = instance.project

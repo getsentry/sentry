@@ -68,6 +68,14 @@ class RecentSearchesListTest(APITestCase):
             last_seen=timezone.now(),
             date_added=timezone.now(),
         )
+        span_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.SPAN.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
@@ -98,11 +106,12 @@ class RecentSearchesListTest(APITestCase):
         self.check_results([event_recent_search], search_type=SearchType.EVENT)
         self.check_results([session_recent_search], search_type=SearchType.SESSION)
         self.check_results([metric_recent_search], search_type=SearchType.METRIC)
+        self.check_results([span_recent_search], search_type=SearchType.SPAN)
 
     def test_param_validation(self):
         self.login_as(user=self.user)
         error_cases: list[tuple[dict[str, Any], str]] = [
-            ({"type": 5}, "Invalid input for `type`"),
+            ({"type": 1000}, "Invalid input for `type`"),
             ({"type": "hi"}, "Invalid input for `type`"),
             ({"limit": "hi"}, "Invalid input for `limit`"),
         ]

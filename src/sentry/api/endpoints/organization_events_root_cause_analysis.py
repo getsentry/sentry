@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
 from sentry.api.utils import handle_query_errors
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import parse_datetime_string
 from sentry.snuba.dataset import Dataset
@@ -32,9 +32,11 @@ RESPONSE_KEYS = [
 ]
 
 
-def init_query_builder(params, transaction, regression_breakpoint, limit, span_score_threshold):
-    before_minutes = int((regression_breakpoint - params["start"]).total_seconds() // 60)
-    after_minutes = int((params["end"] - regression_breakpoint).total_seconds() // 60)
+def init_query_builder(
+    snuba_params, transaction, regression_breakpoint, limit, span_score_threshold
+):
+    before_minutes = int((regression_breakpoint - snuba_params.start).total_seconds() // 60)
+    after_minutes = int((snuba_params.end - regression_breakpoint).total_seconds() // 60)
 
     selected_columns = [
         "percentileArray(spans_exclusive_time, 0.95) as p95_self_time",
@@ -44,9 +46,10 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
         "any(id) as sample_event_id",
     ]
 
-    builder = QueryBuilder(
+    builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         selected_columns=selected_columns,
         equations=[],
         query=f'event.type:transaction transaction:"{transaction}"',
@@ -137,10 +140,10 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
     return builder
 
 
-def query_spans(transaction, regression_breakpoint, params, limit, span_score_threshold):
+def query_spans(transaction, regression_breakpoint, snuba_params, limit, span_score_threshold):
     snuba_results = raw_snql_query(
         init_query_builder(
-            params, transaction, regression_breakpoint, limit, span_score_threshold
+            snuba_params, transaction, regression_breakpoint, limit, span_score_threshold
         ).get_snql_query(),
         BASE_REFERRER,
     )
@@ -148,12 +151,12 @@ def query_spans(transaction, regression_breakpoint, params, limit, span_score_th
 
 
 def fetch_span_analysis_results(
-    transaction_name, regression_breakpoint, params, project_id, limit, span_score_threshold
+    transaction_name, regression_breakpoint, snuba_params, project_id, limit, span_score_threshold
 ):
     span_data = query_spans(
         transaction=transaction_name,
         regression_breakpoint=regression_breakpoint,
-        params=params,
+        snuba_params=snuba_params,
         limit=limit,
         span_score_threshold=span_score_threshold,
     )
@@ -190,14 +193,15 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         regression_breakpoint = parse_datetime_string(regression_breakpoint)
 
-        params = self.get_snuba_params(request, organization)
+        snuba_params, _ = self.get_snuba_dataclass(request, organization)
 
         with handle_query_errors():
             transaction_count_query = metrics_query(
                 ["count()"],
                 f'event.type:transaction transaction:"{transaction_name}"',
-                params,
+                params={},
                 referrer=BASE_REFERRER,
+                snuba_params=snuba_params,
             )
 
         if transaction_count_query["data"][0]["count"] == 0:
@@ -206,7 +210,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         results = fetch_span_analysis_results(
             transaction_name,
             regression_breakpoint,
-            params,
+            snuba_params,
             project_id,
             limit,
             span_score_threshold,

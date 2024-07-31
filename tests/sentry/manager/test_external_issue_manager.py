@@ -1,5 +1,5 @@
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 

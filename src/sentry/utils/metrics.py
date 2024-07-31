@@ -1,6 +1,3 @@
-__all__ = ["timing", "incr"]
-
-
 import functools
 import logging
 import time
@@ -11,7 +8,9 @@ from random import random
 from threading import Thread
 from typing import Any, TypeVar
 
+import sentry_sdk
 from django.conf import settings
+from rest_framework.request import Request
 
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags
 from sentry.metrics.middleware import MiddlewareWrapper, add_global_tags, global_tags
@@ -28,6 +27,7 @@ __all__ = [
     "gauge",
     "backend",
     "MutableTags",
+    "ensure_crash_rate_in_bounds",
 ]
 
 
@@ -57,7 +57,7 @@ def _should_sample(sample_rate: float) -> bool:
     return sample_rate >= 1 or random() >= 1 - sample_rate
 
 
-def _sampled_value(value: int | float, sample_rate: float) -> int | float:
+def _sampled_value(value: int, sample_rate: float) -> int:
     if sample_rate < 1:
         value = int(value * (1.0 / sample_rate))
     return value
@@ -68,7 +68,7 @@ class InternalMetrics:
         self._started = False
 
     def _start(self) -> None:
-        q: Queue[tuple[str, str | None, Tags | None, float | int, float]]
+        q: Queue[tuple[str, str | None, Tags | None, int, float]]
         self.q = q = Queue()
 
         def worker() -> None:
@@ -259,3 +259,72 @@ def event(
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
+
+
+def ensure_crash_rate_in_bounds(
+    data: Any,
+    request: Request,
+    organization,
+    CRASH_RATE_METRIC_KEY: str,
+    lower_bound: float = 0.0,
+    upper_bound: float = 1.0,
+):
+    """
+    Ensures that crash rate metric will always have value in expected bounds, and
+    that invalid value is never returned to the customer by replacing all the invalid values with
+    the bound value.
+    Invalid crash rate can happen due to the corrupted data that is used to calculate the metric
+    (see: https://github.com/getsentry/sentry/issues/73172)
+
+    Example format of data argument:
+    {
+        ...
+        "groups" : [
+            ...
+            "series": {..., "session.crash_free_rate": [..., None, 0.35]},
+            "totals": {..., "session.crash_free_rate": 0.35}
+        ]
+    }
+    """
+    groups = data["groups"]
+    for group in groups:
+        if "series" in group:
+            series = group["series"]
+            if CRASH_RATE_METRIC_KEY in series:
+                for i, value in enumerate(series[CRASH_RATE_METRIC_KEY]):
+                    try:
+                        value = float(value)
+                        if value < lower_bound or value > upper_bound:
+                            with sentry_sdk.isolation_scope() as scope:
+                                scope.set_tag("organization", organization.id)
+                                scope.set_extra(f"{CRASH_RATE_METRIC_KEY} value in series", value)
+                                scope.set_extra("request_query_params", request.query_params)
+                                sentry_sdk.capture_message(
+                                    f"{CRASH_RATE_METRIC_KEY} not in (f{lower_bound}, f{upper_bound})"
+                                )
+                            if value < lower_bound:
+                                series[CRASH_RATE_METRIC_KEY][i] = lower_bound
+                            else:
+                                series[CRASH_RATE_METRIC_KEY][i] = upper_bound
+                    except TypeError:
+                        # value is not a number
+                        continue
+
+        if "totals" in group:
+            totals = group["totals"]
+            if CRASH_RATE_METRIC_KEY not in totals or totals[CRASH_RATE_METRIC_KEY] is None:
+                # no action is needed
+                continue
+            value = totals[CRASH_RATE_METRIC_KEY]
+            if value < lower_bound or value > upper_bound:
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("organization", organization.id)
+                    scope.set_extra(f"{CRASH_RATE_METRIC_KEY} value", totals[CRASH_RATE_METRIC_KEY])
+                    scope.set_extra("request_query_params", request.query_params)
+                    sentry_sdk.capture_message(
+                        f"{CRASH_RATE_METRIC_KEY} not in (f{lower_bound}, f{upper_bound})"
+                    )
+                if value < lower_bound:
+                    totals[CRASH_RATE_METRIC_KEY] = lower_bound
+                else:
+                    totals[CRASH_RATE_METRIC_KEY] = upper_bound

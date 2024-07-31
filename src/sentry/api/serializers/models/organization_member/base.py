@@ -4,11 +4,11 @@ from typing import Any
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 from .response import OrganizationMemberResponse
 from .utils import get_organization_id
@@ -50,7 +50,7 @@ class OrganizationMemberSerializer(Serializer):
             }
         )
         inviters_by_id: Mapping[int, RpcUser] = {
-            u.id: u for u in user_service.get_many(filter={"user_ids": inviters_set})
+            u.id: u for u in user_service.get_many_by_id(ids=inviters_set)
         }
 
         external_users_map = defaultdict(list)
@@ -71,7 +71,10 @@ class OrganizationMemberSerializer(Serializer):
         for item in item_list:
             user_dct = users_by_id.get(str(item.user_id), None)
             user_id = user_dct["id"] if user_dct else ""
-            inviter = inviters_by_id.get(item.inviter_id, None)
+            if item.inviter_id is not None:
+                inviter = inviters_by_id.get(item.inviter_id, None)
+            else:
+                inviter = None
             external_users = external_users_map.get(user_id, [])
             attrs[item] = {
                 "user": user_dct,
@@ -96,8 +99,6 @@ class OrganizationMemberSerializer(Serializer):
             "email": email,
             "name": user["name"] if user else email,
             "user": attrs["user"],
-            "role": obj.role,  # Deprecated, use orgRole instead
-            "roleName": roles.get(obj.role).name,  # Deprecated
             "orgRole": obj.role,
             "pending": obj.is_pending,
             "expired": obj.token_expired,
@@ -112,6 +113,8 @@ class OrganizationMemberSerializer(Serializer):
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
+            "role": obj.role,  # Deprecated, use orgRole instead
+            "roleName": roles.get(obj.role).name,  # Deprecated
         }
 
         if "externalUsers" in self.expand:

@@ -4,12 +4,17 @@ import * as echarts from 'echarts/core';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
+import {EquationInput} from 'sentry/components/metrics/equationInput';
+import {EquationSymbol} from 'sentry/components/metrics/equationSymbol';
+import {QueryBuilder} from 'sentry/components/metrics/queryBuilder';
+import {getQuerySymbol, QuerySymbol} from 'sentry/components/metrics/querySymbol';
 import SwitchButton from 'sentry/components/switchButton';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {
   isMetricsQueryWidget,
   MetricExpressionType,
@@ -22,12 +27,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {METRIC_CHART_GROUP} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
-import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/metrics/metricFormulaContextMenu';
 import {MetricQueryContextMenu} from 'sentry/views/metrics/metricQueryContextMenu';
-import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
-import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 
 export function Queries() {
@@ -46,6 +47,7 @@ export function Queries() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const formulaDependencies = useFormulaDependencies();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -73,13 +75,13 @@ export function Queries() {
   const querySymbols = useMemo(() => {
     const querySymbolSet = new Set<string>();
     for (const widget of widgets) {
-      const symbol = getQuerySymbol(widget.id);
+      const symbol = getQuerySymbol(widget.id, metricsNewInputs);
       if (isMetricsQueryWidget(widget)) {
         querySymbolSet.add(symbol);
       }
     }
     return querySymbolSet;
-  }, [widgets]);
+  }, [widgets, metricsNewInputs]);
 
   const visibleWidgets = widgets.filter(widget => !widget.isHidden);
 
@@ -113,6 +115,7 @@ export function Queries() {
                 isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
                 formulaDependencies={formulaDependencies}
+                metricsNewInputs={metricsNewInputs}
               />
             )}
           </Row>
@@ -173,11 +176,12 @@ function Query({
   const metricsQuery = useMemo(
     () => ({
       mri: widget.mri,
-      op: widget.op,
+      aggregation: widget.aggregation,
+      condition: widget.condition,
       groupBy: widget.groupBy,
       query: widget.query,
     }),
-    [widget.groupBy, widget.mri, widget.op, widget.query]
+    [widget.mri, widget.aggregation, widget.condition, widget.groupBy, widget.query]
   );
 
   const handleToggle = useCallback(() => {
@@ -217,7 +221,8 @@ function Query({
         metricsQuery={{
           mri: widget.mri,
           query: widget.query,
-          op: widget.op,
+          aggregation: widget.aggregation,
+          condition: widget.condition,
           groupBy: widget.groupBy,
         }}
       />
@@ -231,6 +236,7 @@ interface FormulaProps {
   formulaDependencies: ReturnType<typeof useFormulaDependencies>;
   index: number;
   isSelected: boolean;
+  metricsNewInputs: boolean;
   onChange: (index: number, data: Partial<MetricsWidget>) => void;
   onToggleVisibility: (index: number) => void;
   showQuerySymbols: boolean;
@@ -247,6 +253,7 @@ function Formula({
   isSelected,
   showQuerySymbols,
   formulaDependencies,
+  metricsNewInputs,
 }: FormulaProps) {
   const handleToggle = useCallback(() => {
     onToggleVisibility(index);
@@ -277,6 +284,7 @@ function Formula({
         availableVariables={availableVariables}
         value={widget.formula}
         onChange={formula => handleChange({formula})}
+        metricsNewInputs={metricsNewInputs}
       />
       <MetricFormulaContextMenu
         widgetIndex={index}

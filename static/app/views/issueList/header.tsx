@@ -17,8 +17,8 @@ import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 import type {QueryCounts} from './utils';
@@ -88,7 +88,7 @@ function IssueListHeader({
   selectedProjectIds,
 }: IssueListHeaderProps) {
   const {projects} = useProjects();
-  const tabs = getTabs(organization);
+  const tabs = getTabs();
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);

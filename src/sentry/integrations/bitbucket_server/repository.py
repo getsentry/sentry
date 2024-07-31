@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 from django.core.cache import cache
 from django.urls import reverse
 
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri

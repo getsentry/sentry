@@ -309,7 +309,16 @@ function evaluateTokenForValue(token: ProcessedTokenResult, value: any): boolean
       return token.negated ? !result : result;
     }
     if (token.value.type === Token.VALUE_TEXT) {
-      return typeof value === 'string' && value.includes(token.value.value);
+      switch (typeof value) {
+        case 'string':
+          return token.negated
+            ? !value.includes(token.value.value)
+            : value.includes(token.value.value);
+        case 'boolean':
+          return token.negated ? !value : !!value;
+        default:
+          return false;
+      }
     }
     if (token.value.type === Token.VALUE_ISO_8601_DATE) {
       return (
@@ -475,6 +484,27 @@ function resolveValueFromKey(
       // If the value can be accessed directly, do so,
       // else check if the key is an entity key, sanitize it and try direct access again.
       // @TODO support deep nested keys with dot notation
+      if (
+        key === 'has' &&
+        token.type === Token.FILTER &&
+        token.value.type === Token.VALUE_TEXT
+      ) {
+        switch (token.value.text) {
+          case 'error':
+          case 'errors': {
+            return node.errors.size > 0;
+          }
+          case 'issue':
+          case 'issues':
+            return node.errors.size > 0 || node.performance_issues.size > 0;
+          case 'profile':
+          case 'profiles':
+            return node.profiles.length > 0;
+          default: {
+            break;
+          }
+        }
+      }
 
       // Check for direct key access.
       if (value[key] !== undefined) {

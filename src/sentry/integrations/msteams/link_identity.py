@@ -5,9 +5,9 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
+from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -15,10 +15,12 @@ from sentry.web.helpers import render_to_response
 
 from .card_builder.identity import build_linked_card
 from .client import MsTeamsClient
+from .constants import SALT
 
 
 def build_linking_url(integration, organization, teams_user_id, team_id, tenant_id):
     signed_params = sign(
+        salt=SALT,
         integration_id=integration.id,
         organization_id=organization.id,
         teams_user_id=teams_user_id,
@@ -36,7 +38,7 @@ class MsTeamsLinkIdentityView(BaseView):
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params) -> HttpResponse:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=SALT)
         except (SignatureExpired, BadSignature):
             return render_to_response(
                 "sentry/integrations/msteams/expired-link.html",

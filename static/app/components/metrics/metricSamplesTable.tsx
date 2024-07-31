@@ -15,6 +15,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -22,22 +23,24 @@ import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
-import type {MRI, ParsedMRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import {isVirtualMetric} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   type Field as SelectedField,
-  getSummaryValueForOp,
+  getSummaryValueForAggregation,
   type MetricsSamplesResults,
   type ResultField,
   type Summary,
   useMetricsSamples,
 } from 'sentry/utils/metrics/useMetricsSamples';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -45,7 +48,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {SelectionRange} from 'sentry/views/metrics/chart/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
@@ -67,10 +70,12 @@ const fields: SelectedField[] = [
 export type Field = (typeof fields)[number];
 
 interface MetricsSamplesTableProps {
+  aggregation?: MetricAggregation;
+  condition?: number;
   focusArea?: SelectionRange;
+  hasPerformance?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
-  op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
@@ -146,12 +151,23 @@ export function MetricSamplesTable({
   focusArea,
   mri,
   onRowHover,
-  op,
+  aggregation,
+  condition,
   query,
   setMetricsSamples,
   sortKey = 'sort',
+  hasPerformance = true,
 }: MetricsSamplesTableProps) {
   const location = useLocation();
+  const {resolveVirtualMRI} = useVirtualMetricsContext();
+
+  let resolvedMRI = mri;
+  let resolvedAggregation = aggregation;
+  if (mri && isVirtualMetric({mri}) && condition && aggregation) {
+    const resolved = resolveVirtualMRI(mri, condition, aggregation);
+    resolvedMRI = resolved.mri;
+    resolvedAggregation = resolved.aggregation;
+  }
 
   const enabled = defined(mri);
 
@@ -185,14 +201,14 @@ export function MetricSamplesTable({
     }
 
     if (OPTIONALLY_SORTABLE_COLUMNS.has(key as ResultField)) {
-      const column = getColumnForMRI(parsedMRI);
+      const column = getColumnForMRI(mri);
       if (column.key === key) {
         return {key, direction};
       }
     }
 
     return undefined;
-  }, [location.query, parsedMRI, sortKey]);
+  }, [location.query, mri, sortKey]);
 
   const sortQuery = useMemo(() => {
     if (!defined(currentSort)) {
@@ -208,8 +224,8 @@ export function MetricSamplesTable({
     datetime,
     max: focusArea?.max,
     min: focusArea?.min,
-    mri,
-    op,
+    mri: resolvedMRI,
+    aggregation: resolvedAggregation,
     query,
     referrer: 'api.organization.metrics-samples',
     enabled,
@@ -232,6 +248,21 @@ export function MetricSamplesTable({
   }, [result]);
 
   const emptyMessage = useMemo(() => {
+    if (!hasPerformance) {
+      return (
+        <PerformanceEmptyState withIcon={false}>
+          <p>{t('You need to set up performance monitoring to collect samples.')}</p>
+          <LinkButton
+            priority="primary"
+            external
+            href="https://docs.sentry.io/performance-monitoring/getting-started"
+          >
+            {t('Set Up Now')}
+          </LinkButton>
+        </PerformanceEmptyState>
+      );
+    }
+
     if (!defined(mri)) {
       return (
         <EmptyStateWarning>
@@ -241,7 +272,7 @@ export function MetricSamplesTable({
     }
 
     return null;
-  }, [mri]);
+  }, [mri, hasPerformance]);
 
   const _renderHeadCell = useMemo(() => {
     const generateSortLink = (key: string) => () => {
@@ -270,8 +301,8 @@ export function MetricSamplesTable({
   }, [currentSort, location]);
 
   const _renderBodyCell = useMemo(
-    () => renderBodyCell(op, parsedMRI?.unit),
-    [op, parsedMRI?.unit]
+    () => renderBodyCell(aggregation, parsedMRI?.unit),
+    [aggregation, parsedMRI?.unit]
   );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -317,13 +348,12 @@ export function MetricSamplesTable({
         isLoading={enabled && result.isLoading}
         error={enabled && result.isError && supportedMRI}
         data={result.data?.data ?? []}
-        columnOrder={getColumnOrder(parsedMRI)}
+        columnOrder={getColumnOrder(mri)}
         columnSortBy={[]}
         grid={{
           renderBodyCell: _renderBodyCell,
           renderHeadCell: _renderHeadCell,
         }}
-        location={location}
         emptyMessage={emptyMessage}
         minimumColWidth={60}
       />
@@ -331,20 +361,25 @@ export function MetricSamplesTable({
   );
 }
 
-function getColumnForMRI(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField> {
+function getColumnForMRI(mri?: MRI): GridColumnOrder<ResultField> {
+  const parsedMRI = parseMRI(mri);
   return parsedMRI?.useCase === 'spans' && parsedMRI?.name === 'span.self_time'
     ? {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'}
     : parsedMRI?.useCase === 'transactions' && parsedMRI?.name === 'transaction.duration'
       ? {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'}
-      : {key: 'summary', width: COL_WIDTH_UNDEFINED, name: parsedMRI?.name ?? 'Summary'};
+      : {
+          key: 'summary',
+          width: COL_WIDTH_UNDEFINED,
+          name: mri ? formatMRI(mri) : 'Summary',
+        };
 }
 
-function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
+function getColumnOrder(mri?: MRI): GridColumnOrder<ResultField>[] {
   const orders: (GridColumnOrder<ResultField> | undefined)[] = [
     {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
     {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Operation'},
-    getColumnForMRI(parsedMRI),
+    getColumnForMRI(mri),
     {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
     {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   ];
@@ -392,7 +427,7 @@ function renderHeadCell(
   };
 }
 
-function renderBodyCell(op?: string, unit?: string) {
+function renderBodyCell(aggregation?: MetricAggregation, unit?: string) {
   return function (
     col: GridColumnOrder<ResultField>,
     dataRow: MetricsSamplesResults<SelectedField>['data'][number]
@@ -426,7 +461,13 @@ function renderBodyCell(op?: string, unit?: string) {
     }
 
     if (col.key === 'summary') {
-      return <SummaryRenderer summary={dataRow.summary} op={op} unit={unit} />;
+      return (
+        <SummaryRenderer
+          summary={dataRow.summary}
+          aggregation={aggregation}
+          unit={unit}
+        />
+      );
     }
 
     if (col.key === 'timestamp') {
@@ -510,6 +551,7 @@ function SpanId({
         organization,
         spanId,
         transactionName: transaction,
+        source: TraceViewSources.METRICS,
       })
     : undefined;
 
@@ -620,17 +662,17 @@ function DurationRenderer({duration}: {duration: number}) {
 
 function SummaryRenderer({
   summary,
-  op,
+  aggregation,
   unit,
 }: {
   summary: Summary;
-  op?: string;
+  aggregation?: MetricAggregation;
   unit?: string;
 }) {
-  const value = getSummaryValueForOp(summary, op);
+  const value = getSummaryValueForAggregation(summary, aggregation);
 
   // if the op is `count`, then the unit does not apply
-  unit = op === 'count' ? '' : unit;
+  unit = aggregation === 'count' ? '' : unit;
 
   return (
     <NumberContainer>{formatMetricUsingUnit(value ?? null, unit ?? '')}</NumberContainer>
@@ -661,21 +703,25 @@ function TraceId({
   timestamp?: DateString;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const {selection} = usePageFilters();
   const stringOrNumberTimestamp =
     timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
 
-  const target = getTraceDetailsUrl(
+  const target = getTraceDetailsUrl({
     organization,
-    traceId,
-    {
+    traceSlug: traceId,
+    dateSelection: {
       start: selection.datetime.start,
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    stringOrNumberTimestamp,
-    eventId
-  );
+    timestamp: stringOrNumberTimestamp,
+    eventId,
+    location,
+    source: TraceViewSources.METRICS,
+  });
+
   return (
     <Container>
       <Link
@@ -767,4 +813,8 @@ const LegendDot = styled('div')<{color: string}>`
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const PerformanceEmptyState = styled(EmptyStateWarning)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

@@ -1,12 +1,15 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
-import {openCreateDashboardFromScratchpad} from 'sentry/actionCreators/modal';
+import {openCreateDashboardFromMetrics} from 'sentry/actionCreators/modal';
+import {isVirtualMetric} from 'sentry/utils/metrics';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import {
   isMetricsEquationWidget,
+  type MetricDisplayType,
   MetricExpressionType,
   type MetricsWidget,
 } from 'sentry/utils/metrics/types';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -19,8 +22,37 @@ export function useCreateDashboard(
   isMultiChartMode: boolean
 ) {
   const router = useRouter();
+  const {resolveVirtualMRI} = useVirtualMetricsContext();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  const convertWidget = useCallback(
+    (metricsQueries: MetricsWidget[], displayType: MetricDisplayType) => {
+      const resolvedwidgets = metricsQueries.map(widget => {
+        if (
+          isMetricsEquationWidget(widget) ||
+          !isVirtualMetric(widget) ||
+          !widget.condition
+        ) {
+          return widget;
+        }
+
+        const {mri, aggregation} = resolveVirtualMRI(
+          widget.mri,
+          widget.condition,
+          widget.aggregation
+        );
+        return {
+          ...widget,
+          mri,
+          aggregation,
+        };
+      });
+
+      return convertToDashboardWidget(resolvedwidgets, displayType);
+    },
+    [resolveVirtualMRI]
+  );
 
   const dashboardWidgets = useMemo(() => {
     if (!isMultiChartMode) {
@@ -49,13 +81,13 @@ export function useCreateDashboard(
         queryIdsInArray.add(widget.id);
         return [...acc, widget];
       }, []);
-      return [convertToDashboardWidget(widgetsWithDependencies, widgets[0].displayType)];
+      return [convertWidget(widgetsWithDependencies, widgets[0].displayType)];
     }
 
     return widgets
       .map(widget => {
         if (widget.type !== MetricExpressionType.EQUATION) {
-          return convertToDashboardWidget([widget], widget.displayType);
+          return convertWidget([widget], widget.displayType);
         }
 
         const {dependencies, isError} = formulaDependencies[widget.id];
@@ -63,13 +95,13 @@ export function useCreateDashboard(
         if (isError) {
           return null;
         }
-        return convertToDashboardWidget(
+        return convertWidget(
           [...dependencies.map(query => ({...query, isHidden: true})), widget],
           widget.displayType
         );
       })
       .filter((widget): widget is Widget => widget !== null);
-  }, [isMultiChartMode, widgets, formulaDependencies]);
+  }, [isMultiChartMode, widgets, convertWidget, formulaDependencies]);
 
   return useMemo(() => {
     return function () {
@@ -88,7 +120,7 @@ export function useCreateDashboard(
         dateCreated: '',
       };
 
-      openCreateDashboardFromScratchpad({newDashboard, router, organization});
+      openCreateDashboardFromMetrics({newDashboard, router, organization});
     };
   }, [selection, organization, router, dashboardWidgets]);
 }

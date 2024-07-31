@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
@@ -164,7 +164,6 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
       <GridEditable
         isLoading={false}
         data={spanOpDiffs}
-        location={location}
         columnOrder={[
           {key: 'span_op', name: t('Span Operation'), width: 200},
           {key: 'p95', name: t('p95'), width: COL_WIDTH_UNDEFINED},

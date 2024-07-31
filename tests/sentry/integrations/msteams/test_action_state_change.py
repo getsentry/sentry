@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from sentry.api.client import ApiClient
 from sentry.integrations.msteams.card_builder.identity import build_linking_card
+from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.activity import Activity, ActivityIntegration
@@ -148,6 +149,7 @@ class StatusActionTest(APITestCase):
         resp = self.post_webhook(user_id="s4ur0n", tenant_id="7h3_gr347")
         # assert sign is called with the right arguments
         assert sign.call_args.kwargs == {
+            "salt": SALT,
             "integration_id": self.integration.id,
             "organization_id": self.org.id,
             "teams_user_id": "s4ur0n",
@@ -216,7 +218,7 @@ class StatusActionTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
-        activity = Activity.objects.filter(group=self.group1).first()
+        activity = Activity.objects.get(group=self.group1)
         assert activity.data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
@@ -234,7 +236,7 @@ class StatusActionTest(APITestCase):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
-        activity = Activity.objects.filter(group=self.group1).first()
+        activity = Activity.objects.get(group=self.group1)
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,

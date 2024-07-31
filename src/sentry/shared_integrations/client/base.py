@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Literal, Self, Union, overload
+from typing import Any, Literal, Self, TypedDict, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -9,18 +9,12 @@ from requests import PreparedRequest, Request, Response
 from requests.adapters import RetryError
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from sentry import audit_log, features
-from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
-from sentry.integrations.notify_disable import notify_disable
+from sentry.integrations.base import is_response_error, is_response_success
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.net.http import SafeSession
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json, metrics
-from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
 from ..exceptions import (
@@ -35,6 +29,16 @@ from ..track_response import TrackResponseMixin
 
 # TODO(mgaeta): HACK Fix the line where _request() returns "{}".
 BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any], Response]
+
+
+class SessionSettings(TypedDict):
+    timeout: int
+    allow_redirects: bool
+    # the below are taken from session.merge_environment_settings
+    proxies: Any
+    stream: Any
+    verify: Any
+    cert: Any
 
 
 class BaseApiClient(TrackResponseMixin):
@@ -142,7 +146,7 @@ class BaseApiClient(TrackResponseMixin):
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
-        auth: tuple[str, str] | str | None = None,
+        auth: tuple[str, str] | None = None,
         json: bool = True,
         allow_text: bool | None = None,
         allow_redirects: bool | None = None,
@@ -179,7 +183,7 @@ class BaseApiClient(TrackResponseMixin):
         headers: Mapping[str, str] | None = None,
         data: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
-        auth: str | None = None,
+        auth: tuple[str, str] | str | None = None,
         json: bool = True,
         allow_text: bool | None = None,
         allow_redirects: bool | None = None,
@@ -208,9 +212,8 @@ class BaseApiClient(TrackResponseMixin):
             tags={str(self.integration_type): self.name},
         )
 
-        with sentry_sdk.configure_scope() as scope:
-            if self.integration_type:
-                scope.set_tag(self.integration_type, self.name)
+        if self.integration_type:
+            sentry_sdk.Scope.get_isolation_scope().set_tag(self.integration_type, self.name)
 
         request = Request(
             method=method.upper(),
@@ -238,15 +241,12 @@ class BaseApiClient(TrackResponseMixin):
                     verify=self.verify_ssl,
                     cert=None,
                 )
-                send_kwargs = {
+                session_settings: SessionSettings = {
                     "timeout": timeout,
                     "allow_redirects": allow_redirects,
                     **environment_settings,
                 }
-                resp: Response = session.send(
-                    finalized_request,
-                    **send_kwargs,
-                )
+                resp: Response = session.send(finalized_request, **session_settings)
                 if raw_response:
                     return resp
                 resp.raise_for_status()
@@ -335,7 +335,7 @@ class BaseApiClient(TrackResponseMixin):
             query = json.dumps(kwargs.get("params"))
 
         key = self.get_cache_key(path, query, data)
-        result: BaseApiResponseX | None = self.check_cache(key)
+        result = self.check_cache(key)
         if result is None:
             cache_time = kwargs.pop("cache_time", None) or self.cache_time
             result = self.request(method, path, *args, **kwargs)
@@ -401,7 +401,14 @@ class BaseApiClient(TrackResponseMixin):
             if is_response_error(response):
                 buffer.record_error()
         if buffer.is_integration_broken():
-            self.disable_integration(buffer)
+            # disable_integration(buffer, redis_key, self.integration_id)
+            self.logger.info(
+                "integration.should_disable",
+                extra={
+                    "integration_id": self.integration_id,
+                    "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
+                },
+            )
 
     def record_error(self, error: Exception):
         redis_key = self._get_redis_key()
@@ -413,64 +420,11 @@ class BaseApiClient(TrackResponseMixin):
         else:
             buffer.record_error()
         if buffer.is_integration_broken():
-            self.disable_integration(buffer)
-
-    def disable_integration(self, buffer: IntegrationRequestBuffer) -> None:
-        result = integration_service.organization_contexts(integration_id=self.integration_id)
-        rpc_integration = result.integration
-        rpc_org_integrations = result.organization_integrations
-        if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
-            return
-
-        org = None
-        if len(rpc_org_integrations) > 0:
-            org_context = organization_service.get_organization_by_id(
-                id=rpc_org_integrations[0].organization_id,
-                include_projects=False,
-                include_teams=False,
+            # disable_integration(buffer, redis_key, self.integration_id)
+            self.logger.info(
+                "integration.should_disable",
+                extra={
+                    "integration_id": self.integration_id,
+                    "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
+                },
             )
-            if org_context:
-                org = org_context.organization
-
-        extra = {
-            "integration_id": self.integration_id,
-            "buffer_record": buffer._get_all_from_buffer(),
-        }
-        if len(rpc_org_integrations) == 0 and rpc_integration is None:
-            extra["provider"] = "unknown"
-            extra["organization_id"] = "unknown"
-        elif len(rpc_org_integrations) == 0:
-            extra["provider"] = rpc_integration.provider
-            extra["organization_id"] = "unknown"
-        elif rpc_integration is None:
-            extra["provider"] = "unknown"
-            extra["organization_id"] = rpc_org_integrations[0].organization_id
-        else:
-            extra["provider"] = rpc_integration.provider
-            extra["organization_id"] = rpc_org_integrations[0].organization_id
-
-        self.logger.info(
-            "integration.disabled",
-            extra=extra,
-        )
-
-        if org and (
-            (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
-            or (rpc_integration.provider == "github")
-            or (
-                features.has("organizations:gitlab-disable-on-broken", org)
-                and rpc_integration.provider == "gitlab"
-            )
-        ):
-            integration_service.update_integration(
-                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
-            )
-            notify_disable(org, rpc_integration.provider, self._get_redis_key())
-            buffer.clear()
-            create_system_audit_entry(
-                organization_id=org.id,
-                target_object=org.id,
-                event=audit_log.get_event_id("INTEGRATION_DISABLED"),
-                data={"provider": rpc_integration.provider},
-            )
-        return

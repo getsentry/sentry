@@ -1,15 +1,15 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import type {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
 type Query = {
   sort?: string;
 };
 
 const SORTABLE_FIELDS = [
-  `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+  `sum(${SpanMetricsField.SPAN_DURATION})`,
   'spm()',
   `avg(${SpanMetricsField.SPAN_DURATION})`,
 ] as const;

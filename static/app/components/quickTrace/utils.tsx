@@ -3,9 +3,10 @@ import type {Location, LocationDescriptor} from 'history';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Event} from 'sentry/types/event';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
@@ -18,6 +19,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export function isQuickTraceEvent(
@@ -32,7 +34,7 @@ export type TransactionDestination = 'discover' | 'performance';
 
 export function generateIssueEventTarget(
   event: TraceError | TracePerformanceIssue,
-  organization: OrganizationSummary,
+  organization: Organization,
   referrer?: string
 ): LocationDescriptor {
   const queryParams = referrer ? '?referrer=' + referrer : '';
@@ -41,7 +43,7 @@ export function generateIssueEventTarget(
 
 function generateDiscoverEventTarget(
   event: EventLite | TraceError | TracePerformanceIssue,
-  organization: OrganizationSummary,
+  organization: Organization,
   location: Location,
   referrer?: string
 ): LocationDescriptor {
@@ -67,7 +69,7 @@ function generateDiscoverEventTarget(
 
 export function generateSingleErrorTarget(
   event: TraceError | TracePerformanceIssue,
-  organization: OrganizationSummary,
+  organization: Organization,
   location: Location,
   destination: ErrorDestination,
   referrer?: string
@@ -84,7 +86,7 @@ export function generateSingleErrorTarget(
 export function generateMultiTransactionsTarget(
   currentEvent: Event,
   events: EventLite[],
-  organization: OrganizationSummary,
+  organization: Organization,
   groupType: 'Ancestor' | 'Children' | 'Descendant'
 ): LocationDescriptor {
   const queryResults = new MutableSearch([]);
@@ -109,7 +111,11 @@ export function generateMultiTransactionsTarget(
     start,
     end,
   });
-  return traceEventView.getResultsViewUrlTarget(organization.slug);
+  return traceEventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+  );
 }
 
 const timestampsFieldCandidates = [
@@ -134,7 +140,9 @@ export function getEventTimestamp(event: Event): string | number | undefined {
 
 export function generateTraceTarget(
   event: Event,
-  organization: OrganizationSummary
+  organization: Organization,
+  location: Location,
+  source?: string
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
@@ -142,13 +150,15 @@ export function generateTraceTarget(
 
   if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?
-    return getTraceDetailsUrl(
+    return getTraceDetailsUrl({
       organization,
-      traceId,
+      traceSlug: traceId,
       dateSelection,
-      getEventTimestamp(event),
-      event.eventID
-    );
+      timestamp: getEventTimestamp(event),
+      eventId: event.eventID,
+      location,
+      source,
+    });
   }
 
   const eventView = EventView.fromSavedQuery({
@@ -163,5 +173,9 @@ export function generateTraceTarget(
     version: 2,
     ...dateSelection,
   });
-  return eventView.getResultsViewUrlTarget(organization.slug);
+  return eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+  );
 }

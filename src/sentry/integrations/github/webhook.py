@@ -22,7 +22,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
+from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.services.integration.model import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+)
+from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -31,21 +38,14 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
-from sentry.services.hybrid_cloud.identity.service import identity_service
-from sentry.services.hybrid_cloud.integration.model import (
-    RpcIntegration,
-    RpcOrganizationIntegration,
-)
-from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.services.hybrid_cloud.repository.service import repository_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
@@ -157,6 +157,7 @@ class Webhook:
                 repos = repos.all()
 
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
+                self.update_repo_data(repo, event)
                 self._handle(integration, event, orgs[repo.organization_id], repo)
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
@@ -180,11 +181,24 @@ class Webhook:
             or repo.config.get("name") != name_from_event
             or repo.url != url_from_event
         ):
-            repo.update(
-                name=name_from_event,
-                url=url_from_event,
-                config=dict(repo.config, name=name_from_event),
-            )
+            try:
+                repo.update(
+                    name=name_from_event,
+                    url=url_from_event,
+                    config=dict(repo.config, name=name_from_event),
+                )
+            except IntegrityError:
+                logger.exception(
+                    "github.webhook.update_repo_data.integrity_error",
+                    extra={
+                        "repo_id": repo.id,
+                        "new_name": name_from_event,
+                        "new_url": url_from_event,
+                        "old_name": repo.name,
+                        "old_url": repo.url,
+                    },
+                )
+                pass
 
 
 class InstallationEventWebhook:

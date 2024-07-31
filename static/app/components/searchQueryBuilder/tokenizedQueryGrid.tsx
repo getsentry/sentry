@@ -7,10 +7,14 @@ import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
-import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
-import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/paren';
-import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
+import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGrid';
+import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/hooks/useSelectOnDrag';
+import {useUndoStack} from 'sentry/components/searchQueryBuilder/hooks/useUndoStack';
+import {SelectionKeyHandler} from 'sentry/components/searchQueryBuilder/selectionKeyHandler';
+import {SearchQueryBuilderBoolean} from 'sentry/components/searchQueryBuilder/tokens/boolean';
+import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
+import {SearchQueryBuilderFreeText} from 'sentry/components/searchQueryBuilder/tokens/freeText';
+import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/tokens/paren';
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -30,6 +34,7 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 
   useLayoutEffect(() => {
     if (focusOverride && !focusOverride.part) {
+      state.selectionManager.setFocused(true);
       state.selectionManager.setFocusedKey(focusOverride.itemKey);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
@@ -38,13 +43,35 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const state = useListState<ParseResultToken>(props);
-  const {gridProps} = useQueryBuilderGrid(props, state, ref);
-
+  const selectionKeyHandlerRef = useRef<HTMLInputElement>(null);
+  const {size} = useSearchQueryBuilder();
+  const state = useListState<ParseResultToken>({
+    ...props,
+    selectionBehavior: 'replace',
+    onSelectionChange: selection => {
+      // When there is a selection, focus the SelectionKeyHandler which will
+      // handle keyboard events in this state.
+      if (selection === 'all' || selection.size > 0) {
+        state.selectionManager.setFocused(true);
+        state.selectionManager.setFocusedKey(null);
+        selectionKeyHandlerRef.current?.focus();
+      }
+    },
+  });
+  const {undo} = useUndoStack(state);
+  const {gridProps} = useQueryBuilderGrid({
+    props,
+    state,
+    ref,
+    selectionKeyHandlerRef,
+    undo,
+  });
   useApplyFocusOverride(state);
+  useSelectOnDrag(state);
 
   return (
-    <SearchQueryGridWrapper {...gridProps} ref={ref}>
+    <SearchQueryGridWrapper {...gridProps} ref={ref} size={size}>
+      <SelectionKeyHandler ref={selectionKeyHandlerRef} state={state} undo={undo} />
       {[...state.collection].map(item => {
         const token = item.value;
 
@@ -59,9 +86,8 @@ function Grid(props: GridProps) {
               />
             );
           case Token.FREE_TEXT:
-          case Token.SPACES:
             return (
-              <SearchQueryBuilderInput
+              <SearchQueryBuilderFreeText
                 key={item.key}
                 token={token}
                 item={item}
@@ -72,6 +98,15 @@ function Grid(props: GridProps) {
           case Token.R_PAREN:
             return (
               <SearchQueryBuilderParen
+                key={item.key}
+                token={token}
+                item={item}
+                state={state}
+              />
+            );
+          case Token.LOGIC_BOOLEAN:
+            return (
+              <SearchQueryBuilderBoolean
                 key={item.key}
                 token={token}
                 item={item}
@@ -96,7 +131,11 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
   }
 
   return (
-    <Grid aria-label={label ?? t('Create a search query')} items={parsedQuery}>
+    <Grid
+      aria-label={label ?? t('Create a search query')}
+      items={parsedQuery}
+      selectionMode="multiple"
+    >
       {item => (
         <Item key={makeTokenKey(item, parsedQuery)}>
           {item.text.trim() ? item.text : t('Space')}
@@ -106,10 +145,15 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
   );
 }
 
-const SearchQueryGridWrapper = styled('div')`
-  padding: ${space(0.75)} 48px ${space(0.75)} 32px;
+const SearchQueryGridWrapper = styled('div')<{size: 'small' | 'normal'}>`
+  padding: ${p =>
+    p.size === 'small' ? space(0.75) : `${space(0.75)} 34px ${space(0.75)} 32px`};
   display: flex;
   align-items: stretch;
   row-gap: ${space(0.5)};
   flex-wrap: wrap;
+
+  &:focus {
+    outline: none;
+  }
 `;

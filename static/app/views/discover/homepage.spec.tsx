@@ -34,7 +34,7 @@ describe('Discover > Homepage', () => {
       },
     });
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(initialData.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],
@@ -83,6 +83,7 @@ describe('Discover > Homepage', () => {
         orderby: '-environment',
         display: 'previous',
         query: 'event.type:error',
+        queryDataset: 'discover',
       },
     });
     measurementsMetaMock = MockApiClient.addMockResponse({
@@ -129,6 +130,7 @@ describe('Discover > Homepage', () => {
     expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
     screen.getByText('Previous Period');
     screen.getByText('event.type:error');
+    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
   });
 
   it('renders event view from URL params over homepage query', async () => {
@@ -506,5 +508,165 @@ describe('Discover > Homepage', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());
+  });
+
+  it('uses split decision for homepage query', async () => {
+    organization = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'performance-discover-dataset-selector',
+      ],
+    });
+    initialData = initializeOrg({
+      organization: organization,
+      router: {
+        location: LocationFixture(),
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          discoverSplitDecision: 'error-events',
+        },
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'homepage query',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['environment'],
+        widths: ['-1'],
+        range: '14d',
+        orderby: '-environment',
+        display: 'previous',
+        query: 'event.type:error',
+        topEvents: '5',
+        queryDataset: 'discover',
+      },
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {router: initialData.router, organization: initialData.organization}
+    );
+
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+    expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
+
+    await screen.findByText('environment');
+
+    expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
+    screen.getByText('event.type:error');
+    expect(screen.getByRole('button', {name: 'Dataset Errors'})).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('saves homepage with dataset selection', async () => {
+    organization = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'performance-discover-dataset-selector',
+      ],
+    });
+    initialData = initializeOrg({
+      organization: organization,
+      router: {
+        location: LocationFixture(),
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          discoverSplitDecision: 'error-events',
+        },
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'homepage query',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['environment'],
+        widths: ['-1'],
+        range: '14d',
+        orderby: '-environment',
+        display: 'previous',
+        query: 'event.type:error',
+        topEvents: '5',
+        queryDataset: 'discover',
+      },
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {router: initialData.router, organization: initialData.organization}
+    );
+
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+    expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Dataset'));
+    await userEvent.click(screen.getByRole('option', {name: 'Transactions'}));
+
+    expect(initialData.router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'transactions',
+          name: 'homepage query',
+          project: [],
+          query: 'event.type:error',
+          queryDataset: 'transaction-like',
+        }),
+      })
+    );
   });
 });

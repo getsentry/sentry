@@ -9,6 +9,7 @@ import sentry_sdk
 from django.utils.encoding import force_str
 
 from sentry import options
+from sentry.integrations.types import ExternalProviders
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -16,14 +17,13 @@ from sentry.notifications.notifications.base import BaseNotification, ProjectNot
 from sentry.notifications.notify import register_notification_provider
 from sentry.notifications.types import UnsubscribeContext
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_unsubscribe_link
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:

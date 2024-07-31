@@ -50,6 +50,7 @@ class UpdateOrgAuthTokenLastUsed(TestCase):
         assert outbox
         assert outbox.category == OutboxCategory.ORGAUTHTOKEN_UPDATE_USED
         assert outbox.object_identifier == token.id
+        assert outbox.payload is not None
         assert outbox.payload["organization_id"] == self.organization.id
         assert outbox.payload["org_auth_token_id"] == token.id
         assert "date_last_used" in outbox.payload

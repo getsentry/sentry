@@ -58,8 +58,9 @@ describe('metric details -> RelatedIssues', () => {
       },
     });
     // The links should contain the query parameters, our test environment isn't able to update it
-    expect(
-      screen.getByRole('link', {name: /Level: Warning RequestError fetchData/})
-    ).toHaveAttribute('href', expect.stringContaining('environment=test-env'));
+    expect(screen.getByRole('link', {name: /RequestError fetchData/})).toHaveAttribute(
+      'href',
+      expect.stringContaining('environment=test-env')
+    );
   });
 });

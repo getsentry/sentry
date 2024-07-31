@@ -32,6 +32,8 @@ describe('TraceLink', () => {
         title: 'Slow DB Query',
         id: 'abc',
         transaction: '/api/slow/',
+        culprit: 'foo',
+        'event.type': '',
       },
     ],
     meta: {fields: {}, units: {}},
@@ -39,7 +41,6 @@ describe('TraceLink', () => {
   const discoverBody: TraceEventResponse = {
     data: [
       {
-        message: 'This is the subtitle of the issue',
         timestamp: '2024-01-23T22:11:42+00:00',
         'issue.id': 4909507143,
         project: project.slug,
@@ -48,6 +49,9 @@ describe('TraceLink', () => {
         id: event.id,
         transaction: 'important.task',
         'event.type': 'error',
+        culprit: 'foo',
+        'stack.function': [''],
+        'error.value': ['foo', 'bar'],
       },
     ],
     meta: {fields: {}, units: {}},
@@ -73,7 +77,7 @@ describe('TraceLink', () => {
   });
 
   it('renders no trace available', async () => {
-    render(<TraceLink event={EventFixture({})} />, {organization});
+    render(<TraceLink event={EventFixture()} />, {organization});
     expect(await screen.findByText('No Trace Available')).toBeInTheDocument();
   });
 });

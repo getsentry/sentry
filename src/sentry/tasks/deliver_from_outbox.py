@@ -181,7 +181,7 @@ def process_outbox_batch(
             processed_count += 1
             shard_outbox.drain_shard(flush_all=True)
         except Exception as e:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 if isinstance(e, OutboxFlushError):
                     scope.set_tag("outbox.category", e.outbox.category)
                     scope.set_tag("outbox.shard_scope", e.outbox.shard_scope)

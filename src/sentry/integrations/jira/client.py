@@ -7,8 +7,8 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils import get_query_hash
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri

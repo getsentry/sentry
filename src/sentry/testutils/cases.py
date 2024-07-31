@@ -7,11 +7,12 @@ import os.path
 import random
 import re
 import time
+import uuid
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, Literal, Union
+from typing import Any, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -41,7 +42,15 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
+from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUSREASONTYPE_TIMEOUT,
+    REQUESTTYPE_HEAD,
+    CheckResult,
+)
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -107,6 +116,7 @@ from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
@@ -143,14 +153,13 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
-from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
+    DeprecatingMetricsQuery,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
@@ -676,7 +685,7 @@ class PerformanceIssueTestCase(BaseTestCase):
             return event
 
 
-class APITestCase(BaseTestCase, BaseAPITestCase):
+class APITestCaseMixin:
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -686,11 +695,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     The class must set the string `endpoint`.
     If your endpoint requires kwargs implement the `reverse_url` method.
     """
-
-    # We need Django to flush all databases.
-    databases: set[str] | str = "__all__"
-
-    method = "get"
 
     @property
     def endpoint(self):
@@ -843,6 +847,20 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
         ):
             yield
+
+
+class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
+
+
+class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -1494,6 +1512,7 @@ class BaseSpansTestCase(SnubaTestCase):
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
         op: str | None = None,
+        status: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1502,9 +1521,12 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
+            "organization_id": 1,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
+            "start_timestamp_precise": timestamp.timestamp(),
+            "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "exclusive_time_ms": int(exclusive_time),
             "is_segment": True,
             "received": timezone.now().timestamp(),
@@ -1531,6 +1553,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"]["sdk.name"] = sdk_name
         if op is not None:
             payload["sentry_tags"]["op"] = op
+        if status is not None:
+            payload["sentry_tags"]["status"] = status
 
         self.store_span(payload)
 
@@ -1564,6 +1588,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
+            "organization_id": 1,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
@@ -1571,6 +1596,8 @@ class BaseSpansTestCase(SnubaTestCase):
             "is_segment": False,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "start_timestamp_precise": timestamp.timestamp(),
+            "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "sentry_tags": {
                 "transaction": transaction or "/hello",
                 "op": op or "http",
@@ -1606,6 +1633,13 @@ class BaseSpansTestCase(SnubaTestCase):
 
 
 class BaseMetricsTestCase(SnubaTestCase):
+    ENTITY_SHORTHANDS = {
+        "c": "counter",
+        "s": "set",
+        "d": "distribution",
+        "g": "gauge",
+    }
+
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
     def store_session(self, session):
@@ -1627,11 +1661,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
 
-        def push(type, mri: str, tags, value):
+        def push(mri: str, tags, value):
             self.store_metric(
                 org_id,
                 project_id,
-                type,
                 mri,
                 {**tags, **base_tags},
                 int(
@@ -1640,33 +1673,31 @@ class BaseMetricsTestCase(SnubaTestCase):
                     else session["started"].timestamp()
                 ),
                 value,
-                use_case_id=UseCaseID.SESSIONS,
             )
 
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
+            push(SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.RAW_ERROR.value, {}, session["session_id"])
+            push(SessionMRI.RAW_ERROR.value, {}, session["session_id"])
             if not user_is_nil:
-                push("set", SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
+                push(SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
         elif not user_is_nil:
-            push("set", SessionMRI.RAW_USER.value, {}, user)
+            push(SessionMRI.RAW_USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
-            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
+            push(SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
-                push("set", SessionMRI.RAW_USER.value, {"session.status": status}, user)
+                push(SessionMRI.RAW_USER.value, {"session.status": status}, user)
 
         if status == "exited":
             if session["duration"] is not None:
                 push(
-                    "distribution",
                     SessionMRI.RAW_DURATION.value,
                     {"session.status": status},
                     session["duration"],
@@ -1681,14 +1712,17 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: Literal["counter", "set", "distribution", "gauge"],
-        name: str,
+        mri: str,
         tags: dict[str, str],
         timestamp: int,
         value: Any,
-        use_case_id: UseCaseID,
         aggregation_option: AggregationOption | None = None,
     ) -> None:
+
+        parsed = parse_mri(mri)
+        metric_type = parsed.entity
+        use_case_id = UseCaseID(parsed.namespace)
+
         mapping_meta = {}
 
         def metric_id(key: str):
@@ -1730,12 +1764,12 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         assert not isinstance(value, list)
 
-        if type == "set":
+        if metric_type == "s":
             # Relay uses a different hashing algorithm, but that's ok
             value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:4], "big")]
-        elif type == "distribution":
+        elif metric_type == "d":
             value = [value]
-        elif type == "gauge":
+        elif metric_type == "g":
             # In case we pass either an int or float, we will emit a gauge with all the same values.
             if not isinstance(value, dict):
                 value = {
@@ -1749,10 +1783,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         msg = {
             "org_id": org_id,
             "project_id": project_id,
-            "metric_id": metric_id(name),
+            "metric_id": metric_id(mri),
             "timestamp": timestamp,
             "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
-            "type": {"counter": "c", "set": "s", "distribution": "d", "gauge": "g"}[type],
+            "type": metric_type,
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id.value,
@@ -1769,9 +1803,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             msg["aggregation_option"] = aggregation_option.value
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
-            entity = f"generic_metrics_{type}s"
+            entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
         else:
-            entity = f"metrics_{type}s"
+            entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
 
         cls.__send_buckets([msg], entity)
 
@@ -1798,12 +1832,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
 
 class BaseMetricsLayerTestCase(BaseMetricsTestCase):
-    ENTITY_SHORTHANDS = {
-        "c": "counter",
-        "s": "set",
-        "d": "distribution",
-        "g": "gauge",
-    }
+
     # In order to avoid complexity and edge cases while working on tests, all children of this class should use
     # this mocked time, except in case in which a specific time is required. This is suggested because working
     # with time ranges in metrics is very error-prone and requires an in-depth knowledge of the underlying
@@ -1826,22 +1855,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         """
         raise NotImplementedError
 
-    def _extract_entity_from_mri(self, mri_string: str) -> str | None:
-        """
-        Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
-        """
-        if (parsed_mri := parse_mri(mri_string)) is not None:
-            return self.ENTITY_SHORTHANDS[parsed_mri.entity]
-        else:
-            return None
-
     def _store_metric(
         self,
-        name: str,
+        mri: str,
         tags: dict[str, str],
         value: int | float | dict[str, int | float],
-        use_case_id: UseCaseID,
-        type: str | None = None,
         org_id: int | None = None,
         project_id: int | None = None,
         days_before_now: int = 0,
@@ -1860,8 +1878,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self.store_metric(
             org_id=self.organization.id if org_id is None else org_id,
             project_id=self.project.id if project_id is None else project_id,
-            type=self._extract_entity_from_mri(name) if type is None else type,
-            name=name,
+            mri=mri,
             tags=tags,
             timestamp=int(
                 (
@@ -1877,7 +1894,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
                 ).timestamp()
             ),
             value=value,
-            use_case_id=use_case_id,
             aggregation_option=aggregation_option,
         )
 
@@ -1927,13 +1943,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         aggregation_option: AggregationOption | None = None,
     ):
         self._store_metric(
-            type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.TRANSACTIONS,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -1955,13 +1969,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         seconds_before_now: int = 0,
     ):
         self._store_metric(
-            type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.SESSIONS,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -1983,13 +1995,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         aggregation_option: AggregationOption | None = None,
     ):
         self._store_metric(
-            type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.CUSTOM,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -2017,7 +2027,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             {"statsPeriod": before_now, "interval": granularity}
         )
 
-        return MetricsQuery(
+        return DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id] + (project_ids if project_ids is not None else []),
             select=select,
@@ -2157,12 +2167,10 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_metric(
                 org_id,
                 project,
-                self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=use_case_id,
                 aggregation_option=aggregation_option,
             )
 
@@ -2226,12 +2234,10 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_metric(
                 org_id,
                 project,
-                self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=use_case_id,
             )
 
     def wait_for_metric_count(
@@ -2320,14 +2326,11 @@ class OutcomesSnubaTest(TestCase):
 
 @pytest.mark.snuba
 @requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
 class ProfilesSnubaTestCase(
     TestCase,
     BaseTestCase,  # forcing this to explicitly inherit BaseTestCase addresses some type hint issues
 ):
-    def setUp(self):
-        super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/functions/drop").status_code == 200
-
     def store_functions(
         self,
         functions,
@@ -2336,11 +2339,8 @@ class ProfilesSnubaTestCase(
         extras=None,
         timestamp=None,
     ):
-        if timestamp is None:
-            timestamp = before_now(minutes=10)
-
         if transaction is None:
-            transaction = load_data("transaction", timestamp=timestamp)
+            transaction = load_data("transaction", timestamp=timestamp or before_now(minutes=10))
 
         profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
         if profile_context.get("profile_id") is None:
@@ -2449,10 +2449,10 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def store_replay_segments(
         self,
         replay_id: str,
-        project_id: str,
+        project_id: int,
         segment_id: int,
         segment,
-    ):
+    ) -> None:
         f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
         f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
         ReplayRecordingSegment.objects.create(
@@ -2573,6 +2573,15 @@ class SetRefsTestCase(APITestCase):
         assert commit.key == key
 
 
+class _QueryDict(TypedDict):
+    name: str
+    fields: list[str]
+    aggregates: list[str]
+    columns: list[str]
+    fieldAliases: list[str]
+    conditions: str
+
+
 class OrganizationDashboardWidgetTestCase(APITestCase):
     def setUp(self):
         super().setUp()
@@ -2580,7 +2589,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
-        self.anon_users_query = {
+        self.anon_users_query: _QueryDict = {
             "name": "Anonymous Users",
             "fields": ["count()"],
             "aggregates": ["count()"],
@@ -2588,7 +2597,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
-        self.known_users_query = {
+        self.known_users_query: _QueryDict = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
@@ -2596,7 +2605,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": [],
             "conditions": "has:user.email",
         }
-        self.geo_errors_query = {
+        self.geo_errors_query: _QueryDict = {
             "name": "Errors by Geo",
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
@@ -2754,11 +2763,13 @@ class TestMigrations(TransactionTestCase):
 
 
 class SCIMTestCase(APITestCase):
-    def setUp(self, provider="dummy"):
+    provider = "dummy"
+
+    def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_provider_inst = AuthProviderModel(
-                organization_id=self.organization.id, provider=provider
+                organization_id=self.organization.id, provider=self.provider
             )
             self.auth_provider_inst.enable_scim(self.user)
             self.auth_provider_inst.save()
@@ -2769,9 +2780,11 @@ class SCIMTestCase(APITestCase):
 
 
 class SCIMAzureTestCase(SCIMTestCase):
+    provider = ACTIVE_DIRECTORY_PROVIDER_NAME
+
     def setUp(self):
         auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
-        super().setUp(provider=ACTIVE_DIRECTORY_PROVIDER_NAME)
+        super().setUp()
         self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
 
 
@@ -2863,19 +2876,28 @@ class SlackActivityNotificationTest(ActivityTestCase):
                 status=IdentityStatus.VALID,
                 scopes=[],
             )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
     @pytest.fixture(autouse=True)
     def responses_context(self):
         with responses.mock:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with mock.patch(
+            "slack_sdk.web.client.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
             yield
 
     def assert_performance_issue_attachments(
@@ -2924,6 +2946,38 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 
+    def assert_performance_issue_blocks_with_culprit_blocks(
+        self,
+        blocks,
+        org: Organization,
+        project_slug: str,
+        group,
+        referrer,
+        alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
+        issue_link_extra_params=None,
+    ):
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        if issue_link_extra_params is not None:
+            issue_link += issue_link_extra_params
+        assert (
+            blocks[1]["text"]["text"]
+            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
+        )
+        assert blocks[2]["elements"][0]["text"] == "/books/"
+        assert (
+            blocks[3]["text"]["text"]
+            == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
+        )
+        assert (
+            blocks[4]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
+        )
+        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
+        assert (
+            blocks[5]["elements"][0]["text"]
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
+        )
+
     def assert_generic_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -2944,6 +2998,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         referrer,
         alert_type="workflow",
         issue_link_extra_params=None,
+        with_culprit=False,
     ):
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
@@ -2953,8 +3008,14 @@ class SlackActivityNotificationTest(ActivityTestCase):
             blocks[1]["text"]["text"]
             == f":red_circle: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
         )
+        if with_culprit:
+            assert blocks[2]["elements"][0]["text"] == "raven.tasks.run_a_test"
+            evidence_index = 3
+        else:
+            evidence_index = 2
+
         assert (
-            blocks[2]["text"]["text"]
+            blocks[evidence_index]["text"]["text"]
             == "```" + TEST_ISSUE_OCCURRENCE.evidence_display[0].value + "```"
         )
 
@@ -3044,49 +3105,41 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric1",
+            mri="c:sessions/metric1@none",
             timestamp=now,
             tags={
                 "tag1": "value1",
                 "tag2": "value2",
             },
-            type="counter",
             value=1,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric1",
+            mri="c:sessions/metric1@none",
             timestamp=now,
             tags={"tag3": "value3"},
-            type="counter",
             value=1,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric2",
+            mri="c:sessions/metric2@none",
             timestamp=now,
             tags={
                 "tag4": "value3",
                 "tag1": "value2",
                 "tag2": "value1",
             },
-            type="set",
             value=123,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric3",
+            mri="c:sessions/metric3@none",
             timestamp=now,
             tags={},
-            type="set",
             value=123,
-            use_case_id=UseCaseID.SESSIONS,
         )
 
 
@@ -3192,6 +3245,30 @@ class MonitorIngestTestCase(MonitorTestCase):
         self.token = self.create_internal_integration_token(install=app, user=self.user)
 
 
+class UptimeTestCase(TestCase):
+    def create_uptime_result(
+        self,
+        subscription_id: str | None = None,
+        status: str = CHECKSTATUS_FAILURE,
+        scheduled_check_time: datetime = None,
+    ) -> CheckResult:
+        if subscription_id is None:
+            subscription_id = uuid.uuid4().hex
+        if scheduled_check_time is None:
+            scheduled_check_time = datetime.now().replace(microsecond=0)
+        return {
+            "guid": uuid.uuid4().hex,
+            "subscription_id": subscription_id,
+            "status": status,
+            "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
+            "trace_id": uuid.uuid4().hex,
+            "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
+            "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
+            "duration_ms": 100,
+            "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+        }
+
+
 class IntegratedApiTestCase(BaseTestCase):
     def should_call_api_without_proxying(self) -> bool:
         return not IntegrationProxyClient.determine_whether_should_proxy_to_control()
@@ -3267,6 +3344,8 @@ class SpanTestCase(BaseTestCase):
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts.timestamp() * 1000),
+                "start_timestamp_precise": start_ts.timestamp(),
+                "end_timestamp_precise": start_ts.timestamp() + duration / 1000,
                 "timestamp": int(start_ts.timestamp() * 1000),
                 "received": start_ts.timestamp(),
                 "duration_ms": duration,
@@ -3396,6 +3475,7 @@ class TraceTestCase(SpanTestCase):
                 "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
+                "is_segment": True,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
                 "timestamp": int(start_ts * 1000),

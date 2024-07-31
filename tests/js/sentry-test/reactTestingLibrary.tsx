@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization} from 'sentry/types/organization';
@@ -19,12 +20,7 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 
-type ProviderOptions = {
-  /**
-   * Sets legacy context providers. This value is directly passed to a
-   * `getChildContext`.
-   */
-  context?: Record<string, any>;
+interface ProviderOptions {
   /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
@@ -33,12 +29,15 @@ type ProviderOptions = {
    * Sets the RouterContext
    */
   router?: Partial<InjectedRouter>;
-};
+}
 
-type Options = ProviderOptions & rtl.RenderOptions;
+interface Options extends ProviderOptions, rtl.RenderOptions {}
 
-function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
-  const {organization, router} = initializeOrg(initializeOrgOptions as any);
+function makeAllTheProviders(providers: ProviderOptions) {
+  const {organization, router} = initializeOrg({
+    organization: providers.organization === null ? undefined : providers.organization,
+    router: providers.router,
+  });
 
   class LegacyRouterProvider extends Component<{children?: React.ReactNode}> {
     static childContextTypes = {
@@ -55,8 +54,7 @@ function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
   }
 
   // In some cases we may want to not provide an organization at all
-  const optionalOrganization =
-    initializeOrgOptions.organization === null ? null : organization;
+  const optionalOrganization = providers.organization === null ? null : organization;
 
   return function ({children}: {children?: React.ReactNode}) {
     return (
@@ -73,7 +71,7 @@ function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
                 }}
               >
                 <OrganizationContext.Provider value={optionalOrganization}>
-                  {children}
+                  <GlobalDrawer>{children}</GlobalDrawer>
                 </OrganizationContext.Provider>
               </RouteContext.Provider>
             </QueryClientProvider>
@@ -90,26 +88,19 @@ function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
  *
  * render(<TestedComponent />);
  *
- * If your component requires routerContext or organization to render, pass it
- * via context options argument. render(<TestedComponent />, {context:
- * routerContext, organization});
+ * If your component requires additional context you can pass it in the
+ * options.
  */
-function render(ui: React.ReactElement, options?: Options) {
-  options = options ?? {};
-  const {context, organization, ...otherOptions} = options;
-  let {router} = options;
-
-  if (router === undefined && context?.context?.router) {
-    router = context.context.router;
-  }
-
+function render(
+  ui: React.ReactElement,
+  {router, organization, ...rtlOptions}: Options = {}
+) {
   const AllTheProviders = makeAllTheProviders({
-    context,
     organization,
     router,
   });
 
-  return rtl.render(ui, {wrapper: AllTheProviders, ...otherOptions});
+  return rtl.render(ui, {wrapper: AllTheProviders, ...rtlOptions});
 }
 
 /**
@@ -136,6 +127,18 @@ function renderGlobalModal(options?: Options) {
 }
 
 /**
+ * Helper that waits for the drawer to be hidden from the DOM. You may need to
+ * wait for the drawer to be removed to avoid any act warnings.
+ */
+function waitForDrawerToHide(ariaLabel: string) {
+  return rtl.waitFor(() => {
+    expect(
+      rtl.screen.queryByRole('complementary', {name: ariaLabel})
+    ).not.toBeInTheDocument();
+  });
+}
+
+/**
  * This cannot be implemented as a Sentry Integration because Jest creates an
  * isolated environment for each test suite. This means that if we were to apply
  * the monkey patching ahead of time, it would be shadowed by Jest.
@@ -146,4 +149,4 @@ instrumentUserEvent();
 export * from '@testing-library/react';
 
 // eslint-disable-next-line import/export
-export {render, renderGlobalModal, userEvent, fireEvent};
+export {render, renderGlobalModal, userEvent, fireEvent, waitForDrawerToHide};

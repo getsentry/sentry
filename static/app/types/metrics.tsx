@@ -1,19 +1,31 @@
 import type {DateString} from 'sentry/types/core';
 
-export type MetricsAggregate =
+export type MetricAggregation =
   | 'sum'
   | 'count_unique'
   | 'avg'
   | 'count'
+  | 'min'
   | 'max'
+  | 'min'
   | 'p50'
   | 'p75'
+  | 'p90'
   | 'p95'
   | 'p99';
 
-export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
+export type MetricType =
+  | 'c'
+  | 'd'
+  | 'g'
+  | 'e'
+  | 's'
+  // Virtual metrics combine multiple metrics into one, to hide the internal complexity
+  // of span based metrics.
+  // Created and used only in the frontend
+  | 'v';
 
-export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans';
+export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans' | 'metric_stats';
 
 export type MRI = `${MetricType}:${UseCase}${string}@${string}`;
 
@@ -100,9 +112,8 @@ export type MetricsTagValue = {
 export type MetricMeta = {
   blockingStatus: BlockingStatus[];
   mri: MRI;
-  // name is returned by the API but should not be used, use parseMRI(mri).name instead
-  // name: string;
-  operations: MetricsAggregate[];
+  // name: string; // returned by the API but should not be used, use parseMRI(mri).name instead
+  operations: MetricAggregation[];
   projectIds: number[];
   type: MetricType;
   unit: string;
@@ -115,3 +126,21 @@ export type BlockingStatus = {
 };
 
 export type MetricsMetaCollection = Record<string, MetricMeta>;
+
+export interface MetricsExtractionCondition {
+  id: number;
+  mris: MRI[];
+  value: string;
+}
+
+export interface MetricsExtractionRule {
+  aggregates: MetricAggregation[];
+  conditions: MetricsExtractionCondition[];
+  createdById: number | null;
+  dateAdded: string;
+  dateUpdated: string;
+  projectId: number;
+  spanAttribute: string;
+  tags: string[];
+  unit: string;
+}

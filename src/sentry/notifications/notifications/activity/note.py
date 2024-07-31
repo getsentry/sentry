@@ -6,9 +6,9 @@ from typing import Any
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.utils.avatar import avatar_as_html, get_user_avatar_url
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 from .base import GroupActivityNotification
 

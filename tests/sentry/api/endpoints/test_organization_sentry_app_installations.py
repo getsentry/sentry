@@ -1,7 +1,7 @@
 from django.test import override_settings
 
 from sentry.constants import SentryAppStatus
-from sentry.models.integrations.integration_feature import Feature
+from sentry.integrations.models.integration_feature import Feature
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
@@ -111,12 +111,12 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
     method = "post"
 
     def get_expected_response(self, app, org):
+        installation = SentryAppInstallation.objects.get(sentry_app=app, organization_id=org.id)
+        assert installation.api_grant is not None
         return {
             "app": {"slug": app.slug, "uuid": app.uuid},
             "organization": {"slug": org.slug},
-            "code": SentryAppInstallation.objects.get(
-                sentry_app=app, organization_id=org.id
-            ).api_grant.code,
+            "code": installation.api_grant.code,
         }
 
     def test_install_unpublished_app(self):

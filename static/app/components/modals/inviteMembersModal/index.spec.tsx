@@ -72,7 +72,7 @@ describe('InviteMembersModal', function () {
     orgTeams?: DetailedTeam[];
     roles?: object[];
   } = {}) => {
-    const org = OrganizationFixture({access: orgAccess, teams: orgTeams});
+    const org = OrganizationFixture({access: orgAccess});
     TeamStore.reset();
     TeamStore.loadInitialData(orgTeams);
 

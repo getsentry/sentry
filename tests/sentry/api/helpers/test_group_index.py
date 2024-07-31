@@ -5,6 +5,7 @@ import pytest
 from django.http import QueryDict
 
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
+from sentry.api.helpers.group_index.delete import delete_groups
 from sentry.api.helpers.group_index.update import (
     handle_assigned_to,
     handle_has_seen,
@@ -18,6 +19,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -1055,3 +1057,69 @@ class TestHandleAssignedTo(TestCase):
             user_id=user2.id,
             reason=GroupSubscriptionReason.assigned,
         ).exists()
+
+
+class DeleteGroupsTest(TestCase):
+    @patch("sentry.signals.issue_deleted.send_robust")
+    def test_delete_groups_simple(self, send_robust: Mock):
+        groups = [self.create_group(), self.create_group()]
+        group_ids = [group.id for group in groups]
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
+        hashes = ["0" * 32, "1" * 32]
+        for i, group in enumerate(groups):
+            GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
+            add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        search_fn = Mock()
+        delete_groups(request, [self.project], self.organization.id, search_fn)
+
+        assert (
+            len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
+            == 0
+        )
+        assert (
+            len(GroupInbox.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
+            == 0
+        )
+        assert send_robust.called
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    @patch("sentry.tasks.delete_seer_grouping_records.logger")
+    @patch("sentry.signals.issue_deleted.send_robust")
+    def test_delete_groups_deletes_seer_records_by_hash(
+        self, send_robust: Mock, mock_logger: Mock, mock_delete_seer_grouping_records_by_hash
+    ):
+        groups = [self.create_group(), self.create_group()]
+        group_ids = [group.id for group in groups]
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.GET = QueryDict(f"id={group_ids[0]}&id={group_ids[1]}")
+        hashes = ["0" * 32, "1" * 32]
+        for i, group in enumerate(groups):
+            GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
+            add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        search_fn = Mock()
+        delete_groups(request, [self.project], self.organization.id, search_fn)
+
+        assert (
+            len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
+            == 0
+        )
+        assert (
+            len(GroupInbox.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
+            == 0
+        )
+        assert send_robust.called
+        mock_logger.info.assert_called_with(
+            "calling seer record deletion by hash",
+            extra={"project_id": self.project.id, "hashes": hashes},
+        )
+        mock_delete_seer_grouping_records_by_hash.assert_called_with(
+            args=[self.project.id, hashes, 0]
+        )

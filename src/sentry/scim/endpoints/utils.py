@@ -9,9 +9,9 @@ from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 
-from ...services.hybrid_cloud.auth import auth_service
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
 
 SCIM_CONTENT_TYPES = ["application/json", "application/json+scim"]

@@ -11,8 +11,8 @@ import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import Layout from 'sentry/views/auth/layout';
 
 export enum DownloadStatus {

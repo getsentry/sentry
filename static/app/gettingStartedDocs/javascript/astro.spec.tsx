@@ -24,6 +24,7 @@ describe('javascript-astro onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
+  /* The Astro SDK adds `browserTrackingIntegration` per default - it does not have to be explicitly added. */
   it("doesn't display any sample rates by default", () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [

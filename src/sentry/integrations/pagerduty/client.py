@@ -23,7 +23,7 @@ class PagerDutyClient(ApiClient):
     integration_name = "pagerduty"
     base_url = "https://events.pagerduty.com/v2/enqueue"
 
-    def __init__(self, integration_key: str, integration_id: int) -> None:
+    def __init__(self, integration_key: str, integration_id: int | None) -> None:
         self.integration_key = integration_key
         super().__init__(integration_id=integration_id)
 
@@ -53,6 +53,8 @@ class PagerDutyClient(ApiClient):
             if severity == PAGERDUTY_DEFAULT_SEVERITY:
                 severity = LEVEL_SEVERITY_MAP[level]
 
+            client_url = group.get_absolute_url(params=link_params)
+
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
@@ -64,9 +66,11 @@ class PagerDutyClient(ApiClient):
                     "component": group.project.slug,
                     "custom_details": custom_details,
                 },
+                "client": "sentry",
+                "client_url": client_url,
                 "links": [
                     {
-                        "href": group.get_absolute_url(params=link_params),
+                        "href": client_url,
                         "text": "View Sentry Issue Details",
                     }
                 ],

@@ -4,7 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import ConfigStore from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {Config} from 'sentry/types/system';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {
   isAPIPayloadSimilar,
@@ -16,6 +18,7 @@ import {
   DiscoverDatasets,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
+  SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {AggregationKey, WebVital} from 'sentry/utils/fields';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
@@ -1692,6 +1695,7 @@ describe('EventView.toNewQuery()', function () {
       environment: ['staging'],
       display: 'releases',
       dataset: DiscoverDatasets.DISCOVER,
+      queryDataset: SavedQueryDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1722,6 +1726,7 @@ describe('EventView.toNewQuery()', function () {
       environment: ['staging'],
       display: 'releases',
       dataset: DiscoverDatasets.DISCOVER,
+      queryDataset: SavedQueryDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1752,6 +1757,7 @@ describe('EventView.toNewQuery()', function () {
       environment: ['staging'],
       display: 'releases',
       dataset: DiscoverDatasets.DISCOVER,
+      queryDataset: SavedQueryDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -2949,22 +2955,22 @@ describe('EventView.isEqualTo()', function () {
 });
 
 describe('EventView.getResultsViewUrlTarget()', function () {
+  let configState: Config;
+
   beforeEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    };
+    });
   });
 
   afterEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: null,
-    };
+    ConfigStore.loadInitialData(configState);
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
@@ -2985,7 +2991,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
   const organization = OrganizationFixture();
 
   it('generates a URL with non-customer domain context', function () {
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -3005,22 +3011,22 @@ describe('EventView.getResultsViewUrlTarget()', function () {
 });
 
 describe('EventView.getResultsViewShortUrlTarget()', function () {
+  let configState: Config;
+
   beforeEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    };
+    });
   });
 
   afterEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: null,
-    };
+    ConfigStore.loadInitialData(configState);
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
@@ -3041,7 +3047,8 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
   const organization = OrganizationFixture();
 
   it('generates a URL with non-customer domain context', function () {
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
+
     const view = new EventView(state);
     const result = view.getResultsViewShortUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -3069,22 +3076,22 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
 });
 
 describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
+  let configState: Config;
+
   beforeEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    };
+    });
   });
 
   afterEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: null,
-    };
+    ConfigStore.loadInitialData(configState);
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
@@ -3108,7 +3115,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   const webVital = WebVital.LCP;
 
   it('generates a URL with non-customer domain context', function () {
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
     const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
       showTransactions,
@@ -3590,7 +3597,7 @@ describe('isAPIPayloadSimilar', function () {
       });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3607,7 +3614,7 @@ describe('isAPIPayloadSimilar', function () {
       });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3617,11 +3624,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.sortOnField({field: 'count()'}, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3631,14 +3638,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a new column is added', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = new EventView({
         ...state,
         fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
       });
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3648,7 +3655,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a column is updated with no changes', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3657,7 +3664,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3667,7 +3674,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is updated with a replaced field', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3676,7 +3683,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3686,7 +3693,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is updated with a replaced aggregation', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3695,7 +3702,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3705,7 +3712,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a column is renamed', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3714,7 +3721,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3724,11 +3731,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is deleted', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.withDeletedColumn(0, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3738,11 +3745,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar if column order changes', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = new EventView({...state, fields: shuffle(state.fields)});
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3760,7 +3767,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
@@ -3770,7 +3777,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3788,7 +3795,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
@@ -3798,7 +3805,7 @@ describe('isAPIPayloadSimilar', function () {
         equationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3810,7 +3817,7 @@ describe('isAPIPayloadSimilar', function () {
   describe('getFacetsAPIPayload', function () {
     it('only includes relevant parameters', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const results = thisEventView.getFacetsAPIPayload(location);
       const expected = {
         query: state.query,
@@ -3824,7 +3831,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3833,7 +3840,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3842,14 +3849,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a columns are different', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
       const otherEventView = new EventView({
         ...state,
         fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
       });
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);

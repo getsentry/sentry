@@ -16,9 +16,9 @@ from sentry.db.models import (
     control_silo_model,
     region_silo_model,
 )
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 

@@ -61,9 +61,17 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         .filter(team => !team.isMember)
         .map(team => `#${team.slug}`);
 
-      const meAndMyTeamsNone = ['my_teams', 'none', '[me, my_teams, none]'];
-      const suggestedAssignees: string[] = ['me', ...meAndMyTeamsNone, ...userTeams];
-      const assigndValues: SearchGroup[] | string[] = [
+      const suggestedAssignees: string[] = [
+        'me',
+        'my_teams',
+        'none',
+        // New search builder only works with single value suggestions
+        ...(props.organization.features.includes('issue-stream-search-query-builder')
+          ? []
+          : ['[me, my_teams, none]']),
+        ...userTeams,
+      ];
+      const assignedValues: SearchGroup[] | string[] = [
         {
           title: t('Suggested Values'),
           type: 'header',
@@ -85,7 +93,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         ...tags,
         assigned: {
           ...tags.assigned,
-          values: assigndValues,
+          values: assignedValues,
         },
         bookmarks: {
           ...tags.bookmarks,
@@ -93,10 +101,10 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         },
         assigned_or_suggested: {
           ...tags.assigned_or_suggested,
-          values: assigndValues,
+          values: assignedValues,
         },
       };
-    }, [teams, members, tags]);
+    }, [members, teams, props.organization.features, tags]);
 
     // Listen to tag store updates and cleanup listener on unmount
     useEffect(() => {

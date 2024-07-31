@@ -27,7 +27,7 @@ def check_value_changed(
     if present_state.get(key) != prior_state.get(key):
         old_value = prior_state.get(key)
         new_value = present_state.get(key)
-        return f"Changed {word} from *{old_value}* to *{new_value}*"
+        return f"Changed {word} from '{old_value}' to '{new_value}'"
     return None
 
 
@@ -54,7 +54,7 @@ def generate_diff_labels(
         if prior_state.get(changed_id) != present_state.get(changed_id):
             old_label = generate_rule_label(rule.project, rule, prior_state.get(changed_id))
             new_label = generate_rule_label(rule.project, rule, present_state.get(changed_id))
-            changed_data[changed_id] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
+            changed_data[changed_id] = [(f"Changed {key} from '{old_label}' to '{new_label}'")]
 
     # Removed items
     for removed_id in prior_ids.difference(present_ids):
@@ -110,28 +110,28 @@ def get_changed_data(
     current_frequency = get_frequency_label(rule_data.get("frequency"))
     previous_frequency = get_frequency_label(rule_data_before.get("frequency"))
     if current_frequency != previous_frequency:
-        frequency_text = f"Changed frequency from *{previous_frequency}* to *{current_frequency}*"
+        frequency_text = f"Changed frequency from '{previous_frequency}' to '{current_frequency}'"
         changed_data["changed_frequency"].append(frequency_text)
 
     if rule_data.get("environment_id") and not rule_data_before.get("environment_id"):
         environment = None
         try:
-            environment = Environment.objects.get(id=rule_data.get("environment_id"))
+            environment = Environment.objects.get(id=rule_data["environment_id"])
         except Environment.DoesNotExist:
             pass
 
         if environment:
-            changed_data["environment"].append(f"Added *{environment.name}* environment")
+            changed_data["environment"].append(f"Added '{environment.name}' environment")
 
     if rule_data_before.get("environment_id") and not rule_data.get("environment_id"):
         environment = None
         try:
-            environment = Environment.objects.get(id=rule_data.get("environment_id"))
+            environment = Environment.objects.get(id=rule_data_before["environment_id"])
         except Environment.DoesNotExist:
             pass
 
         if environment:
-            changed_data["environment"].append(f"Removed *{environment.name}* environment")
+            changed_data["environment"].append(f"Removed '{environment.name}' environment")
 
     label_text = check_value_changed(rule_data, rule_data_before, "label", "rule name")
     if label_text:
@@ -155,7 +155,7 @@ def get_changed_data(
         new_actor = "Unassigned"
         if new_owner:
             new_actor = new_owner.resolve()
-        owner_changed_text = f"Changed owner from *{old_actor}* to *{new_actor}*"
+        owner_changed_text = f"Changed owner from '{old_actor}' to '{new_actor}'"
         changed_data["owner"].append(owner_changed_text)
 
     return changed_data

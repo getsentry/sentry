@@ -50,6 +50,7 @@ def _upgrade(
     repair: bool,
     run_post_upgrade: bool,
     with_nodestore: bool,
+    create_kafka_topics: bool,
 ) -> None:
     from django.core.management import call_command as dj_call_command
 
@@ -72,6 +73,15 @@ def _upgrade(
         from sentry import nodestore
 
         nodestore.backend.bootstrap()
+
+    if create_kafka_topics:
+        from sentry.conf.types.kafka_definition import Topic
+        from sentry.utils.batching_kafka_consumer import create_topics
+        from sentry.utils.kafka_config import get_topic_definition
+
+        for topic in Topic:
+            topic_defn = get_topic_definition(topic)
+            create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
     if repair:
         from sentry.runner import call_command
@@ -102,6 +112,7 @@ def _upgrade(
     help="Skip post migration database initialization.",
 )
 @click.option("--with-nodestore", default=False, is_flag=True, help="Bootstrap nodestore.")
+@click.option("--create-kafka-topics", default=False, is_flag=True, help="Create kafka topics.")
 @configuration
 def upgrade(
     verbosity: int,
@@ -111,6 +122,7 @@ def upgrade(
     no_repair: bool,
     no_post_upgrade: bool,
     with_nodestore: bool,
+    create_kafka_topics: bool,
 ) -> None:
     "Perform any pending database migrations and upgrades."
 
@@ -128,10 +140,17 @@ def upgrade(
                     not no_repair,
                     not no_post_upgrade,
                     with_nodestore,
+                    create_kafka_topics,
                 )
         except UnableToAcquireLock:
             raise click.ClickException("Unable to acquire `upgrade` lock.")
     else:
         _upgrade(
-            not noinput, traceback, verbosity, not no_repair, not no_post_upgrade, with_nodestore
+            not noinput,
+            traceback,
+            verbosity,
+            not no_repair,
+            not no_post_upgrade,
+            with_nodestore,
+            create_kafka_topics,
         )

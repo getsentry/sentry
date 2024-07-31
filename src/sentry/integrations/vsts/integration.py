@@ -16,6 +16,7 @@ from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
@@ -25,17 +26,16 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.models.integration import Integration as IntegrationModel
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
+from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models.apitoken import generate_token
-from sentry.models.integrations.integration import Integration as IntegrationModel
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -127,9 +127,6 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         super().__init__(*args, **kwargs)
         self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: RpcIdentity | None = None
-
-    def reinstall(self) -> None:
-        self.reinstall_repositories()
 
     def all_repos_migrated(self) -> bool:
         return not self.get_unmigratable_repositories()

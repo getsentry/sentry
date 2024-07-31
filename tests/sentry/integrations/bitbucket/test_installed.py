@@ -6,12 +6,12 @@ import responses
 
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider, scopes
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

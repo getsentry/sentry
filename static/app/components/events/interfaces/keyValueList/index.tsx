@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
+import {ValueLink} from 'sentry/components/keyValueData';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -33,7 +34,7 @@ function KeyValueList({
     return null;
   }
 
-  const keyValueData = shouldSort ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
+  const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
     <Table
@@ -51,6 +52,7 @@ function KeyValueList({
               meta,
               subjectIcon,
               subjectDataTestId,
+              action,
               actionButton,
               isContextData: valueIsContextData,
               isMultiValue,
@@ -65,11 +67,17 @@ function KeyValueList({
               raw,
             };
 
+            const valueItem = action?.link ? (
+              <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
+            ) : (
+              <Value {...valueProps} />
+            );
+
             const valueContainer =
               isMultiValue && Array.isArray(value) ? (
                 <MultiValueContainer values={value} />
               ) : (
-                <Value {...valueProps} />
+                valueItem
               );
 
             return (

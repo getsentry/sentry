@@ -21,7 +21,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values

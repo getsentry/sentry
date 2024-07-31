@@ -10,14 +10,8 @@ from rediscluster import RedisCluster
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
+from sentry.db.models.manager.base import BaseManager
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,

@@ -7,6 +7,8 @@ from django.db.models import F
 from django.utils import timezone as django_timezone
 
 from sentry import analytics, features
+from sentry.constants import InsightModules
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -17,8 +19,6 @@ from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
     cron_monitor_created,
@@ -29,6 +29,7 @@ from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
+    first_insight_span_received,
     first_new_feedback_received,
     first_profile_received,
     first_replay_received,
@@ -41,6 +42,7 @@ from sentry.signals import (
     project_created,
     transaction_processed,
 )
+from sentry.users.services.user import RpcUser
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
 from sentry.utils.safe import get_path
@@ -332,6 +334,41 @@ def record_first_custom_metric(project, **kwargs):
     )
 
 
+@first_insight_span_received.connect(weak=False)
+def record_first_insight_span(project, module, **kwargs):
+    flag = None
+    if module == InsightModules.HTTP:
+        flag = Project.flags.has_insights_http
+    elif module == InsightModules.DB:
+        flag = Project.flags.has_insights_db
+    elif module == InsightModules.ASSETS:
+        flag = Project.flags.has_insights_assets
+    elif module == InsightModules.APP_START:
+        flag = Project.flags.has_insights_app_start
+    elif module == InsightModules.SCREEN_LOAD:
+        flag = Project.flags.has_insights_screen_load
+    elif module == InsightModules.VITAL:
+        flag = Project.flags.has_insights_vitals
+    elif module == InsightModules.CACHE:
+        flag = Project.flags.has_insights_caches
+    elif module == InsightModules.QUEUE:
+        flag = Project.flags.has_insights_queues
+    elif module == InsightModules.LLM_MONITORING:
+        flag = Project.flags.has_insights_llm_monitoring
+
+    if flag is not None:
+        project.update(flags=F("flags").bitor(flag))
+
+    analytics.record(
+        "first_insight_span.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+        module=module,
+    )
+
+
 @member_invited.connect(weak=False)
 def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.record(
@@ -378,9 +415,9 @@ def record_release_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        try:
-            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-        except IndexError:
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        owner_id = organization.default_owner_id
+        if not owner_id:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -389,7 +426,7 @@ def record_release_received(project, event, **kwargs):
 
         analytics.record(
             "first_release_tag.sent",
-            user_id=user.id if user else None,
+            user_id=owner_id,
             project_id=project.id,
             organization_id=project.organization_id,
         )
@@ -415,11 +452,9 @@ def record_user_context_received(project, event, **kwargs):
             project_id=project.id,
         )
         if success:
-            try:
-                user: RpcUser = Organization.objects.get(
-                    id=project.organization_id
-                ).get_default_owner()
-            except IndexError:
+            organization = Organization.objects.get_from_cache(id=project.organization_id)
+            owner_id = organization.default_owner_id
+            if not owner_id:
                 logger.warning(
                     "Cannot record user context received for organization (%s) due to missing owners",
                     project.organization_id,
@@ -428,7 +463,7 @@ def record_user_context_received(project, event, **kwargs):
 
             analytics.record(
                 "first_user_context.sent",
-                user_id=user.id if user else None,
+                user_id=owner_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
             )
@@ -440,9 +475,9 @@ event_processed.connect(record_user_context_received, weak=False)
 
 @first_event_with_minified_stack_trace_received.connect(weak=False)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
-    try:
-        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-    except IndexError:
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    owner_id = organization.default_owner_id
+    if not owner_id:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
             project.organization_id,
@@ -464,7 +499,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         ):
             analytics.record(
                 "first_event_with_minified_stack_trace_for_project.sent",
-                user_id=user.id if user else None,
+                user_id=owner_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
@@ -488,9 +523,9 @@ def record_sourcemaps_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        try:
-            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-        except IndexError:
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        owner_id = organization.default_owner_id
+        if not owner_id:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -498,7 +533,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             return
         analytics.record(
             "first_sourcemaps.sent",
-            user_id=user.id if user else None,
+            user_id=owner_id,
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
@@ -513,9 +548,9 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    try:
-        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-    except IndexError:
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    owner_id = organization.default_owner_id
+    if not owner_id:
         logger.warning(
             "Cannot record sourcemaps received for organization (%s) due to missing owners",
             project.organization_id,
@@ -534,7 +569,7 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
         if project.date_added > START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ and affected > 0:
             analytics.record(
                 "first_sourcemaps_for_project.sent",
-                user_id=user.id if user else None,
+                user_id=owner_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,

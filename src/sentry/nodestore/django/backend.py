@@ -8,7 +8,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.db.models import create_or_update
+from sentry.db.models.query import create_or_update
 from sentry.nodestore.base import NodeStorage
 from sentry.utils.strings import compress, decompress
 

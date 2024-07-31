@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -17,15 +16,16 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.types import ExternalProviders
+from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -201,9 +201,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
             if user.id not in providers_by_recipient:
                 continue
 
-            subscription_option = subscriptions_by_user_id.get(user.id, {})
+            subscription_option = subscriptions_by_user_id.get(user.id)
             if not subscription_option and has_team_workflow:
-                subscription_option = subscriptions_by_team_id.get(user.id, {})
+                subscription_option = subscriptions_by_team_id.get(user.id)
 
             for provider_str, val in providers_by_recipient[user.id].items():
                 value = NotificationSettingsOptionEnum(val)
@@ -237,7 +237,7 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
 
     def get_subscriptions_by_team_id(
         self, group: Group, possible_team_actors: list[Actor]
-    ) -> Mapping[int, int]:
+    ) -> dict[int, GroupSubscription]:
         active_and_disabled_team_subscriptions = self.filter(
             group=group, team_id__in=[t.id for t in possible_team_actors]
         )
@@ -247,24 +247,28 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         }
 
     @staticmethod
-    def get_participating_user_ids(group: Group) -> Sequence[int]:
+    def get_participating_user_ids(group: Group) -> list[int]:
         """Return the list of user ids participating in this issue."""
 
-        return list(
-            GroupSubscription.objects.filter(group=group, is_active=True, team=None).values_list(
-                "user_id", flat=True
-            )
-        )
+        return [
+            user_id
+            for user_id in GroupSubscription.objects.filter(
+                group=group, is_active=True, team=None
+            ).values_list("user_id", flat=True)
+            if user_id is not None
+        ]
 
     @staticmethod
-    def get_participating_team_ids(group: Group) -> Sequence[int]:
+    def get_participating_team_ids(group: Group) -> list[int]:
         """Return the list of team ids participating in this issue."""
 
-        return list(
-            GroupSubscription.objects.filter(group=group, is_active=True, user_id=None).values_list(
-                "team_id", flat=True
-            )
-        )
+        return [
+            team_id
+            for team_id in GroupSubscription.objects.filter(
+                group=group, is_active=True, user_id=None
+            ).values_list("team_id", flat=True)
+            if team_id is not None
+        ]
 
 
 @region_silo_model

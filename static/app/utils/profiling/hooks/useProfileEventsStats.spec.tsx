@@ -30,7 +30,7 @@ describe('useProfileEvents', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {},
-      match: [MockApiClient.matchQuery({dataset: 'profiles'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
     });
 
     const {result} = renderHook(useProfileEventsStats, {
@@ -46,7 +46,7 @@ describe('useProfileEvents', function () {
     expect(result.current.data).toEqual({
       data: [],
       meta: {
-        dataset: 'profiles',
+        dataset: 'discover',
         end: 0,
         start: 0,
       },
@@ -71,7 +71,12 @@ describe('useProfileEvents', function () {
           units: {count: null},
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'profiles', query: 'transaction:foo'})],
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'discover',
+          query: 'has:profile.id (transaction:foo)',
+        }),
+      ],
     });
 
     const {result} = renderHook(useProfileEventsStats, {
@@ -88,7 +93,7 @@ describe('useProfileEvents', function () {
     expect(result.current.data).toEqual({
       data: [{axis: 'count()', values: [1, 2]}],
       meta: {
-        dataset: 'profiles',
+        dataset: 'discover',
         start: 0,
         end: 10,
       },
@@ -127,7 +132,12 @@ describe('useProfileEvents', function () {
           },
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'profiles', query: 'transaction:foo'})],
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'discover',
+          query: 'has:profile.id (transaction:foo)',
+        }),
+      ],
     });
 
     const {result} = renderHook(useProfileEventsStats, {
@@ -147,7 +157,7 @@ describe('useProfileEvents', function () {
         {axis: 'p99()', values: [3, 4]},
       ],
       meta: {
-        dataset: 'profiles',
+        dataset: 'discover',
         start: 0,
         end: 10,
       },
@@ -156,9 +166,7 @@ describe('useProfileEvents', function () {
   });
 
   it('handles 1 axis using discover', async function () {
-    const {organization: organizationUsingTransactions} = initializeOrg({
-      organization: {features: ['profiling-using-transactions']},
-    });
+    const {organization: organizationUsingTransactions} = initializeOrg();
 
     function TestContextUsingTransactions({children}: {children?: ReactNode}) {
       return (

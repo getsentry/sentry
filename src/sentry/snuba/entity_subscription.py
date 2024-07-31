@@ -4,7 +4,7 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict, Union
+from typing import Any, TypedDict, Union
 
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
@@ -13,6 +13,9 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -28,9 +31,6 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils import metrics
-
-if TYPE_CHECKING:
-    from sentry.search.events.builder import QueryBuilder
 
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
@@ -145,7 +145,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         raise NotImplementedError
 
 
@@ -166,8 +166,8 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
-    ) -> QueryBuilder:
-        from sentry.search.events.builder import ErrorsQueryBuilder, QueryBuilder
+    ) -> BaseQueryBuilder:
+        from sentry.search.events.builder.errors import ErrorsQueryBuilder
 
         if params is None:
             params = {}
@@ -178,13 +178,9 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         if environment:
             params["environment"] = environment.name
 
-        query_builder_cls = QueryBuilder
-        # TODO: Remove this query when we remove the feature check
-        organization = Organization.objects.filter(project__id__in=project_ids)[0]
+        query_builder_cls = DiscoverQueryBuilder
         parser_config_overrides: MutableMapping[str, Any] = {"blocked_keys": ALERT_BLOCKED_FIELDS}
-        if self.dataset == Dataset.Events and features.has(
-            "organizations:metric-alert-ignore-archived", organization
-        ):
+        if self.dataset == Dataset.Events:
             from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
 
             query_builder_cls = ErrorsQueryBuilder
@@ -237,7 +233,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
         self.use_metrics_layer = features.has(
-            "organizations:use-metrics-layer-in-alerts",
+            "organizations:custom-metrics",
             Organization.objects.get_from_cache(id=self.org_id),
         )
         self.on_demand_metrics_enabled = features.has(
@@ -294,8 +290,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
-    ) -> QueryBuilder:
-        from sentry.search.events.builder import AlertMetricsQueryBuilder
+    ) -> BaseQueryBuilder:
 
         if params is None:
             params = {}
@@ -583,7 +578,7 @@ def get_entity_key_from_request(request: Request) -> EntityKey:
     return EntityKey(match.name)
 
 
-def get_entity_from_query_builder(query_builder: QueryBuilder) -> Entity | None:
+def get_entity_from_query_builder(query_builder: BaseQueryBuilder) -> Entity | None:
     request = query_builder.get_snql_query()
     match = request.query.match
     if isinstance(match, Join):
@@ -593,7 +588,7 @@ def get_entity_from_query_builder(query_builder: QueryBuilder) -> Entity | None:
     return None
 
 
-def get_entity_key_from_query_builder(query_builder: QueryBuilder) -> EntityKey:
+def get_entity_key_from_query_builder(query_builder: BaseQueryBuilder) -> EntityKey:
     return get_entity_key_from_request(query_builder.get_snql_query())
 
 

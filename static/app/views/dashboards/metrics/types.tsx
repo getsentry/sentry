@@ -1,16 +1,17 @@
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import type {MetricExpressionType} from 'sentry/utils/metrics/types';
 
 export type Order = 'asc' | 'desc' | undefined;
 
 export interface DashboardMetricsQuery {
+  aggregation: MetricAggregation;
   id: number;
   isHidden: boolean;
   mri: MRI;
-  op: string;
   orderBy: Order;
   type: MetricExpressionType.QUERY;
   alias?: string;
+  condition?: number;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
@@ -23,6 +24,7 @@ export interface DashboardMetricsEquation {
   isHidden: boolean;
   type: MetricExpressionType.EQUATION;
   alias?: string;
+  isQueryOnly?: boolean;
 }
 
 export type DashboardMetricsExpression = DashboardMetricsQuery | DashboardMetricsEquation;

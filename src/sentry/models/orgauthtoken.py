@@ -8,22 +8,18 @@ from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from sentry.auth.services.orgauthtoken import orgauthtoken_service
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.conf.server import SENTRY_SCOPES
-from sentry.db.models import (
-    ArrayField,
-    BaseManager,
-    FlexibleForeignKey,
-    control_silo_model,
-    sane_repr,
-)
+from sentry.db.models import ArrayField, FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory
-from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
+from sentry.utils.hashlib import sha1_text
 
 MAX_NAME_LENGTH = 255
 
@@ -120,8 +116,8 @@ class OrgAuthToken(ReplicatedControlModel):
         return old_pk
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.orgauthtoken.serial import serialize_org_auth_token
-        from sentry.services.hybrid_cloud.replica import region_replica_service
+        from sentry.auth.services.orgauthtoken.serial import serialize_org_auth_token
+        from sentry.hybridcloud.services.replica import region_replica_service
 
         region_replica_service.upsert_replicated_org_auth_token(
             token=serialize_org_auth_token(self),
@@ -131,8 +127,8 @@ class OrgAuthToken(ReplicatedControlModel):
 
 def is_org_auth_token_auth(auth: object) -> bool:
     """:returns True when an API token is hitting the API."""
+    from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "org_auth_token"
@@ -140,7 +136,7 @@ def is_org_auth_token_auth(auth: object) -> bool:
 
 
 def get_org_auth_token_id_from_auth(auth: object) -> int | None:
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.auth.services.auth import AuthenticatedToken
 
     if isinstance(auth, OrgAuthToken):
         return auth.id
@@ -149,7 +145,7 @@ def get_org_auth_token_id_from_auth(auth: object) -> int | None:
     return None
 
 
-def update_org_auth_token_last_used(auth: object, project_ids: list[int]):
+def update_org_auth_token_last_used(auth: object, project_ids: list[int]) -> None:
     org_auth_token_id = get_org_auth_token_id_from_auth(auth)
     organization_id = getattr(auth, "organization_id", None)
     if org_auth_token_id is None or organization_id is None:
@@ -158,7 +154,7 @@ def update_org_auth_token_last_used(auth: object, project_ids: list[int]):
     # Debounce updates, as we often get bursts of requests when customer
     # run CI or deploys and we don't need second level precision here.
     # We vary on the project ids so that unique requests still make updates
-    project_segment = ",".join(str(i) for i in project_ids)
+    project_segment = sha1_text(",".join(str(i) for i in project_ids)).hexdigest()
     recent_key = f"orgauthtoken:{org_auth_token_id}:last_update:{project_segment}"
     if cache.get(recent_key):
         return

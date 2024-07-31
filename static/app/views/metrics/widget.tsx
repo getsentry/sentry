@@ -2,7 +2,7 @@ import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
@@ -14,6 +14,12 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getIngestionSeriesId, MetricChart} from 'sentry/components/metrics/chart/chart';
+import type {Series} from 'sentry/components/metrics/chart/types';
+import {useFocusArea} from 'sentry/components/metrics/chart/useFocusArea';
+import {useMetricChartSamples} from 'sentry/components/metrics/chart/useMetricChartSamples';
+import {useReleaseSeries} from 'sentry/components/metrics/chart/useMetricReleases';
+import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/formatter';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -21,10 +27,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MetricAggregation, MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {
   areResultsLimited,
+  getDefaultAggregation,
   getDefaultMetricDisplayType,
   getFormattedMQL,
   getMetricsSeriesId,
@@ -51,13 +59,7 @@ import {
 } from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useRouter from 'sentry/utils/useRouter';
-import {getIngestionSeriesId, MetricChart} from 'sentry/views/metrics/chart/chart';
-import type {Series} from 'sentry/views/metrics/chart/types';
-import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
-import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
-import {useReleaseSeries} from 'sentry/views/metrics/chart/useMetricReleases';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {EquationFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
@@ -115,7 +117,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     .map(q =>
       isMetricFormula(q)
         ? unescapeMetricsFormula(q.formula)
-        : formatMRIField(MRIToField(q.mri, q.op))
+        : formatMRIField(MRIToField(q.mri, q.aggregation))
     )
     .join(', ');
 }
@@ -181,20 +183,17 @@ export const MetricWidget = memo(
       if (!defined(metricsSamples)) {
         return undefined;
       }
+      if (!firstQuery) {
+        return undefined;
+      }
       return {
         data: metricsSamples,
         onSampleClick,
         unit: parseMRI(firstQuery?.mri)?.unit ?? '',
-        operation: firstQuery?.op ?? '',
+        aggregation: firstQuery.aggregation ?? getDefaultAggregation(firstQuery.mri),
         highlightedId: highlightedSampleId,
       };
-    }, [
-      metricsSamples,
-      firstQuery?.mri,
-      firstQuery?.op,
-      onSampleClick,
-      highlightedSampleId,
-    ]);
+    }, [metricsSamples, firstQuery, onSampleClick, highlightedSampleId]);
 
     const widgetTitle = getWidgetTitle(queries);
 
@@ -229,7 +228,7 @@ export const MetricWidget = memo(
               triggerProps={{prefix: t('Display')}}
               value={
                 displayType ??
-                getDefaultMetricDisplayType(firstQuery?.mri, firstQuery?.op)
+                getDefaultMetricDisplayType(firstQuery?.mri, firstQuery?.aggregation)
               }
               options={metricDisplayTypeOptions}
               onChange={handleDisplayTypeChange}
@@ -306,7 +305,7 @@ interface MetricWidgetBodyProps {
 }
 
 export interface SamplesProps {
-  operation: string;
+  aggregation: MetricAggregation;
   unit: string;
   data?: MetricsSamplesResults<Field>['data'];
   highlightedId?: string;
@@ -382,7 +381,7 @@ const MetricWidgetBody = memo(
     const chartSamples = useMetricChartSamples({
       samples: samples?.data,
       highlightedSampleId: samples?.highlightedId,
-      operation: samples?.operation,
+      aggregation: samples?.aggregation,
       onSampleClick: samples?.onSampleClick,
       timeseries: chartSeries,
       unit: samples?.unit,
@@ -598,7 +597,7 @@ export function getChartTimeseries(
         lastMetaEntry.scaling_factor) ||
       1;
     const isEquationSeries = isMetricFormula(query);
-    const operation = isEquationSeries ? 'count' : query.op;
+    const operation = isEquationSeries ? 'count' : query.aggregation;
     const isMultiQuery = filteredQueries.length > 1;
 
     return group.map(entry => ({
@@ -622,6 +621,7 @@ export function getChartTimeseries(
   return series.map(item => ({
     id: item.id,
     seriesName: item.name,
+    aggregate: item.operation,
     groupBy: item.groupBy,
     unit: item.unit,
     scalingFactor: item.scalingFactor,

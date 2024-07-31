@@ -10,7 +10,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import constants, fields
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
@@ -170,6 +170,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
+    @pytest.mark.querybuilder
     def test_default_conditions(self):
         query = MetricsQueryBuilder(
             self.params, query="", dataset=Dataset.PerformanceMetrics, selected_columns=[]
@@ -1632,8 +1633,51 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         assert str(err.value) == "The functions provided do not match the requested metric type"
 
+    def test_free_text_search(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            dataset=None,
+            query="foo",
+            selected_columns=["count()"],
+        )
+
+        self.maxDiff = 100000
+
+        transaction_key = indexer.resolve(
+            UseCaseID.TRANSACTIONS, self.organization.id, "transaction"
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(
+                    Function(
+                        "positionCaseInsensitive",
+                        [
+                            Column(f"tags[{transaction_key}]"),
+                            "foo",
+                        ],
+                    ),
+                    Op.NEQ,
+                    0,
+                ),
+                Condition(
+                    Column("metric_id"),
+                    Op.IN,
+                    [
+                        indexer.resolve(
+                            UseCaseID.TRANSACTIONS,
+                            self.organization.id,
+                            "d:transactions/duration@millisecond",
+                        )
+                    ],
+                ),
+                *self.default_conditions,
+            ],
+        )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
+    @pytest.mark.querybuilder
     def test_get_query(self):
         orig_query = TimeseriesMetricQueryBuilder(
             self.params,

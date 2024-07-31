@@ -11,6 +11,7 @@ from sentry_sdk import set_tag
 
 from sentry import features
 from sentry.constants import DataCategory
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
@@ -18,9 +19,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.notifications.notifications.daily_summary import DailySummaryNotification
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
@@ -40,7 +39,8 @@ from sentry.tasks.summaries.utils import (
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
-from sentry.types.integrations import ExternalProviders
+from sentry.users.services.user.service import user_service
+from sentry.users.services.user_option import user_option_service
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
@@ -189,7 +189,9 @@ def build_summary_data(
                 ctx=ctx, project=project, referrer=Referrer.DAILY_SUMMARY_KEY_ERRORS.value
             )
             if key_errors:
-                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
+                project_ctx.key_errors_by_id = [
+                    (e["events.group_id"], e["count()"]) for e in key_errors
+                ]
 
             # Today's Top 3 Performance Issues
             key_performance_issues = project_key_performance_issues(

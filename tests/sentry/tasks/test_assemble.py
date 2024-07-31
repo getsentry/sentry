@@ -209,9 +209,6 @@ class AssembleDifTest(BaseAssembleTest):
 
 
 class AssembleArtifactsTest(BaseAssembleTest):
-    def setUp(self):
-        super().setUp()
-
     def test_artifacts_with_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -267,8 +264,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 )
                 assert len(release_artifact_bundle) == count
                 if count == 1:
-                    release_artifact_bundle[0].version_name = version
-                    release_artifact_bundle[0].dist_name = dist
+                    assert release_artifact_bundle[0].release_name == version
+                    assert release_artifact_bundle[0].dist_name == (dist or "")
 
                 project_artifact_bundles = ProjectArtifactBundle.objects.filter(
                     project_id=self.project.id

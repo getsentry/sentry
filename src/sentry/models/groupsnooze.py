@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -10,7 +10,6 @@ from django.utils import timezone
 from sentry import tsdb
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -18,6 +17,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
@@ -53,7 +53,7 @@ class GroupSnooze(Model):
     window = BoundedPositiveIntegerField(null=True)
     user_count = BoundedPositiveIntegerField(null=True)
     user_window = BoundedPositiveIntegerField(null=True)
-    state = JSONField(null=True)
+    state: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     actor_id = BoundedPositiveIntegerField(null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("group",))
@@ -87,6 +87,7 @@ class GroupSnooze(Model):
                         return False
             else:
                 times_seen = group.times_seen_with_pending if use_pending_data else group.times_seen
+                assert self.state is not None
                 if self.count <= times_seen - self.state["times_seen"]:
                     return False
 
@@ -200,10 +201,10 @@ class GroupSnooze(Model):
 
     def test_user_counts(self, group: Group) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
-        try:
-            users_seen = self.state["users_seen"]
-        except (KeyError, TypeError):
+        if self.state is None:
             users_seen = 0
+        else:
+            users_seen = self.state.get("users_seen", 0)
 
         threshold = self.user_count + users_seen
 

@@ -45,9 +45,18 @@ class _BurstState:
         kwargs: dict[str, Any] | None = None,
         countdown: float | None = None,
         queue: str | None = None,
+        **options: Any,
     ) -> None:
         if not self._active:
             raise AssertionError("task enqueued to burst runner while burst was not active!")
+
+        try:
+            _start_time = options.pop("__start_time", None)
+            if _start_time and kwargs:
+                kwargs["__start_time"] = _start_time
+        except Exception:
+            pass
+
         self.queue.append((task, args, {} if kwargs is None else kwargs))
 
     @contextlib.contextmanager

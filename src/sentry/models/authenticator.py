@@ -21,13 +21,13 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedAutoField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     control_silo_model,
 )
 from sentry.db.models.fields.picklefield import PickledObjectField
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.types.region import find_regions_for_user
@@ -191,7 +191,7 @@ class Authenticator(ControlOutboxProducingModel):
         if save:
             self.save()
 
-    def __repr__(self):
+    def __repr__(self) -> str:  # type: ignore[override]  # python/mypy#17562
         return f"<Authenticator user={self.user.email!r} interface={self.interface.interface_id!r}>"
 
     @classmethod

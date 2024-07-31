@@ -28,7 +28,10 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
@@ -55,6 +58,22 @@ function isHighlightingAllOccurrences(
   );
 }
 
+function makeSourceCodeLink(frame: FlamegraphFrame['frame']): string | undefined {
+  const path = frame.path || frame.file;
+  const lineComponents = (
+    typeof frame.line === 'number' && typeof frame.column === 'number'
+      ? [frame.line, frame.column]
+      : typeof frame.line === 'number'
+        ? [frame.line]
+        : // We assume that a column without a line is not a valid source location
+          []
+  )
+    .filter(n => n !== undefined)
+    .join(':');
+
+  return path + (lineComponents ? `:${lineComponents}` : '');
+}
+
 interface FlamegraphZoomViewProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
@@ -64,7 +83,7 @@ interface FlamegraphZoomViewProps {
   flamegraphOverlayCanvasRef: HTMLCanvasElement | null;
   flamegraphRenderer: FlamegraphRenderer | null;
   flamegraphView: CanvasView<Flamegraph> | null;
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
   setFlamegraphCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
@@ -723,9 +742,15 @@ function FlamegraphZoomView({
     }
 
     const frame = hoveredNodeOnContextMenuOpen.current.frame;
+    const link = makeSourceCodeLink(frame);
+
+    if (!link) {
+      addErrorMessage(t('Failed to resolve path for this function frame.'));
+      return;
+    }
 
     navigator.clipboard
-      .writeText(frame.file ?? frame.path ?? '')
+      .writeText(link)
       .then(() => {
         addSuccessMessage(t('Function source copied to clipboard'));
       })

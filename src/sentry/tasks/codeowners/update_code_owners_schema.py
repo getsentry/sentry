@@ -4,10 +4,10 @@ from collections.abc import Iterable
 from typing import Any
 
 from sentry import features
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, load_model_from_db, retry
 
@@ -26,7 +26,7 @@ def update_code_owners_schema(
     projects: Iterable[Project | int] | None = None,
     **kwargs: Any,
 ) -> None:
-    from sentry.models.integrations.repository_project_path_config import (
+    from sentry.integrations.models.repository_project_path_config import (
         RepositoryProjectPathConfig,
     )
     from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -36,7 +36,7 @@ def update_code_owners_schema(
     if not features.has("organizations:integrations-codeowners", organization):
         return
     try:
-        code_owners = []
+        code_owners: Iterable[ProjectCodeOwners] = []
 
         if projects:
             projects = [load_model_from_db(Project, project) for project in projects]

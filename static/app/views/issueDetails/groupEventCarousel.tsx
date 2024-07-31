@@ -24,9 +24,10 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined, formatBytesBase2} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   getAnalyticsDataForEvent,
@@ -34,17 +35,15 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
-import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type GroupEventCarouselProps = {
@@ -358,7 +357,6 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
 }
 
 export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
-  const organization = useOrganization();
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -372,11 +370,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     successMessage: t('Event ID copied to clipboard'),
     text: event.id,
   });
-
-  const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isRelatedIssuesEnabled = organization.features.includes(
-    'related-issues-issue-details-page'
-  );
 
   return (
     <CarouselAndButtonsWrapper>
@@ -426,10 +419,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        {/* Once trace-related issues are GA, we will remove this */}
-        {issueTypeConfig.traceTimeline && !isRelatedIssuesEnabled ? (
-          <TraceLink event={event} />
-        ) : null}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />

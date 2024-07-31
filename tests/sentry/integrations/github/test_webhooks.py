@@ -15,13 +15,13 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -229,7 +229,7 @@ class PushEventWebhookTest(APITestCase):
             organization_id=project.organization.id,
             external_id="35129377",
             provider="integrations:github",
-            name="baxterthehacker/public-repo",
+            name="baxterthehacker/repo",
         )
 
         self._setup_repo_test(project)
@@ -248,6 +248,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "133d60480286590a610a0eb7352ff6e02b9674c4"
         assert commit.message == "Update hello.py"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@users.noreply.github.com"
         assert commit.author.external_id is None
@@ -257,6 +258,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert commit.message == "Update README.md"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@users.noreply.github.com"
         assert commit.author.external_id is None
@@ -267,6 +269,7 @@ class PushEventWebhookTest(APITestCase):
 
         repo.refresh_from_db()
         assert set(repo.languages) == {"python", "javascript"}
+        assert repo.name == "baxterthehacker/public-repo"
 
     @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")
@@ -333,6 +336,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "133d60480286590a610a0eb7352ff6e02b9674c4"
         assert commit.message == "Update hello.py"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@example.com"
         assert commit.date_added == datetime(2015, 5, 5, 23, 45, 15, tzinfo=timezone.utc)
@@ -341,6 +345,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert commit.message == "Update README.md"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@example.com"
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
@@ -555,6 +560,7 @@ class PullRequestEventWebhook(APITestCase):
             == "This is a pretty simple change that we need to pull into master. Fixes BAR-7"
         )
         assert pr.title == "Update the README with new information"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
         self.assert_group_link(group, pr)
@@ -737,6 +743,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.key == "1"
         assert pr.message == "new edited body. Fixes BAR-7"
         assert pr.title == "new edited title"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
         self.assert_group_link(group, pr)
@@ -784,14 +791,14 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.key == "1"
         assert pr.message == "new closed body"
         assert pr.title == "new closed title"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
 
         assert mock_metrics.incr.call_count == 0
 
     def assert_group_link(self, group, pr):
-        link = GroupLink.objects.all().first()
-        assert link
+        link = GroupLink.objects.get()
         assert link.group_id == group.id
         assert link.linked_id == pr.id
         assert link.linked_type == GroupLink.LinkedType.pull_request

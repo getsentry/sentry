@@ -25,7 +25,7 @@ import FormModel from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import U2fsign from 'sentry/components/u2f/u2fsign';
+import U2fSign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {space} from 'sentry/styles/space';
@@ -52,7 +52,7 @@ type GetFieldsOpts = {
   /**
    * Callback when u2f device is activated
    */
-  onU2fTap: React.ComponentProps<typeof U2fsign>['onTap'];
+  onU2fTap: React.ComponentProps<typeof U2fSign>['onTap'];
   /**
    * Flag to track if we are currently sending the otp code
    */
@@ -128,7 +128,7 @@ const getFields = ({
     return [
       deviceNameField,
       () => (
-        <U2fsign
+        <U2fSign
           key="u2f-enroll"
           style={{marginBottom: 0}}
           challengeData={authenticator.challenge}

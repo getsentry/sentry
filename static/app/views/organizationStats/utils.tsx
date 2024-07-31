@@ -1,8 +1,8 @@
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import type {DataCategoryInfo} from 'sentry/types';
-import {formatBytesBase10} from 'sentry/utils';
+import type {DataCategoryInfo} from 'sentry/types/core';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 const MILLION = 10 ** 6;
@@ -31,21 +31,31 @@ export function formatUsageWithUnits(
   usageQuantity: number = 0,
   dataCategory: DataCategoryInfo['plural'],
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
-) {
-  if (dataCategory !== DATA_CATEGORY_INFO.attachment.plural) {
+): string {
+  if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
+    if (options.useUnitScaling) {
+      return formatBytesBase10(usageQuantity);
+    }
+
+    const usageGb = usageQuantity / GIGABYTE;
     return options.isAbbreviated
-      ? abbreviateUsageNumber(usageQuantity)
-      : usageQuantity.toLocaleString();
+      ? `${abbreviateUsageNumber(usageGb)} GB`
+      : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
 
-  if (options.useUnitScaling) {
-    return formatBytesBase10(usageQuantity);
+  if (
+    dataCategory === DATA_CATEGORY_INFO.profileDuration.plural &&
+    Number.isFinite(usageQuantity)
+  ) {
+    // Profile duration is in milliseconds, convert to hours
+    return (usageQuantity / 1000 / 60 / 60).toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    });
   }
 
-  const usageGb = usageQuantity / GIGABYTE;
   return options.isAbbreviated
-    ? `${abbreviateUsageNumber(usageGb)} GB`
-    : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
+    ? abbreviateUsageNumber(usageQuantity)
+    : usageQuantity.toLocaleString();
 }
 
 /**

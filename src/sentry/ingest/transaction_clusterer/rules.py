@@ -147,18 +147,17 @@ class CompositeRuleStore:
         sorted_rules = [rule for rule in sorted_rules if rule[1] >= last_seen_deadline]
 
         if self.MERGE_MAX_RULES < len(rules):
-            with sentry_sdk.configure_scope() as scope:
-                sentry_sdk.set_measurement("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
-                scope.set_context(
-                    "clustering_rules_max",
-                    {
-                        "num_existing_rules": len(rules),
-                        "max_amount": self.MERGE_MAX_RULES,
-                        "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
-                    },
-                )
-                sentry_sdk.set_tag("namespace", self._namespace.value.name)
-                sentry_sdk.capture_message("Clusterer discarded rules", level="warning")
+            sentry_sdk.set_measurement("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
+            sentry_sdk.Scope.get_isolation_scope().set_context(
+                "clustering_rules_max",
+                {
+                    "num_existing_rules": len(rules),
+                    "max_amount": self.MERGE_MAX_RULES,
+                    "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
+                },
+            )
+            sentry_sdk.set_tag("namespace", self._namespace.value.name)
+            sentry_sdk.capture_message("Clusterer discarded rules", level="warning")
             sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
 
         return {rule: last_seen for rule, last_seen in sorted_rules}

@@ -30,6 +30,16 @@ export function generateProfileFlamechartRoute({
   return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/${profileId}/flamegraph/`;
 }
 
+export function generateContinuousProfileFlamechartRoute({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+}): string {
+  return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/flamegraph/`;
+}
+
 export function generateProfileDifferentialFlamegraphRoute({
   orgSlug,
   projectSlug,
@@ -135,6 +145,30 @@ export function generateProfileFlamechartRouteWithQuery({
   return {
     pathname,
     query: {
+      ...query,
+    },
+  };
+}
+
+export function generateContinuousProfileFlamechartRouteWithQuery(
+  orgSlug: Organization['slug'],
+  projectSlug: Project['slug'],
+  profilerId: string,
+  start: string,
+  end: string,
+  query: Location['query']
+): LocationDescriptor {
+  const pathname = generateContinuousProfileFlamechartRoute({
+    orgSlug,
+    projectSlug,
+  });
+
+  return {
+    pathname,
+    query: {
+      profilerId,
+      start,
+      end,
       ...query,
     },
   };

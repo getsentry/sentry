@@ -1,15 +1,12 @@
-from urllib.parse import parse_qs
-
 import orjson
 import responses
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.integration_nudge import (
     MESSAGE_LIBRARY,
     IntegrationNudgeNotification,
 )
 from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
-from sentry.types.integrations import ExternalProviders
 
 SEED = 0
 
@@ -27,7 +24,8 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
         with self.tasks():
             notification.send()
 
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
         assert fallback_text == MESSAGE_LIBRARY[SEED].format(provider="Slack")
         assert blocks[0]["text"]["text"] == fallback_text
         assert len(blocks[1]["elements"]) == 1
@@ -36,5 +34,5 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
         assert blocks[1]["elements"][0]["value"] == "all_slack"
 
         # Slack requires callback_id to handle enablement
-        request_data = parse_qs(responses.calls[0].request.body)
-        assert orjson.loads(request_data["callback_id"][0]) == {"enable_notifications": True}
+        callback_id = orjson.loads(self.mock_post.call_args.kwargs["callback_id"])
+        assert callback_id == {"enable_notifications": True}

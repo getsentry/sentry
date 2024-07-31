@@ -12,8 +12,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -44,6 +44,7 @@ class GitHubIntegrationsInstallationEndpoint(Endpoint):
         if "sender" not in integration.metadata:
             return HttpResponse(status=404)
 
+        assert integration.date_added is not None
         time_elapsed_since_added = time.time() - integration.date_added.timestamp()
         if time_elapsed_since_added > INSTALLATION_EXPOSURE_MAX_TIME:
             return HttpResponse(status=404)

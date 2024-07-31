@@ -1,5 +1,4 @@
 import uuid
-from datetime import timedelta
 from itertools import cycle
 from unittest.mock import patch
 
@@ -21,206 +20,11 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 
 
 class MarkFailedTestCase(TestCase):
-    @with_feature({"organizations:issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule": [1, "month"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment_id=self.environment.id,
-            status=monitor.status,
-        )
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=CheckInStatus.UNKNOWN,
-        )
-        assert mark_failed(checkin, ts=checkin.date_added)
-
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
-
-        assert dict(
-            event,
-            **{
-                "level": "error",
-                "project": self.project.id,
-                "environment": monitor_environment.get_environment().name,
-                "platform": "other",
-                "contexts": {
-                    "monitor": {
-                        "status": "error",
-                        "type": "cron_job",
-                        "config": {
-                            "schedule_type": 2,
-                            "schedule": [1, "month"],
-                            "max_runtime": None,
-                            "checkin_margin": None,
-                        },
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": str(monitor.slug),
-                    }
-                },
-                "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
-                "fingerprint": ["monitor", str(monitor.guid), "unknown"],
-                "logger": "",
-                "type": "default",
-            },
-        ) == dict(event)
-
-    @with_feature({"organizations:issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_with_reason_legacy(self, mock_insert_data_to_database_legacy):
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule": [1, "month"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment_id=self.environment.id,
-            status=monitor.status,
-        )
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=CheckInStatus.TIMEOUT,
-        )
-        assert mark_failed(checkin, ts=checkin.date_added)
-
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
-
-        assert dict(
-            event,
-            **{
-                "level": "error",
-                "project": self.project.id,
-                "environment": monitor_environment.get_environment().name,
-                "platform": "other",
-                "contexts": {
-                    "monitor": {
-                        "status": "error",
-                        "type": "cron_job",
-                        "config": {
-                            "schedule_type": 2,
-                            "schedule": [1, "month"],
-                            "max_runtime": None,
-                            "checkin_margin": None,
-                        },
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
-                    }
-                },
-                "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
-                "fingerprint": ["monitor", str(monitor.guid), "duration"],
-                "logger": "",
-                "type": "default",
-            },
-        ) == dict(event)
-
-    @with_feature({"organizations:issue-platform": False})
-    @patch("sentry.coreapi.insert_data_to_database_legacy")
-    def test_mark_failed_with_missed_reason_legacy(self, mock_insert_data_to_database_legacy):
-        last_checkin = timezone.now().replace(second=0, microsecond=0)
-        next_checkin = last_checkin + timedelta(hours=1)
-
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule": [1, "hour"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment_id=self.environment.id,
-            last_checkin=last_checkin,
-            next_checkin=next_checkin,
-            next_checkin_latest=next_checkin + timedelta(minutes=1),
-            status=monitor.status,
-        )
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=CheckInStatus.MISSED,
-        )
-        assert mark_failed(checkin, ts=checkin.date_added)
-
-        monitor.refresh_from_db()
-        monitor_environment.refresh_from_db()
-        assert monitor_environment.status == MonitorStatus.ERROR
-
-        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
-
-        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
-
-        assert dict(
-            event,
-            **{
-                "level": "error",
-                "project": self.project.id,
-                "environment": monitor_environment.get_environment().name,
-                "platform": "other",
-                "contexts": {
-                    "monitor": {
-                        "status": "error",
-                        "type": "cron_job",
-                        "config": {
-                            "schedule_type": 2,
-                            "schedule": [1, "hour"],
-                            "max_runtime": None,
-                            "checkin_margin": None,
-                        },
-                        "id": str(monitor.guid),
-                        "name": monitor.name,
-                        "slug": monitor.slug,
-                    }
-                },
-                "logentry": {"formatted": "Monitor failure: test monitor (missed_checkin)"},
-                "fingerprint": ["monitor", str(monitor.guid), "missed_checkin"],
-                "logger": "",
-                "type": "default",
-            },
-        ) == dict(event)
-
-    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
-    def test_mark_failed_default_params_issue_platform(self, mock_produce_occurrence_to_kafka):
+    def test_mark_failed_default_params(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -340,7 +144,6 @@ class MarkFailedTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_muted(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -378,7 +181,6 @@ class MarkFailedTestCase(TestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
         assert monitor_environment.active_incident is not None
 
-    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_env_muted(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -418,7 +220,6 @@ class MarkFailedTestCase(TestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
         assert monitor_environment.active_incident is not None
 
-    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold(self, mock_produce_occurrence_to_kafka):
         failure_issue_threshold = 8
@@ -472,7 +273,6 @@ class MarkFailedTestCase(TestCase):
             status=CheckInStatus.OK,
         )
 
-        first_checkin = None
         for _ in range(0, failure_issue_threshold):
             status = next(failure_statuses)
             checkin = MonitorCheckIn.objects.create(
@@ -490,11 +290,10 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.ERROR
 
         # check that an incident has been created correctly
-        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
-        assert len(monitor_incidents) == 1
-        monitor_incident = monitor_incidents.first()
+        monitor_incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
         assert monitor_incident.starting_checkin == first_checkin
         assert monitor_incident.starting_timestamp == first_checkin.date_added
+        assert monitor_environment.active_incident is not None
         assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
@@ -525,6 +324,7 @@ class MarkFailedTestCase(TestCase):
 
         # check that incident has not changed
         monitor_incident = MonitorIncident.objects.get(id=monitor_incident.id)
+        assert monitor_environment.active_incident is not None
         assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
@@ -561,11 +361,9 @@ class MarkFailedTestCase(TestCase):
 
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
         assert len(monitor_incidents) == 2
-        monitor_incident = monitor_incidents.last()
 
     # Test to make sure that timeout mark_failed (which occur in the past)
     # correctly create issues once passing the failure_issue_threshold
-    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold_timeout(self, mock_produce_occurrence_to_kafka):
         failure_issue_threshold = 8
@@ -596,7 +394,6 @@ class MarkFailedTestCase(TestCase):
         )
 
         # create in-progress check-ins
-        first_checkin = None
         checkins = []
         for i in range(0, failure_issue_threshold + 1):
             checkin = MonitorCheckIn.objects.create(
@@ -628,11 +425,10 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.ERROR
 
         # check that an incident has been created correctly
-        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
-        assert len(monitor_incidents) == 1
-        monitor_incident = monitor_incidents.first()
+        monitor_incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
         assert monitor_incident.starting_checkin == first_checkin
         assert monitor_incident.starting_timestamp == first_checkin.date_added
+        assert monitor_environment.active_incident is not None
         assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
@@ -647,7 +443,6 @@ class MarkFailedTestCase(TestCase):
         assert occurrence["evidence_display"][0]["value"] == "8 timeout check-ins detected"
 
     # we are duplicating this test as the code paths are different, for now
-    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold_disabled(self, mock_produce_occurrence_to_kafka):
         failure_issue_threshold = 8
@@ -688,7 +483,6 @@ class MarkFailedTestCase(TestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
         assert monitor_environment.active_incident is not None
 
-    @with_feature("organizations:issue-platform")
     def test_mark_failed_issue_assignment(self):
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -729,11 +523,10 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.ERROR
 
         # check that an incident has been created correctly
-        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
-        assert len(monitor_incidents) == 1
-        monitor_incident = monitor_incidents.first()
+        monitor_incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
         assert monitor_incident.starting_checkin == checkin
         assert monitor_incident.starting_timestamp == checkin.date_added
+        assert monitor_environment.active_incident is not None
         assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
         occurrence_data = {"fingerprint": [monitor_environment.active_incident.grouphash]}
         process_occurrence_data(occurrence_data)

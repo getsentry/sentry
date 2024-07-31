@@ -7,12 +7,12 @@ from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.api.helpers.group_index.update import get_current_release_version_of_group
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType

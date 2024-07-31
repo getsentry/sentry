@@ -6,8 +6,8 @@ from typing import Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.types.integrations import ExternalProviders
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
 
 
 def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:

@@ -15,8 +15,8 @@ from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import generate_token
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.organizations.services.organization import organization_service
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 

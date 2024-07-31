@@ -1,7 +1,7 @@
 import re
 from collections.abc import Sequence
 
-from django.db.models import Count, Max
+from django.db.models import Count, Max, QuerySet
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
@@ -16,7 +16,7 @@ from sentry.discover.models import (
 )
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.team import Team
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
@@ -234,7 +234,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 )
             try:
                 equations, columns = categorize_columns(query["fields"])
-                builder = QueryBuilder(
+                builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
                     params=self.context["params"],
                     query=query["query"],
@@ -273,7 +273,7 @@ class TeamKeyTransactionSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True, max_length=200)
     team = serializers.ListField(child=serializers.IntegerField())
 
-    def validate_team(self, team_ids: Sequence[int]) -> Team:
+    def validate_team(self, team_ids: Sequence[int]) -> QuerySet[Team]:
         request = self.context["request"]
         organization = self.context["organization"]
         verified_teams = {team.id for team in Team.objects.get_for_user(organization, request.user)}

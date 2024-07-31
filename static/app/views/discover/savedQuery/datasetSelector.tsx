@@ -1,39 +1,57 @@
-import omit from 'lodash/omit';
-
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import type {SavedQuery} from 'sentry/types';
+import type {NewQuery, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/data';
+import {
+  getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDataset,
+  getSavedQueryWithDataset,
+} from 'sentry/views/discover/savedQuery/utils';
 
 export const DATASET_PARAM = 'queryDataset';
 
+export const DATASET_LABEL_MAP = {
+  [SavedQueryDatasets.ERRORS]: t('Errors'),
+  [SavedQueryDatasets.TRANSACTIONS]: t('Transactions'),
+  [SavedQueryDatasets.DISCOVER]: t('Unknown'),
+};
+
 type Props = {
+  eventView: EventView;
   isHomepage: boolean | undefined;
   savedQuery: SavedQuery | undefined;
+  splitDecision?: SavedQueryDatasets;
 };
 
 export function DatasetSelector(props: Props) {
-  const {savedQuery, isHomepage} = props;
+  const {savedQuery, isHomepage, splitDecision, eventView} = props;
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const value =
-    decodeScalar(location.query[DATASET_PARAM]) ??
-    savedQuery?.queryDataset ??
-    'error-events';
+
+  const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
 
   const options = [
-    {value: 'error-events', label: t('Errors')},
-    {value: 'transaction-like', label: t('Transactions')},
+    {
+      value: SavedQueryDatasets.ERRORS,
+      label: DATASET_LABEL_MAP[SavedQueryDatasets.ERRORS],
+    },
+    {
+      value: SavedQueryDatasets.TRANSACTIONS,
+      label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
+    },
   ];
 
   if (value === 'discover') {
-    options.push({value: 'discover', label: t('Unknown')});
+    options.push({
+      value: SavedQueryDatasets.DISCOVER,
+      label: DATASET_LABEL_MAP[SavedQueryDatasets.DISCOVER],
+    });
   }
 
   return (
@@ -42,11 +60,17 @@ export function DatasetSelector(props: Props) {
       value={value}
       options={options}
       onChange={newValue => {
-        const query = DEFAULT_EVENT_VIEW_MAP[newValue.value];
-        const newQuery = savedQuery
-          ? omit(query, ['name', 'id', 'projects', 'range'])
-          : query;
-        const nextEventView = EventView.fromNewQueryWithLocation(newQuery, location);
+        let nextEventView: EventView;
+        if (eventView.id) {
+          nextEventView = eventView.withDataset(
+            getDatasetFromLocationOrSavedQueryDataset(undefined, newValue.value)
+          );
+        } else {
+          const query = getSavedQueryWithDataset(
+            DEFAULT_EVENT_VIEW_MAP[newValue.value]
+          ) as NewQuery;
+          nextEventView = EventView.fromNewQueryWithLocation(query, location);
+        }
         const nextLocation = nextEventView.getResultsViewUrlTarget(
           organization.slug,
           isHomepage
@@ -59,7 +83,6 @@ export function DatasetSelector(props: Props) {
           },
         });
       }}
-      size="sm"
     />
   );
 }

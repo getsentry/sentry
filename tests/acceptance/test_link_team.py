@@ -2,12 +2,12 @@ from urllib.parse import urlparse
 
 from selenium.webdriver.common.by import By
 
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.views.link_team import build_team_linking_url
+from sentry.integrations.types import ExternalProviders
 from sentry.models.identity import Identity, IdentityStatus
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
-from sentry.types.integrations import ExternalProviders
 
 
 @no_silo_test

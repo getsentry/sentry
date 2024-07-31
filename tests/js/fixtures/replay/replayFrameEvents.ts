@@ -18,7 +18,7 @@ type TestableFrameEvent<
 >;
 
 /**
- * `BreadcrumbFrameData` has factories to help construct the correct payloads.
+ * `replayBreadcrumbFrameData.tsx` has factories to help construct the correct payloads.
  *
  * ```
  * ReplayBreadcrumbFrameEventFixture({
@@ -44,14 +44,13 @@ export function ReplayBreadcrumbFrameEventFixture(
 }
 
 /**
- * `SpanFrame()` is a factories to help consturt valid payloads given an operation name.
- * `ReplaySpanFrameData.*` contains more factories to build the required inner dataset.
+ * `replaySpanFrameData.tsx` has factories to help consturt valid payloads given an operation name.
  *
  * ```
- * SpanFrameEventFixture({
+ * ReplaySpanFrameEventFixture({
  *   timestamp,
  *   data: {
- *     payload: ReplaySpanFrameEventFixture({
+ *     payload: ReplayNavigationFrameFixture({
  *      data: {...}
  *     }),
  *   },
@@ -85,7 +84,7 @@ export function ReplayOptionFrameEventFixture(
 }
 
 export function ReplayOptionFrameFixture(
-  fields: Partial<OptionFrameEvent['data']['payload']>
+  fields: Partial<OptionFrameEvent['data']['payload']> = {}
 ): OptionFrameEvent['data']['payload'] {
   return {
     blockAllMedia: false,

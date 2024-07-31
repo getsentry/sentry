@@ -47,7 +47,7 @@ interface TabbedCodeSnippetProps {
   partialLoading?: boolean;
 }
 
-function TabbedCodeSnippet({
+export function TabbedCodeSnippet({
   tabs,
   onCopy,
   onSelectAndCopy,

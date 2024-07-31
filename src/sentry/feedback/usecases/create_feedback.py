@@ -32,7 +32,6 @@ UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
 
 class FeedbackCreationSource(Enum):
     NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
-    NEW_FEEDBACK_DJANGO_ENDPOINT = "new_feedback_sentry_django_endpoint"  # TODO: delete this once feedback_ingest API deprecated
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
@@ -44,7 +43,6 @@ class FeedbackCreationSource(Enum):
             c.value
             for c in [
                 cls.NEW_FEEDBACK_ENVELOPE,
-                cls.NEW_FEEDBACK_DJANGO_ENDPOINT,
             ]
         }
 
@@ -200,6 +198,11 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
             logger.exception("Error checking if message is spam")
+        metrics.incr(
+            "feedback.create_feedback_issue.spam_detection",
+            tags={"is_spam": is_message_spam},
+            sample_rate=1.0,
+        )
 
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
@@ -244,7 +247,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         source
         in [
             FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
         ]
         and not project.flags.has_new_feedbacks
     ):

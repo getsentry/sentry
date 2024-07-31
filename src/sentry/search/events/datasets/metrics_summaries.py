@@ -5,7 +5,8 @@ from collections.abc import Callable, Mapping
 from snuba_sdk import And, Column, Condition, Direction, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.search.events import builder, constants
+from sentry.search.events import constants
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import IntervalDefault, NumberRange, SnQLFunction, with_default
@@ -13,7 +14,7 @@ from sentry.search.events.types import SelectType, WhereType
 
 
 class MetricsSummariesDatasetConfig(DatasetConfig):
-    def __init__(self, builder: builder.QueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
 
     @property

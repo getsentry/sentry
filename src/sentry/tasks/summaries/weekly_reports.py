@@ -3,13 +3,16 @@ from __future__ import annotations
 import heapq
 import logging
 import uuid
-from collections.abc import Mapping
-from functools import partial, reduce
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from datetime import timedelta
+from functools import partial
 from typing import Any, cast
 
 import sentry_sdk
 from django.db.models import F
 from django.utils import dateformat, timezone
+from rb.clients import LocalClient
 from sentry_sdk import set_tag
 
 from sentry import analytics
@@ -19,7 +22,7 @@ from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
@@ -39,7 +42,7 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.types.group import GroupSubStatus
-from sentry.utils import json
+from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.outcomes import Outcome
@@ -71,15 +74,20 @@ def schedule_organizations(
         # The total timespan that the task covers
         duration = ONE_DAY * 7
 
+    batch_id = uuid.uuid4()
+
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     for organization in RangeQuerySetWrapper(
         organizations, step=10000, result_value_getter=lambda item: item.id
     ):
         # Create a celery task per organization
         logger.info(
-            "weekly_reports.schedule_organizations", extra={"organization": organization.id}
+            "weekly_reports.schedule_organizations",
+            extra={"batch_id": str(batch_id), "organization": organization.id},
         )
-        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+        prepare_organization_report.delay(
+            timestamp, duration, organization.id, batch_id, dry_run=dry_run
+        )
 
 
 # This task is launched per-organization.
@@ -95,6 +103,7 @@ def prepare_organization_report(
     timestamp: float,
     duration: int,
     organization_id: int,
+    batch_id: uuid.UUID,
     dry_run: bool = False,
     target_user: User | None = None,
     email_override: str | None = None,
@@ -103,6 +112,7 @@ def prepare_organization_report(
         logger.error(
             "Target user must have an ID",
             extra={
+                "batch_id": str(batch_id),
                 "organization": organization_id,
                 "target_user": target_user,
                 "email_override": email_override,
@@ -167,12 +177,18 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
+                project_ctx.key_errors_by_id = [
+                    (e["events.group_id"], e["count()"]) for e in key_errors
+                ]
 
                 if ctx.organization.slug == "sentry":
                     logger.info(
                         "project_key_errors.results",
-                        extra={"project_id": project.id, "num_key_errors": len(key_errors)},
+                        extra={
+                            "batch_id": str(batch_id),
+                            "project_id": project.id,
+                            "num_key_errors": len(key_errors),
+                        },
                     )
             key_transactions_this_week = project_key_transactions_this_week(ctx, project)
             if key_transactions_this_week:
@@ -211,76 +227,174 @@ def prepare_organization_report(
 
     if not report_is_available:
         logger.info(
-            "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
+            "prepare_organization_report.skipping_empty",
+            extra={"batch_id": str(batch_id), "organization": organization_id},
         )
         return
 
     # Finally, deliver the reports
+    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
-        logger.info("weekly_reports.deliver_reports", extra={"organization": organization_id})
-        deliver_reports(
-            ctx, dry_run=dry_run, target_user=target_user, email_override=email_override
+        logger.info(
+            "weekly_reports.deliver_reports",
+            extra={"batch_id": str(batch_id), "organization": organization_id},
         )
+        batch.deliver_reports()
 
 
-def deliver_reports(
-    ctx: OrganizationReportContext,
-    dry_run: bool = False,
-    target_user: User | None = None,
-    email_override: str | None = None,
-) -> None:
-    """
-    For all users in the organization, we generate the template context for the user, and send the email.
-    """
-    # Specify a sentry user to send this email.
-    template_context: Mapping[str, Any] | None = None
-    user_id: int | None = None
+@dataclass(frozen=True)
+class OrganizationReportBatch:
+    ctx: OrganizationReportContext
+    batch_id: uuid.UUID
 
-    if email_override:
-        target_user_id = (
-            target_user.id if target_user else None
-        )  # if None, generates report for a user with access to all projects
-        user_template_context_by_user_id_list = prepare_template_context(
-            ctx=ctx, user_ids=[target_user_id]
-        )
-        if user_template_context_by_user_id_list:
-            user_template_context_by_user_id = user_template_context_by_user_id_list[0]
-            template_context = user_template_context_by_user_id.get("context")
-            user_id = user_template_context_by_user_id.get("user_id")
-            if template_context and user_id:
-                send_email(
-                    ctx=ctx,
-                    template_ctx=template_context,
-                    user_id=user_id,
-                    dry_run=dry_run,
-                    email_override=email_override,
-                )
-    else:
-        user_list = list(
-            OrganizationMember.objects.filter(
-                user_is_active=True,
-                organization_id=ctx.organization.id,
-            )
-            .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
-            .values_list("user_id", flat=True)
-        )
-        user_list = list(filter(lambda v: v is not None, user_list))
-        user_ids = notifications_service.get_users_for_weekly_reports(
-            organization_id=ctx.organization.id, user_ids=user_list
-        )
-        user_template_context_by_user_id_list = []
-        for user_id in user_ids:
+    dry_run: bool = False
+    target_user: User | None = None
+    email_override: str | None = None
+
+    def deliver_reports(self) -> None:
+        """
+        For all users in the organization, we generate the template context for the user, and send the email.
+        """
+
+        if self.email_override:
+            target_user_id = (
+                self.target_user.id if self.target_user else None
+            )  # if None, generates report for a user with access to all projects
             user_template_context_by_user_id_list = prepare_template_context(
-                ctx=ctx, user_ids=user_ids
+                ctx=self.ctx, user_ids=[target_user_id]
             )
-        if user_template_context_by_user_id_list:
-            for user_template in user_template_context_by_user_id_list:
-                template_context = user_template.get("context")
-                user_id = user_template.get("user_id")
-                if template_context and user_id:
-                    send_email(
-                        ctx=ctx, template_ctx=template_context, user_id=user_id, dry_run=dry_run
-                    )
+            if user_template_context_by_user_id_list:
+                self._send_to_user(user_template_context_by_user_id_list[0])
+        else:
+            user_list = list(
+                OrganizationMember.objects.filter(
+                    user_is_active=True,
+                    organization_id=self.ctx.organization.id,
+                )
+                .filter(
+                    flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"])
+                )
+                .values_list("user_id", flat=True)
+            )
+            user_list = [v for v in user_list if v is not None]
+            user_ids = notifications_service.get_users_for_weekly_reports(
+                organization_id=self.ctx.organization.id, user_ids=user_list
+            )
+            user_template_context_by_user_id_list = []
+            if user_ids:
+                user_template_context_by_user_id_list = prepare_template_context(
+                    ctx=self.ctx, user_ids=user_ids
+                )
+            if user_template_context_by_user_id_list:
+                for user_template in user_template_context_by_user_id_list:
+                    self._send_to_user(user_template)
+
+    def _send_to_user(self, user_template_context: Mapping[str, Any]) -> None:
+        template_context: Mapping[str, Any] | None = user_template_context.get("context")
+        user_id: int | None = user_template_context.get("user_id")
+        if template_context and user_id:
+            dupe_check = _DuplicateDeliveryCheck(self, user_id)
+            if not dupe_check.check_for_duplicate_delivery():
+                self.send_email(template_ctx=template_context, user_id=user_id)
+                dupe_check.record_delivery()
+
+    def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
+        message = MessageBuilder(
+            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(self.ctx.start)} - {date_format(self.ctx.end)}",
+            template="sentry/emails/reports/body.txt",
+            html_template="sentry/emails/reports/body.html",
+            type="report.organization",
+            context=template_ctx,
+            headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
+        )
+        if self.dry_run:
+            return
+
+        if self.email_override:
+            message.send(to=(self.email_override,))
+        else:
+            analytics.record(
+                "weekly_report.sent",
+                user_id=user_id,
+                organization_id=self.ctx.organization.id,
+                notification_uuid=template_ctx["notification_uuid"],
+                user_project_count=template_ctx["user_project_count"],
+            )
+
+            # TODO see if we can use the UUID to track if the email was sent or not
+            logger.info(
+                "weekly_report.send_email",
+                extra={
+                    "batch_id": str(self.batch_id),
+                    "organization": self.ctx.organization.id,
+                    "uuid": template_ctx["notification_uuid"],
+                    "user_id": user_id,
+                },
+            )
+
+            message.add_users((user_id,))
+            message.send_async()
+
+
+class _DuplicateDeliveryCheck:
+    def __init__(self, batch: OrganizationReportBatch, user_id: int):
+        self.batch = batch
+        self.user_id = user_id
+
+        # Tracks state from `check_for_duplicate_delivery` to `record_delivery`
+        self.count: int | None = None
+
+    def _get_redis_cluster(self) -> LocalClient:
+        return redis.clusters.get("default").get_local_client_for_key("weekly_reports")
+
+    @property
+    def _redis_name(self) -> str:
+        name_parts = (self.batch.batch_id, self.batch.ctx.organization.id, self.user_id)
+        return ":".join(str(part) for part in name_parts)
+
+    def _get_log_extras(self) -> dict[str, Any]:
+        return {
+            "batch_id": str(self.batch.batch_id),
+            "organization": self.batch.ctx.organization.id,
+            "user_id": self.user_id,
+            "has_email_override": bool(self.batch.email_override),
+        }
+
+    def check_for_duplicate_delivery(self) -> bool:
+        """Check whether this delivery has been recorded in Redis already."""
+        if self.count is not None:
+            raise ValueError("This object has already checked a delivery")
+        cluster = self._get_redis_cluster()
+        self.count = int(cluster.get(self._redis_name) or 0)
+
+        is_duplicate_detected = self.count > 0
+        if is_duplicate_detected:
+            logger.error(
+                "weekly_report.delivery_record.duplicate_detected", extra=self._get_log_extras()
+            )
+        return is_duplicate_detected
+
+    def record_delivery(self) -> bool:
+        """Record in Redis that the delivery was completed successfully."""
+        if self.count is None:
+            raise ValueError("This object has not had `check_for_duplicate_delivery` called yet")
+        cluster = self._get_redis_cluster()
+        count_after = cluster.incr(self._redis_name)
+        cluster.expire(self._redis_name, timedelta(days=1))
+
+        is_duplicate_detected = count_after > self.count + 1
+        if is_duplicate_detected:
+            # There is no lock for concurrency, which leaves open the possibility of
+            # a race condition, in case another thread or server node received a
+            # duplicate Celery task somehow. But we do not think this is a likely
+            # failure mode.
+            #
+            # Nonetheless, the `cluster.incr` operation is atomic, so if concurrent
+            # duplicates are happening, this should reliably detect them after the fact.
+            logger.error(
+                "weekly_report.delivery_record.concurrent_detected", extra=self._get_log_extras()
+            )
+        return is_duplicate_detected
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
@@ -340,17 +454,16 @@ def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
-def render_template_context(ctx, user_id):
+def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
     if user_id and user_id in ctx.project_ownership:
-        user_projects = list(
-            filter(
-                lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user_id],
-                ctx.projects_context_map.values(),
-            )
-        )
+        user_projects = [
+            project_ctx
+            for project_ctx in ctx.projects_context_map.values()
+            if project_ctx.project.id in ctx.project_ownership[user_id]
+        ]
         if len(user_projects) == 0:
             return None
     else:
@@ -364,28 +477,18 @@ def render_template_context(ctx, user_id):
     def trends():
         # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
         def sum_event_counts(project_ctxs):
-            return reduce(
-                lambda a, b: (
-                    a[0] + b[0],
-                    a[1] + b[1],
-                    a[2] + b[2],
-                    a[3] + b[3],
-                    a[4] + b[4],
-                    a[5] + b[5],
-                ),
-                [
-                    (
-                        project_ctx.accepted_error_count,
-                        project_ctx.dropped_error_count,
-                        project_ctx.accepted_transaction_count,
-                        project_ctx.dropped_transaction_count,
-                        project_ctx.accepted_replay_count,
-                        project_ctx.dropped_replay_count,
-                    )
-                    for project_ctx in project_ctxs
-                ],
-                (0, 0, 0, 0, 0, 0),
-            )
+            event_counts = [
+                (
+                    project_ctx.accepted_error_count,
+                    project_ctx.dropped_error_count,
+                    project_ctx.accepted_transaction_count,
+                    project_ctx.dropped_transaction_count,
+                    project_ctx.accepted_replay_count,
+                    project_ctx.dropped_replay_count,
+                )
+                for project_ctx in project_ctxs
+            ]
+            return tuple(sum(event[i] for event in event_counts) for i in range(6))
 
         # Highest volume projects go first
         projects_associated_with_user = sorted(
@@ -410,7 +513,7 @@ def render_template_context(ctx, user_id):
         projects_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
 
         # Calculate legend
-        legend = [
+        legend: list[dict[str, Any]] = [
             {
                 "slug": project_ctx.project.slug,
                 "url": project_ctx.project.get_absolute_url(
@@ -480,22 +583,16 @@ def render_template_context(ctx, user_id):
                     {
                         "color": other_color,
                         "error_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.error_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.error_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                         "transaction_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.transaction_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.transaction_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                         "replay_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.replay_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.replay_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                     }
                 )
@@ -512,11 +609,13 @@ def render_template_context(ctx, user_id):
             "transaction_maximum": max(  # The max transaction count on any single day
                 sum(value["transaction_count"] for value in values) for timestamp, values in series
             ),
-            "replay_maximum": max(  # The max replay count on any single day
-                sum(value["replay_count"] for value in values) for timestamp, values in series
-            )
-            if len(projects_taken) > 0
-            else 0,
+            "replay_maximum": (
+                max(  # The max replay count on any single day
+                    sum(value["replay_count"] for value in values) for timestamp, values in series
+                )
+                if len(projects_taken) > 0
+                else 0
+            ),
         }
 
     def key_errors():
@@ -539,7 +638,7 @@ def render_template_context(ctx, user_id):
                             "project_id": project_ctx.project.id,
                         },
                     )
-                for group, group_history, count in project_ctx.key_errors:
+                for group, count in project_ctx.key_errors_by_group:
                     if ctx.organization.slug == "sentry":
                         logger.info(
                             "render_template_context.all_key_errors.found_error",
@@ -559,12 +658,8 @@ def render_template_context(ctx, user_id):
                     yield {
                         "count": count,
                         "group": group,
-                        "status": group_history.get_status_display()
-                        if group_history
-                        else "Unresolved",
-                        "status_color": group_status_to_color[group_history.status]
-                        if group_history
-                        else group_status_to_color[GroupHistoryStatus.NEW],
+                        "status": "Unresolved",
+                        "status_color": (group_status_to_color[GroupHistoryStatus.NEW]),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
                         "group_substatus_border_color": substatus_border_color,
@@ -599,12 +694,14 @@ def render_template_context(ctx, user_id):
                     yield {
                         "count": count,
                         "group": group,
-                        "status": group_history.get_status_display()
-                        if group_history
-                        else "Unresolved",
-                        "status_color": group_status_to_color[group_history.status]
-                        if group_history
-                        else group_status_to_color[GroupHistoryStatus.NEW],
+                        "status": (
+                            group_history.get_status_display() if group_history else "Unresolved"
+                        ),
+                        "status_color": (
+                            group_status_to_color[group_history.status]
+                            if group_history
+                            else group_status_to_color[GroupHistoryStatus.NEW]
+                        ),
                     }
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
@@ -647,7 +744,7 @@ def render_template_context(ctx, user_id):
 
 
 def prepare_template_context(
-    ctx: OrganizationReportContext, user_ids: list[int]
+    ctx: OrganizationReportContext, user_ids: Sequence[int | None]
 ) -> list[Mapping[str, Any]] | list:
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
@@ -661,42 +758,3 @@ def prepare_template_context(
             continue
         user_template_context_by_user_id_list.append({"context": template_ctx, "user_id": user_id})
     return user_template_context_by_user_id_list
-
-
-def send_email(
-    ctx: OrganizationReportContext,
-    template_ctx: Mapping[str, Any],
-    user_id: int,
-    dry_run: bool = False,
-    email_override: str | None = None,
-) -> None:
-    message = MessageBuilder(
-        subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
-        template="sentry/emails/reports/body.txt",
-        html_template="sentry/emails/reports/body.html",
-        type="report.organization",
-        context=template_ctx,
-        headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
-    )
-    if dry_run:
-        return
-
-    if email_override:
-        message.send(to=(email_override,))
-    else:
-        analytics.record(
-            "weekly_report.sent",
-            user_id=user_id,
-            organization_id=ctx.organization.id,
-            notification_uuid=template_ctx["notification_uuid"],
-            user_project_count=template_ctx["user_project_count"],
-        )
-
-        # TODO see if we can use the UUID to track if the email was sent or not
-        logger.info(
-            "weekly_report.send_email",
-            extra={"organization": ctx.organization.id, "uuid": template_ctx["notification_uuid"]},
-        )
-
-        message.add_users((user_id,))
-        message.send_async()

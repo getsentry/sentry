@@ -18,7 +18,6 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
 
@@ -113,8 +112,7 @@ function Content({
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: (value, label) =>
-        tooltipFormatter(value, aggregateOutputType(label)),
+      valueFormatter: (value, _label) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
       ? {

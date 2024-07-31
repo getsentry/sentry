@@ -2,8 +2,8 @@ from time import time
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.integrations.models.integration import Integration
 from sentry.models.apitoken import generate_token
-from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -19,8 +19,11 @@ from sentry.tasks.integrations import logger
 )
 @retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist))
 def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
+    from sentry.integrations.vsts.integration import VstsIntegration
+
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(organization_id=organization_id)
+    assert isinstance(installation, VstsIntegration), installation
     try:
         client = installation.get_client(base_url=installation.instance)
     except ObjectDoesNotExist:
@@ -45,7 +48,7 @@ def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
     if not subscription or subscription["status"] == "disabledBySystem":
         # Update subscription does not work for disabled subscriptions
         # We instead will try to delete and then create a new one.
-        if subscription:
+        if subscription and subscription_id is not None:
             try:
                 client.delete_subscription(subscription_id=subscription_id)
             except ApiError as e:

@@ -56,6 +56,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const {projects, initiallyLoaded} = useProjects({
     slugs: [params.projectId],
@@ -236,18 +237,20 @@ export function ProjectInstallPlatform({location, params}: Props) {
           >
             {t('Take me to Issues')}
           </Button>
-          <Button
-            busy={loadingProjects}
-            to={{
-              pathname: performanceOverviewLink,
-              query: {
-                project: project?.id,
-              },
-            }}
-          >
-            {t('Take me to Performance')}
-          </Button>
-          {showReplayButton && (
+          {!isSelfHostedErrorsOnly && (
+            <Button
+              busy={loadingProjects}
+              to={{
+                pathname: performanceOverviewLink,
+                query: {
+                  project: project?.id,
+                },
+              }}
+            >
+              {t('Take me to Performance')}
+            </Button>
+          )}
+          {!isSelfHostedErrorsOnly && showReplayButton && (
             <Button
               busy={loadingProjects}
               to={{

@@ -263,15 +263,25 @@ function SummaryContent({
   }
 
   if (
-    organization.features.includes('profiling') &&
-    project &&
     // only show for projects that already sent a profile
     // once we have a more compact design we will show this for
     // projects that support profiling as well
-    project.hasProfiles
+    project?.hasProfiles &&
+    (organization.features.includes('profiling') ||
+      organization.features.includes('continuous-profiling'))
   ) {
     transactionsListTitles.push(t('profile'));
-    fields.push({field: 'profile.id'});
+
+    if (organization.features.includes('profiling')) {
+      fields.push({field: 'profile.id'});
+    }
+
+    if (organization.features.includes('continuous-profiling')) {
+      fields.push({field: 'profiler.id'});
+      fields.push({field: 'thread.id'});
+      fields.push({field: 'precise.start_ts'});
+      fields.push({field: 'precise.finish_ts'});
+    }
   }
 
   // update search conditions
@@ -329,6 +339,10 @@ function SummaryContent({
     },
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
+
+  const hasNewSpansUIFlag =
+    organization.features.includes('performance-spans-new-ui') &&
+    organization.features.includes('insights-initial-modules');
 
   return (
     <Fragment>
@@ -399,18 +413,21 @@ function SummaryContent({
           />
         </PerformanceAtScaleContextProvider>
 
-        <SuspectSpans
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          totals={
-            defined(totalValues?.['count()'])
-              ? {'count()': totalValues!['count()']}
-              : null
-          }
-          projectId={projectId}
-          transactionName={transactionName}
-        />
+        {!hasNewSpansUIFlag && (
+          <SuspectSpans
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            totals={
+              defined(totalValues?.['count()'])
+                ? {'count()': totalValues!['count()']}
+                : null
+            }
+            projectId={projectId}
+            transactionName={transactionName}
+          />
+        )}
+
         <TagExplorer
           eventView={eventView}
           organization={organization}
@@ -489,7 +506,7 @@ function getFilterOptions({
         label: t('Fastest Transactions'),
       },
       {
-        query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+        query: p95 > 0 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
         sort: {kind: 'desc', field: 'transaction.duration'},
         value: TransactionFilterOptions.SLOW,
         label: t('Slow Transactions (p95)'),
@@ -517,7 +534,7 @@ function getFilterOptions({
       label: t('Fastest %s Operations', operationName),
     },
     {
-      query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+      query: p95 > 0 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
       sort: {kind: 'desc', field},
       value: TransactionFilterOptions.SLOW,
       label: t('Slow %s Operations (p95)', operationName),

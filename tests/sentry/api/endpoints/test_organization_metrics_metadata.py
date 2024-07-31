@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import pytest
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -47,7 +46,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 TransactionMRI.DURATION.value,
                 {
                     "transaction": transaction,
@@ -57,7 +55,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
                 },
                 self.now().timestamp(),
                 value,
-                UseCaseID.TRANSACTIONS,
             )
         # Use Case: CUSTOM
         for value, release, tag_value, time in (
@@ -70,7 +67,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 "d:custom/my_test_metric@percent",
                 {
                     "transaction": "/hello",
@@ -81,7 +77,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
                 },
                 self.now().timestamp(),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         self.prod_env = self.create_environment(name="prod", project=self.project)

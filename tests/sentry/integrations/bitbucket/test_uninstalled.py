@@ -5,8 +5,8 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

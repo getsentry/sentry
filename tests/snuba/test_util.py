@@ -2,6 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 from sentry.models.grouphash import GroupHash
 from sentry.receivers import create_default_projects
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.utils import build_query_strings
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
@@ -65,3 +67,42 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
                 assert snuba.OVERRIDE_OPTIONS == {"foo": 2, "consistent": False}
             assert snuba.OVERRIDE_OPTIONS == {"foo": 1, "consistent": False}
         assert snuba.OVERRIDE_OPTIONS == {"consistent": False}
+
+    def test_build_query_strings(self):
+        snuba_query_no_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            aggregate="count()",
+            time_window=60,
+            resolution=60,
+        )
+        subscription_noquery = QuerySubscription.objects.create(
+            status=QuerySubscription.Status.CREATING.value,
+            project=self.project,
+            snuba_query=snuba_query_no_query,
+            query_extra="foobar",
+        )
+        query_strings = build_query_strings(subscription_noquery, snuba_query_no_query)
+        assert query_strings.query_string == "foobar"
+        assert query_strings.query == ""
+        assert query_strings.query_extra == "foobar"
+
+        snuba_query_with_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            aggregate="count()",
+            time_window=60,
+            resolution=60,
+            query="event.type:error",
+        )
+        subscription_with_query = QuerySubscription.objects.create(
+            status=QuerySubscription.Status.CREATING.value,
+            project=self.project,
+            snuba_query=snuba_query_with_query,
+            query_extra="foobar",
+        )
+
+        query_strings = build_query_strings(subscription_with_query, snuba_query_with_query)
+        assert query_strings.query_string == "event.type:error and foobar"
+        assert query_strings.query == "event.type:error"
+        assert query_strings.query_extra == " and foobar"

@@ -7,6 +7,7 @@ import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {
   isMetricsEquationWidget,
   MetricExpressionType,
@@ -23,6 +24,8 @@ import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useGetCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 import {widgetToQuery} from 'sentry/views/metrics/utils/widgetToQuery';
+
+import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
 
 import {MetricWidget} from './widget';
 
@@ -43,6 +46,7 @@ export function MetricScratchpad() {
   const router = useRouter();
   const organization = useOrganization();
   const getChartPalette = useGetCachedChartPalette();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -95,6 +99,7 @@ export function MetricScratchpad() {
           organization,
           transactionName: isTransaction ? sample.transaction : undefined,
           spanId: isTransaction ? sample.id : undefined,
+          source: TraceViewSources.METRICS,
         })
       );
     },
@@ -166,7 +171,7 @@ export function MetricScratchpad() {
           tableSort={firstWidget.sort}
           queries={filteredWidgets
             .filter(w => !(w.type === MetricExpressionType.EQUATION && w.isHidden))
-            .map(w => widgetToQuery(w))}
+            .map(w => widgetToQuery({widget: w, metricsNewInputs}))}
           isSelected
           hasSiblings={false}
           onChange={handleChange}
@@ -193,16 +198,18 @@ function MultiChartWidgetQueries({
   formulaDependencies: ReturnType<typeof useFormulaDependencies>;
   widget: MetricsWidget;
 }) {
+  const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
   const queries = useMemo(() => {
     return [
-      widgetToQuery(widget),
+      widgetToQuery({widget, metricsNewInputs}),
       ...(isMetricsEquationWidget(widget)
         ? formulaDependencies[widget.id]?.dependencies?.map(dependency =>
-            widgetToQuery(dependency, true)
+            widgetToQuery({widget: dependency, isQueryOnly: true, metricsNewInputs})
           )
         : []),
     ];
-  }, [widget, formulaDependencies]);
+  }, [widget, formulaDependencies, metricsNewInputs]);
 
   return children(queries);
 }

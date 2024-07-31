@@ -5,9 +5,9 @@ from oauthlib.oauth1 import SIGNATURE_RSA
 from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.client import ApiClient
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")

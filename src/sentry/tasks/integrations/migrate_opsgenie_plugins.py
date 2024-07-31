@@ -2,11 +2,11 @@ import logging
 
 from django.db import router, transaction
 
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
@@ -11,7 +11,7 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
-from sentry.db.models.manager import OptionManager, ValidateFunction, Value
+from sentry.db.models.manager.option import OptionManager
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -35,7 +35,6 @@ OPTION_KEYS = frozenset(
         "sentry:csp_ignored_sources_defaults",
         "sentry:csp_ignored_sources",
         "sentry:default_environment",
-        "sentry:reprocessing_active",
         "sentry:blacklisted_ips",
         "sentry:releases",
         "sentry:error_messages",
@@ -53,14 +52,17 @@ OPTION_KEYS = frozenset(
         "sentry:grouping_enhancements_base",
         "sentry:secondary_grouping_config",
         "sentry:secondary_grouping_expiry",
-        "sentry:grouping_auto_update",
+        "sentry:similarity_backfill_completed",
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
+        "sentry:metrics_extraction_rules",
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
         "sentry:breakdowns",
         "sentry:transaction_name_cluster_rules",
         "sentry:span_description_cluster_rules",
+        "sentry:extrapolate_metrics",
+        "sentry:uptime_autodetection",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
@@ -87,8 +89,8 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self,
         project: int | Project,
         key: str,
-        default: Value | None = None,
-        validate: ValidateFunction | None = None,
+        default: Any | None = None,
+        validate: Callable[[object], bool] | None = None,
     ) -> Any:
         result = self.get_all_values(project)
         if key in result:
@@ -104,7 +106,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self.filter(project=project, key=key).delete()
         self.reload_cache(project.id, "projectoption.unset_value")
 
-    def set_value(self, project: int | Project, key: str, value: Value) -> bool:
+    def set_value(self, project: int | Project, key: str, value: Any) -> bool:
         if isinstance(project, models.Model):
             project_id = project.id
         else:
@@ -117,7 +119,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
 
         return created or inst > 0
 
-    def get_all_values(self, project: Project | int) -> Mapping[str, Value]:
+    def get_all_values(self, project: Project | int) -> Mapping[str, Any]:
         if isinstance(project, models.Model):
             project_id = project.id
         else:
@@ -133,7 +135,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
 
         return self._option_cache.get(cache_key, {})
 
-    def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Value]:
+    def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Any]:
         from sentry.tasks.relay import schedule_invalidate_project_config
 
         if update_reason != "projectoption.get_all_values":
@@ -144,11 +146,14 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self._option_cache[cache_key] = result
         return result
 
-    def post_save(self, instance: ProjectOption, **kwargs: Any) -> None:
+    def post_save(self, *, instance: ProjectOption, created: bool, **kwargs: object) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_save")
 
     def post_delete(self, instance: ProjectOption, **kwargs: Any) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_delete")
+
+    def isset(self, project: Project, key: str) -> bool:
+        return self.get_value(project, key, default=Ellipsis) is not Ellipsis
 
 
 @region_silo_model

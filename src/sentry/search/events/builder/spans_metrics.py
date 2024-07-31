@@ -1,11 +1,12 @@
 from snuba_sdk import Condition, Granularity
 
 from sentry.search.events import constants
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import SelectType
 
 
@@ -13,6 +14,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
+    config_class = SpansMetricsDatasetConfig
 
     column_remapping = {
         # We want to remap `message` to `span.description` for the free

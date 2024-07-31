@@ -1,4 +1,5 @@
-import type {MRI, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MetricAggregation} from 'sentry/types/metrics';
 import {
   createMqlQuery,
   getMetricsQueryApiRequestPayload,
@@ -45,8 +46,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
     const metric = {
       query: 'error',
       groupBy: ['project'],
-      mri: 'c:custom/sessions@none' as MRI,
-      op: 'avg',
+      mri: 'c:custom/sessions@none' as const,
+      aggregation: 'avg' as MetricAggregation,
       name: 'query_1',
     };
     const filters = {
@@ -62,6 +63,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-31T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '2h',
     });
 
@@ -78,8 +80,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should return the correct query object with default values (period)', () => {
     const metric = {
-      mri: 'c:custom/sessions@none' as MRI,
-      op: 'avg',
+      mri: 'c:custom/sessions@none' as const,
+      aggregation: 'avg' as MetricAggregation,
       query: 'error',
       groupBy: ['project'],
       name: 'query_1',
@@ -96,6 +98,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       statsPeriod: '7d',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '30m',
     });
 
@@ -112,8 +115,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should return the correct query object with overridden values', () => {
     const metric = {
-      mri: 'c:custom/sessions@none' as MRI,
-      op: 'avg',
+      mri: 'c:custom/sessions@none' as const,
+      aggregation: 'avg' as MetricAggregation,
       query: 'error',
       groupBy: ['project'],
       name: 'query_1',
@@ -126,6 +129,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
     const result = getMetricsQueryApiRequestPayload([metric], filters, {
       interval: '123m',
+      includeSeries: false,
     });
 
     expect(result.query).toEqual({
@@ -133,6 +137,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: false,
       interval: '123m',
     });
 
@@ -149,8 +154,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add a default orderBy if one is already present', () => {
     const metric = {
-      mri: 'c:custom/sessions@none' as MRI,
-      op: 'avg',
+      mri: 'c:custom/sessions@none' as const,
+      aggregation: 'avg' as MetricAggregation,
       query: 'error',
       groupBy: ['project'],
       orderBy: 'asc' as const,
@@ -169,6 +174,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 
@@ -185,8 +191,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add a default orderBy if there are no groups', () => {
     const metric = {
-      mri: 'c:custom/sessions@none' as MRI,
-      op: 'avg',
+      mri: 'c:custom/sessions@none' as const,
+      aggregation: 'avg' as MetricAggregation,
       query: 'error',
       groupBy: [],
       name: 'query_1',
@@ -204,6 +210,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 
@@ -220,8 +227,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add intervalLadder override into the request', () => {
     const metric = {
-      mri: 'c:custom/test@seconds' as MRI,
-      op: 'sum',
+      mri: 'c:custom/test@seconds' as const,
+      aggregation: 'sum' as MetricAggregation,
       query: 'error',
       groupBy: [],
       name: 'query_1',
@@ -241,6 +248,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 

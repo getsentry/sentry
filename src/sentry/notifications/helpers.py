@@ -8,10 +8,12 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Subquery
 
 from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
+from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.utils.providers import PERSONAL_NOTIFICATION_PROVIDERS_AS_INT
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
-    DEFAULT_ENABLED_PROVIDERS,
+    DEFAULT_ENABLED_PROVIDERS_VALUES,
     NOTIFICATION_SETTINGS_TYPE_DEFAULTS,
 )
 from sentry.notifications.types import (
@@ -21,9 +23,8 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS_AS_INT, ExternalProviderEnum
+from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -38,7 +39,10 @@ def get_default_for_provider(
     provider: ExternalProviderEnum,
 ) -> NotificationSettingsOptionEnum:
     # check if the provider is enable in our defaults and that the type exists as an enum
-    if provider not in DEFAULT_ENABLED_PROVIDERS or type not in NotificationSettingEnum:
+    if (
+        provider.value not in DEFAULT_ENABLED_PROVIDERS_VALUES
+        or type not in NotificationSettingEnum
+    ):
         return NotificationSettingsOptionEnum.NEVER
 
     # TODO(Steve): Make sure that all keys are present in NOTIFICATION_SETTINGS_TYPE_DEFAULTS
@@ -46,7 +50,10 @@ def get_default_for_provider(
         return NotificationSettingsOptionEnum.NEVER
 
     # special case to disable reports for non-email providers
-    if type == NotificationSettingEnum.REPORTS and provider != ExternalProviderEnum.EMAIL:
+    if (
+        type == NotificationSettingEnum.REPORTS
+        and provider.value != ExternalProviderEnum.EMAIL.value
+    ):
         # Reports are only sent to email
         return NotificationSettingsOptionEnum.NEVER
 

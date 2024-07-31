@@ -99,6 +99,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'wifi',
+        groups: ['product'],
+        keywords: ['internet'],
+        name: 'Wifi',
+        defaultProps: {},
+      },
+      {
         id: 'telescope',
         groups: ['product'],
         keywords: [],
@@ -495,13 +502,6 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['poor'],
         name: 'Sad',
-        defaultProps: {},
-      },
-      {
-        id: 'frozen',
-        groups: ['status'],
-        keywords: ['frame', 'mobile'],
-        name: 'Frozen',
         defaultProps: {},
       },
       {
@@ -1011,11 +1011,29 @@ const SECTIONS: TSection[] = [
         name: 'Zoom',
         defaultProps: {isZoomIn: true},
       },
+      {
+        id: 'focus',
+        keywords: ['foreground'],
+        name: 'Focus',
+        defaultProps: {isFocused: true},
+      },
+      {
+        id: 'blur',
+        keywords: ['background'],
+        name: 'Focus',
+        defaultProps: {isFocused: false},
+      },
+      {
+        id: 'tap',
+        keywords: ['finger', 'hand', 'cursor'],
+        name: 'Tap',
+        defaultProps: {},
+      },
     ],
   },
   {
     id: 'chart',
-    label: 'Chart',
+    label: 'Visualizations',
     icons: [
       {
         id: 'graph-type-line',
@@ -1049,6 +1067,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'graph-type-scatter',
+        name: 'Graph',
+        defaultProps: {
+          type: 'scatter',
+        },
+      },
+      {
         id: 'stack',
         groups: ['chart'],
         keywords: ['group', 'combine', 'view'],
@@ -1072,6 +1097,11 @@ const SECTIONS: TSection[] = [
       {
         id: 'profiling',
         name: 'Profiling',
+        defaultProps: {},
+      },
+      {
+        id: 'table',
+        name: 'Table',
         defaultProps: {},
       },
     ],
@@ -1176,13 +1206,6 @@ const SECTIONS: TSection[] = [
         groups: ['device'],
         keywords: ['text'],
         name: 'Input',
-        defaultProps: {},
-      },
-      {
-        id: 'option',
-        groups: ['device'],
-        keywords: [''],
-        name: 'Option',
         defaultProps: {},
       },
       {

@@ -17,11 +17,11 @@ from sentry.integrations.message_builder import (
     get_color,
     get_title_link,
 )
+from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.types.integrations import ExternalProviders
 
 from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
 

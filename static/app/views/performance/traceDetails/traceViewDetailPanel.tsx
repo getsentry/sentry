@@ -36,6 +36,7 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -63,10 +64,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 

@@ -36,7 +36,8 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.builder.discover import UnresolvedQuery
+from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -63,6 +64,7 @@ from sentry.snuba.metrics.naming_layer.mapping import (
 from sentry.snuba.metrics.naming_layer.mri import parse_mri_field
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
+    DeprecatingMetricsQuery,
     MetricActionByField,
     MetricConditionField,
     MetricField,
@@ -70,7 +72,6 @@ from sentry.snuba.metrics.query import (
 )
 from sentry.snuba.metrics.query import MetricOrderByField
 from sentry.snuba.metrics.query import MetricOrderByField as MetricsOrderBy
-from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
@@ -469,6 +470,8 @@ def parse_conditions(
 
 
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
+    config_class = SessionsDatasetConfig
+
     def _contains_wildcard_in_query(self, query: str | None) -> bool:
         parsed_terms = self.parse_query(query)
         for parsed_term in parsed_terms:
@@ -536,8 +539,8 @@ class QueryDefinition:
         self.include_series = query_params.get("includeSeries", "1") == "1"
         self.include_totals = query_params.get("includeTotals", "1") == "1"
 
-    def to_metrics_query(self) -> MetricsQuery:
-        return MetricsQuery(
+    def to_metrics_query(self) -> DeprecatingMetricsQuery:
+        return DeprecatingMetricsQuery(
             org_id=org_id_from_projects(self._projects),
             project_ids=[project.id for project in self._projects],
             include_totals=self.include_totals,
@@ -716,9 +719,11 @@ def translate_meta_results(
                         results.append(
                             {
                                 "name": parent_alias,
-                                "type": record["type"]
-                                if defined_parent_meta_type is None
-                                else defined_parent_meta_type,
+                                "type": (
+                                    record["type"]
+                                    if defined_parent_meta_type is None
+                                    else defined_parent_meta_type
+                                ),
                             }
                         )
                     continue
@@ -775,7 +780,7 @@ class SnubaQueryBuilder:
     def __init__(
         self,
         projects: Sequence[Project],
-        metrics_query: MetricsQuery,
+        metrics_query: DeprecatingMetricsQuery,
         use_case_id: UseCaseID,
     ):
         self._projects = projects
@@ -911,9 +916,11 @@ class SnubaQueryBuilder:
                                 alias=condition.lhs.alias,
                             )[0],
                             op=condition.op,
-                            rhs=resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
-                            if require_rhs_condition_resolution(condition.lhs.op)
-                            else condition.rhs,
+                            rhs=(
+                                resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
+                                if require_rhs_condition_resolution(condition.lhs.op)
+                                else condition.rhs
+                            ),
                         )
                     )
                 except IndexError:
@@ -1222,7 +1229,7 @@ class SnubaResultConverter:
     def __init__(
         self,
         organization_id: int,
-        metrics_query: MetricsQuery,
+        metrics_query: DeprecatingMetricsQuery,
         fields_in_entities: dict,
         intervals: list[datetime],
         results,
@@ -1339,9 +1346,11 @@ class SnubaResultConverter:
         # to determine whether we need to reverse the tag value or not.
         groupby_alias_to_groupby_column = (
             {
-                metric_groupby_obj.alias: metric_groupby_obj.field
-                if isinstance(metric_groupby_obj.field, str)
-                else metric_groupby_obj.field.op
+                metric_groupby_obj.alias: (
+                    metric_groupby_obj.field
+                    if isinstance(metric_groupby_obj.field, str)
+                    else metric_groupby_obj.field.op
+                )
                 for metric_groupby_obj in self._metrics_query.groupby
             }
             if self._metrics_query.groupby
@@ -1352,13 +1361,15 @@ class SnubaResultConverter:
             dict(
                 by=dict(
                     (
-                        key,
-                        reverse_resolve_tag_value(
-                            self._use_case_id, self._organization_id, value, weak=True
-                        ),
+                        (
+                            key,
+                            reverse_resolve_tag_value(
+                                self._use_case_id, self._organization_id, value, weak=True
+                            ),
+                        )
+                        if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES
+                        else (key, value)
                     )
-                    if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES
-                    else (key, value)
                     for key, value in tags
                 ),
                 **data,

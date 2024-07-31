@@ -11,12 +11,12 @@ from sentry import features
 from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.tasks.summaries.utils import COMPARISON_PERIOD
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .base import SlackNotificationsMessageBuilder
@@ -149,10 +149,10 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
             # Add Top 3 Error/Performance Issues
             top_issue_fields = []
-            if context.key_errors:
+            if context.key_errors_by_group:
                 top_errors_text = "*Today's Top 3 Error Issues*\n"
-                for error in context.key_errors:
-                    linked_title = self.linkify_error_title(error[0])
+                for group, _ in context.key_errors_by_group:
+                    linked_title = self.linkify_error_title(group)
                     top_errors_text += f"• {linked_title}\n"
                 top_issue_fields.append(self.make_field(top_errors_text))
 

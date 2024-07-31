@@ -18,7 +18,7 @@ from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.fields import DateArg, parse_function
 from sentry.search.events.types import Alias, QueryBuilderConfig, SelectType, WhereType
@@ -55,7 +55,7 @@ TREND_TYPES = [IMPROVED, REGRESSION]
 
 
 # TODO move this to the builder file and introduce a top-events version instead
-class TrendQueryBuilder(QueryBuilder):
+class TrendQueryBuilder(DiscoverQueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
     ) -> WhereType | None:

@@ -17,10 +17,12 @@ import ReplayProcessingError from 'sentry/components/replays/replayProcessingErr
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -76,6 +78,7 @@ function ReplayClipPreviewPlayer({
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
   });
+  const organization = useOrganization();
 
   if (replayRecord?.is_archived) {
     return (
@@ -89,12 +92,19 @@ function ReplayClipPreviewPlayer({
   }
 
   if (fetchError) {
+    trackAnalytics('replay.render-missing-replay-alert', {
+      organization,
+      surface: 'issue details - clip preview',
+    });
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder" isLarge={isLarge}>
+      <StyledNegativeSpaceContainer
+        data-test-id="replay-loading-placeholder"
+        isLarge={isLarge}
+      >
         <LoadingIndicator />
       </StyledNegativeSpaceContainer>
     );
@@ -146,7 +156,7 @@ const PlayerContainer = styled(FluidHeight)<{isLarge?: boolean}>`
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: boolean}>`
   height: ${p => (p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT)}px;
-  margin-bottom: ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default ReplayClipPreviewPlayer;

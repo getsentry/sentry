@@ -7,9 +7,8 @@ import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
-import ContextIcon from 'sentry/components/replays/contextIcon';
+import PlatformIcon from 'sentry/components/replays/platformIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
-import {formatTime} from 'sentry/components/replays/utils';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -30,13 +29,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -477,7 +477,7 @@ export function OSCell({replay, showDropdownFilters}: Props) {
     <Item>
       <Container>
         <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
-          <ContextIcon
+          <PlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -504,7 +504,7 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
     <Item>
       <Container>
         <Tooltip title={`${name} ${version}`}>
-          <ContextIcon
+          <PlatformIcon
             name={name ?? ''}
             version={version && hasRoomForColumns ? version : undefined}
             showVersion={false}
@@ -526,7 +526,7 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+        <Time>{formatReplayDuration(replay.duration.asMilliseconds())}</Time>
         {showDropdownFilters ? (
           <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
         ) : null}

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
-from typing import Any, Union
+from typing import Any, TypedDict, Union
 
 import orjson
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -52,6 +52,12 @@ from sentry.search.utils import parse_release
 from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
+
+
+class FilterConvertParams(TypedDict, total=False):
+    organization_id: int
+    project_id: list[int]
+    environment: list[str]
 
 
 def is_condition(term):
@@ -317,7 +323,7 @@ def _flip_field_sort(field: str):
 def _release_stage_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams,
 ) -> tuple[str, str, Sequence[str]]:
     """
     Parses a release stage search and returns a snuba condition to filter to the
@@ -329,9 +335,9 @@ def _release_stage_filter_converter(
     if not params or "organization_id" not in params:
         raise ValueError("organization_id is a required param")
 
-    organization_id: int = params["organization_id"]
-    project_ids: list[int] | None = params.get("project_id")
-    environments: list[int] | None = params.get("environment")
+    organization_id = params["organization_id"]
+    project_ids = params.get("project_id")
+    environments = params.get("environment")
     qs = (
         Release.objects.filter_by_stage(
             organization_id,
@@ -563,10 +569,10 @@ def parse_semver(version, operator) -> SemverFilter:
         return SemverFilter("exact", version_parts, package, negated)
 
 
-key_conversion_map: Mapping[
-    str,
-    Callable[[SearchFilter, str, Mapping[str, int | str | datetime]], Sequence[Any] | None],
-] = {
+key_conversion_map: dict[
+    str, Callable[[SearchFilter, str, FilterConvertParams], Sequence[Any] | None]
+]
+key_conversion_map = {
     "environment": _environment_filter_converter,
     "message": _message_filter_converter,
     TRANSACTION_STATUS_ALIAS: _transaction_status_filter_converter,
@@ -585,10 +591,11 @@ key_conversion_map: Mapping[
 def convert_search_filter_to_snuba_query(
     search_filter: SearchFilter,
     key: str | None = None,
-    params: Mapping[str, int | str | datetime] | None = None,
+    params: FilterConvertParams | None = None,
 ) -> Sequence[Any] | None:
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
+    params = params or {}
 
     # We want to use group_id elsewhere so shouldn't be removed from the dataset
     # but if a user has a tag with the same name we want to make sure that works
@@ -947,5 +954,10 @@ def format_search_filter(term, params):
 
 
 # Not a part of search.events.types to avoid a circular loop
-ParsedTerm = Union[SearchFilter, AggregateFilter, ParenExpression]
+ParsedTerm = Union[
+    SearchFilter,
+    AggregateFilter,
+    ParenExpression,
+    str,
+]
 ParsedTerms = Sequence[ParsedTerm]

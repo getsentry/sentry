@@ -22,13 +22,13 @@ from sentry.apidocs.examples.organization_member_examples import OrganizationMem
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments

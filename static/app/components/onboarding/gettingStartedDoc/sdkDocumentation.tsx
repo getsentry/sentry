@@ -1,22 +1,12 @@
-import {useEffect, useState} from 'react';
-
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import type {
-  ConfigType,
-  Docs,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import type {ConfigType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import type {
-  Organization,
-  PlatformIntegration,
-  PlatformKey,
-  Project,
-  ProjectKey,
-} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
@@ -28,116 +18,53 @@ type SdkDocumentationProps = {
   newOrg?: boolean;
 };
 
-export type ModuleProps = {
-  dsn: string;
-  projectSlug: Project['slug'];
-  activeProductSelection?: ProductSolution[];
-  newOrg?: boolean;
-  organization?: Organization;
-  platformKey?: PlatformKey;
-  projectId?: Project['id'];
-  sourcePackageRegistries?: ReturnType<typeof useSourcePackageRegistries>;
-};
-
-function isFunctionalComponent(obj: any): obj is React.ComponentType<ModuleProps> {
-  // As we only use function components in the docs this should suffice
-  return typeof obj === 'function';
-}
-
 // Loads the component containing the documentation for the specified platform
 export function SdkDocumentation({
   platform,
   projectSlug,
   activeProductSelection,
   newOrg,
-  organization,
   projectId,
   configType,
+  organization,
 }: SdkDocumentationProps) {
-  const sourcePackageRegistries = useSourcePackageRegistries(organization);
-
-  const [module, setModule] = useState<null | {
-    default: Docs<any> | React.ComponentType<ModuleProps>;
-  }>(null);
-
-  // TODO: This will be removed once we no longer rely on sentry-docs to load platform icons
-  const platformPath =
-    platform?.type === 'framework'
-      ? platform.language === 'minidump'
-        ? `minidump/minidump`
-        : platform?.id === 'native-qt'
-          ? `native/native-qt`
-          : platform?.id === 'android'
-            ? `android/android`
-            : platform?.id === 'ionic'
-              ? `ionic/ionic`
-              : platform?.id === 'unity'
-                ? `unity/unity`
-                : platform?.id === 'unreal'
-                  ? `unreal/unreal`
-                  : platform?.id === 'capacitor'
-                    ? `capacitor/capacitor`
-                    : platform?.id === 'flutter'
-                      ? `flutter/flutter`
-                      : platform?.id === 'dart'
-                        ? `dart/dart`
-                        : platform?.id.replace(
-                            `${platform.language}-`,
-                            `${platform.language}/`
-                          )
-      : platform?.id === 'python-celery'
-        ? `python/celery`
-        : platform?.id === 'python-rq'
-          ? `python/rq`
-          : platform?.id === 'python-pymongo'
-            ? `python/mongo`
-            : `${platform?.language}/${platform?.id}`;
-
-  const {
-    data: projectKeys,
-    isError: projectKeysIsError,
-    isLoading: projectKeysIsLoading,
-    refetch: refetchProjectKeys,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
-    staleTime: Infinity,
+  const {isLoading, isError, dsn, cdn, docs, refetch} = useLoadGettingStarted({
+    orgSlug: organization.slug,
+    projSlug: projectSlug,
+    platform,
   });
 
-  useEffect(() => {
-    async function getGettingStartedDoc() {
-      const mod = await import(
-        /* webpackExclude: /.spec/ */
-        `sentry/gettingStartedDocs/${platformPath}`
-      );
-      setModule(mod);
-    }
-    getGettingStartedDoc();
-    return () => {
-      setModule(null);
-    };
-  }, [platformPath]);
-
-  if (!module || projectKeysIsLoading) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (projectKeysIsError) {
-    return <LoadingError onRetry={refetchProjectKeys} />;
+  if (isError) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the getting started documentation for this platform.'
+        )}
+      />
+    );
   }
 
-  const {default: docs} = module;
-
-  if (isFunctionalComponent(docs)) {
-    const GettingStartedDoc = docs;
+  if (!docs) {
     return (
-      <GettingStartedDoc
-        dsn={projectKeys[0].dsn.public}
-        activeProductSelection={activeProductSelection}
-        newOrg={newOrg}
-        platformKey={platform.id}
-        organization={organization}
-        projectId={projectId}
-        projectSlug={projectSlug}
-        sourcePackageRegistries={sourcePackageRegistries}
+      <LoadingError
+        message={t(
+          'The getting started documentation for this platform is currently unavailable.'
+        )}
+      />
+    );
+  }
+
+  if (!dsn) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the DSN for this getting started documentation.'
+        )}
+        onRetry={refetch}
       />
     );
   }
@@ -145,8 +72,8 @@ export function SdkDocumentation({
   return (
     <OnboardingLayout
       docsConfig={docs}
-      dsn={projectKeys[0].dsn.public}
-      cdn={projectKeys[0].dsn.cdn}
+      dsn={dsn}
+      cdn={cdn}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform.id}

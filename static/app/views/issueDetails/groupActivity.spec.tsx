@@ -448,7 +448,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
@@ -479,7 +479,7 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
@@ -503,7 +503,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
@@ -642,7 +642,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'
@@ -787,7 +787,6 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
-        organization: OrganizationFixture({features: ['issue-priority-ui']}),
       });
       expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
         'Sentry updated the priority value of this issue to be high after it escalated'
@@ -807,7 +806,6 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
-        organization: OrganizationFixture({features: ['issue-priority-ui']}),
       });
       expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
         'Sentry updated the priority value of this issue to be low after it was marked as ongoing'

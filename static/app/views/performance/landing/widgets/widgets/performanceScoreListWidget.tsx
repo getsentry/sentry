@@ -11,19 +11,20 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {
   Badge,
   PerformanceBadge,
-} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {ORDER_WITH_INP_WITHOUT_FID} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
-import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
-import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
+} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useProjectWebVitalsScoresTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
+import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -52,24 +53,26 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
     useProjectWebVitalsScoresQuery();
 
   const {data: transactionWebVitals, isLoading: isTransactionWebVitalsQueryLoading} =
-    useTransactionWebVitalsQuery({limit: 4});
+    useTransactionWebVitalsScoresQuery({limit: 4});
 
   const {data: timeseriesData, isLoading: isTimeseriesQueryLoading} =
-    useProjectWebVitalsTimeseriesQuery({});
+    useProjectWebVitalsScoresTimeseriesQuery({});
 
   const assembleAccordionItems = provided =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const order = ORDER_WITH_INP_WITHOUT_FID;
+  const order = ORDER;
+
+  const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
 
   const getAreaChart = _ => {
-    const segmentColors = theme.charts.getColorPalette(3);
+    const segmentColors = theme.charts.getColorPalette(3).slice(0, 5);
     return (
       <Chart
         stacked
         height={props.chartHeight}
         data={formatTimeSeriesResultsToChartData(
-          timeseriesData,
+          weightedTimeseriesData,
           segmentColors,
           false,
           order
@@ -85,6 +88,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         }}
         dataMax={100}
         chartColors={segmentColors}
+        hideYAxisSplitLine
       />
     );
   };
@@ -98,14 +102,14 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         'count_scores(measurements.score.total)'
       ] as number;
       const opportunity = scoreCount
-        ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount
+        ? ((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100
         : 0;
       return (
         <Fragment key={i}>
           <GrowLink
             to={{
               pathname: `${moduleURL}/overview/`,
-              query: {...location.query, transaction},
+              query: {...location.query, transaction, project: listItem['project.id']},
             }}
           >
             <Truncate value={transaction} maxLength={40} />

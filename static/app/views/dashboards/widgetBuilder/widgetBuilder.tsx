@@ -33,6 +33,7 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
 } from 'sentry/utils/discover/fields';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -41,8 +42,8 @@ import {
   isOnDemandMetricWidget,
   OnDemandControlProvider,
 } from 'sentry/utils/performance/contexts/onDemandControl';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withTags from 'sentry/utils/withTags';
 import {
@@ -101,6 +102,8 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.ISSUE]: DataSet.ISSUES,
   [WidgetType.RELEASE]: DataSet.RELEASES,
   [WidgetType.METRICS]: DataSet.METRICS,
+  [WidgetType.ERRORS]: DataSet.ERRORS,
+  [WidgetType.TRANSACTIONS]: DataSet.TRANSACTIONS,
 };
 
 export const DATA_SET_TO_WIDGET_TYPE = {
@@ -108,6 +111,8 @@ export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.ISSUES]: WidgetType.ISSUE,
   [DataSet.RELEASES]: WidgetType.RELEASE,
   [DataSet.METRICS]: WidgetType.METRICS,
+  [DataSet.ERRORS]: WidgetType.ERRORS,
+  [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
 };
 
 interface RouteParams {
@@ -133,6 +138,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
+  updateDashboardSplitDecision?: (widgetId: string, splitDecision: WidgetType) => void;
 }
 
 interface State {
@@ -150,6 +156,7 @@ interface State {
   dataUnit?: string;
   description?: string;
   errors?: Record<string, any>;
+  id?: string;
   selectedDashboard?: DashboardDetails['id'];
   thresholds?: ThresholdsConfig | null;
   widgetToBeUpdated?: Widget;
@@ -168,6 +175,7 @@ function WidgetBuilder({
   route,
   router,
   tags,
+  updateDashboardSplitDecision,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit, dataset} = location.query;
@@ -213,7 +221,15 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const dataSet = dataset ? dataset : DataSet.EVENTS;
+  const defaultWidgetType =
+    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
+      ? WidgetType.ERRORS
+      : WidgetType.DISCOVER;
+  const defaultDataset =
+    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
+      ? DataSet.ERRORS
+      : DataSet.EVENTS;
+  const dataSet = dataset ? dataset : defaultDataset;
 
   const api = useApi();
 
@@ -282,6 +298,8 @@ function WidgetBuilder({
     string | null
   >(null);
 
+  const [splitDecision, setSplitDecision] = useState<WidgetType | undefined>(undefined);
+
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.opened', {
       organization,
@@ -310,7 +328,7 @@ function WidgetBuilder({
         queries = normalizeQueries({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
-          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
         }).map(query => ({
           ...query,
           // Use the last aggregate because that's where the y-axis is stored
@@ -322,11 +340,12 @@ function WidgetBuilder({
         queries = normalizeQueries({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
-          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
         });
       }
 
       setState({
+        id: widgetFromDashboard.id,
         title: widgetFromDashboard.title,
         description: widgetFromDashboard.description,
         displayType: newDisplayType,
@@ -338,7 +357,7 @@ function WidgetBuilder({
         thresholds: widgetFromDashboard.thresholds ?? defaultThresholds,
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
-          : DataSet.EVENTS,
+          : defaultDataset,
         limit: newLimit,
         prebuiltWidgetId: null,
         queryConditionsValid: true,
@@ -368,6 +387,7 @@ function WidgetBuilder({
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
   const currentWidget = {
+    id: state.id,
     title: state.title,
     description: state.description,
     displayType: state.displayType,
@@ -413,12 +433,12 @@ function WidgetBuilder({
           'queries',
           normalizeQueries({
             displayType: newDisplayType,
-            queries: [{...getDatasetConfig(WidgetType.DISCOVER).defaultWidgetQuery}],
-            widgetType: WidgetType.DISCOVER,
+            queries: [{...getDatasetConfig(defaultWidgetType).defaultWidgetQuery}],
+            widgetType: defaultWidgetType,
           })
         );
-        set(newState, 'dataSet', DataSet.EVENTS);
-        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
+        set(newState, 'dataSet', defaultDataset);
+        setDataSetConfig(getDatasetConfig(defaultWidgetType));
         return {...newState, errors: undefined};
       }
 
@@ -713,7 +733,7 @@ function WidgetBuilder({
         newQuery.orderby = '';
       } else if (!newQuery.orderby) {
         const orderOptions = generateOrderOptions({
-          widgetType: widgetType ?? WidgetType.DISCOVER,
+          widgetType: widgetType ?? defaultWidgetType,
           columns: query.columns,
           aggregates: query.aggregates,
         });
@@ -823,7 +843,10 @@ function WidgetBuilder({
     if (widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateWidgetIndex = getUpdateWidgetIndex();
-      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
+      const nextWidgetData = {
+        ...widgetData,
+        id: widgetToBeUpdated.id,
+      };
 
       // Only modify and re-compact if the default height has changed
       if (
@@ -841,7 +864,7 @@ function WidgetBuilder({
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
       trackAnalytics('dashboards_views.widget_builder.save', {
         organization,
-        data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+        data_set: widgetData.widgetType ?? defaultWidgetType,
         new_widget: false,
       });
       return;
@@ -852,7 +875,7 @@ function WidgetBuilder({
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
     trackAnalytics('dashboards_views.widget_builder.save', {
       organization,
-      data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
+      data_set: widgetData.widgetType ?? defaultWidgetType,
       new_widget: true,
     });
   }
@@ -991,6 +1014,19 @@ function WidgetBuilder({
     });
   }
 
+  function handleUpdateWidgetSplitDecision(decision: WidgetType) {
+    setState(prevState => {
+      return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[decision]};
+    });
+
+    if (currentWidget.id) {
+      // Update the dashboard state with the split decision, in case
+      // the user cancels editing the widget after the decision was made
+      updateDashboardSplitDecision?.(currentWidget.id, decision);
+    }
+    setSplitDecision(decision);
+  }
+
   function isFormInvalid() {
     if (
       (notDashboardsOrigin && !state.selectedDashboard) ||
@@ -1052,6 +1088,13 @@ function WidgetBuilder({
       </SentryDocumentTitle>
     );
   }
+
+  const widgetDiscoverSplitSource = isValidWidgetIndex
+    ? dashboard.widgets[widgetIndexNum].datasetSource
+    : undefined;
+  const originalWidgetType = isValidWidgetIndex
+    ? dashboard.widgets[widgetIndexNum].widgetType
+    : undefined;
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -1139,12 +1182,23 @@ function WidgetBuilder({
                                     }}
                                     noDashboardsMEPProvider
                                     isWidgetInvalid={!state.queryConditionsValid}
+                                    onWidgetSplitDecision={
+                                      handleUpdateWidgetSplitDecision
+                                    }
                                   />
                                   <DataSetStep
                                     dataSet={state.dataSet}
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}
+                                    splitDecision={
+                                      splitDecision ??
+                                      // The original widget type is used for a forced split decision
+                                      (widgetDiscoverSplitSource === DatasetSource.FORCED
+                                        ? originalWidgetType
+                                        : undefined)
+                                    }
+                                    source={widgetDiscoverSplitSource}
                                   />
                                   {isTabularChart && (
                                     <DashboardsMEPConsumer>
@@ -1261,7 +1315,7 @@ function WidgetBuilder({
                                   setLatestLibrarySelectionTitle(prebuiltWidget.title);
                                   setDataSetConfig(
                                     getDatasetConfig(
-                                      prebuiltWidget.widgetType || WidgetType.DISCOVER
+                                      prebuiltWidget.widgetType || defaultWidgetType
                                     )
                                   );
                                   const {id, ...prebuiltWidgetProps} = prebuiltWidget;
@@ -1270,7 +1324,7 @@ function WidgetBuilder({
                                     ...prebuiltWidgetProps,
                                     dataSet: prebuiltWidget.widgetType
                                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
-                                      : DataSet.EVENTS,
+                                      : defaultDataset,
                                     userHasModified: false,
                                     prebuiltWidgetId: id || null,
                                   });

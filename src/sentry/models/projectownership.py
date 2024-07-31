@@ -25,7 +25,7 @@ from sentry.utils.cache import cache
 if TYPE_CHECKING:
     from sentry.models.projectcodeowners import ProjectCodeOwners
     from sentry.models.team import Team
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
@@ -40,7 +40,7 @@ class ProjectOwnership(Model):
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)
-    schema = JSONField(null=True)
+    schema: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     fallthrough = models.BooleanField(default=True)
     # Auto Assignment through Ownership Rules & Code Owners
     auto_assignment = models.BooleanField(default=True)
@@ -248,7 +248,7 @@ class ProjectOwnership(Model):
         from sentry.models.groupowner import GroupOwner, GroupOwnerType
         from sentry.models.team import Team
         from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
+        from sentry.users.services.user import RpcUser
 
         if logging_extra is None:
             logging_extra = {}

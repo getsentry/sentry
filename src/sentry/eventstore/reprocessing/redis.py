@@ -1,5 +1,4 @@
 import uuid
-from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
@@ -36,7 +35,7 @@ class RedisReprocessingStore(ReprocessingStore):
         self.redis = redis_clusters.get(cluster)
 
     def event_count_for_hashes(
-        self, project_id: int, group_id: int, old_primary_hashes: Sequence[str]
+        self, project_id: int, group_id: int, old_primary_hashes: set[str]
     ) -> int:
         # Events for a group are split and bucketed by their primary hashes. If flushing is to be
         # performed on a per-group basis, the event count needs to be summed up across all buckets

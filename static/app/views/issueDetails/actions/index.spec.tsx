@@ -44,7 +44,6 @@ describe('GroupActions', function () {
 
   beforeEach(function () {
     ConfigStore.init();
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
   });
   afterEach(function () {
     MockApiClient.clearMockResponses();
@@ -250,7 +249,7 @@ describe('GroupActions', function () {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/issues/`,
+      pathname: `/organizations/${org.slug}/issues/`,
       query: {project: project.id},
     });
   });

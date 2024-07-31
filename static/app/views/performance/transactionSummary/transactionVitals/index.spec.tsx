@@ -42,7 +42,6 @@ function initialize({
   const data = initializeOrg({
     organization: OrganizationFixture({
       features,
-      projects: project ? [project] : [],
     }),
     router: {
       location: {
@@ -54,7 +53,7 @@ function initialize({
       },
     },
   });
-  act(() => ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => ProjectsStore.loadInitialData(data.projects));
   return data;
 }
 
@@ -227,7 +226,7 @@ describe('Performance > Web Vitals', function () {
 
     it.each(vitals)('Renders %s', async function (vital) {
       expect(await screen.findByText(vital.heading)).toBeInTheDocument();
-      expect(screen.getByText(vital.baseline)).toBeInTheDocument();
+      expect(await screen.findByText(vital.baseline)).toBeInTheDocument();
     });
   });
 

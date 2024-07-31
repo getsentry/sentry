@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -16,7 +16,7 @@ import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
+export const CRASH_FREE_DECIMAL_THRESHOLD = 90;
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);

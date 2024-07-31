@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviders
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 from .base import GroupActivityNotification
 

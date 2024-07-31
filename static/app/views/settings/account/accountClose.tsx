@@ -14,7 +14,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
@@ -137,7 +137,9 @@ function AccountClose() {
       <SettingsPageHeader title={t('Close Account')} />
 
       <TextBlock>
-        {t('This will permanently remove all associated data for your user')}.
+        {t(
+          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted.'
+        )}
       </TextBlock>
 
       <Alert type="error" showIcon>
@@ -147,16 +149,17 @@ function AccountClose() {
       </Alert>
 
       <Panel>
-        <PanelHeader>{t('Remove the following organizations')}</PanelHeader>
+        <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
-          <PanelAlert type="info">
+          <PanelAlert type="warning">
+            <strong>{t('ORGANIZATIONS WITH CHECKED BOXES WILL BE DELETED!')}</strong>
+            <br />
             {t(
               'Ownership will remain with other organization owners if an organization is not deleted.'
             )}
             <br />
-            {tct(
-              "Boxes which can't be unchecked mean that you are the only organization owner and the organization [strong:will be deleted].",
-              {strong: <strong />}
+            {t(
+              "Boxes which can't be unchecked mean that you are the only organization owner and the organization will be deleted."
             )}
           </PanelAlert>
 

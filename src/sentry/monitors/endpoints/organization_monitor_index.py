@@ -374,10 +374,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         result = dict(validator.validated_data)
-        monitor_slugs = result.pop("slugs")
-        status = result.get("status")
 
-        monitors = Monitor.objects.filter(slug__in=monitor_slugs, organization_id=organization.id)
+        monitor_guids = result.pop("ids", [])
+        monitors = Monitor.objects.filter(guid__in=monitor_guids)
+
+        status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward
         if status == ObjectStatus.ACTIVE:
             assign_result = quotas.backend.check_assign_monitor_seats(monitors)

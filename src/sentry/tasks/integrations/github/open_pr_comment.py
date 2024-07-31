@@ -22,14 +22,14 @@ from snuba_sdk import (
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP
-from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import CommentType, PullRequest
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -164,7 +164,7 @@ def get_issue_table_contents(issue_list: list[dict[str, Any]]) -> list[PullReque
 
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
-    gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
+    gh_client: GitHubApiClient, repository: Repository, pull_request: PullRequest
 ) -> list[dict[str, str]]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:

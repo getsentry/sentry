@@ -42,7 +42,7 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
     if (params.orgId) {
       return params.orgId;
     }
-    const {customerDomain} = window.__initialData;
+    const customerDomain = ConfigStore.get('customerDomain');
     if (customerDomain?.subdomain) {
       return customerDomain.subdomain;
     }

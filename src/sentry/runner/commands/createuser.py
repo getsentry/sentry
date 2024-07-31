@@ -169,7 +169,7 @@ def createuser(
 
             # TODO(dcramer): kill this when we improve flows
             if settings.SENTRY_SINGLE_ORGANIZATION:
-                from sentry.services.hybrid_cloud.organization import organization_service
+                from sentry.organizations.services.organization import organization_service
 
                 # Get the org if specified, otherwise use the default.
                 if org_id:

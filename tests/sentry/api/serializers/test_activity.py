@@ -55,9 +55,9 @@ class GroupActivityTestCase(TestCase):
         )
 
         result = serialize([activity], user)[0]["data"]
-        commit = result["commit"]
-        assert commit["repository"]["name"] == "organization-bar"
-        assert commit["message"] == "gemuse"
+        commit_data = result["commit"]
+        assert commit_data["repository"]["name"] == "organization-bar"
+        assert commit_data["message"] == "gemuse"
 
     def test_serialize_set_resolve_in_commit_activity_with_release(self):
         project = self.create_project(name="test_throwaway")

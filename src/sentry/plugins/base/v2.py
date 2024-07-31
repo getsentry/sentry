@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from threading import local
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from django.http import HttpResponseRedirect
 
@@ -11,11 +11,17 @@ from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import Response
 from sentry.plugins.config import PluginConfigMixin
+from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.plugins.status import PluginStatusMixin
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
+
+
+class EventPreprocessor(Protocol):
+    def __call__(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None:
+        ...
 
 
 class PluginMount(type):
@@ -114,10 +120,10 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return self.slug in HIDDEN_PLUGINS
 
-    def reset_options(self, project=None, user=None):
+    def reset_options(self, project=None):
         from sentry.plugins.helpers import reset_options
 
-        return reset_options(self.get_conf_key(), project, user)
+        return reset_options(self.get_conf_key(), project)
 
     def get_option(self, key, project=None, user=None):
         """
@@ -311,7 +317,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_actions(self, request, group, **kwargs):
+    def get_actions(self, request, group) -> list[tuple[str, str]]:
         """
         Return a list of available actions to append this aggregate.
 
@@ -321,12 +327,12 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
             ('Action Label', '/uri/to/action/')
 
-        >>> def get_actions(self, request, group, **kwargs):
+        >>> def get_actions(self, request, group):
         >>>     return [('Google', 'http://google.com')]
         """
         return []
 
-    def get_annotations(self, group, **kwargs):
+    def get_annotations(self, group) -> list[dict[str, str]]:
         """
         Return a list of annotations to append to this aggregate.
 
@@ -335,22 +341,11 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         The properties of each tag must match the constructor for
         :class:`sentry.plugins.Annotation`
 
-        >>> def get_annotations(self, group, **kwargs):
+        >>> def get_annotations(self, group):
         >>>     task_id = GroupMeta.objects.get_value(group, 'myplugin:tid')
         >>>     if not task_id:
         >>>         return []
         >>>     return [{'label': '#%s' % (task_id,)}]
-        """
-        return []
-
-    def get_notifiers(self, **kwargs):
-        """
-        Return a list of notifiers to append to the registry.
-
-        Notifiers must extend :class:`sentry.plugins.Notifier`.
-
-        >>> def get_notifiers(self, **kwargs):
-        >>>     return [MyNotifier]
         """
         return []
 
@@ -367,7 +362,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_event_preprocessors(self, data, **kwargs):
+    def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         """
         Return a list of preprocessors to apply to the given event.
 
@@ -417,7 +412,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_release_hook(self, **kwargs):
+    def get_release_hook(self) -> type[ReleaseHook] | None:
         """
         Return an implementation of ``ReleaseHook``.
 
@@ -427,10 +422,10 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>>     def handle(self, request: Request) -> Response:
         >>>         self.finish_release(version=request.POST['version'])
 
-        >>> def get_release_hook(self, **kwargs):
+        >>> def get_release_hook(self):
         >>>     return MyReleaseHook
         """
-        return []
+        return None
 
     def get_custom_contexts(self):
         """Return a list of of context types.

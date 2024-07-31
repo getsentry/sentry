@@ -10,8 +10,8 @@ from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.api.validators.doc_integration import METADATA_PROPERTIES
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.utils.sdk import configure_scope
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.utils.sdk import Scope
 
 
 class DocIntegrationsPermission(SentryPermission):
@@ -88,8 +88,7 @@ class DocIntegrationBaseEndpoint(DocIntegrationsBaseEndpoint):
 
         self.check_object_permissions(request, doc_integration)
 
-        with configure_scope() as scope:
-            scope.set_tag("doc_integration", doc_integration.slug)
+        Scope.get_isolation_scope().set_tag("doc_integration", doc_integration.slug)
 
         kwargs["doc_integration"] = doc_integration
         return (args, kwargs)

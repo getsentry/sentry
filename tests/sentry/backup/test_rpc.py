@@ -11,13 +11,9 @@ from django.db import models
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
-from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
-from sentry.models.options.option import ControlOption, Option
-from sentry.models.project import Project
-from sentry.models.user import MAX_USERNAME_LENGTH, User
-from sentry.services.hybrid_cloud.import_export import import_export_service
-from sentry.services.hybrid_cloud.import_export.impl import get_existing_import_chunk
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export import import_export_service
+from sentry.backup.services.import_export.impl import get_existing_import_chunk
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
     RpcExportScope,
@@ -28,6 +24,10 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
+from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.options.option import ControlOption, Option
+from sentry.models.project import Project
+from sentry.models.user import MAX_USERNAME_LENGTH, User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
@@ -57,7 +57,7 @@ class RpcImportRetryTests(TestCase):
             nonlocal option_count, import_chunk_count, import_uuid
 
             result = import_export_service.import_by_model(
-                model_name="sentry.option",
+                import_model_name="sentry.option",
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
@@ -134,7 +134,7 @@ class RpcImportRetryTests(TestCase):
             nonlocal control_option_count, import_chunk_count, import_uuid
 
             result = import_export_service.import_by_model(
-                model_name="sentry.controloption",
+                import_model_name="sentry.controloption",
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
@@ -220,7 +220,7 @@ class RpcImportRetryTests(TestCase):
             return None
 
         with patch(
-            "sentry.services.hybrid_cloud.import_export.impl.get_existing_import_chunk",
+            "sentry.backup.services.import_export.impl.get_existing_import_chunk",
             MagicMock(side_effect=wrapped_get_existing_import_chunk),
         ) as get_existing_import_chunk_mock:
             import_uuid = str(uuid4().hex)
@@ -240,7 +240,7 @@ class RpcImportRetryTests(TestCase):
                 )
 
             result = import_export_service.import_by_model(
-                model_name="sentry.controloption",
+                import_model_name="sentry.controloption",
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
@@ -322,7 +322,7 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_invalid_min_ordinal(self):
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
@@ -336,7 +336,7 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_unknown_model(self):
         result = import_export_service.import_by_model(
-            model_name="sentry.doesnotexist",
+            import_model_name="sentry.doesnotexist",
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
@@ -351,7 +351,7 @@ class RpcImportErrorTests(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_bad_incorrect_silo_mode_for_model(self):
         result = import_export_service.import_by_model(
-            model_name=str(PROJECT_MODEL_NAME),
+            import_model_name=str(PROJECT_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
@@ -365,7 +365,7 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_unspecified_scope(self):
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
@@ -378,7 +378,7 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_missing_import_uuid(self):
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(),
             filter_by=[],
@@ -392,7 +392,7 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_invalid_json(self):
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
@@ -417,7 +417,7 @@ class RpcImportErrorTests(TestCase):
             option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
         ).decode()
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
@@ -436,7 +436,7 @@ class RpcImportErrorTests(TestCase):
             option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
         ).decode()
         result = import_export_service.import_by_model(
-            model_name="sentry.option",
+            import_model_name="sentry.option",
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
@@ -455,7 +455,7 @@ class RpcExportErrorTests(TestCase):
 
     def test_bad_unknown_model(self):
         result = import_export_service.export_by_model(
-            model_name="sentry.doesnotexist",
+            export_model_name="sentry.doesnotexist",
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
@@ -468,7 +468,7 @@ class RpcExportErrorTests(TestCase):
 
     def test_bad_unexportable_model(self):
         result = import_export_service.export_by_model(
-            model_name="sentry.controloutbox",
+            export_model_name="sentry.controloutbox",
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
@@ -482,7 +482,7 @@ class RpcExportErrorTests(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_bad_incorrect_silo_mode_for_model(self):
         result = import_export_service.export_by_model(
-            model_name=str(PROJECT_MODEL_NAME),
+            export_model_name=str(PROJECT_MODEL_NAME),
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
@@ -495,7 +495,7 @@ class RpcExportErrorTests(TestCase):
 
     def test_bad_unspecified_scope(self):
         result = import_export_service.export_by_model(
-            model_name=str(USER_MODEL_NAME),
+            export_model_name=str(USER_MODEL_NAME),
             scope=None,
             from_pk=0,
             filter_by=[],

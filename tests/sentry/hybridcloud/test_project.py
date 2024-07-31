@@ -1,5 +1,5 @@
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.project.service import project_service
+from sentry.projects.services.project.service import project_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 

@@ -2,7 +2,10 @@ from datetime import datetime
 from typing import Any
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
+from sentry.search.events.builder.profiles import (
+    ProfilesQueryBuilder,
+    ProfilesTimeseriesQueryBuilder,
+)
 from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
@@ -31,6 +34,7 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -63,6 +67,7 @@ def timeseries_query(
     params: ParamsType,
     rollup: int,
     referrer: str = "",
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     comparison_delta: datetime | None = None,
     functions_acl: list[str] | None = None,
@@ -72,9 +77,14 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
 ) -> Any:
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
+        snuba_params=snuba_params,
         query=query,
         interval=rollup,
         selected_columns=selected_columns,
@@ -91,7 +101,7 @@ def timeseries_query(
                 params["start"],
                 params["end"],
                 rollup,
-                "time",
+                ["time"],
             )
             if zerofill_results
             else results["data"],

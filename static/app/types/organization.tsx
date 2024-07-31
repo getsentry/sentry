@@ -1,6 +1,11 @@
 import type {Project} from 'sentry/types/project';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import type {
+  DatasetSource,
+  DiscoverDatasets,
+  SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -36,6 +41,7 @@ export interface OrganizationSummary {
     id: ObjectStatus;
     name: string;
   };
+  uptimeAutodetection?: boolean;
 }
 
 /**
@@ -48,7 +54,8 @@ export interface Organization extends OrganizationSummary {
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
-  availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
+  /** @deprecated use orgRoleList instead. */
+  availableRoles: {id: string; name: string}[];
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
@@ -79,13 +86,14 @@ export interface Organization extends OrganizationSummary {
   trustedRelays: Relay[];
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
+  extraOptions?: {
+    traces: {
+      checkSpanExtractionDate: boolean;
+      spansExtractionDate: number;
+    };
+  };
   orgRole?: string;
   planSampleRate?: number | null;
-}
-
-export interface DetailedOrganization extends Organization {
-  projects: Project[];
-  teams: Team[];
 }
 
 export interface Team {
@@ -240,6 +248,7 @@ export interface NewQuery {
   version: SavedQueryVersions;
   createdBy?: User;
   dataset?: DiscoverDatasets;
+  datasetSource?: DatasetSource;
   display?: string;
   end?: string | Date;
   environment?: Readonly<string[]>;
@@ -285,6 +294,7 @@ export type EventsStats = {
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;
+    discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
   order?: number;

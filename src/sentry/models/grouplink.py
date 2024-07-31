@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.db.models import QuerySet
@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -18,6 +17,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -71,7 +71,7 @@ class GroupLink(Model):
         default=Relationship.references,
         choices=((Relationship.resolves, _("Resolves")), (Relationship.references, _("Linked"))),
     )
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
 
     objects: ClassVar[GroupLinkManager] = GroupLinkManager()

@@ -10,7 +10,6 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -19,6 +18,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
@@ -29,8 +29,9 @@ class PullRequestManager(BaseManager["PullRequest"]):
     def update_or_create(
         self,
         defaults: Mapping[str, Any] | None = None,
+        create_defaults: Mapping[str, Any] | None = None,
         **kwargs: Any,
-    ) -> tuple[Model, bool]:
+    ) -> tuple[PullRequest, bool]:
         """
         Wraps `update_or_create()` and ensures `post_save` signals are fired for
         updated records as `GroupLink` functionality is dependent on signals
@@ -41,7 +42,11 @@ class PullRequestManager(BaseManager["PullRequest"]):
         key = kwargs.pop("key")
 
         affected, created = super().update_or_create(
-            organization_id=organization_id, repository_id=repository_id, key=key, defaults=defaults
+            organization_id=organization_id,
+            repository_id=repository_id,
+            key=key,
+            defaults=defaults,
+            create_defaults=create_defaults,
         )
         if created is False:
             instance = self.get(

@@ -20,7 +20,6 @@ from sentry.testutils.silo import no_silo_test
 class OrganizationMontorsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
-        self.features = ["organizations:issue-platform"]
         self.path = f"/organizations/{self.organization.slug}/crons/"
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")
 

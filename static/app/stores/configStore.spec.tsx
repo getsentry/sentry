@@ -1,11 +1,21 @@
 import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 
 describe('ConfigStore', () => {
-  it('should have apiUrl and organizationUrl', () => {
+  let configState: Config;
+  beforeEach(() => {
+    configState = ConfigStore.getState();
+  });
+
+  afterEach(() => {
+    ConfigStore.loadInitialData(configState);
+  });
+
+  it('should have regionUrl and organizationUrl', () => {
     const links = ConfigStore.get('links');
     expect(links).toEqual({
-      organizationUrl: 'https://foobar.sentry.io',
-      regionUrl: 'https://us.sentry.io',
+      organizationUrl: undefined,
+      regionUrl: undefined,
       sentryUrl: 'https://sentry.io',
     });
   });
@@ -19,11 +29,12 @@ describe('ConfigStore', () => {
   });
 
   it('should have customerDomain', () => {
-    const customerDomain = ConfigStore.get('customerDomain');
-    expect(customerDomain).toEqual({
-      subdomain: 'foobar',
-      organizationUrl: 'https://foobar.sentry.io',
-      sentryUrl: 'https://sentry.io',
-    });
+    expect(ConfigStore.get('customerDomain')).toEqual(null);
+  });
+
+  it('returns a stable reference from getState()', () => {
+    ConfigStore.set('theme', 'dark');
+    const state = ConfigStore.getState();
+    expect(Object.is(state, ConfigStore.getState())).toBe(true);
   });
 });

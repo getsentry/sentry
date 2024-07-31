@@ -7,7 +7,6 @@ from io import BytesIO
 from typing import IO, Any
 
 import zstandard
-from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -17,7 +16,7 @@ from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
-from sentry.features.rollout import in_random_rollout
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
 
 # Attachment file types that are considered a crash report (PII relevant)
@@ -33,8 +32,8 @@ def get_crashreport_key(group_id: int) -> str:
 
 
 def event_attachment_screenshot_filter(
-    queryset: models.QuerySet[EventAttachment],
-) -> models.QuerySet[EventAttachment]:
+    queryset: BaseQuerySet[EventAttachment],
+) -> BaseQuerySet[EventAttachment]:
     # Intentionally a hardcoded list instead of a regex since current usecases do not have more 3 screenshots
     return queryset.filter(
         name__in=[
@@ -169,7 +168,7 @@ class EventAttachment(Model):
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
-        from sentry.models.files import File, FileBlob
+        from sentry.models.files import FileBlob
 
         content_type = normalize_content_type(attachment.content_type, attachment.name)
         data = attachment.data
@@ -179,34 +178,19 @@ class EventAttachment(Model):
 
         blob = BytesIO(data)
 
-        # NOTE: we still keep the old code around for a while before complete removing it
-        store_blobs = True
+        size, checksum = get_size_and_checksum(blob)
 
-        if store_blobs:
-            size, checksum = get_size_and_checksum(blob)
+        if can_store_inline(data):
+            blob_path = ":" + data.decode()
+        else:
+            blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
 
-            if can_store_inline(data) and in_random_rollout("eventattachments.store-small-inline"):
-                blob_path = ":" + data.decode()
-            else:
-                blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
-
-                storage = get_storage()
-                compressed_blob = BytesIO(zstandard.compress(data))
-                storage.save(blob_path, compressed_blob)
-
-            return PutfileResult(
-                content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
-            )
-
-        file = File.objects.create(
-            name=attachment.name,
-            type=attachment.type,
-            headers={"Content-Type": content_type},
-        )
-        file.putfile(blob, blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+            storage = get_storage()
+            compressed_blob = BytesIO(zstandard.compress(data))
+            storage.save(blob_path, compressed_blob)
 
         return PutfileResult(
-            content_type=content_type, size=file.size, sha1=file.checksum, file_id=file.id
+            content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
         )
 
 

@@ -77,6 +77,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
               }/releases/${encodeURIComponent(activation.activator)}/`,
               query: {project: project},
             }}
+            style={{textOverflow: 'ellipsis', overflowX: 'inherit'}}
           >
             {activation.activator}
           </GlobalSelectionLink>
@@ -90,9 +91,9 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         condition = '--';
     }
     activationBlock = (
-      <div>
-        &nbsp;from {condition} {activator}
-      </div>
+      <Fragment>
+        &nbsp;from {condition}&nbsp;{activator}
+      </Fragment>
     );
   }
 
@@ -170,4 +171,5 @@ const Cell = styled('div')`
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1)};
+  overflow-x: hidden;
 `;

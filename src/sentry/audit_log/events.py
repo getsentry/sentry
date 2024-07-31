@@ -1,8 +1,25 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sentry.audit_log.manager import AuditLogEvent
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.utils.strings import truncatechars
 
+if TYPE_CHECKING:
+    from sentry.models.auditlogentry import AuditLogEntry
+    from sentry.models.user import User
+
+
 # AuditLogEvents with custom render functions
+
+
+def _get_member_display(email: str | None, target_user: User | None) -> str:
+    if email is not None:
+        return email
+    elif target_user is not None:
+        return target_user.get_display_name()
+    else:
+        return "(unknown member)"
 
 
 class MemberAddAuditLogEvent(AuditLogEvent):
@@ -13,7 +30,7 @@ class MemberAddAuditLogEvent(AuditLogEvent):
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "joined the organization"
 
-        member = audit_log_entry.data.get("email") or audit_log_entry.target_user.get_display_name()
+        member = _get_member_display(audit_log_entry.data.get("email"), audit_log_entry.target_user)
         return f"add member {member}"
 
 
@@ -22,7 +39,7 @@ class MemberEditAuditLogEvent(AuditLogEvent):
         super().__init__(event_id=4, name="MEMBER_EDIT", api_name="member.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
-        member = audit_log_entry.data.get("email") or audit_log_entry.target_user.get_display_name()
+        member = _get_member_display(audit_log_entry.data.get("email"), audit_log_entry.target_user)
         role = audit_log_entry.data.get("role") or "N/A"
 
         if "team_slugs" in audit_log_entry.data:
@@ -40,7 +57,7 @@ class MemberRemoveAuditLogEvent(AuditLogEvent):
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "left the organization"
 
-        member = audit_log_entry.data.get("email") or audit_log_entry.target_user.get_display_name()
+        member = _get_member_display(audit_log_entry.data.get("email"), audit_log_entry.target_user)
         return f"removed member {member}"
 
 
@@ -52,8 +69,8 @@ class MemberJoinTeamAuditLogEvent(AuditLogEvent):
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "joined team {team_slug}".format(**audit_log_entry.data)
 
-        user_display_name = (
-            audit_log_entry.data.get("email") or audit_log_entry.target_user.get_display_name()
+        user_display_name = _get_member_display(
+            audit_log_entry.data.get("email"), audit_log_entry.target_user
         )
         return "added {} to team {team_slug}".format(user_display_name, **audit_log_entry.data)
 
@@ -66,8 +83,8 @@ class MemberLeaveTeamAuditLogEvent(AuditLogEvent):
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "left team {team_slug}".format(**audit_log_entry.data)
 
-        user_display_name = (
-            audit_log_entry.data.get("email") or audit_log_entry.target_user.get_display_name()
+        user_display_name = _get_member_display(
+            audit_log_entry.data.get("email"), audit_log_entry.target_user
         )
         return "removed {} from team {team_slug}".format(user_display_name, **audit_log_entry.data)
 
@@ -77,8 +94,8 @@ class MemberPendingAuditLogEvent(AuditLogEvent):
         super().__init__(event_id=8, name="MEMBER_PENDING", api_name="member.pending")
 
     def render(self, audit_log_entry: AuditLogEntry):
-        user_display_name = (
-            audit_log_entry.data.get("email") or audit_log_entry.target_user.get_display_name()
+        user_display_name = _get_member_display(
+            audit_log_entry.data.get("email"), audit_log_entry.target_user
         )
         return f"required member {user_display_name} to setup 2FA"
 
@@ -168,12 +185,17 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
 def render_project_action(audit_log_entry: AuditLogEntry, action: str):
     # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
     filter_name = audit_log_entry.data["state"]
+    slug = audit_log_entry.data.get("slug")
+
+    message = f"{action} project filter {filter_name}"
+
     if filter_name in ("0", "1") or isinstance(filter_name, (bool, list, set)):
         message = f"{action} project filter legacy-browsers"
         if isinstance(filter_name, (list, set)):
             message += ": {}".format(", ".join(sorted(filter_name)))
-        return message
-    return f"{action} project filter {filter_name}"
+    if slug:
+        message += f" for project {slug}"
+    return message
 
 
 class ProjectEnableAuditLogEvent(AuditLogEvent):

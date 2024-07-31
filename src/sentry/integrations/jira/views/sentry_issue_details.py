@@ -15,14 +15,14 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models.group import Group
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import Scope
 from sentry.web.frontend.base import region_silo_view
 
 from ..utils import handle_jira_api_error, set_badge
@@ -121,59 +121,56 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             raise
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
-        with configure_scope() as scope:
-            try:
-                integration = get_integration_from_request(request, "jira")
-            except AtlassianConnectValidationError as e:
-                scope.set_tag("failure", "AtlassianConnectValidationError")
-                logger.info(
-                    "issue_hook.validation_error",
-                    extra={
-                        "issue_key": issue_key,
-                        "error": str(e),
-                    },
-                )
-                return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
-            except ExpiredSignatureError:
-                scope.set_tag("failure", "ExpiredSignatureError")
-                return self.get_response({"refresh_required": True})
+        scope = Scope.get_isolation_scope()
 
-            try:
-                external_issue = ExternalIssue.objects.get(
-                    integration_id=integration.id, key=issue_key
-                )
-                organization = Organization.objects.filter(
-                    id=external_issue.organization_id
-                ).first()
-                if (
-                    integration_service.get_organization_integration(
-                        organization_id=external_issue.organization_id,
-                        integration_id=integration.id,
-                    )
-                    is None
-                ):
-                    set_badge(integration, issue_key, 0)
-                    return self.get_response({"issue_not_linked": True})
+        try:
+            integration = get_integration_from_request(request, "jira")
+        except AtlassianConnectValidationError as e:
+            scope.set_tag("failure", "AtlassianConnectValidationError")
+            logger.info(
+                "issue_hook.validation_error",
+                extra={
+                    "issue_key": issue_key,
+                    "error": str(e),
+                },
+            )
+            return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
+        except ExpiredSignatureError:
+            scope.set_tag("failure", "ExpiredSignatureError")
+            return self.get_response({"refresh_required": True})
 
-                groups = Group.objects.get_groups_by_external_issue(
-                    integration=integration,
-                    organizations=[organization],
-                    external_issue_key=issue_key,
+        try:
+            external_issue = ExternalIssue.objects.get(integration_id=integration.id, key=issue_key)
+            organization = Organization.objects.get(id=external_issue.organization_id)
+            if (
+                integration_service.get_organization_integration(
+                    organization_id=external_issue.organization_id,
+                    integration_id=integration.id,
                 )
-            except (
-                ExternalIssue.DoesNotExist,
-                # Multiple ExternalIssues are returned if organizations share one integration.
-                # Since we cannot identify the organization from the request alone, for now, we just
-                # avoid crashing on the MultipleObjectsReturned error.
-                ExternalIssue.MultipleObjectsReturned,
-            ) as e:
-                scope.set_tag("failure", e.__class__.__name__)
+                is None
+            ):
                 set_badge(integration, issue_key, 0)
                 return self.get_response({"issue_not_linked": True})
 
-            scope.set_tag("organization.slug", organization.slug)
-            response = self.handle_groups(groups)
-            scope.set_tag("status_code", response.status_code)
+            groups = Group.objects.get_groups_by_external_issue(
+                integration=integration,
+                organizations=[organization],
+                external_issue_key=issue_key,
+            )
+        except (
+            ExternalIssue.DoesNotExist,
+            # Multiple ExternalIssues are returned if organizations share one integration.
+            # Since we cannot identify the organization from the request alone, for now, we just
+            # avoid crashing on the MultipleObjectsReturned error.
+            ExternalIssue.MultipleObjectsReturned,
+        ) as e:
+            scope.set_tag("failure", e.__class__.__name__)
+            set_badge(integration, issue_key, 0)
+            return self.get_response({"issue_not_linked": True})
 
-            set_badge(integration, issue_key, len(groups))
-            return response
+        scope.set_tag("organization.slug", organization.slug)
+        response = self.handle_groups(groups)
+        scope.set_tag("status_code", response.status_code)
+
+        set_badge(integration, issue_key, len(groups))
+        return response

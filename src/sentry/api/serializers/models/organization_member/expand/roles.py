@@ -8,8 +8,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import OrganizationRole, Role
-from sentry.services.hybrid_cloud.user import UserSerializeType
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user import UserSerializeType
+from sentry.users.services.user.service import user_service
 
 from ...role import OrganizationRoleSerializer, TeamRoleSerializer
 from .. import OrganizationMemberWithTeamsSerializer

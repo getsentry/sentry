@@ -10,10 +10,10 @@ from django.test import RequestFactory
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.utils.auth import _encode_data
-from sentry.middleware.integrations.parsers.base import create_async_request_payload
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import outbox_context
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
@@ -38,7 +38,11 @@ class SlackRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    def test_webhook(self):
+    @patch(
+        "slack_sdk.signature.SignatureVerifier.is_valid",
+        return_value=True,
+    )
+    def test_webhook(self, mock_verify):
         # Retrieve the correct integration
         data = urlencode({"team_id": self.integration.external_id}).encode("utf-8")
         signature = _encode_data(secret="slack-signing-secret", data=data, timestamp=self.timestamp)
@@ -142,8 +146,9 @@ class SlackRequestParserTest(TestCase):
                 {"team_id": self.integration.external_id, "response_url": response_url}
             )
         }
-        with assume_test_silo_mode_of(OrganizationIntegration), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationIntegration))
+        with (
+            assume_test_silo_mode_of(OrganizationIntegration),
+            outbox_context(transaction.atomic(using=router.db_for_write(OrganizationIntegration))),
         ):
             OrganizationIntegration.objects.filter(organization_id=self.organization.id).delete()
         request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)

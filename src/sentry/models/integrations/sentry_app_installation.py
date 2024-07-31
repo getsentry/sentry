@@ -3,25 +3,21 @@ from __future__ import annotations
 import uuid
 from collections.abc import Collection, Mapping
 from itertools import chain
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, overload
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    ParanoidManager,
-    ParanoidModel,
-    control_silo_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
+from sentry.projects.services.project import RpcProject
+from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
@@ -199,8 +195,8 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.services.caching import region_caching_service
-        from sentry.services.hybrid_cloud.app.service import get_installation
+        from sentry.hybridcloud.rpc.caching import region_caching_service
+        from sentry.sentry_apps.services.app.service import get_installation
 
         if self.api_token is not None:
             # ApiTokens replicate the organization_id they are associated with.
@@ -229,7 +225,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                     for ob in ApiToken(id=api_token_id, user_id=user_id).outboxes_for_update():
                         ob.save()
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         from sentry.models.apitoken import ApiToken
 
         try:
@@ -259,12 +255,32 @@ def prepare_sentry_app_components(
     return prepare_ui_component(installation, component, project_slug, values)
 
 
+@overload
 def prepare_ui_component(
     installation: SentryAppInstallation,
     component: SentryAppComponent,
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
+    ...
+
+
+@overload
+def prepare_ui_component(
+    installation: RpcSentryAppInstallation,
+    component: RpcSentryAppComponent,
+    project_slug: str | None = None,
+    values: list[Mapping[str, Any]] | None = None,
+) -> RpcSentryAppComponent | None:
+    ...
+
+
+def prepare_ui_component(
+    installation: SentryAppInstallation | RpcSentryAppInstallation,
+    component: SentryAppComponent | RpcSentryAppComponent,
+    project_slug: str | None = None,
+    values: list[Mapping[str, Any]] | None = None,
+) -> SentryAppComponent | RpcSentryAppComponent | None:
     from sentry.coreapi import APIError
     from sentry.sentry_apps.components import SentryAppComponentPreparer
 

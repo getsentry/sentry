@@ -1,6 +1,7 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {MetricMeta, MRI, Project} from 'sentry/types';
+import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import type {Project} from 'sentry/types/project';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -65,9 +65,10 @@ from datetime import datetime
 from typing import Any
 
 import orjson
+import yaml
 from pydantic import BaseModel, Field, ValidationError, constr
 
-from flagpole.conditions import Segment
+from flagpole.conditions import ConditionBase, Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
 
 
@@ -76,26 +77,42 @@ class InvalidFeatureFlagConfiguration(Exception):
 
 
 class Feature(BaseModel):
-    name: constr(min_length=1, to_lower=True)  # type:ignore[valid-type]
-    owner: constr(min_length=1)  # type:ignore[valid-type]
-    segments: list[Segment]
-    """A list of segments to evaluate against the provided data"""
-    enabled: bool = True
-    """Defines whether or not the feature is enabled."""
-    created_at: datetime = Field(default_factory=datetime.now)
-    """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
+    name: constr(min_length=1, to_lower=True) = Field(  # type:ignore[valid-type]
+        description="The feature name."
+    )
+    "The feature name."
+
+    owner: constr(min_length=1) = Field(  # type:ignore[valid-type]
+        description="The owner of this feature. Either an email address or team name, preferably."
+    )
+    "The owner of this feature. Either an email address or team name, preferably."
+
+    segments: list[Segment] = Field(
+        description="The list of segments to evaluate for the feature. An empty list will always evaluate to False."
+    )
+    "The list of segments to evaluate for the feature. An empty list will always evaluate to False."
+
+    enabled: bool = Field(default=True, description="Whether or not the feature is enabled.")
+    "Whether or not the feature is enabled."
+
+    created_at: datetime = Field(description="The datetime when this feature was created.")
+    "The datetime when this feature was created."
 
     def match(self, context: EvaluationContext) -> bool:
-        if self.enabled:
-            for segment in self.segments:
-                if segment.match(context):
-                    return True
+        if not self.enabled:
+            return False
+
+        for segment in self.segments:
+            match = segment.match(context)
+            if match:
+                return segment.in_rollout(context)
 
         return False
 
-    def dump_schema_to_file(self, file_path: str) -> None:
+    @classmethod
+    def dump_schema_to_file(cls, file_path: str) -> None:
         with open(file_path, "w") as file:
-            file.write(self.schema_json())
+            file.write(cls.schema_json(indent=2))
 
     @classmethod
     def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
@@ -120,5 +137,42 @@ class Feature(BaseModel):
 
         return cls.from_feature_dictionary(name=name, config_dict=config_data_dict)
 
+    @classmethod
+    def from_bulk_json(cls, json: str) -> list[Feature]:
+        features: list[Feature] = []
+        features_json = orjson.loads(json)
 
-__all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder", "EvaluationContext"]
+        for feature, json_dict in features_json.items():
+            features.append(cls.from_feature_dictionary(name=feature, config_dict=json_dict))
+
+        return features
+
+    @classmethod
+    def from_bulk_yaml(cls, yaml_str) -> list[Feature]:
+        features: list[Feature] = []
+        parsed_yaml = yaml.safe_load(yaml_str)
+        for feature, yaml_dict in parsed_yaml.items():
+            features.append(cls.from_feature_dictionary(name=feature, config_dict=yaml_dict))
+
+        return features
+
+    def to_dict(self) -> dict[str, Any]:
+        json_dict = dict(orjson.loads(self.json()))
+        json_dict.pop("name")
+        return {self.name: json_dict}
+
+    def to_yaml_str(self) -> str:
+        return yaml.dump(self.to_dict())
+
+    def to_json_str(self) -> str:
+        return orjson.dumps(self.to_dict()).decode()
+
+
+__all__ = [
+    "Feature",
+    "InvalidFeatureFlagConfiguration",
+    "ContextBuilder",
+    "EvaluationContext",
+    "Segment",
+    "ConditionBase",
+]

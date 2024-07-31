@@ -5,9 +5,9 @@ from django.db import router
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
@@ -57,8 +57,10 @@ class FinishPipelineTestCase(IntegrationTestCase):
         integration = self.create_provider_integration(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
-        with receivers_raise_on_send(), outbox_runner(), unguarded_write(
-            using=router.db_for_write(OrganizationMapping)
+        with (
+            receivers_raise_on_send(),
+            outbox_runner(),
+            unguarded_write(using=router.db_for_write(OrganizationMapping)),
         ):
             for org in na_orgs:
                 integration.add_organization(org)
@@ -87,7 +89,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_with_customer_domain(self, *args):
-        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+        with self.feature({"system:multi-region": True}):
             data = {
                 "external_id": self.external_id,
                 "name": "Name",

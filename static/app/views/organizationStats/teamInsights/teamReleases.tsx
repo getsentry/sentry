@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
-import type {Theme} from '@emotion/react';
-import {css, withTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -30,7 +29,6 @@ interface TeamReleasesProps extends DateTimeObject {
   organization: Organization;
   projects: Project[];
   teamSlug: string;
-  theme: Theme;
 }
 
 export type ProjectReleaseCount = {
@@ -43,12 +41,12 @@ function TeamReleases({
   organization,
   projects,
   teamSlug,
-  theme,
   start,
   end,
   period,
   utc,
 }: TeamReleasesProps) {
+  const theme = useTheme();
   const datetime = {start, end, period, utc};
 
   const {
@@ -210,16 +208,22 @@ function TeamReleases({
             },
           ]}
           tooltip={{
-            formatter: seriesParams => {
+            formatter: (seriesParams: any) => {
               // `seriesParams` can be an array or an object :/
               const [series] = toArray(seriesParams);
 
+              if (!series.data?.value) {
+                return '';
+              }
+
               const dateFormat = 'MMM D';
-              const startDate = moment(series.data[0]).format(dateFormat);
-              const endDate = moment(series.data[0]).add(7, 'days').format(dateFormat);
+              const startDate = moment(series.data.value[0]).format(dateFormat);
+              const endDate = moment(series.data.value[0])
+                .add(7, 'days')
+                .format(dateFormat);
               return [
                 '<div class="tooltip-series">',
-                `<div><span class="tooltip-label">${series.marker} <strong>${series.seriesName}</strong></span> ${series.data[1]}</div>`,
+                `<div><span class="tooltip-label">${series.marker} <strong>${series.seriesName}</strong></span> ${series.data.value[1]}</div>`,
                 `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
                 '</div>',
                 `<div class="tooltip-footer">${startDate} - ${endDate}</div>`,
@@ -282,7 +286,7 @@ function TeamReleases({
   );
 }
 
-export default withTheme(TeamReleases);
+export default TeamReleases;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};

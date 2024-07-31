@@ -7,13 +7,14 @@ from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.integrations.types import ExternalProviders
+from sentry.notifications.services.service import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.plugins.base import Notification, Plugin
+from sentry.plugins.base import Plugin
 from sentry.plugins.base.configuration import react_plugin_config
-from sentry.services.hybrid_cloud.notifications.service import notifications_service
+from sentry.plugins.base.structs import Notification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviders
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -51,7 +52,7 @@ class NotificationPlugin(Plugin):
     def get_plugin_type(self):
         return "notification"
 
-    def notify(self, notification, raise_exception=False):
+    def notify(self, notification: Notification, raise_exception: bool = False) -> None:
         """
         This calls the notify_users method of the plugin.
         Normally this method eats the error and logs it but if we
@@ -60,8 +61,10 @@ class NotificationPlugin(Plugin):
         """
         event = notification.event
         try:
-            return self.notify_users(
-                event.group, event, triggering_rules=[r.label for r in notification.rules]
+            self.notify_users(
+                group=event.group,
+                event=event,
+                triggering_rules=[r.label for r in notification.rules],
             )
         except (
             ApiError,
@@ -82,7 +85,6 @@ class NotificationPlugin(Plugin):
             )
             if raise_exception:
                 raise
-            return False
 
     def rule_notify(self, event, futures):
         rules = []
@@ -102,7 +104,7 @@ class NotificationPlugin(Plugin):
         self.notify(notification)
         self.logger.info("notification.dispatched", extra=extra)
 
-    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         raise NotImplementedError
 
     def notify_about_activity(self, activity):
@@ -160,7 +162,7 @@ class NotificationPlugin(Plugin):
             project=group.project, key=self.get_conf_key(), limit=10
         )
 
-    def is_configured(self, project):
+    def is_configured(self, project) -> bool:
         raise NotImplementedError
 
     def should_notify(self, group, event):
@@ -180,16 +182,16 @@ class NotificationPlugin(Plugin):
 
         return True
 
-    def test_configuration(self, project):
+    def test_configuration(self, project) -> None:
         from sentry.utils.samples import create_sample_event
 
         event = create_sample_event(project, platform="python")
         notification = Notification(event=event)
-        return self.notify(notification, raise_exception=True)
+        self.notify(notification, raise_exception=True)
 
     def test_configuration_and_get_test_results(self, project):
         try:
-            test_results = self.test_configuration(project)
+            self.test_configuration(project)
         except Exception as exc:
             if isinstance(exc, HTTPError) and hasattr(exc.response, "text"):
                 test_results = f"{exc}\n{exc.response.text[:256]}"
@@ -202,7 +204,7 @@ class NotificationPlugin(Plugin):
                     test_results = (
                         "There was an internal error with the Plugin, %s" % str(exc)[:256]
                     )
-        if not test_results:
+        else:
             test_results = "No errors returned"
         return test_results
 

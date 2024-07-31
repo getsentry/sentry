@@ -36,7 +36,6 @@ from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
@@ -129,7 +128,6 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         ):
             save_issue_occurrence(occurrence.to_dict(), event)
 
-    @with_feature("projects:issue-priority")
     def test_new_group_with_default_priority(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id)
@@ -137,7 +135,6 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.LOW
 
-    @with_feature("projects:issue-priority")
     def test_new_group_with_priority(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(
@@ -270,10 +267,13 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(fingerprint=["another-fingerprint"])
-        with mock.patch("sentry.issues.ingest.metrics") as metrics, mock.patch(
-            "sentry.issues.ingest.issue_rate_limiter.check_and_use_quotas",
-            return_value=[MockGranted(granted=False)],
-        ) as check_and_use_quotas:
+        with (
+            mock.patch("sentry.issues.ingest.metrics") as metrics,
+            mock.patch(
+                "sentry.issues.ingest.issue_rate_limiter.check_and_use_quotas",
+                return_value=[MockGranted(granted=False)],
+            ) as check_and_use_quotas,
+        ):
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
             metrics.incr.assert_called_once_with("issues.issue.dropped.rate_limiting")
             assert check_and_use_quotas.call_count == 1
@@ -347,7 +347,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
-    @with_feature("projects:issue-priority")
     def test_new_group_with_default_priority(self) -> None:
         occurrence = self.build_occurrence()
         event = self.store_event(data={}, project_id=self.project.id)
@@ -355,7 +354,6 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.LOW
 
-    @with_feature("projects:issue-priority")
     def test_new_group_with_priority(self) -> None:
         occurrence = self.build_occurrence(initial_issue_priority=PriorityLevel.HIGH)
         event = self.store_event(data={}, project_id=self.project.id)
@@ -453,8 +451,9 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
 
         group_event = event.for_group(group_info.group)
-        with mock.patch("sentry.issues.ingest.eventstream") as eventstream, mock.patch.object(
-            event, "for_group", return_value=group_event
+        with (
+            mock.patch("sentry.issues.ingest.eventstream") as eventstream,
+            mock.patch.object(event, "for_group", return_value=group_event),
         ):
             send_issue_occurrence_to_eventstream(event, occurrence, group_info)
             eventstream.backend.insert.assert_called_once_with(

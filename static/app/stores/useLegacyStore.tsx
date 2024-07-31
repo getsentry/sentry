@@ -1,37 +1,29 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useSyncExternalStore} from 'react';
 import type {Store} from 'reflux';
 
-import type {CommonStoreDefinition} from './types';
-
-interface LegacyStoreShape extends Store, CommonStoreDefinition<any> {}
+interface LegacyStoreShape extends Pick<Store, 'listen'> {
+  getState(): any;
+}
 
 /**
  * Returns the state of a reflux store. Automatically unsubscribes when destroyed
  *
- * ```
+ * ```tsx
  * const teams = useLegacyStore(TeamStore);
  * ```
+ *
+ * @link https://react.dev/reference/react/useSyncExternalStore
  */
 export function useLegacyStore<T extends LegacyStoreShape>(
   store: T
 ): ReturnType<T['getState']> {
-  const [state, setState] = useState(store.getState());
+  const listener = useCallback(
+    (fn: () => void) => {
+      // Pass undefined to 2nd listen argument otherwise it explodes
+      return store.listen(fn, undefined) as () => void;
+    },
+    [store]
+  );
 
-  // Not all stores emit the new state, call get on change
-  const callback = () => setState(store.getState());
-
-  // If we setup the listener in useEffect, there is a small race condition
-  // where the store may emit an event before we're listening (since useEffect
-  // fires AFTER rendering). Avoid this by ensuring we start listening
-  // *immediately* after we initialize the useState.
-  const unlisten = useRef<Function>();
-  if (unlisten.current === undefined) {
-    unlisten.current = store.listen(callback, undefined);
-  }
-
-  useEffect(() => {
-    return () => void unlisten.current?.();
-  }, []);
-
-  return state;
+  return useSyncExternalStore(listener, store.getState);
 }

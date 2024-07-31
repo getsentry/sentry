@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Collection
 from typing import Any
 
@@ -25,7 +27,7 @@ class AuthIdentity(ReplicatedControlModel):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     auth_provider = FlexibleForeignKey("sentry.AuthProvider")
     ident = models.CharField(max_length=128)
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     last_verified = models.DateTimeField(default=timezone.now)
     last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
@@ -34,8 +36,8 @@ class AuthIdentity(ReplicatedControlModel):
         return find_regions_for_orgs([self.auth_provider.organization_id])
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.auth.serial import serialize_auth_identity
-        from sentry.services.hybrid_cloud.replica.service import region_replica_service
+        from sentry.auth.services.auth.serial import serialize_auth_identity
+        from sentry.hybridcloud.services.replica.service import region_replica_service
 
         serialized = serialize_auth_identity(self)
         region_replica_service.upsert_replicated_auth_identity(

@@ -9,13 +9,13 @@ from sentry_sdk import set_tag, set_user
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock

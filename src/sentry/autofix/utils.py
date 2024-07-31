@@ -1,11 +1,16 @@
+import datetime
+import enum
 from typing import TypedDict
 
+import orjson
 import requests
 from django.conf import settings
+from pydantic import BaseModel
 
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
 
@@ -18,12 +23,31 @@ class AutofixRequest(TypedDict):
     issue: AutofixIssue
 
 
-class AutofixState(TypedDict):
+class AutofixStatus(str, enum.Enum):
+    COMPLETED = "COMPLETED"
+    ERROR = "ERROR"
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    NEED_MORE_INFORMATION = "NEED_MORE_INFORMATION"
+    CANCELLED = "CANCELLED"
+
+
+class AutofixState(BaseModel):
     run_id: int
     request: AutofixRequest
+    updated_at: datetime.datetime
+    status: AutofixStatus
+    actor_ids: list[str] | None = None
+
+    class Config:
+        extra = "allow"
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
+    if settings.SEER_AUTOFIX_FORCE_USE_REPOS:
+        # This is for testing purposes only, for example in s4s we want to force the use of specific repo(s)
+        return settings.SEER_AUTOFIX_FORCE_USE_REPOS
+
     code_mappings = get_sorted_code_mapping_configs(project)
 
     repos: dict[tuple, dict] = {}
@@ -46,16 +70,62 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
     return list(repos.values())
 
 
-def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
+def get_autofix_state(
+    *, group_id: int | None = None, run_id: int | None = None
+) -> AutofixState | None:
+    path = "/v1/automation/autofix/state"
+    body = orjson.dumps(
+        {
+            "group_id": group_id,
+            "run_id": run_id,
+        }
+    )
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state/pr",
-        data=json.dumps(
-            {
-                "provider": provider,
-                "pr_id": pr_id,
-            }
-        ),
-        headers={"content-type": "application/json;charset=utf-8"},
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(
+                url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                body=body,
+            ),
+        },
+    )
+
+    response.raise_for_status()
+
+    result = response.json()
+
+    if result:
+        if (
+            group_id is not None
+            and result["group_id"] == group_id
+            or run_id is not None
+            and result["run_id"] == run_id
+        ):
+            return AutofixState.validate(result["state"])
+
+    return None
+
+
+def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
+    path = "/v1/automation/autofix/state/pr"
+    body = json.dumps(
+        {
+            "provider": provider,
+            "pr_id": pr_id,
+        }
+    ).encode("utf-8")
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(
+                url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                body=body,
+            ),
+        },
     )
 
     response.raise_for_status()
@@ -64,4 +134,4 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
     if not result:
         return None
 
-    return result.get("state", None)
+    return AutofixState.validate(result.get("state", None))

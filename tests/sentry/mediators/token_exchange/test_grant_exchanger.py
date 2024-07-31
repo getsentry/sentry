@@ -9,7 +9,7 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

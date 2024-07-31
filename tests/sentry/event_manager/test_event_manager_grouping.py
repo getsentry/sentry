@@ -3,17 +3,23 @@ from __future__ import annotations
 from time import time
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 import pytest
 
+from sentry import audit_log
+from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
+from sentry.grouping.ingest.config import DO_NOT_UPGRADE_YET
 from sentry.grouping.result import CalculatedHashes
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -55,10 +61,18 @@ class EventManagerGroupingTest(TestCase):
 
         assert event.group_id != event2.group_id
 
+    def test_puts_events_with_only_partial_message_match_in_different_groups(self):
+        # We had a regression which caused the default hash to just be 'event.message' instead of
+        # '[event.message]' which caused it to generate a hash per letter
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        event2 = save_new_event({"message": "Dogs are really great!"}, self.project)
+
+        assert event1.group_id != event2.group_id
+
     def test_adds_default_fingerprint_if_none_in_event(self):
         event = save_new_event({"message": "Dogs are great!"}, self.project)
 
-        assert event.data.get("fingerprint") == ["{{ default }}"]
+        assert event.data["fingerprint"] == ["{{ default }}"]
 
     def test_ignores_fingerprint_on_transaction_event(self):
         error_event = save_new_event(
@@ -102,6 +116,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 1
         assert group.last_seen == event1.datetime
         assert group.message == event1.message
+        assert group.data["metadata"]["title"] == event1.title
 
         # Normally this should go into a different group, since the messages don't match, but the
         # fingerprint takes precedence. (We need to make the messages different in order to show
@@ -116,6 +131,53 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
+        assert group.data["metadata"]["title"] == event2.title
+
+    def test_auto_updates_grouping_config(self):
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+
+        save_new_event({"message": "Adopt don't shop"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            audit_log_entry = AuditLogEntry.objects.get()
+
+        assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
+        assert audit_log_entry.actor_label == "Sentry"
+
+        assert audit_log_entry.data == {
+            "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
+            "sentry:secondary_grouping_config": "mobile:2021-02-12",
+            "sentry:secondary_grouping_expiry": ANY,  # tested separately below
+            "id": self.project.id,
+            "slug": self.project.slug,
+            "name": self.project.name,
+            "status": 0,
+            "public": False,
+        }
+
+        # When the config upgrade is actually happening, the expiry value is set before the
+        # audit log entry is created, which means the expiry is based on a timestamp
+        # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
+        # necessary.
+        actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
+        expected_expiry = (
+            int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+        )
+        assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
+
+    def test_does_not_update_project_in_exclude_list(self):
+        # It does not update the config because it is listed in DO_NOT_UPGRADE_YET
+        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
+        assert LEGACY_CONFIG in DO_NOT_UPGRADE_YET
+        save_new_event({"message": "foo"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
+
+        # It updates the config because it is not listed in DO_NOT_UPGRADE_YET
+        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        assert "mobile:2021-02-12" not in DO_NOT_UPGRADE_YET
+        save_new_event({"message": "foo"}, self.project)
+        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
 
 class PlaceholderTitleTest(TestCase):
@@ -183,8 +245,8 @@ class PlaceholderTitleTest(TestCase):
         assert group.title == event2.title == "<unlabeled event>"
         assert group.data["title"] == event2.data["title"] == "<unlabeled event>"
         assert (
-            group.data["metadata"].get("title")
-            == event2.data["metadata"].get("title")
+            group.data["metadata"]["title"]
+            == event2.data["metadata"]["title"]
             == "<unlabeled event>"
         )
         assert group.message == "<unlabeled event>"
@@ -264,7 +326,7 @@ class PlaceholderTitleTest(TestCase):
         assert event2.data["title"] == "<unlabeled event>"
         assert group.data["title"] == "DogsAreNeverAnError: Dogs are great!"
         assert group.data["metadata"].get("title") is None
-        assert event2.data["metadata"].get("title") == "<unlabeled event>"
+        assert event2.data["metadata"]["title"] == "<unlabeled event>"
         assert group.message == "Dogs are great! DogsAreNeverAnError"
 
         # An event after the bug was fixed
@@ -379,7 +441,6 @@ class EventManagerGroupingMetricsTest(TestCase):
                 with self.feature(
                     {"organizations:grouping-suppress-unnecessary-secondary-hash": has_flag}
                 ):
-
                     mock_metrics_incr.reset_mock()
 
                     project.update_option("sentry:grouping_config", primary_config)
@@ -420,15 +481,11 @@ class EventManagerGroupingMetricsTest(TestCase):
         for primary_hashes, secondary_hashes, expected_tag in cases:
             with mock.patch(
                 "sentry.grouping.ingest.hashing._calculate_primary_hash",
-                return_value=CalculatedHashes(
-                    hashes=primary_hashes, hierarchical_hashes=[], tree_labels=[]
-                ),
+                return_value=CalculatedHashes(primary_hashes),
             ):
                 with mock.patch(
                     "sentry.grouping.ingest.hashing._calculate_secondary_hash",
-                    return_value=CalculatedHashes(
-                        hashes=secondary_hashes, hierarchical_hashes=[], tree_labels=[]
-                    ),
+                    return_value=CalculatedHashes(secondary_hashes),
                 ):
                     save_new_event({"message": "Dogs are great!"}, self.project)
 

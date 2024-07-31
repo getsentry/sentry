@@ -20,12 +20,12 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 class WebhookTest(GitLabTestCase):
     url = "/extensions/gitlab/webhook/"
 
-    def assert_commit_author(self, author):
+    def assert_commit_author(self, author: CommitAuthor) -> None:
         assert author.email
         assert author.name
         assert author.organization_id == self.organization.id
 
-    def assert_pull_request(self, pull, author):
+    def assert_pull_request(self, pull: PullRequest, author: CommitAuthor) -> None:
         assert pull.title
         assert pull.message
         assert pull.date_added
@@ -34,7 +34,7 @@ class WebhookTest(GitLabTestCase):
         assert pull.organization_id == self.organization.id
 
     def assert_group_link(self, group, pull):
-        link = GroupLink.objects.all().first()
+        link = GroupLink.objects.get()
         assert link.group_id == group.id
         assert link.linked_type == GroupLink.LinkedType.pull_request
         assert link.linked_id == pull.id
@@ -92,7 +92,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 409
         assert (
             response.reason_phrase
-            == "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
+            == "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."
         )
 
     def test_invalid_payload(self):
@@ -304,10 +304,10 @@ class WebhookTest(GitLabTestCase):
             HTTP_X_GITLAB_EVENT="Merge Request Hook",
         )
         assert response.status_code == 204
-        author = CommitAuthor.objects.all().first()
+        author = CommitAuthor.objects.get()
         self.assert_commit_author(author)
 
-        pull = PullRequest.objects.all().first()
+        pull = PullRequest.objects.get()
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
 
@@ -330,10 +330,10 @@ class WebhookTest(GitLabTestCase):
             HTTP_X_GITLAB_EVENT="Merge Request Hook",
         )
         assert response.status_code == 204
-        author = CommitAuthor.objects.all().first()
+        author = CommitAuthor.objects.get()
         self.assert_commit_author(author)
 
-        pull = PullRequest.objects.all().first()
+        pull = PullRequest.objects.get()
         assert pull.title != "Old title"
         assert pull.message != "Old message"
 

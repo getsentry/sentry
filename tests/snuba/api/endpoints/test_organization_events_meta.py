@@ -7,7 +7,6 @@ from rest_framework.exceptions import ParseError
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
@@ -69,13 +68,6 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         assert response.data["count"] == 1
 
     def test_invalid_query(self):
-        with self.feature(self.features):
-            response = self.client.get(self.url, {"query": "is:unresolved"}, format="json")
-
-        assert response.status_code == 400, response.content
-
-    @with_feature("organizations:issue-priority-ui")
-    def test_invalid_query_priority(self):
         with self.feature(self.features):
             response = self.client.get(
                 self.url, {"query": "is:unresolved priority:[high, medium]"}, format="json"
@@ -201,7 +193,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
                 )
         assert response.status_code == 400
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = ParseError("test")
         with self.feature(self.features):
@@ -368,7 +360,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         )
         response = self.client.get(
             url,
-            {"transaction": "/beth/sanchez", "project": project1.id},
+            {"transaction": "/beth/sanchez", "project": str(project1.id)},
             format="json",
         )
 
@@ -396,7 +388,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         )
         response = self.client.get(
             url,
-            {"transaction": '/beth/"sanchez"', "project": project.id},
+            {"transaction": '/beth/"sanchez"', "project": str(project.id)},
             format="json",
         )
 
@@ -411,7 +403,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         )
         response = self.client.get(
             url,
-            {"transaction": '/beth/\\"sanchez\\"', "project": project.id},
+            {"transaction": '/beth/\\"sanchez\\"', "project": str(project.id)},
             format="json",
         )
 
@@ -424,7 +416,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-samples"
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
         self.login_as(user=self.user)
         project = self.create_project()

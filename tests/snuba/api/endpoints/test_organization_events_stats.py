@@ -1,17 +1,22 @@
+from __future__ import annotations
+
 import uuid
 from datetime import timedelta
+from typing import Any, TypedDict
 from unittest import mock
 from uuid import uuid4
 
 import pytest
 from dateutil.parser import parse as parse_date
 from django.urls import reverse
+from snuba_sdk import Entity
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
@@ -20,6 +25,12 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
+
+
+class _EventDataDict(TypedDict):
+    data: dict[str, Any]
+    project: Project
+    count: int
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -80,6 +91,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
+    @pytest.mark.querybuilder
     def test_simple(self):
         response = self.do_request(
             {
@@ -643,21 +655,23 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
             self.store_event(data=data, project_id=self.project.id)
 
-        response = self.do_request(
-            data={
-                "project": self.project.id,
-                "end": iso_format(before_now()),
-                "start": iso_format(before_now(hours=2)),
-                "query": "event.type:transaction",
-                "interval": "30m",
-                "yAxis": "count()",
-            },
-        )
-        assert response.status_code == 200, response.content
-        items = [item for time, item in response.data["data"] if item]
-        # We could get more results depending on where the 30 min
-        # windows land.
-        assert len(items) >= 3
+        for dataset in ["discover", "transactions"]:
+            response = self.do_request(
+                data={
+                    "project": self.project.id,
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "query": "event.type:transaction",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                    "dataset": dataset,
+                },
+            )
+            assert response.status_code == 200, response.content
+            items = [item for time, item in response.data["data"] if item]
+            # We could get more results depending on where the 30 min
+            # windows land.
+            assert len(items) >= 3
 
     def test_project_id_query_filter(self):
         response = self.do_request(
@@ -1011,7 +1025,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": None}],
         ]
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_profiles_dataset_simple(self, mock_snql_query):
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
@@ -1067,7 +1081,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
     def test_group_id_tag_simple(self):
-        event_data = {
+        event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
                 "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
@@ -1120,7 +1134,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
         transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=4))
         transaction_data["tags"] = {"shared-tag": "yup"}
-        self.event_data = [
+        self.event_data: list[_EventDataDict] = [
             {
                 "data": {
                     "message": "poof",
@@ -1348,8 +1362,41 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert data["Other"]["order"] == 1
         assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [7, 6]
 
+    def test_top_events_with_projects_fields(self):
+        # We need to handle the project name fields differently
+        for project_field in ["project", "project.name"]:
+            with self.feature(self.enabled_features):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=2)),
+                        "interval": "1h",
+                        "yAxis": "count()",
+                        "orderby": ["-count()"],
+                        "field": ["count()", project_field],
+                        "topEvents": 5,
+                    },
+                    format="json",
+                )
+
+            data = response.data
+            assert response.status_code == 200, response.content
+
+            assert data[self.project.slug]["order"] == 0, project_field
+            assert [attrs[0]["count"] for _, attrs in data[self.project.slug]["data"]] == [
+                15,
+                0,
+            ], project_field
+
+            assert data[self.project2.slug]["order"] == 1, project_field
+            assert [attrs[0]["count"] for _, attrs in data[self.project2.slug]["data"]] == [
+                7,
+                6,
+            ], project_field
+
     def test_tag_with_conflicting_function_alias_simple(self):
-        event_data = {
+        event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
                 "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
@@ -1396,7 +1443,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         reason="The response.data[Other] returns 15 locally and returns 16 or 15 remotely."
     )
     def test_tag_with_conflicting_function_alias_with_other_single_grouping(self):
-        event_data = [
+        event_data: list[_EventDataDict] = [
             {
                 "data": {
                     "message": "poof",
@@ -1444,7 +1491,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert response.data["Other"]["data"][0][1] == [{"count": 16}]
 
     def test_tag_with_conflicting_function_alias_with_other_multiple_groupings(self):
-        event_data = [
+        event_data: list[_EventDataDict] = [
             {
                 "data": {
                     "message": "abc",
@@ -1492,7 +1539,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert response.data["Other"]["data"][0][1] == [{"count": 25}]
 
     def test_group_id_tag_simple(self):
-        event_data = {
+        event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
                 "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
@@ -1690,7 +1737,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert [{"count": event_data["count"]}] in [attrs for time, attrs in results["data"]]
 
     @mock.patch(
-        "sentry.search.events.builder.discover.raw_snql_query",
+        "sentry.search.events.builder.base.raw_snql_query",
         side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
     def test_top_events_with_issue_check_query_conditions(self, mock_query):
@@ -1722,29 +1769,31 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         )
 
     def test_top_events_with_functions(self):
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "orderby": ["-p99()"],
-                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
-                    "topEvents": 5,
-                },
-                format="json",
-            )
+        for dataset in ["transactions", "discover"]:
+            with self.feature(self.enabled_features):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=2)),
+                        "interval": "1h",
+                        "yAxis": "count()",
+                        "orderby": ["-p99()"],
+                        "field": ["transaction", "avg(transaction.duration)", "p99()"],
+                        "topEvents": 5,
+                        "dataset": dataset,
+                    },
+                    format="json",
+                )
 
-        data = response.data
+            data = response.data
 
-        assert response.status_code == 200, response.content
-        assert len(data) == 1
+            assert response.status_code == 200, response.content
+            assert len(data) == 1
 
-        results = data[self.transaction.transaction]
-        assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
+            results = data[self.transaction.transaction]
+            assert results["order"] == 0
+            assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_top_events_with_functions_on_different_transactions(self):
         """Transaction2 has less events, but takes longer so order should be self.transaction then transaction2"""
@@ -2247,14 +2296,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        data = response.data
+        res_data = response.data
 
-        assert len(data) == 2
+        assert len(res_data) == 2
 
-        results = data["1"]
+        results = res_data["1"]
         assert [attrs for time, attrs in results["data"]] == [[{"count": 20}], [{"count": 6}]]
 
-        results = data["0"]
+        results = res_data["0"]
         assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
     def test_top_events_with_aggregate_condition(self):
@@ -2369,7 +2418,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.snuba.discover.bulk_snuba_queries", return_value=[{"data": [], "meta": []}])
     @mock.patch(
-        "sentry.search.events.builder.discover.raw_snql_query",
+        "sentry.search.events.builder.base.raw_snql_query",
         return_value={"data": [], "meta": []},
     )
     def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
@@ -2758,3 +2807,365 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
         assert any(
             row[1][0]["count"] > 0 for row in response.data["bar"]["p95(function.duration)"]["data"]
         )
+
+
+class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+        self.project2 = self.create_project()
+        self.user2 = self.create_user()
+        self.event_data: list[_EventDataDict] = [
+            {
+                "data": {
+                    "message": "poof",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"shared-tag": "yup"},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 7,
+            },
+            {
+                "data": {
+                    "message": "voof",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "fingerprint": ["group2"],
+                    "user": {"email": self.user2.email},
+                    "tags": {"shared-tag": "yup"},
+                },
+                "project": self.project2,
+                "count": 6,
+            },
+            {
+                "data": {
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group3"],
+                    "user": {"email": "foo@example.com"},
+                    "tags": {"shared-tag": "yup"},
+                },
+                "project": self.project,
+                "count": 5,
+            },
+            {
+                "data": {
+                    "message": "oh no",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group4"],
+                    "user": {"email": "bar@example.com"},
+                    "tags": {"shared-tag": "yup"},
+                },
+                "project": self.project,
+                "count": 4,
+            },
+            {
+                "data": {
+                    "message": "kinda bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "tags": {"shared-tag": "yup"},
+                    "fingerprint": ["group7"],
+                },
+                "project": self.project,
+                "count": 3,
+            },
+            # Not in the top 5
+            {
+                "data": {
+                    "message": "sorta bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group5"],
+                    "user": {"email": "bar@example.com"},
+                    "tags": {"shared-tag": "yup"},
+                },
+                "project": self.project,
+                "count": 2,
+            },
+            {
+                "data": {
+                    "message": "not so bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group6"],
+                    "user": {"email": "bar@example.com"},
+                    "tags": {"shared-tag": "yup"},
+                },
+                "project": self.project,
+                "count": 1,
+            },
+        ]
+
+        self.events = []
+        for index, event_data in enumerate(self.event_data):
+            data = event_data["data"].copy()
+            for i in range(event_data["count"]):
+                data["event_id"] = f"{index}{i}" * 16
+                event = self.store_event(data, project_id=event_data["project"].id)
+            self.events.append(event)
+
+        self.enabled_features = {
+            "organizations:discover-basic": True,
+        }
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
+        )
+
+    def test_simple_top_events(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "user.email"],
+                    "dataset": "errors",
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            results = data[
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
+            ]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for _, attrs in results["data"]
+            ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
+    def test_top_events_with_projects_other(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "project"],
+                    "dataset": "errors",
+                    "topEvents": 1,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert set(data.keys()) == {"Other", self.project.slug}
+
+        assert data[self.project.slug]["order"] == 0
+        assert [attrs[0]["count"] for _, attrs in data[self.project.slug]["data"]] == [15, 0]
+
+        assert data["Other"]["order"] == 1
+        assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [7, 6]
+
+    def test_top_events_with_issue(self):
+        # delete a group to make sure if this happens the value becomes unknown
+        event_group = self.events[0].group
+        event_group.delete()
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "issue"],
+                    "topEvents": 5,
+                    "query": "",
+                    "dataset": "errors",
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        for index, event in enumerate(self.events[:4]):
+            message = event.message
+            # Because we deleted the group for event 0
+            if index == 0 or event.group is None:
+                issue = "unknown"
+            else:
+                issue = event.group.qualified_short_id
+
+            results = data[",".join([issue, message])]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [3, 0]
+
+    @mock.patch("sentry.models.GroupManager.get_issues_mapping")
+    def test_top_events_with_unknown_issue(self, mock_issues_mapping):
+        event = self.events[0]
+        event_data = self.event_data[0]
+
+        # ensure that the issue mapping returns None for the issue
+        mock_issues_mapping.return_value = {event.group.id: None}
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                    # narrow the search to just one issue
+                    "query": f"issue.id:{event.group.id}",
+                    "dataset": "errors",
+                },
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+
+        data = response.data
+        assert len(data) == 1
+        results = data["unknown"]
+        assert results["order"] == 0
+        assert [{"count": event_data["count"]}] in [attrs for time, attrs in results["data"]]
+
+    @mock.patch(
+        "sentry.search.events.builder.base.raw_snql_query",
+        side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
+    )
+    def test_top_events_with_issue_check_query_conditions(self, mock_query):
+        """ "Intentionally separate from test_top_events_with_issue
+
+        This is to test against a bug where the condition for issues wasn't included and we'd be missing data for
+        the interval since we'd cap out the max rows. This was not caught by the previous test since the results
+        would still be correct given the smaller interval & lack of data
+        """
+        with self.feature(self.enabled_features):
+            self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "issue"],
+                    "topEvents": 5,
+                    "query": "!event.type:transaction",
+                    "dataset": "errors",
+                },
+                format="json",
+            )
+
+        assert (
+            Condition(
+                Function(
+                    "coalesce",
+                    [Column("group_id", entity=Entity("events", alias="events")), 0],
+                    "issue.id",
+                ),
+                Op.IN,
+                [1],
+            )
+            in mock_query.mock_calls[1].args[0].query.where
+        )
+
+    def test_group_id_tag_simple(self):
+        event_data: _EventDataDict = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "the tag"},
+                "fingerprint": ["group1"],
+            },
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
+
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "group_id"],
+            "topEvents": 5,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["the tag"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = 'group_id:"the tag"'
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["the tag"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "group_id:abc"
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
+
+    def test_top_events_with_error_unhandled(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        prototype["event_id"] = "f" * 32
+        prototype["logentry"] = {"formatted": "not handled"}
+        prototype["exception"]["values"][0]["value"] = "not handled"
+        prototype["exception"]["values"][0]["mechanism"]["handled"] = False
+        prototype["timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "error.unhandled"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 2

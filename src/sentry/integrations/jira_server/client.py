@@ -10,12 +10,12 @@ from oauthlib.oauth1 import SIGNATURE_RSA
 from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.client import ApiClient
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 
@@ -116,7 +116,7 @@ class JiraServerClient(ApiClient):
     def update_comment(self, issue_key, comment_id, comment):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
-    def get_projects_list(self, cached=True):
+    def get_projects_list(self, cached: bool = True):
         if not cached:
             return self.get(self.PROJECT_URL)
         return self.get_cached(self.PROJECT_URL)

@@ -26,13 +26,13 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.utils.code_mapping import RepoTree
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.pipeline import Pipeline, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
@@ -42,7 +42,7 @@ from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubAppsClient, GitHubClientMixin
+from .client import GitHubApiClient, GitHubBaseClient
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
 
@@ -147,7 +147,7 @@ def error(
 
 
 def get_document_origin(org) -> str:
-    if org and features.has("organizations:customer-domains", org.organization):
+    if org and features.has("system:multi-region"):
         return f'"{generate_organization_url(org.organization.slug)}"'
     return "document.origin"
 
@@ -159,10 +159,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
-    def get_client(self) -> GitHubClientMixin:
+    def get_client(self) -> GitHubBaseClient:
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
-        return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
+        return GitHubApiClient(integration=self.model, org_integration_id=self.org_integration.id)
 
     def is_rate_limited_error(self, exc: Exception) -> bool:
         if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
@@ -254,9 +254,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
 
-    def reinstall(self) -> None:
-        self.reinstall_repositories()
-
     def message_from_error(self, exc: Exception) -> str:
         if not isinstance(exc, ApiError):
             return ERR_INTERNAL
@@ -305,11 +302,11 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_client(self) -> GitHubClientMixin:
+    def get_client(self) -> GitHubBaseClient:
         # XXX: This is very awkward behaviour as we're not passing the client an Integration
         # object it expects. Instead we're passing the Installation object and hoping the client
         # doesn't try to invoke any bad fields/attributes on it.
-        return GitHubAppsClient(integration=self.integration_cls)
+        return GitHubApiClient(integration=self.integration_cls)
 
     def post_install(
         self,

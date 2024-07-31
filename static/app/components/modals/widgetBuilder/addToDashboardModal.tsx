@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -20,8 +20,8 @@ import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -34,7 +34,10 @@ import {
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
 } from 'sentry/views/dashboards/utils';
-import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  type DataSet,
+  NEW_DASHBOARD_ID,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -47,6 +50,7 @@ type WidgetAsQueryParams = Query<{
   environment: string[];
   project: number[];
   source: string;
+  dataset?: DataSet;
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
@@ -65,6 +69,7 @@ export type AddToDashboardModalProps = {
   widget: Widget;
   widgetAsQueryParams: WidgetAsQueryParams;
   actions?: AddToDashboardModalActions[];
+  allowCreateNewDashboard?: boolean;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
@@ -88,6 +93,7 @@ function AddToDashboardModal({
   widget,
   widgetAsQueryParams,
   actions = DEFAULT_ACTIONS,
+  allowCreateNewDashboard = true,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -194,13 +200,37 @@ function AddToDashboardModal({
     addSuccessMessage(t('Successfully added widget to dashboard'));
   }
 
-  async function handleAddAndOpenDaashboard() {
+  async function handleAddAndOpenDashboard() {
     await handleAddWidget();
 
     goToDashboard('preview');
   }
 
   const canSubmit = selectedDashboardId !== null;
+
+  const options = useMemo(() => {
+    if (dashboards === null) {
+      return null;
+    }
+
+    return [
+      allowCreateNewDashboard && {
+        label: t('+ Create New Dashboard'),
+        value: 'new',
+      },
+      ...dashboards.map(({title, id, widgetDisplay}) => ({
+        label: title,
+        value: id,
+        disabled: widgetDisplay.length >= MAX_WIDGETS,
+        tooltip:
+          widgetDisplay.length >= MAX_WIDGETS &&
+          tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+            maxWidgets: MAX_WIDGETS,
+          }),
+        tooltipOptions: {position: 'right'},
+      })),
+    ].filter(Boolean) as SelectValue<string>[];
+  }, [allowCreateNewDashboard, dashboards]);
 
   return (
     <OrganizationContext.Provider value={organization}>
@@ -215,22 +245,7 @@ function AddToDashboardModal({
             name="dashboard"
             placeholder={t('Select Dashboard')}
             value={selectedDashboardId}
-            options={
-              dashboards && [
-                {label: t('+ Create New Dashboard'), value: 'new'},
-                ...dashboards.map(({title, id, widgetDisplay}) => ({
-                  label: title,
-                  value: id,
-                  disabled: widgetDisplay.length >= MAX_WIDGETS,
-                  tooltip:
-                    widgetDisplay.length >= MAX_WIDGETS &&
-                    tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                      maxWidgets: MAX_WIDGETS,
-                    }),
-                  tooltipOptions: {position: 'right'},
-                })),
-              ]
-            }
+            options={options}
             onChange={(option: SelectValue<string>) => {
               if (option.disabled) {
                 return;
@@ -291,8 +306,8 @@ function AddToDashboardModal({
           )}
           {actions.includes('add-and-open-dashboard') && (
             <Button
-              onClick={handleAddAndOpenDaashboard}
-              disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
+              onClick={handleAddAndOpenDashboard}
+              disabled={!canSubmit}
               title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
             >
               {t('Add + Open Dashboard')}

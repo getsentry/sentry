@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import NamedTuple
 
 from django.db import models
-from django.db.models import UniqueConstraint
+from django.db.models import Q, UniqueConstraint
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
@@ -427,7 +427,10 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         for model in model_iterator:
             # Ignore some native Django models, since other models don't reference them and we don't
             # really use them for business logic.
-            if model._meta.app_label in {"sessions", "sites", "test"}:
+            #
+            # Also, exclude `getsentry`, since data in those tables should never be backed up or
+            # checked.
+            if model._meta.app_label in {"sessions", "sites", "test", "getsentry"}:
                 continue
 
             foreign_keys: dict[str, ForeignField] = dict()
@@ -701,3 +704,28 @@ def get_exportable_sentry_models() -> set[type[models.base.Model]]:
             get_final_derivations_of(BaseModel),
         )
     )
+
+
+def merge_users_for_model_in_org(
+    model: type[models.base.Model], *, organization_id: int, from_user_id: int, to_user_id: int
+) -> None:
+    """
+    All instances of this model in a certain organization that reference both the organization and
+    user in question will be pointed at the new user instead.
+    """
+
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
+
+    model_relations = dependencies()[get_model_name(model)]
+    user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}
+    org_refs = {
+        k if k.endswith("_id") else f"{k}_id"
+        for k, v in model_relations.foreign_keys.items()
+        if v.model == Organization
+    }
+    for_this_org = Q(**{field_name: organization_id for field_name in org_refs})
+    for user_ref in user_refs:
+        q = for_this_org & Q(**{user_ref: from_user_id})
+        obj = model.objects.filter(q)
+        obj.update(**{user_ref: to_user_id})

@@ -1,6 +1,5 @@
 import dataclasses
 import logging
-import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -28,7 +27,7 @@ RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_
 class MessageContext:
     message: bytes
     transaction: Span
-    current_hub: sentry_sdk.Hub
+    isolation_scope: sentry_sdk.Scope
 
     # The message attribute can cause large log messages to be emitted which can pin the CPU
     # to 100.
@@ -104,14 +103,16 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContext:
     """Initialize a Sentry transaction and unpack the message."""
+    # TODO-anton: remove sampled here and let traces_sampler decide
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
-        sampled=random.random()
-        < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        custom_sampling_context={
+            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
+        },
     )
-    current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
-    return MessageContext(message.payload.value, transaction, current_hub)
+    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
+    return MessageContext(message.payload.value, transaction, isolation_scope)
 
 
 def process_message_threaded(message: Message[MessageContext]) -> Any:
@@ -125,18 +126,20 @@ def process_message_threaded(message: Message[MessageContext]) -> Any:
         logger.exception("Could not decode recording message.")
         return None
 
-    ingest_recording(message_dict, context.transaction, context.current_hub)
+    ingest_recording(message_dict, context.transaction, context.isolation_scope)
 
 
 def process_message(message: Message[KafkaPayload]) -> Any:
     """Move the replay payload to permanent storage."""
+    # TODO-anton: remove sampled here and let traces_sampler decide
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
-        sampled=random.random()
-        < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        custom_sampling_context={
+            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
+        },
     )
-    current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
+    isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
 
     try:
         message_dict: ReplayRecording = RECORDINGS_CODEC.decode(message.payload.value)
@@ -145,4 +148,4 @@ def process_message(message: Message[KafkaPayload]) -> Any:
         logger.exception("Could not decode recording message.")
         return None
 
-    ingest_recording(message_dict, transaction, current_hub)
+    ingest_recording(message_dict, transaction, isolation_scope)

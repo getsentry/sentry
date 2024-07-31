@@ -12,9 +12,12 @@ logger = logging.getLogger(__name__)
 class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
+    ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
     API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
+    API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE = "api.endpoint_regression_alerts.chartcuterie"
+    API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE = "api.function_regression_alerts.chartcuterie"
     API_AUTH_TOKEN_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.auth-token.events.metrics-enhanced.primary"
     )
@@ -72,6 +75,7 @@ class Referrer(Enum):
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD_PRIMARY = (
         "api.discover.total-sum-transaction-duration-field.primary"
     )
+    API_DISCOVER_TOTAL_SCORE_WEIGHTS_FIELD = "api.discover.total-score-weights-field"
     API_DISCOVER_DAILY_CHART = "api.discover.daily-chart"
     API_DISCOVER_DAILYTOP5_CHART_FIND_TOPN = "api.discover.dailytop5-chart.find-topn"
     API_DISCOVER_DAILYTOP5_CHART = "api.discover.dailytop5-chart"
@@ -365,6 +369,17 @@ class Referrer(Enum):
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
     API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
+    API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES = (
+        "api.profiling.profile-flamegraph-transaction-candidates"
+    )
+    API_PROFILING_PROFILE_FLAMEGRAPH_CHUNK_CANDIDATES = (
+        "api.profiling.profile-flamegraph-chunk-candidates"
+    )
+    API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES = (
+        "api.profiling.profile-flamegraph-profile-candidates"
+    )
+    API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP = "api.profiling.flamegraph-spans-with-group"
+    API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS = "api.profiling.flamegraph-chunks-with-spans"
     API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
     API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS = "api.profiling.transaction-hovercard.functions"
     API_PROFILING_TRANSACTION_HOVERCARD_LATEST = "api.profiling.transaction-hovercard.latest"
@@ -390,6 +405,7 @@ class Referrer(Enum):
     API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTION_STATS = (
         "api.profiling.functions.regression.transaction-stats"
     )
+    API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART = "api.profiling.continuous-profiling.flamechart"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
@@ -440,8 +456,15 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
     API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
+    API_TRACE_EXPLORER_SPANS_LIST_SORTED = "api.trace-explorer.spans-list-sorted"
+    API_TRACE_EXPLORER_STATS = "api.trace-explorer.stats"
+    API_TRACE_EXPLORER_TRACES_BREAKDOWNS = "api.trace-explorer.traces-breakdowns"
     API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
+    API_TRACE_EXPLORER_TRACES_ERRORS = "api.trace-explorer.traces-errors"
+    API_TRACE_EXPLORER_TRACES_OCCURRENCES = "api.trace-explorer.traces-occurrences"
+    API_TRACE_EXPLORER_TRACE_SPANS_LIST = "api.trace-explorer.trace-spans-list"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
+    API_SPANS_TRACE_VIEW = "api.spans.trace-view"
 
     # Performance Mobile UI Module
     API_PERFORMANCE_MOBILE_UI_BAR_CHART = "api.performance.mobile.ui.bar-chart"
@@ -557,6 +580,7 @@ class Referrer(Enum):
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES = "api.trace-view.count-performance-issues"
     API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
+    API_TRACE_VIEW_GET_OCCURRENCE_IDS = "api.trace-view.get-occurrence-ids"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
@@ -879,15 +903,25 @@ class Referrer(Enum):
 
 VALUES = {referrer.value for referrer in Referrer}
 
+# These suffixes are automatically added by Query Builder code in certain conditions. Any valid referrer with these suffixes is still a valid referrer.
+VALID_SUFFIXES = ["primary", "secondary"]
+
 
 def validate_referrer(referrer: str | None) -> None:
     if not referrer:
         return
 
+    if referrer in VALUES:
+        return
+
+    for suffix in VALID_SUFFIXES:
+        if referrer.removesuffix(f".{suffix}") in VALUES:
+            return
+
     error_message = f"referrer {referrer} is not part of Referrer Enum"
+
     try:
-        if referrer not in VALUES:
-            raise Exception(error_message)
+        raise Exception(error_message)
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
         logger.warning(error_message, exc_info=True)

@@ -7,8 +7,8 @@ from urllib.parse import urlencode
 import orjson
 from sentry_relay.processing import parse_release
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
-from sentry.types.integrations import ExternalProviders
 
 from .base import GroupActivityNotification
 

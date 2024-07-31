@@ -3,7 +3,6 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from sentry.services.hybrid_cloud.usersocialauth.serial import serialize_usersocialauth
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -12,6 +11,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.testutils.cases import TestCase
+from sentry.users.services.usersocialauth.serial import serialize_usersocialauth
 from sentry_plugins.client import ApiClient, AuthApiClient
 
 

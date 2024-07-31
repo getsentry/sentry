@@ -135,14 +135,14 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
         if bundle_id:
             error = None
 
-            project_artifact_bundles = ProjectArtifactBundle.objects.filter(
+            project_artifact_bundles_qs = ProjectArtifactBundle.objects.filter(
                 organization_id=project.organization_id,
                 artifact_bundle__bundle_id=bundle_id,
             ).select_related("artifact_bundle")
             # We group the bundles by their id, since we might have multiple bundles with the same bundle_id due to a
             # problem that was fixed in https://github.com/getsentry/sentry/pull/49836.
             grouped_bundles = defaultdict(list)
-            for project_artifact_bundle in project_artifact_bundles:
+            for project_artifact_bundle in project_artifact_bundles_qs:
                 grouped_bundles[project_artifact_bundle.artifact_bundle].append(
                     project_artifact_bundle
                 )
@@ -160,7 +160,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                 # In case there are no project ids, which shouldn't happen, there is a db problem, thus we want to track
                 # it.
                 if len(found_project_ids) == 0:
-                    with sentry_sdk.push_scope() as scope:
+                    with sentry_sdk.isolation_scope() as scope:
                         scope.set_tag("bundle_id", bundle_id)
                         scope.set_tag("org_id", project.organization.id)
                         sentry_sdk.capture_message(

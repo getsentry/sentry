@@ -5,9 +5,9 @@ import pytest
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 

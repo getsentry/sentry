@@ -1,3 +1,4 @@
+import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,6 +9,7 @@ import type {
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import * as useOrganization from 'sentry/utils/useOrganization';
 
 import {
   isAutogroupedNode,
@@ -1300,6 +1302,38 @@ describe('TraceTree', () => {
     expect(tree.list[3].value.start_timestamp).toBe(2);
   });
 
+  it('appends a tree to another tree', () => {
+    const tree1 = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'txn 1',
+            start_timestamp: 0,
+            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+          }),
+        ],
+      }),
+      null
+    );
+
+    const tree2 = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'txn 3',
+            start_timestamp: 2,
+            children: [makeTransaction({start_timestamp: 3, transaction: 'txn 4'})],
+          }),
+        ],
+      }),
+      null
+    );
+
+    tree1.appendTree(tree2);
+
+    expect(tree1.list.length).toBe(5);
+  });
+
   it('preserves input order', () => {
     const firstChild = makeTransaction({
       start_timestamp: 0,
@@ -2541,6 +2575,350 @@ describe('TraceTree', () => {
       expect(tree.list.length).toBe(6);
 
       expect(autogroupedNode.children[0].depth).toBe(4);
+    });
+  });
+
+  describe('incremental trace fetch', () => {
+    const organization = OrganizationFixture();
+
+    beforeEach(function () {
+      jest.clearAllMocks();
+      jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
+    });
+
+    it('Fetches and updates tree with fetched trace', async () => {
+      const traces = [
+        {traceSlug: 'slug1', timestamp: 1},
+        {traceSlug: 'slug2', timestamp: 2},
+      ];
+
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 1',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+            }),
+          ],
+        }),
+        null
+      );
+
+      // Mock the API calls
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug1/?limit=10000&timestamp=1&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 3',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug2/?limit=10000&timestamp=2&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 5',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug1/?limit=10000&timestamp=1&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 3',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      expect(tree.list.length).toBe(3);
+
+      tree.fetchAdditionalTraces({
+        replayTraces: traces,
+        api: new MockApiClient(),
+        filters: {},
+        organization,
+        rerender: () => {},
+        urlParams: {} as Location['query'],
+      });
+
+      await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
+
+      expect(tree.list.length).toBe(7);
+    });
+
+    it('Does not infinitely fetch on error', async () => {
+      const traces = [
+        {traceSlug: 'slug1', timestamp: 1},
+        {traceSlug: 'slug2', timestamp: 2},
+        {traceSlug: 'slug3', timestamp: 3},
+      ];
+
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 1',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+            }),
+          ],
+        }),
+        null
+      );
+
+      // Mock the API calls
+      const mockedResponse1 = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug1/?limit=10000&timestamp=1&useSpans=1',
+        statusCode: 400,
+      });
+      const mockedResponse2 = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug2/?limit=10000&timestamp=2&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 5',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+      const mockedResponse3 = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug3/?limit=10000&timestamp=3&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 7',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 8'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      expect(tree.list.length).toBe(3);
+
+      tree.fetchAdditionalTraces({
+        replayTraces: traces,
+        api: new MockApiClient(),
+        filters: {},
+        organization,
+        rerender: () => {},
+        urlParams: {} as Location['query'],
+      });
+
+      await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
+
+      expect(tree.list.length).toBe(7);
+      expect(mockedResponse1).toHaveBeenCalledTimes(1);
+      expect(mockedResponse2).toHaveBeenCalledTimes(1);
+      expect(mockedResponse3).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('SSR', () => {
+    it('makes pageload transaction a parent of server handler transaction', () => {
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'SSR',
+              ['transaction.op']: 'http.server',
+              children: [
+                makeTransaction({
+                  transaction: 'pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+              ],
+            }),
+          ],
+        }),
+        null
+      );
+
+      const root = tree.root.children[0];
+      expect(root?.children?.[0]?.value?.['transaction.op']).toBe('pageload');
+      expect(root?.children?.[0]?.children?.[0]?.value?.['transaction.op']).toBe(
+        'http.server'
+      );
+    });
+
+    it('skips reparenting if server handler has multiple direct transaction children', () => {
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'SSR',
+              ['transaction.op']: 'http.server',
+              children: [
+                makeTransaction({
+                  transaction: 'first pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+                makeTransaction({
+                  transaction: 'second pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+              ],
+            }),
+          ],
+        }),
+        null
+      );
+
+      const transaction = tree.list[1];
+      assertTransactionNode(transaction);
+      expect(transaction.value.transaction).toBe('SSR');
+
+      const firstPageload = tree.list[2];
+      assertTransactionNode(firstPageload);
+      expect(firstPageload.value.transaction).toBe('first pageload');
+
+      const secondPageload = tree.list[3];
+      assertTransactionNode(secondPageload);
+      expect(secondPageload.value.transaction).toBe('second pageload');
+    });
+    it('doesnt reparent http.server child txn under browser request span if it was not reparented', async () => {
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'pageload',
+              ['transaction.op']: 'pageload',
+              event_id: 'pageload',
+              project_slug: 'js',
+              children: [
+                makeTransaction({
+                  transaction: 'http.server',
+                  ['transaction.op']: 'http.server',
+                }),
+              ],
+            }),
+          ],
+        }),
+        null
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/js:pageload/?averageColumn=span.self_time&averageColumn=span.duration',
+        method: 'GET',
+        body: makeEvent({}, [makeSpan({description: 'request', op: 'browser'})]),
+      });
+
+      tree.zoomIn(tree.list[1], true, {
+        api: new MockApiClient(),
+        organization: OrganizationFixture(),
+      });
+
+      await waitFor(() => tree.list.length === 4);
+
+      const pageloadTransaction = tree.list[1];
+      const serverHandlerTransaction = tree.list[3];
+      expect(serverHandlerTransaction.parent).toBe(pageloadTransaction);
+    });
+    describe('expanded', () => {
+      it('server handler transaction becomes a child of browser request span if present', async () => {
+        const tree: TraceTree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                transaction: 'SSR',
+                event_id: 'ssr',
+                project_slug: 'js',
+                ['transaction.op']: 'http.server',
+                children: [
+                  makeTransaction({
+                    transaction: 'pageload',
+                    ['transaction.op']: 'pageload',
+                  }),
+                ],
+              }),
+            ],
+          }),
+          null
+        );
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/js:ssr/?averageColumn=span.self_time&averageColumn=span.duration',
+          method: 'GET',
+          body: makeEvent({}, [makeSpan({description: 'request', op: 'browser'})]),
+        });
+
+        tree.zoomIn(tree.list[1], true, {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        });
+
+        await waitFor(() => tree.list.length === 4);
+        const browserRequestSpan = tree.list[1].children[0];
+        const ssrTransaction = browserRequestSpan.children[0];
+
+        assertSpanNode(browserRequestSpan);
+        assertTransactionNode(ssrTransaction);
+        expect(ssrTransaction.value.transaction).toBe('SSR');
+      });
+      it('server handler transaction becomes a direct child if there is no matching browser request span', async () => {
+        const tree: TraceTree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                transaction: 'SSR',
+                event_id: 'ssr',
+                project_slug: 'js',
+                ['transaction.op']: 'http.server',
+                children: [
+                  makeTransaction({
+                    transaction: 'pageload',
+                    ['transaction.op']: 'pageload',
+                  }),
+                ],
+              }),
+            ],
+          }),
+          null
+        );
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/js:ssr/?averageColumn=span.self_time&averageColumn=span.duration',
+          method: 'GET',
+          body: makeEvent({}, [makeSpan({description: 'request', op: 'almost-browser'})]),
+        });
+
+        tree.zoomIn(tree.list[1], true, {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        });
+
+        await waitFor(() => tree.list.length === 4);
+
+        const transaction = tree.list[tree.list.length - 1];
+        assertTransactionNode(transaction);
+        expect(transaction.value.transaction).toBe('SSR');
+      });
     });
   });
 });

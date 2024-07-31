@@ -43,10 +43,7 @@ window.ResizeObserver =
 
 describe('ProfileSummaryPage', () => {
   it('renders new page', async () => {
-    const organization = OrganizationFixture({
-      features: [],
-      projects: [ProjectFixture()],
-    });
+    const organization = OrganizationFixture({features: []});
     OrganizationStore.onUpdate(organization);
 
     MockApiClient.addMockResponse({

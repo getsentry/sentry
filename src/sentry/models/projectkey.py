@@ -20,7 +20,6 @@ from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -28,6 +27,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -42,7 +42,7 @@ class ProjectKeyStatus:
 
 
 class ProjectKeyManager(BaseManager["ProjectKey"]):
-    def post_save(self, instance, **kwargs):
+    def post_save(self, *, instance: ProjectKey, created: bool, **kwargs: object) -> None:
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
         )
@@ -289,7 +289,7 @@ class ProjectKey(Model):
         has_org_subdomain = False
         try:
             has_org_subdomain = features.has(
-                "organizations:org-subdomains", self.project.organization
+                "organizations:org-ingest-subdomains", self.project.organization
             )
         except ProgrammingError:
             # This happens during migration generation for the organization model.

@@ -1,5 +1,6 @@
 from sentry.api.exceptions import ParameterValidationError
-from sentry.types.integrations import ExternalProviders, get_provider_enum
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.providers import get_provider_enum
 
 
 def validate_provider(

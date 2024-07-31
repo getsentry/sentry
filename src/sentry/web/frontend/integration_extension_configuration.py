@@ -10,8 +10,8 @@ from django.utils.http import urlencode
 from sentry import features
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.organizations.services.organization import organization_service
+from sentry.users.services.user.service import user_service
 from sentry.web.frontend.base import BaseView
 
 logger = logging.getLogger(__name__)
@@ -83,6 +83,11 @@ class IntegrationExtensionConfigurationView(BaseView):
                     try:
                         pipeline = self.init_pipeline(request, organization, request.GET.dict())
                         return pipeline.current_step()
+                    except ValueError as e:
+                        return self.respond(
+                            "sentry/pipeline-error.html",
+                            {"error": e},
+                        )
                     except SignatureExpired:
                         return self.respond(
                             "sentry/pipeline-error.html",

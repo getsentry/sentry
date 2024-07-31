@@ -27,7 +27,7 @@ describe('SentryAppExternalIssueActions', () => {
   });
   // unable to use the selectByValue here so remove the select option
   component.schema.create.required_fields.pop();
-  const install = SentryAppInstallationFixture({});
+  const install = SentryAppInstallationFixture();
   const submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
   const externalIssue = PlatformExternalIssueFixture({
     issueId: group.id,

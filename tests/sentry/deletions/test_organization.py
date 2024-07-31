@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.dashboard import Dashboard
@@ -12,7 +13,6 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.group import Group
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -98,7 +98,6 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         widget_2_data_2 = DashboardWidgetQuery.objects.create(
             widget=widget_2, order=2, name="Outgoing data"
         )
-
         org.update(status=OrganizationStatus.PENDING_DELETION)
 
         self.ScheduledDeletion.schedule(instance=org, days=0)
@@ -255,7 +254,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         other = self.create_organization(name="other", owner=self.user)
         other_project = self.create_project(organization=other, name="other project")
 
-        query = DiscoverSavedQuery.objects.create(organization=org, name="test query", query="{}")
+        query = DiscoverSavedQuery.objects.create(organization=org, name="test query", query={})
         # Make a cross-org project reference. This can happen when an account was
         # merged in the past and we didn't update the discover queries.
         query_project = DiscoverSavedQueryProject.objects.create(

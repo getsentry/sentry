@@ -1,5 +1,6 @@
 from typing import Any
 
+import orjson
 import pytest
 from pydantic import ValidationError
 
@@ -15,11 +16,9 @@ from flagpole.conditions import (
     NotInCondition,
     create_case_insensitive_set_from_list,
 )
-from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
-class TestCreateCaseInsensitiveSetFromList(TestCase):
+class TestCreateCaseInsensitiveSetFromList:
     def test_empty_set(self):
         assert create_case_insensitive_set_from_list([]) == set()
 
@@ -36,7 +35,7 @@ class TestCreateCaseInsensitiveSetFromList(TestCase):
 def assert_valid_types(condition: type[ConditionBase], expected_types: list[Any]):
     for value in expected_types:
         condition_dict = dict(property="test", value=value)
-        json_condition = json.dumps(condition_dict)
+        json_condition = orjson.dumps(condition_dict)
         try:
             parsed_condition = condition.parse_raw(json_condition)
         except ValidationError as exc:
@@ -49,7 +48,7 @@ def assert_valid_types(condition: type[ConditionBase], expected_types: list[Any]
 def assert_invalid_types(condition: type[ConditionBase], invalid_types: list[Any]):
     for value in invalid_types:
         json_dict = dict(value=value)
-        condition_json = json.dumps(json_dict)
+        condition_json = orjson.dumps(json_dict)
         try:
             condition.parse_raw(condition_json)
         except ValidationError:
@@ -60,7 +59,7 @@ def assert_invalid_types(condition: type[ConditionBase], invalid_types: list[Any
         )
 
 
-class TestInConditions(TestCase):
+class TestInConditions:
     def test_invalid_values(self):
         with pytest.raises(ValidationError):
             InCondition(property="foo", value="bar")
@@ -144,7 +143,7 @@ class TestInConditions(TestCase):
         )
 
 
-class TestContainsConditions(TestCase):
+class TestContainsConditions:
     def test_does_contain(self):
         condition = ContainsCondition(property="foo", value="bar")
         assert condition.match(
@@ -216,7 +215,7 @@ class TestContainsConditions(TestCase):
             )
 
 
-class TestEqualsConditions(TestCase):
+class TestEqualsConditions:
     def test_is_equal_string(self):
         value = "foo"
         condition = EqualsCondition(property="foo", value=value)
@@ -268,12 +267,24 @@ class TestEqualsConditions(TestCase):
 
     def test_with_missing_context_property(self):
         value = "foo"
-        condition = EqualsCondition(property="foo", value=value)
+        condition = EqualsCondition(property="foo", value=value, strict_validation=True)
 
         with pytest.raises(ConditionTypeMismatchException):
             condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
 
-        not_condition = NotEqualsCondition(property="foo", value=value)
+        not_condition = NotEqualsCondition(property="foo", value=value, strict_validation=True)
 
         with pytest.raises(ConditionTypeMismatchException):
             not_condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
+
+        # Test non-strict validation for both conditions
+        condition = EqualsCondition(property="foo", value=value)
+        assert (
+            condition.match(context=EvaluationContext({"bar": value}), segment_name="test") is False
+        )
+
+        not_condition = NotEqualsCondition(property="foo", value=value)
+        assert (
+            not_condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
+            is True
+        )

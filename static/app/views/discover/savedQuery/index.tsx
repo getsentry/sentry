@@ -28,11 +28,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
-import {DatasetSelector} from 'sentry/views/discover/savedQuery/datasetSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
@@ -576,16 +575,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar gap={1}>
-        <Feature
-          organization={organization}
-          features="performance-discover-dataset-selector"
-        >
-          {({hasFeature}) =>
-            hasFeature && (
-              <DatasetSelector isHomepage={isHomepage} savedQuery={savedQuery} />
-            )
-          }
-        </Feature>
         {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features="incidents">

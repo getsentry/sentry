@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
-  children: React.ReactElement<StepProps> | React.ReactElement<StepProps>[];
+  children: React.ReactNode;
   className?: string;
   onStepChange?: (step: number) => void;
 };
@@ -36,6 +36,7 @@ interface StepProps {
   stepKey: string;
   title: string;
   isCompleted?: boolean;
+  optional?: boolean;
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
@@ -154,6 +155,7 @@ function Step(props: StepProps) {
           {props.title}
           {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
         </StepHeading>
+        {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
         {isActive && (
           <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
         )}
@@ -271,6 +273,13 @@ const StepDoneIcon = styled(IconCheckmark, {
   color: ${p => (p.isActive ? p.theme.successText : p.theme.subText)};
   margin-left: ${space(1)};
   vertical-align: middle;
+`;
+
+const StepOptionalLabel = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: -${space(0.75)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`

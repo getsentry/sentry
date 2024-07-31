@@ -1,22 +1,12 @@
 from __future__ import annotations
 
-import abc
-
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    Model,
-    OptionManager,
-    ValidateFunction,
-    Value,
-    control_silo_model,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import Model, control_silo_model, region_silo_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.options.manager import UpdateChannel
 
@@ -81,43 +71,3 @@ class ControlOption(BaseOption):
         db_table = "sentry_controloption"
 
     __repr__ = sane_repr("key", "value")
-
-
-class HasOption:
-    # Logically this is an abstract interface. Leaving off abc.ABC because it clashes
-    # with the Model metaclass.
-
-    @abc.abstractmethod
-    def get_option(
-        self,
-        key: str,
-        default: Value | None = None,
-        validate: ValidateFunction | None = None,
-    ) -> Value:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def update_option(self, key: str, value: Value) -> bool:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def delete_option(self, key: str) -> None:
-        raise NotImplementedError
-
-
-class OptionMixin(HasOption):
-    @property
-    @abc.abstractmethod
-    def option_manager(self) -> OptionManager:
-        raise NotImplementedError
-
-    def get_option(
-        self, key: str, default: Value | None = None, validate: ValidateFunction | None = None
-    ) -> Value:
-        return self.option_manager.get_value(self, key, default, validate)
-
-    def update_option(self, key: str, value: Value) -> bool:
-        return self.option_manager.set_value(self, key, value)
-
-    def delete_option(self, key: str) -> None:
-        self.option_manager.unset_value(self, key)

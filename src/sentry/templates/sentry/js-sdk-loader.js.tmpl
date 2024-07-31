@@ -135,6 +135,11 @@
     }
     function sdkIsLoaded() {
         var __sentry = _window.__SENTRY__;
+        // If this is set, it means a v8 SDK is already loaded
+        var version = typeof __sentry !== 'undefined' && __sentry.version;
+        if (version) {
+            return !!__sentry[version];
+        }
         // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
         return !!(!(typeof __sentry === 'undefined') &&
             __sentry.hub &&

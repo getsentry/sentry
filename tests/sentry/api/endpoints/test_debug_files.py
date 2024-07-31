@@ -492,9 +492,7 @@ class DebugFilesUploadTest(APITestCase):
     def test_source_maps_delete_archive(self):
         project = self.create_project(name="foo")
 
-        release = Release.objects.create(
-            organization_id=project.organization_id, version="1", id="1"
-        )
+        release = Release.objects.create(organization_id=project.organization_id, version="1", id=1)
         release.add_project(project)
 
         ReleaseFile.objects.create(

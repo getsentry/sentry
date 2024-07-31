@@ -17,9 +17,9 @@ from django.utils.translation import gettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.web.helpers import render_to_response
@@ -238,7 +238,7 @@ class IntegrationPipeline(Pipeline):
 
     def _dialog_response(self, data, success):
         document_origin = "document.origin"
-        if features.has("organizations:customer-domains", self.organization):
+        if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'
         context = {
             "payload": {"success": success, "data": data},

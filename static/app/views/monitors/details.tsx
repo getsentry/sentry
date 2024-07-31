@@ -3,7 +3,10 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import {updateMonitor} from 'sentry/actionCreators/monitors';
+import {
+  deleteMonitorProcessingErrorByType,
+  updateMonitor,
+} from 'sentry/actionCreators/monitors';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -29,7 +32,7 @@ import MonitorIssues from './components/monitorIssues';
 import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {StatusToggleButton} from './components/statusToggleButton';
-import type {CheckinProcessingError, Monitor} from './types';
+import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
@@ -67,13 +70,12 @@ function MonitorDetails({params, location}: Props) {
     },
   });
 
-  const {data: checkinErrors} = useApiQuery<CheckinProcessingError[]>(
-    makeMonitorErrorsQueryKey(organization, params.projectId, params.monitorSlug),
-    {
-      staleTime: 0,
-      refetchOnWindowFocus: true,
-    }
-  );
+  const {data: checkinErrors, refetch: refetchErrors} = useApiQuery<
+    CheckinProcessingError[]
+  >(makeMonitorErrorsQueryKey(organization, params.projectId, params.monitorSlug), {
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
 
   function onUpdate(data: Monitor) {
     const updatedMonitor = {
@@ -96,6 +98,17 @@ function MonitorDetails({params, location}: Props) {
       onUpdate(resp);
     }
   };
+
+  function handleDismissError(errortype: ProcessingErrorType) {
+    deleteMonitorProcessingErrorByType(
+      api,
+      organization.slug,
+      params.projectId,
+      params.monitorSlug,
+      errortype
+    );
+    refetchErrors();
+  }
 
   if (isError) {
     return (
@@ -145,7 +158,10 @@ function MonitorDetails({params, location}: Props) {
               </Alert>
             )}
             {!!checkinErrors?.length && (
-              <MonitorProcessingErrors checkinErrors={checkinErrors}>
+              <MonitorProcessingErrors
+                checkinErrors={checkinErrors}
+                onDismiss={handleDismissError}
+              >
                 {t('Errors were encountered while ingesting check-ins for this monitor')}
               </MonitorProcessingErrors>
             )}

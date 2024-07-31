@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import itertools
+import logging
 import re
 from collections.abc import Generator
 from typing import Any
-
-import sentry_sdk
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent, calculate_tree_label
@@ -24,6 +23,8 @@ from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+
+logger = logging.getLogger(__name__)
 
 _ruby_erb_func = re.compile(r"__\d{4,}_\d{4,}$")
 _basename_re = re.compile(r"[/\\]")
@@ -523,13 +524,14 @@ def _single_stacktrace_variant(
 
     frames = stacktrace.frames
 
-    values: list[GroupingComponent] = []
+    values = []
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
-            frame_component = context.get_grouping_component(frame, event=event, **meta)
+            frame_component = context.get_single_grouping_component(frame, event=event, **meta)
+
         if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
@@ -698,8 +700,15 @@ def chained_exception(
         )
     except Exception:
         # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
-        sentry_sdk.capture_exception()
+        # TODO: Except we do, as it turns out. See https://github.com/getsentry/sentry/issues/73592.
+        logging.exception(
+            "Failed to filter exceptions for exception groups. Continuing with original list."
+        )
         exceptions = all_exceptions
+
+    main_exception_id = determine_main_exception_id(exceptions)
+    if main_exception_id:
+        event.data["main_exception_id"] = main_exception_id
 
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
@@ -728,7 +737,7 @@ def chained_exception(
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
-    exception_components: dict[int, GroupingComponent],
+    exception_components: dict[int, ReturnedVariants],
     event: Event,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
@@ -791,11 +800,12 @@ def filter_exceptions_for_exception_groups(
             yield from get_first_path(children[0])
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
-    top_level_exceptions = sorted(
-        get_top_level_exceptions(exception_tree[0].exception),
-        key=lambda exception: str(exception.type),
-        reverse=True,
-    )
+    if exception_tree[0].exception:
+        top_level_exceptions = sorted(
+            get_top_level_exceptions(exception_tree[0].exception),
+            key=lambda exception: str(exception.type),
+            reverse=True,
+        )
 
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
     distinct_top_level_exceptions = [
@@ -823,7 +833,8 @@ def filter_exceptions_for_exception_groups(
     # one of each top-level exception that is _not_ the root is overly complicated.
     # Also, it's more likely the stack trace of the root exception will be more meaningful
     # than one of an inner exception group.
-    distinct_top_level_exceptions.append(exception_tree[0].exception)
+    if exception_tree[0].exception:
+        distinct_top_level_exceptions.append(exception_tree[0].exception)
     return distinct_top_level_exceptions
 
 
@@ -896,3 +907,35 @@ def threads_variant_processor(
     variants: ReturnedVariants, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
+
+
+REACT_ERRORS_WITH_CAUSE = [
+    "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
+    "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary.",
+]
+
+
+def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
+    main_exception_id = None
+    # Starting with React 19, errors can also contain a cause error which
+    # is useful to display instead of the default message
+    if (
+        exceptions[0].type == "Error"
+        and exceptions[0].value in REACT_ERRORS_WITH_CAUSE
+        and exceptions[-1].mechanism.source == "cause"
+    ):
+        main_exception_id = exceptions[-1].mechanism.exception_id
+    return main_exception_id
+
+
+def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
+    MAIN_EXCEPTION_ID_FUNCS = [
+        react_error_with_cause,
+    ]
+    main_exception_id = None
+    for func in MAIN_EXCEPTION_ID_FUNCS:
+        main_exception_id = func(exceptions)
+        if main_exception_id is not None:
+            break
+
+    return main_exception_id

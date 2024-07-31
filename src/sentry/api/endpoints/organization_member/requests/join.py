@@ -11,11 +11,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
+from sentry.auth.services.auth import auth_service
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 

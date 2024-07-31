@@ -77,3 +77,8 @@ class EntityKey(Enum):
     IssuePlatform = "search_issues"
     Functions = "functions"
     MetricsSummaries = "metrics_summaries"
+
+
+@unique
+class StorageKey(Enum):
+    ProfileChunks = "profile_chunks"

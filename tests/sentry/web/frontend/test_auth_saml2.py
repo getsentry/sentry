@@ -152,7 +152,7 @@ class AuthSAML2Test(AuthProviderTestCase):
             ("http://saml2-org.testserver/issues/", 302),
         ]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_auth_sp_initiated_login_customer_domain_feature(self):
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
@@ -247,7 +247,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         # require 2FA disabled when saml is enabled
         with assume_test_silo_mode(SiloMode.REGION):
             org = Organization.objects.get(id=self.organization.id)
-            assert not org.flags.require_2fa.is_set
+            assert not org.flags.require_2fa
 
         event = AuditLogEntry.objects.get(
             target_object=org.id, event=audit_log.get_event_id("ORG_EDIT"), actor=self.user

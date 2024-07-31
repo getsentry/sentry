@@ -68,6 +68,11 @@ class CheckinProcessErrorsManagerTest(TestCase):
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
             build_checkin_processing_error(
+                [{"type": ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA}],
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            build_checkin_processing_error(
                 [{"type": ProcessingErrorType.MONITOR_DISABLED}],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
@@ -78,14 +83,21 @@ class CheckinProcessErrorsManagerTest(TestCase):
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
         ]
+        for error in processing_errors[:3]:
+            store_error(error, monitor)
+
         with mock.patch("sentry.monitors.processing_errors.manager.MAX_ERRORS_PER_SET", new=2):
-            for error in processing_errors:
-                store_error(error, monitor)
+            store_error(processing_errors[-1], monitor)
 
         retrieved_errors = get_errors_for_monitor(monitor)
         assert len(retrieved_errors) == 2
-        assert_processing_errors_equal(processing_errors[2], retrieved_errors[0])
-        assert_processing_errors_equal(processing_errors[1], retrieved_errors[1])
+        assert_processing_errors_equal(processing_errors[-1], retrieved_errors[0])
+        assert_processing_errors_equal(processing_errors[-2], retrieved_errors[1])
+        redis_client = _get_cluster()
+        assert not redis_client.exists(build_error_identifier(processing_errors[0].id))
+        assert not redis_client.exists(build_error_identifier(processing_errors[1].id))
+        assert redis_client.exists(build_error_identifier(processing_errors[2].id))
+        assert redis_client.exists(build_error_identifier(processing_errors[3].id))
 
     def test_get_for_monitor_empty(self):
         monitor = self.create_monitor()
@@ -206,7 +218,9 @@ class CheckinProcessErrorsManagerTest(TestCase):
 
 
 class HandleProcessingErrorsTest(TestCase):
-    def test(self):
+    @mock.patch("sentry.monitors.processing_errors.manager.ANALYTICS_SAMPLING_RATE", 1.0)
+    @mock.patch("sentry.analytics.record")
+    def test(self, mock_record):
         monitor = self.create_monitor()
         exception = ProcessingErrorsException(
             [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],
@@ -224,8 +238,17 @@ class HandleProcessingErrorsTest(TestCase):
             handle_processing_errors(
                 build_checkin_item(
                     message_overrides={"project_id": self.project.id},
+                    payload_overrides={"monitor_slug": monitor.slug},
                 ),
                 exception,
             )
         errors = get_errors_for_monitor(monitor)
         assert len(errors) == 1
+
+        mock_record.assert_called_with(
+            "checkin_processing_error.stored",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            monitor_slug=monitor.slug,
+            error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID],
+        )

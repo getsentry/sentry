@@ -102,20 +102,19 @@ def _validate_project_config(config):
 def test_get_project_config_non_visible(default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     default_project.update(status=ObjectStatus.PENDING_DELETION)
-    cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+    cfg = get_project_config(default_project, project_keys=keys)
     assert cfg.to_dict() == {"disabled": True}
 
 
 @django_db_all
 @region_silo_test
-@pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
-def test_get_project_config(default_project, insta_snapshot, django_cache, full):
+def test_get_project_config(default_project, insta_snapshot):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
     default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
     keys = ProjectKey.objects.filter(project=default_project)
 
-    project_cfg = get_project_config(default_project, full_config=full, project_keys=keys)
+    project_cfg = get_project_config(default_project, project_keys=keys)
     cfg = project_cfg.to_dict()
 
     _validate_project_config(cfg["config"])
@@ -144,7 +143,7 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
-        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+        cfg = get_project_config(default_project, project_keys=keys)
     # Check that the "sampling" key is missing from config. It used to be called
     # "dynamicSampling", so we also test for that:
     subconfig = cfg.to_dict()["config"]
@@ -164,7 +163,7 @@ def test_get_experimental_config_transaction_metrics_exception(
     default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
 
     with Feature({"organizations:transaction-metrics-extraction": True}):
-        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+        cfg = get_project_config(default_project, project_keys=keys)
 
     config = cfg.to_dict()["config"]
 
@@ -191,7 +190,7 @@ def test_project_config_uses_filter_features(
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
     with Feature({"projects:custom-inbound-filters": has_custom_filters}):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -214,43 +213,10 @@ def test_project_config_uses_filter_features(
 
 @django_db_all
 @region_silo_test
-def test_project_config_with_react_hydration_errors_filter(default_project):
-    default_project.update_option("filters:chunk-load-error", "0")
-
-    # We want to test both string and boolean option representations. See implementation for more details
-    # on this.
-    for value in ("1", True):
-        default_project.update_option("filters:react-hydration-errors", value)
-        project_cfg = get_project_config(default_project, full_config=True)
-
-        cfg = project_cfg.to_dict()
-        _validate_project_config(cfg["config"])
-        cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
-
-        assert len(cfg_error_messages) == 1
-
-
-@django_db_all
-@region_silo_test
-def test_project_config_with_chunk_load_error_filter(default_project):
-    default_project.update_option("filters:react-hydration-errors", "0")
-    default_project.update_option("filters:chunk-load-error", "1")
-
-    project_cfg = get_project_config(default_project, full_config=True)
-
-    cfg = project_cfg.to_dict()
-    _validate_project_config(cfg["config"])
-    cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
-
-    assert len(cfg_error_messages) == 1
-
-
-@django_db_all
-@region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project):
     with Feature({"organizations:profiling": True}):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -264,7 +230,7 @@ def test_project_config_exposed_features(default_project):
 def test_project_config_exposed_features_raise_exc(default_project):
     with Feature({"projects:custom-inbound-filters": True}):
         with pytest.raises(RuntimeError) as exc_info:
-            get_project_config(default_project, full_config=True)
+            get_project_config(default_project)
         assert (
             str(exc_info.value)
             == "EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'"
@@ -464,7 +430,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
         }
     ):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -487,7 +453,7 @@ def test_project_config_with_organizations_metrics_extraction(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
     ):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -531,7 +497,7 @@ def test_project_config_satisfaction_thresholds(
             "organizations:transaction-metrics-extraction": True,
         }
     ):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -679,23 +645,18 @@ def test_healthcheck_filter(default_project, health_check_set):
 
 @django_db_all
 @region_silo_test
-@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-def test_with_blocked_metrics(default_project, feature_flag):
+def test_with_blocked_metrics(default_project):
     block_metric("g:custom/*@millisecond", [default_project])
     block_tags_of_metric("c:custom/page_click@none", {"release", "transaction"}, [default_project])
 
-    with Feature({"organizations:metrics-blocking": feature_flag}):
-        project_config = get_project_config(default_project)
-        config = project_config.to_dict()["config"]
-        _validate_project_config(config)
+    project_config = get_project_config(default_project)
+    config = project_config.to_dict()["config"]
+    _validate_project_config(config)
 
-        config = config["metrics"]
-        if not feature_flag:
-            assert "deniedNames" not in config
-            assert "deniedTags" not in config
-        else:
-            assert len(config["deniedNames"]) == 1
-            assert len(config["deniedTags"]) == 1
+    config = config["metrics"]
+
+    assert len(config["deniedNames"]) == 1
+    assert len(config["deniedTags"]) == 1
 
 
 @django_db_all
@@ -760,8 +721,8 @@ def test_alert_metric_extraction_rules(default_project, factories):
 
 
 @django_db_all
-def test_performance_calculate_score(default_project):
-    config = get_project_config(default_project, full_config=True).to_dict()["config"]
+def test_desktop_performance_calculate_score(default_project):
+    config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
     for profile in config["performanceScore"]["profiles"]:
@@ -772,10 +733,10 @@ def test_performance_calculate_score(default_project):
     assert performance_score[0] == {
         "name": "Chrome",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -792,7 +753,7 @@ def test_performance_calculate_score(default_project):
                 "weight": 0.15,
                 "p10": 900.0,
                 "p50": 1600.0,
-                "optional": False,
+                "optional": True,
             },
             {
                 "measurement": "lcp",
@@ -807,7 +768,7 @@ def test_performance_calculate_score(default_project):
                 "weight": 0.1,
                 "p10": 200.0,
                 "p50": 400.0,
-                "optional": False,
+                "optional": True,
             },
         ],
         "condition": {
@@ -825,7 +786,7 @@ def test_performance_calculate_score(default_project):
                 "weight": 0.15,
                 "p10": 900.0,
                 "p50": 1600.0,
-                "optional": False,
+                "optional": True,
             },
             {
                 "measurement": "lcp",
@@ -840,7 +801,7 @@ def test_performance_calculate_score(default_project):
                 "weight": 0.1,
                 "p10": 200.0,
                 "p50": 400.0,
-                "optional": False,
+                "optional": True,
             },
         ],
         "condition": {
@@ -853,10 +814,10 @@ def test_performance_calculate_score(default_project):
     assert performance_score[3] == {
         "name": "Edge",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -868,15 +829,190 @@ def test_performance_calculate_score(default_project):
     assert performance_score[4] == {
         "name": "Opera",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
             "name": "event.contexts.browser.name",
             "value": "Opera",
+        },
+        "version": "1",
+    }
+
+    assert performance_score[5] == {
+        "name": "Chrome INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200, "p50": 500, "optional": False},
+        ],
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Chrome",
+                },
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Google Chrome",
+                },
+            ],
+        },
+        "version": "1",
+    }
+
+    assert performance_score[6] == {
+        "name": "Edge INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+        ],
+        "condition": {"op": "eq", "name": "event.contexts.browser.name", "value": "Edge"},
+        "version": "1",
+    }
+
+    assert performance_score[7] == {
+        "name": "Opera INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Opera",
+        },
+        "version": "1",
+    }
+
+
+@django_db_all
+def test_mobile_performance_calculate_score(default_project):
+    config = get_project_config(default_project).to_dict()["config"]
+
+    # Set a version field that is returned even though it's optional.
+    for profile in config["performanceScore"]["profiles"]:
+        profile["version"] = "1"
+
+    assert normalize_project_config(config) == config
+    performance_score = config["performanceScore"]["profiles"]
+
+    assert performance_score[8] == {
+        "name": "Chrome Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Chrome Mobile",
+        },
+        "version": "1",
+    }
+    assert performance_score[9] == {
+        "name": "Firefox Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Firefox Mobile",
+        },
+        "version": "1",
+    }
+    assert performance_score[10] == {
+        "name": "Safari Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.0, "p10": 2500.0, "p50": 4000.0, "optional": False},
+            {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Mobile Safari",
+        },
+        "version": "1",
+    }
+    assert performance_score[11] == {
+        "name": "Edge Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Edge Mobile",
+        },
+        "version": "1",
+    }
+
+    assert performance_score[12] == {
+        "name": "Opera Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Opera Mobile",
+        },
+        "version": "1",
+    }
+    assert performance_score[13] == {
+        "name": "Chrome Mobile INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+        ],
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Chrome Mobile",
+                },
+            ],
+        },
+        "version": "1",
+    }
+    assert performance_score[14] == {
+        "name": "Edge Mobile INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Edge Mobile",
+        },
+        "version": "1",
+    }
+    assert performance_score[15] == {
+        "name": "Opera Mobile INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False}
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Opera Mobile",
         },
         "version": "1",
     }
@@ -969,7 +1105,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
     )
 
     with override_options(options):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -1029,7 +1165,7 @@ def test_project_config_cardinality_limits_project_options_override_other_option
     )
 
     with override_options(options):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -1082,7 +1218,7 @@ def test_project_config_cardinality_limits_organization_options_override_options
     )
 
     with override_options(options):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -1097,28 +1233,11 @@ def test_project_config_cardinality_limits_organization_options_override_options
         ]
 
 
-@patch(
-    "sentry.relay.config._get_generic_project_filters",
-    lambda *args, **kwargs: {
-        "version": 1,
-        "filters": [
-            {
-                "id": "test-id",
-                "isEnabled": True,
-                "condition": {
-                    "op": "not",
-                    "inner": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Firefox",
-                    },
-                },
-            }
-        ],
-    },
-)
 @django_db_all
 @region_silo_test
-def test_project_config_valid_with_generic_filters(default_project):
+@override_options({"relay.emit-generic-inbound-filters": True})
+def test_project_config_with_generic_filters(default_project):
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])
+
+    assert config["config"]["filterSettings"]["generic"]["filters"]

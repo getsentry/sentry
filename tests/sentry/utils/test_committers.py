@@ -8,12 +8,12 @@ import pytest
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.integrations.integration import Integration
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
@@ -841,7 +841,7 @@ class GetEventFileCommitters(CommitTestCase):
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
         GroupOwner.objects.create(
-            group_id=event.group_id,
+            group_id=event.group.id,
             project=self.project,
             organization_id=self.organization.id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,

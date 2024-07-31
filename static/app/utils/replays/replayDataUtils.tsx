@@ -1,5 +1,5 @@
 import invariant from 'invariant';
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 
 import isValidDate from 'sentry/utils/date/isValidDate';
 import getMinMax from 'sentry/utils/getMinMax';
@@ -72,7 +72,7 @@ export function replayTimestamps(
     .map(rawCrumb => rawCrumb.timestamp)
     .filter(Boolean);
   const rawSpanDataFiltered = rawSpanData.filter(
-    ({op}) => op !== 'largest-contentful-paint'
+    ({op}) => op !== 'web-vital' && op !== 'largest-contentful-paint'
   );
   const spanStartTimestamps = rawSpanDataFiltered
     .map(span => span.startTimestamp)

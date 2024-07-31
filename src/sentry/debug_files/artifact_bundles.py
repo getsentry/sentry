@@ -109,16 +109,15 @@ def index_artifact_bundles_for_release(
             # debounce this in case there is a persistent error?
 
 
-def backfill_artifact_bundle_db_indexing(organization_id: int, release: str, dist: str):
+def backfill_artifact_bundle_db_indexing(organization_id: int, release: str, dist: str) -> None:
     artifact_bundles = ArtifactBundle.objects.filter(
         releaseartifactbundle__organization_id=organization_id,
         releaseartifactbundle__release_name=release,
         releaseartifactbundle__dist_name=dist,
         indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
     )
-    artifact_bundles = [(ab, None) for ab in artifact_bundles]
 
-    index_artifact_bundles_for_release(organization_id, artifact_bundles)
+    index_artifact_bundles_for_release(organization_id, [(ab, None) for ab in artifact_bundles])
 
 
 @sentry_sdk.tracing.trace

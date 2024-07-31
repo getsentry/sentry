@@ -20,30 +20,23 @@ def build_typed_list(type: Any):
 
 
 class GlobalParams:
-    ORG_SLUG = OpenApiParameter(
-        name="organization_slug",
-        description="The slug of the organization the resource belongs to.",
-        required=True,
-        type=str,
-        location="path",
-    )
     ORG_ID_OR_SLUG = OpenApiParameter(
         name="organization_id_or_slug",
-        description="The id or slug of the organization the resource belongs to.",
+        description="The ID or slug of the organization the resource belongs to.",
         required=True,
         type=str,
         location="path",
     )
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
-        description="The id or slug of the project the resource belongs to.",
+        description="The ID or slug of the project the resource belongs to.",
         required=True,
         type=str,
         location="path",
     )
     TEAM_ID_OR_SLUG = OpenApiParameter(
         name="team_id_or_slug",
-        description="The id or slug of the team the resource belongs to.",
+        description="The ID or slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",
@@ -60,21 +53,21 @@ class GlobalParams:
 - `s` for seconds
 - `w` for weeks
 
-For example `24h`, to mean query data starting from 24 hours ago to now.""",
+For example, `24h`, to mean query data starting from 24 hours ago to now.""",
     )
     START = OpenApiParameter(
         name="start",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The start of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
+        description="The start of the period of time for the query, expected in ISO-8601 format. For example, `2001-12-14T12:34:56.7890`.",
     )
     END = OpenApiParameter(
         name="end",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
+        description="The end of the period of time for the query, expected in ISO-8601 format. For example, `2001-12-14T12:34:56.7890`.",
     )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
@@ -113,7 +106,7 @@ class OrganizationParams:
         required=False,
         many=True,
         type=str,
-        description="""The project slugs to filter by. Use `$all` to include all available projects. For example the following are valid parameters:
+        description="""The project slugs to filter by. Use `$all` to include all available projects. For example, the following are valid parameters:
 - `/?projectSlug=$all`
 - `/?projectSlug=android&projectSlug=javascript-react`
 """,
@@ -125,9 +118,18 @@ class OrganizationParams:
         many=True,
         type=int,
         description="""The IDs of projects to filter by. `-1` means all available projects.
-For example the following are valid parameters:
+For example, the following are valid parameters:
 - `/?project=1234&project=56789`
 - `/?project=-1`
+""",
+    )
+    DETAILED = OpenApiParameter(
+        name="detailed",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+Specify `"0"` to return organization details that do not include projects or teams.
 """,
     )
     OWNER = OpenApiParameter(
@@ -183,7 +185,7 @@ class ReleaseParams:
         location="query",
         required=False,
         type=str,
-        description="The project id to filter by.",
+        description="The project ID to filter by.",
     )
     HEALTH = OpenApiParameter(
         name="health",
@@ -271,7 +273,7 @@ class VisibilityParams:
         type=str,
         description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
-example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
+Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 """,
     )
     FIELD = OpenApiParameter(
@@ -321,7 +323,7 @@ class MonitorParams:
         location="path",
         required=True,
         type=str,
-        description="The id or slug of the monitor.",
+        description="The ID or slug of the monitor.",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",
@@ -349,7 +351,7 @@ class MonitorParams:
         location="path",
         required=False,
         type=OpenApiTypes.UUID,
-        description="The id of the processing error.",
+        description="The ID of the processing error.",
     )
 
 
@@ -545,12 +547,14 @@ class SessionsParams:
         required=True,
         type=str,
         many=True,
-        description="""The list of fields to query.\n\nThe available fields are\n  - `sum(session)`\n  - `count_unique("
-                    "user)`\n  - `avg`, `p50`, `p75`, `p90`, `p95`, `p99`, `max` applied to `session.duration`. For "
-                    "example, `p99(session.duration)`. Session duration is [no longer being recorded]("
-                    "https://github.com/getsentry/sentry/discussions/42716) as of on Jan 12, 2023. Returned data may "
-                    "be incomplete.\n  - `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example, "
-                    "`crash_free_rate(user)`""",
+        description="""The list of fields to query.
+
+The available fields are
+- `sum(session)`
+- `count_unique(user)`
+- `avg`, `p50`, `p75`, `p90`, `p95`, `p99`, `max` applied to `session.duration`. For example, `p99(session.duration)`. Session duration is [no longer being recorded](https://github.com/getsentry/sentry/discussions/42716) as of on Jan 12, 2023. Returned data may be incomplete.
+- `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example, `crash_free_rate(user)`
+""",
     )
     INTERVAL = OpenApiParameter(
         name="interval",
@@ -572,6 +576,7 @@ class SessionsParams:
         location="query",
         required=False,
         type=str,
+        many=True,
         description="""The list of properties to group by.\n\nThe available groupBy conditions are `project`,
         `release`, `environment` and `session.status`.""",
     )
@@ -581,7 +586,7 @@ class SessionsParams:
         required=False,
         type=str,
         description="""An optional field to order by, which must be one of the fields provided in `field`. Use `-`
-        for descending order, for example `-sum(session)`""",
+        for descending order, for example, `-sum(session)`""",
     )
     INCLUDE_TOTALS = OpenApiParameter(
         name="includeTotals",
@@ -596,4 +601,14 @@ class SessionsParams:
         required=False,
         type=int,
         description="""Specify `0` to exclude series from the response. The default is `1`""",
+    )
+
+
+class DashboardParams:
+    DASHBOARD_ID = OpenApiParameter(
+        name="dashboard_id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the dashboard you'd like to retrieve.""",
     )

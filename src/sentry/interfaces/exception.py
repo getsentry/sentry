@@ -168,6 +168,9 @@ class Mechanism(Interface):
         if self.handled is not None:
             yield ("handled", self.handled and "yes" or "no")
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__} -> id:{self.exception_id}, parent_id:{self.parent_id}, source:{self.source}, type:{self.type}"
+
 
 def uncontribute_non_stacktrace_variants(variants):
     """If we have multiple variants and at least one has a stacktrace, we
@@ -183,7 +186,7 @@ def uncontribute_non_stacktrace_variants(variants):
 
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.  Thr e
-    for (key, component) in variants.items():
+    for key, component in variants.items():
         if any(
             s.contributes for s in component.iter_subcomponents(id="stacktrace", recursive=True)
         ):
@@ -347,6 +350,12 @@ class SingleException(Interface):
             "stacktrace": stacktrace_meta,
         }
 
+    def __str__(self) -> str:
+        return f"{type(self).__name__}: {self.type}: {self.value}"
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__} -> {self.type}: {self.value}"
+
 
 class Exception(Interface):
     """
@@ -445,7 +454,7 @@ class Exception(Interface):
 
         return {"values": result}
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         if not self.values:
             return ""
 
@@ -462,7 +471,7 @@ class Exception(Interface):
                     )
                     + "\n\n"
                 )
-        return ("".join(output)).strip()
+        return "".join(output).strip()
 
     def get_stacktrace(self, *args, **kwargs):
         exc = self.values[-1]

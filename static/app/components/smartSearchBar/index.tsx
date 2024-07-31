@@ -41,11 +41,12 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, Tag, TagCollection, User} from 'sentry/types';
-import {getIssueTitleFromType, SavedSearchType} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
@@ -100,6 +101,21 @@ const generateOpAutocompleteGroup = (
   };
 };
 
+function isMultiProject(projectIds: number[] | Readonly<number[] | undefined>) {
+  /**
+   * Returns true if projectIds is:
+   * - [] (My Projects)
+   * - [-1] (All Projects)
+   * - [a, b, ...] (two or more projects)
+   */
+  if (projectIds === undefined) return false;
+  return (
+    projectIds.length === 0 ||
+    (projectIds.length === 1 && projectIds[0] === -1) ||
+    projectIds.length >= 2
+  );
+}
+
 function maybeFocusInput(input: HTMLTextAreaElement | null) {
   // Cannot focus if there is no input or if the input is already focused
   if (!input || document.activeElement === input) {
@@ -124,6 +140,7 @@ const pickParserOptions = (props: Props) => {
     disallowedLogicalOperators,
     disallowWildcard,
     disallowFreeText,
+    disallowNegation,
     invalidMessages,
   } = props;
 
@@ -141,6 +158,7 @@ const pickParserOptions = (props: Props) => {
     disallowedLogicalOperators,
     disallowWildcard,
     disallowFreeText,
+    disallowNegation,
     invalidMessages,
   } satisfies Partial<SearchConfig>;
 };
@@ -249,6 +267,10 @@ type Props = WithRouterProps &
      */
     disallowFreeText?: boolean;
     /**
+     * Disables negation searches
+     */
+    disallowNegation?: boolean;
+    /**
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
@@ -350,6 +372,10 @@ type Props = WithRouterProps &
      * Prepare query value before filtering dropdown items
      */
     prepareQuery?: (query: string) => string;
+    /**
+     * Projects that the search bar queries over
+     */
+    projectIds?: number[] | Readonly<number[]>;
     /**
      * Indicates the usage of the search bar for analytics
      */
@@ -555,13 +581,14 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     this.blur();
 
     const query = removeSpace(this.state.query);
-    const {organization, savedSearchType, searchSource} = this.props;
+    const {organization, savedSearchType, searchSource, projectIds} = this.props;
+    const searchType = savedSearchType === 0 ? 'issues' : 'events';
 
     if (!this.hasValidSearch) {
       trackAnalytics('search.search_with_invalid', {
         organization,
         query,
-        search_type: savedSearchType === 0 ? 'issues' : 'events',
+        search_type: searchType,
         search_source: searchSource,
       });
       return;
@@ -571,8 +598,22 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     trackAnalytics('search.searched', {
       organization,
       query,
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      is_multi_project: isMultiProject(projectIds),
+      search_type: searchType,
       search_source: searchSource,
+    });
+
+    // track the individual key-values filters in the search query
+    Object.entries(new MutableSearch(query).filters).forEach(([key, values]) => {
+      trackAnalytics('search.searched_filter', {
+        organization,
+        query,
+        key,
+        values,
+        is_multi_project: isMultiProject(projectIds),
+        search_type: searchType,
+        search_source: searchSource,
+      });
     });
 
     onSearch?.(query);
@@ -1330,7 +1371,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         return {
           value: escapedValue,
           desc: escapedValue,
-          documentation: getIssueTitleFromType(escapedValue) ?? '',
           type: ItemType.TAG_VALUE,
           ignoreMaxSearchItems: tag.maxSuggestedValues
             ? i < tag.maxSuggestedValues
@@ -1593,7 +1633,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
         // show operator group if at beginning of value
         if (cursor === node.location.start.offset) {
-          const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
+          const opGroup = generateOpAutocompleteGroup(
+            getValidOps(cursorToken, !!this.props.disallowNegation),
+            tagName
+          );
           if (valueGroup?.type !== ItemType.INVALID_TAG && !isDate) {
             autocompleteGroups.unshift(opGroup);
           }
@@ -1611,7 +1654,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         const autocompleteGroups = [await this.generateTagAutocompleteGroup(tagName)];
         // show operator group if at end of key
         if (cursor === node.location.end.offset) {
-          const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
+          const opGroup = generateOpAutocompleteGroup(
+            getValidOps(cursorToken, !!this.props.disallowNegation),
+            tagName
+          );
           autocompleteGroups.unshift(opGroup);
         }
 
@@ -1626,7 +1672,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       }
 
       // show operator autocomplete group
-      const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
+      const opGroup = generateOpAutocompleteGroup(
+        getValidOps(cursorToken, !!this.props.disallowNegation),
+        tagName
+      );
       this.updateAutoCompleteStateMultiHeader([opGroup]);
       return;
     }
@@ -1858,15 +1907,33 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   };
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
+    const {organization, savedSearchType, searchSource, projectIds} = this.props;
+    const searchType = savedSearchType === 0 ? 'issues' : 'events';
+    const query = replaceText;
+
     if (item.type === ItemType.RECENT_SEARCH) {
       trackAnalytics('search.searched', {
-        organization: this.props.organization,
-        query: replaceText,
-        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        organization,
+        query,
+        is_multi_project: isMultiProject(projectIds),
+        search_type: searchType,
         search_source: 'recent_search',
       });
 
-      this.setState(this.makeQueryState(replaceText), () => {
+      // track the individual key-values filters in the search query
+      Object.entries(new MutableSearch(query).filters).forEach(([key, values]) => {
+        trackAnalytics('search.searched_filter', {
+          organization,
+          query,
+          key,
+          values,
+          is_multi_project: isMultiProject(projectIds),
+          search_type: searchType,
+          search_source: 'recent_search',
+        });
+      });
+
+      this.setState(this.makeQueryState(query), () => {
         // Propagate onSearch and save to recent searches
         this.doSearch();
       });
@@ -1880,13 +1947,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       item.type === ItemType.RECOMMENDED
     ) {
       trackAnalytics('search.key_autocompleted', {
-        organization: this.props.organization,
-        search_operator: replaceText,
-        search_source: this.props.searchSource,
+        organization,
+        search_operator: query,
+        search_source: searchSource,
         item_name: item.title ?? item.value?.split(':')[0],
         item_kind: item.kind,
         item_type: item.type,
-        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        search_type: searchType,
       });
     }
 

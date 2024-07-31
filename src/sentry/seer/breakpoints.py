@@ -1,11 +1,13 @@
 import logging
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import NotRequired, TypedDict
 
 import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
 from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -44,12 +46,36 @@ seer_breakpoint_connection_pool = connection_from_url(
 )
 
 
-def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
-    response = seer_breakpoint_connection_pool.urlopen(
-        "POST",
+# TODO: Source these from shared schema repository
+class BreakpointRequest(TypedDict):
+    data: "Mapping[str, BreakpointTransaction]"
+    sort: NotRequired[str]
+    allow_midpoint: NotRequired[str]
+    validate_tail_hours: NotRequired[int]
+    trend_percentage: NotRequired[float]
+    min_change: NotRequired[float]
+
+
+class BreakpointTransaction(TypedDict):
+    data: "list[SnubaTSEntry]"
+    request_start: int
+    request_end: int
+    data_start: int
+    data_end: int
+
+
+class SnubaMetadata(TypedDict):
+    count: float
+
+
+SnubaTSEntry = tuple[int, tuple[SnubaMetadata]]
+
+
+def detect_breakpoints(breakpoint_request: BreakpointRequest) -> BreakpointResponse:
+    response = make_signed_seer_api_request(
+        seer_breakpoint_connection_pool,
         "/trends/breakpoint-detector",
-        body=json.dumps(breakpoint_request),
-        headers={"content-type": "application/json;charset=utf-8"},
+        json.dumps(breakpoint_request).encode("utf-8"),
     )
 
     if response.status >= 200 and response.status < 300:
@@ -61,7 +87,7 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
             sentry_sdk.capture_exception(e)
             return {"data": []}
 
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         scope.set_context(
             "seer_response",
             {

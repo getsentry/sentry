@@ -14,7 +14,7 @@ const initializeData = () => {
     features: ['performance-view'],
   });
 
-  act(() => ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => ProjectsStore.loadInitialData(data.projects));
   return data;
 };
 

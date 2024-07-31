@@ -20,6 +20,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
     TabKey.BREADCRUMBS,
     TabKey.NETWORK,
     TabKey.CONSOLE,
+    TabKey.TRACE,
   ];
 
   if (isVideoReplay) {

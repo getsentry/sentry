@@ -11,11 +11,11 @@ from sentry.integrations.message_builder import (
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import OpenUrlAction
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 from .block import (
     Action,
@@ -127,6 +127,7 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
         recipient: Actor,
     ):
         super().__init__(notification, context, recipient)
+        assert notification.group is not None
         self.group = notification.group
 
     def create_attachment_title_block(self) -> TextBlock | None:

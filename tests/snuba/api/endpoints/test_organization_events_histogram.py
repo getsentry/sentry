@@ -83,6 +83,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {}
 
+    @pytest.mark.querybuilder
     def test_good_params(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)

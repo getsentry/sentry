@@ -1,5 +1,6 @@
 import type {EventMetadata} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 
 export enum DiffFileType {
   ADDED = 'A',
@@ -17,6 +18,7 @@ export enum AutofixStepType {
   DEFAULT = 'default',
   ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
   CHANGES = 'changes',
+  USER_RESPONSE = 'user_response',
 }
 
 export enum AutofixCodebaseIndexingStatus {
@@ -32,6 +34,10 @@ export type AutofixPullRequestDetails = {
   pr_url: string;
 };
 
+export type AutofixOptions = {
+  iterative_feedback?: boolean;
+};
+
 export type AutofixData = {
   created_at: string;
   run_id: string;
@@ -42,12 +48,15 @@ export type AutofixData = {
     | 'NOFIX'
     | 'ERROR'
     | 'NEED_MORE_INFORMATION';
+  actor_ids?: number[];
   codebase_indexing?: {
     status: 'COMPLETED';
   };
   completed_at?: string | null;
   error_message?: string;
+  options?: AutofixOptions;
   steps?: AutofixStep[];
+  users?: Record<number, User>;
 };
 
 export type AutofixProgressItem = {
@@ -57,7 +66,11 @@ export type AutofixProgressItem = {
   data?: any;
 };
 
-export type AutofixStep = AutofixDefaultStep | AutofixRootCauseStep | AutofixChangesStep;
+export type AutofixStep =
+  | AutofixDefaultStep
+  | AutofixRootCauseStep
+  | AutofixChangesStep
+  | AutofixUserResponseStep;
 
 interface BaseStep {
   id: string;
@@ -90,16 +103,23 @@ export interface AutofixRootCauseStep extends BaseStep {
 export type AutofixCodebaseChange = {
   description: string;
   diff: FilePatch[];
-  repo_id: number;
   repo_name: string;
   title: string;
   diff_str?: string;
   pull_request?: AutofixPullRequestDetails;
+  repo_external_id?: string;
+  repo_id?: number; // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon. Use repo_external_id instead.
 };
 
 export interface AutofixChangesStep extends BaseStep {
   changes: AutofixCodebaseChange[];
   type: AutofixStepType.CHANGES;
+}
+
+export interface AutofixUserResponseStep extends BaseStep {
+  text: string;
+  type: AutofixStepType.USER_RESPONSE;
+  user_id: number;
 }
 
 export type AutofixRootCauseSuggestedFixSnippet = {

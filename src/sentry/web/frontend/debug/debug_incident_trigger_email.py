@@ -20,7 +20,8 @@ class MockedIncidentTrigger:
 
 class DebugIncidentTriggerEmailView(MailPreviewView):
     @mock.patch(
-        "sentry.incidents.models.IncidentTrigger.objects.get", return_value=MockedIncidentTrigger()
+        "sentry.incidents.models.incident.IncidentTrigger.objects.get",
+        return_value=MockedIncidentTrigger(),
     )
     @mock.patch("sentry.models.UserOption.objects.get_value", return_value="US/Pacific")
     def get_context(self, request, incident_trigger_mock, user_option_mock):

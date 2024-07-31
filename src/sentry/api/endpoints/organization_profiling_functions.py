@@ -17,9 +17,9 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
+from sentry.search.events.builder.profile_functions import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.seer.breakpoints import BreakpointData, detect_breakpoints
+from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -71,6 +71,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
     def has_feature(self, organization: Organization, request: Request):
         return features.has(
@@ -163,7 +164,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             if not stats_data:
                 return []
 
-            trends_request = {
+            trends_request: BreakpointRequest = {
                 "data": {
                     k: {
                         "data": v[data["function"]]["data"],
@@ -182,7 +183,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     if v[data["function"]]["data"]
                 },
                 "sort": data["trend"].as_sort(),
-                "trendFunction": data["function"],
             }
 
             return detect_breakpoints(trends_request)["data"]

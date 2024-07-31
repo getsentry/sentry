@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from collections.abc import MutableMapping
 from typing import Any
 
 from django.db import models
@@ -16,11 +19,16 @@ class SentryAppComponent(Model):
     uuid = UUIDField(unique=True, auto_add=True)
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="components")
     type = models.CharField(max_length=64)
-    schema = JSONField()
+    schema: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryappcomponent"
+
+    @property
+    def app_schema(self) -> MutableMapping[str, Any]:
+        """Provides consistent interface with RpcSentryAppComponent"""
+        return self.schema
 
     @classmethod
     def sanitize_relocation_json(

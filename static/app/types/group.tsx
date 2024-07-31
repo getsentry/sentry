@@ -56,6 +56,7 @@ export enum SavedSearchType {
   SESSION = 2,
   REPLAY = 3,
   METRIC = 4,
+  SPAN = 5,
 }
 
 export enum IssueCategory {
@@ -64,6 +65,7 @@ export enum IssueCategory {
   CRON = 'cron',
   PROFILE = 'profile',
   REPLAY = 'replay',
+  UPTIME = 'uptime',
 }
 
 export enum IssueType {
@@ -97,6 +99,7 @@ export enum IssueType {
 
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
+  REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
 }
 
 export enum IssueTitle {
@@ -127,6 +130,7 @@ export enum IssueTitle {
 
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
+  REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -154,6 +158,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
+  replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -294,6 +299,11 @@ export type TagWithTopValues = {
 /**
  * Inbox, issue owners and Activity
  */
+export type Annotation = {
+  displayName: string;
+  url: string;
+};
+
 export type InboxReasonDetails = {
   count?: number | null;
   until?: string | null;
@@ -711,6 +721,7 @@ export interface ResolvedStatusDetails {
   };
   inNextRelease?: boolean;
   inRelease?: string;
+  inUpcomingRelease?: boolean;
   repository?: string;
 }
 interface ReprocessingStatusDetails {
@@ -771,7 +782,7 @@ export const enum PriorityLevel {
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
-  annotations: string[];
+  annotations: Annotation[];
   assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
@@ -849,36 +860,6 @@ export interface GroupTombstoneHelper extends GroupTombstone {
   isTombstone: true;
 }
 
-export type ProcessingIssueItem = {
-  checksum: string;
-  data: {
-    // TODO(ts) This type is likely incomplete, but this is what
-    // project processing issues settings uses.
-    _scope: string;
-    image_arch: string;
-    image_path: string;
-    image_uuid: string;
-    dist?: string;
-    release?: string;
-  };
-  id: string;
-  lastSeen: string;
-  numEvents: number;
-  type: string;
-};
-
-export type ProcessingIssue = {
-  hasIssues: boolean;
-  hasMoreResolveableIssues: boolean;
-  issuesProcessing: number;
-  lastSeen: string;
-  numIssues: number;
-  project: string;
-  resolveableIssues: number;
-  signedLink: string;
-  issues?: ProcessingIssueItem[];
-};
-
 /**
  * Datascrubbing
  */
@@ -921,6 +902,10 @@ export type KeyValueListDataItem = {
     link?: string | LocationDescriptor;
   };
   actionButton?: React.ReactNode;
+  /**
+   * If true, the action button will always be visible, not just on hover.
+   */
+  actionButtonAlwaysVisible?: boolean;
   isContextData?: boolean;
   isMultiValue?: boolean;
   meta?: Meta;

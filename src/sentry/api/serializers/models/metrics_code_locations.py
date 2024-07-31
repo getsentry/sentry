@@ -8,12 +8,12 @@ class MetricCodeLocationsSerializer(Serializer):
     def _compute_attrs(self, item):
         return {
             "project_id": item.query.project_id,
-            "mri": item.query.metric_mri,
+            "mri": item.query.mri,
             "timestamp": item.query.timestamp,
             "frames": [location.__dict__ for location in item.frames],
         }
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         return {item: self._compute_attrs(item) for item in item_list}
 
     def _serialize_code_location_payload(self, code_location_payload):
@@ -28,7 +28,7 @@ class MetricCodeLocationsSerializer(Serializer):
             "postContext": code_location_payload.get("post_context"),
         }
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "projectId": attrs["project_id"],
             "mri": attrs["mri"],

@@ -6,7 +6,6 @@ from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from typing import Any, Optional, Protocol, TypedDict
 
-from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
@@ -159,70 +158,6 @@ def _query_params_for_error(
     return SnubaQueryParams(**params)
 
 
-def _query_params_for_perf(
-    query_partial: SearchQueryPartial,
-    selected_columns: Sequence[Any],
-    aggregations: Sequence[Any],
-    organization_id: int,
-    project_ids: Sequence[int],
-    environments: Sequence[Environment] | None,
-    group_ids: Sequence[int] | None,
-    filters: Mapping[str, Sequence[int]],
-    conditions: Sequence[Any],
-    actor: Any | None = None,
-) -> SnubaQueryParams | None:
-    organization = Organization.objects.filter(id=organization_id).first()
-    if organization:
-        transaction_conditions = _updated_conditions(
-            "event.type",
-            "=",
-            "transaction",
-            organization_id,
-            project_ids,
-            environments,
-            conditions,
-        )
-
-        if group_ids:
-            transaction_conditions = [
-                [["hasAny", ["group_ids", ["array", group_ids]]], "=", 1],
-                *transaction_conditions,
-            ]
-            selected_columns = [
-                [
-                    "arrayJoin",
-                    [
-                        [
-                            "arrayIntersect",
-                            [
-                                ["array", group_ids],
-                                "group_ids",
-                            ],
-                        ]
-                    ],
-                    "group_id",
-                ],
-                *selected_columns,
-            ]
-        else:
-            aggregations = list(aggregations).copy() if aggregations else []
-            aggregations.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
-
-        params = query_partial(
-            dataset=Dataset.Discover,
-            selected_columns=selected_columns,
-            filter_keys=filters,
-            conditions=transaction_conditions,
-            aggregations=aggregations,
-            condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=Dataset.Transactions
-            ),
-        )
-
-        return SnubaQueryParams(**params)
-    return None
-
-
 def _query_params_for_generic(
     query_partial: SearchQueryPartial,
     selected_columns: Sequence[Any],
@@ -237,9 +172,7 @@ def _query_params_for_generic(
     categories: Sequence[GroupCategory] | None = None,
 ) -> SnubaQueryParams | None:
     organization = Organization.objects.filter(id=organization_id).first()
-    if organization and features.has(
-        "organizations:issue-platform", organization=organization, actor=actor
-    ):
+    if organization:
         if categories is None:
             logging.error("Category is required in _query_params_for_generic")
             return None

@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry import features
 from sentry.eventstore.models import Event
 from sentry.integrations.message_builder import (
     build_attachment_text,
@@ -26,10 +25,10 @@ from sentry.integrations.msteams.card_builder.block import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 from ..utils import ACTION_TYPE
 from .base import MSTeamsMessageBuilder
@@ -190,9 +189,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def build_group_actions(self) -> ContainerBlock:
         status = self.group.get_status()
-        has_escalating = features.has(
-            "organizations:escalating-issues-msteams", self.group.project.organization
-        )
 
         resolve_action = self.create_issue_action_block(
             toggled=GroupStatus.RESOLVED == status,
@@ -210,20 +206,14 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         ignore_action = self.create_issue_action_block(
             toggled=GroupStatus.IGNORED == status,
             action=ACTION_TYPE.IGNORE,
-            action_title=IssueConstants.ARCHIVE if has_escalating else IssueConstants.IGNORE,
+            action_title=IssueConstants.IGNORE,
             reverse_action=ACTION_TYPE.UNRESOLVE,
-            reverse_action_title=IssueConstants.STOP_ARCHIVE
-            if has_escalating
-            else IssueConstants.STOP_IGNORING,
+            reverse_action_title=IssueConstants.STOP_IGNORING,
             # card_kwargs
-            card_title=IssueConstants.ARCHIVE_INPUT_TITLE
-            if has_escalating
-            else IssueConstants.IGNORE_INPUT_TITLE,
-            submit_button_title=IssueConstants.ARCHIVE if has_escalating else IssueConstants.IGNORE,
+            card_title=IssueConstants.IGNORE_INPUT_TITLE,
+            submit_button_title=IssueConstants.IGNORE,
             input_id=IssueConstants.IGNORE_INPUT_ID,
-            choices=IssueConstants.ARCHIVE_INPUT_CHOICES
-            if has_escalating
-            else IssueConstants.IGNORE_INPUT_CHOICES,
+            choices=IssueConstants.IGNORE_INPUT_CHOICES,
         )
 
         teams_choices = self.get_teams_choices()
@@ -248,7 +238,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 "group_id": self.group.id,
                 "project_id": self.group.project.id,
                 "organization": self.group.project.organization.id,
-                "has_escalating": has_escalating,
                 "ignore_action": ignore_action,
             },
         )

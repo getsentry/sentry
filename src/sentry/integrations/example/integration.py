@@ -14,16 +14,16 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.mediators.plugins.migrator import Migrator
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 
 class ExampleSetupView(PipelineView):
@@ -72,7 +72,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixi
     outbound_assignee_key = "sync_assignee_outbound"
     inbound_assignee_key = "sync_assignee_inbound"
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         return f"https://example/issues/{key}"
 
     def create_comment(self, issue_id, user_id, group_note):

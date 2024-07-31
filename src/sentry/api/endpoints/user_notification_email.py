@@ -21,7 +21,7 @@ class UserNotificationEmailEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
 
     def get(self, request: Request, user) -> Response:
         """

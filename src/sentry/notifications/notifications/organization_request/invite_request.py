@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.class_manager import register
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 from .abstract_invite_request import AbstractInviteRequestNotification
 

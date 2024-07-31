@@ -5,7 +5,7 @@ import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
@@ -26,7 +26,6 @@ from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedIntegerField,
     BoundedPositiveIntegerField,
@@ -36,6 +35,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
@@ -61,10 +61,10 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
+    from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
     from sentry.models.team import Team
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -391,9 +391,9 @@ class GroupManager(BaseManager["Group"]):
         organizations: Sequence[Organization],
         external_issue_key: str,
     ) -> QuerySet[Group]:
+        from sentry.integrations.models.external_issue import ExternalIssue
+        from sentry.integrations.services.integration import integration_service
         from sentry.models.grouplink import GroupLink
-        from sentry.models.integrations.external_issue import ExternalIssue
-        from sentry.services.hybrid_cloud.integration import integration_service
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key
@@ -417,7 +417,7 @@ class GroupManager(BaseManager["Group"]):
 
     def update_group_status(
         self,
-        groups: Sequence[Group],
+        groups: Iterable[Group],
         status: int,
         substatus: int | None,
         activity_type: ActivityType,
@@ -497,7 +497,7 @@ class GroupManager(BaseManager["Group"]):
 
     def get_issues_mapping(
         self,
-        group_ids: Sequence[int],
+        group_ids: Iterable[int],
         project_ids: Sequence[int],
         organization: Organization,
     ) -> Mapping[int, str | None]:
@@ -565,7 +565,9 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
+        blank=True, null=True
+    )
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
     priority = models.PositiveSmallIntegerField(null=True)
@@ -630,12 +632,10 @@ class Group(Model):
 
         if self.issue_category == GroupCategory.FEEDBACK:
             path = f"/organizations/{organization.slug}/feedback/"
-            slug = {"feedbackSlug": f"{self.project.slug}:{self.id}"}
-            project = {"project": self.project.id}
             params = {
                 **(params or {}),
-                **slug,
-                **project,
+                "feedbackSlug": f"{self.project.slug}:{self.id}",
+                "project": str(self.project.id),
             }
             query = urlencode(params)
             return organization.absolute_url(path, query=query)
@@ -831,7 +831,7 @@ class Group(Model):
     def get_first_release(self) -> str | None:
         from sentry.models.release import Release
 
-        if self.first_release_id is None:
+        if self.first_release is None:
             return Release.objects.get_group_release_version(self.project_id, self.id)
 
         return self.first_release.version

@@ -220,6 +220,9 @@ class ExternalIssueCreatedActivityNotification(GroupActivityNotification):
             base_template = "<{link}|" + base_template + ">"
 
         # Template should look something like "{author} created <{link}| a/an {provider} issue {ticket}>"
-        base_template = "{author} created " + base_template
+        if self.activity.data.get("new", True):
+            base_template = "{author} created " + base_template
+        else:
+            base_template = "{author} linked " + base_template
 
         return base_template, None, {"provider": provider, "ticket": ticket_number, "link": link}

@@ -43,9 +43,10 @@ const FILTERS = {
   logLevel: (item: BreadcrumbFrame, logLevel: string[]) =>
     logLevel.length === 0 || logLevel.includes(getFilterableField(item) ?? ''),
   searchTerm: (item: BreadcrumbFrame, searchTerm: string) =>
-    [item.message ?? '', ...((item as ConsoleFrame).data?.arguments ?? [])].some(val =>
-      JSON.stringify(val).toLowerCase().includes(searchTerm)
-    ),
+    [
+      item.message ?? '',
+      ...Array.from((item as ConsoleFrame).data?.arguments ?? []),
+    ].some(val => JSON.stringify(val).toLowerCase().includes(searchTerm)),
 };
 
 function sortBySeverity(a: string, b: string) {

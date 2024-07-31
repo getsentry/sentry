@@ -7,9 +7,7 @@ from sentry.models.group import Group
 from sentry.utils.query import RangeQuerySetWrapper
 
 
-def same_root_cause_analysis(
-    group: Group, _extra_args: dict[str, str | None] | None = None
-) -> tuple[list[int], dict[str, str]]:
+def same_root_cause_analysis(group: Group) -> tuple[list[int], dict[str, str]]:
     """Analyze and create a group set if the group was caused by the same root cause."""
     # Querying the data field (which is a GzippedDictField) cannot be done via
     # Django's ORM, thus, we do so via compare_groups

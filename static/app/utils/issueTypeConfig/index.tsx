@@ -12,6 +12,7 @@ import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
+import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 
@@ -48,7 +49,6 @@ const BASE_CONFIG: IssueTypeConfig = {
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
-  traceTimeline: true,
 };
 
 const issueTypeConfig: Config = {
@@ -57,6 +57,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.PROFILE]: performanceConfig,
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
+  [IssueCategory.UPTIME]: uptimeConfig,
 };
 
 /**
@@ -69,9 +70,13 @@ export function shouldShowCustomErrorResourceConfig(
   project: Project
 ): boolean {
   const isErrorIssue = 'issueType' in params && params.issueType === IssueType.ERROR;
+  const isReplayHydrationIssue =
+    'issueType' in params && params.issueType === IssueType.REPLAY_HYDRATION_ERROR;
   const hasTitle = 'title' in params && !!params.title;
   return (
-    isErrorIssue && hasTitle && !!getErrorHelpResource({title: params.title!, project})
+    (isErrorIssue || isReplayHydrationIssue) &&
+    hasTitle &&
+    !!getErrorHelpResource({title: params.title!, project})
   );
 }
 

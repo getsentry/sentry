@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -66,7 +66,7 @@ class ProjectCodeOwners(Model):
 
     @classmethod
     def merge_code_owners_list(
-        self, code_owners_list: Sequence[ProjectCodeOwners]
+        self, code_owners_list: Iterable[ProjectCodeOwners]
     ) -> ProjectCodeOwners | None:
         """
         Merge list of code_owners into a single code_owners object concatenating

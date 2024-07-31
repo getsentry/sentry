@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime
 from hashlib import md5
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -39,6 +39,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 logger = logging.getLogger(__name__)
 
 
+@sentry_sdk.tracing.trace
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -90,6 +91,7 @@ class IssueArgs(TypedDict):
     priority: int | None
 
 
+@sentry_sdk.tracing.trace
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
@@ -125,6 +127,7 @@ class OccurrenceMetadata(TypedDict):
     last_received: str
 
 
+@sentry_sdk.tracing.trace
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
     """
     Returns the materialized metadata to be merged with issue.
@@ -158,6 +161,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     }
 
 
+@sentry_sdk.tracing.trace
 @metrics.wraps("issues.ingest.save_issue_from_occurrence")
 def save_issue_from_occurrence(
     occurrence: IssueOccurrence, event: Event, release: Release | None
@@ -209,9 +213,7 @@ def save_issue_from_occurrence(
             ) as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            group, is_new = save_grouphash_and_group(
-                project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
-            )
+            group, is_new = save_grouphash_and_group(project, event, new_grouphash, **issue_kwargs)
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
@@ -221,7 +223,7 @@ def save_issue_from_occurrence(
                 tags={
                     "platform": event.platform or "unknown",
                     "type": occurrence.type.type_id,
-                    "sdk": normalized_sdk_tag_from_event(event),
+                    "sdk": normalized_sdk_tag_from_event(event.data),
                 },
             )
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
@@ -235,7 +237,7 @@ def save_issue_from_occurrence(
                     tags={
                         "platform": event.platform or "unknown",
                         "frame_mix": frame_mix,
-                        "sdk": normalized_sdk_tag_from_event(event),
+                        "sdk": normalized_sdk_tag_from_event(event.data),
                     },
                 )
         if is_new and occurrence.assignee:
@@ -246,6 +248,8 @@ def save_issue_from_occurrence(
             except Exception:
                 logger.exception("Failed process assignment for occurrence")
 
+    elif existing_grouphash.group is None:
+        return None
     else:
         group = existing_grouphash.group
         if group.issue_category.value != occurrence.type.category:
@@ -267,6 +271,7 @@ def save_issue_from_occurrence(
     return group_info
 
 
+@sentry_sdk.tracing.trace
 def send_issue_occurrence_to_eventstream(
     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:

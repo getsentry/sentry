@@ -35,8 +35,8 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
@@ -119,6 +119,48 @@ type State = {
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
 } & WidgetViewerContextProps;
+
+export function handleUpdateDashboardSplit({
+  widgetId,
+  splitDecision,
+  dashboard,
+  onDashboardUpdate,
+  modifiedDashboard,
+  stateSetter,
+}: {
+  dashboard: DashboardDetails;
+  modifiedDashboard: DashboardDetails | null;
+  splitDecision: WidgetType;
+  stateSetter: Component<Props, State, any>['setState'];
+  widgetId: string;
+  onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
+}) {
+  // The underlying dashboard needs to be updated with the split decision
+  // because the backend has evaluated the query and stored that value
+  const updatedDashboard = cloneDashboard(dashboard);
+  const widgetIndex = updatedDashboard.widgets.findIndex(
+    widget => widget.id === widgetId
+  );
+
+  if (widgetIndex >= 0) {
+    updatedDashboard.widgets[widgetIndex].widgetType = splitDecision;
+  }
+  onDashboardUpdate?.(updatedDashboard);
+
+  // The modified dashboard also needs to be updated because that dashboard
+  // is rendered instead of the original dashboard when editing
+  if (modifiedDashboard) {
+    stateSetter(state => ({
+      ...state,
+      modifiedDashboard: {
+        ...state.modifiedDashboard!,
+        widgets: state.modifiedDashboard!.widgets.map(widget =>
+          widget.id === widgetId ? {...widget, widgetType: splitDecision} : widget
+        ),
+      },
+    }));
+  }
+}
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
@@ -676,7 +718,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderWidgetBuilder() {
-    const {children, dashboard} = this.props;
+    const {children, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard} = this.state;
 
     return isValidElement(children)
@@ -685,6 +727,16 @@ class DashboardDetail extends Component<Props, State> {
           onSave: this.isEditingDashboard
             ? this.onUpdateWidget
             : this.handleUpdateWidgetList,
+          updateDashboardSplitDecision: (widgetId: string, splitDecision: WidgetType) => {
+            handleUpdateDashboardSplit({
+              widgetId,
+              splitDecision,
+              dashboard,
+              modifiedDashboard,
+              stateSetter: this.setState.bind(this),
+              onDashboardUpdate,
+            });
+          },
         })
       : children;
   }
@@ -912,6 +964,10 @@ class DashboardDetail extends Component<Props, State> {
                                 onDashboardFilterChange={this.handleChangeFilter}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
+                                  trackAnalytics('dashboards2.filter.cancel', {
+                                    organization,
+                                  });
+
                                   this.setState({
                                     modifiedDashboard: {
                                       ...(modifiedDashboard ?? dashboard),
@@ -934,6 +990,9 @@ class DashboardDetail extends Component<Props, State> {
                                   ).then(
                                     (newDashboard: DashboardDetails) => {
                                       addSuccessMessage(t('Dashboard filters updated'));
+                                      trackAnalytics('dashboards2.filter.save', {
+                                        organization,
+                                      });
 
                                       const navigateToDashboard = () => {
                                         browserHistory.replace(

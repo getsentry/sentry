@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 from typing import NamedTuple
 
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
 logger = logging.getLogger(__name__)
@@ -387,8 +387,6 @@ def convert_stacktrace_frame_path_to_source_path(
     """
 
     stack_root = code_mapping.stack_root
-    if "\\" in code_mapping.stack_root:
-        stack_root = code_mapping.stack_root.replace("\\", "/")
 
     # In most cases, code mappings get applied to frame.filename, but some platforms such as Java
     # contain folder info in other parts of the frame (e.g. frame.module="com.example.app.MainActivity"
@@ -399,13 +397,21 @@ def convert_stacktrace_frame_path_to_source_path(
     )
 
     if stacktrace_path and stacktrace_path.startswith(code_mapping.stack_root):
-        return stacktrace_path.replace(stack_root, code_mapping.source_root, 1)
+        return (
+            stacktrace_path.replace(stack_root, code_mapping.source_root, 1)
+            .replace("\\", "/")
+            .lstrip("/")
+        )
 
     # Some platforms only provide the file's name without folder paths, so we
     # need to use the absolute path instead. If the code mapping has a non-empty
     # stack_root value and it matches the absolute path, we do the mapping on it.
     if frame.abs_path and frame.abs_path.startswith(code_mapping.stack_root):
-        return frame.abs_path.replace(stack_root, code_mapping.source_root, 1)
+        return (
+            frame.abs_path.replace(stack_root, code_mapping.source_root, 1)
+            .replace("\\", "/")
+            .lstrip("/")
+        )
 
     return None
 

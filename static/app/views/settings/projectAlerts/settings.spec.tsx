@@ -17,7 +17,7 @@ describe('ProjectAlertSettings', () => {
     digestsMaxDelay,
   });
   const {organization, routerProps} = initializeOrg({
-    project,
+    projects: [project],
     router: {
       params: {projectId: project.slug},
     },

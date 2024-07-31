@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 import responses
 from django.urls import reverse
 
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.identity import Identity
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -16,7 +16,7 @@ class GithubSearchTest(APITestCase):
     provider = "github"
     base_url = "https://api.github.com"
 
-    def create_integration(self):
+    def _create_integration(self):
         future = datetime.now() + timedelta(hours=1)
         return self.create_provider_integration(
             provider=self.provider,
@@ -32,7 +32,7 @@ class GithubSearchTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = self.create_integration()
+        self.integration = self._create_integration()
         identity = Identity.objects.create(
             idp=self.create_identity_provider(type=self.provider),
             user=self.user,

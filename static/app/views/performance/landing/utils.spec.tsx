@@ -10,7 +10,6 @@ import {getCurrentLandingDisplay} from 'sentry/views/performance/landing/utils';
 function initializeData(projects, query = {}) {
   const organization = OrganizationFixture({
     features: [],
-    projects,
   });
   const initialData = initializeOrg({
     organization,
@@ -20,10 +19,9 @@ function initializeData(projects, query = {}) {
       },
     },
     projects,
-    project: projects[0],
   });
   const eventView = EventView.fromLocation(initialData.router.location);
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  ProjectsStore.loadInitialData(initialData.projects);
   return {
     ...initialData,
     eventView,

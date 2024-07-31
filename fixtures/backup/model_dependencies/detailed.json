@@ -706,24 +706,6 @@
       ]
     ]
   },
-  "sentry.appconnectbuild": {
-    "dangling": false,
-    "foreign_keys": {
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.appconnectbuild",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_appconnectbuild",
-    "uniques": []
-  },
   "sentry.artifactbundle": {
     "dangling": false,
     "foreign_keys": {
@@ -1828,34 +1810,6 @@
     "table_name": "sentry_eventattachment",
     "uniques": []
   },
-  "sentry.eventprocessingissue": {
-    "dangling": false,
-    "foreign_keys": {
-      "processing_issue": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.processingissue",
-        "nullable": false
-      },
-      "raw_event": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.rawevent",
-        "nullable": false
-      }
-    },
-    "model": "sentry.eventprocessingissue",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_eventprocessingissue",
-    "uniques": [
-      [
-        "processing_issue",
-        "raw_event"
-      ]
-    ]
-  },
   "sentry.exporteddata": {
     "dangling": false,
     "foreign_keys": {
@@ -2870,6 +2824,11 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
         "nullable": false
+      },
+      "subscription": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.querysubscription",
+        "nullable": true
       }
     },
     "model": "sentry.incident",
@@ -3103,29 +3062,6 @@
         "feature",
         "target_id",
         "target_type"
-      ]
-    ]
-  },
-  "sentry.latestappconnectbuildscheck": {
-    "dangling": false,
-    "foreign_keys": {
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.latestappconnectbuildscheck",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_latestappconnectbuildscheck",
-    "uniques": [
-      [
-        "project",
-        "source_id"
       ]
     ]
   },
@@ -4051,30 +3987,6 @@
       ]
     ]
   },
-  "sentry.processingissue": {
-    "dangling": false,
-    "foreign_keys": {
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.processingissue",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_processingissue",
-    "uniques": [
-      [
-        "checksum",
-        "project",
-        "type"
-      ]
-    ]
-  },
   "sentry.proguardartifactrelease": {
     "dangling": false,
     "foreign_keys": {
@@ -4677,29 +4589,6 @@
       ]
     ]
   },
-  "sentry.rawevent": {
-    "dangling": false,
-    "foreign_keys": {
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.rawevent",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_rawevent",
-    "uniques": [
-      [
-        "event_id",
-        "project"
-      ]
-    ]
-  },
   "sentry.recentsearch": {
     "dangling": false,
     "foreign_keys": {
@@ -5210,6 +5099,10 @@
       [
         "file",
         "relocation"
+      ],
+      [
+        "kind",
+        "relocation"
       ]
     ]
   },
@@ -5327,29 +5220,6 @@
       [
         "project",
         "stack_root"
-      ]
-    ]
-  },
-  "sentry.reprocessingreport": {
-    "dangling": false,
-    "foreign_keys": {
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.reprocessingreport",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_reprocessingreport",
-    "uniques": [
-      [
-        "event_id",
-        "project"
       ]
     ]
   },
@@ -5857,6 +5727,57 @@
       ]
     ]
   },
+  "sentry.spanattributeextractionrulecondition": {
+    "dangling": false,
+    "foreign_keys": {
+      "config": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.spanattributeextractionruleconfig",
+        "nullable": false
+      },
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      }
+    },
+    "model": "sentry.spanattributeextractionrulecondition",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_spanattributeextractionrulecondition",
+    "uniques": []
+  },
+  "sentry.spanattributeextractionruleconfig": {
+    "dangling": false,
+    "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.project",
+        "nullable": false
+      }
+    },
+    "model": "sentry.spanattributeextractionruleconfig",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_spanattributeextractionruleconfig",
+    "uniques": [
+      [
+        "project",
+        "span_attribute"
+      ]
+    ]
+  },
   "sentry.stringindexer": {
     "dangling": false,
     "foreign_keys": {
@@ -6225,6 +6146,64 @@
         "provider",
         "uid",
         "user"
+      ]
+    ]
+  },
+  "uptime.projectuptimesubscription": {
+    "dangling": false,
+    "foreign_keys": {
+      "owner_team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.project",
+        "nullable": false
+      },
+      "uptime_subscription": {
+        "kind": "FlexibleForeignKey",
+        "model": "uptime.uptimesubscription",
+        "nullable": false
+      }
+    },
+    "model": "uptime.projectuptimesubscription",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "uptime_projectuptimesubscription",
+    "uniques": [
+      [
+        "project_id",
+        "uptime_subscription"
+      ]
+    ]
+  },
+  "uptime.uptimesubscription": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "uptime.uptimesubscription",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "uptime_uptimesubscription",
+    "uniques": [
+      [
+        "interval_seconds",
+        "url"
+      ],
+      [
+        "subscription_id"
       ]
     ]
   }

@@ -9,17 +9,17 @@ import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams.webhook import (
     MsTeamsEvents,
     MsTeamsWebhookEndpoint,
     MsTeamsWebhookMixin,
 )
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.silo.base import control_silo_function
 from sentry.types.region import Region, RegionResolutionError
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             return self.get_default_missing_integration_response()
 
         if len(regions) == 0:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("view_class", self.view_class)
                 scope.set_extra("request_method", self.request.method)
                 scope.set_extra("request_path", self.request.path)

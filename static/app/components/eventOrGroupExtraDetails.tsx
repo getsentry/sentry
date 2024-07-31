@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
-import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
@@ -39,8 +39,6 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
     project,
     lifetime,
     isUnhandled,
-    status,
-    substatus,
   } = data as Group;
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
@@ -51,9 +49,6 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
 
   return (
     <GroupExtra>
-      {!organization.features.includes('issue-stream-new-events-graph') && (
-        <GroupStatusBadge status={status} substatus={substatus} />
-      )}
       {shortId && (
         <InboxShortId
           shortId={shortId}
@@ -101,12 +96,9 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
         </LoggerAnnotation>
       )}
       {annotations?.map((annotation, key) => (
-        <AnnotationNoMargin
-          dangerouslySetInnerHTML={{
-            __html: annotation,
-          }}
-          key={key}
-        />
+        <AnnotationNoMargin key={key}>
+          <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
+        </AnnotationNoMargin>
       ))}
 
       {showAssignee && assignedTo && (

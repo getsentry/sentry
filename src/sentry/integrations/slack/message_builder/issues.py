@@ -9,10 +9,11 @@ import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
+from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
@@ -32,8 +33,9 @@ from sentry.integrations.slack.message_builder import (
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
-from sentry.integrations.slack.message_builder.time_utils import get_approx_start_time, time_since
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
+from sentry.integrations.time_utils import get_approx_start_time, time_since
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
@@ -54,12 +56,10 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
-from sentry.types.integrations import ExternalProviders
+from sentry.users.services.user.model import RpcUser
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -384,10 +384,7 @@ def build_actions(
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
         text = get_action_text(actions, identity)
-        if features.has("organizations:slack-thread-issue-alert", project.organization):
-            # if actions are taken, return True at the end to show the white circle emoji
-            return [], text, True
-        return [], text, False
+        return [], text, True
 
     status = group.get_status()
 
@@ -521,6 +518,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_markdown_block(title_text)
 
+    def get_culprit_block(self, event_or_group: GroupEvent | Group) -> SlackBlock | None:
+        if event_or_group.culprit and isinstance(event_or_group.culprit, str):
+            return self.get_context_block(event_or_group.culprit)
+        return None
+
     def get_text_block(self, text) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
@@ -601,12 +603,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions and self.identity and not action_text:
             # this means somebody is interacting with the message
             action_text = get_action_text(self.actions, self.identity)
-            if features.has(
-                "organizations:slack-thread-issue-alert", self.group.project.organization
-            ):
-                has_action = True
+            has_action = True
 
         blocks = [self.get_title_block(rule_id, notification_uuid, obj, has_action)]
+
+        if culprit_block := self.get_culprit_block(obj):
+            blocks.append(culprit_block)
 
         # build up text block
         text = text.lstrip(" ")

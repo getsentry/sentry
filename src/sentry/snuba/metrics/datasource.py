@@ -55,7 +55,7 @@ from sentry.snuba.metrics.fields.base import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, is_mri, parse_mri
-from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
+from sentry.snuba.metrics.query import DeprecatingMetricsQuery, Groupable, MetricField
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
     SnubaResultConverter,
@@ -761,7 +761,9 @@ class GroupLimitFilters:
 
 
 def _get_group_limit_filters(
-    metrics_query: MetricsQuery, results: list[Mapping[str, int]], use_case_id: UseCaseID
+    metrics_query: DeprecatingMetricsQuery,
+    results: list[Mapping[str, int]],
+    use_case_id: UseCaseID,
 ) -> GroupLimitFilters | None:
     if not metrics_query.groupby or not results:
         return None
@@ -894,7 +896,7 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
 
 def get_series(
     projects: Sequence[Project],
-    metrics_query: MetricsQuery,
+    metrics_query: DeprecatingMetricsQuery,
     use_case_id: UseCaseID,
     include_meta: bool = False,
     tenant_ids: dict[str, Any] | None = None,

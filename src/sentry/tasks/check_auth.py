@@ -12,7 +12,7 @@ from sentry.auth import find_providers_requiring_refresh
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
+from sentry.organizations.services.organization import RpcOrganizationMember, organization_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task

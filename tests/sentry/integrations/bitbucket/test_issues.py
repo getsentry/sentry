@@ -2,8 +2,8 @@ import orjson
 import responses
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import integration_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format

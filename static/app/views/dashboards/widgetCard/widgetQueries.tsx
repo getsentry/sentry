@@ -17,9 +17,9 @@ import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/m
 import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 
-import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
-import type {DashboardFilters, Widget} from '../types';
+import {type DashboardFilters, type Widget, WidgetType} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 import type {
@@ -119,6 +119,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: OnDataFetchedProps) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 };
 
 function WidgetQueries({
@@ -131,8 +132,12 @@ function WidgetQueries({
   cursor,
   limit,
   onDataFetched,
+  onWidgetSplitDecision,
 }: Props) {
-  const config = ErrorsAndTransactionsConfig;
+  // Discover and Errors datasets are the only datasets processed in this component
+  const config = getDatasetConfig(
+    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
+  );
   const context = useContext(DashboardsMEPContext);
   const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();
@@ -186,6 +191,23 @@ function WidgetQueries({
       isSeriesMetricsExtractedDataResults.every(Boolean) &&
         isSeriesMetricsExtractedDataResults.some(Boolean)
     );
+
+    const resultValues = Object.values(rawResults);
+    if (organization.features.includes('performance-discover-dataset-selector')) {
+      let splitDecision: WidgetType | undefined = undefined;
+      if (rawResults.meta) {
+        splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
+      } else if (Object.values(rawResults).length > 0) {
+        // Multi-series queries will have a meta key on each series
+        // We can just read the decision from one.
+        splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
+      }
+
+      if (splitDecision) {
+        // Update the dashboard state with the split decision
+        onWidgetSplitDecision?.(splitDecision);
+      }
+    }
   };
 
   const isTableMetricsDataResults: boolean[] = [];
@@ -204,6 +226,16 @@ function WidgetQueries({
       isTableMetricsExtractedDataResults.every(Boolean) &&
         isTableMetricsExtractedDataResults.some(Boolean)
     );
+
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
+        rawResults?.meta?.discoverSplitDecision
+      )
+    ) {
+      // Update the dashboard state with the split decision
+      onWidgetSplitDecision?.(rawResults?.meta?.discoverSplitDecision);
+    }
   };
 
   return (

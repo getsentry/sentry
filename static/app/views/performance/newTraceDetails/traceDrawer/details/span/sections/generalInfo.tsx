@@ -3,13 +3,14 @@ import type {Location} from 'history';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {ModuleName} from 'sentry/views/insights/types';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
@@ -71,6 +72,13 @@ export function GeneralInfo(props: GeneralnfoProps) {
     span.sentry_tags?.category
   );
 
+  const hasNewSpansUIFlag =
+    props.organization.features.includes('performance-spans-new-ui') &&
+    props.organization.features.includes('insights-initial-modules');
+
+  // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself.
+  const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+
   if (
     ![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule) &&
     span.description
@@ -86,10 +94,17 @@ export function GeneralInfo(props: GeneralnfoProps) {
               orgSlug: props.organization.slug,
               transaction: event.title,
               query: props.location.query,
-              spanSlug: {op: span.op, group: span.hash},
+              spanSlug: {op: span.op, group: groupHash},
               projectID: event.projectID,
             })}
             linkText={t('View Similar Spans')}
+            onClick={() =>
+              trackAnalytics('trace.trace_layout.view_similar_spans', {
+                organization: props.organization,
+                module: resolvedModule,
+                source: 'general_info',
+              })
+            }
           />
         ) : (
           <TraceDrawerComponents.CopyableCardValueWithLink value={span.description} />

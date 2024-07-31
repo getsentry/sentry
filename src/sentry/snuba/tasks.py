@@ -17,6 +17,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
@@ -48,7 +49,7 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     if subscription.status != QuerySubscription.Status.CREATING.value:
         metrics.incr("snuba.subscriptions.create.incorrect_status")
         return
-    if subscription.subscription_id is not None:
+    if subscription.subscription_id is not None and subscription.snuba_query is not None:
         metrics.incr("snuba.subscriptions.create.already_created_in_snuba")
         # This mostly shouldn't happen, but it's possible that a subscription can get
         # into this state. Just attempt to delete the existing subscription and then
@@ -101,7 +102,7 @@ def update_subscription_in_snuba(
         metrics.incr("snuba.subscriptions.update.incorrect_status")
         return
 
-    if subscription.subscription_id is not None:
+    if subscription.subscription_id is not None and subscription.snuba_query is not None:
         dataset = Dataset(
             old_dataset if old_dataset is not None else subscription.snuba_query.dataset
         )
@@ -168,7 +169,7 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         metrics.incr("snuba.subscriptions.delete.incorrect_status")
         return
 
-    if subscription.subscription_id is not None:
+    if subscription.subscription_id is not None and subscription.snuba_query is not None:
         query_dataset = Dataset(subscription.snuba_query.dataset)
         entity_key = get_entity_key_from_snuba_query(
             subscription.snuba_query,
@@ -189,6 +190,8 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
+    assert subscription.snuba_query is not None
+
     with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
         span.set_tag(
             "uses_metrics_layer",
@@ -201,13 +204,9 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
-        extra = ""
-        if subscription.query_extra:
-            if snuba_query.query:
-                extra = " and "
-            extra += subscription.query_extra
+        query_string = build_query_strings(subscription, snuba_query).query_string
         snql_query = entity_subscription.build_query_builder(
-            query=f"{snuba_query.query}{extra}",
+            query=query_string,
             project_ids=[subscription.project_id],
             environment=snuba_query.environment,
             params={

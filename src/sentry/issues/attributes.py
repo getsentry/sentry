@@ -42,6 +42,8 @@ class GroupValues:
     substatus: int | None
     first_seen: datetime
     num_comments: int
+    priority: int | None
+    first_release_id: int | None
 
 
 def _get_attribute_snapshot_producer() -> KafkaProducer:
@@ -138,7 +140,14 @@ def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
     group_values_map = {
         group["id"]: group
         for group in Group.objects.filter(id__in=group_ids).values(
-            "id", "project_id", "status", "substatus", "first_seen", "num_comments"
+            "id",
+            "project_id",
+            "status",
+            "substatus",
+            "first_seen",
+            "num_comments",
+            "priority",
+            "first_release",
         )
     }
     assert len(group_values_map) == len(group_ids)
@@ -153,7 +162,9 @@ def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
                 status=group_values["status"],
                 substatus=group_values["substatus"],
                 first_seen=group_values["first_seen"],
-                num_comments=group_values["num_comments"],
+                num_comments=group_values["num_comments"] or 0,
+                priority=group_values["priority"],
+                first_release_id=(group_values["first_release"] or None),
             )
         )
     return results
@@ -192,6 +203,8 @@ def _bulk_retrieve_snapshot_values(
             "group_id": group_value.id,
             "status": group_value.status,
             "substatus": group_value.substatus,
+            "priority": group_value.priority,
+            "first_release": group_value.first_release_id,
             "first_seen": group_value.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "num_comments": group_value.num_comments,
             "timestamp": datetime.now().isoformat(),

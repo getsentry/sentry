@@ -7,16 +7,16 @@ from mistune import markdown
 from rest_framework.response import Response
 
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.services.integration import integration_service
 from sentry.models.activity import Activity
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.silo.base import all_silo_function
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
+    from sentry.integrations.models.external_issue import ExternalIssue
     from sentry.models.group import Group
-    from sentry.models.integrations.external_issue import ExternalIssue
 
 
 class VstsIssueSync(IssueSyncMixin):
@@ -161,7 +161,7 @@ class VstsIssueSync(IssueSyncMixin):
                 field["type"] = "select"
         return fields
 
-    def get_issue_url(self, key: str, **kwargs: Any) -> str:
+    def get_issue_url(self, key: str) -> str:
         return f"{self.instance}_workitems/edit/{key}"
 
     def create_issue(self, data: Mapping[str, str], **kwargs: Any) -> Mapping[str, Any]:
@@ -198,7 +198,7 @@ class VstsIssueSync(IssueSyncMixin):
             "metadata": {"display_name": "{}#{}".format(project_name, created_item["id"])},
         }
 
-    def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
+    def get_issue(self, issue_id: int, **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client(base_url=self.instance)
         work_item = client.get_work_item(issue_id)
         return {
@@ -338,7 +338,7 @@ class VstsIssueSync(IssueSyncMixin):
     def get_issue_display_name(self, external_issue: "ExternalIssue") -> str:
         return (external_issue.metadata or {}).get("display_name", "")
 
-    def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> Response:
+    def create_comment(self, issue_id: int, user_id: int, group_note: Activity) -> Response:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
         return self.get_client(base_url=self.instance).update_work_item(

@@ -7,7 +7,7 @@ import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';

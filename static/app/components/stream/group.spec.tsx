@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -8,14 +7,15 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
-import type {GroupStatusResolution, MarkReviewed} from 'sentry/types';
-import {EventOrGroupType, GroupStatus, PriorityLevel} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
+import {GroupStatus, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
 
 describe('StreamGroup', function () {
-  let group1;
+  let group1!: Group;
 
   beforeEach(function () {
     group1 = GroupFixture({
@@ -105,9 +105,7 @@ describe('StreamGroup', function () {
       body: {priority: PriorityLevel.HIGH},
     });
 
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
-      organization: OrganizationFixture({features: ['issue-priority-ui']}),
-    });
+    render(<StreamGroup id="1337" query="is:unresolved" />);
 
     const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
     expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();
@@ -136,5 +134,32 @@ describe('StreamGroup', function () {
 
     // skipHover - Prevent stacktrace preview from being rendered
     await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
+  });
+
+  it('can select row', async function () {
+    const {router, organization} = initializeOrg();
+    render(<StreamGroup id="1337" query="is:unresolved" />, {router, organization});
+
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
+    const checkbox = screen.getByRole('checkbox', {name: 'Select Issue'});
+    expect(checkbox).not.toBeChecked();
+    await userEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+    await userEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('does not error when group is not in GroupStore', function () {
+    const {router, organization} = initializeOrg();
+    GroupStore.reset();
+    const {container} = render(
+      <StreamGroup
+        id="1337"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+      />,
+      {router, organization}
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

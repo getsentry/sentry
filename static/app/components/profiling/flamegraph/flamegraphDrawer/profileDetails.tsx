@@ -11,13 +11,17 @@ import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {DeviceContextKey} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,7 +37,7 @@ import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphD
 function renderValue(
   key: string,
   value: number | string | undefined,
-  profileGroup?: ProfileGroup
+  profileGroup?: ProfileGroup | ContinuousProfileGroup
 ) {
   if (key === 'threads' && value === undefined) {
     return profileGroup?.profiles.length;
@@ -49,7 +53,7 @@ function renderValue(
 }
 
 interface ProfileDetailsProps {
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
   projectId: string;
   transaction: EventTransaction | null;
 }
@@ -184,7 +188,7 @@ function TransactionDeviceDetails({
   profileGroup,
   transaction,
 }: {
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
   transaction: EventTransaction;
 }) {
   const deviceDetails = useMemo(() => {
@@ -253,7 +257,7 @@ function TransactionEventDetails({
   transaction,
 }: {
   organization: Organization;
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
   project: Project | undefined;
   transaction: EventTransaction;
 }) {
@@ -348,7 +352,11 @@ function TransactionEventDetails({
   );
 }
 
-function ProfileEnvironmentDetails({profileGroup}: {profileGroup: ProfileGroup}) {
+function ProfileEnvironmentDetails({
+  profileGroup,
+}: {
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
+}) {
   return (
     <DetailsContainer>
       {Object.entries(ENVIRONMENT_DETAILS_KEY).map(([label, key]) => {
@@ -371,7 +379,7 @@ function ProfileEventDetails({
   transaction,
 }: {
   organization: Organization;
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
   project: Project | undefined;
   transaction: EventTransaction | null;
 }) {

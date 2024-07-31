@@ -8,7 +8,6 @@ import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 const mockProject = ProjectFixture();
 const {router, organization} = initializeOrg({
   organization: {},
-  project: mockProject,
   projects: [mockProject],
   router: {
     routes: [],

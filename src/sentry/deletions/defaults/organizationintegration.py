@@ -1,6 +1,6 @@
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.repository import repository_service
 from sentry.types.region import RegionMappingNotFound
 
 from ..base import ModelDeletionTask, ModelRelation

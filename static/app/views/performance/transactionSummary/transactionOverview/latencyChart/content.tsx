@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types';
 import toArray from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import Histogram from 'sentry/utils/performance/histogram';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';

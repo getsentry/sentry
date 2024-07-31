@@ -20,6 +20,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
+from sentry.integrations.models.integration import Integration
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -42,7 +43,7 @@ from sentry.models.groupowner import (
     GroupOwnerType,
 )
 from sentry.models.groupsnooze import GroupSnooze
-from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
@@ -51,7 +52,6 @@ from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
@@ -76,6 +76,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.uptime.detectors.ranking import _get_cluster, get_organization_bucket_key
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
@@ -857,7 +859,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(self.user.id, None), (None, self.team.id)} == {
             (o.user_id, o.team_id) for o in owners
         }
-        activity = Activity.objects.filter(group=event.group).first()
+        activity = Activity.objects.get(group=event.group)
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
@@ -1224,8 +1226,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = (
             GroupOwner.objects.filter()
             .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
-            .first()
+            .order_by("type")[0]
         )
         assert assignee.user_id == self.user.id
 
@@ -1255,10 +1256,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Mimic filter used in get_autoassigned_owner_cached to get the issue owner to be
         # auto-assigned
         assignee = (
-            GroupOwner.objects.filter()
-            .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
-            .first()
+            GroupOwner.objects.filter().exclude(user_id__isnull=True, team_id__isnull=True).get()
         )
         # Group should be re-assigned to the new group owner
         assert assignee.user_id == user_3.id
@@ -2151,9 +2149,56 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
 
+class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
+    def assert_organization_key(self, organization: Organization, exists: bool) -> None:
+        key = get_organization_bucket_key(organization)
+        cluster = _get_cluster()
+        assert exists == cluster.sismember(key, str(organization.id))
+
+    @with_feature("organizations:uptime-automatic-hostname-detection")
+    def test_uptime_detection_feature_url(self):
+        event = self.create_event(
+            data={"request": {"url": "http://sentry.io"}},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        self.assert_organization_key(self.organization, True)
+
+    @with_feature("organizations:uptime-automatic-hostname-detection")
+    def test_uptime_detection_feature_no_url(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        self.assert_organization_key(self.organization, False)
+
+    def test_uptime_detection_no_feature(self):
+        event = self.create_event(
+            data={"request": {"url": "http://sentry.io"}},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        self.assert_organization_key(self.organization, False)
+
+
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated(self, mock_run_post_process_job):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2180,7 +2225,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2200,7 +2244,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2222,7 +2265,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2404,6 +2446,7 @@ class PostProcessGroupErrorTest(
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
+    DetectBaseUrlsForUptimeTestMixin,
 ):
     def setUp(self):
         super().setUp()
@@ -2532,6 +2575,7 @@ class PostProcessGroupPerformanceTest(
             cache_key=cache_key,
             group_id=None,
             group_states=None,
+            project_id=self.project.id,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2596,7 +2640,7 @@ class PostProcessGroupAggregateEventTest(
     SnoozeTestSkipSnoozeMixin,
     PerformanceIssueTestCase,
 ):
-    def create_event(self, data, project_id):
+    def create_event(self, data, project_id, assert_no_errors=True):
         group = self.create_group(
             type=PerformanceP95EndpointRegressionGroupType.type_id,
         )
@@ -2655,6 +2699,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=None,
+            project_id=self.project.id,
         )
 
         assert mock_store_transaction_name.mock_calls == [
@@ -2839,8 +2884,9 @@ class PostProcessGroupFeedbackTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(FeedbackGroup.build_post_process_group_feature_name()), self.feature(
-            "organizations:user-feedback-spam-filter-actions"
+        with (
+            self.feature(FeedbackGroup.build_post_process_group_feature_name()),
+            self.feature("organizations:user-feedback-spam-filter-actions"),
         ):
             post_process_group(
                 is_new=is_new,

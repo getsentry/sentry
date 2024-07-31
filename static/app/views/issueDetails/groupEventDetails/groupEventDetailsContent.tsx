@@ -1,8 +1,11 @@
 import {Fragment, lazy, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {usePrompt} from 'sentry/actionCreators/prompts';
+import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -10,6 +13,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
@@ -30,32 +34,31 @@ import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashC
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
+import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
+import Placeholder from 'sentry/components/placeholder';
+import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type EntryException,
-  type Event,
-  EventOrGroupType,
-  type Group,
-  IssueCategory,
-  IssueType,
-  type Project,
-} from 'sentry/types';
-import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import type {EntryException, Event, EventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
+import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
@@ -99,6 +102,7 @@ function DefaultGroupEventDetailsContent({
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
   const location = useLocation();
+  const hasNewTimelineUI = useHasNewTimelineUI();
   const tagsRef = useRef<HTMLDivElement>(null);
 
   const projectSlug = project.slug;
@@ -106,7 +110,7 @@ function DefaultGroupEventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
-  const showMaybeSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
+  const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
 
   const eventEntryProps = {group, event, project};
 
@@ -116,12 +120,28 @@ function DefaultGroupEventDetailsContent({
     projectSlug,
   });
 
+  const {
+    isLoading: promptLoading,
+    isError: promptError,
+    isPromptDismissed,
+    dismissPrompt,
+    showPrompt,
+  } = usePrompt({
+    feature: 'issue_feedback_hidden',
+    organization,
+    projectId: project.id,
+  });
+
+  // default to show on error or isPromptDismissed === undefined
+  const showFeedback = !isPromptDismissed || promptError;
+
   return (
     <Fragment>
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       <StyledDataSection>
+        <TraceTimeLineOrRelatedIssue event={event} />
         <SuspectCommits
           project={project}
           eventId={event.id}
@@ -130,17 +150,42 @@ function DefaultGroupEventDetailsContent({
         />
       </StyledDataSection>
       {event.userReport && (
-        <EventDataSection title={t('User Feedback')} type="user-feedback">
-          <EventUserFeedback
-            report={event.userReport}
-            orgSlug={organization.slug}
-            issueId={group.id}
-            showEventLink={false}
-          />
+        <EventDataSection
+          title={t('User Feedback')}
+          type="user-feedback"
+          actions={
+            <ErrorBoundary mini>
+              <Button
+                size="xs"
+                icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
+                onClick={showFeedback ? dismissPrompt : showPrompt}
+                title={
+                  showFeedback
+                    ? t('Hide feedback on all issue details')
+                    : t('Unhide feedback on all issue details')
+                }
+                disabled={promptError}
+                busy={promptLoading}
+              >
+                {showFeedback ? t('Hide') : t('Show')}
+              </Button>
+            </ErrorBoundary>
+          }
+        >
+          {promptLoading ? (
+            <Placeholder />
+          ) : showFeedback ? (
+            <EventUserFeedback
+              report={event.userReport}
+              orgSlug={organization.slug}
+              issueId={group.id}
+              showEventLink={false}
+            />
+          ) : null}
         </EventDataSection>
       )}
       {event.type === EventOrGroupType.ERROR &&
-      organization.features.includes('ai-analytics') &&
+      organization.features.includes('insights-addon-modules') &&
       event?.entries
         ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
         .flatMap(x => x.data.values ?? [])
@@ -161,6 +206,9 @@ function DefaultGroupEventDetailsContent({
           organization={organization}
         />
       ) : null}
+      {group.issueCategory === IssueCategory.UPTIME && (
+        <UptimeDataSection group={group} />
+      )}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
@@ -168,14 +216,9 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection
-        event={event}
-        group={group}
-        project={project}
-        viewAllRef={tagsRef}
-      />
-      {showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutionsIssueDetailsContent
+      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      {showPossibleSolutionsHigher && (
+        <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
           project={project}
           group={group}
@@ -210,15 +253,20 @@ function DefaultGroupEventDetailsContent({
           projectSlug={project.slug}
         />
       )}
+      <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXPECTCT} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      {!showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutionsIssueDetailsContent
+      {hasNewTimelineUI ? (
+        <BreadcrumbsDataSection event={event} group={group} project={project} />
+      ) : (
+        <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
+      )}
+      {!showPossibleSolutionsHigher && (
+        <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
           project={project}
           group={group}
@@ -259,14 +307,14 @@ function DefaultGroupEventDetailsContent({
   );
 }
 
-function ResourcesAndMaybeSolutionsIssueDetailsContent({
+function ResourcesAndPossibleSolutionsIssueDetailsContent({
   event,
   project,
   group,
 }: Required<GroupEventDetailsContentProps>) {
   return (
     <ErrorBoundary mini>
-      <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+      <ResourcesAndPossibleSolutions event={event} project={project} group={group} />
     </ErrorBoundary>
   );
 }
@@ -299,6 +347,7 @@ function ProfilingDurationRegressionIssueDetailsContent({
   event,
   project,
 }: Required<GroupEventDetailsContentProps>) {
+  const organization = useOrganization();
   return (
     <TransactionsDeltaProvider event={event} project={project}>
       <Fragment>
@@ -308,9 +357,11 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventAffectedTransactions event={event} group={group} project={project} />
-        </ErrorBoundary>
+        {!organization.features.includes('continuous-profiling-compat') && (
+          <ErrorBoundary mini>
+            <EventAffectedTransactions event={event} group={group} project={project} />
+          </ErrorBoundary>
+        )}
         <ErrorBoundary mini>
           <DataSection>
             <b>{t('Largest Changes in Call Stack Frequency')}</b>

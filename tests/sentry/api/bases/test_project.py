@@ -1,7 +1,7 @@
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.users.services.user.serial import serialize_rpc_user
 
 
 class ProjectPermissionBase(TestCase):

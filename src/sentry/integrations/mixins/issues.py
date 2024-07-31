@@ -7,20 +7,20 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any, ClassVar
 
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import where_should_sync
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.notifications.utils import get_notification_group_title
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
-from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.silo.base import all_silo_function
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -63,7 +63,7 @@ class IssueBasicMixin:
     def get_group_title(self, group, event, **kwargs):
         return get_notification_group_title(group, event, **kwargs)
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         """
         Given the key of the external_issue return the external issue link.
         """
@@ -348,7 +348,7 @@ class IssueBasicMixin:
         for ei in external_issues:
             link = self.get_issue_url(ei.key)
             label = self.get_issue_display_name(ei) or ei.key
-            annotations.append(f'<a href="{link}">{label}</a>')
+            annotations.append({"url": link, "displayName": label})
 
         return annotations
 

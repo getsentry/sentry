@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Any, Protocol, Union, overload
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
-from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.hybridcloud.rpc import RpcModel
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.organization import RpcTeam
+    from sentry.organizations.services.organization import RpcTeam
 
 
 class ActorType(str, Enum):
@@ -40,7 +40,9 @@ class Actor(RpcModel):
         pass
 
     @classmethod
-    def resolve_many(cls, actors: Sequence["Actor"]) -> list["Team | RpcUser"]:
+    def resolve_many(
+        cls, actors: Sequence["Actor"], filter_none: bool = True
+    ) -> list["Team | RpcUser | None"]:
         """
         Resolve a list of actors in a batch to the Team/User the Actor references.
 
@@ -48,7 +50,7 @@ class Actor(RpcModel):
         Actor.resolve() individually will.
         """
         from sentry.models.team import Team
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         if not actors:
             return []
@@ -58,13 +60,16 @@ class Actor(RpcModel):
         results: dict[tuple[ActorType, int], Team | RpcUser] = {}
         for actor_type, actor_list in actors_by_type.items():
             if actor_type == ActorType.USER:
-                for user in user_service.get_many(filter={"user_ids": [u.id for u in actor_list]}):
+                for user in user_service.get_many_by_id(ids=[u.id for u in actor_list]):
                     results[(actor_type, user.id)] = user
             if actor_type == ActorType.TEAM:
                 for team in Team.objects.filter(id__in=[t.id for t in actor_list]):
                     results[(actor_type, team.id)] = team
 
-        return list(filter(None, [results.get((actor.actor_type, actor.id)) for actor in actors]))
+        final_results = [results.get((actor.actor_type, actor.id)) for actor in actors]
+        if filter_none:
+            final_results = list(filter(None, final_results))
+        return final_results
 
     @classmethod
     def many_from_object(cls, objects: Iterable[ActorTarget]) -> list["Actor"]:
@@ -77,7 +82,7 @@ class Actor(RpcModel):
         """
         from sentry.models.team import Team
         from sentry.models.user import User
-        from sentry.services.hybrid_cloud.organization import RpcTeam
+        from sentry.organizations.services.organization import RpcTeam
 
         result: list["Actor"] = []
         grouped_by_type: MutableMapping[str, list[int]] = defaultdict(list)
@@ -116,7 +121,7 @@ class Actor(RpcModel):
         """
         from sentry.models.team import Team
         from sentry.models.user import User
-        from sentry.services.hybrid_cloud.organization import RpcTeam
+        from sentry.organizations.services.organization import RpcTeam
 
         if isinstance(obj, cls):
             return obj
@@ -175,7 +180,7 @@ class Actor(RpcModel):
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
         """
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         if not id:
             return None
@@ -231,7 +236,7 @@ class Actor(RpcModel):
         Will raise Team.DoesNotExist or User.DoesNotExist when the actor is invalid
         """
         from sentry.models.team import Team
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         if self.is_team:
             team = Team.objects.filter(id=self.id).first()

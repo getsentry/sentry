@@ -59,8 +59,7 @@ export function removeHighlightedNode(replayer: Replayer, props: RemoveHighlight
  * Attempt to highlight the node inside of a replay recording
  */
 export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
-  // @ts-expect-error mouseTail is private
-  const {mouseTail, wrapper} = replayer;
+  const {wrapper} = replayer;
   const mirror = replayer.getMirror();
 
   const node =
@@ -78,17 +77,20 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
     return null;
   }
 
-  // Clone the mouseTail canvas as it has the dimensions and position that we
-  // want on top of the replay. We may need to revisit this strategy as we
-  // create a new canvas for every highlight. See additional notes in
-  // removeHighlight() method.
+  // Create a new canvas with the same dimensions as the iframe. We may need to
+  // revisit this strategy as we create a new canvas for every highlight. See
+  // additional notes in removeHighlight() method.
   const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
 
   if (!element) {
     return null;
   }
 
-  const canvas = mouseTail.cloneNode();
+  const canvas = document.createElement('canvas');
+  canvas.width = Number(replayer.iframe.width);
+  canvas.height = Number(replayer.iframe.height);
+  canvas.setAttribute('style', 'position:absolute;');
+
   const boundingClientRect = element.getBoundingClientRect();
   const drawProps = {
     annotation: props.annotation ?? '',
@@ -104,7 +106,7 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
     highlightsBySelector.set(props.selector, {canvas});
   }
 
-  wrapper.insertBefore(canvas, mouseTail);
+  wrapper.insertBefore(canvas, replayer.iframe);
 
   return {
     canvas,

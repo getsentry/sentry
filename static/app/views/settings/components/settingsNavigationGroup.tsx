@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 

@@ -164,6 +164,7 @@ export type EventQuery = {
   query: string;
   cursor?: string;
   dataset?: DiscoverDatasets;
+  discoverSavedQueryId?: string;
   environment?: string[];
   equation?: string[];
   noPagination?: boolean;

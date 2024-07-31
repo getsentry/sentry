@@ -95,6 +95,7 @@ def load_defaults():
     )
     from sentry.models.commitfilechange import CommitFileChange
     from sentry.monitors import models as monitor_models
+    from sentry.snuba import models as snuba_models
 
     from . import defaults
 
@@ -139,6 +140,7 @@ def load_defaults():
     default_manager.register(
         models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
     )
+    default_manager.register(models.OrganizationMember, defaults.OrganizationMemberDeletionTask)
     default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
     default_manager.register(
         models.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask
@@ -147,6 +149,7 @@ def load_defaults():
     default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     default_manager.register(models.ProjectKey, BulkModelDeletionTask)
     default_manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
+    default_manager.register(snuba_models.QuerySubscription, defaults.QuerySubscriptionDeletionTask)
     default_manager.register(models.Release, defaults.ReleaseDeletionTask)
     default_manager.register(models.ReleaseCommit, BulkModelDeletionTask)
     default_manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)

@@ -76,4 +76,20 @@ describe('AutofixRootCause', function () {
       })
     );
   });
+
+  it('shows graceful error state when there are no causes', function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          causes: [],
+        }}
+      />
+    );
+
+    // Displays all root cause and suggested fix info
+    expect(
+      screen.getByText('Autofix was not able to find a root cause. Maybe try again?')
+    ).toBeInTheDocument();
+  });
 });

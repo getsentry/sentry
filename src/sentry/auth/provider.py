@@ -1,14 +1,19 @@
 import abc
 import logging
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+from django.http.response import HttpResponseBase
 from django.utils.encoding import force_str
-from django.views import View
+from rest_framework.request import Request
 
+from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
 from sentry.models.user import User
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import PipelineProvider
 
 from .view import AuthView, ConfigureView
@@ -57,7 +62,11 @@ class Provider(PipelineProvider, abc.ABC):
     def key(self) -> str:
         return self._key
 
-    def get_configure_view(self) -> View:
+    def get_configure_view(
+        self,
+    ) -> Callable[
+        [Request, RpcOrganization | Organization, AuthProvider | RpcAuthProvider], HttpResponseBase
+    ]:
         """
         Return the view which handles configuration (post-setup).
         """

@@ -27,8 +27,7 @@ class OrganizationMonitorProcessingErrorsIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Retrieve checkin processing errors for an Organization",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_ID_OR_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -41,7 +40,7 @@ class OrganizationMonitorProcessingErrorsIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: AuthenticatedHttpRequest, organization: Organization) -> Response:
         """
-        Retrieves checkin processing errors for a monitor
+        Retrieves checkin processing errors for an organization
         """
         projects = self.get_projects(request, organization)
         paginator = SequencePaginator(list(enumerate(get_errors_for_projects(projects))))

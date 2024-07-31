@@ -6,6 +6,7 @@ from collections import defaultdict
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -13,6 +14,7 @@ from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelat
 # be safe to delete/mutate within a single transaction for user-triggered
 # actions (delete/reprocess/merge/unmerge)
 DIRECT_GROUP_RELATED_MODELS = (
+    # prioritize GroupHash
     models.GroupHash,
     models.GroupAssignee,
     models.GroupCommitResolution,
@@ -37,7 +39,6 @@ DIRECT_GROUP_RELATED_MODELS = (
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
-    # prioritize GroupHash
     models.UserReport,
     models.EventAttachment,
 )
@@ -127,6 +128,9 @@ class GroupDeletionTask(ModelDeletionTask):
         self.mark_deletion_in_progress(instance_list)
 
         group_ids = [group.id for group in instance_list]
+
+        # Tell seer to delete grouping records with these group hashes
+        call_delete_seer_grouping_records_by_hash(group_ids)
 
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []

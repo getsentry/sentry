@@ -25,6 +25,7 @@ from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import (
+    PREFERRED_SOURCE,
     Paginators,
     execute_query,
     make_full_aggregation_query,
@@ -39,6 +40,11 @@ MAX_REPLAY_LENGTH_HOURS = 1
 ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 
+# Compatibility function for getsentry code.
+def query_replays_collection(*args, **kwargs):
+    return query_replays_collection_paginated(*args, **kwargs).response
+
+
 def query_replays_collection_paginated(
     project_ids: list[int],
     start: datetime,
@@ -49,6 +55,7 @@ def query_replays_collection_paginated(
     limit: int,
     offset: int,
     search_filters: Sequence[SearchFilter],
+    preferred_source: PREFERRED_SOURCE,
     organization: Organization | None = None,
     actor: Any | None = None,
 ):
@@ -66,6 +73,7 @@ def query_replays_collection_paginated(
         period_start=start,
         period_stop=end,
         request_user_id=actor.id if actor else None,
+        preferred_source=preferred_source,
     )
 
 
@@ -184,12 +192,17 @@ def query_replays_dataset_tagkey_values(
     end: datetime,
     environment: str | None,
     tag_key: str,
+    tag_substr_query: str | None,
     tenant_ids: dict[str, Any] | None,
 ):
-    """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
+    """
+    Query replay tagkey values. Like our other tag functionality, aggregates do not work here.
+    This function is used by the tagstore backend, which expects a `tag_value` key in each result object.
+
+    @param tag_substr_query: used to filter tag values with a case-insensitive substring.
+    """
 
     where = []
-
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
@@ -209,6 +222,15 @@ def query_replays_dataset_tagkey_values(
         # using identity to alias the column
         aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
 
+    if tag_substr_query:
+        where.append(
+            Condition(
+                Function("positionCaseInsensitive", parameters=[grouped_column, tag_substr_query]),
+                Op.NEQ,
+                0,
+            )
+        )
+
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -221,6 +243,7 @@ def query_replays_dataset_tagkey_values(
                 aggregated_column,
             ],
             where=[
+                *where,
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
@@ -230,7 +253,6 @@ def query_replays_dataset_tagkey_values(
                         Condition(Column("is_archived"), Op.IS_NULL),
                     ]
                 ),
-                *where,
             ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
             groupby=[grouped_column],

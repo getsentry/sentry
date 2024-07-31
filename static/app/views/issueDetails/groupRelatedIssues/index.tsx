@@ -121,7 +121,6 @@ function RelatedIssuesSection({
 
   return (
     <HeaderWrapper>
-      <Title>{title}</Title>
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
@@ -131,6 +130,7 @@ function RelatedIssuesSection({
         />
       ) : issues.length > 0 ? (
         <Fragment>
+          <Title>{title}</Title>
           <TextButtonWrapper>
             {linkToTrace}
             {openIssuesButton}
@@ -143,11 +143,7 @@ function RelatedIssuesSection({
             withChart={false}
           />
         </Fragment>
-      ) : relationType === 'trace_connected' ? (
-        <small>{t('No trace-connected related issues were found.')}</small>
-      ) : (
-        <small>{t('No same-root-cause related issues were found.')}</small>
-      )}
+      ) : null}
     </HeaderWrapper>
   );
 }

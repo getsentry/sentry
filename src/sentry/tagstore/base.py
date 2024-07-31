@@ -1,6 +1,7 @@
 import re
 
 from sentry.constants import TAG_LABELS
+from sentry.snuba.dataset import Dataset
 from sentry.utils.services import Service
 
 # Valid pattern for tag key names
@@ -134,7 +135,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_keys_for_projects(
-        self, projects, environments, start, end, status=TagKeyStatus.ACTIVE, tenant_ids=None
+        self,
+        projects,
+        environments,
+        start,
+        end,
+        dataset: Dataset = Dataset.Events,
+        status=TagKeyStatus.ACTIVE,
+        use_cache: bool = False,
+        tenant_ids=None,
     ):
         """
         >>> get_tag_key([1], [2])
@@ -201,7 +210,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_value_paginator(
-        self, project_id, environment_id, key, query=None, order_by="-last_seen", tenant_ids=None
+        self,
+        project_id,
+        environment_id,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
+        tenant_ids=None,
     ):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
@@ -213,10 +230,14 @@ class TagStorage(Service):
         projects,
         environments,
         key,
-        start,
-        end,
+        start=None,
+        end=None,
+        dataset: Dataset | None = None,
         query=None,
         order_by="-last_seen",
+        include_transactions: bool = False,
+        include_sessions: bool = False,
+        include_replays: bool = False,
         tenant_ids=None,
     ):
         """
@@ -233,7 +254,8 @@ class TagStorage(Service):
         key,
         callbacks=(),
         orderby="-first_seen",
-        offset=0,
+        limit: int = 1000,
+        offset: int = 0,
         tenant_ids=None,
     ):
         """

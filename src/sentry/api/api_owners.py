@@ -7,6 +7,7 @@ class ApiOwner(Enum):
     Value should map to team's github group
     """
 
+    ALERTS_NOTIFICATIONS = "alerts-notifications"
     BILLING = "revenue"
     CRONS = "crons"
     ECOSYSTEM = "ecosystem"

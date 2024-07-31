@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for python file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -32,7 +32,7 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Checkout getsentry/sentry-api-schema
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: steps.changes.outputs.api_docs == 'true'
         with:
           ref: 'main'
@@ -62,11 +62,10 @@ jobs:
           mkdir schemas
           sentry rpcschema > rpc_method_schema.json
 
-      - name: Compare RPC schema with oasdiff
-        uses: oasdiff/oasdiff-action/breaking@fc826b9f0d21b85b085842521c7a8cc445412c08 # v0.0.19
+      - name: Output RPC schema comparison
+        uses: oasdiff/oasdiff-action/breaking@a2ff6682b27d175162a74c09ace8771bd3d512f8 # A few commits after v0.0.19 to get fixes
         if: steps.changes.outputs.api_docs == 'true'
         with:
           base: sentry-api-schema/rpc_method_schema.json
           revision: ./rpc_method_schema.json
-          format: 'text'
-          fail-on-diff: true
+          fail-on: WARN

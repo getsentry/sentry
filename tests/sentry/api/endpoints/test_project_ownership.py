@@ -216,6 +216,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
         # Assert that "identifier" is not renamed to "name" in the backend
         ownership = ProjectOwnership.objects.get(project=self.project)
+        assert ownership.schema is not None
         assert ownership.schema["rules"] == [
             {
                 "matcher": {"type": "path", "pattern": "*.js"},

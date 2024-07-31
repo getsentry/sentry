@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 from collections.abc import Iterable
+from typing import NotRequired, TypedDict
 
 from django.db.models.query import QuerySet
 from django.http import Http404, HttpResponse, StreamingHttpResponse
@@ -36,6 +39,15 @@ RELEASE_BUNDLE_TYPE = "release.bundle"
 MAX_RELEASEFILES_QUERY = 10
 
 
+class _Artifact(TypedDict):
+    id: str
+    type: str
+    url: str
+    resolved_with: str
+    abs_path: NotRequired[str]
+    headers: NotRequired[dict[str, object]]
+
+
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     owner = ApiOwner.PROCESSING
@@ -62,9 +74,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        file = None
+        file_m: ArtifactBundle | ReleaseFile | None = None
         if ty == "artifact_bundle":
-            file = (
+            file_m = (
                 ArtifactBundle.objects.filter(
                     id=ty_id,
                     projectartifactbundle__project_id=project.id,
@@ -76,16 +88,16 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         elif ty == "release_file":
             # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
             # be always empty, so using the `organization_id` instead.
-            file = (
+            file_m = (
                 ReleaseFile.objects.filter(id=ty_id, organization_id=project.organization.id)
                 .select_related("file")
                 .first()
             )
             metrics.incr("sourcemaps.download.release_file")
 
-        if file is None:
+        if file_m is None:
             raise Http404
-        file = file.file
+        file = file_m.file
 
         try:
             fp = file.getfile()
@@ -155,7 +167,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
 
-        found_artifacts = []
+        found_artifacts: list[_Artifact] = []
         for download_id, resolved_with in all_bundles.items():
             found_artifacts.append(
                 {

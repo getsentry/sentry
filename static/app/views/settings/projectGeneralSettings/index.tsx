@@ -16,6 +16,7 @@ import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
+import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
@@ -221,7 +222,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
                 </TextBlock>
                 <TextBlock>
                   {t(
-                    'Please enter the email of an organization owner to whom you would like to transfer this project.'
+                    'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
                   )}
                 </TextBlock>
                 <Panel>
@@ -303,6 +304,17 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
       },
     };
 
+    const projectIdField: FieldObject = {
+      name: 'projectId',
+      type: 'string',
+      disabled: true,
+      label: t('Project ID'),
+      setValue(_, _name) {
+        return project.id;
+      },
+      help: `The unique identifier for this project. It cannot be modified.`,
+    };
+
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
@@ -311,7 +323,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.name, fields.platform]}
+            fields={[fields.name, projectIdField, fields.platform]}
           />
           <JsonForm
             {...jsonFormProps}

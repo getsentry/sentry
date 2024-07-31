@@ -4,6 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -27,45 +29,51 @@ describe('withDomainRedirect', function () {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   }
+  let configState: Config;
 
   beforeEach(function () {
     window.location.pathname = '/organizations/albertos-apples/issues/';
     window.location.search = '?q=123';
     window.location.hash = '#hash';
 
-    window.__initialData = {
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
+      features: new Set(),
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
   });
 
   afterEach(function () {
     jest.resetAllMocks();
     window.location = originalLocation;
+    ConfigStore.loadInitialData(configState);
   });
 
   it('renders MyComponent in non-customer domain world', function () {
-    window.__initialData = {
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: null,
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
 
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         params,
       },
@@ -78,7 +86,7 @@ describe('withDomainRedirect', function () {
         params={params}
         routes={router.routes}
         routeParams={router.params}
-        route={route}
+        route={{}}
       />,
       {router}
     );
@@ -89,13 +97,12 @@ describe('withDomainRedirect', function () {
   it('redirects to sentryUrl on org slug mistmatch', function () {
     const organization = OrganizationFixture({
       slug: 'bobs-bagels',
-      features: ['customer-domains'],
     });
 
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -111,7 +118,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}
@@ -125,12 +132,12 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirects to sentryUrl on missing customer domain feature', function () {
-    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
+    const organization = OrganizationFixture({slug: 'albertos-apples'});
 
     const params = {
       orgId: organization.slug,
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -146,7 +153,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}
@@ -160,16 +167,16 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirect when :orgId is present in the routes', function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
-      features: ['customer-domains'],
     });
 
     const params = {
       orgId: organization.slug,
       projectId: 'react',
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -186,7 +193,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}
@@ -198,14 +205,14 @@ describe('withDomainRedirect', function () {
   });
 
   it('does not redirect when :orgId is not present in the routes', function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
-      features: ['customer-domains'],
     });
 
     const params = {};
 
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -230,7 +237,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}
@@ -243,19 +250,18 @@ describe('withDomainRedirect', function () {
   it('updates path when :orgId is present in the routes and there is no subdomain', function () {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
-      features: ['customer-domains'],
     });
-    window.__initialData.customerDomain = {
+    ConfigStore.set('customerDomain', {
       organizationUrl: 'https://sentry.io',
       sentryUrl: 'https://sentry.io',
       subdomain: '',
-    };
+    });
 
     const params = {
       orgId: organization.slug,
       projectId: 'react',
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -272,7 +278,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}

@@ -4,9 +4,9 @@ import jwt
 import responses
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils import get_query_hash
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

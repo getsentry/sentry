@@ -10,7 +10,6 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
@@ -81,15 +80,6 @@ describe('ProjectKeyDetails', function () {
       method: 'DELETE',
     });
 
-    const context = {
-      context: {
-        project: ProjectFixture(),
-      },
-      childContextTypes: {
-        project: SentryPropTypeValidators.isObject,
-      },
-    };
-
     render(
       <ProjectKeyDetails
         {...routerProps}
@@ -99,10 +89,7 @@ describe('ProjectKeyDetails', function () {
           keyId: projectKeys[0].id,
           projectId: project.slug,
         }}
-      />,
-      {
-        context,
-      }
+      />
     );
   });
 

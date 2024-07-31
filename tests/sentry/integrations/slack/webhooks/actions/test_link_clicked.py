@@ -1,4 +1,3 @@
-from sentry.testutils.helpers.features import with_feature
 from tests.sentry.integrations.slack.webhooks.actions import BaseEventTest
 
 
@@ -42,7 +41,6 @@ class LinkClickedActionTest(BaseEventTest):
             ]
         }
 
-    @with_feature("organizations:slack-block-kit")
     def test_simple(self):
         resp = self.post_webhook(
             action_data=[{"name": "some_action", "value": "link_clicked"}],

@@ -7,18 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Literal,
-    NamedTuple,
-    NotRequired,
-    Optional,
-    Self,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Literal, NamedTuple, NotRequired, Optional, Self, TypedDict, TypeVar, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -41,9 +30,10 @@ from sentry.features.rollout import in_random_rollout
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
+from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
-from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
+from sentry.search.events.builder.discover import UnresolvedQuery
+from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -117,9 +107,8 @@ class OnDemandMetricSpecVersioning:
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
 QUERY_HASH_KEY = "query_hash"
 
-# Base type for conditions to evaluate on payloads.
-# TODO: Streamline with dynamic sampling.
-RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
+# Comparison operators used by Relay.
+CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
 # There are some search tokens that are exclusive to searching errors, thus, we need
 # to treat the query as not on-demand.
@@ -334,36 +323,11 @@ _IGNORED_METRIC_CONDITION = [
     "event.type=transaction",
 ]
 
-# Operators used in ``ComparingRuleCondition``.
-CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
-
 Variables = dict[str, Any]
 
 query_builder = UnresolvedQuery(
     dataset=Dataset.Transactions, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
-
-
-class ComparingRuleCondition(TypedDict):
-    """RuleCondition that compares a named field to a reference value."""
-
-    op: CompareOp
-    name: str
-    value: Any
-
-
-class LogicalRuleCondition(TypedDict):
-    """RuleCondition that applies a logical operator to a sequence of conditions."""
-
-    op: Literal["and", "or"]
-    inner: list[RuleCondition]
-
-
-class NotRuleCondition(TypedDict):
-    """RuleCondition that negates an inner condition."""
-
-    op: Literal["not"]
-    inner: RuleCondition
 
 
 class TagSpec(TypedDict):
@@ -1096,7 +1060,7 @@ def failure_tag_spec(_1: Project, _2: Sequence[str] | None) -> list[TagSpec]:
 
 def apdex_tag_spec(project: Project, arguments: Sequence[str] | None) -> list[TagSpec]:
     apdex_threshold = _get_threshold(arguments)
-    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
+    field = _map_field_name(_get_satisfactory_metric(project))
 
     return [
         {
@@ -1182,7 +1146,7 @@ def user_misery_tag_spec(project: Project, arguments: Sequence[str] | None) -> l
     measured as a response time four times the satisfactory response time threshold (in milliseconds).
     It highlights transactions that have the highest impact on users."""
     threshold = _get_threshold(arguments)
-    field = _map_field_name(_get_satisfactory_threshold_and_metric(project)[1])
+    field = _map_field_name(_get_satisfactory_metric(project))
 
     return [
         {
@@ -1193,12 +1157,16 @@ def user_misery_tag_spec(project: Project, arguments: Sequence[str] | None) -> l
     ]
 
 
-# This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator] = {
+# This is used to map custom on-demand operations that requires special tags to a function which generates specs for those tags.
+_ONDEMAND_OP_TO_SPEC_GENERATOR: dict[MetricOperationType, TagsSpecsGenerator] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
-    "on_demand_apdex": apdex_tag_spec,
     "on_demand_count_web_vitals": count_web_vitals_spec,
+}
+# Same as `_ONDEMAND_OP_TO_SPEC_GENERATOR` except these ops may have project specific specs.
+# We use this to opt out of some kinds of organization level cacheing.
+_ONDEMAND_OP_TO_PROJECT_SPEC_GENERATOR: dict[MetricOperationType, TagsSpecsGenerator] = {
+    "on_demand_apdex": apdex_tag_spec,
     "on_demand_user_misery": user_misery_tag_spec,
 }
 
@@ -1368,9 +1336,19 @@ class OnDemandMetricSpec:
         is extracted."""
         return self._process_query()
 
+    def is_project_dependent(self) -> bool:
+        """Returns whether the spec is unique to a project, which is required for some forms of caching"""
+        tags_specs_generator = _ONDEMAND_OP_TO_PROJECT_SPEC_GENERATOR.get(self.op)
+        return tags_specs_generator is not None
+
     def tags_conditions(self, project: Project) -> list[TagSpec]:
-        """Returns a list of tag conditions that will specify how tags are injected into metrics by Relay."""
-        tags_specs_generator = _DERIVED_METRICS.get(self.op)
+        """Returns a list of tag conditions that will specify how tags are injected into metrics by Relay, and a bool if those specs may be project specific."""
+        tags_specs_generator = _ONDEMAND_OP_TO_SPEC_GENERATOR.get(self.op)
+        tags_specs_generator_for_project = _ONDEMAND_OP_TO_PROJECT_SPEC_GENERATOR.get(self.op)
+
+        if tags_specs_generator_for_project is not None:
+            tags_specs_generator = tags_specs_generator_for_project
+
         if tags_specs_generator is None:
             return []
 
@@ -1588,11 +1566,14 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
     """Maps ``count_if`` arguments to a ``RuleCondition``."""
     assert op in _COUNTIF_TO_RELAY_OPERATORS, f"Unsupported `count_if` operator {op}"
 
-    condition: RuleCondition = {
-        "op": _COUNTIF_TO_RELAY_OPERATORS[op],
-        "name": _map_field_name(key),
-        "value": fields.normalize_count_if_value({"column": key, "value": value}),
-    }
+    condition = cast(
+        RuleCondition,
+        {
+            "op": _COUNTIF_TO_RELAY_OPERATORS[op],
+            "name": _map_field_name(key),
+            "value": fields.normalize_count_if_value({"column": key, "value": value}),
+        },
+    )
 
     if op == "notEquals":
         condition = {"op": "not", "inner": condition}
@@ -1626,24 +1607,21 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_satisfactory_threshold_and_metric(project: Project) -> tuple[int, str]:
+def _get_satisfactory_metric(project: Project) -> str:
     """It returns the statisfactory response time threshold for the project and
     the associated metric ("transaction.duration" or "measurements.lcp")."""
+
     result = ProjectTransactionThreshold.filter(
         organization_id=project.organization.id,
         project_ids=[project.id],
         order_by=[],
-        value_list=["threshold", "metric"],
+        value_list=["metric"],
     )
 
     if len(result) == 0:
-        # We use the default threshold shown in the UI.
-        threshold = DEFAULT_PROJECT_THRESHOLD
         metric = TransactionMetric.DURATION.value
     else:
-        # We technically don't use this threshold since we extract it from the apdex(x) field
-        # where x is the threshold, however, we still return it in case a fallback is needed.
-        threshold, metric = result[0]
+        metric = result[0][0]
 
     if metric == TransactionMetric.DURATION.value:
         metric_field = "transaction.duration"
@@ -1653,7 +1631,7 @@ def _get_satisfactory_threshold_and_metric(project: Project) -> tuple[int, str]:
     else:
         raise Exception("Invalid metric for project transaction threshold")
 
-    return threshold, metric_field
+    return metric_field
 
 
 def _escape_wildcard(value: str) -> str:
@@ -1690,9 +1668,13 @@ class SearchQueryConverter:
     The converter can be used exactly once.
     """
 
-    def __init__(self, tokens: Sequence[QueryToken]):
+    def __init__(
+        self, tokens: Sequence[QueryToken], field_mapper: Callable[[str], str] = _map_field_name
+    ):
         self._tokens = tokens
         self._position = 0
+        # The field mapper is used to map the field names in the search query to the event protocol path.
+        self._field_mapper = field_mapper
 
     def convert(self) -> RuleCondition:
         """
@@ -1763,7 +1745,7 @@ class SearchQueryConverter:
         if filt := self._consume(SearchFilter):
             return self._filter(filt)
         elif paren := self._consume(ParenExpression):
-            return SearchQueryConverter(paren.children).convert()
+            return SearchQueryConverter(paren.children, self._field_mapper).convert()
         elif token := self._peek():
             raise ValueError(f"Unexpected token {token}")
         else:
@@ -1780,7 +1762,7 @@ class SearchQueryConverter:
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
-                "name": _map_field_name(key),
+                "name": self._field_mapper(key),
                 "value": [_escape_wildcard(value)],
             }
         else:
@@ -1794,11 +1776,14 @@ class SearchQueryConverter:
             if isinstance(value, str):
                 value = event_search.translate_escape_sequences(value)
 
-            condition = {
-                "op": operator,
-                "name": _map_field_name(key),
-                "value": value,
-            }
+            condition = cast(
+                RuleCondition,
+                {
+                    "op": operator,
+                    "name": self._field_mapper(key),
+                    "value": value,
+                },
+            )
 
         # In case we have negation operators, we have to wrap them in the `not` condition.
         if token.operator in ("!=", "NOT IN"):

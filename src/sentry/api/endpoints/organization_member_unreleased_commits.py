@@ -7,7 +7,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 # TODO(dcramer): once LatestRepoReleaseEnvironment is backfilled, change this query to use the new
 # schema [performance]

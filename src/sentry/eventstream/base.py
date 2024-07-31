@@ -122,7 +122,7 @@ class EventStream(Service):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
     ) -> None:
@@ -140,18 +140,16 @@ class EventStream(Service):
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
         )
 
-    def start_delete_groups(
-        self, project_id: int, group_ids: Sequence[int]
-    ) -> Mapping[str, Any] | None:
-        pass
+    def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
+        raise NotImplementedError
 
     def end_delete_groups(self, state: Mapping[str, Any]) -> None:
         pass
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
-    ) -> Mapping[str, Any] | None:
-        pass
+    ) -> dict[str, Any]:
+        raise NotImplementedError
 
     def end_merge(self, state: Mapping[str, Any]) -> None:
         pass
@@ -164,8 +162,8 @@ class EventStream(Service):
     def end_unmerge(self, state: Mapping[str, Any]) -> None:
         pass
 
-    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any] | None:
-        pass
+    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:
+        raise NotImplementedError
 
     def end_delete_tag(self, state: Mapping[str, Any]) -> None:
         pass
@@ -181,7 +179,12 @@ class EventStream(Service):
         pass
 
     def replace_group_unsafe(
-        self, project_id: int, event_ids: Sequence[str], new_group_id: int
+        self,
+        project_id: int,
+        event_ids: Sequence[str],
+        new_group_id: int,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
     ) -> None:
         pass
 

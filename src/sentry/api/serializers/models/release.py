@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict, Union
+from typing import Any, NotRequired, TypedDict, Union
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -20,8 +20,9 @@ from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.release_health.base import ReleaseHealthOverview
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
@@ -291,6 +292,17 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, A
     return results
 
 
+class _ProjectDict(TypedDict):
+    id: int
+    slug: str | None
+    name: str
+    new_groups: int | None
+    platform: str | None
+    platforms: list[str]
+    health_data: NotRequired[ReleaseHealthOverview | None]
+    has_health_data: NotRequired[bool]
+
+
 @register(Release)
 class ReleaseSerializer(Serializer):
     def __get_project_id_list(self, item_list):
@@ -491,7 +503,7 @@ class ReleaseSerializer(Serializer):
             has_health_data = {}
 
         for pr in project_releases:
-            pr_rv = {
+            pr_rv: _ProjectDict = {
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],

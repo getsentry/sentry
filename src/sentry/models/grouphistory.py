@@ -8,7 +8,6 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -16,6 +15,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from sentry.models.release import Release
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 class GroupHistoryStatus:
@@ -285,7 +285,7 @@ def record_group_history(
 ):
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
     prev_history = get_prev_history(group, status)
     user_id = None
@@ -319,7 +319,7 @@ def bulk_record_group_history(
 ):
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
     def get_prev_history_date(group, status):
         prev_history = get_prev_history(group, status)
@@ -343,7 +343,7 @@ def bulk_record_group_history(
                 project=group.project,
                 release=release,
                 team_id=team_id,
-                user_id=user_id,  # type:ignore[misc]
+                user_id=user_id,
                 status=status,
                 prev_history=get_prev_history(group, status),
                 prev_history_date=get_prev_history_date(group, status),

@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
@@ -36,10 +36,10 @@ from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
+    DeprecatingMetricsQuery,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
     get_series,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -156,7 +156,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         groupby = [
             MetricGroupByField(field="project_id"),
         ]
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -304,7 +304,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None),
             ]
 
-            query = MetricsQuery(
+            query = DeprecatingMetricsQuery(
                 org_id=org_id,
                 start=start,
                 end=now,
@@ -324,7 +324,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select = [
                 MetricField(metric_mri=SessionMRI.RAW_USER.value, alias="value", op="count_unique")
             ]
-            query = MetricsQuery(
+            query = DeprecatingMetricsQuery(
                 org_id=org_id,
                 start=start,
                 end=now,
@@ -387,12 +387,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             total_users = users_per_project.get(project_id, 0.0)
 
             adoption: ReleaseAdoption = {
-                "adoption": release_users / total_users * 100
-                if release_users and total_users
-                else None,
-                "sessions_adoption": release_sessions / total_sessions * 100
-                if release_sessions and total_sessions
-                else None,
+                "adoption": (
+                    release_users / total_users * 100 if release_users and total_users else None
+                ),
+                "sessions_adoption": (
+                    release_sessions / total_sessions * 100
+                    if release_sessions and total_sessions
+                    else None
+                ),
                 "users_24h": int(release_users),
                 "sessions_24h": int(release_sessions),
                 "project_users_24h": int(total_users),
@@ -423,7 +425,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         org_id: OrganizationId,
-        environments: Sequence[EnvironmentName] | None = None,
+        environments: Iterable[str] | None = None,
     ) -> ReleaseSessionsTimeBounds:
 
         projects, org_id = self._get_projects_and_org_id([project_id])
@@ -467,7 +469,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
             )
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=[project_id],
             select=select,
@@ -565,7 +567,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where_clause.append(filter_releases_by_project_release(projects_list))  # type: ignore[arg-type]
             groupby.append(MetricGroupByField(field="release"))
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -620,7 +622,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -676,7 +678,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="release"),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -733,7 +735,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="release"),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -793,7 +795,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="release"),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -848,7 +850,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -904,7 +906,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=[metric_field],
@@ -1114,7 +1116,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def query_stats(end: datetime) -> CrashFreeBreakdown:
             def _get_data(select: list[MetricField]) -> tuple[int, int]:
-                query = MetricsQuery(
+                query = DeprecatingMetricsQuery(
                     org_id=org_id,
                     project_ids=[project_id],
                     select=select,
@@ -1206,7 +1208,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_changed_project_release_model_adoptions(
         self,
-        project_ids: Sequence[ProjectId],
+        project_ids: Iterable[int],
         now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
 
@@ -1229,7 +1231,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -1281,7 +1283,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -1349,7 +1351,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="release"),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=organization_id,
             project_ids=project_ids,
             select=select,
@@ -1444,7 +1446,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 MetricField(metric_mri=SessionMRI.HEALTHY.value, alias="sessions_healthy", op=None),
             ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=[project_id],
             select=select,
@@ -1469,7 +1471,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricField(metric_mri=SessionMRI.DURATION.value, alias="duration_p90", op="p90"),
         ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=[project_id],
             select=select,
@@ -1545,7 +1547,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             where.append(Condition(Column("tags[environment]"), Op.EQ, env_name))
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=[project_id],
             select=select,
@@ -1572,8 +1574,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_num_sessions_per_project(
         self,
         project_ids: Sequence[ProjectId],
-        start: datetime,
-        end: datetime,
+        start: datetime | None,
+        end: datetime | None,
         environment_ids: Sequence[int] | None = None,
         rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
@@ -1601,7 +1603,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
             )
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -1703,7 +1705,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
             ]
 
-        query = MetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,

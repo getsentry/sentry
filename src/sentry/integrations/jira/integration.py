@@ -21,15 +21,12 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.service import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import all_silo_function
+from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -37,7 +34,10 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
+from sentry.silo.base import all_silo_function
+from sentry.tasks.integrations.migrate_issues import migrate_issues
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
@@ -338,7 +338,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["type"] = "select"
         return fields
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key: str) -> str:
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:

@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 import orjson
 from sentry_relay.processing import parse_release
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
@@ -22,9 +23,8 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
+from sentry.users.services.user.service import user_service
 
 from .base import ActivityNotification
 
@@ -71,9 +71,7 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
         if not self.user_id_team_lookup:
-            lookup: Mapping[int, list[int]] = OrganizationMember.objects.get_teams_by_user(
-                self.organization
-            )
+            lookup = OrganizationMember.objects.get_teams_by_user(self.organization)
             self.user_id_team_lookup = lookup
         return self.user_id_team_lookup
 

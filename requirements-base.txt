@@ -1,7 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 beautifulsoup4>=4.7.1
-boto3>=1.34.8
+boto3>=1.34.128
 botocore>=1.34.8
 cachetools>=5
 celery>=5
@@ -45,7 +45,7 @@ python-rapidjson>=1.4
 psutil>=5.9.2
 psycopg2-binary>=2.9.9
 PyJWT>=2.4.0
-pydantic>=1.10.9
+pydantic>=1.10.17,<2
 python-dateutil>=2.9.0
 pymemcache
 python-u2flib-server>=5.0.0
@@ -62,11 +62,11 @@ rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
 sentry-arroyo>=2.16.5
-sentry-kafka-schemas>=0.1.81
+sentry-kafka-schemas>=0.1.102
 sentry-ophio==0.2.7
 sentry-redis-tools>=0.1.7
-sentry-relay>=0.8.67
-sentry-sdk>=2.2.1
+sentry-relay>=0.9.1
+sentry-sdk>=2.11.0
 slack-sdk>=3.27.2
 snuba-sdk>=2.0.33
 simplejson>=3.17.6
@@ -75,11 +75,12 @@ statsd>=3.3
 structlog>=22
 symbolic==12.8.0
 tiktoken>=0.6.0
+tldextract>=5.1.2
 toronado>=0.1.0
 typing-extensions>=4.9.0
 ua-parser>=0.10.0
 unidiff>=0.7.4
-urllib3[brotli]>=2
+urllib3[brotli]>=2.2.2
 brotli>=1.0.9
 pyuwsgi==2.0.23.post0
 zstandard>=0.18.0

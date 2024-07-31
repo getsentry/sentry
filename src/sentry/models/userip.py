@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
+from sentry.audit_log.services.log import UserIpEvent, log_service
 from sentry.backup.dependencies import (
     ImportKind,
     NormalizedModelName,
@@ -18,8 +19,7 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.log import UserIpEvent, log_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 from sentry.utils.geo import geo_by_addr
 
 

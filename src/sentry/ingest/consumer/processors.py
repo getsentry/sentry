@@ -1,6 +1,5 @@
 import functools
 import logging
-import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -41,8 +40,10 @@ def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
-            span_kwargs["sampled"] = random.random() < getattr(
-                settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0
+            # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
+            span_kwargs.setdefault(
+                "custom_sampling_context",
+                {"sample_rate": getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0)},
             )
             with sentry_sdk.start_transaction(**span_kwargs):
                 return f(*args, **kwargs)
@@ -117,8 +118,6 @@ def process_event(
     # Parse the JSON payload. This is required to compute the cache key and
     # call process_event. The payload will be put into Kafka raw, to avoid
     # serializing it again.
-    # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
-    # which assumes that data passed in is a raw dictionary.
     data = orjson.loads(payload)
 
     if project_id == settings.SENTRY_PROJECT:

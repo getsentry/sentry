@@ -126,3 +126,33 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 "includeSeries": "false",
             },
         )
+
+    def test_formula_with_only_number(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            queries=[{"name": "query_1", "mql": "avg(d:transactions/duration@millisecond)"}],
+            formulas=[{"mql": "100"}],
+            qs_params={
+                "statsPeriod": "3h",
+                "interval": "1h",
+                "project": [self.project.id],
+                "environment": [],
+                "includeSeries": "false",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_formula_with_number_equation_and_span_metric(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            queries=[{"name": "a", "mql": "avg(d:spans/webvital.inp@millisecond)"}],
+            formulas=[{"mql": "$a"}, {"mql": "1 * 200"}],
+            qs_params={
+                "statsPeriod": "3h",
+                "interval": "1h",
+                "project": [self.project.id],
+                "environment": [],
+                "includeSeries": "false",
+            },
+        )
+        assert response.status_code == 400

@@ -89,13 +89,11 @@ class BaseField(Generic[T]):
         return visitor(expression, value)
 
 
-class ColumnField(BaseField[T]):
-    """Column fields target one column."""
-
+class ExpressionField(BaseField[T]):
     def __init__(
-        self, column_name: str, parse_fn: Callable[[str], T], query_type: type[GenericBase]
+        self, expression: Expression, parse_fn: Callable[[str], T], query_type: type[GenericBase]
     ) -> None:
-        self.column_name = column_name
+        self.expression = expression
         self.parse = parse_fn
         self.query = query_type
 
@@ -132,6 +130,20 @@ class ColumnField(BaseField[T]):
             # back into their correct data-type.
             parsed_values = [self.parse(str(v)) for v in value]
             return self._apply_composite(self.expression, operator, parsed_values)
+
+
+class ColumnField(BaseField[T]):
+    """Column fields target one column."""
+
+    def __init__(
+        self, column_name: str, parse_fn: Callable[[str], T], query_type: type[GenericBase]
+    ) -> None:
+        self.column_name = column_name
+        self.parse = parse_fn
+        self.query = query_type
+
+    def apply(self, search_filter: SearchFilter) -> Condition:
+        return ExpressionField(self.expression, self.parse, self.query).apply(search_filter)
 
     @property
     def expression(self) -> Column:

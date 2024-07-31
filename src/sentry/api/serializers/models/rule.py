@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import TypedDict
 
 from django.db.models import Max, Q, prefetch_related_objects
@@ -6,10 +7,12 @@ from rest_framework import serializers
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
+from sentry.models.integrations.sentry_app_installation import prepare_ui_component
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
+from sentry.users.services.user.service import user_service
 
 
 def generate_rule_label(project, rule, data):
@@ -66,12 +69,19 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
 
 @register(Rule)
 class RuleSerializer(Serializer):
-    def __init__(self, expand=None):
+    def __init__(
+        self,
+        expand: list[str] | None = None,
+        prepare_component_fields: bool = False,
+        project_slug: str | None = None,
+    ):
         super().__init__()
         self.expand = expand or []
+        self.prepare_component_fields = prepare_component_fields
+        self.project_slug = project_slug
 
     def get_attrs(self, item_list, user, **kwargs):
-        from sentry.services.hybrid_cloud.app import app_service
+        from sentry.sentry_apps.services.app import app_service
 
         prefetch_related_objects(item_list, "project")
 
@@ -88,8 +98,8 @@ class RuleSerializer(Serializer):
 
         users = {
             u.id: u
-            for u in user_service.get_many(
-                filter=dict(user_ids=[ra.user_id for ra in ras if ra.user_id is not None])
+            for u in user_service.get_many_by_id(
+                ids=[ra.user_id for ra in ras if ra.user_id is not None]
             )
         }
 
@@ -107,42 +117,56 @@ class RuleSerializer(Serializer):
             result[rule_activity.rule].update({"created_by": creator})
 
         rules = {item.id: item for item in item_list}
-        sentry_app_uuids = [
-            sentry_app_uuid
-            for sentry_app_uuid in (
-                action.get("sentryAppInstallationUuid")
-                for rule in rules.values()
-                for action in rule.data.get("actions", [])
-            )
-            if sentry_app_uuid is not None
-        ]
-        sentry_app_installs = app_service.get_many(filter=dict(uuids=sentry_app_uuids))
-        sentry_app_map = {
-            install.sentry_app.id: install.sentry_app for install in sentry_app_installs
-        }
-        sentry_app_ids: list[int] = list(sentry_app_map.keys())
 
-        sentry_app_installations_by_uuid = app_service.get_related_sentry_app_components(
-            organization_ids=[rule.project.organization_id for rule in rules.values()],
-            sentry_app_ids=sentry_app_ids,
-            type="alert-rule-action",
-            group_by="uuid",
-        )
+        sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
+        if self.prepare_component_fields:
+            sentry_app_uuids = [
+                sentry_app_uuid
+                for sentry_app_uuid in (
+                    action.get("sentryAppInstallationUuid")
+                    for rule in rules.values()
+                    for action in rule.data.get("actions", [])
+                )
+                if sentry_app_uuid is not None
+            ]
+            install_contexts = app_service.get_component_contexts(
+                filter={"uuids": sentry_app_uuids}, component_type="alert-rule-action"
+            )
+            sentry_app_installations_by_uuid = {
+                install_context.installation.uuid: install_context
+                for install_context in install_contexts
+            }
 
         for rule in rules.values():
             actor = rule.owner
             if actor:
                 result[rule]["owner"] = actor.identifier
 
+            errors = []
             for action in rule.data.get("actions", []):
-                install = sentry_app_installations_by_uuid.get(
+                install_context = sentry_app_installations_by_uuid.get(
                     str(action.get("sentryAppInstallationUuid"))
                 )
-                if install:
-                    installation = install.get("sentry_app_installation")
-                    action["_sentry_app_component"] = install.get("sentry_app_component")
-                    action["_sentry_app_installation"] = installation
-                    action["_sentry_app"] = sentry_app_map.get(installation.get("sentry_app_id"))
+                if install_context:
+                    rpc_install = install_context.installation
+                    rpc_component = install_context.component
+                    rpc_app = rpc_install.sentry_app
+
+                    component = prepare_ui_component(
+                        rpc_install,
+                        rpc_component,
+                        self.project_slug,
+                        action.get("settings"),
+                    )
+                    if component is None:
+                        errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})
+                        action["disabled"] = True
+                        continue
+
+                    action["formFields"] = component.app_schema.get("settings", {})
+
+            if len(errors):
+                result[rule]["errors"] = errors
 
         if "lastTriggered" in self.expand:
             last_triggered_lookup = {
@@ -224,6 +248,9 @@ class RuleSerializer(Serializer):
         }
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
+
+        if "errors" in attrs:
+            d["errors"] = attrs["errors"]
 
         if "snooze" in attrs:
             snooze = attrs["snooze"]

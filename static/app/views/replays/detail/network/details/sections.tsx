@@ -3,12 +3,12 @@ import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
 import {Flex} from 'sentry/components/container/flex';
-import ObjectInspector from 'sentry/components/objectInspector';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   NetworkMetaWarning,
   ReplayNetworkRequestOrResponse,
@@ -23,6 +23,7 @@ import type {SpanFrame} from 'sentry/utils/replays/types';
 import type {KeyValueTuple} from 'sentry/views/replays/detail/network/details/components';
 import {
   Indent,
+  InspectorMargin,
   keyValueTableOrNotFound,
   SectionItem,
   SizeTooltip,
@@ -36,6 +37,12 @@ export type SectionProps = {
   item: SpanFrame;
   projectId: string;
   startTimestampMs: number;
+};
+
+const config = {
+  isString: (v: any) => {
+    return typeof v === 'string';
+  },
 };
 
 const UNKNOWN_STATUS = 'unknown';
@@ -177,7 +184,13 @@ export function QueryParamsSection({item}: SectionProps) {
   return (
     <SectionItem title={t('Query String Parameters')}>
       <Indent>
-        <ObjectInspector data={queryParams} expandLevel={3} showCopyButton />
+        <StructuredEventData
+          data={queryParams}
+          showCopyButton
+          forceDefaultExpand
+          maxDefaultDepth={3}
+          config={config}
+        />
       </Indent>
     </SectionItem>
   );
@@ -207,7 +220,13 @@ export function RequestPayloadSection({item}: SectionProps) {
       <Indent>
         <Warning warnings={warnings} />
         {'request' in data ? (
-          <ObjectInspector data={body} expandLevel={2} showCopyButton />
+          <StructuredEventData
+            data={body}
+            forceDefaultExpand
+            maxDefaultDepth={2}
+            showCopyButton
+            config={config}
+          />
         ) : (
           t('Request body not found.')
         )}
@@ -237,14 +256,20 @@ export function ResponsePayloadSection({item}: SectionProps) {
         </SizeTooltip>
       }
     >
-      <Indent>
+      <InspectorMargin>
         <Warning warnings={warnings} />
         {'response' in data ? (
-          <ObjectInspector data={body} expandLevel={2} showCopyButton />
+          <StructuredEventData
+            data={body}
+            forceDefaultExpand
+            maxDefaultDepth={2}
+            showCopyButton
+            config={config}
+          />
         ) : (
           t('Response body not found.')
         )}
-      </Indent>
+      </InspectorMargin>
     </SectionItem>
   );
 }
