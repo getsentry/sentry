@@ -60,8 +60,6 @@ export function AddIntegrationButton({
                   provider: provider.metadata.noun,
                 });
               }
-              // console.log('HELPPPPPPP');
-              // onAddIntegration(IntegrationWithConfig);
               onClick();
             }}
             aria-label={t('Add integration')}

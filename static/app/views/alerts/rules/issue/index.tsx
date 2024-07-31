@@ -419,8 +419,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       .catch(_err => addErrorMessage(t('Unable to fetch environments')));
   }
 
-  refetchConfigs() {
-    console.log('refetching!!!!');
+  refetchConfigs = () => {
     const {organization} = this.props;
     const {project} = this.state;
 
@@ -432,7 +431,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       .catch(() => {
         // No need to alert user if this fails, can use existing data
       });
-  }
+  };
 
   fetchStatus() {
     // pollHandler calls itself until it gets either a success
