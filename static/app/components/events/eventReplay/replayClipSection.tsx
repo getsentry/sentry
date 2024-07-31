@@ -81,10 +81,9 @@ export function ReplayClipSection({event, group, replayId}: Props) {
 
   return (
     <ReplaySectionMinHeight
-      type="replay"
       title={t('Session Replay')}
       actions={seeAllReplaysButton}
-      sectionKey={FoldSectionKey.REPLAY}
+      type={FoldSectionKey.REPLAY}
     >
       <ErrorBoundary mini>
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>

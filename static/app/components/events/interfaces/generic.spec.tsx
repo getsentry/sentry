@@ -14,19 +14,11 @@ describe('Generic entry', function () {
         hpkp: {'': {rem: [['organization:1', 'x']]}},
       },
     });
-    render(
-      <Generic
-        sectionKey={FoldSectionKey.HPKP}
-        type="hpkp"
-        data={null}
-        meta={event._meta?.hpkp}
-      />,
-      {
-        organization: {
-          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
-        },
-      }
-    );
+    render(<Generic type={FoldSectionKey.HPKP} data={null} meta={event._meta?.hpkp} />, {
+      organization: {
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
+      },
+    });
 
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
 

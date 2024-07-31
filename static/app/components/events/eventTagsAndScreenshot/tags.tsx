@@ -73,8 +73,7 @@ function Tags({event, projectSlug}: Props) {
       actions={actions}
       data-test-id="event-tags"
       guideTarget="tags"
-      type="tags"
-      sectionKey={FoldSectionKey.TAGS}
+      type={FoldSectionKey.TAGS}
     >
       <EventTags
         event={event}

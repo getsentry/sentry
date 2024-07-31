@@ -128,9 +128,8 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
               title={screenshotLink}
               showPermalink={false}
               help={t('This image was captured around the time that the event occurred.')}
-              type="screenshot-data-section"
               data-test-id="screenshot-data-section"
-              sectionKey={FoldSectionKey.SCREENSHOT}
+              type={FoldSectionKey.SCREENSHOT}
             >
               <Screenshot
                 organization={organization}

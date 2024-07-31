@@ -63,11 +63,7 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
     `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
 
   return (
-    <StyledReplayEventDataSection
-      sectionKey={FoldSectionKey.RRWEB}
-      type="context-replay"
-      title={t('Replay')}
-    >
+    <StyledReplayEventDataSection type={FoldSectionKey.RRWEB} title={t('Replay')}>
       <LazyLoad
         LazyComponent={LazyReplayer}
         urls={attachmentList.map(createAttachmentUrl)}

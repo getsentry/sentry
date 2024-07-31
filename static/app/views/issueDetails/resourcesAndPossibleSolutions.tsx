@@ -71,10 +71,9 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
 
   return (
     <Wrapper
-      type="resources-and-possible-solutions"
       title={t('Resources and Possible Solutions')}
       configResources={!!config.resources}
-      sectionKey={FoldSectionKey.RESOURCES}
+      type={FoldSectionKey.RESOURCES}
     >
       <Content>
         {config.resources && (
