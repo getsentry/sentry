@@ -481,8 +481,9 @@ def process_rulegroups_in_batches(project_id: int):
     The batches are replicated into a new redis hash with a unique filter (a uuid) to identify the batch.
     We need to use a UUID because these batches can be created in multiple processes and we need to ensure
     uniqueness across all of them for the centralized redis buffer. The batches are stored in redis because
-    we shouldn't pass complex objects in the celery task arguments, and we can't send a page of data in the
-    batch becaues redis may not maintain the sort of the hash response.
+    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the celery tasks
+    as arguments could be problematic. Finally, we can't use a pagination system on the data because
+    redis doesn't maintain the sort order of the hash keys.
 
     `apply_delayed` will fetch the batch from redis and process the rules.
     """
