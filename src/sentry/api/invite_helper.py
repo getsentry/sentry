@@ -9,7 +9,6 @@ from django.utils.crypto import constant_time_compare
 from sentry import audit_log, features
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import (
     RpcOrganizationMember,
@@ -17,6 +16,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.signals import member_joined
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 

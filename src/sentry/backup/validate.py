@@ -91,7 +91,7 @@ def validate(
         """Does two things in tandem: builds a map of InstanceID -> JSON model, and simultaneously builds a map of model name -> number of ordinals assigned."""
 
         from sentry.db.models import BaseModel
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         model_map: ModelMap = defaultdict(ordereddict)
         ordinal_counters: OrdinalCounters = defaultdict(OrdinalCounter)

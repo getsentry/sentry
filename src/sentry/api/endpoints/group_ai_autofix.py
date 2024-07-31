@@ -18,10 +18,10 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
 from sentry.models.group import Group
-from sentry.models.user import User
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.autofix import check_autofix_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)

@@ -29,7 +29,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 class UserEmailManager(BaseManager["UserEmail"]):
@@ -105,7 +105,7 @@ class UserEmail(ControlOutboxProducingModel):
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         old_user_id = self.user_id
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)

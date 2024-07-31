@@ -227,7 +227,7 @@ class OutboxCategory(IntEnum):
         from sentry.models.apiapplication import ApiApplication
         from sentry.models.integrations import Integration
         from sentry.models.organization import Organization
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         assert (model is not None) ^ (
             object_identifier is not None
@@ -634,13 +634,16 @@ class OutboxBase(Model):
     def process(self, is_synchronous_flush: bool) -> bool:
         with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
             if coalesced is not None and not self.should_skip_shard():
-                with metrics.timer(
-                    "outbox.send_signal.duration",
-                    tags={
-                        "category": OutboxCategory(coalesced.category).name,
-                        "synchronous": int(is_synchronous_flush),
-                    },
-                ), sentry_sdk.start_span(op="outbox.process") as span:
+                with (
+                    metrics.timer(
+                        "outbox.send_signal.duration",
+                        tags={
+                            "category": OutboxCategory(coalesced.category).name,
+                            "synchronous": int(is_synchronous_flush),
+                        },
+                    ),
+                    sentry_sdk.start_span(op="outbox.process") as span,
+                ):
                     self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:
                         coalesced.send_signal()

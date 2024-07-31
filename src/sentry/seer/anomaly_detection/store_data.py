@@ -10,7 +10,6 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from sentry import features
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.models.user import User
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -23,6 +22,7 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
 

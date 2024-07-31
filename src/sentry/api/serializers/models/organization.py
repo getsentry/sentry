@@ -63,8 +63,8 @@ from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"

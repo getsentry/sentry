@@ -7,7 +7,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 from .base import Newsletter
 

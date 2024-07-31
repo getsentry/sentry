@@ -14,10 +14,10 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
-from sentry.models.user import User
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import get_stacktrace_string, killswitch_enabled
+from sentry.users.models.user import User
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)

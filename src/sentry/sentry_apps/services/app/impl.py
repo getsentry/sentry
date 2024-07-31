@@ -18,7 +18,6 @@ from sentry.models.integrations.sentry_app_installation import (
     prepare_sentry_app_components,
 )
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.models.user import User
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.services.app import (
     AppService,
@@ -36,6 +35,7 @@ from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

@@ -36,9 +36,9 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import OutboxCategory
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
-from sentry.models.user import User
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.users.models.user import User
 
 
 def get_foreign_key_columns(

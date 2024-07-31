@@ -55,7 +55,7 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         old_user_id = self.user_id
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)

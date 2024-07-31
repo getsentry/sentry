@@ -19,8 +19,8 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.search.events.filter import to_list
+from sentry.users.models.user import User
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,

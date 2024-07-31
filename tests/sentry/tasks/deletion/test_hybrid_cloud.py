@@ -20,7 +20,6 @@ from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
 from sentry.models.project import Project
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
-from sentry.models.user import User
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
@@ -45,6 +44,7 @@ from sentry.testutils.silo import (
     region_silo_test,
 )
 from sentry.types.region import find_regions_for_user
+from sentry.users.models.user import User
 
 
 @region_silo_model

@@ -30,7 +30,7 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.models.user import User
+    from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
 

@@ -18,7 +18,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models.organization import Organization
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
