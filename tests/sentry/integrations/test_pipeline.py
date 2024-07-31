@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 from django.db import router
 
-from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
@@ -10,6 +9,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.identity import Identity
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.repository import Repository
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
