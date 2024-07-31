@@ -637,7 +637,7 @@ class DiscoverSavedQueriesParams:
         location="query",
         required=False,
         type=str,
-        description="""The property to sort results by. If not specified the results are sorted by query name.
+        description="""The property to sort results by. If not specified, the results are sorted by query name.
 
 Available fields are:
 - name
