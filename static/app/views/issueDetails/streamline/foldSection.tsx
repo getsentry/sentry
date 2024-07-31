@@ -29,7 +29,6 @@ export const enum FoldSectionKey {
   SPANS = 'spans',
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
-  STACK_TRACE = 'stack-trace',
 
   THREADS = 'threads',
   THREAD_STATE = 'thread-state',
@@ -124,7 +123,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   );
 
   return (
-    <section {...props} ref={ref}>
+    <section {...props} ref={ref} id={sectionKey}>
       <details open={!isCollapsed || preventCollapse}>
         <Summary
           preventCollapse={preventCollapse}

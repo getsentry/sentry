@@ -25,6 +25,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 type EventNavigationProps = {
   event: Event;
@@ -34,7 +35,7 @@ type EventNavigationProps = {
 type SectionDefinition = {
   condition: (event: Event) => boolean;
   label: string;
-  section: string;
+  section: FoldSectionKey;
 };
 
 enum EventNavOptions {
@@ -56,32 +57,44 @@ const EventNavOrder = [
 ];
 
 const eventDataSections: SectionDefinition[] = [
-  {section: 'event-highlights', label: t('Event Highlights'), condition: () => true},
   {
-    section: 'stacktrace',
+    section: FoldSectionKey.HIGHLIGHTS,
+    label: t('Event Highlights'),
+    condition: () => true,
+  },
+  {
+    section: FoldSectionKey.STACKTRACE,
     label: t('Stack Trace'),
     condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
   },
   {
-    section: 'exception',
-    label: t('Exception'),
+    section: FoldSectionKey.EXCEPTION,
+    label: t('Stack Trace'),
     condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
   },
   {
-    section: 'breadcrumbs',
+    section: FoldSectionKey.BREADCRUMBS,
     label: t('Breadcrumbs'),
     condition: (event: Event) =>
       event.entries.some(entry => entry.type === 'breadcrumbs'),
   },
-  {section: 'tags', label: t('Tags'), condition: (event: Event) => event.tags.length > 0},
-  {section: 'context', label: t('Context'), condition: (event: Event) => !!event.context},
   {
-    section: 'user-feedback',
+    section: FoldSectionKey.TAGS,
+    label: t('Tags'),
+    condition: (event: Event) => event.tags.length > 0,
+  },
+  {
+    section: FoldSectionKey.CONTEXTS,
+    label: t('Context'),
+    condition: (event: Event) => !!event.context,
+  },
+  {
+    section: FoldSectionKey.USER_FEEDBACK,
     label: t('User Feedback'),
     condition: (event: Event) => !!event.userReport,
   },
   {
-    section: 'replay',
+    section: FoldSectionKey.REPLAY,
     label: t('Replay'),
     condition: (event: Event) => !!getReplayIdFromEvent(event),
   },
@@ -328,7 +341,6 @@ const EventIdInfo = styled('span')`
 const EventId = styled('span')`
   position: relative;
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
   text-decoration: underline;
   /** gray200 w/ 50% opacity */
   text-decoration-color: rgba(128, 112, 143, 0.5);
@@ -352,5 +364,4 @@ const CopyIconContainer = styled('span')`
 
 const EventTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
 `;

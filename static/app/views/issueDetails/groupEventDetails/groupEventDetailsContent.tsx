@@ -246,12 +246,12 @@ function DefaultGroupEventDetailsContent({
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={FoldSectionKey.STACK_TRACE}
+        sectionKey={FoldSectionKey.STACKTRACE}
         entryType={EntryType.EXCEPTION}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={FoldSectionKey.STACK_TRACE}
+        sectionKey={FoldSectionKey.STACKTRACE}
         entryType={EntryType.STACKTRACE}
         {...eventEntryProps}
       />
