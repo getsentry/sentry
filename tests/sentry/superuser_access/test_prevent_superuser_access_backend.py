@@ -29,14 +29,14 @@ class DataSecrecyTest(TestCase):
 
     def test_self_hosted(self):
         with self.settings(SENTRY_SELF_HOSTED=True):
-            assert self.backend.should_prevent_superuser_access(self.organization) is False
-            assert self.backend.should_prevent_superuser_access(self.rpc_context) is False
+            assert self.backend.should_allow_superuser_access(self.organization) is True
+            assert self.backend.should_allow_superuser_access(self.rpc_context) is True
 
     def test_bit_flag_disabled(self):
         self.organization.flags.prevent_superuser_access = False
-        assert self.backend.should_prevent_superuser_access(self.organization) is False
-        assert self.backend.should_prevent_superuser_access(self.rpc_context) is False
+        assert self.backend.should_allow_superuser_access(self.organization) is True
+        assert self.backend.should_allow_superuser_access(self.rpc_context) is True
 
     def test_returns_false(self):
-        assert self.backend.should_prevent_superuser_access(self.organization) is False
-        assert self.backend.should_prevent_superuser_access(self.rpc_context) is False
+        assert self.backend.should_allow_superuser_access(self.organization) is True
+        assert self.backend.should_allow_superuser_access(self.rpc_context) is True

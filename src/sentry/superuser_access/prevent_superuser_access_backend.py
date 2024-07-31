@@ -4,7 +4,7 @@ from sentry.utils.services import Service
 
 
 class PreventSuperuserAccessBackend(Service):
-    def should_prevent_superuser_access(
+    def should_allow_superuser_access(
         self,
         organization_context: Organization | RpcUserOrganizationContext,
     ) -> bool:
@@ -12,8 +12,8 @@ class PreventSuperuserAccessBackend(Service):
 
 
 class PreventSuperuserAccess(Service):
-    def should_prevent_superuser_access(
+    def should_allow_superuser_access(
         self,
         organization_context: Organization | RpcUserOrganizationContext,
     ) -> bool:
-        return False
+        return True
