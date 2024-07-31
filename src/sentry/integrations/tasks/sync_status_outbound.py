@@ -16,4 +16,4 @@ from sentry.tasks.integrations.sync_status_outbound import (
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
 def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
-    old_sync_status_outbound(group_id=group_id, external_issue_id=external_issue_id)
+    return old_sync_status_outbound(group_id=group_id, external_issue_id=external_issue_id)
