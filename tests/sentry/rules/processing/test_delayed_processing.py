@@ -1331,6 +1331,15 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
 
 
 class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.project = self.create_project()
+        self.group = self.create_group(self.project)
+        self.group_two = self.create_group(self.project)
+        self.group_three = self.create_group(self.project)
+        self.rule = self.create_alert_rule()
+
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_no_redis_data(self, mock_apply_delayed):
         mock_delayed = Mock()
@@ -1341,17 +1350,43 @@ class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_basic(self, mock_apply_delayed):
-        self.rule = self.create_alert_rule()
-
         mock_delayed = Mock()
         mock_apply_delayed.delayed = mock_delayed
+
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
+        self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
+        self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
         process_rulegroups_in_batches(self.project.id)
         mock_delayed.assert_called_once_with(self.project.id)
 
-    # todo test for multiple batches
-    # verify state of redis buffers
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed")
+    def test_batch(self, mock_apply_delayed):
+        mock_delayed = Mock()
+        mock_apply_delayed.delayed = mock_delayed
+
+        self.push_to_hash(self.project.id, self.rule.id, self.group.id)
+        self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
+        self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
+
+        process_rulegroups_in_batches(self.project.id, batch_size=2)
+        assert mock_delayed.call_count == 2
+
+        # Validate the batches are created correctly
+        batch_one_key = mock_delayed.call_args_list[0][0][1]
+        batch_one = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id, "batch_key": batch_one_key}
+        )
+        batch_two_key = mock_delayed.call_args_list[1][0][1]
+        batch_two = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id, "batch_key": batch_two_key}
+        )
+
+        assert len(batch_one) == 2
+        assert len(batch_two) == 1
+
+        # Validate that we've cleared the original data to reduce storage usage
+        assert not buffer.backend.get_hash(model=Project, field={"project_id": self.project.id})
 
 
 class UniqueConditionQueryTest(TestCase):

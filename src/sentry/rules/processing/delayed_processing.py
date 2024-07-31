@@ -466,41 +466,38 @@ def bucket_num_groups(num_groups: int) -> str:
 
 
 def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
-    # TODO REMOVE THIS
-    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
-
     event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
 
-    print("REHYDRAAATTE", batch_size, event_count, project_id, rulegroup_to_event_data)
     if event_count < batch_size:
-        print("SINGLE EXECUTE!")
         return apply_delayed.delayed(project_id)
-
-    print("BATCH EXECUTE!")
 
     # if the dictionary is large, get the items and chunk them.
     rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
 
     with metrics.timer("delayed_processing.process_batch.duration"):
         items = iter(rulegroup_to_event_data.items())
+
         while True:
             batch = dict(islice(items, batch_size))
             if not batch:
                 break
 
-            batch_key = f"{project_id}:{uuid.uuid4()}"
+            batch_key = str(uuid.uuid4())
 
             for field, value in batch.items():
                 buffer.backend.push_to_hash(
                     model=Project,
-                    filters={"project_id": batch_key},
+                    filters={"project_id": project_id, "batch_key": batch_key},
                     field=field,
                     value=value,
                 )
 
-            apply_delayed.delayed(project_id, batch_key)
+            # remove the batched items from the project rulegroup_to_event_data
+            buffer.backend.delete_hash(
+                model=Project, filters={"project_id": project_id}, fields=list(batch.keys())
+            )
 
-            # TODO destroy processed redis data
+            apply_delayed.delayed(project_id, batch_key)
 
 
 def process_delayed_alert_conditions() -> None:
