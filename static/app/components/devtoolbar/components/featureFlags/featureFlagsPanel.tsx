@@ -11,7 +11,7 @@ import {smallCss} from '../../styles/typography';
 import AnalyticsProvider from '../analyticsProvider';
 import PanelLayout from '../panelLayout';
 
-import CreateOverride from './createOverride';
+import CustomOverride from './customOverride';
 import FeatureFlagItem from './featureFlagItem';
 import {FeatureFlagsContextProvider, useFeatureFlagsContext} from './featureFlagsContext';
 
@@ -47,11 +47,13 @@ export default function FeatureFlagsPanel() {
             />
           </div>
           <div css={[resetFlexRowCss, {contain: 'strict'}]}>
-            <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
+            <AnalyticsProvider keyVal="flag-table" nameVal="flag-table">
+              <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
+            </AnalyticsProvider>
           </div>
           <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-            <AnalyticsProvider keyVal="override" nameVal="override">
-              <CreateOverride />
+            <AnalyticsProvider keyVal="custom-override" nameVal="Custom Override">
+              <CustomOverride />
             </AnalyticsProvider>
           </div>
         </div>
@@ -141,7 +143,9 @@ function FlagTable({prefilter, searchTerm}: {prefilter: string; searchTerm: stri
       stickyHeaders
     >
       {names?.map(name => (
-        <FeatureFlagItem key={name} flag={{name, ...filtered[name]}} />
+        <AnalyticsProvider key={name} keyVal="flag-item" nameVal="flag-item">
+          <FeatureFlagItem flag={{name, ...filtered[name]}} />
+        </AnalyticsProvider>
       ))}
     </PanelTable>
   );

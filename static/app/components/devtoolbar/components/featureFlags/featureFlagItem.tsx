@@ -1,4 +1,4 @@
-import {useContext, useState} from 'react';
+import {Fragment, useContext, useState} from 'react';
 
 import AnalyticsProvider, {
   AnalyticsContext,
@@ -21,7 +21,7 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
   const {featureFlags} = useConfiguration();
 
   return (
-    <AnalyticsProvider nameVal="item" keyVal="item">
+    <Fragment>
       <Cell css={[panelInsetContentCss, {alignItems: 'flex-start'}]}>
         {featureFlags?.urlTemplate?.(flag.name) ? (
           <ExternalLink
@@ -37,7 +37,7 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
       <Cell>
         <FlagValueInput flag={flag} />
       </Cell>
-    </AnalyticsProvider>
+    </Fragment>
   );
 }
 
@@ -47,7 +47,11 @@ function FlagValueInput({flag}: {flag: FeatureFlag}) {
     flag.override === true ||
     flag.override === false
   ) {
-    return <FlagValueBooleanInput flag={flag} />;
+    return (
+      <AnalyticsProvider keyVal="bool-override" nameVal="Boolean Override">
+        <FlagValueBooleanInput flag={flag} />
+      </AnalyticsProvider>
+    );
   }
 
   return (
@@ -85,8 +89,8 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
           setState(!isActive);
           hasOverride();
           trackAnalytics?.({
-            eventKey: eventKey + '.override.click',
-            eventName: eventName + ' override clicked',
+            eventKey: eventKey + '.toggled',
+            eventName: eventName + ' toggled',
           });
         }}
       />

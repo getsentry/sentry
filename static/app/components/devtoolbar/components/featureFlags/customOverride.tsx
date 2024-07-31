@@ -10,7 +10,7 @@ import {AnalyticsContext} from '../analyticsProvider';
 
 import {useFeatureFlagsContext} from './featureFlagsContext';
 
-export default function CreateOverride() {
+export default function CustomOverride() {
   const {featureFlags, trackAnalytics} = useConfiguration();
 
   const {eventName, eventKey} = useContext(AnalyticsContext);
@@ -36,6 +36,10 @@ export default function CreateOverride() {
         hasOverride();
         setName('');
         setIsActive(false);
+        trackAnalytics?.({
+          eventKey: eventKey + '.created',
+          eventName: eventName + ' created',
+        });
       }}
     >
       <Input
@@ -48,10 +52,6 @@ export default function CreateOverride() {
         isActive={isActive}
         toggle={() => {
           setIsActive(!isActive);
-          trackAnalytics?.({
-            eventKey: eventKey + '.toggled',
-            eventName: eventName + ' toggled',
-          });
         }}
       />
       <Button size="xs" type="submit" icon={<IconAdd />}>
