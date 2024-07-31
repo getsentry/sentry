@@ -36,6 +36,9 @@ interface CodeSnippetProps {
    */
   isRounded?: boolean;
   language?: string;
+  /**
+   * Line numbers of the code that will be visually highlighted.
+   */
   linesToHighlight?: number[];
   /**
    * Fires after the code snippet is highlighted and all DOM nodes are available
@@ -84,8 +87,10 @@ export function CodeSnippet({
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
-    import('prismjs/plugins/line-highlight/prism-line-highlight');
-  }, []);
+    if (linesToHighlight) {
+      import('prismjs/plugins/line-highlight/prism-line-highlight');
+    }
+  }, [linesToHighlight]);
 
   useEffect(() => {
     const element = ref.current;
