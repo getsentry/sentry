@@ -15,7 +15,7 @@ from sentry.utils.sdk import Scope
 
 
 class DocIntegrationsPermission(SentryPermission):
-    """ "
+    """
     Allows all org members to access GET as long as they have the necessary
     scopes. For item endpoints, the doc integration must be published.
 
