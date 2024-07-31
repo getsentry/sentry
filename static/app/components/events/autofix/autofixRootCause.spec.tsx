@@ -42,7 +42,6 @@ describe('AutofixRootCause', function () {
           payload: {
             type: 'select_root_cause',
             cause_id: '100',
-            fix_id: '200',
           },
         },
       })
