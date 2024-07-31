@@ -33,8 +33,8 @@ class _PaginateKwargs(TypedDict):
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     owner = ApiOwner.FEEDBACK
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,  # TODO: deprecate
+        "POST": ApiPublishStatus.PRIVATE,  # TODO: deprecate
     }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
