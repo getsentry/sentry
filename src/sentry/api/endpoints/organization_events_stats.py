@@ -22,6 +22,7 @@ from sentry.snuba import (
     metrics_performance,
     spans_indexed,
     spans_metrics,
+    transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
@@ -235,6 +236,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_indexed,
                         spans_metrics,
                         errors,
+                        transactions,
                     ]
                     else discover
                 )
