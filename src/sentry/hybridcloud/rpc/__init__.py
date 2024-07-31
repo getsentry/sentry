@@ -58,6 +58,7 @@ class RpcModel(pydantic.BaseModel):
 
         if "__pydantic_fields_set__" not in state:
             state["__pydantic_fields_set__"] = state.get("__fields_set__")
+        super().__setstate__(state)
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
