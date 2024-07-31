@@ -1,7 +1,8 @@
 from collections import defaultdict
-from typing import DefaultDict
+from typing import DefaultDict, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.users.services.user.service import user_service
@@ -10,8 +11,39 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
+class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
+    environment: list[str]
+    query: str
+    fields: list[str]
+    widths: list[str]
+    conditions: list[str]
+    aggregations: list[str]
+    range: str
+    start: str
+    end: str
+    orderby: str
+    limit: str
+    yAxis: list[str]
+    display: str
+    topEvents: int
+    interval: str
+
+
+class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
+    id: str
+    name: str
+    projects: list[int]
+    version: int
+    queryDataset: str
+    datasetSource: str
+    expired: bool
+    dateCreated: str
+    dateUpdated: str
+    createdBy: UserSerializerResponse
+
+
 @register(DiscoverSavedQuery)
-class DiscoverSavedQuerySerializer(Serializer):
+class DiscoverSavedQueryModelSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
@@ -34,7 +66,7 @@ class DiscoverSavedQuerySerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> DiscoverSavedQueryResponse:
         query_keys = [
             "environment",
             "query",

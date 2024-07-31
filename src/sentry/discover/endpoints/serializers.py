@@ -2,6 +2,7 @@ import re
 from collections.abc import Sequence
 
 from django.db.models import Count, Max, QuerySet
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
@@ -143,18 +144,56 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return condition
 
 
+@extend_schema_serializer(
+    exclude_fields=["rollup", "aggregations", "groupby", "conditions", "limit", "version", "widths"]
+)
 class DiscoverSavedQuerySerializer(serializers.Serializer):
-    name = serializers.CharField(required=True, max_length=255)
-    projects = ListField(child=serializers.IntegerField(), required=False, default=[])
+    name = serializers.CharField(
+        required=True, max_length=255, help_text="The user-defined saved query name."
+    )
+    projects = ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        default=[],
+        help_text="The saved projects filter for this query.",
+    )
     queryDataset = serializers.ChoiceField(
         choices=DiscoverSavedQueryTypes.as_text_choices(),
         default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.DISCOVER),
+        help_text="The dataset you would like to query.",
     )
-    start = serializers.DateTimeField(required=False, allow_null=True)
-    end = serializers.DateTimeField(required=False, allow_null=True)
-    range = serializers.CharField(required=False, allow_null=True)
-    fields = ListField(child=serializers.CharField(), required=False, allow_null=True)  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
-    orderby = serializers.CharField(required=False, allow_null=True)
+    start = serializers.DateTimeField(
+        required=False, allow_null=True, help_text="The saved start time for this saved query."
+    )
+    end = serializers.DateTimeField(
+        required=False, allow_null=True, help_text="The saved end time for this saved query."
+    )
+    range = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The saved time range period for this saved query.",
+    )
+    fields = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="""The fields, functions, or equations to request for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
+- A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property.
+    - example: `field=transaction`
+- A tag. Tags should use the `tag[]` formatting to avoid ambiguity with any fields
+    - example: `field=tag[isEnterprise]`
+- A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
+    - when a function is included, Discover will group by any tags or fields
+    - example: `field=count_if(transaction.duration,greater,300)`
+- An equation when prefixed with `equation|`. Read more about [equations here](/product/discover-queries/query-builder/query-equations/).
+    - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
+""",
+    )  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
+    orderby = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="What to order the results of the query by. Must be something in the `field` list, excluding equations.",
+    )
 
     # This block of fields is only accepted by discover 1 which omits the version
     # attribute or has it set to 1
@@ -168,13 +207,46 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     version = serializers.IntegerField(min_value=1, max_value=2, required=False, allow_null=True)
 
     # Attributes that are only accepted if version = 2
-    environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    query = serializers.CharField(required=False, allow_null=True)
+    environment = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="The name of environments to filter by.",
+    )
+    query = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Filters results by using [query syntax](/product/sentry-basics/search/).",
+    )
     widths = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    yAxis = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    display = serializers.CharField(required=False, allow_null=True)
-    topEvents = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
-    interval = serializers.CharField(required=False, allow_null=True)
+    yAxis = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="Aggregate functions to be plotted on the chart.",
+    )
+    display = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="""Visualization type for saved query chart. Allowed values are:
+- default
+- previous
+- top5
+- daily
+- dailytop5
+- bar
+""",
+    )
+    topEvents = serializers.IntegerField(
+        min_value=1,
+        max_value=10,
+        required=False,
+        allow_null=True,
+        help_text="Number of top events timeseries to be visualized.",
+    )
+    interval = serializers.CharField(
+        required=False, allow_null=True, help_text="Resolution of the time series."
+    )
 
     disallowed_fields = {
         1: {"environment", "query", "yAxis", "display", "topEvents", "interval"},
