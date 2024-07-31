@@ -49,6 +49,16 @@ class RpcModel(pydantic.BaseModel):
         from_attributes=True, use_enum_values=True, coerce_numbers_to_str=True
     )
 
+    def __setstate__(self, state: dict[Any, Any]):
+        """
+        __setstate__ override to alleviate an unpickling issue in production with the pydantic version upgrade.
+        """
+        state.setdefault("__pydantic_extra__", {})
+        state.setdefault("__pydantic_private__", {})
+
+        if "__pydantic_fields_set__" not in state:
+            state["__pydantic_fields_set__"] = state.get("__fields_set__")
+
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
         return iter(cls.model_fields.keys())
