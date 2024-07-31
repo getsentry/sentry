@@ -81,10 +81,13 @@ class CircuitBreaker:
 
     Usage:
 
-    # See `CircuitBreakerConfig` class for config options
-    breaker = CircuitBreaker("squirrel_chasing", config)
-
     def get_top_dogs(payload):
+        # See `CircuitBreakerConfig` class for config options
+        breaker = CircuitBreaker(
+            settings.SQUIRREL_CHASING_CIRCUIT_BREAKER_KEY,
+            options.get("squirrel_chasing.circuit_breaker_config"),
+        )
+
         # Check the state of the breaker before calling the service
         try:
             if breaker.should_allow_request():
@@ -111,9 +114,9 @@ class CircuitBreaker:
         return format_hof_entries(response)
 
     The `breaker.should_allow_request()` check can alternatively be used outside of `get_top_dogs`,
-    to prevent calls to it. In that case, the original `breaker` object can be imported alongside
-    `get_top_dogs` or reinstantiated with the same config - it has no state of its own, instead
-    relying on redis-backed rate limiters and redis itself to track error count and breaker status.
+    to prevent calls to it. In that case, the circuit breaker must be reinstantiated with the same
+    config. This works because the breaker has no state of its own, instead relying on redis-backed
+    rate limiters and redis itself to track error count and breaker status.
     """
 
     def __init__(self, key: str, config: CircuitBreakerConfig):
