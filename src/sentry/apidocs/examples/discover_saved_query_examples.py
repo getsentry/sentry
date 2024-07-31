@@ -151,7 +151,7 @@ class DiscoverExamples:
 
     DISCOVER_SAVED_QUERY_POST_RESPONSE = [
         OpenApiExample(
-            "Create Dashboard",
+            "Create Discover Saved Query",
             value=DISCOVER_SAVED_QUERY_OBJ,
             status_codes=["201"],
             response_only=True,
@@ -160,7 +160,7 @@ class DiscoverExamples:
 
     DISCOVER_SAVED_QUERIES_QUERY_RESPONSE = [
         OpenApiExample(
-            "Get Saved Queries",
+            "Get Discover Saved Queries",
             value=SAVED_QUERIES,
             status_codes=["200"],
             response_only=True,
