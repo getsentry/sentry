@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -27,6 +26,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
+import DropdownList from 'sentry/views/issueDetails/dropdownList';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
@@ -151,23 +151,13 @@ export default function StreamlinedGroupHeader({
             {group.participants.length > 0 && (
               <Wrapper>
                 {t('Participants')}
-                <StyledAvatarList
-                  users={userParticipants}
-                  teams={teamParticipants}
-                  avatarSize={18}
-                  maxVisibleAvatars={2}
-                  typeAvatars="participants"
-                />
+                <DropdownList users={userParticipants} teams={teamParticipants} />
               </Wrapper>
             )}
             {displayUsers.length > 0 && (
               <Wrapper>
                 {t('Viewers')}
-                <StyledAvatarList
-                  users={displayUsers}
-                  avatarSize={18}
-                  maxVisibleAvatars={2}
-                />
+                <DropdownList users={displayUsers} />
               </Wrapper>
             )}
           </PriorityWorkflowWrapper>
@@ -236,9 +226,4 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const StyledAvatarList = styled(AvatarList)`
-  justify-content: flex-end;
-  padding-left: ${space(0.75)};
 `;
