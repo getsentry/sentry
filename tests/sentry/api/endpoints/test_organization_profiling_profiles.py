@@ -7,6 +7,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
+from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase
@@ -202,6 +203,52 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                 code="parse_error",
             ),
         }
+
+    def test_invalid_expand(self):
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "expand": "foo",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "expand": [ErrorDetail('"foo" is not a valid choice.', code="invalid_choice")],
+        }
+
+    def test_expands_metrics(self):
+        with (
+            patch(
+                "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
+            ) as mock_proxy_profiling_service,
+            patch.object(
+                FlamegraphExecutor,
+                "get_profile_candidates",
+            ) as mock_get_profile_candidates,
+        ):
+            mock_get_profile_candidates.return_value = {
+                "continuous": [],
+                "transactions": [],
+            }
+            mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "expand": "metrics",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+
+        mock_proxy_profiling_service.assert_called_once_with(
+            method="POST",
+            path=f"/organizations/{self.project.organization.id}/flamegraph",
+            json_data={
+                "transactions": [],
+                "continuous": [],
+                "generate_metrics": True,
+            },
+        )
 
     def test_queries_profile_candidates_from_functions(self):
         fingerprint = int(uuid4().hex[:8], 16)
@@ -402,7 +449,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                         "profile_id": profile_id,
                     },
                 ],
-                "continuous": [],  # TODO: this isn't supported yet
+                "continuous": [],
             },
         )
 
