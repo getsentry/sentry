@@ -169,12 +169,11 @@ describe('Autofix', () => {
                   likelihood: 1,
                   title: 'Test Cause Title',
                   description: 'Test Cause Description',
-                  suggested_fixes: [
+                  code_context: [
                     {
                       id: 'fix-1',
                       title: 'Test Fix Title',
                       description: 'Test Fix Description',
-                      elegance: 1,
                       snippet: {
                         file_path: 'test/file/path.py',
                         snippet: 'two = 1 + 1',

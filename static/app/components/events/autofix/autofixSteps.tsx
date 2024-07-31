@@ -215,7 +215,9 @@ export function ExpandableStep({
           {activeLog && !isExpanded && (
             <StepHeaderDescription
               dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(replaceHeadersWithBold(activeLog)),
+                __html: singleLineRenderer(
+                  replaceHeadersWithBold(activeLog.replaceAll('\n', ' '))
+                ),
               }}
             />
           )}

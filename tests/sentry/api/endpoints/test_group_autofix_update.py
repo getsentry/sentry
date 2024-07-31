@@ -26,7 +26,6 @@ class TestGroupAutofixUpdate(APITestCase):
                 "payload": {
                     "type": "select_root_cause",
                     "cause_id": 456,
-                    "fix_id": 789,
                 },
             },
             format="json",
@@ -41,7 +40,6 @@ class TestGroupAutofixUpdate(APITestCase):
                     "payload": {
                         "type": "select_root_cause",
                         "cause_id": 456,
-                        "fix_id": 789,
                     },
                     "invoking_user": {
                         "id": self.user.id,
@@ -64,7 +62,6 @@ class TestGroupAutofixUpdate(APITestCase):
                     "payload": {
                         "type": "select_root_cause",
                         "cause_id": 456,
-                        "fix_id": 789,
                     },
                     "invoking_user": {
                         "id": self.user.id,
