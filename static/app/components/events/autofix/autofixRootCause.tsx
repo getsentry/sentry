@@ -318,6 +318,7 @@ function ProvideYourOwn({
             analyticsEventName="Autofix: Root Cause Custom Cause Provided"
             analyticsEventKey="autofix.root_cause_custom_cause_provided"
             analyticsParams={{group_id: groupId}}
+            aria-describedby="Continue with a custom root cause"
           >
             {t('Continue with a fix')}
           </Button>

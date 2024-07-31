@@ -60,7 +60,12 @@ describe('AutofixRootCause', function () {
       screen.getByRole('button', {name: 'Provide your own root cause'})
     );
     await userEvent.keyboard('custom root cause');
-    await userEvent.click(screen.getByRole('button', {name: 'Continue with a fix'}));
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Continue with a fix',
+        description: 'Continue with a custom root cause',
+      })
+    );
 
     expect(mockSelectFix).toHaveBeenCalledWith(
       expect.anything(),
