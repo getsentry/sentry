@@ -151,15 +151,13 @@ export default function StreamlinedGroupHeader({
             {group.participants.length > 0 && (
               <Wrapper>
                 {t('Participants')}
-                <div>
-                  <StyledAvatarList
-                    users={userParticipants}
-                    teams={teamParticipants}
-                    avatarSize={18}
-                    maxVisibleAvatars={2}
-                    typeAvatars="participants"
-                  />
-                </div>
+                <StyledAvatarList
+                  users={userParticipants}
+                  teams={teamParticipants}
+                  avatarSize={18}
+                  maxVisibleAvatars={2}
+                  typeAvatars="participants"
+                />
               </Wrapper>
             )}
             {displayUsers.length > 0 && (
