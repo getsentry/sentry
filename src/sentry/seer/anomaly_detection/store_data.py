@@ -113,7 +113,6 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
                 "project_id": project.id,
             },
         )
-        alert_rule.delete()
         raise TimeoutError
 
     # TODO warn if there isn't at least 7 days of data

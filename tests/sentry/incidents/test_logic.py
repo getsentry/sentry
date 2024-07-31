@@ -1403,7 +1403,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    def test_update_detection_type(self):
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_detection_type(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
         comparison_delta = 60
         # test percent to dynamic
         rule = self.create_alert_rule(
@@ -1507,7 +1511,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
 
-    def test_update_infer_detection_type(self):
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_infer_detection_type(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
         # static to static
         rule = self.create_alert_rule()
         updated_rule = update_alert_rule(rule, time_window=15)
@@ -1560,7 +1569,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
 
-    def test_update_invalid_time_window(self):
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_invalid_time_window(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
         rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
@@ -1697,7 +1712,13 @@ class CreateAlertRuleTriggerTest(TestCase):
         with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             create_alert_rule_trigger(self.alert_rule, name, 100)
 
-    def test_invalid_threshold_dynamic_alert(self):
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
         rule = self.create_alert_rule(
             time_window=15,
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -1762,7 +1783,13 @@ class UpdateAlertRuleTriggerTest(TestCase):
         with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
 
-    def test_invalid_threshold_dynamic_alert(self):
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
         rule = self.create_alert_rule(
             time_window=15,
             sensitivity=AlertRuleSensitivity.HIGH,
