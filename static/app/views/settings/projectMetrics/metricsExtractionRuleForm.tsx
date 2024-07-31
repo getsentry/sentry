@@ -1,12 +1,12 @@
 import {Fragment, useCallback, useId, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {components} from 'react-select';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
-import Option from 'sentry/components/forms/controls/selectOption';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form, {type FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -319,6 +319,7 @@ export function MetricsExtractionRuleForm({
         <Fragment>
           <SpanAttributeUnitWrapper>
             <SelectField
+              option
               inline={false}
               stacked
               name="spanAttribute"
@@ -343,33 +344,27 @@ export function MetricsExtractionRuleForm({
                 model.setValue('spanAttribute', value);
               }}
               components={{
-                // Replaces the dropdown options
-                Option: containerProps => {
-                  if (containerProps.data.__isNew__) {
-                    return (
-                      <Fragment>
-                        <OptionInfo>
-                          {tct(
-                            'Select an attribute or create one. [link:See how to instrument a custom attribute.]',
-                            {
-                              link: (
-                                <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
-                              ),
-                            }
-                          )}
-                        </OptionInfo>
-                        <Option {...containerProps} />
-                      </Fragment>
-                    );
-                  }
-                  return <Option {...containerProps} />;
+                MenuList: (
+                  menuListProps: React.ComponentProps<typeof components.MenuList>
+                ) => {
+                  return (
+                    <MenuList
+                      {...menuListProps}
+                      info={tct(
+                        'Select an attribute or create one. [link:See how to instrument a custom attribute.]',
+                        {
+                          link: (
+                            <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                          ),
+                        }
+                      )}
+                    />
+                  );
                 },
               }}
               placeholder={t('Select span attribute')}
               creatable
-              formatCreateLabel={value =>
-                tct('Create "[value]"', {value: <strong>{value}</strong>})
-              }
+              formatCreateLabel={value => tct('Create "[value]"', {value})}
               onChange={value => {
                 model.setValue('spanAttribute', value);
                 if (value in FIXED_UNITS_BY_ATTRIBUTE) {
@@ -391,9 +386,7 @@ export function MetricsExtractionRuleForm({
               disabled={isUnitDisabled}
               placeholder={t('Select unit')}
               creatable
-              formatCreateLabel={value =>
-                tct('Create "[value]"', {value: <strong>{value}</strong>})
-              }
+              formatCreateLabel={value => tct('Create "[value]"', {value})}
               onCreateOption={value => {
                 setCustomUnit(value);
                 model.setValue('unit', value);
@@ -430,6 +423,7 @@ export function MetricsExtractionRuleForm({
             inline={false}
             stacked
             name="tags"
+            aria-label={t('Select tags')}
             options={tagOptions}
             multiple
             placeholder={t('Select tags')}
@@ -442,13 +436,30 @@ export function MetricsExtractionRuleForm({
               />
             }
             creatable
-            formatCreateLabel={value =>
-              tct('Create "[value]"', {value: <strong>{value}</strong>})
-            }
+            formatCreateLabel={value => tct('Create "[value]"', {value})}
             onCreateOption={value => {
               setCustomAttributes(curr => [...curr, value]);
               const currentTags = model.getValue('tags') as string[];
               model.setValue('tags', [...currentTags, value]);
+            }}
+            components={{
+              MenuList: (
+                menuListProps: React.ComponentProps<typeof components.MenuList>
+              ) => {
+                return (
+                  <MenuList
+                    {...menuListProps}
+                    info={tct(
+                      'Select a tag or create one. [link:See how to instrument a custom tag.]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                        ),
+                      }
+                    )}
+                  />
+                );
+              },
             }}
           />
           <FormField
@@ -598,6 +609,29 @@ export function MetricsExtractionRuleForm({
   );
 }
 
+function MenuList({
+  children,
+  info,
+  ...props
+}: React.ComponentProps<typeof components.MenuList> & {info: React.ReactNode}) {
+  const theme = useTheme();
+  return (
+    <components.MenuList {...props}>
+      <div
+        css={css`
+          /* The padding must align with the values specified for the option in the forms/controls/selectOption component */
+          padding: ${space(1)};
+          padding-left: calc(${space(0.5)} + ${space(1.5)});
+          color: ${theme.gray300};
+        `}
+      >
+        {info}
+      </div>
+      {children}
+    </components.MenuList>
+  );
+}
+
 function TooltipIconLabel({label, help}) {
   return (
     <TooltipIconLabelWrapper>
@@ -608,10 +642,6 @@ function TooltipIconLabel({label, help}) {
     </TooltipIconLabelWrapper>
   );
 }
-
-const OptionInfo = styled('div')`
-  padding: ${space(1)};
-`;
 
 const TooltipIconLabelWrapper = styled('span')`
   display: inline-flex;

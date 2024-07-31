@@ -31,7 +31,7 @@ function renderMockRequests({orgSlug, projectId}: {orgSlug: string; projectId: s
 }
 
 describe('Metrics Extraction Rule Form', function () {
-  it('by typing a new value in the "select attribute" field, the UI shall display a hint about custom attribute', async function () {
+  it('by focusing on the "select span attribute" field, the UI shall display a hint about custom attribute', async function () {
     const {project} = initializeOrg();
 
     renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
@@ -40,9 +40,26 @@ describe('Metrics Extraction Rule Form', function () {
       <MetricsExtractionRuleForm initialData={INITIAL_DATA} projectId={project.id} />
     );
 
-    await userEvent.type(screen.getByText('Select span attribute'), 'new-metric');
+    await userEvent.click(screen.getByText('Select span attribute'));
 
     expect(screen.getByText(/See how to instrument a custom attribute/)).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/product/explore/metrics/metrics-set-up/'
+    );
+  });
+
+  it('by focusing on the "group and filter by" field, the UI shall display a hint about custom attribute', async function () {
+    const {project} = initializeOrg();
+
+    renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
+
+    render(
+      <MetricsExtractionRuleForm initialData={INITIAL_DATA} projectId={project.id} />
+    );
+
+    await userEvent.click(screen.getByLabelText('Select tags'));
+
+    expect(screen.getByText(/See how to instrument a custom tag/)).toHaveAttribute(
       'href',
       'https://docs.sentry.io/product/explore/metrics/metrics-set-up/'
     );
