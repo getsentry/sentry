@@ -144,7 +144,7 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
       FieldKey.DEVICE_CLASS,
       FieldKey.DEVICE_FAMILY,
       FieldKey.DEVICE_LOCALE,
-      FieldKey.DEVICE_MODEL_ID,
+      // FieldKey.DEVICE_MODEL_ID,
       FieldKey.DEVICE_NAME,
       FieldKey.DEVICE_ONLINE,
       FieldKey.DEVICE_ORIENTATION,
@@ -682,7 +682,7 @@ function getTransactionFilterTags(): TagCollection {
 }
 
 function getTransactionFilterTagValues() {
-  return [];
+  return Promise.resolve(['']);
 }
 
 const FilterActions = styled('div')`
