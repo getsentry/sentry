@@ -186,7 +186,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           ) : (
             <Fragment>
               <MainLayoutComponent>
-                {renderGroupStatusBanner()}
+                {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
                 {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
                   <GroupEventHeader
