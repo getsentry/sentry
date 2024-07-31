@@ -34,6 +34,7 @@ from sentry.rules.processing.delayed_processing import (
     get_slow_conditions,
     parse_rulegroup_to_event_data,
     process_delayed_alert_conditions,
+    process_rulegroups_in_batches,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
@@ -83,6 +84,15 @@ def mock_get_condition_group(descending=False):
 
 @freeze_time(FROZEN_TIME)
 class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
+    def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
+        value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
+        buffer.backend.push_to_hash(
+            model=Project,
+            filters={"project_id": project_id},
+            field=f"{rule_id}:{group_id}",
+            value=value,
+        )
+
     def create_event(
         self,
         project_id: int,
@@ -642,15 +652,6 @@ class ParseRuleGroupToEventDataTest(TestCase):
 
 class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTestCase):
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
-
-    def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
-        value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
-        buffer.backend.push_to_hash(
-            model=Project,
-            filters={"project_id": project_id},
-            field=f"{rule_id}:{group_id}",
-            value=value,
-        )
 
     def assert_buffer_cleared(self, project_id):
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": project_id})
@@ -1325,17 +1326,27 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
             apply_delayed(project_id)
         self._assert_count_percent_results(safe_execute_callthrough)
 
-    def test_process_in_batches(self):
-        # TODO fill this in
-        pass
 
+class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed")
+    def test_no_redis_data(self, mock_apply_delayed):
+        mock_delayed = Mock()
+        mock_apply_delayed.delayed = mock_delayed
+        process_rulegroups_in_batches(self.project.id)
 
-class ProcessRuleGroupsInBatchesTest(TestCase):
-    def test_basic(self):
-        # TODO write tests for processin in batches
-        pass
+        mock_delayed.assert_called_once_with(self.project.id)
 
-    # todo test for no batches
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed")
+    def test_basic(self, mock_apply_delayed):
+        self.rule = self.create_alert_rule()
+
+        mock_delayed = Mock()
+        mock_apply_delayed.delayed = mock_delayed
+        self.push_to_hash(self.project.id, self.rule.id, self.group.id)
+
+        process_rulegroups_in_batches(self.project.id)
+        mock_delayed.assert_called_once_with(self.project.id)
+
     # todo test for multiple batches
     # verify state of redis buffers
 

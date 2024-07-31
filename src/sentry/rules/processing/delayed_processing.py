@@ -46,6 +46,7 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.rules.delayed_processing")
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
+CHUNK_BATCH_SIZE = 10000
 
 
 class UniqueConditionQuery(NamedTuple):
@@ -464,14 +465,16 @@ def bucket_num_groups(num_groups: int) -> str:
     return "1"
 
 
-CHUNK_PAGE_SIZE = 10000
-
-
-def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_PAGE_SIZE):
+def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_BATCH_SIZE):
+    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
     event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
 
-    if event_count < CHUNK_PAGE_SIZE:
-        return apply_delayed(project_id)
+    print("REHYDRAAATTE", batch_size, event_count, project_id, rulegroup_to_event_data)
+    if event_count < batch_size:
+        print("SINGLE EXECUTE!")
+        return apply_delayed.delayed(project_id)
+
+    print("BATCH EXECUTE!")
 
     # if the dictionary is large, get the items and chunk them.
     rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
@@ -484,14 +487,15 @@ def process_rulegroups_in_batches(project_id: int, batch_size=CHUNK_PAGE_SIZE):
                 break
 
             batch_key = f"{project_id}:{uuid.uuid4()}"
-            batch_values = json.dumps(batch)
 
-            buffer.backend.push_to_hash(
-                model=Project,
-                filters={"project_id": project_id, "batch_key": batch_key},
-                field=batch_key,
-                value=batch_values,
-            )
+            for field, value in batch.items():
+                buffer.backend.push_to_hash(
+                    model=Project,
+                    filters={"project_id": batch_key},
+                    field=field,
+                    value=value,
+                )
+
             apply_delayed.delayed(project_id, batch_key)
 
             # TODO destroy processed redis data
@@ -533,8 +537,8 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     if batch_key is None:
         rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
     else:
-        rulegroup_to_event_data = json.loads(
-            buffer.backend.get_hash(model=Project, field={"batch_key": batch_key})
+        rulegroup_to_event_data = buffer.backend.get_hash(
+            model=Project, field={"project_id": project_id, "batch_key": batch_key}
         )
 
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
