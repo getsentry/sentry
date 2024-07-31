@@ -117,6 +117,7 @@ export default function StreamlinedGroupHeader({
           <EventMessage
             message={message}
             type={group.type}
+            level={group.level}
             showUnhandled={group.isUnhandled}
           />
           <Divider />
