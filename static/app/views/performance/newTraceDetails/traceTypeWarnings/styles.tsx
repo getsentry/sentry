@@ -76,9 +76,7 @@ function Banner(props: BannerProps) {
           {
             key: 'dismiss',
             label: t('Dismiss'),
-            onAction: () => {
-              dismiss();
-            },
+            onAction: dismiss,
           },
           {
             key: 'snooze',
