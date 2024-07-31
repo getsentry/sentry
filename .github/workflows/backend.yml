@@ -325,6 +325,7 @@ jobs:
 
       - run: |
           # mypy does not have granular codes so don't allow specific messages to regress
+          set -euo pipefail
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
           ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all

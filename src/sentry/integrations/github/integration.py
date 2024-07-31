@@ -6,7 +6,7 @@ from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 from urllib.parse import parse_qsl
 
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -384,7 +384,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         self.determine_active_organization(request)
 
         ghip = GitHubIdentityProvider()
@@ -441,7 +441,7 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         installation_id = request.GET.get(
             "installation_id", pipeline.fetch_state("installation_id")
         )
