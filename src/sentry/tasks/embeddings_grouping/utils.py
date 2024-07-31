@@ -318,6 +318,8 @@ def get_events_from_nodestore(
                     message=filter_null_from_string(event.title),
                     exception_type=filter_null_from_string(exception_type)
                     if exception_type
+                    else None
+                    if exception_type
                     else None,
                     hash=primary_hash,
                 )
