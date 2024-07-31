@@ -32,6 +32,7 @@ describe('MonitorForm', function () {
       hasMore: false,
       initiallyLoaded: false,
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       projects: [project],
     });
