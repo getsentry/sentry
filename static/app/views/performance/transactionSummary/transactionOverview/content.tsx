@@ -107,6 +107,16 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
     ],
   },
   {
+    value: 'geo_fields',
+    label: 'Geographical',
+    children: [
+      FieldKey.GEO_CITY,
+      FieldKey.GEO_COUNTRY_CODE,
+      FieldKey.GEO_REGION,
+      FieldKey.GEO_SUBDIVISION,
+    ],
+  },
+  {
     value: 'http_fields',
     label: 'HTTP',
     children: [
