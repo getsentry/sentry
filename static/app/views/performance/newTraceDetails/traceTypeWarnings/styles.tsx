@@ -81,9 +81,7 @@ function Banner(props: BannerProps) {
           {
             key: 'snooze',
             label: t('Snooze'),
-            onAction: () => {
-              snooze();
-            },
+            onAction: snooze,
           },
         ]}
       />
