@@ -63,7 +63,7 @@ describe('AutofixRootCause', function () {
     await userEvent.click(
       screen.getByRole('button', {
         name: 'Continue with a fix',
-        description: 'Continue with a custom root cause',
+        description: 'continue-custom-root-cause',
       })
     );
 
