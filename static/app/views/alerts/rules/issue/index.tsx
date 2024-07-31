@@ -323,7 +323,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
       const hasSeerBasedPriority =
-        this.props.organization.features.includes('seer-based-priority');
+        this.props.organization.features.includes('priority-ga-features');
       const hasHighPriorityIssueAlerts =
         this.props.organization.features.includes('default-high-priority-alerts') ||
         this.props.project.features.includes('high-priority-alerts');
