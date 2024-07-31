@@ -1,6 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Key, Node} from '@react-types/shared';
 
@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/draggableTabMenuButton';
+import EditableTabTitle from 'sentry/views/issueList/editableTabTitle';
 
 export interface Tab {
   content: React.ReactNode;
@@ -51,11 +52,6 @@ export interface DraggableTabBarProps {
    */
   onDuplicate?: (key: MenuItemProps['key']) => void;
   /**
-   * Callback function to be called when user clicks the 'Rename' button.
-   * Note: The `Rename` button only appears for persistent views
-   */
-  onRename?: (key: MenuItemProps['key']) => void;
-  /**
    * Callback function to be called when user clicks the 'Save' button.
    * Note: The `Save` button only appears for persistent views when `isChanged=true`
    */
@@ -64,6 +60,11 @@ export interface DraggableTabBarProps {
    * Callback function to be called when user clicks the 'Save View' button for temporary views.
    */
   onSaveTempView?: () => void;
+  /**
+   * Callback function to be called when user renames a tab.
+   * Note: The `Rename` button only appears for persistent views
+   */
+  onTabRenamed?: (key: MenuItemProps['key'], newLabel: string) => void;
   tempTabContent?: React.ReactNode;
   tempTabLabel?: string;
 }
@@ -78,12 +79,18 @@ export function DraggableTabBar({
   onDelete,
   onDiscard,
   onDuplicate,
-  onRename,
+  onTabRenamed,
   onSave,
   onDiscardTempView,
   onSaveTempView,
 }: DraggableTabBarProps) {
   const [selectedTabKey, setSelectedTabKey] = useState<Key>(tabs[0].key);
+  const [isEditingTabTitle, setIsEditingTabTitle] = useState<{
+    isEditing: boolean;
+    editingTabKey?: string; // Should be undefined when isEditing = false
+  }>({isEditing: false, editingTabKey: undefined});
+
+  const tabLabelRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!showTempTab && selectedTabKey === 'temporary-tab') {
@@ -131,6 +138,21 @@ export function DraggableTabBar({
     onAddView?.(e);
   };
 
+  const handleOnRename = (tab: Tab) => {
+    setIsEditingTabTitle({
+      isEditing: true,
+      editingTabKey: tab.key,
+    });
+  };
+
+  const handleOnTabRenamed = (newLabel: string, tabKey: string) => {
+    const tab = tabs.find(tb => tb.key === tabKey);
+    if (tab && newLabel !== tab.label) {
+      setTabs(tabs.map(tb => (tb.key === tab.key ? {...tb, label: newLabel} : tb)));
+      onTabRenamed?.(tab.key, newLabel);
+    }
+  };
+
   const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
     if (tab.key === 'temporary-tab') {
       return makeTempViewMenuOptions({
@@ -140,7 +162,7 @@ export function DraggableTabBar({
     }
     if (tab.hasUnsavedChanges) {
       return makeUnsavedChangesMenuOptions({
-        onRename,
+        onRename: () => handleOnRename(tab),
         onDuplicate: () => handleOnDuplicate(tab),
         onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
         onSave,
@@ -148,7 +170,7 @@ export function DraggableTabBar({
       });
     }
     return makeDefaultMenuOptions({
-      onRename,
+      onRename: () => handleOnRename(tab),
       onDuplicate: () => handleOnDuplicate(tab),
       onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
     });
@@ -171,7 +193,23 @@ export function DraggableTabBar({
             hidden={tab.key === 'temporary-tab' && !showTempTab}
           >
             <TabContentWrap>
-              {tab.label}
+              <EditableTabTitle
+                label={tab.label}
+                isEditing={
+                  isEditingTabTitle.editingTabKey === tab.key &&
+                  isEditingTabTitle.isEditing
+                }
+                setIsEditing={isEditing =>
+                  setIsEditingTabTitle({
+                    isEditing,
+                    editingTabKey: isEditing ? tab.key : undefined,
+                  })
+                }
+                onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
+                inputRef={
+                  isEditingTabTitle.editingTabKey === tab.key ? tabLabelRef : undefined
+                }
+              />
               {tab.key !== 'temporary-tab' && tab.queryCount && (
                 <StyledBadge>
                   <QueryCount hideParens count={tab.queryCount} max={1000} />
