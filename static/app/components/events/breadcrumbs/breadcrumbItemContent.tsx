@@ -40,6 +40,7 @@ export default function BreadcrumbItemContent({
     maxDefaultDepth: fullyExpanded
       ? 10000
       : DEFAULT_STRUCTURED_DATA_PROPS.maxDefaultDepth,
+    autoCollapseLimit: fullyExpanded ? 10000 : undefined,
   };
 
   const defaultMessage = defined(bc.message) ? (

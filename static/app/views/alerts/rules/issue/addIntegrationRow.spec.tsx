@@ -2,44 +2,41 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 jest.mock('sentry/actionCreators/modal');
 
 describe('AddIntegrationRow', function () {
-  let project, org;
-  const integrationSlug = 'github';
-  const providers = [GitHubIntegrationProviderFixture()];
+  let org;
+  const project = ProjectFixture();
+  const provider = GitHubIntegrationProviderFixture();
 
   beforeEach(function () {
-    MockApiClient.clearMockResponses();
-
-    project = ProjectFixture();
     org = OrganizationFixture();
-
     jest.clearAllMocks();
   });
 
   const getComponent = () => (
-    <AddIntegrationRow
-      providerKey={integrationSlug}
-      organization={org}
-      project={project}
-      onClickHandler={jest.fn()}
-      setHasError={jest.fn()}
-    />
+    <IntegrationContext.Provider
+      value={{
+        provider: provider,
+        type: 'first_party',
+        installStatus: 'Not Installed',
+        analyticsParams: {
+          view: 'onboarding',
+          already_installed: false,
+        },
+        modalParams: {project: project.id},
+      }}
+    >
+      <AddIntegrationRow organization={org} onClick={jest.fn()} />
+    </IntegrationContext.Provider>
   );
 
   it('renders', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=${integrationSlug}`,
-      body: {
-        providers: providers,
-      },
-    });
-
     render(getComponent());
 
     const button = await screen.findByRole('button', {name: /add integration/i});
@@ -52,16 +49,8 @@ describe('AddIntegrationRow', function () {
     // any is needed here because getSentry has different types for global
     (global as any).open = open;
 
-    const mock1 = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=${integrationSlug}`,
-      body: {
-        providers: providers,
-      },
-    });
-
     render(getComponent());
 
-    expect(mock1).toHaveBeenCalled();
     const button = await screen.findByRole('button', {name: /add integration/i});
     await userEvent.click(button);
     expect(open.mock.calls).toHaveLength(1);
@@ -71,27 +60,11 @@ describe('AddIntegrationRow', function () {
     );
   });
 
-  it('handles API error', async () => {
-    const setHasError = jest.fn();
+  it('renders request button when user does not have access', async () => {
+    org.access = ['org:read'];
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=${integrationSlug}`,
-      statusCode: 400,
-      body: {error: 'internal error'},
-    });
+    render(getComponent());
 
-    render(
-      <AddIntegrationRow
-        providerKey={integrationSlug}
-        organization={org}
-        project={project}
-        onClickHandler={jest.fn()}
-        setHasError={setHasError}
-      />
-    );
-
-    await waitFor(() => {
-      expect(setHasError).toHaveBeenCalled();
-    });
+    await screen.findByRole('button', {name: /request installation/i});
   });
 });

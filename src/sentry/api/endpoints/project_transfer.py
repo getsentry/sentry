@@ -85,6 +85,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         organization = project.organization
         transaction_id = uuid4().hex
         url_data = sign(
+            salt=SALT,
             actor_id=request.user.id,
             from_organization_id=organization.id,
             project_id=project.id,
