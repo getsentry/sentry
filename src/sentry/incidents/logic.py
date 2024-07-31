@@ -14,8 +14,10 @@ from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import analytics, audit_log, features, quotas
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
@@ -56,6 +58,10 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.seer.anomaly_detection.store_data import (
+    TIMEOUT_ERROR_TEXT,
+    send_historical_data_to_seer,
+)
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
@@ -628,6 +634,18 @@ def create_alert_rule(
             seasonality=seasonality,
             detection_type=detection_type,
         )
+
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+            if not features.has("organizations:anomaly-detection-alerts", organization, actor=user):
+                alert_rule.delete()
+                raise ResourceDoesNotExist
+
+            resp = send_historical_data_to_seer(alert_rule=alert_rule, project=projects[0])
+            if resp.status != 200:
+                alert_rule.delete()
+                if resp.reason == TIMEOUT_ERROR_TEXT:
+                    raise TimeoutError
+                raise MaxRetryError
 
         if user:
             create_audit_entry_from_user(
