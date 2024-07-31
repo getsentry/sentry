@@ -63,7 +63,7 @@ function Banner(props: BannerProps) {
           </ActionButton>
         </ButtonsWrapper>
       </ActionsWrapper>
-      {<BannerBackground image={props.image} />}
+      <BannerBackground image={props.image} />
       <CloseDropdownMenu
         position="bottom-end"
         triggerProps={{
