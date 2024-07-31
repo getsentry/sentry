@@ -1,5 +1,7 @@
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -25,7 +27,7 @@ PROVIDER_NAME = "integrations:bitbucket_server"
 
 
 class Webhook:
-    def __call__(self, organization, integration_id, event):
+    def __call__(self, organization: Organization, integration_id: int, event: Mapping[str, Any]):
         raise NotImplementedError
 
     def update_repo_data(self, repo, event):
@@ -39,7 +41,9 @@ class Webhook:
 
 
 class PushEventWebhook(Webhook):
-    def __call__(self, organization, integration_id, event) -> HttpResponse:
+    def __call__(
+        self, organization: Organization, integration_id: int, event: Mapping[str, Any]
+    ) -> HttpResponse:
         authors = {}
 
         try:
