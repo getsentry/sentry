@@ -72,6 +72,14 @@ import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
+import Feature from 'sentry/components/acl/feature';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {Tag, TagCollection} from 'sentry/types';
+import useTags from 'sentry/utils/useTags';
+import {
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_SPAN_TAGS,
+} from 'sentry/components/events/searchBarFieldConstants';
 
 type Props = {
   error: QueryError | null;
@@ -344,6 +352,39 @@ function SummaryContent({
     organization.features.includes('performance-spans-new-ui') &&
     organization.features.includes('insights-initial-modules');
 
+  function renderSearchBar() {
+    return (
+      <StyledSearchBarWrapper>
+        <Feature
+          features={'search-query-builder-performance'}
+          renderDisabled={() => (
+            <SearchBar
+              searchSource="transaction_summary"
+              organization={organization}
+              projectIds={eventView.project}
+              query={query}
+              fields={eventView.fields}
+              onSearch={handleSearch}
+              maxQueryLength={MAX_QUERY_LENGTH}
+              actionBarItems={generateActionBarItems(
+                organization,
+                location,
+                mepDataContext
+              )}
+            />
+          )}
+        >
+          <SearchQueryBuilder
+            filterKeys={getTransactionFilterTags()}
+            initialQuery={query}
+            searchSource={'transaction_summary'}
+            getTagValues={getTransactionFilterTagValues}
+          />
+        </Feature>
+      </StyledSearchBarWrapper>
+    );
+  }
+
   return (
     <Fragment>
       <Layout.Main>
@@ -357,20 +398,7 @@ function SummaryContent({
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
-          <StyledSearchBar
-            searchSource="transaction_summary"
-            organization={organization}
-            projectIds={eventView.project}
-            query={query}
-            fields={eventView.fields}
-            onSearch={handleSearch}
-            maxQueryLength={MAX_QUERY_LENGTH}
-            actionBarItems={generateActionBarItems(
-              organization,
-              location,
-              mepDataContext
-            )}
-          />
+          {renderSearchBar()}
         </FilterActions>
         <PerformanceAtScaleContextProvider>
           <TransactionSummaryCharts
@@ -565,6 +593,18 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
+function getTransactionFilterTags(): TagCollection {
+  const combinedTags: TagCollection = {
+    ...STATIC_SPAN_TAGS,
+    ...STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  };
+  return combinedTags;
+}
+
+function getTransactionFilterTagValues() {
+  return [];
+}
+
 const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
@@ -579,7 +619,7 @@ const FilterActions = styled('div')`
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBarWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/4;
