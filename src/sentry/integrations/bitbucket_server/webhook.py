@@ -4,12 +4,11 @@ from datetime import datetime, timezone
 import orjson
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
-from rest_framework.request import Request
 
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
@@ -120,19 +119,19 @@ class PushEventWebhook(Webhook):
 
 @region_silo_view
 class BitbucketServerWebhookEndpoint(View):
-    _handlers = {"repo:refs_changed": PushEventWebhook}
+    _handlers: dict[str, type[Webhook]] = {"repo:refs_changed": PushEventWebhook}
 
-    def get_handler(self, event_type):
+    def get_handler(self, event_type) -> type[Webhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id, integration_id) -> HttpResponseBase:
+    def post(self, request: HttpRequest, organization_id, integration_id) -> HttpResponseBase:
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
