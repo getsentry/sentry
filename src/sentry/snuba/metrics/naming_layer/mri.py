@@ -269,7 +269,7 @@ def format_mri_field(field: str) -> str:
                     condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
                     config = condition.config
                     if condition.value:
-                        filter_str = ' filtered by "{condition.value}"'
+                        filter_str = f' filtered by "{condition.value}"'
                     else:
                         filter_str = ""
 
