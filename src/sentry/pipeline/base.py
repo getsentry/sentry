@@ -101,7 +101,7 @@ class Pipeline(abc.ABC):
 
     def __init__(
         self,
-        request: Request,
+        request: Request | HttpRequest,
         provider_key: str,
         organization: Organization | RpcOrganization | None = None,
         provider_model: Model | None = None,

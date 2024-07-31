@@ -1,6 +1,8 @@
 from django.urls import re_path
 
-from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
+from sentry.integrations.web.discord_extension_configuration import (
+    DiscordExtensionConfigurationView,
+)
 
 from .views.link_identity import DiscordLinkIdentityView
 from .views.unlink_identity import DiscordUnlinkIdentityView

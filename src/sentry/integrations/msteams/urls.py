@@ -1,6 +1,8 @@
 from django.urls import re_path
 
-from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
+from sentry.integrations.web.msteams_extension_configuration import (
+    MsTeamsExtensionConfigurationView,
+)
 
 from .link_identity import MsTeamsLinkIdentityView
 from .unlink_identity import MsTeamsUnlinkIdentityView

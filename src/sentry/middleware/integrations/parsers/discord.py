@@ -18,11 +18,13 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
 )
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.integrations.web.discord_extension_configuration import (
+    DiscordExtensionConfigurationView,
+)
 from sentry.middleware.integrations.tasks import convert_to_async_discord_response
 from sentry.models.integrations import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.region import Region
-from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
 
 logger = logging.getLogger(__name__)
 

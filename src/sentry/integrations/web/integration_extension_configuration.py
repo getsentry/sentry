@@ -8,9 +8,12 @@ from django.urls import reverse
 from django.utils.http import urlencode
 
 from sentry import features
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.services.user.service import user_service
 from sentry.web.frontend.base import BaseView
 
@@ -19,8 +22,14 @@ logger = logging.getLogger(__name__)
 
 class ExternalIntegrationPipeline(IntegrationPipeline):
     def _dialog_success(self, _org_integration):
+        assert self.organization, "Organization must exist to get slug"
         org_slug = self.organization.slug
+
+        assert isinstance(
+            self.provider, IntegrationProvider
+        ), "Must be an IntegrationProvider to get integration key"
         provider = self.provider.integration_key
+
         integration_id = self.integration.id
         # add in param string if we have a next page
         param_string = ""
@@ -36,6 +45,8 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
 
 class IntegrationExtensionConfigurationView(BaseView):
     auth_required = False
+    external_provider_key: str
+    provider: str
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if not request.user.is_authenticated:
@@ -51,7 +62,7 @@ class IntegrationExtensionConfigurationView(BaseView):
             return self.redirect(redirect_uri)
 
         # check if we have one org
-        organization = None
+        organization: RpcOrganization | RpcOrganizationMapping | None = None
         organizations = user_service.get_organizations(user_id=request.user.id)
         if len(organizations) == 1:
             organization = organizations[0]
@@ -110,7 +121,9 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def init_pipeline(self, request: HttpRequest, organization, params):
         pipeline = ExternalIntegrationPipeline(
-            request=request, organization=organization, provider_key=self.external_provider_key
+            request=request,
+            organization=organization,
+            provider_key=self.external_provider_key,
         )
 
         pipeline.initialize()
