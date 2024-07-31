@@ -10,7 +10,7 @@ from typing import Any, DefaultDict, NamedTuple
 import sentry_sdk
 from django.db.models import OuterRef, Subquery
 
-from sentry import buffer, nodestore
+from sentry import buffer, nodestore, options
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -47,7 +47,7 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.rules.delayed_processing")
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
-CHUNK_BATCH_SIZE = 10000
+CHUNK_BATCH_SIZE = options.get("delayed_processing.batch_size")
 
 
 class UniqueConditionQuery(NamedTuple):
