@@ -190,18 +190,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["avg()"] == 1
         assert meta["dataset"] == "profileFunctionsMetrics"
 
+    # This needs to be revisited
+    # see --> Column name was not found in metrics indexer
     def test_regression_score_regression(self):
         # This span increases in duration
         self.store_profile_functions_metric(
             1,
             timestamp=self.six_min_ago,
-            tags={"name": "/api/0/projects/", "span.description": "Regressed Span"},
+            tags={"transaction": "/api/0/projects/", "platform": "Regressed"},
             project=self.project.id,
         )
         self.store_profile_functions_metric(
             100,
             timestamp=self.min_ago,
-            tags={"transaction": "/api/0/projects/", "span.description": "Regressed Span"},
+            tags={"transaction": "/api/0/projects/", "platform": "Regressed"},
             project=self.project.id,
         )
 
@@ -209,20 +211,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_profile_functions_metric(
             1,
             timestamp=self.three_days_ago,
-            tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
+            tags={"transaction": "/api/0/projects/", "platform": "Non-regressed"},
             project=self.project.id,
         )
         self.store_profile_functions_metric(
             1,
             timestamp=self.min_ago,
-            tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
+            tags={"transaction": "/api/0/projects/", "platform": "Non-regressed"},
             project=self.project.id,
         )
 
         response = self.do_request(
             {
                 "field": [
-                    "span.description",
+                    "platform",
                     f"regression_score(function.duration,{int(self.two_min_ago.timestamp())}, 0.95)",
                 ],
                 "query": "transaction:/api/0/projects/",
@@ -238,4 +240,4 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert [row["span.description"] for row in data] == ["Regressed Span", "Non-regressed"]
+        assert [row["platform"] for row in data] == ["Regressed", "Non-regressed"]
