@@ -82,13 +82,11 @@ class NotificationController:
         if org and features.has("organizations:team-workflow-notifications", org):
             self.recipients: list[Recipient] = []
             for recipient in recipients:
-                if recipient_is_team(
-                    recipient
-                ):  # this call assures the recipient type is okay (so can safely ignore below type errors)
-                    if team_is_valid_recipient(recipient):  # type: ignore[arg-type]
+                if recipient_is_team(recipient):
+                    if team_is_valid_recipient(recipient):
                         self.recipients.append(recipient)
                     else:
-                        self.recipients += get_team_members(recipient)  # type: ignore[arg-type]
+                        self.recipients += get_team_members(recipient)
                 else:
                     self.recipients.append(recipient)
         else:
