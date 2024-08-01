@@ -131,7 +131,7 @@ class DummyTSDB(BaseTSDB):
         limit: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, Iterable[tuple[int, dict[str, float]]]]:
+    ) -> dict[str, list[tuple[int, dict[str, float]]]]:
         self.validate_arguments([model], [environment_id])
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
         return {key: [(timestamp, {}) for timestamp in series] for key in keys}
