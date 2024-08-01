@@ -103,6 +103,40 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert first_row["provider"] == {"id": "dummy", "name": "Example"}
         assert first_row["externalSlug"] == str(repo.external_id)
 
+    def test_get_all_repos(self):
+        repo1 = Repository.objects.create(
+            name="getsentry/example",
+            organization_id=self.org.id,
+            external_id=12345,
+            provider="dummy",
+            config={"name": "getsentry/example"},
+        )
+        repo2 = Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.org.id,
+            external_id=54321,
+            provider="dummy",
+            config={"name": "getsentry/sentry"},
+            status=ObjectStatus.HIDDEN,
+        )
+
+        self.url = self.url + "?status="
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+        first_row = response.data[0]
+        assert first_row["id"] == str(repo1.id)
+        assert first_row["provider"] == {"id": "dummy", "name": "Example"}
+        assert first_row["externalSlug"] == str(repo1.external_id)
+
+        second_row = response.data[1]
+        assert second_row["id"] == str(repo2.id)
+        assert second_row["provider"] == {"id": "dummy", "name": "Example"}
+        assert second_row["externalSlug"] == str(repo2.external_id)
+
     def test_status_unmigratable(self):
         self.url = self.url + "?status=unmigratable"
 

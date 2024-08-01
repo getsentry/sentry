@@ -46,7 +46,7 @@ export default function FeatureFlagsPanel() {
           <div
             css={[{contain: 'strict', flexDirection: 'column', alignItems: 'stretch'}]}
           >
-            <div>
+            <div css={{overflow: 'auto'}}>
               <AnalyticsProvider keyVal="flag-table" nameVal="Flag Table">
                 <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
               </AnalyticsProvider>
