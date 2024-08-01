@@ -17,7 +17,10 @@ import {
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -141,6 +144,7 @@ const getNextStep = (
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: MaybeBrowserProfilingBetaWarning,
   install: () => [
     {
       type: StepType.INSTALL,

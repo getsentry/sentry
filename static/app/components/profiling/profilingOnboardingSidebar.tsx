@@ -26,8 +26,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-import {BrowserProfilingBetaWarning} from '../onboarding/gettingStartedDoc/utils/profilingOnboarding';
-
 function splitProjectsByProfilingSupport(projects: Project[]): {
   supported: Project[];
   unsupported: Project[];
@@ -267,9 +265,9 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     platformKey: props.platform.id,
     projectId: props.projectId,
     projectSlug: props.projectSlug,
-    isFeedbackSelected: true,
-    isPerformanceSelected: false,
-    isProfilingSelected: false,
+    isFeedbackSelected: false,
+    isPerformanceSelected: true,
+    isProfilingSelected: true,
     isReplaySelected: false,
     sourcePackageRegistries: {
       isLoading: false,
@@ -290,9 +288,6 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
       {docs.onboarding.introduction && (
         <Introduction>{docs.onboarding.introduction(docParams)}</Introduction>
       )}
-      <BetaWarningContainer>
-        <BrowserProfilingBetaWarning />
-      </BetaWarningContainer>
       <Steps>
         {steps.map(step => {
           return <Step key={step.title ?? step.type} {...step} />;
@@ -311,11 +306,8 @@ const Steps = styled('div')`
 const Introduction = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-bottom: ${space(4)};
-`;
-
-const BetaWarningContainer = styled('div')`
   margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const Content = styled('div')`

@@ -5,6 +5,7 @@ import {
   type StepProps,
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 export function getProfilingDocumentHeaderConfigurationStep(): StepProps {
@@ -38,9 +39,16 @@ export function getProfilingDocumentHeaderConfigurationStep(): StepProps {
   };
 }
 
-export function BrowserProfilingBetaWarning(): React.ReactElement {
+export function MaybeBrowserProfilingBetaWarning(
+  props: DocsParams<any>
+): React.ReactElement | null {
+  if (!props.isProfilingSelected) {
+    return null;
+  }
+
   return (
     <Fragment>
+      <h4>{t('Beta')}</h4>
       <p>
         {tct(
           `Our browser profiling integration is built on top of the profiler exposed by the [selfProfilingApi], it's in beta and will likely only move out once the official spec progresses and gains adoption. As with any beta package, there are risks involved in using it - see [platformStatus].`,
@@ -68,12 +76,6 @@ export function BrowserProfilingBetaWarning(): React.ReactElement {
               </a>
             ),
           }
-        )}
-      </p>
-
-      <p>
-        {t(
-          `Install our JavaScript browser SDK using either yarn or npm, the minimum version that supports profiling is 7.60.0.`
         )}
       </p>
     </Fragment>

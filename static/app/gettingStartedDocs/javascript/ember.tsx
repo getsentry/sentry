@@ -16,7 +16,10 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -100,6 +103,7 @@ const getVerifyEmberSnippet = () => `
 myUndefinedFunction();`;
 
 const onboarding: OnboardingConfig = {
+  introduction: MaybeBrowserProfilingBetaWarning,
   install: () => [
     {
       type: StepType.INSTALL,

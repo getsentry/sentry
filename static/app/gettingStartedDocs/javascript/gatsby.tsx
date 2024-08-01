@@ -18,7 +18,10 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -29,7 +32,6 @@ type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/gatsby";
-import { getProfilingDocumentHeaderConfigurationStep } from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
 Sentry.init({
   dsn: "${params.dsn}",
@@ -149,6 +151,7 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
+  introduction: MaybeBrowserProfilingBetaWarning,
   install: () => [
     {
       type: StepType.INSTALL,
