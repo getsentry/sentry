@@ -1,10 +1,10 @@
-from collections import namedtuple
 from datetime import datetime
 
 from sentry.seer.anomaly_detection.store_data import fetch_historical_data, format_historical_data
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.snuba import SnubaTSResult
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 
@@ -21,10 +21,8 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase):
             {"timestamp": time_2, "value": 1},
         ]
         snuba_raw_data = [{"time": time_1}, {"time": time_2, "count": 1}]
-        SnubaTSResult = namedtuple("SnubaTSResult", "data")
-        data = SnubaTSResult(
-            data={"data": snuba_raw_data},
-        )
+        # SnubaTSResult = namedtuple("SnubaTSResult", "data")
+        data = SnubaTSResult({"data": snuba_raw_data}, time_1, time_2, 3600)
         result = format_historical_data(data)
         assert result == expected_return_value
 
@@ -59,6 +57,6 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase):
                 project_id=self.project.id,
             )
         result = fetch_historical_data(alert_rule, snuba_query, self.project)
-
+        assert result
         assert {"time": int(datetime.timestamp(time_1)), "count": 1} in result.data.get("data")
         assert {"time": int(datetime.timestamp(time_2)), "count": 1} in result.data.get("data")
