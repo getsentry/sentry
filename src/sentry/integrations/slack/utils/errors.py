@@ -47,7 +47,7 @@ def unpack_slack_api_error(exc: SlackApiError | SlackRequestError) -> SlackSdkEr
     for category in SLACK_SDK_ERROR_CATEGORIES:
         if category.check_body and category.message in dump:
             metrics.incr(
-                "sentry.errors.expired_url",
+                "sentry.integrations.slack.errors.expired_url",
                 sample_rate=1.0,
             )
             _logger.warning("slack_api_error.expired_url", extra={"slack_api_error": dump})
