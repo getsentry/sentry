@@ -379,6 +379,7 @@ def send_group_and_stacktrace_to_seer(
             group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             data=nodestore_results["data"],
             stacktrace_list=nodestore_results["stacktrace_list"],
+            use_reranking=options.get("similarity.backfill_use_reranking"),
         ),
         project_id,
     )
@@ -397,6 +398,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
                 group_id_list=chunk_data["group_ids"],
                 data=chunk_data["data"],
                 stacktrace_list=chunk_stacktrace,
+                use_reranking=options.get("similarity.backfill_use_reranking"),
             ),
             project_id,
         )

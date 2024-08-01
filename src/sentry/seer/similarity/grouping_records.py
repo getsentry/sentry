@@ -31,6 +31,7 @@ class CreateGroupingRecordsRequest(TypedDict):
     group_id_list: list[int]
     data: list[CreateGroupingRecordData]
     stacktrace_list: list[str]
+    use_reranking: bool | None
 
 
 class BulkCreateGroupingRecordsResponse(TypedDict):
@@ -58,6 +59,7 @@ def post_bulk_grouping_records(
         "stacktrace_length_sum": sum(
             [len(stacktrace) for stacktrace in grouping_records_request["stacktrace_list"]]
         ),
+        "use_reranking": grouping_records_request.get("use_reranking"),
     }
 
     try:

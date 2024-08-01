@@ -37,6 +37,7 @@ CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
         },
     ],
     "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
+    "use_reranking": False,
 }
 
 
@@ -60,6 +61,7 @@ def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_l
             "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
             "project_id": 1,
             "stacktrace_length_sum": 24,
+            "use_reranking": False,
         },
     )
 
@@ -83,6 +85,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
             "reason": "ReadTimeoutError",
             "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
             "stacktrace_length_sum": 24,
+            "use_reranking": False,
         },
     )
 
@@ -107,6 +110,7 @@ def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_l
             "project_id": 1,
             "reason": "INTERNAL SERVER ERROR",
             "stacktrace_length_sum": 24,
+            "use_reranking": False,
         },
     )
 
@@ -123,6 +127,34 @@ def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock):
     empty_data["data"] = []
     response = post_bulk_grouping_records(empty_data)
     assert response == expected_return_value
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.seer.similarity.grouping_records.logger")
+@mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
+def test_post_bulk_grouping_records_use_reranking(
+    mock_seer_request: MagicMock, mock_logger: MagicMock
+):
+    expected_return_value = {
+        "success": True,
+        "groups_with_neighbor": {"1": "00000000000000000000000000000000"},
+    }
+    mock_seer_request.return_value = HTTPResponse(
+        json.dumps(expected_return_value).encode("utf-8"), status=200
+    )
+
+    CREATE_GROUPING_RECORDS_REQUEST_PARAMS.update({"use_reranking": True})
+    response = post_bulk_grouping_records(CREATE_GROUPING_RECORDS_REQUEST_PARAMS)
+    assert response == expected_return_value
+    mock_logger.info.assert_called_with(
+        "seer.post_bulk_grouping_records.success",
+        extra={
+            "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
+            "project_id": 1,
+            "stacktrace_length_sum": 24,
+            "use_reranking": True,
+        },
+    )
 
 
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
