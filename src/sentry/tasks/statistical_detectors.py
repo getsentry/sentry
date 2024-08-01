@@ -411,6 +411,7 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
 
     projects = get_detector_enabled_projects(
         project_ids,
+        project_option=InternalProjectOptions.FUNCTION_DURATION_REGRESSION,
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
