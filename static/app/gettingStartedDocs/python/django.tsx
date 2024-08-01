@@ -39,7 +39,7 @@ sentry_sdk.init(
 `;
 
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct('Install [code:sentry-sdk] from PyPI:', {
