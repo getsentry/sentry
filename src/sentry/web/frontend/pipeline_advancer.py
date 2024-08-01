@@ -4,9 +4,9 @@ from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from sentry.api.utils import generate_organization_url
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.utils.http import absolute_uri, create_redirect_url
 from sentry.web.frontend.base import BaseView
 

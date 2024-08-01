@@ -3,12 +3,14 @@ from unittest.mock import patch
 from django.core.signing import SignatureExpired
 
 from sentry.integrations.msteams.constants import SALT
+from sentry.integrations.web.msteams_extension_configuration import (
+    MsTeamsExtensionConfigurationView,
+)
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.signing import sign
-from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 
 
 @control_silo_test
@@ -28,7 +30,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
         params = {"signed_params": signed_data}
         assert data == config_view.map_params_to_state(params)
 
-    @patch("sentry.web.frontend.msteams_extension_configuration.unsign")
+    @patch("sentry.integrations.web.msteams_extension_configuration.unsign")
     def test_expired_signature(self, mock_unsign):
         with self.feature({"organizations:integrations-alert-rule": True}):
             mock_unsign.side_effect = SignatureExpired()

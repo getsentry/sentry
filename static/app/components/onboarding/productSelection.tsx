@@ -69,10 +69,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   if (!hasPerformance) {
     disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {
       reason,
-      onClick: createClickHandler(
-        'organizations:performance-view',
-        'Performance Monitoring'
-      ),
+      onClick: createClickHandler('organizations:performance-view', 'Tracing'),
     };
   }
   if (!hasProfiling) {
@@ -358,7 +355,7 @@ export function ProductSelection({
       );
 
       if (defaultProducts?.includes(ProductSolution.PROFILING)) {
-        // Ensure that if profiling is enabled, performance monitoring is also enabled
+        // Ensure that if profiling is enabled, tracing is also enabled
         if (
           product === ProductSolution.PROFILING &&
           newProduct.has(ProductSolution.PROFILING)
@@ -434,7 +431,7 @@ export function ProductSelection({
         />
         {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
           <Product
-            label={t('Performance Monitoring')}
+            label={t('Tracing')}
             description={t(
               'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
             )}
@@ -460,7 +457,7 @@ export function ProductSelection({
           <Product
             label={t('Profiling')}
             description={tct(
-              '[strong:Requires Performance Monitoring]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
+              '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
               {
                 strong: <strong />,
               }

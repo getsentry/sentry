@@ -672,6 +672,7 @@ function TableView(props: TableViewProps) {
       location,
       onChangeShowTags,
       showTags,
+      queryDataset,
     } = props;
 
     return (
@@ -687,6 +688,7 @@ function TableView(props: TableViewProps) {
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
         supportsInvestigationRule
+        queryDataset={queryDataset}
       />
     );
   }
