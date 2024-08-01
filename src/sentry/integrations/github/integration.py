@@ -6,14 +6,13 @@ from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 from urllib.parse import parse_qsl
 
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import features, options
-from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github import GitHubIdentityProvider, get_user_info
@@ -31,6 +30,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.repository import Repository
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
@@ -384,7 +384,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         self.determine_active_organization(request)
 
         ghip = GitHubIdentityProvider()
@@ -441,7 +441,7 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         installation_id = request.GET.get(
             "installation_id", pipeline.fetch_state("installation_id")
         )

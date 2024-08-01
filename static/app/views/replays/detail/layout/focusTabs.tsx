@@ -80,6 +80,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
               trackAnalytics('replay.details-tab-changed', {
                 tab,
                 organization,
+                mobile: isVideoReplay,
               });
             }}
           >

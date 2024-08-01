@@ -26,6 +26,7 @@ describe('WebVitalsLandingPage', function () {
     jest.mocked(useProjects).mockReturnValue({
       projects: [ProjectFixture({hasInsightsVitals: true})],
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,

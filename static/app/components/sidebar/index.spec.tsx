@@ -65,7 +65,7 @@ describe('Sidebar', function () {
   };
 
   beforeEach(function () {
-    mockUseLocation.mockReset();
+    mockUseLocation.mockReturnValue(LocationFixture());
     jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
       () =>
         ({
@@ -85,6 +85,10 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
     });
+  });
+
+  afterEach(function () {
+    mockUseLocation.mockReset();
   });
 
   it('renders', async function () {
@@ -301,7 +305,7 @@ describe('Sidebar', function () {
       ConfigStore.set('features', new Set([]));
       ConfigStore.set('user', user);
 
-      mockUseLocation.mockReturnValue(LocationFixture());
+      mockUseLocation.mockReturnValue({...LocationFixture()});
     });
 
     it('renders navigation', async function () {

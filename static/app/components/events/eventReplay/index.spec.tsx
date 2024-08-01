@@ -135,6 +135,7 @@ describe('EventReplay', function () {
       hasMore: false,
       initiallyLoaded: false,
       onSearch: () => Promise.resolve(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       projects: [project],
     });
