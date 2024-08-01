@@ -251,11 +251,6 @@ const Wrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const StyledAvatarList = styled(AvatarList)`
-  justify-content: flex-end;
-  padding-left: ${space(0.75)};
-`;
-
 const ReleaseWrapper = styled('div')`
   display: flex;
   align-items: center;
