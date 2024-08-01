@@ -1,44 +1,44 @@
 from __future__ import annotations
 
+import json
 import os
-import re
 import shutil
 import subprocess
 import sys
-
-ERROR_RE = re.compile(r".*error:.*\[([^]]+)\]$")
 
 
 def main() -> int:
     shutil.rmtree(".mypy_cache", ignore_errors=True)
 
+    out = subprocess.run(
+        (sys.executable, "-m", "tools.mypy_helpers.mypy_without_ignores", "--output=json"),
+        capture_output=True,
+        text=True,
+    )
+
     codes = set()
     filenames = set()
-    out = subprocess.run(
-        (sys.executable, "-m", "tools.mypy_helpers.mypy_without_ignores", *sys.argv[1:]),
-        capture_output=True,
-    )
-    for line in out.stdout.decode().splitlines():
-        filename, _, _ = line.partition(":")
-        if filename.endswith(".py"):
-            filenames.add(filename)
-        match = ERROR_RE.match(line)
-        if match is not None:
-            codes.add(match[1])
+    os.makedirs(".artfifacts", exist_ok=True)
+    with open(".artifacts/mypy-all", "w") as f:
+        errors = 0
+        for line in out.stdout.splitlines():
+            e = json.loads(line)
 
-    os.makedirs(".artifacts", exist_ok=True)
-    with open(".artifacts/mypy-all", "wb") as f:
-        f.write(out.stdout)
+            if e["file"].endswith(".py"):
+                filenames.add(e["file"])
+            if e["severity"] == "error":
+                errors += 1
+                codes.add(e["code"])
+                codepart = f' [{e["code"]}]'
+            else:
+                codepart = ""
+
+            f.write(f'{e["file"]}:{e["line"]}: {e["severity"]}: {e["message"]}{codepart}\n')
+        f.write(f"Found {errors} in {len(filenames)} files\n")
 
     mods = []
     for filename in sorted(filenames):
-        # TODO: removeprefix / removesuffix python 3.9+
-        if filename.endswith(".py"):
-            filename = filename[: -len(".py")]
-        if filename.startswith("src/"):
-            filename = filename[len("src/") :]
-        if filename.endswith("/__init__"):
-            filename = filename[: -len("/__init__")]
+        filename = filename.removesuffix(".py").removesuffix("/__init__").removeprefix("src/")
         mods.append(filename.replace("/", "."))
     mods_s = "".join(f'    "{mod}",\n' for mod in mods)
     codes_s = "".join(f'    "{code}",\n' for code in sorted(codes))
