@@ -1,7 +1,7 @@
 import functools
 import logging
-from collections.abc import Mapping
-from typing import Any, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 import orjson
 import sentry_sdk
