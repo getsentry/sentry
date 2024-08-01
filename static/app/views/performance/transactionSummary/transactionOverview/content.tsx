@@ -19,7 +19,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {ActionBarItem} from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -40,7 +39,6 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {FieldKey, MobileVital, WebVital} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -52,6 +50,7 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
+import {ALL_INSIGHTS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -83,130 +82,6 @@ import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
-
-// TODO: We may want to reuse these filter key sections for other searchbars in the future, when we upgrade to SearchQueryBuilder in multiple pages.
-// Refactor and move this constant accordingly when that happens
-const FITLER_KEY_SECTIONS: FilterKeySection[] = [
-  {
-    value: 'transaction_fields',
-    label: 'Transaction',
-    children: [
-      FieldKey.TRANSACTION_DURATION,
-      FieldKey.TRANSACTION_OP,
-      FieldKey.TRANSACTION_STATUS,
-    ],
-  },
-  {
-    value: 'user_fields',
-    label: 'User',
-    children: [
-      FieldKey.USER,
-      FieldKey.USER_DISPLAY,
-      FieldKey.USER_EMAIL,
-      FieldKey.USER_ID,
-      FieldKey.USER_IP,
-      FieldKey.USER_USERNAME,
-    ],
-  },
-  {
-    value: 'geo_fields',
-    label: 'Geographical',
-    children: [
-      FieldKey.GEO_CITY,
-      FieldKey.GEO_COUNTRY_CODE,
-      FieldKey.GEO_REGION,
-      FieldKey.GEO_SUBDIVISION,
-    ],
-  },
-  {
-    value: 'http_fields',
-    label: 'HTTP',
-    children: [
-      FieldKey.HTTP_METHOD,
-      FieldKey.HTTP_REFERER,
-      FieldKey.HTTP_STATUS_CODE,
-      FieldKey.HTTP_URL,
-    ],
-  },
-  {
-    value: 'span_duration_fields',
-    label: 'Span Duration',
-    children: SPAN_OP_BREAKDOWN_FIELDS,
-  },
-  {
-    value: 'web_vital_fields',
-    label: 'Web Vitals',
-    children: [
-      WebVital.CLS,
-      WebVital.FCP,
-      WebVital.FID,
-      WebVital.FP,
-      WebVital.INP,
-      WebVital.LCP,
-      WebVital.REQUEST_TIME,
-    ],
-  },
-  // TODO: In the future, it would be ideal if we could be more 'smart' about which fields we expose here.
-  // For example, these mobile vitals are not necessary for a Python transaction, but they should be suggested for mobile SDK transactions
-  {
-    value: 'mobile_vital_fields',
-    label: 'Mobile Vitals',
-    children: [
-      MobileVital.APP_START_COLD,
-      MobileVital.APP_START_WARM,
-      MobileVital.FRAMES_FROZEN,
-      MobileVital.FRAMES_FROZEN_RATE,
-      MobileVital.FRAMES_SLOW,
-      MobileVital.FRAMES_SLOW_RATE,
-      MobileVital.FRAMES_TOTAL,
-      MobileVital.STALL_COUNT,
-      MobileVital.STALL_LONGEST_TIME,
-      MobileVital.STALL_PERCENTAGE,
-      MobileVital.STALL_TOTAL_TIME,
-      MobileVital.TIME_TO_FULL_DISPLAY,
-      MobileVital.TIME_TO_INITIAL_DISPLAY,
-    ],
-  },
-  {
-    value: 'device_fields',
-    label: 'Device',
-    children: [
-      FieldKey.DEVICE_ARCH,
-      FieldKey.DEVICE_BATTERY_LEVEL,
-      FieldKey.DEVICE_BRAND,
-      FieldKey.DEVICE_CHARGING,
-      FieldKey.DEVICE_CLASS,
-      FieldKey.DEVICE_FAMILY,
-      FieldKey.DEVICE_LOCALE,
-      // FieldKey.DEVICE_MODEL_ID,
-      FieldKey.DEVICE_NAME,
-      FieldKey.DEVICE_ONLINE,
-      FieldKey.DEVICE_ORIENTATION,
-      FieldKey.DEVICE_SCREEN_DENSITY,
-      FieldKey.DEVICE_SCREEN_DPI,
-      FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS,
-      FieldKey.DEVICE_SCREEN_WIDTH_PIXELS,
-      FieldKey.DEVICE_SIMULATOR,
-      FieldKey.DEVICE_UUID,
-    ],
-  },
-  {
-    value: 'release_fields',
-    label: 'Release',
-    children: [
-      FieldKey.RELEASE,
-      FieldKey.RELEASE_BUILD,
-      FieldKey.RELEASE_PACKAGE,
-      FieldKey.RELEASE_STAGE,
-      FieldKey.RELEASE_VERSION,
-    ],
-  },
-  {
-    value: 'misc_fields',
-    label: 'Misc',
-    children: [FieldKey.HAS, FieldKey.DIST],
-  },
-];
 
 type Props = {
   error: QueryError | null;
@@ -506,7 +381,7 @@ function SummaryContent({
             initialQuery={query}
             searchSource={'transaction_summary'}
             getTagValues={getTransactionFilterTagValues}
-            filterKeySections={FITLER_KEY_SECTIONS}
+            filterKeySections={ALL_INSIGHTS_FILTER_KEY_SECTIONS}
             disallowFreeText
             disallowUnsupportedFilters
           />
