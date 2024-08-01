@@ -493,6 +493,9 @@ def process_rulegroups_in_batches(project_id: int):
     """
     batch_size = options.get("delayed_processing.batch_size")
     event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
+    metrics.incr(
+        "delayed_processing.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
+    )
 
     if event_count < batch_size:
         return apply_delayed.delay(project_id)
