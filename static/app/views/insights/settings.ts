@@ -52,6 +52,8 @@ import {
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/ui/settings';
 import {
+  DATA_TYPE as MOBILE_VITALS_DATA_TYPE,
+  DATA_TYPE_PLURAL as MOBILE_VITALS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as MODULE_VITALS_DOC_LINK,
   MODULE_TITLE as MOBILE_VITALS_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/vitals/settings';
@@ -95,7 +97,7 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE,
   [ModuleName.AI]: AI_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
-  [ModuleName.MOBILE_VITALS]: t('Mobile Vitals'),
+  [ModuleName.MOBILE_VITALS]: MOBILE_VITALS_DATA_TYPE,
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
 };
@@ -111,7 +113,7 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE_PLURAL,
   [ModuleName.AI]: AI_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
-  [ModuleName.MOBILE_VITALS]: t('Mobile Vitals'),
+  [ModuleName.MOBILE_VITALS]: MOBILE_VITALS_DATA_TYPE_PLURAL,
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
 };

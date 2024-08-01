@@ -392,6 +392,24 @@ describe('Sidebar', function () {
       });
     });
 
+    it('mobile vitals module hides all other mobile modules', async function () {
+      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
+      renderSidebarWithFeatures([
+        'insights-entry-points',
+        'insights-mobile-vitals-module',
+      ]);
+
+      await waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      ['App Starts', 'Screen Loads', /Mobile UI/].forEach(title => {
+        expect(screen.queryByText(title)).not.toBeInTheDocument();
+      });
+
+      expect(screen.queryByText(/Mobile Vitals/)).toBeInTheDocument();
+    });
+
     it('should not render floating accordion when expanded', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
       await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));

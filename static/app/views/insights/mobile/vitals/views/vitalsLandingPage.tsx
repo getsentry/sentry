@@ -28,7 +28,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -47,7 +46,7 @@ export function VitalsLandingPage() {
   const crumbs = useModuleBreadcrumbs(moduleName);
   const location = useLocation();
   const organization = useOrganization();
-  const {isProjectCrossPlatform} = useCrossPlatformProject();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   // const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
   const handleProjectChange = useCallback(() => {
@@ -200,6 +199,9 @@ export function VitalsLandingPage() {
   });
 
   const query = new MutableSearch(['transaction.op:ui.load']);
+  if (isProjectCrossPlatform) {
+    query.addFilterValue('os.name', selectedPlatform);
+  }
   const metricsQuery: NewQuery = {
     name: '',
     fields: metricsFields,
@@ -320,31 +322,29 @@ export function VitalsLandingPage() {
               </Container>
               <PageAlert />
               <ErrorBoundary mini>
-                <ModulesOnboarding moduleName={moduleName}>
-                  <Container>
-                    <Flex>
-                      {vitalItems.map(item => {
-                        const metricValue = metricValueFor(item);
-                        const status =
-                          (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
-                        const formattedValue: React.ReactNode =
-                          metricValue && formattedMetricValueFor(metricValue);
+                <Container>
+                  <Flex>
+                    {vitalItems.map(item => {
+                      const metricValue = metricValueFor(item);
+                      const status =
+                        (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
+                      const formattedValue: React.ReactNode =
+                        metricValue && formattedMetricValueFor(metricValue);
 
-                        return (
-                          <VitalCard
-                            key={item.field}
-                            title={item.title}
-                            description={item.description}
-                            statusLabel={status.description}
-                            status={status.score}
-                            formattedValue={formattedValue}
-                          />
-                        );
-                      })}
-                    </Flex>
-                    <VitalScreens />
-                  </Container>
-                </ModulesOnboarding>
+                      return (
+                        <VitalCard
+                          key={item.field}
+                          title={item.title}
+                          description={item.description}
+                          statusLabel={status.description}
+                          status={status.score}
+                          formattedValue={formattedValue}
+                        />
+                      );
+                    })}
+                  </Flex>
+                  <VitalScreens />
+                </Container>
               </ErrorBoundary>
             </Layout.Main>
           </Layout.Body>

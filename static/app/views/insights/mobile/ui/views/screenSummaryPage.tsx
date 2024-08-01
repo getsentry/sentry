@@ -30,11 +30,41 @@ type Query = {
   transaction: string;
 };
 
-type Props = {
-  showHeader: boolean | undefined;
-};
+export function ScreenSummary() {
+  const location = useLocation<Query>();
+  const {transaction: transactionName} = location.query;
 
-export function ScreenSummary({showHeader}: Props) {
+  const crumbs = useModuleBreadcrumbs('mobile-ui');
+
+  return (
+    <Layout.Page>
+      <PageAlertProvider>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: t('Screen Summary'),
+                },
+              ]}
+            />
+            <Layout.Title>{transactionName}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <PageAlert />
+            <ScreenSummaryContent />
+          </Layout.Main>
+        </Layout.Body>
+      </PageAlertProvider>
+    </Layout.Page>
+  );
+}
+
+export function ScreenSummaryContent() {
   const location = useLocation<Query>();
   const router = useRouter();
 
@@ -46,76 +76,51 @@ export function ScreenSummary({showHeader}: Props) {
     'device.class': deviceClass,
   } = location.query;
 
-  const crumbs = useModuleBreadcrumbs('mobile-ui');
-
   return (
-    <Layout.Page>
-      <PageAlertProvider>
-        {showHeader && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  ...crumbs,
-                  {
-                    label: t('Screen Summary'),
-                  },
-                ]}
-              />
-              <Layout.Title>{transactionName}</Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-        )}
+    <div>
+      <HeaderContainer>
+        <ControlsContainer>
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </PageFilterBar>
+          <ReleaseComparisonSelector />
+        </ControlsContainer>
+      </HeaderContainer>
+      <SamplesContainer>
+        <SamplesTables
+          transactionName={transactionName}
+          SpanOperationTable={SpanOperationTable}
+          // TODO(nar): Add event samples component specific to ui module
+          EventSamples={_props => <div />}
+        />
+      </SamplesContainer>
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageAlert />
-            <HeaderContainer>
-              <ControlsContainer>
-                <PageFilterBar condensed>
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-                <ReleaseComparisonSelector />
-              </ControlsContainer>
-            </HeaderContainer>
-            <SamplesContainer>
-              <SamplesTables
-                transactionName={transactionName}
-                SpanOperationTable={SpanOperationTable}
-                // TODO(nar): Add event samples component specific to ui module
-                EventSamples={_props => <div />}
-              />
-            </SamplesContainer>
-
-            {spanGroup && spanOp && (
-              <SpanSamplesPanel
-                additionalFilters={{
-                  ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-                }}
-                groupId={spanGroup}
-                moduleName={ModuleName.OTHER}
-                transactionName={transactionName}
-                spanDescription={spanDescription}
-                spanOp={spanOp}
-                onClose={() => {
-                  router.replace({
-                    pathname: router.location.pathname,
-                    query: omit(
-                      router.location.query,
-                      'spanGroup',
-                      'transactionMethod',
-                      'spanDescription',
-                      'spanOp'
-                    ),
-                  });
-                }}
-              />
-            )}
-          </Layout.Main>
-        </Layout.Body>
-      </PageAlertProvider>
-    </Layout.Page>
+      {spanGroup && spanOp && (
+        <SpanSamplesPanel
+          additionalFilters={{
+            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+          }}
+          groupId={spanGroup}
+          moduleName={ModuleName.OTHER}
+          transactionName={transactionName}
+          spanDescription={spanDescription}
+          spanOp={spanOp}
+          onClose={() => {
+            router.replace({
+              pathname: router.location.pathname,
+              query: omit(
+                router.location.query,
+                'spanGroup',
+                'transactionMethod',
+                'spanDescription',
+                'spanOp'
+              ),
+            });
+          }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -126,7 +131,7 @@ function PageWithProviders() {
       pageTitle={t('Screen Summary')}
       features={['insights-addon-modules', 'starfish-mobile-ui-module']}
     >
-      <ScreenSummary showHeader />
+      <ScreenSummary />
     </ModulePageProviders>
   );
 }

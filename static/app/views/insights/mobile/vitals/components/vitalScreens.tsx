@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Header, HeaderTitle} from 'sentry/components/gridEditable/styles';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,6 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {getFreeTextFromQuery} from 'sentry/views/insights/mobile/screenload/components/screensView';
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
@@ -26,6 +26,8 @@ export function VitalScreens() {
   const {selection} = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
+
   const {query: locationQuery} = location;
 
   const query = new MutableSearch(['transaction.op:ui.load']);
@@ -34,7 +36,9 @@ export function VitalScreens() {
   if (searchQuery) {
     query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
   }
-
+  if (isProjectCrossPlatform) {
+    query.addFilterValue('os.name', selectedPlatform);
+  }
   const queryString = query.formatString();
 
   const orderby = decodeScalar(locationQuery.sort, '-count');
@@ -67,14 +71,10 @@ export function VitalScreens() {
   });
 
   const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
-
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
   return (
     <Container>
-      <Header>
-        <HeaderTitle>{t('Screens')}</HeaderTitle>
-      </Header>
       <SearchBar
         eventView={tableEventView}
         onSearch={search => {
