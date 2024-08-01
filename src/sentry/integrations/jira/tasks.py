@@ -41,9 +41,10 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
         if not plugin:
             continue
 
-        is_different_jira_instance = plugin.get_option("instance_url", project).rstrip(
-            "/"
-        ) != integration.metadata.get("base_url").rstrip("/")
+        base_url = (integration.metadata.get("base_url") or "").rstrip("/")
+        instance_url = (plugin.get_option("instance_url", project) or "").rstrip("/")
+        is_different_jira_instance = base_url != instance_url
+
         if is_different_jira_instance:
             continue
         plugin_issues = GroupMeta.objects.filter(
@@ -80,7 +81,7 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
             )
 
             plugin_ignored_fields = plugin.get_option("ignored_fields", project)
-            if plugin_ignored_fields:
+            if organization_integration and plugin_ignored_fields:
                 config = organization_integration.config
                 integration_ignored_fields = organization_integration.config.get(
                     "issues_ignored_fields"
