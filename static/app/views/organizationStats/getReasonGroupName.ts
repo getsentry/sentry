@@ -72,6 +72,7 @@ enum ClientDiscardReason {
 }
 
 enum RateLimitedReason {
+  ORG_QUOTA = 'org_quota',
   KEY_QUOTA = 'key_quota',
   SPIKE_PROTECTION = 'spike_protection',
   SMART_RATE_LIMIT = 'smart_rate_limit',
@@ -130,6 +131,8 @@ function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): stri
   }
 
   switch (reason) {
+    case RateLimitedReason.ORG_QUOTA:
+      return 'org quota';
     case RateLimitedReason.KEY_QUOTA:
       return 'key limit';
     case RateLimitedReason.SPIKE_PROTECTION:
