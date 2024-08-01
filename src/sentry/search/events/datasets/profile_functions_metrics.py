@@ -61,6 +61,16 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
         self.builder.metric_ids.add(metric_id)
         return metric_id
 
+    def _resolve_avg(self, args, alias):
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
     def _resolve_cpm(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -365,11 +375,9 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: Function(
-                        "avg",
-                        [self.resolve_mri(args["column"])],
-                        alias,
-                    ),
+                    calculated_args=[resolve_metric_id],
+                    snql_gauge=self._resolve_avg,
+                    snql_distribution=self._resolve_avg,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),

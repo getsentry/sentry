@@ -127,6 +127,7 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
+    PROFILE_METRICS_MAP,
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -2084,6 +2085,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
+        "function.duration": "metrics_distributions",
     }
     ON_DEMAND_KEY_MAP = {
         "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
@@ -2214,6 +2216,46 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
+        org_id = self.organization.id
+
+        if tags is None:
+            tags = {}
+
+        if timestamp is None:
+            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
+        else:
+            metric_timestamp = timestamp.timestamp()
+
+        if project is None:
+            project = self.project.id
+
+        if not isinstance(value, list):
+            value = [value]
+        for subvalue in value:
+            self.store_metric(
+                org_id,
+                project,
+                internal_metric,
+                tags,
+                int(metric_timestamp),
+                subvalue,
+            )
+
+    def store_profile_functions_metric(
+        self,
+        value: dict[str, int] | list[int] | int,
+        metric: str = "function.duration",
+        internal_metric: str | None = None,
+        entity: str | None = None,
+        tags: dict[str, str] | None = None,
+        timestamp: datetime | None = None,
+        project: int | None = None,
+        use_case_id: UseCaseID = UseCaseID.SPANS,
+    ):
+        internal_metric = (
+            PROFILE_METRICS_MAP[metric] if internal_metric is None else internal_metric
+        )
         entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
