@@ -210,7 +210,7 @@ export const SummaryTable = memo(function SummaryTable({
               <Row
                 onClick={() => {
                   if (hasMultipleSeries) {
-                    onRowClick(row);
+                    onRowClick({id: row.id, groupBy: row.groupBy});
                   }
                 }}
                 onMouseEnter={() => {

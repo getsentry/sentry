@@ -47,6 +47,7 @@ export const Symbol = styled(DeprecatedSymbol)`
   border: 1px solid ${p => p.theme.purple200};
   background: ${p => p.theme.purple100};
   font-weight: 600;
+  ${p => p.isHidden && 'opacity: 0.5;'}
 `;
 
 interface QuerySymbolProps extends React.ComponentProps<typeof Symbol> {
