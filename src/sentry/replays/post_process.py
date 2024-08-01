@@ -85,7 +85,7 @@ def process_raw_response(
 
 def generate_restricted_fieldset(
     fields: list[str],
-    response: Generator[ReplayDetailsResponse, None, None],
+    response: Generator[ReplayDetailsResponse],
 ) -> Iterator[ReplayDetailsResponse]:
     """Return only the fields requested by the client."""
     if fields:
@@ -101,9 +101,7 @@ def _strip_dashes(field: str) -> str:
     return field
 
 
-def generate_normalized_output(
-    response: list[dict[str, Any]]
-) -> Generator[ReplayDetailsResponse, None, None]:
+def generate_normalized_output(response: list[dict[str, Any]]) -> Generator[ReplayDetailsResponse]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         ret_item: ReplayDetailsResponse = {}

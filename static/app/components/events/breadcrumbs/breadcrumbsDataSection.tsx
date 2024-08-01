@@ -16,7 +16,6 @@ import {
   getEnhancedBreadcrumbs,
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
@@ -38,6 +37,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -50,7 +51,8 @@ export default function BreadcrumbsDataSection({
   group,
   project,
 }: BreadcrumbsDataSectionProps) {
-  const {openDrawer} = useDrawer();
+  const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -91,7 +93,18 @@ export default function BreadcrumbsDataSection({
             group={group}
           />
         ),
-        {ariaLabel: 'breadcrumb drawer'}
+        {
+          ariaLabel: 'breadcrumb drawer',
+          // We prevent a click on the 'View All' button from closing the drawer so that
+          // we don't reopen it immediately, and instead let the button handle this itself.
+          shouldCloseOnInteractOutside: element => {
+            const viewAllButton = viewAllButtonRef.current;
+            if (viewAllButton?.contains(element)) {
+              return false;
+            }
+            return true;
+          },
+        }
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -143,9 +156,9 @@ export default function BreadcrumbsDataSection({
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
 
   return (
-    <EventDataSection
+    <InterimSection
       key="breadcrumbs"
-      type="breadcrmbs"
+      type={FoldSectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}
@@ -163,8 +176,11 @@ export default function BreadcrumbsDataSection({
             <div>
               <ViewAllButton
                 size="sm"
-                onClick={() => onViewAllBreadcrumbs()}
+                // Since we've disabled the button as an 'outside click' for the drawer we can change
+                // the operation based on the drawer state.
+                onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
                 aria-label={t('View All Breadcrumbs')}
+                ref={viewAllButtonRef}
               >
                 {t('View All')}
               </ViewAllButton>
@@ -172,7 +188,7 @@ export default function BreadcrumbsDataSection({
           </ViewAllContainer>
         )}
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

@@ -44,8 +44,8 @@ enum EventNavOptions {
 
 const EventNavLabels = {
   [EventNavOptions.RECOMMENDED]: t('Recommended Event'),
-  [EventNavOptions.LATEST]: t('Last Event'),
   [EventNavOptions.OLDEST]: t('First Event'),
+  [EventNavOptions.LATEST]: t('Last Event'),
 };
 
 const eventDataSections: SectionDefinition[] = [
@@ -123,7 +123,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
     <div>
       <EventNavigationWrapper>
         <Tabs>
-          <TabList hideBorder>
+          <TabList hideBorder variant="floating">
             {Object.keys(EventNavLabels).map(label => {
               return (
                 <TabList.Item

@@ -8,6 +8,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   SearchQueryBuilder,
@@ -21,7 +22,12 @@ import {
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {
+  FieldKey,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
 const FILTER_KEYS: TagCollection = {
@@ -132,7 +138,7 @@ describe('SearchQueryBuilder', function () {
       render(
         <SearchQueryBuilder
           {...defaultProps}
-          initialQuery=""
+          initialQuery="a"
           onChange={mockOnChange}
           onBlur={mockOnBlur}
           onSearch={mockOnSearch}
@@ -140,19 +146,27 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(getLastInput());
-      await userEvent.keyboard('foo{enter}');
+      await userEvent.keyboard('b{enter}');
+
+      const expectedQueryState = expect.objectContaining({
+        parsedQuery: expect.arrayContaining([expect.any(Object)]),
+        queryIsValid: true,
+      });
 
       // Should call onChange and onSearch after enter
       await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('foo');
-        expect(mockOnSearch).toHaveBeenCalledWith('foo');
+        expect(mockOnChange).toHaveBeenCalledTimes(1);
+        expect(mockOnChange).toHaveBeenCalledWith('ab', expectedQueryState);
+        expect(mockOnSearch).toHaveBeenCalledTimes(1);
+        expect(mockOnSearch).toHaveBeenCalledWith('ab', expectedQueryState);
       });
 
       await userEvent.click(document.body);
 
       // Clicking outside activates onBlur
       await waitFor(() => {
-        expect(mockOnBlur).toHaveBeenCalledWith('foo');
+        expect(mockOnBlur).toHaveBeenCalledTimes(1);
+        expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
       });
     });
   });
@@ -172,8 +186,8 @@ describe('SearchQueryBuilder', function () {
       userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
 
       await waitFor(() => {
-        expect(mockOnChange).toHaveBeenCalledWith('');
-        expect(mockOnSearch).toHaveBeenCalledWith('');
+        expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
+        expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
       });
 
       expect(
@@ -253,7 +267,10 @@ describe('SearchQueryBuilder', function () {
       expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox assigned:me');
 
       await waitFor(() => {
-        expect(mockOnChange).toHaveBeenLastCalledWith('browser.name:firefox assigned:me');
+        expect(mockOnChange).toHaveBeenLastCalledWith(
+          'browser.name:firefox assigned:me',
+          expect.anything()
+        );
       });
     });
   });
@@ -534,7 +551,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(getLastInput());
       await userEvent.type(screen.getByRole('combobox'), 'some free text{enter}');
       await waitFor(() => {
-        expect(mockOnSearch).toHaveBeenCalledWith('some free text');
+        expect(mockOnSearch).toHaveBeenCalledWith('some free text', expect.anything());
       });
       // Should still have text in the input
       expect(screen.getByRole('combobox')).toHaveValue('some free text');
@@ -831,7 +848,7 @@ describe('SearchQueryBuilder', function () {
 
       // Pressing delete should remove all selected tokens
       await userEvent.keyboard('{Backspace}');
-      expect(mockOnChange).toHaveBeenCalledWith('');
+      expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
     });
 
     it('focus goes to first input after ctrl+a and arrow left', async function () {
@@ -933,7 +950,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{Control>}x{/Control}');
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('browser.name:firefox');
-      expect(mockOnChange).toHaveBeenCalledWith('');
+      expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
     });
 
     it('can undo last action with ctrl-z', async function () {
@@ -1118,7 +1135,7 @@ describe('SearchQueryBuilder', function () {
         );
         await userEvent.click(await screen.findByRole('option', {name: 'does not have'}));
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('!has:key');
+          expect(mockOnChange).toHaveBeenCalledWith('!has:key', expect.anything());
         });
         expect(
           within(
@@ -1311,7 +1328,10 @@ describe('SearchQueryBuilder', function () {
 
         // Value should be surrounded by quotes and escaped
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith(`browser.name:${expected}`);
+          expect(mockOnChange).toHaveBeenCalledWith(
+            `browser.name:${expected}`,
+            expect.anything()
+          );
         });
       });
 
@@ -1826,7 +1846,7 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('foo age:-1h');
+          expect(mockOnChange).toHaveBeenCalledWith('foo age:-1h', expect.anything());
         });
       });
 
@@ -1854,7 +1874,7 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('foo age:+1h');
+          expect(mockOnChange).toHaveBeenCalledWith('foo age:+1h', expect.anything());
         });
       });
 
@@ -1876,7 +1896,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17');
+          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17', expect.anything());
         });
       });
 
@@ -1899,7 +1919,10 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17T00:00:00Z');
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'age:>2017-10-17T00:00:00Z',
+            expect.anything()
+          );
         });
       });
 
@@ -1923,7 +1946,10 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
         await waitFor(() => {
-          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17T00:00:00+00:00');
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'age:>2017-10-17T00:00:00+00:00',
+            expect.anything()
+          );
         });
       });
 
@@ -1956,6 +1982,216 @@ describe('SearchQueryBuilder', function () {
 
         expect(screen.getByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
+      });
+    });
+
+    describe('aggregate filters', function () {
+      const aggregateFilterKeys: TagCollection = {
+        count: {
+          key: 'count',
+          name: 'count',
+          kind: FieldKind.FUNCTION,
+        },
+        count_if: {
+          key: 'count_if',
+          name: 'count_if',
+          kind: FieldKind.FUNCTION,
+        },
+        'transaction.duration': {
+          key: 'transaction.duration',
+          name: 'transaction.duration',
+          kind: FieldKind.FIELD,
+        },
+        timesSeen: {
+          key: 'timesSeen',
+          name: 'timesSeen',
+          kind: FieldKind.FIELD,
+        },
+        lastSeen: {
+          key: 'lastSeen',
+          name: 'lastSeen',
+          kind: FieldKind.FIELD,
+        },
+      };
+
+      const aggregateGetFieldDefinition: FieldDefinitionGetter = key => {
+        switch (key) {
+          case 'count':
+            return {
+              desc: 'count() description',
+              kind: FieldKind.FUNCTION,
+              valueType: FieldValueType.INTEGER,
+              parameters: [],
+            };
+          case 'count_if':
+            return {
+              desc: 'count_if() description',
+              kind: FieldKind.FUNCTION,
+              valueType: FieldValueType.INTEGER,
+              parameters: [
+                {
+                  name: 'column',
+                  kind: 'column' as const,
+                  columnTypes: [
+                    FieldValueType.STRING,
+                    FieldValueType.NUMBER,
+                    FieldValueType.DURATION,
+                  ],
+                  defaultValue: 'transaction.duration',
+                  required: true,
+                },
+                {
+                  name: 'operator',
+                  kind: 'value' as const,
+                  options: [{value: 'less'}, {value: 'greater'}],
+                  dataType: FieldValueType.STRING,
+                  defaultValue: 'greater',
+                  required: true,
+                },
+                {
+                  name: 'value',
+                  kind: 'value' as const,
+                  dataType: FieldValueType.STRING,
+                  defaultValue: '300ms',
+                  required: false,
+                },
+              ],
+            };
+          default:
+            return getFieldDefinition(key);
+        }
+      };
+
+      const aggregateDefaultProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: aggregateFilterKeys,
+        fieldDefinitionGetter: aggregateGetFieldDefinition,
+        filterKeySections: [],
+      };
+
+      it('can add an aggregate filter with default values', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'count_if'}));
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(transaction.duration,greater,300ms):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameter with predefined options', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="count_if(transaction.duration,):>100"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+        expect(input).toHaveFocus();
+        expect(input).toHaveValue('transaction.duration,');
+
+        await userEvent.click(await screen.findByRole('option', {name: 'less'}));
+        await waitFor(() => {
+          expect(input).toHaveValue('transaction.duration,less');
+        });
+        // Cursor should be at end of `less`
+        expect((input as HTMLInputElement).selectionStart).toBe(25);
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(transaction.duration,less):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameter with column options', async function () {
+        render(
+          <SearchQueryBuilder {...aggregateDefaultProps} initialQuery="count_if():>100" />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+        expect(input).toHaveFocus();
+        expect(input).toHaveValue('');
+
+        await userEvent.click(await screen.findByRole('option', {name: 'timesSeen'}));
+        await waitFor(() => {
+          expect(input).toHaveValue('timesSeen');
+        });
+        // Cursor should be at end of `timesSeen`
+        expect((input as HTMLInputElement).selectionStart).toBe(9);
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(timesSeen):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameters by typing a manual value', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="count_if(transaction.duration,greater,300ms):>100"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+
+        await userEvent.clear(input);
+        await userEvent.keyboard('a,b,c{enter}');
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(a,b,c):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('displays a description of the function and parameters while editing', async function () {
+        render(
+          <SearchQueryBuilder {...aggregateDefaultProps} initialQuery="count_if():>100" />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+
+        const descriptionTooltip = await screen.findByRole('tooltip');
+        expect(
+          within(descriptionTooltip).getByText('count_if() description')
+        ).toBeInTheDocument();
+        expect(
+          within(descriptionTooltip).getByText(
+            textWithMarkupMatcher(
+              'count_if(column: string, operator: string, value?: string)'
+            )
+          )
+        ).toBeInTheDocument();
+        expect(within(descriptionTooltip).getByTestId('focused-param')).toHaveTextContent(
+          'column: string'
+        );
+
+        // After moving to next parameter, should now highlight 'operator'
+        await userEvent.keyboard('a,');
+        await waitFor(() => {
+          expect(
+            within(descriptionTooltip).getByTestId('focused-param')
+          ).toHaveTextContent('operator: string');
+        });
       });
     });
   });

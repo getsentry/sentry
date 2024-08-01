@@ -150,6 +150,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.environment == env_1
 
     def test_time_window(self):
@@ -217,6 +218,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             serializer = AlertRuleSerializer(context=self.context, data=base_params)
             assert serializer.is_valid(), serializer.errors
             alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
             assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
             assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
@@ -251,6 +253,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.aggregate == aggregate
 
         aggregate = "sum(measurements.fp)"
@@ -260,6 +263,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.aggregate == aggregate
 
     def test_alert_rule_resolved_invalid(self):
@@ -281,6 +285,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.dataset == Dataset.Transactions.value
         assert alert_rule.snuba_query.aggregate == "count()"
 
@@ -504,6 +509,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid()
         serializer.save()
         alert_rule = AlertRule.objects.get(name="Aun1qu3n4m3")
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
     def test_invalid_metric_field(self):
@@ -612,6 +618,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid()
         alert_rule = serializer.save()
+        assert alert_rule.snuba_query is not None
         assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
         params["event_types"] = [SnubaQueryEventType.EventType.ERROR.name.lower()]
         serializer = AlertRuleSerializer(
@@ -619,6 +626,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
         assert serializer.is_valid()
         alert_rule = serializer.save()
+        assert alert_rule.snuba_query is not None
         assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.ERROR}
 
     def test_unsupported_query(self):
@@ -703,6 +711,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 150
         assert triggers["warning"].alert_threshold == 140
+        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
         )
@@ -723,6 +732,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 50
         assert triggers["warning"].alert_threshold == 60
+        assert alert_rule.snuba_query is not None
         assert (
             alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
         )
@@ -737,6 +747,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         assert alert_rule.comparison_delta is None
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
@@ -769,6 +780,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid()
         alert_rule = serializer.save()
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "status:unresolved"
 
 

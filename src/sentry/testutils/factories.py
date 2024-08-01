@@ -85,6 +85,12 @@ from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
+)
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
@@ -1186,6 +1192,7 @@ class Factories:
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
                 assert install.api_grant is not None
+                assert install.sentry_app.application is not None
                 GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
@@ -1973,3 +1980,56 @@ class Factories:
             owner_user_id=owner_user_id,
             uptime_status=uptime_status,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard(
+        organization: Organization | None = None,
+        title: str | None = None,
+        created_by: User | None = None,
+        **kwargs,
+    ):
+        if organization is None:
+            organization = Factories.create_organization()
+        if created_by is None:
+            created_by = Factories.create_user()
+            Factories.create_member(organization=organization, user=created_by, role="owner")
+        if title is None:
+            title = petname.generate(2, " ", letters=10).title()
+        return Dashboard.objects.create(
+            organization=organization, title=title, created_by_id=created_by.id, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard_widget(
+        order: int,
+        dashboard: Dashboard | None = None,
+        title: str | None = None,
+        display_type: int | None = None,
+        **kwargs,
+    ):
+        if dashboard is None:
+            dashboard = Factories.create_dashboard()
+        if display_type is None:
+            display_type = DashboardWidgetDisplayTypes.AREA_CHART
+        if title is None:
+            title = petname.generate(2, " ", letters=10).title()
+
+        return DashboardWidget.objects.create(
+            dashboard=dashboard, title=title, display_type=display_type, order=order, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_dashboard_widget_query(
+        order: int,
+        widget: DashboardWidget | None = None,
+        name: str | None = None,
+        **kwargs,
+    ):
+        if widget is None:
+            widget = Factories.create_dashboard_widget(order=order)
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+        return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)

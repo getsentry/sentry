@@ -14,7 +14,6 @@ from django.urls import reverse
 
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
-from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import (
     API_ERRORS,
@@ -29,6 +28,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
@@ -522,7 +522,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
@@ -541,7 +541,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},

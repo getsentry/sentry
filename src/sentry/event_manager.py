@@ -1544,19 +1544,12 @@ def _save_aggregate(
                         tags={"call_made": True, "blocker": "none"},
                     )
                     try:
-                        # If the `projects:similarity-embeddings-grouping` feature is disabled,
-                        # we'll still get back result metadata, but `seer_matched_group` will be None
+                        # If no matching group is found in Seer, we'll still get back result
+                        # metadata, but `seer_matched_group` will be None
                         seer_response_data, seer_matched_group = get_seer_similar_issues(
                             event, primary_hashes
                         )
                         event.data["seer_similarity"] = seer_response_data
-
-                        # We only want to add this data to new groups, while we're testing
-                        # TODO: Remove this once we're out of the testing phase
-                        if not seer_matched_group:
-                            group_creation_kwargs["data"]["metadata"][
-                                "seer_similarity"
-                            ] = seer_response_data
 
                     # Insurance - in theory we shouldn't ever land here
                     except Exception as e:
@@ -2367,14 +2360,13 @@ def _get_severity_metadata_for_group(
     if not seer_based_priority_enabled and not feature_enabled:
         return {}
 
-    if not seer_based_priority_enabled:
-        is_supported_platform = (
-            any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
-            if event.platform
-            else False
-        )
-        if not is_supported_platform:
-            return {}
+    is_supported_platform = (
+        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
+        if event.platform
+        else False
+    )
+    if not is_supported_platform:
+        return {}
 
     is_error_group = group_type == ErrorGroupType.type_id if group_type else True
     if not is_error_group:

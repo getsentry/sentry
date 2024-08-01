@@ -30,7 +30,7 @@ from sentry.seer.similarity.types import (
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,
 )
-from sentry.seer.similarity.utils import filter_null_from_event_title, get_stacktrace_string
+from sentry.seer.similarity.utils import filter_null_from_string, get_stacktrace_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -122,7 +122,7 @@ def get_current_batch_groups_from_postgres(
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
 
-    groups_to_backfill_batch = (
+    groups_to_backfill_batch_raw = (
         Group.objects.filter(
             group_id_filter,
             project_id=project.id,
@@ -132,9 +132,9 @@ def get_current_batch_groups_from_postgres(
         .values_list("id", "data", "status", "last_seen")
         .order_by("-id")[:batch_size]
     )
-    total_groups_to_backfill_length = len(groups_to_backfill_batch)
+    total_groups_to_backfill_length = len(groups_to_backfill_batch_raw)
     batch_end_group_id = (
-        groups_to_backfill_batch[total_groups_to_backfill_length - 1][0]
+        groups_to_backfill_batch_raw[total_groups_to_backfill_length - 1][0]
         if total_groups_to_backfill_length
         else None
     )
@@ -142,7 +142,7 @@ def get_current_batch_groups_from_postgres(
     # Filter out groups that are pending deletion in memory so postgres won't make a bad query plan
     groups_to_backfill_batch = [
         (group[0], group[1])
-        for group in groups_to_backfill_batch
+        for group in groups_to_backfill_batch_raw
         if group[2] not in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
         and group[3] > datetime.now(UTC) - timedelta(days=90)
     ]
@@ -310,12 +310,15 @@ def get_events_from_nodestore(
                 invalid_event_group_ids.append(group_id)
                 continue
 
+            exception_type = get_path(event.data, "exception", "values", -1, "type")
             group_data.append(
                 CreateGroupingRecordData(
                     group_id=group_id,
                     project_id=project.id,
-                    message=filter_null_from_event_title(event.title),
-                    exception_type=get_path(event.data, "exception", "values", -1, "type"),
+                    message=filter_null_from_string(event.title),
+                    exception_type=filter_null_from_string(exception_type)
+                    if exception_type
+                    else None,
                     hash=primary_hash,
                 )
             )
@@ -352,12 +355,12 @@ def _make_seer_call(
             create_grouping_records_request,
             retries=3,
             delay=2,
-            exceptions=ServiceUnavailable,
+            exceptions=Exception,
         )
-    except ServiceUnavailable:
+    except Exception as e:
         logger.exception(
-            "tasks.backfill_seer_grouping_records.seer_service_unavailable",
-            extra={"project_id": project_id},
+            "tasks.backfill_seer_grouping_records.seer_exception_after_retries",
+            extra={"project_id": project_id, "error": e},
         )
         raise
 
@@ -376,6 +379,7 @@ def send_group_and_stacktrace_to_seer(
             group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             data=nodestore_results["data"],
             stacktrace_list=nodestore_results["stacktrace_list"],
+            use_reranking=options.get("similarity.backfill_use_reranking"),
         ),
         project_id,
     )
@@ -394,6 +398,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
                 group_id_list=chunk_data["group_ids"],
                 data=chunk_data["data"],
                 stacktrace_list=chunk_stacktrace,
+                use_reranking=options.get("similarity.backfill_use_reranking"),
             ),
             project_id,
         )

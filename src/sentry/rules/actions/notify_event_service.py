@@ -140,7 +140,7 @@ class NotifyEventServiceAction(EventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         service = self.get_option("service")
 
         extra: dict[str, object] = {"event_id": event.event_id}

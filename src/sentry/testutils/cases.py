@@ -3250,7 +3250,7 @@ class UptimeTestCase(TestCase):
         self,
         subscription_id: str | None = None,
         status: str = CHECKSTATUS_FAILURE,
-        scheduled_check_time: datetime = None,
+        scheduled_check_time: datetime | None = None,
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
@@ -3287,9 +3287,9 @@ class SpanTestCase(BaseTestCase):
     def load_data(
         self,
         platform: str = "transaction",
-        timestamp: datetime = None,
-        duration: timedelta = None,
-        **kwargs: dict[str, Any],
+        timestamp: datetime | None = None,
+        duration: timedelta | None = None,
+        **kwargs: Any,
     ) -> dict[str | int, Any]:
         if timestamp is None:
             timestamp = self.ten_mins_ago

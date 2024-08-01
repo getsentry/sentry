@@ -610,7 +610,7 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             type=1,
         )
-        for group_model in {GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription}:
+        for group_model in (GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription):
             group_model.objects.create(
                 project=project,
                 group=group,

@@ -18,9 +18,11 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -329,7 +331,11 @@ class _TransactionsList extends Component<Props> {
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                  organization.slug
+                  organization.slug,
+                  false,
+                  hasDatasetSelector(organization)
+                    ? SavedQueryDatasets.TRANSACTIONS
+                    : undefined
                 )}
                 size="xs"
                 data-test-id="discover-open"

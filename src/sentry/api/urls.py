@@ -33,6 +33,7 @@ from sentry.api.endpoints.organization_unsubscribe import (
 from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
     ProjectBackfillSimilarIssuesEmbeddingsRecords,
 )
+from sentry.api.endpoints.project_metrics_usage import ProjectMetricsUsageEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
@@ -569,7 +570,6 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
-    ProjectProfilingTransactionIDProfileIDEndpoint,
 )
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
@@ -2423,6 +2423,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-metrics-extraction-rules",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/metrics-usage/(?P<span_attribute>[^\/]+)/$",
+        ProjectMetricsUsageEndpoint.as_view(),
+        name="sentry-api-0-project-metrics-usage",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
         ProjectReleasesEndpoint.as_view(),
         name="sentry-api-0-project-releases",
@@ -2703,10 +2708,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionNamesCluster.as_view(),
         name="sentry-api-0-organization-project-cluster-transaction-names",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/plugins?/",
-        include("sentry.plugins.base.project_api_urls"),
-    ),
     # Tombstone
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tombstones/$",
@@ -2748,11 +2749,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-profile",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
-        name="sentry-api-0-project-profiling-transactions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/statistical-detector/$",
