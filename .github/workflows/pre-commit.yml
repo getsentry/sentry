@@ -63,7 +63,6 @@ jobs:
             api-docs/yarn.lock
 
       - name: Install Javascript Dependencies
-        if: steps.setup-node.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
 
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
