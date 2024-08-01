@@ -22,7 +22,7 @@ from sentry.rules.base import CallbackFuture
 from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import json, metrics
-from sentry.utils.forms import set_field_choices, set_widget_choices
+from sentry.utils.forms import set_field_choices
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
 PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
@@ -113,7 +113,6 @@ class NotifyEventServiceForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         set_field_choices(self.fields["service"], service_choices)
-        set_widget_choices(self.fields["service"].widget, service_choices)
 
 
 class NotifyEventServiceAction(EventAction):
