@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Sequence
 from datetime import timedelta
 
 from snuba_sdk import Column
@@ -9,7 +8,7 @@ from sentry.search.events.builder.profile_functions_metrics import (
     TimeseriesProfileFunctionsMetricsQueryBuilder,
     TopProfileFunctionsMetricsQueryBuilder,
 )
-from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -74,9 +73,9 @@ def query(
 
 
 def timeseries_query(
-    selected_columns: Sequence[str],
+    selected_columns: list[str],
     query: str,
-    params: dict[str, str],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     snuba_params: SnubaParams | None = None,
@@ -121,7 +120,7 @@ def timeseries_query(
             params["start"],
             params["end"],
             rollup,
-            "time",
+            ["time"],
         )
         if zerofill_results
         else result["data"]
@@ -245,7 +244,7 @@ def top_events_timeseries(
         return SnubaTSResult(
             {
                 "data": (
-                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    discover.zerofill([], params["start"], params["end"], rollup, ["time"])
                     if zerofill_results
                     else []
                 ),
@@ -277,11 +276,14 @@ def top_events_timeseries(
                 "profile_functions_metrics.top-events.timeseries.key-mismatch",
                 extra={"result_key": result_key, "top_event_keys": list(results.keys())},
             )
+    snuba_ts_result: dict[str, SnubaTSResult] = {}
     for key, item in results.items():
-        results[key] = SnubaTSResult(
+        snuba_ts_result[key] = SnubaTSResult(
             {
                 "data": (
-                    discover.zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    discover.zerofill(
+                        item["data"], params["start"], params["end"], rollup, ["time"]
+                    )
                     if zerofill_results
                     else item["data"]
                 ),
@@ -292,4 +294,4 @@ def top_events_timeseries(
             rollup,
         )
 
-    return results
+    return snuba_ts_result
