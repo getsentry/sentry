@@ -37,11 +37,6 @@ export default defineConfig({
           : `
       tracesSampleRate: 0,`
       }${
-        params.isProfilingSelected
-          ? `
-      profilesSampleRate: 1,`
-          : ''
-      }${
         params.isReplaySelected
           ? ''
           : `

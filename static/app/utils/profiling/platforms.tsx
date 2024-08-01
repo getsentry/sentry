@@ -56,9 +56,6 @@ export function getDocsPlatformSDKForPlatform(
   if (platform.startsWith('node')) {
     return 'node';
   }
-  if (platform === 'javascript-astro') {
-    return 'javascript-astro';
-  }
   if (platform === 'javascript-nextjs') {
     return 'javascript-nextjs';
   }
