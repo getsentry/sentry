@@ -452,56 +452,54 @@ const ProgressStepContainer = styled('div')`
   grid-column: 1/-1;
 `;
 
-function LogComponent({html}) {
-  const logRef = useRef<any>(null);
-  const [fadeTop, setFadeTop] = useState(false);
-  const [fadeBottom, setFadeBottom] = useState(false);
+function LogComponent({html}: {html: string}) {
+  const [expanded, setExpanded] = useState(false);
+  const [isExpandable, setIsExpandable] = useState(false);
+  const logRef = useRef(null);
 
   useEffect(() => {
-    const element = logRef.current;
-
-    const updateFades = () => {
-      const {scrollTop, clientHeight, scrollHeight} = element;
-      const threshold = 1;
-      const contentScrollable = scrollHeight > clientHeight;
-      if (contentScrollable) {
-        const atBottom = scrollHeight - scrollTop <= clientHeight + threshold;
-        const atTop = scrollTop <= threshold;
-        setFadeBottom(!atBottom);
-        setFadeTop(!atTop);
-      } else {
-        setFadeBottom(false);
-        setFadeTop(false);
+    const checkExpandable = () => {
+      if (logRef.current) {
+        const {scrollHeight, clientHeight} = logRef.current;
+        setIsExpandable(scrollHeight > clientHeight + 16);
       }
     };
 
-    updateFades();
-    element.addEventListener('scroll', updateFades);
-    return () => {
-      element.removeEventListener('scroll', updateFades);
-    };
+    checkExpandable();
+    window.addEventListener('resize', checkExpandable);
+    return () => window.removeEventListener('resize', checkExpandable);
   }, [html]);
+
+  const toggleExpand = () => {
+    if (isExpandable) {
+      setExpanded(!expanded);
+    }
+  };
 
   return (
     <LogText
       ref={logRef}
-      className={`${fadeTop ? 'fade-top' : ''} ${fadeBottom ? 'fade-bottom' : ''}`}
+      expanded={expanded}
+      isExpandable={isExpandable}
+      onClick={toggleExpand}
       dangerouslySetInnerHTML={{__html: html}}
     />
   );
 }
 
-const LogText = styled('div')`
-  overflow-x: scroll;
-  overflow-y: scroll;
-  max-height: 4em;
-  min-height: 1.5em;
+const LogText = styled('div')<{expanded: boolean; isExpandable: boolean}>`
+  overflow-x: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: ${props => (props.expanded ? 'unset' : '2')};
+  -webkit-box-orient: vertical;
+  overflow-y: hidden;
+  text-overflow: ellipsis;
+  cursor: ${props => (props.isExpandable ? 'pointer' : 'default')};
+  max-height: ${props => (props.expanded ? 'none' : '3em')};
+  transition: max-height 2s ease-out;
 
-  &.fade-top {
-    mask-image: linear-gradient(to bottom, transparent 0%, black 24px);
-  }
-
-  &.fade-bottom {
-    mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+  &:hover {
+    background-color: ${props =>
+      props.isExpandable ? 'rgba(0, 0, 0, 0.02)' : 'transparent'};
   }
 `;
