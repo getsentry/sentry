@@ -140,11 +140,11 @@ const onboarding: OnboardingConfig = {
     })
     export class AppModule {}`,
         },
+        ...(params.isProfilingSelected
+          ? [getProfilingDocumentHeaderConfigurationStep()]
+          : []),
       ],
     },
-    ...(params.isProfilingSelected
-      ? [getProfilingDocumentHeaderConfigurationStep()]
-      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
       ...params,

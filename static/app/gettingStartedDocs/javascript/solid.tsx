@@ -153,11 +153,11 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        ...(params.isProfilingSelected
+          ? [getProfilingDocumentHeaderConfigurationStep()]
+          : []),
       ],
     },
-    ...(params.isProfilingSelected
-      ? [getProfilingDocumentHeaderConfigurationStep()]
-      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/solid/sourcemaps/',
     }),

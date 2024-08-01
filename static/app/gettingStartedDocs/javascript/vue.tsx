@@ -92,8 +92,8 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   }${
     params.isProfilingSelected
       ? `
-      // Profiling
-      profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
+        // Profiling
+        profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
       : ''
   }
   });`;
@@ -170,9 +170,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ),
       configurations: getSetupConfiguration(params),
     },
-    ...(params.isProfilingSelected
-      ? [getProfilingDocumentHeaderConfigurationStep()]
-      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
       ...params,
@@ -283,6 +280,9 @@ function getSetupConfiguration(params: Params) {
 
           ${getSiblingSuffix(siblingOption)}`,
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
   ];
 
   return configuration;

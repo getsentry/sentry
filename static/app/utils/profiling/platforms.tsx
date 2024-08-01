@@ -13,13 +13,18 @@ const supportedProfilingPlatformSDKs = [
   'php-laravel',
   'php-symfony2',
   'ruby',
-  'javascript-nextjs',
-  'javascript-remix',
-  'javascript-sveltekit',
-  'javascript',
-  'javascript-react',
-  'javascript-vue',
   'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-solid',
+  'javascript-sveltekit',
+  'javascript-vue',
+  'javascript',
   'react-native',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatformSDKs)[number];
@@ -51,6 +56,9 @@ export function getDocsPlatformSDKForPlatform(
   if (platform.startsWith('node')) {
     return 'node';
   }
+  if (platform === 'javascript-astro') {
+    return 'javascript-astro';
+  }
   if (platform === 'javascript-nextjs') {
     return 'javascript-nextjs';
   }
@@ -71,6 +79,21 @@ export function getDocsPlatformSDKForPlatform(
   }
   if (platform === 'javascript-angular') {
     return 'javascript-angular';
+  }
+  if (platform === 'javascript-angular') {
+    return 'javascript-angular';
+  }
+  if (platform === 'javascript-gatsby') {
+    return 'javascript-gatsby';
+  }
+  if (platform === 'javascript-ember') {
+    return 'javascript-ember';
+  }
+  if (platform === 'javascript-svelte') {
+    return 'javascript-svelte';
+  }
+  if (platform === 'javascript-solid') {
+    return 'javascript-solid';
   }
 
   if (platform === 'dart-flutter') {

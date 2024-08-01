@@ -18,6 +18,7 @@ import {
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {getReplaySDKSetupSnippet} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -35,6 +36,11 @@ export default defineConfig({
           ? ''
           : `
       tracesSampleRate: 0,`
+      }${
+        params.isProfilingSelected
+          ? `
+      profilesSampleRate: 1,`
+          : ''
       }${
         params.isReplaySelected
           ? ''
@@ -355,7 +361,7 @@ const feedbackOnboarding: OnboardingConfig = {
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
-  configure: () => [
+  configure: params => [
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
@@ -364,6 +370,9 @@ const crashReportOnboarding: OnboardingConfig = {
       additionalInfo: widgetCallout({
         link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/#user-feedback-widget',
       }),
+      ...(params.isProfilingSelected
+        ? [getProfilingDocumentHeaderConfigurationStep()]
+        : []),
     },
   ],
   verify: () => [],
