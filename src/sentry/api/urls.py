@@ -2708,10 +2708,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionNamesCluster.as_view(),
         name="sentry-api-0-organization-project-cluster-transaction-names",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/plugins?/",
-        include("sentry.plugins.base.project_api_urls"),
-    ),
     # Tombstone
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tombstones/$",

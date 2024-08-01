@@ -155,9 +155,6 @@ class PluginConfigMixin(ProviderMixin):
     def get_group_urls(self):
         return []
 
-    def get_project_urls(self):
-        return []
-
     def setup(self, bindings):
         pass
 
