@@ -321,8 +321,9 @@ function FeedbackFooter() {
           openForm({
             messagePlaceholder: t('How can we make search better for you?'),
             tags: {
-              feedback_source: 'search_query_builder',
               search_source: searchSource,
+              ['feedback.source']: 'search_query_builder',
+              ['feedback.owner']: 'issues',
             },
           })
         }
