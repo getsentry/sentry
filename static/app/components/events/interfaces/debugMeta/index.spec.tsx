@@ -1,5 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EntryDebugMetaFixture} from 'sentry-fixture/eventEntry';
+import {ImageFixture} from 'sentry-fixture/image';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
+import {ImageStatus} from 'sentry/types/debugImage';
 
 describe('DebugMeta', function () {
   it('opens details modal', async function () {
@@ -75,9 +77,52 @@ describe('DebugMeta', function () {
     const searchBar = screen.getByRole('textbox');
     await userEvent.type(searchBar, 'some jibberish');
     expect(screen.queryByText(imageName)).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Sorry, no images match your search query')
+    ).toBeInTheDocument();
     await userEvent.clear(searchBar);
     expect(screen.getByText(imageName)).toBeInTheDocument();
     await userEvent.type(searchBar, codeFile);
     expect(screen.getByText(imageName)).toBeInTheDocument();
+  });
+
+  it('filters images', async function () {
+    const firstImage = ImageFixture();
+    const secondImage = {
+      ...ImageFixture(),
+      debug_status: ImageStatus.MISSING,
+      debug_file: 'test_file',
+      code_file: '/Users/foo/Coding/sentry-native/build/./test_file',
+    };
+    const eventEntryDebugMeta = {
+      ...EntryDebugMetaFixture(),
+      data: {
+        images: [firstImage, secondImage],
+      },
+    };
+
+    const event = EventFixture({entries: [eventEntryDebugMeta]});
+    const {organization, project} = initializeOrg();
+
+    render(
+      <DebugMeta
+        projectSlug={project.slug}
+        event={event}
+        data={eventEntryDebugMeta.data}
+      />,
+      {organization}
+    );
+
+    screen.getByRole('heading', {name: 'Images Loaded'});
+    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
+    expect(screen.getByText(secondImage?.debug_file as string)).toBeInTheDocument();
+
+    const filterButton = screen.getByRole('button', {name: '2 Active Filters'});
+    expect(filterButton).toBeInTheDocument();
+    await userEvent.click(filterButton);
+    await userEvent.click(screen.getByRole('option', {name: 'Missing'}));
+    expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
+    expect(screen.queryByText(secondImage?.debug_file as string)).not.toBeInTheDocument();
   });
 });
