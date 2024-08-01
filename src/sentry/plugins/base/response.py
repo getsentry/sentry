@@ -1,20 +1,24 @@
-from django.http import HttpResponse
+from __future__ import annotations
+
+from typing import Any
+
+from django.http import HttpRequest, HttpResponse
 from django.template.context_processors import csrf
 
-__all__ = ("Response",)
+from sentry.web.helpers import render_to_string
+
+__all__ = ("DeferredResponse",)
 
 
-class Response:
-    def __init__(self, template, context=None):
+class DeferredResponse:
+    def __init__(self, template: str, context: dict[str, Any] | None = None) -> None:
         self.template = template
         self.context = context
 
-    def respond(self, request, context=None):
+    def respond(self, request: HttpRequest, context: dict[str, Any] | None = None) -> HttpResponse:
         return HttpResponse(self.render(request, context))
 
-    def render(self, request, context=None):
-        from sentry.web.helpers import render_to_string
-
+    def render(self, request: HttpRequest, context: dict[str, Any] | None = None) -> str:
         if not context:
             context = {}
 

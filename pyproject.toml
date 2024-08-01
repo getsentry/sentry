@@ -550,6 +550,8 @@ module = [
     "sentry.nodestore.filesystem.backend",
     "sentry.nodestore.models",
     "sentry.organizations.*",
+    "sentry.plugins.base.response",
+    "sentry.plugins.base.view",
     "sentry.profiles.*",
     "sentry.projects.services.*",
     "sentry.ratelimits.leaky_bucket",
