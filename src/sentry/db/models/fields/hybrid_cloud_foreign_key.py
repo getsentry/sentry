@@ -46,7 +46,7 @@ the expected cascade behavior in your field.
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Literal, overload
+from typing import Any
 
 from django.apps import apps
 from django.db import models
@@ -71,27 +71,6 @@ class HybridCloudForeignKey(models.BigIntegerField[FieldSetType, FieldGetType]):
     @property
     def foreign_table_name(self) -> str:
         return self.foreign_model._meta.db_table
-
-    @overload
-    def __init__(
-        self: HybridCloudForeignKey[int | None, int | None],
-        foreign_model: str,
-        *,
-        on_delete: HybridCloudForeignKeyCascadeBehavior | str,
-        null: Literal[True],
-        **kwds: Any,
-    ) -> None:
-        ...
-
-    @overload
-    def __init__(
-        self: HybridCloudForeignKey[int, int],
-        foreign_model: str,
-        *,
-        on_delete: HybridCloudForeignKeyCascadeBehavior | str,
-        **kwds: Any,
-    ) -> None:
-        ...
 
     def __init__(
         self,
