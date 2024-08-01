@@ -2,6 +2,7 @@ import logging
 from dataclasses import asdict
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 
 from sentry import features, options
@@ -239,3 +240,33 @@ def get_seer_similar_issues(
     )
 
     return (similar_issues_metadata, parent_grouphash)
+
+
+def maybe_check_seer_for_matching_grouphash(
+    event: Event, primary_hashes: CalculatedHashes
+) -> GroupHash | None:
+    seer_matched_grouphash = None
+
+    if should_call_seer_for_grouping(event, primary_hashes):
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            # TODO: Consider lowering this (in all the spots this metric is
+            # collected) once we roll Seer grouping out more widely
+            sample_rate=1.0,
+            tags={"call_made": True, "blocker": "none"},
+        )
+        try:
+            # If no matching group is found in Seer, we'll still get back result
+            # metadata, but `seer_matched_grouphash` will be None
+            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(
+                event, primary_hashes
+            )
+            event.data["seer_similarity"] = seer_response_data
+
+        # Insurance - in theory we shouldn't ever land here
+        except Exception as e:
+            sentry_sdk.capture_exception(
+                e, tags={"event": event.event_id, "project": event.project.id}
+            )
+
+    return seer_matched_grouphash
