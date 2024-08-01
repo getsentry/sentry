@@ -16,7 +16,6 @@ import {
 import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
-import {HighlightIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
@@ -266,12 +265,7 @@ export default function HighlightsDataSection({
     <InterimSection
       key="event-highlights"
       type={FoldSectionKey.HIGHLIGHTS}
-      title={
-        <HighlightTitle>
-          {t('Event Highlights')}
-          <HighlightIconSummary event={event} />
-        </HighlightTitle>
-      }
+      title={t('Event Highlights')}
       help={tct(
         'Promoted tags and context items saved for this project. [link:Learn more]',
         {
@@ -334,12 +328,6 @@ const HighlightColumn = styled(TreeColumn)`
 
 const HighlightContextContent = styled(ContextCardContent)`
   font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const HighlightTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
 `;
 
 export const highlightModalCss = css`
