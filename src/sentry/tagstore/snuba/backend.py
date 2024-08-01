@@ -1176,7 +1176,7 @@ class SnubaTagStorage(TagStorage):
         key,
         start=None,
         end=None,
-        dataset: Dataset = None,
+        dataset: Dataset | None = None,
         query: str | None = None,
         order_by="-last_seen",
         include_transactions: bool = False,

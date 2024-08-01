@@ -1401,7 +1401,7 @@ def importing(uuid: UUID) -> None:
                 flags=ImportFlags(
                     import_uuid=str(uuid),
                     hide_organizations=True,
-                    merge_users=False,
+                    merge_users=relocation.provenance == Relocation.Provenance.SAAS_TO_SAAS,
                     overwrite_configs=False,
                 ),
                 org_filter=set(relocation.want_org_slugs),

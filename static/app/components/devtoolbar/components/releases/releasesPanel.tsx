@@ -79,17 +79,19 @@ function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release})
       css={{width: '100%', alignItems: 'flex-start', padding: 'var(--space150)'}}
     >
       <ReleaseInfoHeader css={infoHeaderCss}>
-        <SentryAppLink
-          to={{
-            url: `/organizations/${orgSlug}/releases/${encodeURIComponent(release.version)}/`,
-            query: {project: release.projects[0].id},
-          }}
-        >
-          <VersionWrapper>{formatVersion(release.version)}</VersionWrapper>
-        </SentryAppLink>
-        {release.commitCount > 0 && (
-          <ReleaseCardCommits release={release} withHeading={false} />
-        )}
+        <AnalyticsProvider nameVal="latest release" keyVal="latest-release">
+          <SentryAppLink
+            to={{
+              url: `/organizations/${orgSlug}/releases/${encodeURIComponent(release.version)}/`,
+              query: {project: release.projects[0].id},
+            }}
+          >
+            <VersionWrapper>{formatVersion(release.version)}</VersionWrapper>
+          </SentryAppLink>
+          {release.commitCount > 0 && (
+            <ReleaseCardCommits release={release} withHeading={false} />
+          )}
+        </AnalyticsProvider>
       </ReleaseInfoHeader>
       <ReleaseInfoSubheader
         css={[resetFlexColumnCss, subtextCss, {alignItems: 'flex-start'}]}

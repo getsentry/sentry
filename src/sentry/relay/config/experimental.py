@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol, TypeVar
+from typing import Any, Concatenate, ParamSpec, Protocol, TypeVar
 
 import sentry_sdk
 
@@ -66,20 +66,18 @@ def add_experimental_config(
 
 
 R = TypeVar("R")
-R_default = TypeVar("R_default")
+P = ParamSpec("P")
 
 
 def build_safe_config(
     key: str,
-    function: Callable[..., R],
-    *args: Any,
-    default_return: R_default | None = None,
-    **kwargs: Any,
-) -> R | R_default | None:
+    function: Callable[Concatenate[TimeChecker, P], R],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> R | None:
     """
     Runs a config builder function with a timeout.
-    If the function call raises an exception, we log it to sentry and return value passed as
-    `default_return` parameter (by default this is `None`).
+    If the function call raises an exception, we log it to sentry and return None
     """
     timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
@@ -95,4 +93,4 @@ def build_safe_config(
         except Exception:
             logger.exception("Exception while building Relay project config field")
 
-    return default_return
+    return None
