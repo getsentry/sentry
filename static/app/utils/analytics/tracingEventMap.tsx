@@ -104,7 +104,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.quality.quota_exceeded.learn_more_clicked':
     'Clicked Learn More in Quota Exceeded Banner',
   'trace.quality.quota_exceeded.banner_loaded':
-    'Clicked Learn More in Performance Setup Banner',
+    'Performance Quota Exceeded Banner Loaded',
   'trace.trace_layout.view_shortcuts': 'Viewed Trace Shortcuts',
   'trace.trace_warning_type': 'Viewed Trace Warning Type',
   'trace.trace_layout.zoom_to_fill': 'Trace Zoom to Fill',
