@@ -19,6 +19,7 @@ interface UseMetricsOptions<Fields> {
   enabled?: boolean;
   fields?: Fields;
   limit?: number;
+  noPagination?: boolean;
   pageFilters?: PageFilters;
   search?: MutableSearch | string; // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
   sorts?: Sort[];
@@ -69,6 +70,7 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
     limit,
     cursor,
     pageFilters: pageFiltersFromOptions,
+    noPagination,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -88,6 +90,7 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
     enabled: options.enabled,
     referrer,
     cursor,
+    noPagination,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data

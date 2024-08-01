@@ -133,6 +133,7 @@ export function CacheLandingPage() {
       search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}]`,
       fields: [`avg(transaction.duration)`, 'transaction'],
       enabled: !isTransactionsListFetching && transactionsList.length > 0,
+      noPagination: true,
     },
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );

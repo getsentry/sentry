@@ -133,12 +133,14 @@ export function useWrappedDiscoverQuery<T>({
   referrer,
   limit,
   cursor,
+  noPagination,
 }: {
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
   initialData?: T;
   limit?: number;
+  noPagination?: boolean;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -158,6 +160,7 @@ export function useWrappedDiscoverQuery<T>({
       retryDelay: getRetryDelay,
       staleTime: Infinity,
     },
+    noPagination,
   });
 
   // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it
