@@ -8,6 +8,7 @@ import {vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
@@ -309,6 +310,7 @@ export function DeprecatedAggregateFlamegraph(
         disableZoom
         disableGrid
         disableCallOrderSort
+        contextMenu={FlamegraphContextMenu}
       />
       {props.hideToolbar ? null : (
         <AggregateFlamegraphToolbar>

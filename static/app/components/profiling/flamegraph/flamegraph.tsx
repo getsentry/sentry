@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
@@ -1552,6 +1553,7 @@ function Flamegraph(): ReactElement {
               flamegraphView={flamegraphView}
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+              contextMenu={FlamegraphContextMenu}
             />
           </ProfileDragDropImport>
         }

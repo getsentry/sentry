@@ -7,6 +7,7 @@ import {vec2} from 'gl-matrix';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {DifferentialFlamegraphLayout} from 'sentry/components/profiling/flamegraph/differentialFlamegraphLayout';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {DifferentialFlamegraphDrawer} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/differentialFlamegraphDrawer';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
@@ -333,6 +334,7 @@ function DifferentialFlamegraphView() {
               flamegraphView={flamegraphView}
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+              contextMenu={FlamegraphContextMenu}
             />
           }
           flamegraphDrawer={

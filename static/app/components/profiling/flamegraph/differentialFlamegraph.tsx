@@ -5,6 +5,7 @@ import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import type {
   CanvasPoolManager,
@@ -208,6 +209,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
       flamegraphView={flamegraphView}
       setFlamegraphCanvasRef={setFlamegraphCanvasRef}
       setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+      contextMenu={FlamegraphContextMenu}
     />
   );
 }
