@@ -349,7 +349,6 @@ export function MetricsExtractionRuleForm({
         <Fragment>
           <SpanAttributeUnitWrapper>
             <SelectField
-              option
               inline={false}
               stacked
               name="spanAttribute"

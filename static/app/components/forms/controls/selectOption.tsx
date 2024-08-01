@@ -4,7 +4,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MenuListItem from 'sentry/components/menuListItem';
-import {IconAdd, IconCheckmark} from 'sentry/icons';
+import {IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
@@ -56,28 +56,17 @@ function SelectOption(props: Props) {
           innerWrapProps={{'data-test-id': value}}
           labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
           leadingItems={
-            itemProps.__isNew__ ? (
-              <Fragment>
-                <IconAdd size="sm" />
-                {data.leadingItems}
-              </Fragment>
-            ) : isMultiple ? (
-              <Fragment>
-                <CheckWrap isMultiple isSelected={isSelected}>
-                  {isSelected && <IconCheckmark size="xs" color="white" />}
-                </CheckWrap>
-                {data.leadingItems}
-              </Fragment>
-            ) : (
-              isSelected && (
-                <Fragment>
-                  <CheckWrap isMultiple={false} isSelected>
-                    <IconCheckmark size="sm" />
-                  </CheckWrap>
-                  {data.leadingItems}
-                </Fragment>
-              )
-            )
+            <Fragment>
+              <CheckWrap isMultiple={isMultiple} isSelected={isSelected}>
+                {isSelected && (
+                  <IconCheckmark
+                    size={isMultiple ? 'xs' : 'sm'}
+                    color={isMultiple ? 'white' : undefined}
+                  />
+                )}
+              </CheckWrap>
+              {data.leadingItems}
+            </Fragment>
           }
         />
       )}

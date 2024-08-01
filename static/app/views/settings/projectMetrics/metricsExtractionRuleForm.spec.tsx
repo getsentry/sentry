@@ -76,7 +76,10 @@ describe('Metrics Extraction Rule Form', function () {
 
     await userEvent.type(screen.getByText('Select span attribute'), 'new-metric');
 
-    await userEvent.click(screen.getByText(textWithMarkupMatcher('Create "new-metric"')));
+    await userEvent.click(
+      // the dom renders 2x of this text because of aria
+      screen.getAllByText(textWithMarkupMatcher('Create "new-metric"'))[1]
+    );
 
     await userEvent.click(screen.getByText(/we’ll need a moment/));
 
