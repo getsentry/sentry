@@ -9,6 +9,7 @@ const PanelFeedback = lazy(() => import('./feedback/feedbackPanel'));
 const PanelIssues = lazy(() => import('./issues/issuesPanel'));
 const PanelFeatureFlags = lazy(() => import('./featureFlags/featureFlagsPanel'));
 const PanelReleases = lazy(() => import('./releases/releasesPanel'));
+const PanelPerformance = lazy(() => import('./performance/performancePanel'));
 
 export default function PanelRouter() {
   const {state} = useToolbarRoute();
@@ -42,6 +43,12 @@ export default function PanelRouter() {
       return (
         <AnalyticsProvider keyVal="releases-panel" nameVal="Releases panel">
           <PanelReleases />
+        </AnalyticsProvider>
+      );
+    case 'performance':
+      return (
+        <AnalyticsProvider keyVal="performance-panel" nameVal="Performance panel">
+          <PanelPerformance />
         </AnalyticsProvider>
       );
     default:

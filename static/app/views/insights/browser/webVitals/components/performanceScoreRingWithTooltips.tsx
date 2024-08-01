@@ -21,16 +21,16 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
 
-type Coordinates = {
+export type Coordinates = {
   x: number;
   y: number;
 };
 
-type WebVitalsLabelCoordinates = {
+export type WebVitalsLabelCoordinates = {
   [p in WebVitals]?: Coordinates;
 };
 
-type Props = {
+export type PerformanceRingProps = {
   height: number;
   projectScore: ProjectScore;
   ringBackgroundColors: string[];
@@ -132,7 +132,7 @@ function PerformanceScoreRingWithTooltips({
   labelWidthPadding = 28,
   labelHeightPadding = 14,
   radiusPadding = 4,
-}: Props) {
+}: PerformanceRingProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
