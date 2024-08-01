@@ -85,12 +85,12 @@ import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   loadTraceViewPreferences,
 } from './traceState/tracePreferences';
-import {PerformanceSetupWarning} from './traceWarnings/performanceSetupWarning';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
+import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
@@ -957,7 +957,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   return (
     <Fragment>
-      <PerformanceSetupWarning
+      <TraceTypeWarnings
         tree={tree}
         traceSlug={props.traceSlug}
         organization={organization}

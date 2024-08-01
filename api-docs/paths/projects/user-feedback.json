@@ -1,0 +1,175 @@
+{
+  "get": {
+    "tags": ["Projects"],
+    "description": "Return a list of user feedback items within this project.\n\n*This list does not include submissions from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget). This is because it is based on an older format called User Reports - read more [here](https://develop.sentry.dev/application/feedback-architecture/#user-reports).*",
+    "operationId": "List a Project's User Feedback",
+    "parameters": [
+      {
+        "name": "organization_id_or_slug",
+        "in": "path",
+        "description": "The id or slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_id_or_slug",
+        "in": "path",
+        "description": "The id or slug of the project.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/user-feedback.json#/UserFeedback"
+              }
+            },
+            "example": [
+              {
+                "comments": "It broke!",
+                "dateCreated": "2018-11-06T21:20:11.468Z",
+                "email": "jane@example.com",
+                "event": {
+                  "eventID": "14bad9a2e3774046977a21440ddb39b2",
+                  "id": null
+                },
+                "eventID": "14bad9a2e3774046977a21440ddb39b2",
+                "id": "1",
+                "issue": null,
+                "name": "Jane Smith",
+                "user": null
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  },
+  "post": {
+    "tags": ["Projects"],
+    "description": "*This endpoint is DEPRECATED. We document it here for older SDKs and users who are still migrating to the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) or [API](https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-api)(multi-platform). If you are a new user, do not use this endpoint - unless you don't have a JS frontend, and your platform's SDK does not offer a feedback API.*\n\nFeedback must be received by the server no more than 30 minutes after the event was saved.\n\nAdditionally, within 5 minutes of submitting feedback it may also be overwritten. This is useful in situations where you may need to retry sending a request due to network failures.\n\nIf feedback is rejected due to a mutability threshold, a 409 status code will be returned.\n\nNote: Feedback may be submitted with DSN authentication (see auth documentation).",
+    "operationId": "Submit User Feedback",
+    "parameters": [
+      {
+        "name": "organization_id_or_slug",
+        "in": "path",
+        "description": "The id or slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_id_or_slug",
+        "in": "path",
+        "description": "The id or slug of the project.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "required": ["event_id", "name", "email", "comments"],
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "description": "The event ID. This can be retrieved from the [beforeSend callback](https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-beforesend)."
+              },
+              "name": {
+                "type": "string",
+                "description": "User's name."
+              },
+              "email": {
+                "type": "string",
+                "description": "User's email address."
+              },
+              "comments": {
+                "type": "string",
+                "description": "Comments supplied by user."
+              }
+            }
+          },
+          "example": {
+            "event_id": "14bad9a2e3774046977a21440ddb39b2",
+            "name": "Jane Schmidt",
+            "email": "jane@empowerplant.io",
+            "comments": "It broke!"
+          }
+        }
+      },
+      "required": false
+    },
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/user-feedback.json#/UserFeedback"
+            },
+            "example": {
+              "comments": "It broke!",
+              "dateCreated": "2018-11-06T21:20:11.468Z",
+              "email": "jane@example.com",
+              "event": {
+                "eventID": "14bad9a2e3774046977a21440ddb39b2",
+                "id": null
+              },
+              "eventID": "14bad9a2e3774046977a21440ddb39b2",
+              "id": "1",
+              "issue": null,
+              "name": "Jane Smith",
+              "user": null
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad Input"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      },
+      "409": {
+        "description": "Conflict"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:write"]
+      },
+      {
+        "dsn": []
+      }
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 import datetime
 import pickle
 from collections import defaultdict
+from collections.abc import Mapping
 from unittest import mock
 from unittest.mock import Mock
 
@@ -53,7 +54,9 @@ class TestRedisBuffer:
         client.zadd("b:p", {"foo": 1, "bar": 2})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
+        process_incr.apply_async.assert_any_call(
+            kwargs={"batch_keys": ["foo", "bar"]}, headers=mock.ANY
+        )
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
@@ -65,8 +68,10 @@ class TestRedisBuffer:
         client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]})
+        process_incr.apply_async.assert_any_call(
+            kwargs={"batch_keys": ["foo", "bar"]}, headers=mock.ANY
+        )
+        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]}, headers=mock.ANY)
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
@@ -366,6 +371,36 @@ class TestRedisBuffer:
         )
         self.buf.process("foo")
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
+
+    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    def test_get_hash_length(self):
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        data: Mapping[str | bytes, bytes | float | int | str] = {
+            "f": '{"pk": ["i","1"]}',
+            "i+times_seen": "1",
+            "m": "unittest.mock.Mock",
+            "s": "1",
+        }
+
+        client.hmset("foo", data)
+        buffer_length = self.buf.get_hash_length("foo", field={"bar": 1})
+        assert buffer_length == len(data)
+
+    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    def test_push_to_hash_bulk(self):
+        def decode_dict(d):
+            return {k: v.decode("utf-8") if isinstance(v, bytes) else v for k, v in d.items()}
+
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        data = {
+            "f": '{"pk": ["i","1"]}',
+            "i+times_seen": "1",
+            "m": "unittest.mock.Mock",
+            "s": "1",
+        }
+        self.buf.push_to_hash_bulk(model=Project, filters={"project_id": 1}, data=data)
+        result = _hgetall_decode_keys(client, "foo", self.buf.is_redis_cluster)
+        assert decode_dict(result) == data
 
 
 #    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))

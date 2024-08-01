@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -11,6 +11,7 @@ import {
 } from 'sentry/components/group/assigneeSelector';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -117,14 +118,36 @@ export default function StreamlinedGroupHeader({
           <EventMessage
             message={message}
             type={group.type}
+            level={group.level}
             showUnhandled={group.isUnhandled}
           />
-          <Divider />
-          <div>{t('First Seen in')}</div>
-          <Version version={firstRelease?.version || ''} projectId={project.id} />
-          <Divider />
-          <div>{t('Last Seen in')}</div>
-          <Version version={lastRelease?.version || ''} projectId={project.id} />
+          {firstRelease && lastRelease && (
+            <Fragment>
+              <Divider />
+              <ReleaseWrapper>
+                {t('Releases')}
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={project.slug}
+                  releaseVersion={firstRelease.version}
+                >
+                  <span>
+                    <Version version={firstRelease.version} projectId={project.id} />
+                  </span>
+                </VersionHoverCard>
+                -
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={project.slug}
+                  releaseVersion={lastRelease.version}
+                >
+                  <span>
+                    <Version version={lastRelease.version} projectId={project.id} />
+                  </span>
+                </VersionHoverCard>
+              </ReleaseWrapper>
+            </Fragment>
+          )}
         </MessageWrapper>
         <StyledBreak />
         <InfoWrapper isResolved={group.status === 'resolved'}>
@@ -226,4 +249,20 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const StyledAvatarList = styled(AvatarList)`
+  justify-content: flex-end;
+  padding-left: ${space(0.75)};
+`;
+
+const ReleaseWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+  a {
+    color: ${p => p.theme.gray300};
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
 `;

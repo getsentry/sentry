@@ -1,17 +1,19 @@
 import logging
 from dataclasses import asdict
+from typing import Any
 
 from django.conf import settings
 
 from sentry import features, options
 from sentry import ratelimits as ratelimiter
+from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
-from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
+from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     event_content_is_seer_eligible,
     filter_null_from_string,
@@ -187,12 +189,7 @@ def get_seer_similar_issues(
     event: Event,
     primary_hashes: CalculatedHashes,
     num_neighbors: int = 1,
-) -> tuple[
-    dict[
-        str, str | list[dict[str, float | bool | int | str]]
-    ],  # a SeerSimilarIssuesMetadata instance, dictified
-    Group | None,
-]:
+) -> tuple[dict[str, Any], Group | None]:
     """
     Ask Seer for the given event's nearest neighbor(s) and return the seer response data, sorted
     with the best matches first, along with the group Seer decided the event should go in, if any,
@@ -218,7 +215,10 @@ def get_seer_similar_issues(
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
-    similar_issues_metadata = asdict(SeerSimilarIssuesMetadata(results=seer_results))
+    similar_issues_metadata = {
+        "results": [asdict(result) for result in seer_results],
+        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+    }
     parent_group = (
         Group.objects.filter(id=seer_results[0].parent_group_id).first() if seer_results else None
     )
@@ -229,7 +229,7 @@ def get_seer_similar_issues(
             "event_id": event.event_id,
             "project_id": event.project.id,
             "hash": event_hash,
-            "results": similar_issues_metadata["results"],
+            "results": seer_results,
             "group_returned": bool(parent_group),
         },
     )

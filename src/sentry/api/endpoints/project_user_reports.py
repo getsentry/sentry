@@ -33,8 +33,8 @@ class _PaginateKwargs(TypedDict):
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     owner = ApiOwner.FEEDBACK
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,  # TODO: deprecate
+        "POST": ApiPublishStatus.PRIVATE,  # TODO: deprecate
     }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
@@ -44,6 +44,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         ``````````````````````````````
 
         Return a list of user feedback items within this project.
+
+        *This list does not include submissions from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget). This is because it is based on an older format called User Reports - read more [here](https://develop.sentry.dev/application/feedback-architecture/#user-reports).*
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string project_id_or_slug: the id or slug of the project.
@@ -88,6 +90,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         """
         Submit User Feedback
         ````````````````````
+
+        *This endpoint is DEPRECATED. We document it here for older SDKs and users who are still migrating to the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) or [API](https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-api)(multi-platform). If you are a new user, do not use this endpoint - unless you don't have a JS frontend, and your platform's SDK does not offer a feedback API.*
 
         Submit and associate user feedback with an issue.
 
