@@ -33,7 +33,7 @@ export default function ReleaseIsssues({releaseVersion}: {releaseVersion: string
         `}
       >
         <PanelItem css={{padding: 'var(--space150)'}}>
-          <div css={infoHeaderCss}>New issues related to this release</div>
+          <div css={infoHeaderCss}>New issues in current release</div>
         </PanelItem>
         <div css={resetFlexColumnCss}>
           <InfiniteListState
