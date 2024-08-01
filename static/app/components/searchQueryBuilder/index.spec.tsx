@@ -8,6 +8,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   SearchQueryBuilder,
@@ -21,7 +22,12 @@ import {
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {
+  FieldKey,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
 const FILTER_KEYS: TagCollection = {
@@ -1976,6 +1982,216 @@ describe('SearchQueryBuilder', function () {
 
         expect(screen.getByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
+      });
+    });
+
+    describe('aggregate filters', function () {
+      const aggregateFilterKeys: TagCollection = {
+        count: {
+          key: 'count',
+          name: 'count',
+          kind: FieldKind.FUNCTION,
+        },
+        count_if: {
+          key: 'count_if',
+          name: 'count_if',
+          kind: FieldKind.FUNCTION,
+        },
+        'transaction.duration': {
+          key: 'transaction.duration',
+          name: 'transaction.duration',
+          kind: FieldKind.FIELD,
+        },
+        timesSeen: {
+          key: 'timesSeen',
+          name: 'timesSeen',
+          kind: FieldKind.FIELD,
+        },
+        lastSeen: {
+          key: 'lastSeen',
+          name: 'lastSeen',
+          kind: FieldKind.FIELD,
+        },
+      };
+
+      const aggregateGetFieldDefinition: FieldDefinitionGetter = key => {
+        switch (key) {
+          case 'count':
+            return {
+              desc: 'count() description',
+              kind: FieldKind.FUNCTION,
+              valueType: FieldValueType.INTEGER,
+              parameters: [],
+            };
+          case 'count_if':
+            return {
+              desc: 'count_if() description',
+              kind: FieldKind.FUNCTION,
+              valueType: FieldValueType.INTEGER,
+              parameters: [
+                {
+                  name: 'column',
+                  kind: 'column' as const,
+                  columnTypes: [
+                    FieldValueType.STRING,
+                    FieldValueType.NUMBER,
+                    FieldValueType.DURATION,
+                  ],
+                  defaultValue: 'transaction.duration',
+                  required: true,
+                },
+                {
+                  name: 'operator',
+                  kind: 'value' as const,
+                  options: [{value: 'less'}, {value: 'greater'}],
+                  dataType: FieldValueType.STRING,
+                  defaultValue: 'greater',
+                  required: true,
+                },
+                {
+                  name: 'value',
+                  kind: 'value' as const,
+                  dataType: FieldValueType.STRING,
+                  defaultValue: '300ms',
+                  required: false,
+                },
+              ],
+            };
+          default:
+            return getFieldDefinition(key);
+        }
+      };
+
+      const aggregateDefaultProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: aggregateFilterKeys,
+        fieldDefinitionGetter: aggregateGetFieldDefinition,
+        filterKeySections: [],
+      };
+
+      it('can add an aggregate filter with default values', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'count_if'}));
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(transaction.duration,greater,300ms):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameter with predefined options', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="count_if(transaction.duration,):>100"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+        expect(input).toHaveFocus();
+        expect(input).toHaveValue('transaction.duration,');
+
+        await userEvent.click(await screen.findByRole('option', {name: 'less'}));
+        await waitFor(() => {
+          expect(input).toHaveValue('transaction.duration,less');
+        });
+        // Cursor should be at end of `less`
+        expect((input as HTMLInputElement).selectionStart).toBe(25);
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(transaction.duration,less):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameter with column options', async function () {
+        render(
+          <SearchQueryBuilder {...aggregateDefaultProps} initialQuery="count_if():>100" />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+        expect(input).toHaveFocus();
+        expect(input).toHaveValue('');
+
+        await userEvent.click(await screen.findByRole('option', {name: 'timesSeen'}));
+        await waitFor(() => {
+          expect(input).toHaveValue('timesSeen');
+        });
+        // Cursor should be at end of `timesSeen`
+        expect((input as HTMLInputElement).selectionStart).toBe(9);
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(timesSeen):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameters by typing a manual value', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="count_if(transaction.duration,greater,300ms):>100"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+
+        await userEvent.clear(input);
+        await userEvent.keyboard('a,b,c{enter}');
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(a,b,c):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('displays a description of the function and parameters while editing', async function () {
+        render(
+          <SearchQueryBuilder {...aggregateDefaultProps} initialQuery="count_if():>100" />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+
+        const descriptionTooltip = await screen.findByRole('tooltip');
+        expect(
+          within(descriptionTooltip).getByText('count_if() description')
+        ).toBeInTheDocument();
+        expect(
+          within(descriptionTooltip).getByText(
+            textWithMarkupMatcher(
+              'count_if(column: string, operator: string, value?: string)'
+            )
+          )
+        ).toBeInTheDocument();
+        expect(within(descriptionTooltip).getByTestId('focused-param')).toHaveTextContent(
+          'column: string'
+        );
+
+        // After moving to next parameter, should now highlight 'operator'
+        await userEvent.keyboard('a,');
+        await waitFor(() => {
+          expect(
+            within(descriptionTooltip).getByTestId('focused-param')
+          ).toHaveTextContent('operator: string');
+        });
       });
     });
   });

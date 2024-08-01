@@ -88,6 +88,35 @@ const trackPerformanceSetupChecklistTriggered = (organization: Organization) =>
     organization,
   });
 
+const trackPerformanceSetupBannerLoaded = (organization: Organization) =>
+  trackAnalytics('trace.quality.performance_setup.banner_loaded', {
+    organization,
+  });
+
+const trackQuotaExceededIncreaseBudgetClicked = (
+  organization: Organization,
+  traceType: string
+) =>
+  trackAnalytics('trace.quality.quota_exceeded.increase_budget_clicked', {
+    organization,
+    traceType,
+  });
+
+const trackQuotaExceededLearnMoreClicked = (
+  organization: Organization,
+  traceType: string
+) =>
+  trackAnalytics('trace.quality.quota_exceeded.learn_more_clicked', {
+    organization,
+    traceType,
+  });
+
+const trackQuotaExceededBannerLoaded = (organization: Organization, traceType: string) =>
+  trackAnalytics('trace.quality.quota_exceeded.banner_loaded', {
+    organization,
+    traceType,
+  });
+
 const trackPerformanceSetupLearnMoreClicked = (organization: Organization) =>
   trackAnalytics('trace.quality.performance_setup.learn_more_clicked', {
     organization,
@@ -125,6 +154,10 @@ const traceAnalytics = {
   // Trace Quality Improvement
   trackPerformanceSetupChecklistTriggered,
   trackPerformanceSetupLearnMoreClicked,
+  trackPerformanceSetupBannerLoaded,
+  trackQuotaExceededIncreaseBudgetClicked,
+  trackQuotaExceededLearnMoreClicked,
+  trackQuotaExceededBannerLoaded,
 };
 
 export {traceAnalytics};

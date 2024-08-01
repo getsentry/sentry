@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 from django.utils import timezone
+from pytest import raises
 
 from sentry.buffer.base import Buffer
 from sentry.db import models
@@ -27,7 +28,7 @@ class BufferTest(TestCase):
         filters: dict[str, models.Model | str | int] = {"id": 1}
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None, signal_only=None)
-        process_incr.apply_async.assert_called_once_with(kwargs=kwargs)
+        process_incr.apply_async.assert_called_once_with(kwargs=kwargs, headers=mock.ANY)
 
     def test_process_saves_data(self):
         group = Group.objects.create(project=Project(id=1))
@@ -77,3 +78,9 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters, {"last_seen": the_date}, signal_only=True)
         group.refresh_from_db()
         assert group.times_seen == prev_times_seen
+
+    def test_push_to_hash_bulk(self):
+        raises(NotImplementedError, self.buf.push_to_hash_bulk, Group, {"id": 1}, {"foo": "bar"})
+
+    def test_get_hash_length(self):
+        raises(NotImplementedError, self.buf.get_hash_length, Group, {"id": 1})
