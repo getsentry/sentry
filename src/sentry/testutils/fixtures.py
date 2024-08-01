@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
@@ -644,7 +644,10 @@ class Fixtures:
         url="http://sentry.io/",
         interval_seconds=60,
         timeout_ms=100,
+        date_updated: None | datetime = None,
     ) -> UptimeSubscription:
+        if date_updated is None:
+            date_updated = datetime.utcnow()
         return Factories.create_uptime_subscription(
             type=type,
             subscription_id=subscription_id,
@@ -652,6 +655,7 @@ class Fixtures:
             url=url,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
+            date_updated=date_updated,
         )
 
     def create_project_uptime_subscription(

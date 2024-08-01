@@ -5,6 +5,7 @@ from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
+from django.utils import timezone
 
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
@@ -12,9 +13,11 @@ from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import UPTIME_CONFIGS_CODEC
 from sentry.uptime.models import UptimeSubscription
 from sentry.uptime.subscriptions.tasks import (
+    SUBSCRIPTION_STATUS_MAX_AGE,
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
     send_uptime_config_deletion,
+    subscription_checker,
     uptime_subscription_to_check_config,
 )
 
@@ -156,3 +159,34 @@ class SendUptimeConfigDeletionTest(ProducerTestMixin):
         subscription_id = uuid4().hex
         send_uptime_config_deletion(subscription_id)
         self.assert_producer_calls(subscription_id)
+
+
+class SubscriptionCheckerTest(TestCase):
+    def test_create_delete(self):
+        for status in (
+            UptimeSubscription.Status.CREATING,
+            UptimeSubscription.Status.DELETING,
+        ):
+            sub = self.create_uptime_subscription(
+                status=status,
+                date_updated=timezone.now() - (SUBSCRIPTION_STATUS_MAX_AGE * 2),
+                url=f"http://sentry{status}.io",
+            )
+            sub_new = self.create_uptime_subscription(
+                status=status, date_updated=timezone.now(), url=f"http://santry{status}.io"
+            )
+            with self.tasks():
+                subscription_checker()
+            if status == UptimeSubscription.Status.DELETING:
+                with pytest.raises(UptimeSubscription.DoesNotExist):
+                    sub.refresh_from_db()
+                sub_new.refresh_from_db()
+                assert sub_new.status == status.value
+                assert sub_new.subscription_id is None
+            else:
+                sub.refresh_from_db()
+                assert sub.status == UptimeSubscription.Status.ACTIVE.value
+                assert sub.subscription_id is not None
+                sub_new.refresh_from_db()
+                assert sub_new.status == status.value
+                assert sub_new.subscription_id is None
