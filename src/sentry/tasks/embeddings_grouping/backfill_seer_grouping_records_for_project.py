@@ -47,7 +47,6 @@ def backfill_seer_grouping_records_for_project(
     enable_ingestion: bool = False,
     skip_processed_projects: bool = False,
     skip_project_ids: list[int] | None = None,
-    use_reranking: bool = False,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -72,7 +71,6 @@ def backfill_seer_grouping_records_for_project(
             "only_delete": only_delete,
             "skip_processed_projects": skip_processed_projects,
             "skip_project_ids": skip_project_ids,
-            "use_reranking": use_reranking,
         },
     )
 
@@ -104,7 +102,6 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
-            use_reranking=use_reranking,
         )
         return
 
@@ -131,7 +128,6 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
-            use_reranking=use_reranking,
         )
         return
 
@@ -150,7 +146,6 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
-            use_reranking=use_reranking,
         )
         return
 
@@ -169,7 +164,6 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
-            use_reranking=use_reranking,
         )
         return
 
@@ -189,7 +183,6 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
-            use_reranking=use_reranking,
         )
         return
 
@@ -205,7 +198,6 @@ def backfill_seer_grouping_records_for_project(
             enable_ingestion=enable_ingestion,
             skip_processed_projects=skip_processed_projects,
             skip_project_ids=skip_project_ids,
-            use_reranking=use_reranking,
         )
         return
 
@@ -220,14 +212,12 @@ def backfill_seer_grouping_records_for_project(
             groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             nodestore_results,
             project.id,
-            use_reranking,
         )
     else:
         seer_response = send_group_and_stacktrace_to_seer(
             groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             nodestore_results,
             project.id,
-            use_reranking,
         )
 
     if not seer_response.get("success"):
@@ -263,7 +253,6 @@ def backfill_seer_grouping_records_for_project(
         enable_ingestion=enable_ingestion,
         skip_processed_projects=skip_processed_projects,
         skip_project_ids=skip_project_ids,
-        use_reranking=use_reranking,
     )
 
 
@@ -277,7 +266,6 @@ def call_next_backfill(
     enable_ingestion: bool = False,
     skip_processed_projects: bool = False,
     skip_project_ids: list[int] | None = None,
-    use_reranking: bool = False,
 ):
     if last_processed_group_id is not None:
         logger.info(
@@ -297,7 +285,6 @@ def call_next_backfill(
                 enable_ingestion,
                 skip_processed_projects,
                 skip_project_ids,
-                use_reranking,
             ],
             headers={"sentry-propagate-traces": False},
         )
@@ -340,7 +327,6 @@ def call_next_backfill(
                 enable_ingestion,
                 skip_processed_projects,
                 skip_project_ids,
-                use_reranking,
             ],
             headers={"sentry-propagate-traces": False},
         )

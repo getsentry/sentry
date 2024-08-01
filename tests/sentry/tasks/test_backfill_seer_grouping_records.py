@@ -543,7 +543,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
@@ -564,7 +563,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -577,7 +575,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": project2.id}),
@@ -595,7 +592,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -645,7 +641,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -662,7 +657,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
@@ -683,7 +677,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -756,7 +749,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
@@ -777,7 +769,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -790,7 +781,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": project2.id}),
@@ -808,7 +798,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -1053,7 +1042,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 cohort=None,
                 last_processed_project_index_input=0,
                 skip_processed_projects=True,
-                use_reranking=True,
             )
 
         groups = Group.objects.filter(project_id=self.project.id)
@@ -1073,7 +1061,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
-                    "use_reranking": True,
                 },
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
@@ -1094,7 +1081,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
-                    "use_reranking": True,
                 },
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
@@ -1115,7 +1101,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
-                    "use_reranking": True,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
@@ -1265,7 +1250,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": True,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -1282,7 +1266,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": True,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -1494,7 +1477,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             enable_ingestion=False,
             skip_processed_projects=False,
             skip_project_ids=None,
-            use_reranking=False,
         )
 
     @with_feature("projects:similarity-embeddings-backfill")
@@ -1641,7 +1623,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call(
@@ -1685,7 +1666,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call("about to call next backfill", extra={"project_id": self.project.id}),
@@ -1703,7 +1683,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
-                    "use_reranking": False,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
@@ -1732,7 +1711,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": [self.project.id],
-                    "use_reranking": False,
                 },
             ),
             call(
