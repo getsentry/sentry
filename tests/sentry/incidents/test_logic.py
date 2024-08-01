@@ -3157,12 +3157,7 @@ class TestCustomMetricAlertRule(TestCase):
 
 
 class TestGetAlertResolution(TestCase):
-    def test_without_feature(self):
-        time_window = 30
-        result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_RESOLUTION
-
-    def test_enabled_feature(self):
+    def test_simple(self):
         time_window = 30
         result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
