@@ -45,6 +45,7 @@ import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhanc
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import useTags from 'sentry/utils/useTags';
 import withProjects from 'sentry/utils/withProjects';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -112,6 +113,16 @@ function SummaryContent({
 }: Props) {
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
+  const tagStoreCollection = useTags();
+
+  const filterKeySections = [
+    ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
+    {
+      value: 'custom_fields',
+      label: 'Custom Tags',
+      children: Object.keys(tagStoreCollection),
+    },
+  ];
 
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
@@ -377,11 +388,12 @@ function SummaryContent({
           )}
         >
           <SearchQueryBuilder
-            filterKeys={getTransactionFilterTags()}
+            filterKeys={getTransactionFilterTags(tagStoreCollection)}
             initialQuery={query}
+            onSearch={handleSearch}
             searchSource={'transaction_summary'}
             getTagValues={getTransactionFilterTagValues}
-            filterKeySections={ALL_INSIGHTS_FILTER_KEY_SECTIONS}
+            filterKeySections={filterKeySections}
             disallowFreeText
             disallowUnsupportedFilters
           />
@@ -598,13 +610,15 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-function getTransactionFilterTags(): TagCollection {
+function getTransactionFilterTags(tagStoreCollection): TagCollection {
   const measurements = getMeasurements();
+
   const combinedTags: TagCollection = {
     ...STATIC_SPAN_TAGS,
     ...STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
     ...STATIC_SEMVER_TAGS,
     ...measurements,
+    ...tagStoreCollection,
   };
 
   combinedTags.has = getHasTag(combinedTags);

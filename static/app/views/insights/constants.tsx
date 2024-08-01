@@ -220,7 +220,6 @@ export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   // For example, these mobile vitals are not necessary for a Python transaction, but they should be suggested for mobile SDK transactions
   MOBILE_VITAL_FIELDS,
   DEVICE_FIELDS,
-
   MISC_FIELDS,
 ];
 
