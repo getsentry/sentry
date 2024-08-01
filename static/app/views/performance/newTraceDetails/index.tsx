@@ -784,36 +784,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       scrollQueueRef.current = null;
       const query = qs.parse(location.search);
 
-      function scrollToRow() {
-        if (nodeToScrollTo === null || indexOfNodeToScrollTo === null) return;
-
-        function onTargetRowMeasure() {
-          if (!nodeToScrollTo || !viewManager.row_measurer.cache.has(nodeToScrollTo)) {
-            return;
-          }
-          viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
-          if (viewManager.isOutsideOfView(nodeToScrollTo)) {
-            viewManager.scrollRowIntoViewHorizontally(nodeToScrollTo!, 0, 48, 'measured');
-          }
-        }
-        viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
-        viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
-        previouslyScrolledToNodeRef.current = nodeToScrollTo;
-
-        setRowAsFocused(
-          nodeToScrollTo,
-          null,
-          traceStateRef.current.search.resultsLookup,
-          indexOfNodeToScrollTo
-        );
-        traceDispatch({
-          type: 'set roving index',
-          node: nodeToScrollTo,
-          index: indexOfNodeToScrollTo,
-          action_source: 'load',
-        });
-      }
-
       if (query.fov && typeof query.fov === 'string') {
         viewManager.maybeInitializeTraceViewFromQS(query.fov);
       }
@@ -822,19 +792,45 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         // At load time, we want to scroll the row into view, but we need to wait for the view
         // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
         // to the row in the view if it is not in view yet. If its in the view, then scroll to it immediately.
+        traceScheduler.once('initialize virtualized list', () => {
+          function onTargetRowMeasure() {
+            if (!nodeToScrollTo || !viewManager.row_measurer.cache.has(nodeToScrollTo)) {
+              return;
+            }
+            viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
+            if (viewManager.isOutsideOfView(nodeToScrollTo)) {
+              viewManager.scrollRowIntoViewHorizontally(
+                nodeToScrollTo!,
+                0,
+                48,
+                'measured'
+              );
+            }
+          }
+          viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
+          viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
+          previouslyScrolledToNodeRef.current = nodeToScrollTo;
 
-        if (tree.list[indexOfNodeToScrollTo] === nodeToScrollTo) {
-          scrollToRow();
-        } else {
-          traceScheduler.once('initialize virtualized list', scrollToRow);
-        }
+          setRowAsFocused(
+            nodeToScrollTo,
+            null,
+            traceStateRef.current.search.resultsLookup,
+            indexOfNodeToScrollTo
+          );
+          traceDispatch({
+            type: 'set roving index',
+            node: nodeToScrollTo,
+            index: indexOfNodeToScrollTo,
+            action_source: 'load',
+          });
+        });
       }
 
       if (traceStateRef.current.search.query) {
         onTraceSearch(traceStateRef.current.search.query, nodeToScrollTo, 'persist');
       }
     },
-    [setRowAsFocused, traceDispatch, onTraceSearch, viewManager, traceScheduler, tree]
+    [setRowAsFocused, traceDispatch, onTraceSearch, viewManager, traceScheduler]
   );
 
   // Setup the middleware for the trace reducer
