@@ -102,17 +102,19 @@ export function fetchTagValues({
   projectIds,
   search,
   sort,
+  dataset,
 }: {
   api: Client;
   orgSlug: string;
   tagKey: string;
+  dataset?: Dataset;
   endpointParams?: Query;
   includeReplays?: boolean;
   includeSessions?: boolean;
   includeTransactions?: boolean;
   projectIds?: string[];
   search?: string;
-  sort?: string;
+  sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
   const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
 
@@ -149,6 +151,10 @@ export function fetchTagValues({
 
   if (sort) {
     query.sort = sort;
+  }
+
+  if (dataset) {
+    query.dataset = dataset;
   }
 
   return api.requestPromise(url, {

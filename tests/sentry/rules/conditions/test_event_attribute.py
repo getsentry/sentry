@@ -856,3 +856,15 @@ class EventAttributeConditionTest(RuleTestCase):
             data={"match": MatchType.IS_IN, "attribute": "platform", "value": "python"}
         )
         self.assertDoesNotPass(rule, event)
+
+    def test_attr_not_in(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.NOT_IN, "attribute": "platform", "value": "php, python"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.NOT_IN, "attribute": "platform", "value": "python"}
+        )
+        self.assertPasses(rule, event)

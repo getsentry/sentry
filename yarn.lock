@@ -8452,7 +8452,7 @@ json5@^0.5.0:
   resolved "https://registry.yarnpkg.com/json5/-/json5-0.5.1.tgz#1eade7acc012034ad84e2396767ead9fa5495821"
   integrity sha1-Hq3nrMASA0rYTiOWdn6tn6VJWCE=
 
-json5@^1.0.2:
+json5@^1.0.1, json5@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/json5/-/json5-1.0.2.tgz#63d98d60f21b313b77c4d6da18bfa69d80e1d593"
   integrity sha512-g1MWMLBiz8FKi1e4w0UyVL3w+iJceWAFBAaBnnGKOpNa5f8TLktkbre1+s6oICydWAm+HRUGTmI+//xv2hvXYA==
@@ -8659,15 +8659,14 @@ loader-utils@1.1.0:
     emojis-list "^2.0.0"
     json5 "^0.5.0"
 
-loader-utils@^0.2.5:
-  version "0.2.17"
-  resolved "https://registry.yarnpkg.com/loader-utils/-/loader-utils-0.2.17.tgz#f86e6374d43205a6e6c60e9196f17c0299bfb348"
-  integrity sha1-+G5jdNQyBabmxg6RlvF8Apm/s0g=
+loader-utils@^1.4.2:
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/loader-utils/-/loader-utils-1.4.2.tgz#29a957f3a63973883eb684f10ffd3d151fec01a3"
+  integrity sha512-I5d00Pd/jwMD2QCduo657+YM/6L3KZu++pmX9VFncxaxvHcru9jx1lBaFft+r4Mt2jK0Yhp41XlRAihzPxHNCg==
   dependencies:
-    big.js "^3.1.3"
-    emojis-list "^2.0.0"
-    json5 "^0.5.0"
-    object-assign "^4.0.1"
+    big.js "^5.2.2"
+    emojis-list "^3.0.0"
+    json5 "^1.0.1"
 
 loader-utils@^2.0.0, loader-utils@^2.0.4:
   version "2.0.4"
@@ -9141,7 +9140,7 @@ nwsapi@^2.2.2:
   resolved "https://registry.yarnpkg.com/nwsapi/-/nwsapi-2.2.2.tgz#e5418863e7905df67d51ec95938d67bf801f0bb0"
   integrity sha512-90yv+6538zuvUMnN+zCr8LuV6bPFdq50304114vJYJ8RDyK8D5O9Phpbd6SZWgI7PwzmmfN1upeOJlvybDSgCw==
 
-object-assign@^4, object-assign@^4.0.1, object-assign@^4.1.0, object-assign@^4.1.1:
+object-assign@^4, object-assign@^4.1.0, object-assign@^4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
   integrity sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM=
@@ -9470,12 +9469,12 @@ path-type@^5.0.0:
   resolved "https://registry.yarnpkg.com/path-type/-/path-type-5.0.0.tgz#14b01ed7aea7ddf9c7c3f46181d4d04f9c785bb8"
   integrity sha512-5HviZNaZcfqP95rwpv+1HDgUamezbqdSYTyzjTvwtJSnIH+3vnbmWsItli8OFEndS984VT55M3jduxZbX351gg==
 
-pegjs-loader@^0.5.6:
-  version "0.5.6"
-  resolved "https://registry.yarnpkg.com/pegjs-loader/-/pegjs-loader-0.5.6.tgz#173eef4b8e831316b88828e6b224bc8a786d01b8"
-  integrity sha512-0csqb/kXi5IrHeghL6BPlfhePtjNf3/0eDkuOultZNLsLYIEsh2JdhqkQPkGKJ+4hrSj8UknNSWfXZ3f3Hg4SQ==
+pegjs-loader@^0.5.8:
+  version "0.5.8"
+  resolved "https://registry.yarnpkg.com/pegjs-loader/-/pegjs-loader-0.5.8.tgz#f40dbdb6d2678611dcde421c6e8aebca530ec4d7"
+  integrity sha512-FcqC07tFiDN5kEOVcYw0wSJcHu3d6YrT2sCJM5xkNwOeTAEkk/gFcxnkJH4D/ZNfUaBLQ7fbCUwMWLFfJ/06Mg==
   dependencies:
-    loader-utils "^0.2.5"
+    loader-utils "^1.4.2"
 
 pegjs@^0.10.0:
   version "0.10.0"
@@ -9565,10 +9564,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.10.9:
-  version "5.10.9"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.10.9.tgz#ca0ceb6309321f11e8ee0317c4193b77448948f3"
-  integrity sha512-QzDUFxOIK8VPpj+uHXbps7q+VgQmI3uAt+hlMZl5fSVWR0guOEJTaNXQFwCsgrOCz82udIUX8F4jRNDrsZPHzg==
+platformicons@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-6.0.1.tgz#69e2cc1a1fe1533804e8223f9382295379db8bca"
+  integrity sha512-RaT4+NfxuV2nqFxAZNaksa1UXKZS5QXdtvFc2y9A4Sp5Blt888jbSQJ7mUcmjw+Aqoq6oyz2cQvOCf4uymSizA==
   dependencies:
     "@types/node" "*"
     "@types/react" "*"

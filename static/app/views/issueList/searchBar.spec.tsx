@@ -1,9 +1,10 @@
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
+import type {Tag, TagValue} from 'sentry/types';
 import {IsFieldValues} from 'sentry/utils/fields';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
@@ -205,8 +206,6 @@ describe('IssueListSearchBar', function () {
         body: [{key: 'someTag', name: 'Some Tag'}],
       });
 
-      defaultProps.organization.features = ['issue-stream-search-query-builder'];
-
       render(<IssueListSearchBar {...newDefaultProps} />, {
         router: routerWithFlag,
       });
@@ -236,6 +235,66 @@ describe('IssueListSearchBar', function () {
       );
 
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
+    });
+  });
+
+  describe('Tag Values', function () {
+    const {router: routerWithFlag, organization: orgWithFlag} = initializeOrg();
+    orgWithFlag.features = ['issue-stream-search-query-builder'];
+
+    const newDefaultProps = {
+      organization: orgWithFlag,
+      query: '',
+      statsPeriod: '7d',
+      onSearch: jest.fn(),
+    };
+
+    it('displays the correct tag values for a key', async () => {
+      const tagKey = 'random';
+      const tagValue = 'randomValue';
+      const tagValueResponse: TagValue[] = [
+        {
+          name: tagValue,
+          value: tagValue,
+          count: 1,
+          firstSeen: '2021-01-01T00:00:00Z',
+          lastSeen: '2021-01-01T00:00:00Z',
+          email: 'a@sentry.io',
+          username: 'a',
+          id: '1',
+          ip_address: '1',
+        },
+      ];
+      const tag: Tag = {
+        key: tagKey,
+        name: tagKey,
+      };
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        method: 'GET',
+        body: [tag],
+      });
+      const tagValueMock = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/tags/${tagKey}/values/`,
+        method: 'GET',
+        body: tagValueResponse,
+      });
+
+      render(<IssueListSearchBar {...newDefaultProps} />, {
+        router: routerWithFlag,
+      });
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste(tagKey, {delay: null});
+      await userEvent.click(screen.getByRole('option', {name: tagKey}));
+      expect(await screen.findByRole('option', {name: tagValue})).toBeInTheDocument();
+
+      await waitFor(() => {
+        // Expected twice since we make one request for values in events dataset
+        // and another for values in IssuePlatform dataset.
+        expect(tagValueMock).toHaveBeenCalledTimes(2);
+      });
     });
   });
 });

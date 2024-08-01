@@ -41,15 +41,6 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  useReplayPageview('replay.details-time-spent');
-  useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
-  useRouteAnalyticsParams({
-    organization,
-    referrer: decodeScalar(location.query.referrer),
-    user_email: user.email,
-    tab: location.query.t_main,
-  });
-
   const {slug: orgSlug} = organization;
 
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
@@ -69,6 +60,17 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   });
 
   const replayErrors = errors.filter(e => e.title !== 'User Feedback');
+  const isVideoReplay = replay?.isVideoReplay();
+
+  useReplayPageview('replay.details-time-spent');
+  useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
+  useRouteAnalyticsParams({
+    organization,
+    referrer: decodeScalar(location.query.referrer),
+    user_email: user.email,
+    tab: location.query.t_main,
+    mobile: isVideoReplay,
+  });
 
   useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
 
@@ -176,11 +178,6 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       </Page>
     );
   }
-
-  const isVideoReplay = Boolean(
-    organization.features.includes('session-replay-mobile-player') &&
-      replay?.isVideoReplay()
-  );
 
   return (
     <ReplayContextProvider

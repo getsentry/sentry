@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, NotRequired, Optional, TypedDict, Union
 
+from django.utils import timezone as django_timezone
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import BooleanCondition, Condition
@@ -14,6 +15,7 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -74,26 +76,51 @@ class EventsResponse(TypedDict):
 
 @dataclass
 class SnubaParams:
-    start: datetime | None
-    end: datetime | None
+    start: datetime | None = None
+    end: datetime | None = None
+    stats_period: str | None = None
     # The None value in this sequence is because the filter params could include that
-    environments: Sequence[Environment | None]
-    projects: Sequence[Project]
-    user: RpcUser | None
-    teams: Sequence[Team]
-    organization: Organization | None
+    environments: Sequence[Environment | None] = field(default_factory=list)
+    projects: Sequence[Project] = field(default_factory=list)
+    user: RpcUser | None = None
+    teams: Iterable[Team] = field(default_factory=list)
+    organization: Organization | None = None
 
     def __post_init__(self) -> None:
         if self.start:
             self.start = self.start.replace(tzinfo=timezone.utc)
         if self.end:
             self.end = self.end.replace(tzinfo=timezone.utc)
+        if self.start is None and self.end is None:
+            self.parse_stats_period()
+        if self.organization is None and len(self.projects) > 0:
+            self.organization = self.projects[0].organization
 
         # Only used in the trend query builder
         self.aliases: dict[str, Alias] | None = {}
 
+    def parse_stats_period(self) -> None:
+        if self.stats_period is not None:
+            self.end = django_timezone.now()
+            from sentry.api.utils import get_datetime_from_stats_period
+
+            self.start = get_datetime_from_stats_period(self.stats_period, self.end)
+
     @property
-    def environment_names(self) -> Sequence[str]:
+    def start_date(self) -> datetime:
+        # This and end_date are helper functions so callers don't have to check if either are defined for typing
+        if self.start is None:
+            raise InvalidSearchQuery("start is required")
+        return self.start
+
+    @property
+    def end_date(self) -> datetime:
+        if self.end is None:
+            raise InvalidSearchQuery("end is required")
+        return self.end
+
+    @property
+    def environment_names(self) -> list[str]:
         return (
             [env.name if env is not None else "" for env in self.environments]
             if self.environments
@@ -101,19 +128,19 @@ class SnubaParams:
         )
 
     @property
-    def project_ids(self) -> Sequence[int]:
+    def project_ids(self) -> list[int]:
         return sorted([proj.id for proj in self.projects])
 
     @property
-    def project_slug_map(self) -> Mapping[str, int]:
+    def project_slug_map(self) -> dict[str, int]:
         return {proj.slug: proj.id for proj in self.projects}
 
     @property
-    def project_id_map(self) -> Mapping[int, str]:
+    def project_id_map(self) -> dict[int, str]:
         return {proj.id: proj.slug for proj in self.projects}
 
     @property
-    def team_ids(self) -> Sequence[int]:
+    def team_ids(self) -> list[int]:
         return [team.id for team in self.teams]
 
     @property
@@ -121,6 +148,33 @@ class SnubaParams:
         if self.start and self.end:
             return (self.end - self.start).total_seconds()
         return None
+
+    @property
+    def organization_id(self) -> int | None:
+        if self.organization is not None:
+            return self.organization.id
+        return None
+
+    @property
+    def filter_params(self) -> ParamsType:
+        # Compatibility function so we can switch over to this dataclass more easily
+        filter_params: ParamsType = {
+            "project_id": list(self.project_ids),
+            "projects": list(self.projects),
+            "project_objects": list(self.projects),
+            "environment": list(self.environment_names),
+            "team_id": list(self.team_ids),
+            "environment_objects": [env for env in self.environments if env is not None],
+        }
+        if self.organization_id:
+            filter_params["organization_id"] = self.organization_id
+        if self.start:
+            filter_params["start"] = self.start
+        if self.end:
+            filter_params["end"] = self.end
+        if self.stats_period:
+            filter_params["statsPeriod"] = self.stats_period
+        return filter_params
 
     def copy(self) -> SnubaParams:
         return deepcopy(self)

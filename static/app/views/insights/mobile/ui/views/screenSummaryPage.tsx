@@ -11,8 +11,10 @@ import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
@@ -30,7 +32,7 @@ type Query = {
   transaction: string;
 };
 
-export function ScreenSummary() {
+function ScreenSummary() {
   const location = useLocation<Query>();
   const {transaction: transactionName} = location.query;
 
@@ -79,14 +81,15 @@ export function ScreenSummaryContent() {
   return (
     <div>
       <HeaderContainer>
-        <ControlsContainer>
+        <ToolRibbon>
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
           <ReleaseComparisonSelector />
-        </ControlsContainer>
+        </ToolRibbon>
       </HeaderContainer>
+
       <SamplesContainer>
         <SamplesTables
           transactionName={transactionName}
@@ -137,18 +140,6 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1.5)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-  justify-content: space-between;
-`;
 
 const SamplesContainer = styled('div')`
   margin-top: ${space(2)};

@@ -307,7 +307,7 @@ jobs:
           python3 -m tools.fast_editable --path .
           sentry init
 
-      - run: mypy
+      - run: PYTHONWARNINGS=error::RuntimeWarning mypy
         id: run
 
       - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
@@ -325,6 +325,7 @@ jobs:
 
       - run: |
           # mypy does not have granular codes so don't allow specific messages to regress
+          set -euo pipefail
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
           ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
@@ -332,6 +333,7 @@ jobs:
           ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
           ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
           ! grep 'Module "sentry.*has no attribute' .artifacts/mypy-all
+          ! grep 'Unpacking a string is disallowed' .artifacts/mypy-all
           ! grep 'base class .* defined the type as.*Permission' .artifacts/mypy-all
           ! grep 'does not explicitly export attribute' .artifacts/mypy-all
 

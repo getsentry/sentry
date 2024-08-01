@@ -15,16 +15,21 @@ import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filt
 import {
   escapeTagValue,
   formatFilterValue,
+  replaceCommaSeparatedValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
-import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  isDateToken,
+  recentSearchTypeToLabel,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {
   ItemType,
   type SearchGroup,
@@ -169,30 +174,6 @@ function getValueAtCursorPosition(text: string, cursorPosition: number | null) {
   }
 
   return '';
-}
-/**
- * Replaces the focused filter value (at cursorPosition) with the new value.
- *
- * Example:
- * replaceValueAtPosition('foo,bar,baz', 5, 'new') => 'foo,new,baz'
- */
-function replaceValueAtPosition(
-  value: string,
-  cursorPosition: number | null,
-  replacement: string
-) {
-  const items = value.split(',');
-
-  let characterCount = 0;
-  for (let i = 0; i < items.length; i++) {
-    characterCount += items[i].length + 1;
-    if (characterCount > (cursorPosition ?? value.length + 1)) {
-      const newItems = [...items.slice(0, i), replacement, ...items.slice(i + 1)];
-      return newItems.map(item => item.trim()).join(',');
-    }
-  }
-
-  return value;
 }
 
 function getRelativeDateSign(token: TokenResult<Token.FILTER>) {
@@ -377,6 +358,7 @@ function getPredefinedValues({
   if (!key.values?.length) {
     switch (fieldDefinition?.valueType) {
       case FieldValueType.NUMBER:
+      case FieldValueType.INTEGER:
         return getNumericSuggestions(filterValue);
       case FieldValueType.DURATION:
         return getDurationSuggestions(filterValue, token);
@@ -432,7 +414,7 @@ function tokenSupportsMultipleValues(
     case FilterType.TEXT:
       // The search parser defaults to the text type, so we need to do further
       // checks to ensure that the filter actually supports multiple values
-      const key = keys[token.key.text];
+      const key = keys[getKeyName(token.key)];
       if (!key) {
         return true;
       }
@@ -549,9 +531,10 @@ function useFilterSuggestions({
   selectedValues: string[];
   token: TokenResult<Token.FILTER>;
 }) {
+  const keyName = getKeyName(token.key);
   const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
-  const key: Tag | undefined = filterKeys[token.key.text];
-  const fieldDefinition = getFieldDefinition(token.key.text);
+  const key: Tag | undefined = filterKeys[keyName];
+  const fieldDefinition = getFieldDefinition(keyName);
   const predefinedValues = useMemo(
     () =>
       getPredefinedValues({
@@ -570,8 +553,8 @@ function useFilterSuggestions({
   );
 
   const queryKey = useMemo<QueryKey>(
-    () => ['search-query-builder-tag-values', token.key.text, filterValue],
-    [filterValue, token.key]
+    () => ['search-query-builder-tag-values', keyName, filterValue],
+    [filterValue, keyName]
   );
 
   const debouncedQueryKey = useDebouncedValue(queryKey);
@@ -579,8 +562,7 @@ function useFilterSuggestions({
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
     queryKey: debouncedQueryKey,
-    queryFn: () =>
-      getTagValues(key ? key : {key: token.key.text, name: token.key.text}, filterValue),
+    queryFn: () => getTagValues(key ? key : {key: keyName, name: keyName}, filterValue),
     keepPreviousData: true,
     enabled: shouldFetchValues,
   });
@@ -722,9 +704,10 @@ export function SearchQueryBuilderValueCombobox({
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const {getFieldDefinition, filterKeys, dispatch, searchSource, savedSearchType} =
+  const {getFieldDefinition, filterKeys, dispatch, searchSource, recentSearches} =
     useSearchQueryBuilder();
-  const fieldDefinition = getFieldDefinition(token.key.text);
+  const keyName = getKeyName(token.key);
+  const fieldDefinition = getFieldDefinition(keyName);
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,
@@ -779,9 +762,9 @@ export function SearchQueryBuilderValueCombobox({
   const analyticsData = useMemo(
     () => ({
       organization,
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_type: recentSearchTypeToLabel(recentSearches),
       search_source: searchSource,
-      filter_key: token.key.text,
+      filter_key: keyName,
       filter_operator: token.operator,
       filter_value_type: fieldDefinition?.valueType ?? FieldValueType.STRING,
       new_experience: true,
@@ -789,9 +772,9 @@ export function SearchQueryBuilderValueCombobox({
     [
       fieldDefinition?.valueType,
       organization,
-      savedSearchType,
+      recentSearches,
       searchSource,
-      token.key.text,
+      keyName,
       token.operator,
     ]
   );
@@ -834,7 +817,7 @@ export function SearchQueryBuilderValueCombobox({
           token: token,
           value: prepareInputValueForSaving(
             fieldDefinition,
-            replaceValueAtPosition(inputValue, selectionIndex, value)
+            replaceCommaSeparatedValue(inputValue, selectionIndex, value)
           ),
         });
         onCommit();
@@ -898,7 +881,7 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token: token,
-          value: getDefaultFilterValue({key: token.key.text, fieldDefinition}),
+          value: getDefaultFilterValue({key: keyName, fieldDefinition}),
         });
         onCommit();
         return;
@@ -938,6 +921,7 @@ export function SearchQueryBuilderValueCombobox({
       canSelectMultipleValues,
       dispatch,
       fieldDefinition,
+      keyName,
       onCommit,
       token,
       updateFilterValue,

@@ -77,6 +77,10 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   displayTabbedMenu?: boolean;
   filterValue?: string;
   isLoading?: boolean;
+  /**
+   * When passing `isOpen`, the open state is controlled by the parent.
+   */
+  isOpen?: boolean;
   maxOptions?: number;
   onClick?: (e: React.MouseEvent) => void;
   /**
@@ -87,6 +91,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: KeyboardEvent) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
+  onOpenChange?: (newOpenState: boolean) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
@@ -148,6 +153,7 @@ function menuIsOpen({
   displayTabbedMenu,
   isLoading,
   hasCustomMenu,
+  isOpen,
 }: {
   hiddenOptions: Set<SelectKey>;
   state: ComboBoxState<any>;
@@ -155,14 +161,17 @@ function menuIsOpen({
   displayTabbedMenu?: boolean;
   hasCustomMenu?: boolean;
   isLoading?: boolean;
+  isOpen?: boolean;
 }) {
+  const openState = isOpen ?? state.isOpen;
+
   if (displayTabbedMenu || isLoading || hasCustomMenu) {
-    return state.isOpen;
+    return openState;
   }
 
   // When the tabbed menu is not being displayed and we aren't loading anything,
   // only show when there is something to select from.
-  return state.isOpen && totalOptions > hiddenOptions.size;
+  return openState && totalOptions > hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
@@ -469,6 +478,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onKeyDown,
     onKeyUp,
     onInputChange,
+    onOpenChange,
     autoFocus,
     openOnFocus,
     onFocus,
@@ -481,9 +491,11 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     isLoading,
     onClick,
     customMenu,
+    isOpen: incomingIsOpen,
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
+  const {disabled} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -517,6 +529,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onSelectionChange,
     allowsCustomValue: true,
     disabledKeys,
+    isDisabled: disabled,
   };
 
   const state = useComboBoxState<T>({
@@ -525,6 +538,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the tabbed menu
     shouldCloseOnBlur: false,
+    selectedKey: null,
     ...comboBoxProps,
   });
 
@@ -592,7 +606,12 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     displayTabbedMenu,
     isLoading,
     hasCustomMenu,
+    isOpen: incomingIsOpen,
   });
+
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [onOpenChange, isOpen]);
 
   const {
     overlayProps,
@@ -667,6 +686,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         onChange={onInputChange}
         tabIndex={tabIndex}
         onPaste={onPaste}
+        disabled={disabled}
       />
       <StyledPositionWrapper {...overlayProps} visible={isOpen}>
         <OverlayContent

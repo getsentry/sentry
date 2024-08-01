@@ -24,6 +24,8 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
 
@@ -109,7 +111,7 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
   });
 
   const tagValueLoader = useCallback(
-    (key: string, search: string) => {
+    async (key: string, search: string) => {
       const orgSlug = organization.slug;
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
@@ -122,14 +124,32 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
         statsPeriod: pageFilters.datetime.period,
       };
 
-      return fetchTagValues({
+      const fetchTagValuesPayload = {
         api,
         orgSlug,
         tagKey: key,
         search,
         projectIds,
         endpointParams,
-      });
+        sort: '-count' as const,
+      };
+
+      const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
+        fetchTagValues({
+          ...fetchTagValuesPayload,
+          dataset: Dataset.ERRORS,
+        }),
+        fetchTagValues({
+          ...fetchTagValuesPayload,
+          dataset: Dataset.ISSUE_PLATFORM,
+        }),
+      ]);
+
+      return mergeAndSortTagValues(
+        eventsDatasetValues,
+        issuePlatformDatasetValues,
+        'count'
+      );
     },
     [
       api,
@@ -214,7 +234,7 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
         onBlur={props.onBlur}
         onChange={onChange}
         searchSource={props.searchSource ?? 'issues'}
-        savedSearchType={SavedSearchType.ISSUE}
+        recentSearches={SavedSearchType.ISSUE}
         disallowLogicalOperators
         placeholder={props.placeholder}
       />

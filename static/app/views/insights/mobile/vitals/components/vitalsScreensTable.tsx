@@ -78,6 +78,7 @@ function VitalsScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
+      columnTooltipMap={{}}
       data={data}
       eventView={eventView}
       isLoading={isLoading}

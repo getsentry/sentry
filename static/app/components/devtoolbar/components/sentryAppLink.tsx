@@ -1,5 +1,7 @@
-import type {MouseEvent} from 'react';
+import {type MouseEvent, useContext} from 'react';
 import {stringifyUrl, type UrlObject} from 'query-string';
+
+import {AnalyticsContext} from 'sentry/components/devtoolbar/components/analyticsProvider';
 
 import useConfiguration from '../hooks/useConfiguration';
 import {inlineLinkCss} from '../styles/link';
@@ -10,8 +12,9 @@ interface Props {
   onClick?: (event: MouseEvent) => void;
 }
 
-export default function SentryAppLink({children, to, onClick}: Props) {
-  const {organizationSlug} = useConfiguration();
+export default function SentryAppLink({children, to}: Props) {
+  const {organizationSlug, trackAnalytics} = useConfiguration();
+  const {eventName, eventKey} = useContext(AnalyticsContext);
 
   const url = stringifyUrl({
     url: `https://${organizationSlug}.sentry.io${to.url}`,
@@ -21,10 +24,15 @@ export default function SentryAppLink({children, to, onClick}: Props) {
   return (
     <a
       css={inlineLinkCss}
-      onClick={onClick}
       href={url}
-      target="_blank"
+      onClick={() => {
+        trackAnalytics?.({
+          eventKey: eventKey + '.click',
+          eventName: eventName + ' clicked',
+        });
+      }}
       rel="noreferrer noopener"
+      target="_blank"
     >
       {children}
     </a>

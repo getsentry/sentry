@@ -45,6 +45,13 @@ interface ComboBoxProps<Value extends string>
   hiddenOptions?: Set<string>;
   isLoading?: boolean;
   loadingMessage?: string;
+  /**
+   * Footer to be rendered at the bottom of the menu.
+   * @closeOverlay is a function that closes the menu
+   */
+  menuFooter?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   menuSize?: FormSize;
   menuWidth?: string;
   size?: FormSize;
@@ -67,6 +74,7 @@ function ComboBox<Value extends string>({
   menuWidth,
   hiddenOptions,
   hasSearch,
+  menuFooter,
   ...props
 }: ComboBoxProps<Value>) {
   const theme = useTheme();
@@ -201,6 +209,13 @@ function ComboBox<Value extends string>({
             />
             <EmptyMessage>No items found</EmptyMessage>
           </div>
+          {menuFooter && (
+            <MenuFooter>
+              {typeof menuFooter === 'function'
+                ? menuFooter({closeOverlay: state.close})
+                : menuFooter}
+            </MenuFooter>
+          )}
         </StyledOverlay>
       </StyledPositionWrapper>
     </ControlWrapper>
@@ -240,17 +255,16 @@ function ControlledComboBox<Value extends string>({
     );
   });
 
-  // Sync input value with value prop
-  const previousValue = useRef(value);
-  if (previousValue.current !== value) {
-    const selectedLabel = options
-      .flatMap(item => ('options' in item ? item.options : [item]))
-      .find(option => option.value === value)?.label;
-    if (selectedLabel) {
-      setInputValue(selectedLabel);
+  useEffect(() => {
+    if (value) {
+      const selectedLabel = options
+        .flatMap(item => ('options' in item ? item.options : [item]))
+        .find(option => option.value === value)?.label;
+      if (selectedLabel) {
+        setInputValue(selectedLabel);
+      }
     }
-    previousValue.current = value;
-  }
+  }, [value, options]);
 
   const items = useMemo(() => {
     return getItemsWithKeys(options) as ComboBoxOptionOrSectionWithKey<Value>[];
@@ -465,4 +479,11 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
     width: 12px;
   }
 `;
+
+const MenuFooter = styled('div')`
+  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
+  padding: ${space(1)} ${space(1.5)};
+  z-index: 2;
+`;
+
 export {ControlledComboBox as ComboBox};

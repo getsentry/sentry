@@ -13,10 +13,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.utils import generate_organization_url
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.models.release import Release
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,
@@ -39,18 +39,6 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):
         params.update(self.get_filter_params(request, project))
 
         return params
-
-
-@region_silo_endpoint
-class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project, transaction_id: str) -> HttpResponse:
-        if not features.has("organizations:profiling", project.organization, actor=request.user):
-            return Response(status=404)
-        kwargs: dict[str, Any] = {
-            "method": "GET",
-            "path": f"/organizations/{project.organization_id}/projects/{project.id}/transactions/{transaction_id}",
-        }
-        return proxy_profiling_service(**kwargs)
 
 
 @region_silo_endpoint

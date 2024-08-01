@@ -45,6 +45,7 @@ import {
   isMetricFormula,
   type MetricsQueryApiQueryParams,
 } from 'sentry/utils/metrics/useMetricsQuery';
+import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/useMetricsTags';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
@@ -360,7 +361,7 @@ export function isCounterMetric({mri}: {mri: MRI}) {
 }
 
 export function isSpanDuration({mri}: {mri: MRI}) {
-  return mri === 'd:spans/duration@millisecond';
+  return mri === SPAN_DURATION_MRI;
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {

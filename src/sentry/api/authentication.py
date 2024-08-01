@@ -107,7 +107,7 @@ def is_static_relay(request):
     return relay_info is not None
 
 
-def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
+def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
     """
     Tries to find a Relay for a given id
     If the id is statically registered than no DB access will be done.
@@ -210,8 +210,13 @@ class RelayAuthentication(BasicAuthentication):
             raise AuthenticationFailed("Missing relay signature")
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
-    def authenticate_credentials(self, relay_id, relay_sig, request):
+    def authenticate_credentials(
+        self, relay_id: str, relay_sig: str, request=None
+    ) -> tuple[AnonymousUser, None]:
         Scope.get_isolation_scope().set_tag("relay_id", relay_id)
+
+        if request is None:
+            raise AuthenticationFailed("missing request")
 
         relay, static = relay_from_id(request, relay_id)
 
@@ -399,7 +404,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        user: AnonymousUser | RpcUser | None = AnonymousUser()
+        user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
             request, token_str

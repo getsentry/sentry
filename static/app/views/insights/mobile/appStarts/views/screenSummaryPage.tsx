@@ -16,12 +16,14 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {SamplesTables} from 'sentry/views/insights/mobile/appStarts/components/samples';
 import {
@@ -109,14 +111,14 @@ export function ScreenSummaryContentPage() {
   return (
     <div>
       <HeaderContainer>
-        <ControlsContainer>
+        <ToolRibbon>
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
           <ReleaseComparisonSelector />
           <StartTypeSelector />
-        </ControlsContainer>
+        </ToolRibbon>
         <MobileMetricsRibbon
           dataset={DiscoverDatasets.SPANS_METRICS}
           filters={[
@@ -196,7 +198,6 @@ export function ScreenSummaryContentPage() {
               pathname: router.location.pathname,
               query: omit(
                 router.location.query,
-                'tab',
                 'spanGroup',
                 'transactionMethod',
                 'spanDescription',
@@ -223,18 +224,6 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1.5)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-  justify-content: space-between;
-`;
 
 const SamplesContainer = styled('div')`
   margin-top: ${space(2)};

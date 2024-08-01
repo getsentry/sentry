@@ -582,7 +582,7 @@ class _RemoteSiloCall:
             self._raise_from_response_status_error(response)
 
     @contextmanager
-    def _open_request_context(self) -> Generator[None, None, None]:
+    def _open_request_context(self) -> Generator[None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
         span = sentry_sdk.start_span(
             op="hybrid_cloud.dispatch_rpc",

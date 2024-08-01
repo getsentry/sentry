@@ -322,6 +322,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
+      const hasSeerBasedPriority =
+        this.props.organization.features.includes('priority-ga-features');
       const hasHighPriorityIssueAlerts =
         this.props.organization.features.includes('default-high-priority-alerts') ||
         this.props.project.features.includes('high-priority-alerts');
@@ -329,7 +331,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         this.props.project.platform?.startsWith('javascript') ||
         this.props.project.platform?.startsWith('python');
 
-      if (hasHighPriorityIssueAlerts && isValidPlatform) {
+      if (hasSeerBasedPriority || (hasHighPriorityIssueAlerts && isValidPlatform)) {
         this.handleChange('conditions', [
           {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
           {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},

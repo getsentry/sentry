@@ -98,10 +98,10 @@ export const platformProductAvailability = {
   'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-uwp': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
   flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
@@ -119,30 +119,37 @@ export const platformProductAvailability = {
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-angular': [
     ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-ember': [
     ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-solid': [
     ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-svelte': [
     ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-astro': [

@@ -16,6 +16,7 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -36,6 +37,11 @@ Sentry.init({
     params.isPerformanceSelected
       ? `
         Sentry.browserTracingIntegration(),`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+          Sentry.browserProfilingIntegration(),`
       : ''
   }${
     params.isFeedbackSelected
@@ -65,6 +71,12 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
       replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+    : ''
+}${
+  params.isProfilingSelected
+    ? `
+      // Profiling
+      profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
     : ''
 }
 });
@@ -134,6 +146,9 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/svelte/sourcemaps/',
     }),

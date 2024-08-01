@@ -5,9 +5,11 @@ import type {Configuration} from '../types';
 const context = createContext<Configuration>({
   apiPrefix: '',
   environment: ['production'],
+  featureFlags: {},
   organizationSlug: '',
   placement: 'right-edge',
   projectId: 0,
+  projectPlatform: '',
   projectSlug: '',
 });
 

@@ -4,7 +4,8 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 
 import useConfiguration from '../../hooks/useConfiguration';
-import useInfiniteApiData from '../../hooks/useInfiniteApiData';
+import useFetchInfiniteApiData from '../../hooks/useFetchInfiniteApiData';
+import type {ApiEndpointQueryKey} from '../../types';
 
 interface Props {
   query: string;
@@ -14,9 +15,10 @@ export default function useInfiniteIssuesList({query}: Props) {
   const {environment, organizationSlug, projectId} = useConfiguration();
   const mailbox = 'unresolved';
 
-  return useInfiniteApiData<Group[]>({
+  return useFetchInfiniteApiData<Group[]>({
     queryKey: useMemo(
-      () => [
+      (): ApiEndpointQueryKey => [
+        'io.sentry.toolbar',
         `/organizations/${organizationSlug}/issues/`,
         {
           query: {

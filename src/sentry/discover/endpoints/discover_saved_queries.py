@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import Case, IntegerField, When
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,17 +13,31 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.discoversavedquery import (
+    DiscoverSavedQueryModelSerializer,
+    DiscoverSavedQueryResponse,
+)
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.discover_saved_query_examples import DiscoverExamples
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    DiscoverSavedQueriesParams,
+    GlobalParams,
+    VisibilityParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.search.utils import tokenize_query
 
 
+@extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.PERFORMANCE
     permission_classes = (DiscoverSavedQueryPermission,)
@@ -32,9 +47,29 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             "organizations:discover", organization, actor=request.user
         ) or features.has("organizations:discover-query", organization, actor=request.user)
 
+    @extend_schema(
+        operation_id="List an Organization's Discover Saved Queries",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
+            DiscoverSavedQueriesParams.QUERY,
+            DiscoverSavedQueriesParams.SORT,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "DiscoverSavedQueryListResponse", list[DiscoverSavedQueryResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DiscoverExamples.DISCOVER_SAVED_QUERIES_QUERY_RESPONSE,
+    )
     def get(self, request: Request, organization) -> Response:
         """
-        List saved queries for organization
+        Retrieve a list of saved queries that are associated with the given organization.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
@@ -112,9 +147,21 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             default_per_page=25,
         )
 
+    @extend_schema(
+        operation_id="Create a New Saved Query",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=DiscoverSavedQuerySerializer,
+        responses={
+            201: DiscoverSavedQueryModelSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DiscoverExamples.DISCOVER_SAVED_QUERY_POST_RESPONSE,
+    )
     def post(self, request: Request, organization) -> Response:
         """
-        Create a saved query
+        Create a new saved query for the given organization.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
@@ -135,6 +182,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
+        user_selected_dataset = (
+            features.has(
+                "organizations:performance-discover-dataset-selector",
+                organization,
+                actor=request.user,
+            )
+            and data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
+        )
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,
@@ -142,7 +197,11 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             query=data["query"],
             version=data["version"],
             dataset=data["query_dataset"],
-            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
+            dataset_source=(
+                DatasetSourcesTypes.USER.value
+                if user_selected_dataset
+                else DatasetSourcesTypes.UNKNOWN.value
+            ),
             created_by_id=request.user.id if request.user.is_authenticated else None,
         )
 

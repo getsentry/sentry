@@ -1,7 +1,8 @@
 from collections import defaultdict
-from typing import DefaultDict
+from typing import DefaultDict, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.users.services.user.service import user_service
@@ -10,9 +11,40 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
+class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
+    environment: list[str]
+    query: str
+    fields: list[str]
+    widths: list[str]
+    conditions: list[str]
+    aggregations: list[str]
+    range: str
+    start: str
+    end: str
+    orderby: str
+    limit: str
+    yAxis: list[str]
+    display: str
+    topEvents: int
+    interval: str
+
+
+class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
+    id: str
+    name: str
+    projects: list[int]
+    version: int
+    queryDataset: str
+    datasetSource: str
+    expired: bool
+    dateCreated: str
+    dateUpdated: str
+    createdBy: UserSerializerResponse
+
+
 @register(DiscoverSavedQuery)
-class DiscoverSavedQuerySerializer(Serializer):
-    def get_attrs(self, item_list, user):
+class DiscoverSavedQueryModelSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
         result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
         service_serialized = user_service.serialize_many(
@@ -34,7 +66,7 @@ class DiscoverSavedQuerySerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> DiscoverSavedQueryResponse:
         query_keys = [
             "environment",
             "query",
@@ -52,7 +84,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "topEvents",
             "interval",
         ]
-        data = {
+        data: DiscoverSavedQueryResponse = {
             "id": str(obj.id),
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
@@ -67,15 +99,17 @@ class DiscoverSavedQuerySerializer(Serializer):
 
         for key in query_keys:
             if obj.query.get(key) is not None:
-                data[key] = obj.query[key]
+                data[key] = obj.query[key]  # type: ignore[literal-required]
 
         # expire queries that are beyond the retention period
         if "start" in obj.query:
             start, end = parse_timestamp(obj.query["start"]), parse_timestamp(obj.query["end"])
             if start and end:
-                data["expired"], data["start"] = outside_retention_with_modified_start(
+                expired, modified_start = outside_retention_with_modified_start(
                     start, end, obj.organization
                 )
+                data["expired"] = expired
+                data["start"] = modified_start.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         if obj.query.get("all_projects"):
             data["projects"] = list(ALL_ACCESS_PROJECTS)

@@ -1,50 +1,79 @@
-import {css} from '@emotion/react';
+import {type ReactNode, useContext} from 'react';
 
+import {AnalyticsContext} from 'sentry/components/devtoolbar/components/analyticsProvider';
+import SessionStatusBadge from 'sentry/components/devtoolbar/components/releases/sessionStatusBadge';
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {IconClose, IconIssues, IconMegaphone} from 'sentry/icons';
+import {
+  IconClose,
+  IconFlag,
+  IconIssues,
+  IconMegaphone,
+  IconReleases,
+  IconSiren,
+} from 'sentry/icons';
 
 import usePlacementCss from '../hooks/usePlacementCss';
 import useToolbarRoute from '../hooks/useToolbarRoute';
-import {navigationButtonCss, navigationCss} from '../styles/navigation';
-import {resetButtonCss, resetDialogCss} from '../styles/reset';
+import {navigationCss} from '../styles/navigation';
+import {resetDialogCss} from '../styles/reset';
 
-export default function Navigation({setIsHidden}: {setIsHidden: (val: boolean) => void}) {
+import AlertCountBadge from './alerts/alertCountBadge';
+import IconButton from './navigation/iconButton';
+
+export default function Navigation({
+  setIsDisabled,
+}: {
+  setIsDisabled: (val: boolean) => void;
+}) {
   const {trackAnalytics} = useConfiguration();
   const placement = usePlacementCss();
 
+  const {state: route} = useToolbarRoute();
+  const {eventName, eventKey} = useContext(AnalyticsContext);
+  const isRouteActive = !!route.activePanel;
+
   return (
     <dialog
-      css={[
-        resetDialogCss,
-        navigationCss,
-        hideButtonContainerCss,
-        placement.navigation.css,
-      ]}
+      css={[resetDialogCss, navigationCss, placement.navigation.css]}
+      data-has-active={isRouteActive}
     >
-      <NavButton panelName="issues" label={'Issues'} icon={<IconIssues />} />
-      <NavButton panelName="feedback" label={'User Feedback'} icon={<IconMegaphone />} />
-      <HideButton
+      <IconButton
         onClick={() => {
-          setIsHidden(true);
           trackAnalytics?.({
-            eventKey: `devtoolbar.nav.hide.click`,
-            eventName: `devtoolbar: Hide devtoolbar`,
+            eventKey: eventKey + '.hide.click',
+            eventName: eventName + ' hide devtoolbar clicked',
           });
+          setIsDisabled(true);
         }}
+        title="Hide for this session"
+        icon={<IconClose />}
       />
+
+      <hr style={{margin: 0, width: '100%'}} />
+
+      <NavButton panelName="issues" label="Issues" icon={<IconIssues />} />
+      <NavButton panelName="feedback" label="User Feedback" icon={<IconMegaphone />} />
+      <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />}>
+        <AlertCountBadge />
+      </NavButton>
+      <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />} />
+      <NavButton panelName="releases" label="Releases" icon={<IconReleases />}>
+        <SessionStatusBadge />
+      </NavButton>
     </dialog>
   );
 }
 
 function NavButton({
+  children,
   icon,
   label,
   panelName,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   panelName: ReturnType<typeof useToolbarRoute>['state']['activePanel'];
+  children?: ReactNode;
 }) {
   const {trackAnalytics} = useConfiguration();
   const {state, setActivePanel} = useToolbarRoute();
@@ -52,10 +81,9 @@ function NavButton({
   const isActive = state.activePanel === panelName;
 
   return (
-    <button
-      aria-label={label}
-      css={[resetButtonCss, navigationButtonCss]}
+    <IconButton
       data-active-route={isActive}
+      icon={icon}
       onClick={() => {
         setActivePanel(isActive ? null : panelName);
         trackAnalytics?.({
@@ -65,38 +93,7 @@ function NavButton({
       }}
       title={label}
     >
-      <InteractionStateLayer />
-      {icon}
-    </button>
-  );
-}
-
-const hideButtonContainerCss = css`
-  :hover button {
-    visibility: visible;
-  }
-`;
-const hideButtonCss = css`
-  border-radius: 50%;
-  color: var(--gray300);
-  height: 1.6rem;
-  left: -10px;
-  position: absolute;
-  top: -10px;
-  visibility: hidden;
-  width: 1.6rem;
-  z-index: 1;
-`;
-
-function HideButton({onClick}: {onClick: () => void}) {
-  return (
-    <button
-      aria-label="Hide for this session"
-      css={[resetButtonCss, hideButtonCss]}
-      onClick={onClick}
-      title="Hide for this session"
-    >
-      <IconClose isCircled />
-    </button>
+      {children}
+    </IconButton>
   );
 }

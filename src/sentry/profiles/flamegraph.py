@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from snuba_sdk import (
     And,
@@ -22,14 +22,15 @@ from snuba_sdk import (
 )
 
 from sentry import options
-from sentry.profiles.profile_chunks import resolve_datetime64
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.fields import resolve_datetime64
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.iterators import chunked
+from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 
 class StartEnd(TypedDict):
@@ -42,12 +43,13 @@ class ProfileIds(TypedDict):
 
 
 def get_profile_ids(
-    params: ParamsType,
+    snuba_params: SnubaParams,
     query: str | None = None,
 ) -> ProfileIds:
     builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         query=query,
         selected_columns=["profile.id"],
         limit=options.get("profiling.flamegraph.profile-set.size"),
@@ -69,7 +71,7 @@ def get_profiles_with_function(
     organization_id: int,
     project_id: int,
     function_fingerprint: int,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     query: str,
 ) -> ProfileIds:
     conditions = [query, f"fingerprint:{function_fingerprint}"]
@@ -77,7 +79,8 @@ def get_profiles_with_function(
     result = functions.query(
         selected_columns=["timestamp", "unique_examples()"],
         query=" ".join(cond for cond in conditions if cond),
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         limit=100,
         orderby=["-timestamp"],
         referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
@@ -113,7 +116,7 @@ class IntervalMetadata(TypedDict):
 def get_spans_from_group(
     organization_id: int,
     project_id: int,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     span_group: str,
 ) -> dict[str, list[IntervalMetadata]]:
     query = Query(
@@ -152,8 +155,8 @@ def get_spans_from_group(
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("timestamp"), Op.GTE, params["start"]),
-            Condition(Column("timestamp"), Op.LT, params["end"]),
+            Condition(Column("timestamp"), Op.GTE, snuba_params.start),
+            Condition(Column("timestamp"), Op.LT, snuba_params.end),
             Condition(Column("group"), Op.EQ, span_group),
             Condition(Column("profiler_id"), Op.NEQ, ""),
         ],
@@ -274,8 +277,9 @@ class ContinuousProfileCandidate(TypedDict):
     project_id: int
     profiler_id: str
     chunk_id: str
-    start: str
-    end: str
+    thread_id: NotRequired[str]
+    start: NotRequired[str]
+    end: NotRequired[str]
 
 
 class ProfileCandidates(TypedDict):
@@ -287,6 +291,7 @@ class ProfileCandidates(TypedDict):
 class ProfilerMeta:
     project_id: int
     profiler_id: str
+    thread_id: str
     start: float
     end: float
 
@@ -314,20 +319,22 @@ class FlamegraphExecutor:
         self,
         *,
         snuba_params: SnubaParams,
-        dataset: Dataset,
+        data_source: Literal["functions", "transactions", "profiles"],
         query: str,
         fingerprint: int | None = None,
     ):
         self.snuba_params = snuba_params
-        self.dataset = dataset
+        self.data_source = data_source
         self.query = query
         self.fingerprint = fingerprint
 
     def get_profile_candidates(self) -> ProfileCandidates:
-        if self.dataset == Dataset.Functions:
+        if self.data_source == "functions":
             return self.get_profile_candidates_from_functions()
-        elif self.dataset == Dataset.Discover:
+        elif self.data_source == "transactions":
             return self.get_profile_candidates_from_transactions()
+        elif self.data_source == "profiles":
+            return self.get_profile_candidates_from_profiles()
 
         raise NotImplementedError
 
@@ -375,7 +382,6 @@ class FlamegraphExecutor:
         }
 
     def get_profile_candidates_from_transactions(self) -> ProfileCandidates:
-        # TODO: continuous profiles support
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
 
         builder = DiscoverQueryBuilder(
@@ -388,6 +394,7 @@ class FlamegraphExecutor:
                 "precise.finish_ts",
                 "profile.id",
                 "profiler.id",
+                "thread.id",
             ],
             query=self.query,
             limit=max_profiles,
@@ -399,9 +406,18 @@ class FlamegraphExecutor:
         builder.add_conditions(
             [
                 Or(
-                    [
-                        Condition(Column("profile_id"), Op.IS_NOT_NULL),
-                        Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                    conditions=[
+                        Condition(builder.resolve_column("profile.id"), Op.IS_NOT_NULL),
+                        And(
+                            conditions=[
+                                Condition(builder.resolve_column("profiler.id"), Op.IS_NOT_NULL),
+                                Condition(
+                                    Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                    Op.EQ,
+                                    1,
+                                ),
+                            ],
+                        ),
                     ],
                 ),
             ],
@@ -419,11 +435,12 @@ class FlamegraphExecutor:
                 ProfilerMeta(
                     project_id=row["project.id"],
                     profiler_id=row["profiler.id"],
+                    thread_id=row["thread.id"],
                     start=row["precise.start_ts"],
                     end=row["precise.finish_ts"],
                 )
                 for row in results["data"]
-                if row["profiler.id"] is not None
+                if row["profiler.id"] is not None and row["thread.id"]
             ]
         )
 
@@ -444,21 +461,61 @@ class FlamegraphExecutor:
     def get_chunks_for_profilers(
         self, profiler_metas: list[ProfilerMeta]
     ) -> list[ContinuousProfileCandidate]:
+        if len(profiler_metas) == 0:
+            return []
+
+        chunk_size = options.get("profiling.continuous-profiling.chunks-query.size")
+        queries = [
+            self._create_chunks_query(profiler_metas)
+            for chunk in chunked(profiler_metas, chunk_size)
+        ]
+
+        results = self._query_chunks_for_profilers(queries)
+
+        profiler_metas_by_id = {
+            (profiler_meta.project_id, profiler_meta.profiler_id): profiler_meta
+            for profiler_meta in profiler_metas
+        }
+
+        continuous_profile_candidates: list[ContinuousProfileCandidate] = []
+
+        for result in results:
+            for row in result["data"]:
+                profiler_meta = profiler_metas_by_id[(row["project_id"], row["profiler_id"])]
+                start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
+                end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
+
+                continuous_profile_candidates.append(
+                    {
+                        "project_id": profiler_meta.project_id,
+                        "profiler_id": profiler_meta.profiler_id,
+                        "chunk_id": row["chunk_id"],
+                        "thread_id": profiler_meta.thread_id,
+                        "start": str(int(max(start, profiler_meta.start) * 1.0e9)),
+                        "end": str(int(min(end, profiler_meta.end) * 1.0e9)),
+                    }
+                )
+
+        # TODO: There is the possibility that different transactions use the same
+        # profiler, chunk and thread ids. So make sure to merge overlapping candidates
+        # to avoid using the same sample multiple times.
+
+        return continuous_profile_candidates
+
+    def _create_chunks_query(self, profiler_metas: list[ProfilerMeta]) -> Query:
+        assert profiler_metas, "profiler_metas cannot be empty"
+
         profiler_conditions = [profiler_meta.as_condition() for profiler_meta in profiler_metas]
 
-        if len(profiler_conditions) == 0:
-            return []
-        elif len(profiler_conditions) == 1:
+        if len(profiler_conditions) == 1:
             profilers_condition = profiler_conditions[0]
         else:
             profilers_condition = Or(conditions=profiler_conditions)
 
-        max_chunks = options.get("profiling.continuous-profiling.chunks-set.size")
-
         project_condition = Condition(
             Column("project_id"),
             Op.IN,
-            [profiler_meta.project_id for profiler_meta in profiler_metas],
+            list({profiler_meta.project_id for profiler_meta in profiler_metas}),
         )
         start_condition = Condition(
             Column("start_timestamp"),
@@ -469,7 +526,7 @@ class FlamegraphExecutor:
             Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
         )
 
-        query = Query(
+        return Query(
             match=Storage(StorageKey.ProfileChunks.value),
             select=[
                 Column("project_id"),
@@ -491,36 +548,10 @@ class FlamegraphExecutor:
                 OrderBy(Column("profiler_id"), Direction.DESC),
                 OrderBy(Column("start_timestamp"), Direction.DESC),
             ],
-            limit=Limit(max_chunks),
+            limit=Limit(options.get("profiling.continuous-profiling.chunks-set.size")),
         )
 
-        result = self._query_chunks_for_profilers(query)
-
-        profiler_metas_by_id = {
-            (profiler_meta.project_id, profiler_meta.profiler_id): profiler_meta
-            for profiler_meta in profiler_metas
-        }
-
-        continuous_profile_candidates: list[ContinuousProfileCandidate] = []
-
-        for row in result["data"]:
-            profiler_meta = profiler_metas_by_id[(row["project_id"], row["profiler_id"])]
-            start = datetime.fromisoformat(row["start"]).timestamp()
-            end = datetime.fromisoformat(row["end"]).timestamp()
-
-            continuous_profile_candidates.append(
-                {
-                    "project_id": profiler_meta.project_id,
-                    "profiler_id": profiler_meta.profiler_id,
-                    "chunk_id": row["chunk_id"],
-                    "start": str(int(max(start, profiler_meta.start) * 1.0e9)),
-                    "end": str(int(min(end, profiler_meta.end) * 1.0e9)),
-                }
-            )
-
-        return continuous_profile_candidates
-
-    def _query_chunks_for_profilers(self, query: Query) -> Mapping[str, Any]:
+    def _query_chunks_for_profilers(self, queries: list[Query]) -> list[Mapping[str, Any]]:
         """This function is split out for mocking as we cannot write to the
         profile chunks dataset in tests today"""
 
@@ -529,14 +560,110 @@ class FlamegraphExecutor:
 
         referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_CHUNK_CANDIDATES.value
 
-        request = Request(
-            dataset=Dataset.Profiles.value,
-            app_id="default",
-            query=query,
-            tenant_ids={
-                "referrer": referrer,
-                "organization_id": self.snuba_params.organization.id,
-            },
+        requests = [
+            Request(
+                dataset=Dataset.Profiles.value,
+                app_id="default",
+                query=query,
+                tenant_ids={
+                    "referrer": referrer,
+                    "organization_id": self.snuba_params.organization.id,
+                },
+            )
+            for query in queries
+        ]
+
+        return bulk_snuba_queries(requests, referrer=referrer)
+
+    def get_profile_candidates_from_profiles(self) -> ProfileCandidates:
+        if self.snuba_params.organization is None:
+            raise ValueError("`organization` is required and cannot be `None`")
+
+        max_profiles = options.get("profiling.flamegraph.profile-set.size")
+
+        referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES.value
+
+        transaction_profiles_builder = DiscoverQueryBuilder(
+            dataset=Dataset.Discover,
+            params={},
+            snuba_params=self.snuba_params,
+            selected_columns=["project.id", "profile.id", "timestamp"],
+            query=None,  # To match the profile chunks, we only fetch the latest profiles
+            orderby=["-timestamp"],
+            limit=max_profiles,
+            config=QueryBuilderConfig(
+                transform_alias_to_input_format=True,
+            ),
+        )
+        transaction_profiles_builder.add_conditions(
+            [Condition(transaction_profiles_builder.resolve_column("profile.id"), Op.IS_NOT_NULL)]
         )
 
-        return raw_snql_query(request, referrer=referrer)
+        project_condition = Condition(
+            Column("project_id"),
+            Op.IN,
+            self.snuba_params.project_ids,
+        )
+        start_condition = Condition(
+            Column("start_timestamp"),
+            Op.LT,
+            resolve_datetime64(self.snuba_params.end),
+        )
+        end_condition = Condition(
+            Column("end_timestamp"), Op.GTE, resolve_datetime64(self.snuba_params.start)
+        )
+
+        continuous_profiles_query = Query(
+            match=Storage(StorageKey.ProfileChunks.value),
+            select=[
+                Column("project_id"),
+                Column("profiler_id"),
+                Column("chunk_id"),
+                Column("start_timestamp"),
+                Column("end_timestamp"),
+            ],
+            where=[
+                project_condition,
+                start_condition,
+                end_condition,
+            ],
+            orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
+            limit=Limit(max_profiles),
+        )
+
+        all_results = bulk_snuba_queries(
+            [
+                transaction_profiles_builder.get_snql_query(),
+                Request(
+                    dataset=Dataset.Profiles.value,
+                    app_id="default",
+                    query=continuous_profiles_query,
+                    tenant_ids={
+                        "referrer": referrer,
+                        "organization_id": self.snuba_params.organization.id,
+                    },
+                ),
+            ],
+            referrer,
+        )
+
+        transaction_profile_results = transaction_profiles_builder.process_results(all_results[0])
+        continuous_profile_results = all_results[1]
+
+        return {
+            "transaction": [
+                {
+                    "project_id": row["project.id"],
+                    "profile_id": row["profile.id"],
+                }
+                for row in transaction_profile_results["data"]
+            ],
+            "continuous": [
+                {
+                    "project_id": row["project_id"],
+                    "profiler_id": row["profiler_id"],
+                    "chunk_id": row["chunk_id"],
+                }
+                for row in continuous_profile_results["data"]
+            ],
+        }

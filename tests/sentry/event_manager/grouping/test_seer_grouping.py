@@ -10,7 +10,6 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.mocking import capture_results
-from sentry.utils.circuit_breaker import with_circuit_breaker
 from sentry.utils.types import NonNone
 
 
@@ -26,10 +25,6 @@ class SeerEventManagerGroupingTest(TestCase):
             message_distance=0.05,
             should_group=True,
         )
-        metadata_base = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "results": [asdict(seer_result_data)],
-        }
 
         get_seer_similar_issues_return_values: list[Any] = []
 
@@ -54,12 +49,7 @@ class SeerEventManagerGroupingTest(TestCase):
             ),
         ):
 
-            with Feature(
-                {
-                    "projects:similarity-embeddings-metadata": False,
-                    "projects:similarity-embeddings-grouping": False,
-                }
-            ):
+            with Feature({"projects:similarity-embeddings-grouping": False}):
                 new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
 
                 # We checked whether to make the call, but didn't go through with it
@@ -74,71 +64,12 @@ class SeerEventManagerGroupingTest(TestCase):
                 should_call_seer_spy.reset_mock()
                 get_seer_similar_issues_spy.reset_mock()
 
-            with Feature(
-                {
-                    "projects:similarity-embeddings-metadata": True,
-                    "projects:similarity-embeddings-grouping": False,
-                }
-            ):
+            with Feature({"projects:similarity-embeddings-grouping": True}):
                 new_event = save_new_event({"message": "Maisey is silly"}, self.project)
-                expected_metadata = {**metadata_base, "request_hash": new_event.get_primary_hash()}
-
-                # We checked whether to make the call, and then made it
-                assert should_call_seer_spy.call_count == 1
-                assert get_seer_similar_issues_spy.call_count == 1
-
-                # Metadata returned and stored
-                assert get_seer_similar_issues_return_values[0][0] == expected_metadata
-                assert (
-                    NonNone(new_event.group).data["metadata"]["seer_similarity"]
-                    == expected_metadata
-                )
-                assert new_event.data["seer_similarity"] == expected_metadata
-
-                # No parent group returned or used (even though `should_group` is True)
-                assert get_seer_similar_issues_return_values[0][1] is None
-                assert new_event.group_id != existing_event.group_id
-
-                should_call_seer_spy.reset_mock()
-                get_seer_similar_issues_spy.reset_mock()
-                get_seer_similar_issues_return_values.pop()
-
-            with Feature(
-                {
-                    "projects:similarity-embeddings-metadata": False,
-                    "projects:similarity-embeddings-grouping": True,
+                expected_metadata = {
+                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                    "results": [asdict(seer_result_data)],
                 }
-            ):
-                new_event = save_new_event({"message": "Charlie is goofy"}, self.project)
-                expected_metadata = {**metadata_base, "request_hash": new_event.get_primary_hash()}
-
-                # We checked whether to make the call, and then made it
-                assert should_call_seer_spy.call_count == 1
-                assert get_seer_similar_issues_spy.call_count == 1
-
-                # Metadata returned and stored (metadata flag being off doesn't matter because
-                # grouping flag takes precedence)
-                assert get_seer_similar_issues_return_values[0][0] == expected_metadata
-                assert new_event.data["seer_similarity"] == expected_metadata
-
-                # Parent group returned and used
-                assert get_seer_similar_issues_return_values[0][1] == existing_event.group
-                assert new_event.group_id == existing_event.group_id
-
-                should_call_seer_spy.reset_mock()
-                get_seer_similar_issues_spy.reset_mock()
-                get_seer_similar_issues_return_values.pop()
-
-            with Feature(
-                {
-                    "projects:similarity-embeddings-metadata": True,
-                    "projects:similarity-embeddings-grouping": True,
-                }
-            ):
-                new_event = save_new_event(
-                    {"message": "Cori and Bodhi are ridiculous"}, self.project
-                )
-                expected_metadata = {**metadata_base, "request_hash": new_event.get_primary_hash()}
 
                 # We checked whether to make the call, and then made it
                 assert should_call_seer_spy.call_count == 1
@@ -151,23 +82,6 @@ class SeerEventManagerGroupingTest(TestCase):
                 # Parent group returned and used
                 assert get_seer_similar_issues_return_values[0][1] == existing_event.group
                 assert new_event.group_id == existing_event.group_id
-
-    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
-    @patch("sentry.event_manager.with_circuit_breaker", wraps=with_circuit_breaker)
-    @patch("sentry.event_manager.get_seer_similar_issues", return_value=({}, None))
-    def test_obeys_circult_breaker(
-        self, mock_get_seer_similar_issues: MagicMock, mock_with_circuit_breaker: MagicMock, _
-    ):
-        with patch("sentry.utils.circuit_breaker._should_call_callback", return_value=True):
-            save_new_event({"message": "Dogs are great!"}, self.project)
-            assert mock_with_circuit_breaker.call_count == 1
-            assert mock_get_seer_similar_issues.call_count == 1
-
-        with patch("sentry.utils.circuit_breaker._should_call_callback", return_value=False):
-            save_new_event({"message": "Adopt don't shop"}, self.project)
-
-            assert mock_with_circuit_breaker.call_count == 2  # increased
-            assert mock_get_seer_similar_issues.call_count == 1  # didn't increase
 
     @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.event_manager.get_seer_similar_issues", return_value=({}, None))
@@ -204,11 +118,9 @@ class SeerEventManagerGroupingTest(TestCase):
             new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
             expected_metadata = {
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": new_event.get_primary_hash(),
                 "results": [asdict(seer_result_data)],
             }
 
-        assert NonNone(new_event.group).data["metadata"]["seer_similarity"] == expected_metadata
         assert new_event.data["seer_similarity"] == expected_metadata
 
     @with_feature("projects:similarity-embeddings-grouping")
@@ -240,28 +152,6 @@ class SeerEventManagerGroupingTest(TestCase):
 
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
-        ) as mock_get_similarity_data:
-            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
-
-            assert mock_get_similarity_data.call_count == 1
-            assert existing_event.group_id != new_event.group_id
-
-    @with_feature("projects:similarity-embeddings-grouping")
-    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
-    def test_creates_new_group_if_too_far_neighbor_found(self, _):
-        existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
-
-        no_cigar_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
-            stacktrace_distance=0.10,
-            message_distance=0.05,
-            should_group=False,
-        )
-
-        with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-            return_value=[no_cigar_data],
         ) as mock_get_similarity_data:
             new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
 

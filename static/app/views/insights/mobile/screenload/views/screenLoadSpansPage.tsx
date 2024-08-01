@@ -17,12 +17,14 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
@@ -51,11 +53,13 @@ type Query = {
   spanDescription?: string;
 };
 
-export function ScreenLoadSpans() {
+function ScreenLoadSpans() {
   const location = useLocation<Query>();
   const organization = useOrganization();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
+
   const crumbs = useModuleBreadcrumbs('screen_load');
+
   const {transaction: transactionName} = location.query;
 
   return (
@@ -108,14 +112,17 @@ export function ScreenLoadSpansContent() {
 
   return (
     <div>
-      <Container>
-        <FilterContainer>
-          <PageFilterBar condensed>
-            <EnvironmentPageFilter />
-            <DatePageFilter />
-          </PageFilterBar>
-          <ReleaseComparisonSelector />
-        </FilterContainer>
+      <HeaderContainer>
+        <ToolRibbon>
+          <FilterContainer>
+            <PageFilterBar condensed>
+              <EnvironmentPageFilter />
+              <DatePageFilter />
+            </PageFilterBar>
+            <ReleaseComparisonSelector />
+          </FilterContainer>
+        </ToolRibbon>
+
         <MobileMetricsRibbon
           dataset={DiscoverDatasets.METRICS}
           filters={[
@@ -165,7 +172,8 @@ export function ScreenLoadSpansContent() {
           ]}
           referrer="api.starfish.mobile-screen-totals"
         />
-      </Container>
+      </HeaderContainer>
+
       <ErrorBoundary mini>
         <ScreenCharts
           yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
@@ -228,18 +236,6 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const Container = styled('div')`
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  grid-template-columns: 1fr;
-  column-gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-rows: auto;
-    grid-template-columns: auto minmax(100px, max-content);
-  }
-`;
 
 const FilterContainer = styled('div')`
   display: grid;

@@ -45,23 +45,21 @@ class ShouldCallSeerTest(TestCase):
         )
         self.primary_hashes = self.event.get_hashes()
 
-    def test_obeys_seer_similarity_flags(self):
-        for metadata_flag, grouping_flag, expected_result in [
-            (False, False, False),
-            (True, False, True),
-            (False, True, True),
-            (True, True, True),
+    def test_obeys_feature_enablement_check(self):
+        for grouping_flag, backfill_completed_option, expected_result in [
+            (False, None, False),
+            (True, None, True),
+            (False, 11211231, True),
+            (True, 11211231, True),
         ]:
-            with Feature(
-                {
-                    "projects:similarity-embeddings-metadata": metadata_flag,
-                    "projects:similarity-embeddings-grouping": grouping_flag,
-                }
-            ):
+            with Feature({"projects:similarity-embeddings-grouping": grouping_flag}):
+                self.project.update_option(
+                    "sentry:similarity_backfill_completed", backfill_completed_option
+                )
                 assert (
                     should_call_seer_for_grouping(self.event, self.primary_hashes)
                     is expected_result
-                ), f"Case ({metadata_flag}, {grouping_flag}) failed."
+                ), f"Case (grouping {grouping_flag}, backfill completed {backfill_completed_option}) failed."
 
     @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_content_filter(self):
@@ -124,6 +122,18 @@ class ShouldCallSeerTest(TestCase):
                 )
 
     @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_circuit_breaker(self):
+        for request_allowed, expected_result in [(True, True), (False, False)]:
+            with patch(
+                "sentry.grouping.ingest.seer.CircuitBreaker.should_allow_request",
+                return_value=request_allowed,
+            ):
+                assert (
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
+                    is expected_result
+                )
+
+    @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_customized_fingerprint_check(self):
         default_fingerprint_event = Event(
             project_id=self.project.id,
@@ -172,7 +182,7 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
         self.new_event_hashes = CalculatedHashes(["20130809201315042012311220122111"])
 
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer")
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock):
         new_event = Event(
             project_id=self.project.id,
@@ -220,31 +230,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                 }
             )
 
-    @with_feature({"projects:similarity-embeddings-grouping": False})
-    def test_returns_metadata_but_no_group_if_seer_grouping_flag_off(self):
-        seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(self.existing_event.get_primary_hash()),
-            parent_group_id=NonNone(self.existing_event.group_id),
-            stacktrace_distance=0.01,
-            message_distance=0.05,
-            should_group=True,
-        )
-        expected_metadata = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": self.new_event_hashes.hashes[0],
-            "results": [asdict(seer_result_data)],
-        }
-
-        with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-            return_value=[seer_result_data],
-        ):
-            assert get_seer_similar_issues(self.new_event, self.new_event_hashes) == (
-                expected_metadata,
-                None,  # No group returned, even though `should_group` is True
-            )
-
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_returns_metadata_and_group_if_sufficiently_close_group_found(self):
         seer_result_data = SeerSimilarIssueData(
             parent_hash=NonNone(self.existing_event.get_primary_hash()),
@@ -255,7 +240,6 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
         expected_metadata = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": self.new_event_hashes.hashes[0],
             "results": [asdict(seer_result_data)],
         }
 
@@ -268,35 +252,9 @@ class GetSeerSimilarIssuesTest(TestCase):
                 self.existing_event.group,
             )
 
-    @with_feature("projects:similarity-embeddings-grouping")
-    def test_returns_metadata_but_no_group_if_similar_group_insufficiently_close(self):
-        seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(self.existing_event.get_primary_hash()),
-            parent_group_id=NonNone(self.existing_event.group_id),
-            stacktrace_distance=0.08,
-            message_distance=0.12,
-            should_group=False,
-        )
-        expected_metadata = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": self.new_event_hashes.hashes[0],
-            "results": [asdict(seer_result_data)],
-        }
-
-        with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-            return_value=[seer_result_data],
-        ):
-            assert get_seer_similar_issues(self.new_event, self.new_event_hashes) == (
-                expected_metadata,
-                None,
-            )
-
-    @with_feature("projects:similarity-embeddings-grouping")
     def test_returns_no_group_and_empty_metadata_if_no_similar_group_found(self):
         expected_metadata = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": self.new_event_hashes.hashes[0],
             "results": [],
         }
 
