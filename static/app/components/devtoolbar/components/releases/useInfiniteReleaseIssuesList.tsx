@@ -26,7 +26,7 @@ export default function useInfiniteReleaseIssuesList({releaseVersion}: Props) {
             project: projectId,
             statsPeriod: '14d',
             shortIdLookup: 0,
-            query: `release:${releaseVersion}`,
+            query: `release:${releaseVersion} is:new`,
           },
         },
       ],
