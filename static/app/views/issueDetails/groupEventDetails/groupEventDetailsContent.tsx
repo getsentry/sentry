@@ -9,7 +9,6 @@ import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcr
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
@@ -63,6 +62,7 @@ import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resources
 import {EventFilter} from 'sentry/views/issueDetails/streamline/eventFilter';
 import EventNavigation from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -165,26 +165,28 @@ function DefaultGroupEventDetailsContent({
         />
       </StyledDataSection>
       {event.userReport && (
-        <EventDataSection
+        <InterimSection
           title={t('User Feedback')}
-          type="user-feedback"
+          type={FoldSectionKey.USER_FEEDBACK}
           actions={
-            <ErrorBoundary mini>
-              <Button
-                size="xs"
-                icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
-                onClick={showFeedback ? dismissPrompt : showPrompt}
-                title={
-                  showFeedback
-                    ? t('Hide feedback on all issue details')
-                    : t('Unhide feedback on all issue details')
-                }
-                disabled={promptError}
-                busy={promptLoading}
-              >
-                {showFeedback ? t('Hide') : t('Show')}
-              </Button>
-            </ErrorBoundary>
+            hasStreamlinedUI ? null : (
+              <ErrorBoundary mini>
+                <Button
+                  size="xs"
+                  icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
+                  onClick={showFeedback ? dismissPrompt : showPrompt}
+                  title={
+                    showFeedback
+                      ? t('Hide feedback on all issue details')
+                      : t('Unhide feedback on all issue details')
+                  }
+                  disabled={promptError}
+                  busy={promptLoading}
+                >
+                  {showFeedback ? t('Hide') : t('Show')}
+                </Button>
+              </ErrorBoundary>
+            )
           }
         >
           {promptLoading ? (
@@ -197,7 +199,7 @@ function DefaultGroupEventDetailsContent({
               showEventLink={false}
             />
           ) : null}
-        </EventDataSection>
+        </InterimSection>
       )}
       {event.type === EventOrGroupType.ERROR &&
       organization.features.includes('insights-addon-modules') &&
