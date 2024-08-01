@@ -6,7 +6,7 @@ from sentry.tasks.integrations.slack.link_slack_user_identities import (
 
 
 @instrumented_task(
-    name="sentry.integrations.slack.tasks.link_users_identities",
+    name="sentry.integrations.slack.tasks.link_slack_user_identities",
     queue="integrations.control",
     silo_mode=SiloMode.CONTROL,
     max_retries=3,
