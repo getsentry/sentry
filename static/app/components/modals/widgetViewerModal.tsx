@@ -1108,7 +1108,7 @@ function OpenButton({
       break;
   }
 
-  const optionDisabled =
+  const buttonDisabled =
     hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
 
   return (
@@ -1116,11 +1116,12 @@ function OpenButton({
       title={t(
         'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
       )}
+      disabled={!buttonDisabled}
     >
       <Button
         to={path}
         priority="primary"
-        disabled={optionDisabled}
+        disabled={buttonDisabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,
