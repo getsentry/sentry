@@ -87,16 +87,26 @@ describe('DraggableTabBar', () => {
           defaultNewTab={defaultNewTab}
         />
       );
-      // const prioritzedTabOptions =
+
       await userEvent.click(
         screen.getByRole('button', {name: 'Prioritized Tab Options'})
       );
 
-      expect(await screen.findByText('Save Changes')).toBeInTheDocument();
-      expect(await screen.findByText('Discard Changes')).toBeInTheDocument();
-      expect(await screen.findByText('Rename')).toBeInTheDocument();
-      expect(await screen.findByText('Duplicate')).toBeInTheDocument();
-      expect(await screen.findByText('Delete')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Save Changes'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Discard Changes'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Rename'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Delete'})
+      ).toBeInTheDocument();
     });
 
     it('should render the correct set of actions for unchanged tabs', async () => {
@@ -116,9 +126,23 @@ describe('DraggableTabBar', () => {
         await screen.findByRole('button', {name: 'For Review Tab Options'})
       );
 
-      expect(await screen.findByText('Rename')).toBeInTheDocument();
-      expect(await screen.findByText('Duplicate')).toBeInTheDocument();
-      expect(await screen.findByText('Delete')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Rename'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Delete'})
+      ).toBeInTheDocument();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Save Changes'})
+      ).not.toBeInTheDocument();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Discard Changes'})
+      ).not.toBeInTheDocument();
     });
 
     it('should render the correct set of actions for a single tab', async () => {
@@ -135,10 +159,16 @@ describe('DraggableTabBar', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'For Review Tab Options'}));
 
-      expect(await screen.findByText('Rename')).toBeInTheDocument();
-      expect(await screen.findByText('Duplicate')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Rename'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+      ).toBeInTheDocument();
       // Delete should not be present since there is only one tab
-      expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Delete'})
+      ).not.toBeInTheDocument();
     });
 
     it('should render the correct set of actions for temporary tabs', async () => {
@@ -158,8 +188,12 @@ describe('DraggableTabBar', () => {
         await screen.findByRole('button', {name: 'Unsaved Tab Options'})
       );
 
-      expect(await screen.findByText('Save View')).toBeInTheDocument();
-      expect(await screen.findByText('Discard')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Save View'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Discard'})
+      ).toBeInTheDocument();
     });
   });
 
@@ -179,7 +213,7 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'For Review Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Rename'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
 
       // Ctrl+A to select all text, then backspace to delete it
       // (We purposely do not highlight the text when hitting rename)
@@ -205,7 +239,7 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'For Review Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Rename'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
 
       await userEvent.keyboard('{Control>}A{/Control}{Backspace}');
       await userEvent.keyboard('{enter}');
@@ -231,7 +265,7 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'For Review Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Rename'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
 
       await userEvent.keyboard('{Control>}A{/Control}{Backspace}');
       await userEvent.paste('New Name');
@@ -255,7 +289,9 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'Prioritized Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Save Changes'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Save Changes'})
+      );
 
       expect(mockOnSave).toHaveBeenCalledWith('1');
     });
@@ -275,7 +311,9 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'Prioritized Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Discard Changes'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Discard Changes'})
+      );
 
       expect(mockOnDiscard).toHaveBeenCalledWith('1');
     });
@@ -295,7 +333,7 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'For Review Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Delete'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
       expect(mockOnDelete).toHaveBeenCalledWith('2');
     });
@@ -315,7 +353,9 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'For Review Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Duplicate'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+      );
 
       expect(mockOnDuplicate).toHaveBeenCalledWith('2');
     });
@@ -335,7 +375,7 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'Unsaved Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Discard'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Discard'}));
 
       expect(mockOnDiscardTempView).toHaveBeenCalled();
     });
@@ -355,7 +395,9 @@ describe('DraggableTabBar', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'Unsaved Tab Options'})
       );
-      await userEvent.click(await screen.findByText('Save View'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Save View'})
+      );
 
       expect(mockOnSaveTempView).toHaveBeenCalled();
     });
