@@ -65,14 +65,14 @@ export default function ReplayPanel() {
               } else {
                 // If we're sampling errors, the we might be in buffering mode.
                 // In this case start() will do nothing. flush() will switch to session mode + start recording.
-                replay.flush(); // TODO: make sure this works in session mode too
+                replay.flush();
               }
               setReplayId(replay.getReplayId()); // this will set isRecording
             }
           }}
         >
           {isRecording
-            ? t('In progress. Click to stop recording') // TODO: make sure this fits
+            ? t('In progress. Click to stop recording')
             : t('Start recording the current session')}
         </Button>
         <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
