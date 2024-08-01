@@ -199,7 +199,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <StyledSearchBar
+              <SearchBar
                 searchSource="transaction_profiles"
                 organization={organization}
                 projectIds={projects.projects.map(p => parseInt(p.id, 10))}
@@ -208,7 +208,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
                 maxQueryLength={MAX_QUERY_LENGTH}
               />
             </FilterActions>
-            <TransactionProfilesContent query={query} />
+            <TransactionProfilesContent query={query} transaction={transaction} />
           </StyledMain>
         );
       }}
@@ -221,18 +221,6 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   display: grid;
   grid-template-columns: min-content 1fr;
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    order: 1;
-    grid-column: 1/4;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    order: initial;
-    grid-column: auto;
-  }
 `;
 
 const StyledMain = styled(Layout.Main)`

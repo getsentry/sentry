@@ -17,6 +17,7 @@ type ProfilingEventSource =
   | 'profiling_transaction.suspect_functions_table'
   | 'profiling_transaction.slowest_functions_table'
   | 'profiling_transaction.regressed_functions_table'
+  | 'profiling_transaction.profiles_table'
   | 'slowest_transaction_panel'
   | 'transaction_details'
   | 'transaction_hovercard.latest_profile'

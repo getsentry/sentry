@@ -38,6 +38,7 @@ export const enum TraceViewSources {
   CACHES_MODULE = 'caches_module',
   QUEUES_MODULE = 'queues_module',
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
+  PERFORMANCE_TRANSACTION_SUMMARY_PROFILES = 'performance_transaction_summary_profiles',
   ISSUE_DETAILS = 'issue_details',
 }
 

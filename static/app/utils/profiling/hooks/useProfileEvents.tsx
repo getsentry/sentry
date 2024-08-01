@@ -90,13 +90,21 @@ export function formatError(error: any): string | null {
 }
 
 const ALL_FIELDS = [
+  'id',
+  'trace',
   'profile.id',
+  'profiler.id',
+  'thread.id',
+  'precise.start_ts',
+  'precise.finish_ts',
+  'project.name',
   'timestamp',
   'release',
   'device.model',
   'device.classification',
   'device.arch',
   'transaction.duration',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
