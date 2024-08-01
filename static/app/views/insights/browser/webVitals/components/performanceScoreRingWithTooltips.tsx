@@ -21,12 +21,12 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
 
-export type Coordinates = {
+type Coordinates = {
   x: number;
   y: number;
 };
 
-export type WebVitalsLabelCoordinates = {
+type WebVitalsLabelCoordinates = {
   [p in WebVitals]?: Coordinates;
 };
 

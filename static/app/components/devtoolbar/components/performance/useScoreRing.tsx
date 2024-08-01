@@ -19,6 +19,7 @@ type Props = {
   weightWebVital?: WebVitals | 'total';
 };
 
+// largely copied from useProjectWebVitalsScoresQuery.tsx
 export const useScoreRing = ({
   transaction,
   tag,
