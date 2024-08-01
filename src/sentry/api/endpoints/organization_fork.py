@@ -34,6 +34,12 @@ ERR_ORGANIZATION_INACTIVE = Template(
 ERR_CANNOT_FORK_INTO_SAME_REGION = Template(
     "The organization already lives in region `$region`, so it cannot be forked into that region."
 )
+ERR_CANNOT_FORK_FROM_REGION = Template(
+    "Forking an organization from region `$region` is forbidden."
+)
+
+# For legal reasons, there are certain regions from which forking is disallowed.
+CANNOT_FORK_FROM_REGION = {"de"}
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +98,15 @@ class OrganizationForkEndpoint(Endpoint):
         # Figure out which region the organization being forked lives in.
         requesting_region_name = get_local_region().name
         replying_region_name = org_mapping.region_name
+        if replying_region_name in CANNOT_FORK_FROM_REGION:
+            return Response(
+                {
+                    "detail": ERR_CANNOT_FORK_FROM_REGION.substitute(
+                        region=replying_region_name,
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if replying_region_name == requesting_region_name:
             return Response(
                 {

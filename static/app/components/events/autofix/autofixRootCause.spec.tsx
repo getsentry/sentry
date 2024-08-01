@@ -12,7 +12,7 @@ describe('AutofixRootCause', function () {
     runId: '101',
   };
 
-  it('can select a suggested fix', async function () {
+  it('can select a relevant code snippet', async function () {
     const mockSelectFix = MockApiClient.addMockResponse({
       url: '/issues/1/autofix/update/',
       method: 'POST',
@@ -20,19 +20,19 @@ describe('AutofixRootCause', function () {
 
     render(<AutofixRootCause {...defaultProps} />);
 
-    // Displays all root cause and suggested fix info
+    // Displays all root cause and code context info
     expect(screen.getByText('This is the title of a root cause.')).toBeInTheDocument();
     expect(
       screen.getByText('This is the description of a root cause.')
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Suggested Fix #1: This is the title of a suggested fix.')
+      screen.getByText('Relevant Code #1: This is the title of a relevant code snippet.')
     ).toBeInTheDocument();
     expect(
-      screen.getByText('This is the description of a suggested fix.')
+      screen.getByText('This is the description of a relevant code snippet.')
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Continue With This Fix'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Continue with a fix'}));
 
     expect(mockSelectFix).toHaveBeenCalledWith(
       expect.anything(),
@@ -42,7 +42,6 @@ describe('AutofixRootCause', function () {
           payload: {
             type: 'select_root_cause',
             cause_id: '100',
-            fix_id: '200',
           },
         },
       })
@@ -61,7 +60,12 @@ describe('AutofixRootCause', function () {
       screen.getByRole('button', {name: 'Provide your own root cause'})
     );
     await userEvent.keyboard('custom root cause');
-    await userEvent.click(screen.getByRole('button', {name: 'Continue With This Fix'}));
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Continue with a fix',
+        description: 'Continue with a fix',
+      })
+    );
 
     expect(mockSelectFix).toHaveBeenCalledWith(
       expect.anything(),
@@ -87,7 +91,7 @@ describe('AutofixRootCause', function () {
       />
     );
 
-    // Displays all root cause and suggested fix info
+    // Displays all root cause and code context info
     expect(
       screen.getByText('Autofix was not able to find a root cause. Maybe try again?')
     ).toBeInTheDocument();

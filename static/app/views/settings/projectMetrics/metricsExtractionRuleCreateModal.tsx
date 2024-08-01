@@ -31,7 +31,7 @@ interface Props {
   projectId?: string | number;
 }
 
-const INITIAL_DATA: FormData = {
+export const INITIAL_DATA: FormData = {
   spanAttribute: null,
   unit: 'none',
   aggregates: ['count'],

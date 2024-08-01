@@ -1,18 +1,20 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   isTransactionBased,
-} from 'sentry/types';
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -50,9 +52,9 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
   return (
-    <EventDataSection
+    <InterimSection
+      type={FoldSectionKey.SPAN_EVIDENCE}
       title={t('Span Evidence')}
-      type="span-evidence"
       help={t(
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
@@ -116,7 +118,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
           />
         </TraceViewWrapper>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

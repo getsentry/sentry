@@ -15,6 +15,7 @@ import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filt
 import {
   escapeTagValue,
   formatFilterValue,
+  replaceCommaSeparatedValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -173,30 +174,6 @@ function getValueAtCursorPosition(text: string, cursorPosition: number | null) {
   }
 
   return '';
-}
-/**
- * Replaces the focused filter value (at cursorPosition) with the new value.
- *
- * Example:
- * replaceValueAtPosition('foo,bar,baz', 5, 'new') => 'foo,new,baz'
- */
-function replaceValueAtPosition(
-  value: string,
-  cursorPosition: number | null,
-  replacement: string
-) {
-  const items = value.split(',');
-
-  let characterCount = 0;
-  for (let i = 0; i < items.length; i++) {
-    characterCount += items[i].length + 1;
-    if (characterCount > (cursorPosition ?? value.length + 1)) {
-      const newItems = [...items.slice(0, i), replacement, ...items.slice(i + 1)];
-      return newItems.map(item => item.trim()).join(',');
-    }
-  }
-
-  return value;
 }
 
 function getRelativeDateSign(token: TokenResult<Token.FILTER>) {
@@ -840,7 +817,7 @@ export function SearchQueryBuilderValueCombobox({
           token: token,
           value: prepareInputValueForSaving(
             fieldDefinition,
-            replaceValueAtPosition(inputValue, selectionIndex, value)
+            replaceCommaSeparatedValue(inputValue, selectionIndex, value)
           ),
         });
         onCommit();
