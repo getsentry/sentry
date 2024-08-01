@@ -2648,3 +2648,8 @@ register(
     default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "delayed_processing.batch_size",
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
