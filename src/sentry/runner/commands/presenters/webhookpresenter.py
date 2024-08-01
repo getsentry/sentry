@@ -130,8 +130,7 @@ class WebhookPresenter(OptionsPresenter):
             headers = {
                 "Content-Type": "application/json",
             }
-            # Make sure the spacing is consistent
-            payload = json.dumps(json_data, separators=(",", ":")).encode("utf-8")
+            payload = json.dumps(json_data).encode("utf-8")
             webhook_secret = settings.OPTIONS_AUTOMATOR_HMAC_SECRET
             # If the webhook secret is set, we need to sign the payload
             if webhook_secret is not None:
