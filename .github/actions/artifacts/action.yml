@@ -25,21 +25,9 @@ runs:
   using: 'composite'
   steps:
     - name: Download and Verify Codecov CLI
-      shell: bash
       run: |
-        curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import # One-time step
-        curl -Os https://cli.codecov.io/latest/linux/codecov
-        curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-        curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
-        gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-        shasum -a 256 -c codecov.SHA256SUM
-        chmod +x codecov
+        ./.github/actions/artifacts/download-codecov-cli.sh
     - name: Upload Coverage
-      shell: bash
       continue-on-error: true
       run: |
-        files=$(echo ${{ inputs.files }} | sed 's/^/--file /;s/,/ --file /')
-        test_result_files=$(echo ${{ inputs.test_result_files }} | sed 's/^/--file /;s/,/ --file /')
-        ./codecov --verbose upload-process -t ${{ inputs.token }} --commit-sha ${{ inputs.commit_sha }} --plugin noop --flag ${{ inputs.type }} $files &
-        ./codecov --verbose do-upload --report-type test_results -t ${{ inputs.token }} --commit-sha ${{ inputs.commit_sha }} --plugin noop --flag ${{ inputs.type }} $test_result_files  &
-        wait
+        ./.github/actions/artifacts/do-upload.sh
