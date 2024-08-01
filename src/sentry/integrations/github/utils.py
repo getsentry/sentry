@@ -8,6 +8,7 @@ import time
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.utils import jwt
 
 logger = logging.getLogger(__name__)
@@ -32,14 +33,16 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
     return jwt.encode(payload, github_private_key, algorithm="RS256")
 
 
-def get_next_link(response: Response) -> str | None:
+def get_next_link(response: Response | BaseApiResponseX) -> str | None:
     """Github uses a `link` header to inform pagination.
     The relation parameter can be prev, next, first or last
 
     Read more here:
     https://docs.github.com/en/rest/guides/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers
     """
-    link_option: str | None = response.headers.get("link")
+    link_option: str | None = None
+    if response.headers:
+        link_option = response.headers.get("link")
     if link_option is None:
         logger.info("There are no pages to iterate on.")
         return None

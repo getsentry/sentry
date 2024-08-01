@@ -77,8 +77,12 @@ class GithubSharedSearchEndpoint(IntegrationEndpoint):
                         status=404,
                     )
                 raise
-            return Response(
-                [{"label": i["name"], "value": i["full_name"]} for i in response.get("items", [])]
-            )
+            if isinstance(response, dict):
+                return Response(
+                    [
+                        {"label": i["name"], "value": i["full_name"]}
+                        for i in response.get("items", [])
+                    ]
+                )
 
         return Response(status=400)

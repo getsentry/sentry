@@ -10,6 +10,7 @@ from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
 
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.shared_integrations.response.mapping import MappingApiResponse
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -118,7 +119,7 @@ def create_blame_query(
 
 
 def extract_commits_from_blame_response(
-    response: GitHubGraphQlResponse,
+    response: MappingApiResponse,
     files: Sequence[SourceLineInfo],
     file_path_mapping: FilePathMapping,
     extra: dict[str, str | int | None],

@@ -27,8 +27,7 @@ from ..exceptions import (
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 
-# TODO(mgaeta): HACK Fix the line where _request() returns "{}".
-BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any], Response]
+BaseApiResponseX = Union[BaseApiResponse, Response]
 
 
 class SessionSettings(TypedDict):
@@ -304,7 +303,7 @@ class BaseApiClient(TrackResponseMixin):
         self.record_response_for_disabling_integration(resp)
 
         if resp.status_code == 204:
-            return {}
+            return BaseApiResponse(status_code=204)
 
         return BaseApiResponse.from_response(
             resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors

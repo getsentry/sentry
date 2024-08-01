@@ -7,7 +7,7 @@ from typing import Any, cast
 
 import orjson
 import sentry_sdk
-from requests import PreparedRequest
+from requests import PreparedRequest, Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -45,12 +45,14 @@ MINIMUM_REQUESTS = 200
 
 class GithubRateLimitInfo:
     def __init__(self, info: dict[str, int]) -> None:
-        self.limit = info["limit"]
-        self.remaining = info["remaining"]
-        self.reset = info["reset"]
-        self.used = info["used"]
+        self.limit = info.get("limit")
+        self.remaining = info.get("remaining", 0)
+        self.reset = info.get("reset")
+        self.used = info.get("used")
 
     def next_window(self) -> str:
+        if not self.reset:
+            return "unknown"
         return datetime.fromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
@@ -58,8 +60,9 @@ class GithubRateLimitInfo:
 
 
 class GithubProxyClient(IntegrationProxyClient):
+    integration: RpcIntegration | Integration
+
     def _get_installation_id(self) -> str:
-        self.integration: RpcIntegration
         """
         Returns the Github App installation identifier.
         This is necessary since Github and Github Enterprise integrations store the
@@ -89,6 +92,8 @@ class GithubProxyClient(IntegrationProxyClient):
             },
         )
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
+        if not isinstance(data, dict):
+            return None
         access_token = cast(str, data["token"])
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
@@ -177,8 +182,8 @@ class GithubProxyClient(IntegrationProxyClient):
         return prepared_request
 
     def is_error_fatal(self, error: Exception) -> bool:
-        if hasattr(error.response, "text") and error.response.text:
-            if "suspended" in error.response.text:
+        if response := getattr(error, "response", None):
+            if getattr(response, "text") and "suspended" in response.text:
                 return True
         return super().is_error_fatal(error)
 
@@ -191,7 +196,7 @@ class GitHubBaseClient(GithubProxyClient):
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
-    def get_last_commits(self, repo: str, end_sha: str) -> Sequence[Any]:
+    def get_last_commits(self, repo: str, end_sha: str) -> BaseApiResponseX:
         """
         Return API request that fetches last ~30 commits
         see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
@@ -199,26 +204,26 @@ class GitHubBaseClient(GithubProxyClient):
         """
         return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> BaseApiResponseX:
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
         return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
 
-    def repo_hooks(self, repo: str) -> Sequence[Any]:
+    def repo_hooks(self, repo: str) -> BaseApiResponseX:
         """
         https://docs.github.com/en/rest/webhooks/repos#list-repository-webhooks
         """
         return self.get(f"/repos/{repo}/hooks")
 
-    def get_commits(self, repo: str) -> Sequence[Any]:
+    def get_commits(self, repo: str) -> BaseApiResponseX:
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
         return self.get(f"/repos/{repo}/commits")
 
-    def get_commit(self, repo: str, sha: str) -> Any:
+    def get_commit(self, repo: str, sha: str) -> BaseApiResponseX:
         """
         https://docs.github.com/en/rest/commits/commits#get-a-commit
         """
@@ -233,7 +238,10 @@ class GitHubBaseClient(GithubProxyClient):
             # the response should return a single merged PR, return if multiple
             return None
 
-        (pull_request,) = response
+        if not isinstance(response, list):
+            return None
+
+        pull_request: dict[str, Any] = response[0]
         if pull_request["state"] == "open":
             metrics.incr(
                 "github_pr_comment.queue_comment_check.open_pr",
@@ -243,7 +251,7 @@ class GitHubBaseClient(GithubProxyClient):
 
         return pull_request.get("merge_commit_sha")
 
-    def get_pullrequest_from_commit(self, repo: str, sha: str) -> Any:
+    def get_pullrequest_from_commit(self, repo: str, sha: str) -> BaseApiResponseX:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
 
@@ -278,17 +286,24 @@ class GitHubBaseClient(GithubProxyClient):
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+        response = self.get("/rate_limit")
+        if isinstance(response, dict):
+            resource = response["resources"][specific_resource]
+            return GithubRateLimitInfo(resource)
+        return GithubRateLimitInfo({})
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> Any:
         tree: Any = {}
         # We do not cache this call since it is a rather large object
-        contents: dict[str, Any] = self.get(
+        contents = self.get(
             f"/repos/{repo_full_name}/git/trees/{tree_sha}",
             # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
             params={"recursive": 1},
         )
+        if not isinstance(contents, dict):
+            return tree
+
         # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
         # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
         # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
@@ -504,7 +519,7 @@ class GitHubBaseClient(GithubProxyClient):
         """
         # XXX: In order to speed up this function we will need to parallelize this
         # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-        repos = self.get_with_pagination(
+        repos = self._get_with_pagination(
             "/installation/repositories",
             response_key="repositories",
             page_number_limit=self.page_number_limit if fetch_max_pages else 1,
@@ -512,7 +527,7 @@ class GitHubBaseClient(GithubProxyClient):
         return [repo for repo in repos if not repo.get("archived")]
 
     # XXX: Find alternative approach
-    def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
+    def search_repositories(self, query: bytes) -> BaseApiResponseX:
         """
         Find repositories matching a query.
         NOTE: All search APIs share a rate limit of 30 requests/minute
@@ -525,11 +540,11 @@ class GitHubBaseClient(GithubProxyClient):
         """
         https://docs.github.com/en/rest/issues/assignees#list-assignees
         """
-        return self.get_with_pagination(f"/repos/{repo}/assignees")
+        return self._get_with_pagination(f"/repos/{repo}/assignees")
 
-    def get_with_pagination(
+    def _get_with_pagination(
         self, path: str, response_key: str | None = None, page_number_limit: int | None = None
-    ) -> Sequence[Any]:
+    ) -> list[Any]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our
@@ -546,75 +561,72 @@ class GitHubBaseClient(GithubProxyClient):
             op=f"{self.integration_type}.http.pagination",
             description=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
-            output = []
+            output: list[Any] = []
 
             page_number = 1
             logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
-            output.extend(resp) if not response_key else output.extend(resp[response_key])
+            if isinstance(resp, list) and not response_key:
+                output.extend(resp)
+            if isinstance(resp, dict) and response_key:
+                output.extend(resp[response_key])
             next_link = get_next_link(resp)
-
-            # XXX: Debugging code; remove afterward
-            if (
-                response_key
-                and response_key == "repositories"
-                and resp["total_count"] > 0
-                and not output
-            ):
-                logger.info("headers: %s", resp.headers)
-                logger.info("output: %s", output)
-                logger.info("next_link: %s", next_link)
-                logger.error("No list of repos even when there's some. Investigate.")
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while next_link and page_number < page_number_limit:
                 resp = self.get(next_link)
-                output.extend(resp) if not response_key else output.extend(resp[response_key])
+                if isinstance(resp, list) and not response_key:
+                    output.extend(resp)
+                if isinstance(resp, dict) and response_key:
+                    output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
                 logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
 
-    def get_issues(self, repo: str) -> Sequence[Any]:
-        issues: Sequence[Any] = self.get(f"/repos/{repo}/issues")
-        return issues
+    def get_issues(self, repo: str) -> BaseApiResponseX:
+        return self.get(f"/repos/{repo}/issues")
 
-    def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+    def search_issues(self, query: str) -> BaseApiResponseX:
         """
         https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
         NOTE: All search APIs share a rate limit of 30 requests/minute
         """
         return self.get("/search/issues", params={"q": query})
 
-    def get_issue(self, repo: str, number: str) -> Any:
+    def get_issue(self, repo: str, number: str) -> BaseApiResponseX:
         """
         https://docs.github.com/en/rest/issues/issues#get-an-issue
         """
         return self.get(f"/repos/{repo}/issues/{number}")
 
-    def create_issue(self, repo: str, data: Mapping[str, Any]) -> Any:
+    def create_issue(self, repo: str, data: Mapping[str, Any]) -> BaseApiResponseX:
         """
         https://docs.github.com/en/rest/issues/issues#create-an-issue
         """
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
 
-    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> BaseApiResponseX:
         """
         https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
         """
         endpoint = f"/repos/{repo}/issues/{issue_id}/comments"
         return self.post(endpoint, data=data)
 
-    def update_comment(self, repo: str, comment_id: str, data: Mapping[str, Any]) -> Any:
+    def update_comment(
+        self, repo: str, comment_id: str, data: Mapping[str, Any]
+    ) -> BaseApiResponseX:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
 
-    def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+    def get_comment_reactions(self, repo: str, comment_id: str) -> dict[str, Any]:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         response = self.get(endpoint)
+        if not isinstance(response, dict):
+            return {}
         reactions = response["reactions"]
         del reactions["url"]
         return reactions
@@ -625,7 +637,7 @@ class GitHubBaseClient(GithubProxyClient):
         """
         return self.get(f"/users/{gh_username}")
 
-    def get_labels(self, repo: str) -> Sequence[Any]:
+    def get_labels(self, repo: str) -> BaseApiResponseX:
         """
         Fetches up to the first 100 labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
@@ -649,12 +661,10 @@ class GitHubBaseClient(GithubProxyClient):
             raw_response=True if codeowners else False,
             headers=headers,
         )
-
-        result = (
-            contents.content.decode("utf-8")
-            if codeowners
-            else b64decode(contents["content"]).decode("utf-8")
-        )
+        if isinstance(contents, Response):  # returned if codeowners=True
+            result = contents.content.decode("utf-8")
+        elif isinstance(contents, dict):
+            result = b64decode(contents["content"]).decode("utf-8")
         return result
 
     def get_blame_for_files(
@@ -750,13 +760,9 @@ class GitHubApiClient(GitHubBaseClient):
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.integration = integration
-        kwargs = {}
-        if hasattr(self.integration, "id"):
-            kwargs["integration_id"] = integration.id
-
         super().__init__(
             org_integration_id=org_integration_id,
             verify_ssl=verify_ssl,
             logging_context=logging_context,
-            **kwargs,
+            integration_id=getattr(self.integration, "id", None),
         )

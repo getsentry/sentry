@@ -185,7 +185,7 @@ class GitHubApiClientTest(TestCase):
             # The code only cares about the `next` value which is not included here
             headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=3>; rel="prev"'},
         )
-        self.github_client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
+        self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 4
         assert responses.calls[0].response.status_code == 200
 
@@ -196,7 +196,7 @@ class GitHubApiClientTest(TestCase):
 
         # No link in the headers because there are no more pages
         responses.add(method=responses.GET, url=url, json={}, headers={})
-        self.github_client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
+        self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 1
         assert responses.calls[0].response.status_code == 200
 

@@ -56,10 +56,12 @@ def create_or_update_comment(
         resp = client.create_comment(
             repo=repo.name, issue_id=str(pr_key), data={"body": comment_body}
         )
+        if not isinstance(resp, dict):
+            return
 
         current_time = timezone.now()
         comment = PullRequestComment.objects.create(
-            external_id=resp.body["id"],
+            external_id=resp["id"],
             pull_request_id=pullrequest_id,
             created_at=current_time,
             updated_at=current_time,
