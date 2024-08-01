@@ -36,7 +36,7 @@ def serialize_generic_user(user: Any) -> RpcUser | None:
 def _serialize_from_user_fields(user: User) -> dict[str, Any]:
     args = {
         field_name: getattr(user, field_name)
-        for field_name in RpcUserProfile.model_fields
+        for field_name in RpcUserProfile.__fields__
         if hasattr(user, field_name)
     }
     args["pk"] = user.pk

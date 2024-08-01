@@ -1,4 +1,3 @@
-import unittest
 from unittest.mock import patch
 
 import responses
@@ -112,16 +111,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_UNINSTALL")
         ).exists()
-
-        # user is wrapped in a SimpleLazyObject, meaning we can't assert equality
-        # via the method parameter check. Manually retrieve and check it instead.
-        run.assert_called_once_with(
-            install=self.orm_installation2, user=unittest.mock.ANY, action="deleted"
-        )
-
-        mock_call_user = run.mock_calls[0].kwargs.get("user")
-        assert mock_call_user == rpc_user
-
+        run.assert_called_once_with(install=self.orm_installation2, user=rpc_user, action="deleted")
         record.assert_called_with(
             "sentry_app.uninstalled",
             user_id=self.user.id,

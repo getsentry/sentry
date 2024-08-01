@@ -39,9 +39,6 @@ filterwarnings = [
 
   # pytest has not yet implemented the replacement for this yet
   "ignore:The --looponfail command line argument.*",
-
-  # Temporarily disable deprecation warnings for pydantic while we upgrade it
-  "ignore::DeprecationWarning:pydantic.*",
 ]
 looponfailroots = ["src", "tests"]
 
