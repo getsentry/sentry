@@ -10,7 +10,7 @@ from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
-from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
@@ -189,11 +189,11 @@ def get_seer_similar_issues(
     event: Event,
     primary_hashes: CalculatedHashes,
     num_neighbors: int = 1,
-) -> tuple[dict[str, Any], Group | None]:
+) -> tuple[dict[str, Any], GroupHash | None]:
     """
     Ask Seer for the given event's nearest neighbor(s) and return the seer response data, sorted
-    with the best matches first, along with the group Seer decided the event should go in, if any,
-    or None if no neighbor was near enough.
+    with the best matches first, along with a grouphash linked to the group Seer decided the event
+    should go in (if any), or None if no neighbor was near enough.
     """
 
     event_hash = primary_hashes.hashes[0]
@@ -219,8 +219,12 @@ def get_seer_similar_issues(
         "results": [asdict(result) for result in seer_results],
         "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
     }
-    parent_group = (
-        Group.objects.filter(id=seer_results[0].parent_group_id).first() if seer_results else None
+    parent_grouphash = (
+        GroupHash.objects.filter(
+            hash=seer_results[0].parent_hash, project_id=event.project.id
+        ).first()
+        if seer_results
+        else None
     )
 
     logger.info(
@@ -230,8 +234,8 @@ def get_seer_similar_issues(
             "project_id": event.project.id,
             "hash": event_hash,
             "results": seer_results,
-            "group_returned": bool(parent_group),
+            "grouphash_returned": bool(parent_grouphash),
         },
     )
 
-    return (similar_issues_metadata, parent_group)
+    return (similar_issues_metadata, parent_grouphash)
