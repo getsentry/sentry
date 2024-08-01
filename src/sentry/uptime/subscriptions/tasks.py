@@ -101,7 +101,9 @@ def send_uptime_config_deletion(subscription_id: str) -> None:
 )
 def subscription_checker(**kwargs):
     """
-    Checks for subscriptions stuck in a transition status and attempts to repair them
+    Checks for subscriptions stuck in a transition status and attempts to repair them. This
+    typically happens when we had some kind of error running the task the first time around.
+    Usually network or configuration related.
     """
     count = 0
     for subscription in UptimeSubscription.objects.filter(
