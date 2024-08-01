@@ -77,9 +77,6 @@ export function getDocsPlatformSDKForPlatform(
   if (platform === 'javascript-angular') {
     return 'javascript-angular';
   }
-  if (platform === 'javascript-angular') {
-    return 'javascript-angular';
-  }
   if (platform === 'javascript-gatsby') {
     return 'javascript-gatsby';
   }
