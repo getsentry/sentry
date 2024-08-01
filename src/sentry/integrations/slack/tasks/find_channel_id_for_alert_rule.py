@@ -8,7 +8,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 
 
 @instrumented_task(
-    name="sentry.integrations.slack.tasks.search_channel_id_metric_alerts",
+    name="sentry.integrations.slack.tasks.search_channel_id_for_alert_rule",
     queue="integrations",
     silo_mode=SiloMode.REGION,
 )
