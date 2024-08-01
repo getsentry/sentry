@@ -33,7 +33,7 @@ import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider'
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
-    sorting: 'alphabetical' satisfies FlamegraphState['preferences']['sorting'],
+    sorting: 'left heavy' satisfies FlamegraphState['preferences']['sorting'],
   },
 };
 
