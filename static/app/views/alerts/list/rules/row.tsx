@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
@@ -24,10 +23,11 @@ import {space} from 'sentry/styles/space';
 import type {Actor, Project} from 'sentry/types';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
+import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 
 import type {CombinedMetricIssueAlerts} from '../../types';
-import {CombinedAlertType, IncidentStatus} from '../../types';
+import {CombinedAlertType} from '../../types';
 import {isIssueAlert} from '../../utils';
 
 type Props = {
@@ -114,13 +114,6 @@ function RuleListRow({
     : null;
 
   const canEdit = ownerId ? userTeams.some(team => team.id === ownerId) : true;
-
-  const IssueStatusText: Record<IncidentStatus, string> = {
-    [IncidentStatus.CRITICAL]: t('Critical'),
-    [IncidentStatus.WARNING]: t('Warning'),
-    [IncidentStatus.CLOSED]: t('Resolved'),
-    [IncidentStatus.OPENED]: t('Resolved'),
-  };
 
   const actions: MenuItemProps[] = [
     {
@@ -233,23 +226,7 @@ function RuleListRow({
       </AlertNameWrapper>
       <FlexCenter>
         <FlexCenter>
-          <Tooltip
-            title={
-              isIssueAlert(rule)
-                ? t('Issue Alert')
-                : tct('Metric Alert Status: [status]', {
-                    status:
-                      IssueStatusText[
-                        rule?.latestIncident?.status ?? IncidentStatus.CLOSED
-                      ],
-                  })
-            }
-          >
-            <AlertBadge
-              status={rule?.latestIncident?.status}
-              isIssue={isIssueAlert(rule)}
-            />
-          </Tooltip>
+          <CombinedAlertBadge rule={rule} />
         </FlexCenter>
         <MarginLeft>
           <AlertRuleStatus rule={rule} />
