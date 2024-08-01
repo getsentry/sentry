@@ -688,6 +688,8 @@ export class Results extends Component<Props, State> {
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
 
+    const hasDatasetSelectorFeature = hasDatasetSelector(organization);
+
     const query = eventView.query;
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
@@ -716,6 +718,7 @@ export class Results extends Component<Props, State> {
                 {this.renderError(error)}
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
+                {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
                   <Feature
@@ -754,7 +757,6 @@ export class Results extends Component<Props, State> {
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
-                <SampleDataAlert query={query} />
                 <MetricsCardinalityProvider
                   organization={organization}
                   location={location}
@@ -791,22 +793,14 @@ export class Results extends Component<Props, State> {
                   queryDataset={savedQueryDataset}
                   setSplitDecision={(value?: SavedQueryDatasets) => {
                     if (
-                      organization.features.includes(
-                        'performance-discover-dataset-selector'
-                      ) &&
+                      hasDatasetSelectorFeature &&
                       value !== SavedQueryDatasets.DISCOVER &&
                       value !== savedQuery?.dataset
                     ) {
                       this.setSplitDecision(value);
                     }
                   }}
-                  dataset={
-                    organization.features.includes(
-                      'performance-discover-dataset-selector'
-                    )
-                      ? eventView.dataset
-                      : undefined
-                  }
+                  dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
