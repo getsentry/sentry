@@ -35,7 +35,6 @@ import loadInitializers from "ember-load-initializers";
 import config from "./config/environment";
 
 import * as Sentry from "@sentry/ember";
-import { getProfilingDocumentHeaderConfigurationStep } from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
 Sentry.init({
   dsn: "${params.dsn}",

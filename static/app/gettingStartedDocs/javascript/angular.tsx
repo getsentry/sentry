@@ -199,7 +199,6 @@ function getSdkSetupSnippet(params: Params) {
   import * as Sentry from "@sentry/angular";
 
   import { AppModule } from "./app/app.module";
-import { getProfilingDocumentHeaderConfigurationStep, BrowserProfilingBetaWarning, MaybeBrowserProfilingBetaWarning } from '../../components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
   Sentry.init({
     dsn: "${params.dsn}",
