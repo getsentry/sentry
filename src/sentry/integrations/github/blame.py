@@ -42,11 +42,6 @@ class GitHubRefResponse(TypedDict):
     target: dict[str, GitHubBlameResponse]
 
 
-class GitHubGraphQlResponse(TypedDict):
-    data: dict[str, GitHubRepositoryResponse]
-    errors: list[dict[str, str]]
-
-
 FilePathMapping = dict[str, dict[str, OrderedSet]]
 GitHubRepositoryResponse = dict[str, GitHubRefResponse]
 
