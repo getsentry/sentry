@@ -41,8 +41,8 @@ def get_next_link(response: Response | BaseApiResponseX) -> str | None:
     https://docs.github.com/en/rest/guides/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers
     """
     link_option: str | None = None
-    if response.headers:
-        link_option = response.headers.get("link")
+    if headers := getattr(response, "headers", None):
+        link_option = headers.get("link")
     if link_option is None:
         logger.info("There are no pages to iterate on.")
         return None

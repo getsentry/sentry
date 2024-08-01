@@ -45,14 +45,12 @@ MINIMUM_REQUESTS = 200
 
 class GithubRateLimitInfo:
     def __init__(self, info: dict[str, int]) -> None:
-        self.limit = info.get("limit")
-        self.remaining = info.get("remaining", 0)
-        self.reset = info.get("reset")
-        self.used = info.get("used")
+        self.limit = info["limit"]
+        self.remaining = info["remaining"]
+        self.reset = info["reset"]
+        self.used = info["used"]
 
     def next_window(self) -> str:
-        if not self.reset:
-            return "unknown"
         return datetime.fromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
