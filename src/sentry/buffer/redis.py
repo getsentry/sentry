@@ -391,7 +391,10 @@ class RedisBuffer(Buffer):
                 for key in keys:
                     pending_buffer.append(key)
                     if pending_buffer.full():
-                        process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
+                        process_incr.apply_async(
+                            kwargs={"batch_keys": pending_buffer.flush()},
+                            headers={"sentry-propagate-traces": False},
+                        )
 
                 self.cluster.zrem(self.pending_key, *keys)
             elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
@@ -407,7 +410,8 @@ class RedisBuffer(Buffer):
                             pending_buffer.append(keyb.decode("utf-8"))
                             if pending_buffer.full():
                                 process_incr.apply_async(
-                                    kwargs={"batch_keys": pending_buffer.flush()}
+                                    kwargs={"batch_keys": pending_buffer.flush()},
+                                    headers={"sentry-propagate-traces": False},
                                 )
                         conn.target([host_id]).zrem(self.pending_key, *keysb)
             else:
@@ -415,7 +419,10 @@ class RedisBuffer(Buffer):
 
             # queue up remainder of pending keys
             if not pending_buffer.empty():
-                process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
+                process_incr.apply_async(
+                    kwargs={"batch_keys": pending_buffer.flush()},
+                    headers={"sentry-propagate-traces": False},
+                )
 
             metrics.distribution("buffer.pending-size", keycount)
         finally:

@@ -53,7 +53,9 @@ class TestRedisBuffer:
         client.zadd("b:p", {"foo": 1, "bar": 2})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
+        process_incr.apply_async.assert_any_call(
+            kwargs={"batch_keys": ["foo", "bar"]}, headers=mock.ANY
+        )
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
@@ -65,8 +67,10 @@ class TestRedisBuffer:
         client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
-        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]})
+        process_incr.apply_async.assert_any_call(
+            kwargs={"batch_keys": ["foo", "bar"]}, headers=mock.ANY
+        )
+        process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]}, headers=mock.ANY)
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
