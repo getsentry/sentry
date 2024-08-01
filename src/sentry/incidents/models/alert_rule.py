@@ -748,6 +748,9 @@ class AlertRuleActivity(Model):
 def update_alert_activations(
     subscription: QuerySubscription, alert_rule: AlertRule, value: float
 ) -> bool:
+    if subscription.snuba_query is None:
+        return False
+
     now = timezone.now()
     subscription_end = subscription.date_added + timedelta(
         seconds=subscription.snuba_query.time_window

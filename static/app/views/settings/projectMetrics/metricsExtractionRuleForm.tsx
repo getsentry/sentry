@@ -20,7 +20,7 @@ import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
@@ -48,20 +48,51 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
 }
 
 const HIGH_CARDINALITY_TAGS = new Set([
+  SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH,
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.SPAN_GROUP,
+  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
+  SpanIndexedField.TRANSACTION_ID,
   SpanIndexedField.PROJECT_ID,
+  SpanIndexedField.PROFILE_ID,
+  SpanIndexedField.REPLAY_ID,
+  SpanIndexedField.TIMESTAMP,
+  SpanIndexedField.USER,
+  SpanIndexedField.USER_ID,
+  SpanIndexedField.USER_EMAIL,
+  SpanIndexedField.USER_USERNAME,
   SpanIndexedField.INP,
   SpanIndexedField.INP_SCORE,
   SpanIndexedField.INP_SCORE_WEIGHT,
   SpanIndexedField.TOTAL_SCORE,
   SpanIndexedField.CACHE_ITEM_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_ID,
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
-  SpanIndexedField.TRANSACTION_ID,
-  SpanIndexedField.ID,
+  SpanMetricsField.AI_TOTAL_TOKENS_USED,
+  SpanMetricsField.AI_PROMPT_TOKENS_USED,
+  SpanMetricsField.AI_COMPLETION_TOKENS_USED,
+  SpanMetricsField.AI_INPUT_MESSAGES,
+  SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
+  SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE,
+  SpanMetricsField.CACHE_ITEM_SIZE,
+  SpanMetricsField.CACHE_KEY,
+  SpanMetricsField.THREAD_ID,
+  SpanMetricsField.SENTRY_FRAMES_FROZEN,
+  SpanMetricsField.SENTRY_FRAMES_SLOW,
+  SpanMetricsField.SENTRY_FRAMES_TOTAL,
+  SpanMetricsField.FRAMES_DELAY,
+  SpanMetricsField.URL_FULL,
+  SpanMetricsField.USER_AGENT_ORIGINAL,
+  SpanMetricsField.FRAMES_DELAY,
 ]);
+
+const isHighCardinalityTag = (tag: string): boolean => {
+  return HIGH_CARDINALITY_TAGS.has(tag as SpanIndexedField);
+};
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
   {
@@ -256,15 +287,14 @@ export function MetricsExtractionRuleForm({
   }, [allAttributeOptions, extractionRules]);
 
   const tagOptions = useMemo(() => {
-    return allAttributeOptions
-      .filter(
-        // We don't want to suggest numeric fields as tags as they would explode cardinality
-        option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
-      )
-      .map<SelectValue<string>>(option => ({
-        label: option,
-        value: option,
-      }));
+    return allAttributeOptions.map<SelectValue<string>>(option => ({
+      label: option,
+      value: option,
+      disabled: isHighCardinalityTag(option),
+      tooltip: isHighCardinalityTag(option)
+        ? t('This tag has high cardinality.')
+        : undefined,
+    }));
   }, [allAttributeOptions]);
 
   const unitOptions = useMemo(() => {
