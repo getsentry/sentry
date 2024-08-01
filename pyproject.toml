@@ -469,7 +469,6 @@ disable_error_code = [
     "dict-item",
     "has-type",
     "index",
-    "list-item",
     "misc",
     "operator",
     "override",
