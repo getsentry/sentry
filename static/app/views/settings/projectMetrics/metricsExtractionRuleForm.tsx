@@ -1,4 +1,6 @@
 import {Fragment, useCallback, useId, useMemo, useState} from 'react';
+import {components} from 'react-select';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -336,6 +338,11 @@ export function MetricsExtractionRuleForm({
     [onSubmit]
   );
 
+  const isNewCustomSpanAttribute = useCallback((value: string) => {
+    return !attributeOptions.some(option => option.value === value);
+    // attributeOptions is being mutated when a new custom attribute is created
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <Form onSubmit={onSubmit && handleSubmit} {...props}>
       {({model}) => (
@@ -361,13 +368,31 @@ export function MetricsExtractionRuleForm({
                   )}
                 />
               }
-              placeholder={t('Select span attribute')}
-              creatable
-              formatCreateLabel={value => `Custom: "${value}"`}
               onCreateOption={value => {
                 setCustomAttributes(curr => [...curr, value]);
                 model.setValue('spanAttribute', value);
               }}
+              components={{
+                MenuList: (
+                  menuListProps: React.ComponentProps<typeof components.MenuList>
+                ) => {
+                  return (
+                    <MenuList
+                      {...menuListProps}
+                      info={tct(
+                        'Select an attribute or create one. [link:See how to instrument a custom attribute.]',
+                        {
+                          link: (
+                            <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                          ),
+                        }
+                      )}
+                    />
+                  );
+                },
+              }}
+              placeholder={t('Select span attribute')}
+              creatable
               onChange={value => {
                 model.setValue('spanAttribute', value);
                 if (value in FIXED_UNITS_BY_ATTRIBUTE) {
@@ -387,18 +412,15 @@ export function MetricsExtractionRuleForm({
               name="unit"
               options={unitOptions}
               disabled={isUnitDisabled}
-              label={
-                <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">
-                  {t('Create Custom Attribute?')}
-                </ExternalLink>
-              }
               placeholder={t('Select unit')}
               creatable
-              formatCreateLabel={value => `Custom: "${value}"`}
               onCreateOption={value => {
                 setCustomUnit(value);
                 model.setValue('unit', value);
               }}
+              css={css`
+                min-width: 150px;
+              `}
             />
           </SpanAttributeUnitWrapper>
 
@@ -428,6 +450,7 @@ export function MetricsExtractionRuleForm({
             inline={false}
             stacked
             name="tags"
+            aria-label={t('Select tags')}
             options={tagOptions}
             multiple
             placeholder={t('Select tags')}
@@ -440,11 +463,29 @@ export function MetricsExtractionRuleForm({
               />
             }
             creatable
-            formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
               setCustomAttributes(curr => [...curr, value]);
               const currentTags = model.getValue('tags') as string[];
               model.setValue('tags', [...currentTags, value]);
+            }}
+            components={{
+              MenuList: (
+                menuListProps: React.ComponentProps<typeof components.MenuList>
+              ) => {
+                return (
+                  <MenuList
+                    {...menuListProps}
+                    info={tct(
+                      'Select a tag or create one. [link:See how to instrument a custom tag.]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                        ),
+                      }
+                    )}
+                  />
+                );
+              },
             }}
           />
           <FormField
@@ -567,9 +608,18 @@ export function MetricsExtractionRuleForm({
                     <Fragment>
                       <b>{t('Why that?')}</b>
                       <p>
-                        {t(
-                          'Well, it’s because we’ll only collect data once you’ve created a metric and not before. Likewise, if you deleted an existing metric, then we’ll stop collecting data for that metric.'
-                        )}
+                        {isNewCustomSpanAttribute(model.getValue('spanAttribute'))
+                          ? tct(
+                              'We’ll only collect data from spans sent after you created the metric and not before. If you haven’t already, please [link:instrument your custom attribute.]',
+                              {
+                                link: (
+                                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                                ),
+                              }
+                            )
+                          : t(
+                              'Well, it’s because we’ll only collect data once you’ve created a metric and not before. Likewise, if you deleted an existing metric, then we’ll stop collecting data for that metric.'
+                            )}
                       </p>
                     </Fragment>
                   }
@@ -582,6 +632,29 @@ export function MetricsExtractionRuleForm({
         </Fragment>
       )}
     </Form>
+  );
+}
+
+function MenuList({
+  children,
+  info,
+  ...props
+}: React.ComponentProps<typeof components.MenuList> & {info: React.ReactNode}) {
+  const theme = useTheme();
+  return (
+    <components.MenuList {...props}>
+      <div
+        css={css`
+          /* The padding must align with the values specified for the option in the forms/controls/selectOption component */
+          padding: ${space(1)};
+          padding-left: calc(${space(0.5)} + ${space(1.5)});
+          color: ${theme.gray300};
+        `}
+      >
+        {info}
+      </div>
+      {children}
+    </components.MenuList>
   );
 }
 
