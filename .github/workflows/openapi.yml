@@ -42,7 +42,7 @@ jobs:
           path: sentry-api-schema
           token: ${{ steps.getsentry.outputs.token }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         if: steps.changes.outputs.api_docs == 'true'
         id: setup-node
         with:
