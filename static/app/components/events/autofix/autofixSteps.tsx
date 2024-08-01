@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -134,12 +134,7 @@ function Progress({
     return (
       <Fragment>
         <DateTime date={progress.timestamp} format="HH:mm:ss:SSS" />
-        <div
-          style={{overflowX: 'scroll', overflowY: 'hidden'}}
-          dangerouslySetInnerHTML={{
-            __html: html,
-          }}
-        />
+        <LogComponent html={html} />
       </Fragment>
     );
   }
@@ -455,4 +450,58 @@ const ProgressContainer = styled('div')`
 
 const ProgressStepContainer = styled('div')`
   grid-column: 1/-1;
+`;
+
+function LogComponent({html}) {
+  const logRef = useRef<any>(null);
+  const [fadeTop, setFadeTop] = useState(false);
+  const [fadeBottom, setFadeBottom] = useState(false);
+
+  useEffect(() => {
+    const element = logRef.current;
+
+    const updateFades = () => {
+      const {scrollTop, clientHeight, scrollHeight} = element;
+      const threshold = 1;
+      const contentScrollable = scrollHeight > clientHeight;
+      if (contentScrollable) {
+        const atBottom = scrollHeight - scrollTop <= clientHeight + threshold;
+        const atTop = scrollTop <= threshold;
+        setFadeBottom(!atBottom);
+        setFadeTop(!atTop);
+      } else {
+        setFadeBottom(false);
+        setFadeTop(false);
+      }
+    };
+
+    updateFades();
+    element.addEventListener('scroll', updateFades);
+    return () => {
+      element.removeEventListener('scroll', updateFades);
+    };
+  }, [html]);
+
+  return (
+    <LogText
+      ref={logRef}
+      className={`${fadeTop ? 'fade-top' : ''} ${fadeBottom ? 'fade-bottom' : ''}`}
+      dangerouslySetInnerHTML={{__html: html}}
+    />
+  );
+}
+
+const LogText = styled('div')`
+  overflow-x: scroll;
+  overflow-y: scroll;
+  max-height: 4em;
+  min-height: 1.5em;
+
+  &.fade-top {
+    mask-image: linear-gradient(to bottom, transparent 0%, black 24px);
+  }
+
+  &.fade-bottom {
+    mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+  }
 `;
