@@ -29,10 +29,10 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
-        metrics.incr("uptime.subscriptions.create.subscription_does_not_exist")
+        metrics.incr("uptime.subscriptions.create.subscription_does_not_exist", sample_rate=1.0)
         return
     if subscription.status != UptimeSubscription.Status.CREATING.value:
-        metrics.incr("uptime.subscriptions.create.incorrect_status")
+        metrics.incr("uptime.subscriptions.create.incorrect_status", sample_rate=1.0)
         return
 
     subscription_id = send_uptime_subscription_config(subscription)
@@ -52,14 +52,14 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
-        metrics.incr("uptime.subscriptions.delete.subscription_does_not_exist")
+        metrics.incr("uptime.subscriptions.delete.subscription_does_not_exist", sample_rate=1.0)
         return
 
     if subscription.status not in [
         UptimeSubscription.Status.DELETING.value,
         UptimeSubscription.Status.DISABLED.value,
     ]:
-        metrics.incr("uptime.subscriptions.delete.incorrect_status")
+        metrics.incr("uptime.subscriptions.delete.incorrect_status", sample_rate=1.0)
         return
 
     subscription_id = subscription.subscription_id
@@ -119,4 +119,4 @@ def subscription_checker(**kwargs):
         elif subscription.status == UptimeSubscription.Status.DELETING.value:
             delete_remote_uptime_subscription.delay(uptime_subscription_id=subscription.id)
 
-    metrics.incr("uptime.subscriptions.repair", amount=count)
+    metrics.incr("uptime.subscriptions.repair", amount=count, sample_rate=1.0)
