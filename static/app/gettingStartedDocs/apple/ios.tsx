@@ -425,13 +425,13 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/enriching-events/viewhierarchy/" />
                 ),
                 ttfd: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/performance/instrumentation/automatic-instrumentation/#time-to-full-display" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#time-to-full-display" />
                 ),
                 metricKit: (
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/watchos/configuration/metric-kit/" />
                 ),
                 prewarmedAppStart: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/apple/performance/instrumentation/automatic-instrumentation/#prewarmed-app-start-tracing" />
+                  <ExternalLink href="https://docs.sentry.io/platforms/apple/tracing/instrumentation/automatic-instrumentation/#prewarmed-app-start-tracing" />
                 ),
                 asyncStacktraces: (
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#stitch-together-swift-concurrency-stack-traces" />
@@ -502,7 +502,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       id: 'swiftui',
       name: t('SwiftUI'),
       description: t('Learn about our first class integration with SwiftUI.'),
-      link: 'https://docs.sentry.io/platforms/apple/performance/instrumentation/swiftui-instrumentation/',
+      link: 'https://docs.sentry.io/platforms/apple/tracing/instrumentation/swiftui-instrumentation/',
     },
     {
       id: 'profiling',

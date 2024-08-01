@@ -16,9 +16,11 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -178,41 +180,45 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <HeaderContainer>
-            <PageFilterBar condensed>
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-
-            <MetricsRibbon>
-              <MetricReadout
-                title={getThroughputTitle('db')}
-                value={spanMetrics?.[`${SpanFunction.SPM}()`]}
-                unit={RateUnit.PER_MINUTE}
-                isLoading={areSpanMetricsLoading}
-              />
-
-              <MetricReadout
-                title={DataTitles.avg}
-                value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
-                unit={DurationUnit.MILLISECOND}
-                isLoading={areSpanMetricsLoading}
-              />
-
-              <MetricReadout
-                title={DataTitles.timeSpent}
-                value={spanMetrics?.['sum(span.self_time)']}
-                unit={DurationUnit.MILLISECOND}
-                tooltip={getTimeSpentExplanation(
-                  spanMetrics?.['time_spent_percentage()'],
-                  'db'
-                )}
-                isLoading={areSpanMetricsLoading}
-              />
-            </MetricsRibbon>
-          </HeaderContainer>
-
           <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <HeaderContainer>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+                </ToolRibbon>
+
+                <ReadoutRibbon>
+                  <MetricReadout
+                    title={getThroughputTitle('db')}
+                    value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                    unit={RateUnit.PER_MINUTE}
+                    isLoading={areSpanMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={DataTitles.avg}
+                    value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                    unit={DurationUnit.MILLISECOND}
+                    isLoading={areSpanMetricsLoading}
+                  />
+
+                  <MetricReadout
+                    title={DataTitles.timeSpent}
+                    value={spanMetrics?.['sum(span.self_time)']}
+                    unit={DurationUnit.MILLISECOND}
+                    tooltip={getTimeSpentExplanation(
+                      spanMetrics?.['time_spent_percentage()'],
+                      'db'
+                    )}
+                    isLoading={areSpanMetricsLoading}
+                  />
+                </ReadoutRibbon>
+              </HeaderContainer>
+            </ModuleLayout.Full>
+
             {groupId && (
               <DescriptionContainer>
                 <DatabaseSpanDescription
@@ -288,20 +294,8 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const HeaderContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-`;
-
 const DescriptionContainer = styled(ModuleLayout.Full)`
   line-height: 1.2;
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;
 
 function PageWithProviders(props) {

@@ -1,34 +1,45 @@
 import type {Location, LocationDescriptor} from 'history';
 
+import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/guards';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-function toDate(value: unknown): Date | null {
-  if (typeof value !== 'string' && typeof value !== 'number') {
-    return null;
+function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+  if (isTransactionNode(node)) {
+    return node.value.event_id;
   }
-
-  const dateObj = new Date(value);
-
-  if (isNaN(dateObj.getTime())) {
-    return null;
+  if (isSpanNode(node)) {
+    return node.value.span_id;
   }
+  return undefined;
+}
 
-  return dateObj;
+// In the current version, a segment is a parent transaction
+function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+  if (isTransactionNode(node)) {
+    return node.value.event_id;
+  }
+  return node.parent_transaction?.value?.event_id;
 }
 
 /**
  * Generates a link to a continuous profile for a given trace element type
  */
 export function makeTraceContinuousProfilingLink(
-  value: TraceTreeNode<TraceTree.NodeValue>,
+  node: TraceTreeNode<TraceTree.NodeValue>,
   profilerId: string,
   options: {
     orgSlug: string;
     projectSlug: string;
+    threadId: string | undefined;
+    traceId: string;
   },
   query: Location['query'] = {}
 ): LocationDescriptor | null {
@@ -36,8 +47,16 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
-  let start: Date | null = toDate(value.space[0]);
-  let end: Date | null = toDate(value.space[0] + value.space[1]);
+  // We compute a time offset based on the duration of the span so that
+  // users can see some context of things that occurred before and after the span.
+  const transaction = isTransactionNode(node) ? node : node.parent_transaction;
+  if (!transaction) {
+    return null;
+  }
+  let start: Date | null = getDateFromTimestamp(transaction.space[0]);
+  let end: Date | null = getDateFromTimestamp(
+    transaction.space[0] + transaction.space[1]
+  );
 
   // End timestamp is required to generate a link
   if (end === null || typeof profilerId !== 'string' || profilerId === '') {
@@ -58,12 +77,34 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
+  // TransactionId is required to generate a link because
+  // we need to link to the segment of the trace and fetch its spans
+  const eventId = getEventId(node);
+  if (!eventId) {
+    return null;
+  }
+
+  const queryWithEventData: Record<string, string> = {
+    ...query,
+    eventId,
+    traceId: options.traceId,
+  };
+
+  if (typeof options.threadId === 'string') {
+    queryWithEventData.tid = options.threadId;
+  }
+
+  const spanId = getNodeId(node);
+  if (spanId) {
+    queryWithEventData.spanId = spanId;
+  }
+
   return generateContinuousProfileFlamechartRouteWithQuery(
     options.orgSlug,
     options.projectSlug,
     profilerId,
     start.toISOString(),
     end.toISOString(),
-    query
+    queryWithEventData
   );
 }

@@ -16,12 +16,14 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {SamplesTables} from 'sentry/views/insights/mobile/appStarts/components/samples';
 import {
@@ -29,7 +31,7 @@ import {
   StartTypeSelector,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
-import {MetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
+import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 import AppStartWidgets from '../components/widgets';
@@ -97,15 +99,16 @@ export function ScreenSummary() {
           <Layout.Main fullWidth>
             <PageAlert />
             <HeaderContainer>
-              <ControlsContainer>
+              <ToolRibbon>
                 <PageFilterBar condensed>
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 <ReleaseComparisonSelector />
                 <StartTypeSelector />
-              </ControlsContainer>
-              <MetricsRibbon
+              </ToolRibbon>
+
+              <MobileMetricsRibbon
                 dataset={DiscoverDatasets.SPANS_METRICS}
                 filters={[
                   `transaction:${transactionName}`,
@@ -213,18 +216,6 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1.5)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-  justify-content: space-between;
-`;
 
 const SamplesContainer = styled('div')`
   margin-top: ${space(2)};

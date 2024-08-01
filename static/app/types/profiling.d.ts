@@ -12,9 +12,19 @@ declare namespace Profiling {
     value: number;
   };
 
+  type ContinuousMeasurementValue = {
+    timestamp: number;
+    value: number;
+  };
+
   type Measurement = {
     unit: string;
     values: MeasurementValue[];
+  };
+
+  type ContinuousMeasurement = {
+    unit: string;
+    values: ContinuousMeasurementValue[];
   };
 
   type Measurements = {
@@ -24,6 +34,15 @@ declare namespace Profiling {
     screen_frame_rates?: Measurement;
     slow_frame_renders?: Measurement;
     [key: string]: Measurement;
+  };
+
+  type ContinuousMeasurements = {
+    cpu_usage?: ContinuousMeasurement;
+    memory_footprint?: ContinuousMeasurement;
+    frozen_frame_renders?: ContinuousMeasurement;
+    screen_frame_rates?: ContinuousMeasurement;
+    slow_frame_renders?: ContinuousMeasurement;
+    [key: string]: ContinuousMeasurement;
   };
 
   type SentrySampledProfileSample = {
@@ -117,7 +136,7 @@ declare namespace Profiling {
       images: Image[];
     };
     platform: string;
-    measurements?: Measurements;
+    measurements?: ContinuousMeasurements;
     profile: ContinuousProfile;
   }
 

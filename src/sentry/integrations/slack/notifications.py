@@ -9,7 +9,10 @@ from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
-from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.metrics import (
+    SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC,
+    SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.service import SlackService
 from sentry.integrations.slack.utils.errors import (
     CHANNEL_NOT_FOUND,
@@ -19,7 +22,6 @@ from sentry.integrations.slack.utils.errors import (
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 
@@ -29,29 +31,20 @@ SLACK_TIMEOUT = 5
 
 class SlackNotifyBasicMixin(NotifyBasicMixin):
     def send_message(self, channel_id: str, message: str) -> None:
-        payload = {"channel": channel_id, "text": message}
         client = self.get_client()
 
-        if isinstance(client, SlackClient):
-            try:
-                client.post("/chat.postMessage", data=payload, json=True)
-            except ApiError as e:
-                message = str(e)
-                if message not in ["Expired url", "channel_not_found"]:
-                    logger.exception(
-                        "slack.slash-notify.response-error",
-                        extra={"error": message},
-                    )
-        else:
-            try:
-                client.chat_postMessage(channel=channel_id, text=message)
-                logger.info("slack.slash-notify.success", extra={"channel_id": channel_id})
-            except SlackApiError as e:
-                if unpack_slack_api_error(e) not in (EXPIRED_URL, CHANNEL_NOT_FOUND):
-                    logger.exception(
-                        "slack.slash-response.error",
-                        extra={"error": str(e)},
-                    )
+        try:
+            client.chat_postMessage(channel=channel_id, text=message)
+            metrics.incr(SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+        except SlackApiError as e:
+            metrics.incr(SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+
+            # TODO: remove this
+            if unpack_slack_api_error(e) not in (EXPIRED_URL, CHANNEL_NOT_FOUND):
+                logger.exception(
+                    "slack.slash-response.error",
+                    extra={"error": str(e)},
+                )
 
 
 @register_notification_provider(ExternalProviders.SLACK)

@@ -7,9 +7,12 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.metrics import (
+    SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+    SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils.errors import (
     CHANNEL_NOT_FOUND,
@@ -17,14 +20,13 @@ from sentry.integrations.slack.utils.errors import (
     unpack_slack_api_error,
 )
 from sentry.integrations.slack.utils.users import get_slack_user_list
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
-    ApiError,
     ApiRateLimitedError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
+from sentry.utils import metrics
 
 _logger = logging.getLogger(__name__)
 
@@ -90,10 +92,7 @@ def get_channel_id(
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
-    if features.has("organizations:slack-sdk-get-channel-id", organization):
-        return get_channel_id_with_timeout(integration, channel_name, timeout)
-
-    return get_channel_id_with_timeout_deprecated(integration, channel_name, timeout)
+    return get_channel_id_with_timeout(integration, channel_name, timeout)
 
 
 def validate_channel_id(name: str, integration_id: int | None, input_channel_id: str) -> None:
@@ -105,9 +104,17 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
     client = SlackSdkClient(integration_id=integration_id)
     try:
         results = client.conversations_info(channel=input_channel_id).data
+        metrics.incr(
+            SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"type": "conversations_info"},
+        )
     except SlackApiError as e:
-        if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
-            raise ValidationError("Channel not found. Invalid ID provided.") from e
+        metrics.incr(
+            SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"type": "conversations_info"},
+        )
         _logger.exception(
             "rule.slack.conversation_info_failed",
             extra={
@@ -116,6 +123,11 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
                 "input_channel_id": input_channel_id,
             },
         )
+
+        if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
+            raise ValidationError("Channel not found. Invalid ID provided.") from e
+
+        raise ValidationError("Could not retrieve Slack channel information.") from e
 
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack channel list response.")
@@ -197,12 +209,18 @@ def check_user_with_timeout(
         for page in get_slack_user_list(integration, organization=None, kwargs=payload)
         for user in page
     )
+
     try:
         for user in user_generator:
             # The "name" field is unique (this is the username for users)
             # so we return immediately if we find a match.
             # convert to lower case since all names in Slack are lowercase
             if name and str(user["name"]).casefold() == name.casefold():
+                metrics.incr(
+                    SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "users_list"},
+                )
                 return SlackChannelIdData(prefix="@", channel_id=user["id"], timed_out=False)
 
             # If we don't get a match on a unique identifier, we look through
@@ -217,11 +235,26 @@ def check_user_with_timeout(
 
             # TODO: This is a problem if we don't go through all the users and eventually run in to someone with duplicate display name
             if time.time() > time_to_quit:
+                metrics.incr(
+                    SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "users_list", "timed_out": True},
+                )
                 return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
     except SlackApiError as e:
         _logger.exception("rule.slack.user_check_error", extra=logger_params)
         if unpack_slack_api_error(e) == RATE_LIMITED:
+            metrics.incr(
+                SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "users_list", "ratelimited": True},
+            )
             raise ApiRateLimitedError("Slack rate limited") from e
+        metrics.incr(
+            SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"type": "users_list"},
+        )
 
     return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
 
@@ -239,7 +272,17 @@ def check_for_channel(
             text="Sentry is verifying your channel is accessible for sending you alert rule notifications",
             post_at=int(time.time() + 500),
         )
+        metrics.incr(
+            SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"type": "chat_scheduleMessage"},
+        )
     except SlackApiError as e:
+        metrics.incr(
+            SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"type": "chat_scheduleMessage"},
+        )
         logger_params = {
             "error": str(e),
             "integration_id": client.integration_id,
@@ -260,8 +303,18 @@ def check_for_channel(
             channel=msg_response.get("channel"),
             scheduled_message_id=msg_response.get("scheduled_message_id"),
         )
+        metrics.incr(
+            SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"type": "chat_deleteScheduledMessage"},
+        )
         return msg_response.get("channel")
     except SlackApiError as e:
+        metrics.incr(
+            SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"type": "chat_deleteScheduledMessage"},
+        )
         # We will not have a "channel_not_found" error here, so we can safely log the error and raise
         logger_params = {
             "error": str(e),
@@ -272,114 +325,3 @@ def check_for_channel(
         }
         _logger.exception("slack.chat_deleteScheduledMessage.error", extra=logger_params)
         raise
-
-
-def get_channel_id_with_timeout_deprecated(
-    integration: Integration | RpcIntegration,
-    name: str | None,
-    timeout: int,
-) -> SlackChannelIdData:
-    """
-    Fetches the internal slack id of a channel using scheduled message.
-    :param integration: The slack integration
-    :param name: The name of the channel
-    :param timeout: Our self-imposed time limit.
-    :return: a SlackChannelIdData object
-    """
-
-    payload = {
-        "exclude_archived": False,
-        "exclude_members": True,
-        "types": "public_channel,private_channel",
-    }
-
-    time_to_quit = time.time() + timeout
-
-    client = SlackClient(integration_id=integration.id)
-    id_data: SlackChannelIdData | None = None
-    found_duplicate = False
-    prefix = ""
-    channel_id = None
-    try:  # Check for channel
-        channel_id = check_for_channel_deprecated(client, name)
-        prefix = "#"
-    except ApiError as e:
-        if str(e) != "channel_not_found":
-            raise
-        # Check if user
-        cursor = ""
-        while True:
-            # Slack limits the response of `<list_type>.list` to 1000 channels
-            try:
-                items = client.get("/users.list", params=dict(payload, cursor=cursor, limit=1000))
-            except ApiRateLimitedError as e:
-                _logger.info(
-                    "rule.slack.user_list_rate_limited",
-                    extra={"error": str(e), "integration_id": integration.id},
-                )
-                raise
-            except ApiError as e:
-                _logger.info(
-                    "rule.slack.user_list_other_error",
-                    extra={"error": str(e), "integration_id": integration.id},
-                )
-                return SlackChannelIdData(prefix, None, False)
-
-            if not isinstance(items, dict):
-                continue
-
-            for c in items["members"]:
-                # The "name" field is unique (this is the username for users)
-                # so we return immediately if we find a match.
-                # convert to lower case since all names in Slack are lowercase
-                if name and c["name"].lower() == name.lower():
-                    prefix = "@"
-                    return SlackChannelIdData(prefix, c["id"], False)
-                # If we don't get a match on a unique identifier, we look through
-                # the users' display names, and error if there is a repeat.
-                profile = c.get("profile")
-                if profile and profile.get("display_name") == name:
-                    if id_data:
-                        found_duplicate = True
-                    else:
-                        prefix = "@"
-                        id_data = SlackChannelIdData(prefix, c["id"], False)
-
-            cursor = items.get("response_metadata", {}).get("next_cursor", None)
-            if time.time() > time_to_quit:
-                return SlackChannelIdData(prefix, None, True)
-
-            if not cursor:
-                break
-
-        if found_duplicate:
-            raise DuplicateDisplayNameError(name)
-        elif id_data:
-            return id_data
-
-    return SlackChannelIdData(prefix, channel_id, False)
-
-
-def check_for_channel_deprecated(client: SlackClient, name: str) -> str | None:
-    msg_response = client.post(
-        "/chat.scheduleMessage",
-        data={
-            "channel": name,
-            "text": "Sentry is verifying your channel is accessible for sending you alert rule notifications",
-            "post_at": int(time.time() + 500),
-        },
-    )
-
-    if "channel" in msg_response:
-        client.post(
-            "/chat.deleteScheduledMessage",
-            params=dict(
-                {
-                    "channel": msg_response["channel"],
-                    "scheduled_message_id": msg_response["scheduled_message_id"],
-                }
-            ),
-        )
-
-        return msg_response["channel"]
-    return None

@@ -26,6 +26,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
@@ -39,6 +40,7 @@ import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/util
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useProjects from 'sentry/utils/useProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
@@ -289,7 +291,7 @@ class TraceDetailsContent extends Component<Props, State> {
     if (roots === 0 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
             )}
@@ -299,7 +301,7 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots === 1 && orphans > 0) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
             {t(
               'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
             )}
@@ -309,7 +311,7 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots > 1) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
         </Alert>
@@ -402,7 +404,11 @@ class TraceDetailsContent extends Component<Props, State> {
             <ButtonBar gap={1}>
               <DiscoverButton
                 size="sm"
-                to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+                to={traceEventView.getResultsViewUrlTarget(
+                  organization.slug,
+                  false,
+                  hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+                )}
                 onClick={() => {
                   trackAnalytics('performance_views.trace_view.open_in_discover', {
                     organization,

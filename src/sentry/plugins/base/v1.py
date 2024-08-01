@@ -505,18 +505,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
 
-    def view_configure(self, request, project, **kwargs):
-        if request.method == "GET":
-            return Response(
-                self.get_configure_plugin_fields(
-                    request=request,  # DEPRECATED: this param should not be used
-                    project=project,
-                    **kwargs,
-                )
-            )
-        self.configure(project, request.data)
-        return Response({"message": "Successfully updated configuration."})
-
 
 class Plugin(IPlugin, metaclass=PluginMount):
     """

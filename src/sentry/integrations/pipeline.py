@@ -1,32 +1,29 @@
 from __future__ import annotations
 
-from django.http import HttpResponseRedirect
-
-from sentry import features
-from sentry.api.utils import generate_organization_url
-from sentry.models.organizationmapping import OrganizationMapping
-from sentry.silo.base import SiloMode
-
-__all__ = ["IntegrationPipeline"]
-
 import logging
 
 from django.db import IntegrityError
+from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.manager import default_manager
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
+from sentry.silo.base import SiloMode
 from sentry.web.helpers import render_to_response
 
-logger = logging.getLogger(__name__)
+__all__ = ["IntegrationPipeline"]
 
-from sentry.integrations.manager import default_manager
+logger = logging.getLogger(__name__)
 
 
 def ensure_integration(key, data):

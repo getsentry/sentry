@@ -6,6 +6,18 @@ export type TracingEventParameters = {
     shape: string;
     trace_duration_seconds: number;
   };
+  'trace.quality.performance_setup.banner_loaded': {};
+  'trace.quality.performance_setup.checklist_triggered': {};
+  'trace.quality.performance_setup.learn_more_clicked': {};
+  'trace.quality.quota_exceeded.banner_loaded': {
+    traceType: string;
+  };
+  'trace.quality.quota_exceeded.increase_budget_clicked': {
+    traceType: string;
+  };
+  'trace.quality.quota_exceeded.learn_more_clicked': {
+    traceType: string;
+  };
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -82,6 +94,17 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.tab_view': 'Viewed Trace Tab',
   'trace.trace_layout.search_focus': 'Focused Trace Search',
   'trace.trace_layout.reset_zoom': 'Reset Trace Zoom',
+  'trace.quality.performance_setup.checklist_triggered':
+    'Triggered Performance Setup Checklist',
+  'trace.quality.performance_setup.learn_more_clicked':
+    'Clicked Learn More in Performance Setup Banner',
+  'trace.quality.performance_setup.banner_loaded': 'Performance Setup Banner Loaded',
+  'trace.quality.quota_exceeded.increase_budget_clicked':
+    'Clicked Increase Budget in Quota Exceeded Banner',
+  'trace.quality.quota_exceeded.learn_more_clicked':
+    'Clicked Learn More in Quota Exceeded Banner',
+  'trace.quality.quota_exceeded.banner_loaded':
+    'Clicked Learn More in Performance Setup Banner',
   'trace.trace_layout.view_shortcuts': 'Viewed Trace Shortcuts',
   'trace.trace_warning_type': 'Viewed Trace Warning Type',
   'trace.trace_layout.zoom_to_fill': 'Trace Zoom to Fill',

@@ -115,7 +115,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "fingerprintingRules",
         "secondaryGroupingConfig",
         "secondaryGroupingExpiry",
-        "groupingAutoUpdate",
         "scrapeJavaScript",
         "allowedDomains",
         "copy_from_project",
@@ -126,6 +125,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "highlightContext",
         "highlightTags",
         "extrapolateMetrics",
+        "uptimeAutodetection",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -202,7 +202,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         required=False, allow_blank=True, allow_null=True
     )
     secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    groupingAutoUpdate = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
@@ -212,6 +211,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     extrapolateMetrics = serializers.BooleanField(required=False)
+    uptimeAutodetection = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -650,9 +650,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
                     "secondaryGroupingExpiry"
                 ]
-        if result.get("groupingAutoUpdate") is not None:
-            if project.update_option("sentry:grouping_auto_update", result["groupingAutoUpdate"]):
-                changed_proj_settings["sentry:grouping_auto_update"] = result["groupingAutoUpdate"]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]
@@ -757,6 +754,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "extrapolateMetrics" in result:
             if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
                 changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
+
+        if result.get("uptimeAutodetection") is not None:
+            if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
+                changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
 
         if has_elevated_scopes:
             options = result.get("options", {})
@@ -902,6 +903,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
                 )
+            if "sentry:uptime_autodetection" in options:
+                project.update_option(
+                    "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
+                )
 
         self.create_audit_entry(
             request=request,
@@ -974,7 +979,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has("projects:similarity-embeddings-delete-by-hash", project):
+            if features.has("projects:similarity-embeddings-grouping", project):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

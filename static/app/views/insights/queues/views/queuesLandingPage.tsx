@@ -5,10 +5,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -21,10 +17,9 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {OnboardingContent} from 'sentry/views/insights/common/components/onboardingContent';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
@@ -38,7 +33,6 @@ import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
-  ONBOARDING_CONTENT,
 } from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -85,8 +79,6 @@ function QueuesLandingPage() {
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
 
-  useHasDataTrackAnalytics(ModuleName.QUEUE, 'insight.page_loads.queue');
-
   const crumbs = useModuleBreadcrumbs('queue');
 
   return (
@@ -114,16 +106,9 @@ function QueuesLandingPage() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
+              <ModulePageFilterBar moduleName={ModuleName.QUEUE} />
             </ModuleLayout.Full>
-            <ModulesOnboarding
-              moduleName={ModuleName.QUEUE}
-              onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
-            >
+            <ModulesOnboarding moduleName={ModuleName.QUEUE}>
               <ModuleLayout.Half>
                 <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
@@ -150,7 +135,11 @@ function QueuesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="queue" features="insights-addon-modules">
+    <ModulePageProviders
+      moduleName="queue"
+      features="insights-addon-modules"
+      analyticEventName="insight.page_loads.queue"
+    >
       <QueuesLandingPage />
     </ModulePageProviders>
   );

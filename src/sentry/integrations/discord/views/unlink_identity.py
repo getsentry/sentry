@@ -17,6 +17,7 @@ from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import logger
+from .constants import SALT
 
 
 def build_unlinking_url(integration: RpcIntegration, discord_id: str) -> str:
@@ -25,7 +26,7 @@ def build_unlinking_url(integration: RpcIntegration, discord_id: str) -> str:
         "discord_id": discord_id,
         "integration_id": integration.id,
     }
-    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
+    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
 
 
 @control_silo_view
@@ -37,7 +38,7 @@ class DiscordUnlinkIdentityView(BaseView):
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, signed_params: str) -> HttpResponse:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=SALT)
         except (SignatureExpired, BadSignature):
             return render_to_response("sentry/integrations/discord/expired-link.html")
 

@@ -207,12 +207,17 @@ export function MetricListItemDetails({
                 return (
                   <Fragment key={tag.key}>
                     <TagWrapper>
-                      <Button
-                        priority="link"
-                        onClick={() => onTagClick(metric.mri, tag.key)}
-                      >
-                        {tag.key}
-                      </Button>
+                      {/* Tags for virtual metrics are not clickable because there is no way of knowing which have been seen and won't cause query error */}
+                      {isVirtualMetric ? (
+                        tag.key
+                      ) : (
+                        <Button
+                          priority="link"
+                          onClick={() => onTagClick(metric.mri, tag.key)}
+                        >
+                          {tag.key}
+                        </Button>
+                      )}
                       {/* Make the comma stick to the Button when the text wraps to the next line */}
                       {shouldAddDelimiter ? ',' : null}
                     </TagWrapper>

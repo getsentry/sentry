@@ -16,9 +16,9 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -136,9 +136,6 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
 
         return [repo for repo in repos if repo.name not in accessible_repos]
-
-    def reinstall(self):
-        self.reinstall_repositories()
 
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(f'https://{self.model.metadata["domain_name"]}') or url.startswith(

@@ -108,10 +108,14 @@ class IssueAlertNotificationMessageRepository:
         """
         try:
             base_filter = self._parent_notification_message_base_filter()
-            instance: NotificationMessage = self._model.objects.filter(base_filter).get(
-                rule_fire_history__rule__id=rule_id,
-                rule_fire_history__group__id=group_id,
-                rule_action_uuid=rule_action_uuid,
+            instance: NotificationMessage = (
+                self._model.objects.filter(base_filter)
+                .filter(
+                    rule_fire_history__rule__id=rule_id,
+                    rule_fire_history__group__id=group_id,
+                    rule_action_uuid=rule_action_uuid,
+                )
+                .latest("date_added")
             )
             return IssueAlertNotificationMessage.from_model(instance=instance)
         except NotificationMessage.DoesNotExist:
@@ -154,7 +158,7 @@ class IssueAlertNotificationMessageRepository:
 
     def get_all_parent_notification_messages_by_filters(
         self, group_ids: list[int] | None = None, project_ids: list[int] | None = None
-    ) -> Generator[IssueAlertNotificationMessage, None, None]:
+    ) -> Generator[IssueAlertNotificationMessage]:
         """
         If no filters are passed, then all parent notification objects are returned.
 

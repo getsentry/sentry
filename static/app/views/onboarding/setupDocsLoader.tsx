@@ -315,7 +315,7 @@ Sentry.onLoad(function() {
           </li>
           {!products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
             <li>
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/">
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/">
                 {t('Performance Monitoring')}
               </ExternalLink>
               {': '}

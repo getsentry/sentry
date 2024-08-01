@@ -29,6 +29,7 @@ from sentry.search.utils import DEVICE_CLASS
 class SpansIndexedDatasetConfig(DatasetConfig):
     optimize_wildcard_searches = True
     subscriptables_with_index = {"tags"}
+    non_nullable_keys = {"id", "span_id", "trace", "trace_id", "profile.id", "profile_id"}
 
     def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder

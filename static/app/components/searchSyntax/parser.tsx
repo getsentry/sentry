@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
@@ -1181,6 +1181,18 @@ export type ParseResultToken =
  * Result from parsing a search query.
  */
 export type ParseResult = ParseResultToken[];
+
+export type AggregateFilter = (
+  | FilterMap[FilterType.AGGREGATE_DATE]
+  | FilterMap[FilterType.AGGREGATE_DURATION]
+  | FilterMap[FilterType.AGGREGATE_NUMERIC]
+  | FilterMap[FilterType.AGGREGATE_PERCENTAGE]
+  | FilterMap[FilterType.AGGREGATE_RELATIVE_DATE]
+  | FilterMap[FilterType.AGGREGATE_SIZE]
+) & {
+  location: LocationRange;
+  text: string;
+};
 
 /**
  * Configures behavior of search parsing

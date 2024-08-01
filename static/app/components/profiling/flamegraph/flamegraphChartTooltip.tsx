@@ -9,6 +9,7 @@ import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import type {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
+import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {
   FlamegraphTooltipColorIndicator,
@@ -23,6 +24,7 @@ export interface FlamegraphChartTooltipProps {
   chartRenderer: FlamegraphChartRenderer;
   chartView: CanvasView<FlamegraphChart>;
   configSpaceCursor: vec2;
+  configViewUnit: ProfilingFormatterUnit;
 }
 
 export function FlamegraphChartTooltip({
@@ -32,11 +34,14 @@ export function FlamegraphChartTooltip({
   chart,
   chartRenderer,
   chartView,
-}: // chartRenderer,
-FlamegraphChartTooltipProps) {
+  configViewUnit,
+}: FlamegraphChartTooltipProps) {
   const series = useMemo(() => {
-    return chartRenderer.findHoveredSeries(configSpaceCursor, 6e7);
-  }, [chartRenderer, configSpaceCursor]);
+    return chartRenderer.findHoveredSeries(
+      configSpaceCursor,
+      formatTo(100, 'milliseconds', configViewUnit)
+    );
+  }, [chartRenderer, configSpaceCursor, configViewUnit]);
 
   return series.length > 0 ? (
     <BoundTooltip

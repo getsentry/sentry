@@ -64,6 +64,11 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
         ? `
           Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
+    }${
+      params.isProfilingSelected
+        ? `
+          Sentry.browserProfilingIntegration(),`
+        : ''
     }
   ],${
     params.isPerformanceSelected
@@ -79,6 +84,16 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
         // Session Replay
         replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
         replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+        // Set profilesSampleRate to 1.0 to profile every transaction.
+        // Since profilesSampleRate is relative to tracesSampleRate,
+        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
+        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
+        // results in 25% of transactions being profiled (0.5*0.5=0.25)
+        profilesSampleRate: 1.0,`
       : ''
   }
   });`;
@@ -189,7 +204,7 @@ export const nextSteps = [
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/tracing/',
   },
   {
     id: 'session-replay',

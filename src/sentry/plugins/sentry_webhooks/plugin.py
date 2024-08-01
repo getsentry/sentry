@@ -82,10 +82,10 @@ class WebHooksPlugin(notify.NotificationPlugin):
         )
     ]
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("urls", project))
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             {
                 "name": "urls",
@@ -123,7 +123,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
     def get_client(self, payload):
         return WebhookApiClient(payload)
 
-    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         payload = self.get_group_data(group, event, triggering_rules)
         client = self.get_client(payload)
         for url in self.get_webhook_urls(group.project):

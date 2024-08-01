@@ -395,6 +395,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.monitors",
+    "sentry.integrations",
     "sentry.uptime",
     "sentry.replays",
     "sentry.release_health",
@@ -736,6 +737,9 @@ CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.integrations.github.tasks",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
@@ -778,7 +782,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
-    "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
@@ -810,6 +813,8 @@ CELERY_IMPORTS = (
     "sentry.integrations.slack.tasks",
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.subscriptions.tasks",
+    "sentry.integrations.vsts.tasks",
+    "sentry.integrations.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -867,8 +872,6 @@ CELERY_QUEUES_REGION = [
     Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
-    Queue("events.process_event_proguard", routing_key="events.process_event_proguard"),
-    Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
     ),
@@ -1073,12 +1076,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/5"),
         "options": {"expires": 300},
     },
-    "clear-expired-raw-events": {
-        "task": "sentry.tasks.clear_expired_raw_events",
-        # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
-        "options": {"expires": 300},
-    },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
         # Run every 3 hours
@@ -1270,7 +1267,6 @@ PROCESSING_QUEUES = [
     "events.preprocess_event",
     "events.process_event",
     "events.process_event_proguard",
-    "events.reprocess_events",
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
     "events.reprocessing.symbolicate_event",
@@ -1549,10 +1545,6 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # ----
 # end APM config
 # ----
-
-# DSN to use for Sentry monitors
-SENTRY_MONITOR_DSN: str | None = None
-SENTRY_MONITOR_API_ROOT: str | None = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -2480,7 +2472,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.6.0"
+SELF_HOSTED_STABLE_VERSION = "24.7.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2548,6 +2540,13 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 # This will allow us to have finer control over where we are running the
 # profiler. For example, only on the web server.
 SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
+
+# To have finer control over which process will have continuous profiling enabled,
+# this environment variable will be required to enable continuous profiling.
+#
+# This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
+# to operate under the continuous profiling model.
+SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -2862,7 +2861,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
     "outcomes": "default",
+    "outcomes-dlq": "default",
     "outcomes-billing": "default",
+    "outcomes-billing-dlq": "default",
     "events-subscription-results": "default",
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",
@@ -2983,12 +2984,8 @@ SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 # Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
 SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
-# If this is turned on, then sentry will perform automatic grouping updates.
-# This is enabled in production
-SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
-
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3143,8 +3140,13 @@ SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_TIMEOUT = 1
 
+SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
+
+SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"
+)
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
@@ -3190,7 +3192,7 @@ SUPERUSER_STAFF_EMAIL_SUFFIX: str | None = None
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
-MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 400
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 MAX_MORE_FAST_CONDITION_ISSUE_ALERTS = 1000
@@ -3437,9 +3439,10 @@ SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
+SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
 
-# TODO: Remove this soon, just a way to configure a project for this before we implement properly
-UPTIME_POC_PROJECT_ID = 1
+SEER_ANOMALY_DETECTION_VERSION = "v1"
+SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 

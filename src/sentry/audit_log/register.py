@@ -535,3 +535,12 @@ default_manager.add(
         template="Deleted span-based metric for span attribute {span_attribute} for project {project_slug}",
     )
 )
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=190,
+        name="PROJECT_TEMPLATE_CREATED",
+        api_name="project_template.create",
+        template="Created project template {name} for organization {organization_id}",
+    )
+)

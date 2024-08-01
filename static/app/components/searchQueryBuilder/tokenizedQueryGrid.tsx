@@ -6,15 +6,15 @@ import type {ListState} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {SearchQueryBuilderBoolean} from 'sentry/components/searchQueryBuilder/boolean';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
-import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
-import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/paren';
+import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGrid';
+import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/hooks/useSelectOnDrag';
+import {useUndoStack} from 'sentry/components/searchQueryBuilder/hooks/useUndoStack';
 import {SelectionKeyHandler} from 'sentry/components/searchQueryBuilder/selectionKeyHandler';
-import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
-import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/useSelectOnDrag';
-import {useUndoStack} from 'sentry/components/searchQueryBuilder/useUndoStack';
+import {SearchQueryBuilderBoolean} from 'sentry/components/searchQueryBuilder/tokens/boolean';
+import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
+import {SearchQueryBuilderFreeText} from 'sentry/components/searchQueryBuilder/tokens/freeText';
+import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/tokens/paren';
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -86,9 +86,8 @@ function Grid(props: GridProps) {
               />
             );
           case Token.FREE_TEXT:
-          case Token.SPACES:
             return (
-              <SearchQueryBuilderInput
+              <SearchQueryBuilderFreeText
                 key={item.key}
                 token={token}
                 item={item}

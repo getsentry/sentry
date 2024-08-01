@@ -88,7 +88,7 @@ def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -
                 "type": "os",
             },
         },
-        "sdk": {"name": "sentry.dart.flutter", "version": "8.2.0"},
+        "sdk": {"name": "sentry.dart.flutter", "version": "8.2.1"},
         "timestamp": time.time(),
         "type": "error",
     }

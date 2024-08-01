@@ -5,7 +5,7 @@ import type {LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import compact from 'lodash/compact';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import ChartZoom from 'sentry/components/charts/chartZoom';

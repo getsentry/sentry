@@ -111,6 +111,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/api-applications/[^/]+/rotate-secret/$'),
   new RegExp('^api/0/api-authorizations/$'),
   new RegExp('^api/0/api-tokens/$'),
+  new RegExp('^api/0/api-tokens/[^/]+/$'),
   new RegExp('^api/0/authenticators/$'),
   new RegExp('^api/0/accept-invite/[^/]+/[^/]+/[^/]+/$'),
   new RegExp('^api/0/accept-invite/[^/]+/[^/]+/$'),

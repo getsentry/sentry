@@ -5,10 +5,10 @@ import pytest
 import responses
 
 from sentry import options
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 from sentry.integrations.pagerduty.utils import get_services
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test

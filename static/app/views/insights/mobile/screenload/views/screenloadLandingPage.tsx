@@ -5,14 +5,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
@@ -64,12 +61,10 @@ export function PageloadModule() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Container>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-              <ReleaseComparisonSelector />
+              <ModulePageFilterBar
+                moduleName={ModuleName.SCREEN_LOAD}
+                extraFilters={<ReleaseComparisonSelector />}
+              />
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
@@ -93,7 +88,11 @@ export function PageloadModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="screen_load" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="screen_load"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.screen_load"
+    >
       <PageloadModule />
     </ModulePageProviders>
   );

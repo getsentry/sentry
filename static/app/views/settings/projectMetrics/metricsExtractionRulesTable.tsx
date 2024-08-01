@@ -17,8 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useMembers} from 'sentry/utils/useMembers';
 import useOrganization from 'sentry/utils/useOrganization';
 import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
@@ -38,14 +37,19 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const [query, setQuery] = useSearchQueryParam('query');
 
   const {data: extractionRules, isLoading: isLoadingExtractionRules} =
-    useMetricsExtractionRules(organization.slug, project.id, {query});
+    useMetricsExtractionRules({
+      orgId: organization.slug,
+      projectId: project.id,
+      query: {query},
+    });
   const {mutate: deleteMetricsExtractionRules} = useDeleteMetricsExtractionRules(
     organization.slug,
     project.id
   );
-  const {data: cardinality, isLoading: isLoadingCardinality} = useMetricsCardinality({
-    projects: [project.id],
-  });
+  const {data: cardinality, isLoading: isLoadingCardinality} =
+    useCardinalityLimitedMetricVolume({
+      projects: [project.id],
+    });
 
   const handleDelete = useCallback(
     (rule: MetricsExtractionRule) => {
@@ -82,7 +86,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
   return (
     <Fragment>
       <SearchWrapper>
-        <h6>{t('Span-based Metrics')}</h6>
+        <h6>{t('Span Metrics')}</h6>
         <FlexSpacer />
         <SearchBar
           placeholder={t('Search Metrics')}
@@ -124,9 +128,10 @@ function RulesTable({
   hasSearch,
 }: RulesTableProps) {
   const {members} = useMembers();
-  const getMaxCardinality = (rule: MetricsExtractionRule) => {
+
+  const isCardinalityLimited = (rule: MetricsExtractionRule): boolean => {
     const mris = rule.conditions.flatMap(condition => condition.mris);
-    return mris.reduce((acc, mri) => Math.max(acc, cardinality[mri] || 0), 0);
+    return mris.some(conditionMri => cardinality[conditionMri] > 0);
   };
 
   return (
@@ -147,7 +152,7 @@ function RulesTable({
       emptyMessage={
         hasSearch
           ? t('No metrics match the query.')
-          : t('You have not created any span-based metrics yet.')
+          : t('You have not created any span metrics yet.')
       }
       isEmpty={extractionRules.length === 0}
       isLoading={isLoading}
@@ -161,13 +166,19 @@ function RulesTable({
           return (
             <Fragment key={rule.spanAttribute + rule.unit}>
               <Cell>
-                {getMaxCardinality(rule) >= DEFAULT_METRICS_CARDINALITY_LIMIT ? (
+                {isCardinalityLimited(rule) ? (
                   <Tooltip
                     title={t(
                       'Some of your defined queries are exeeding the cardinality limit. Remove tags or add filters to receive accurate data.'
                     )}
+                    containerDisplayMode="inline-flex"
                   >
-                    <IconWarning size="xs" color="yellow300" />
+                    <IconWarning
+                      size="xs"
+                      color="yellow300"
+                      role="img"
+                      aria-label={t('Exceeding the cardinality limit warning')}
+                    />
                   </Tooltip>
                 ) : null}
                 {rule.spanAttribute}

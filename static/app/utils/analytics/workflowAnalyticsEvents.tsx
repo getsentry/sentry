@@ -47,6 +47,7 @@ export type BaseEventAnalyticsParams = {
   frames_without_source_maps_percent?: number;
   has_graphql_request?: boolean;
   has_otel?: boolean;
+  mobile?: boolean;
   release_user_agent?: string;
   sdk_name?: string;
   sdk_version?: string;
@@ -140,6 +141,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
+  'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
@@ -207,6 +209,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Suspect Pull Request Clicked',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
   'issue_details.merged_tab.unmerge_clicked': 'Issue Details: Unmerge Clicked',
+  'issue_stream.updated_empty_state_viewed': 'Issue Stream: Updated Empty State Viewed',
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',

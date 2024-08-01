@@ -11,6 +11,7 @@ import {AnimatePresence} from 'framer-motion';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import DrawerComponents from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -40,17 +41,14 @@ export interface DrawerOptions {
    * Callback for when the drawer opens
    */
   onOpen?: () => void;
+  /**
+   * Function to determine whether the drawer should close when interacting with
+   * other elements.
+   */
+  shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
 }
 
 interface DrawerRenderProps {
-  /**
-   * Body container for the drawer
-   */
-  Body: typeof DrawerComponents.DrawerBody;
-  /**
-   * Header with a close button for the drawer
-   */
-  Header: typeof DrawerComponents.DrawerHeader;
   /**
    * Close the drawer
    */
@@ -66,6 +64,7 @@ export interface DrawerConfig {
 
 interface DrawerContextType {
   closeDrawer: () => void;
+  isDrawerOpen: boolean;
   openDrawer: (
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
@@ -74,6 +73,7 @@ interface DrawerContextType {
 
 const DrawerContext = createContext<DrawerContextType>({
   openDrawer: () => {},
+  isDrawerOpen: false,
   closeDrawer: () => {},
 });
 
@@ -108,7 +108,17 @@ export function GlobalDrawer({children}) {
       handleClose();
     }
   }, [currentDrawerConfig, handleClose]);
-  useOnClickOutside(panelRef, handleClickOutside);
+  const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
+  useOnClickOutside(panelRef, e => {
+    if (
+      defined(shouldCloseOnInteractOutside) &&
+      defined(e?.target) &&
+      !shouldCloseOnInteractOutside(e.target as Element)
+    ) {
+      return;
+    }
+    handleClickOutside();
+  });
 
   // Close the drawer when escape is pressed and options allow it.
   const handleEscapePress = useCallback(() => {
@@ -120,14 +130,12 @@ export function GlobalDrawer({children}) {
 
   const renderedChild = currentDrawerConfig?.renderer
     ? currentDrawerConfig.renderer({
-        Body: DrawerComponents.DrawerBody,
-        Header: DrawerComponents.DrawerHeader,
         closeDrawer: handleClose,
       })
     : null;
 
   return (
-    <DrawerContext.Provider value={{openDrawer, closeDrawer}}>
+    <DrawerContext.Provider value={{closeDrawer, isDrawerOpen, openDrawer}}>
       <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
         <AnimatePresence>
           {isDrawerOpen && (
@@ -156,7 +164,7 @@ export function GlobalDrawer({children}) {
  * The `openDrawer` function accepts a renderer, and options. By default, the drawer will close
  * on outside clicks, and 'Escape' key presses. For example:
  * ```
- * openDrawer((Body) => <Body><MyComponent /></Body>, {closeOnOutsideClick: false})
+ * openDrawer(() => <DrawerBody><MyComponent /></DrawerBody>, {closeOnOutsideClick: false})
  * ```
  *
  * The `closeDrawer` function accepts no parameters and closes the drawer, unmounting its contents.

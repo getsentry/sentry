@@ -1,6 +1,10 @@
 import {Fragment, useCallback, useId, useMemo, useState} from 'react';
+import {components} from 'react-select';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
 
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -9,14 +13,14 @@ import FormField from 'sentry/components/forms/formField';
 import type FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconClose, IconWarning} from 'sentry/icons';
+import {IconAdd, IconClose, IconQuestion, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
@@ -26,6 +30,7 @@ export interface FormData {
   conditions: MetricsExtractionCondition[];
   spanAttribute: string | null;
   tags: string[];
+  unit: string;
 }
 
 interface Props extends Omit<FormProps, 'onSubmit'> {
@@ -43,20 +48,51 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
 }
 
 const HIGH_CARDINALITY_TAGS = new Set([
+  SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH,
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.SPAN_GROUP,
+  SpanIndexedField.ID,
+  SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
+  SpanIndexedField.TRANSACTION_ID,
   SpanIndexedField.PROJECT_ID,
+  SpanIndexedField.PROFILE_ID,
+  SpanIndexedField.REPLAY_ID,
+  SpanIndexedField.TIMESTAMP,
+  SpanIndexedField.USER,
+  SpanIndexedField.USER_ID,
+  SpanIndexedField.USER_EMAIL,
+  SpanIndexedField.USER_USERNAME,
   SpanIndexedField.INP,
   SpanIndexedField.INP_SCORE,
   SpanIndexedField.INP_SCORE_WEIGHT,
   SpanIndexedField.TOTAL_SCORE,
   SpanIndexedField.CACHE_ITEM_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_ID,
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
-  SpanIndexedField.TRANSACTION_ID,
-  SpanIndexedField.ID,
+  SpanMetricsField.AI_TOTAL_TOKENS_USED,
+  SpanMetricsField.AI_PROMPT_TOKENS_USED,
+  SpanMetricsField.AI_COMPLETION_TOKENS_USED,
+  SpanMetricsField.AI_INPUT_MESSAGES,
+  SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH,
+  SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE,
+  SpanMetricsField.CACHE_ITEM_SIZE,
+  SpanMetricsField.CACHE_KEY,
+  SpanMetricsField.THREAD_ID,
+  SpanMetricsField.SENTRY_FRAMES_FROZEN,
+  SpanMetricsField.SENTRY_FRAMES_SLOW,
+  SpanMetricsField.SENTRY_FRAMES_TOTAL,
+  SpanMetricsField.FRAMES_DELAY,
+  SpanMetricsField.URL_FULL,
+  SpanMetricsField.USER_AGENT_ORIGINAL,
+  SpanMetricsField.FRAMES_DELAY,
 ]);
+
+const isHighCardinalityTag = (tag: string): boolean => {
+  return HIGH_CARDINALITY_TAGS.has(tag as SpanIndexedField);
+};
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
   {
@@ -86,7 +122,7 @@ export function explodeAggregateGroup(group: AggregateGroup): MetricAggregation[
     case 'min_max':
       return ['min', 'max', 'sum', 'avg'];
     case 'percentiles':
-      return ['p50', 'p75', 'p95', 'p99'];
+      return ['p50', 'p75', 'p90', 'p95', 'p99'];
     default:
       throw new Error(`Unknown aggregate group: ${group}`);
   }
@@ -106,7 +142,13 @@ export function aggregatesToGroups(aggregates: MetricAggregation[]): AggregateGr
     groups.push('min_max');
   }
 
-  const percentileAggregates = new Set<MetricAggregation>(['p50', 'p75', 'p95', 'p99']);
+  const percentileAggregates = new Set<MetricAggregation>([
+    'p50',
+    'p75',
+    'p90',
+    'p95',
+    'p99',
+  ]);
   if (aggregates.find(aggregate => percentileAggregates.has(aggregate))) {
     groups.push('percentiles');
   }
@@ -128,6 +170,38 @@ export function createCondition(): MetricsExtractionCondition {
   };
 }
 
+const SUPPORTED_UNITS = [
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'ratio',
+  'percent',
+  'bit',
+  'byte',
+  'kibibyte',
+  'kilobyte',
+  'mebibyte',
+  'megabyte',
+  'gibibyte',
+  'gigabyte',
+  'tebibyte',
+  'terabyte',
+  'pebibyte',
+  'petabyte',
+  'exbibyte',
+  'exabyte',
+] as const;
+
+const isSupportedUnit = (unit: string): unit is (typeof SUPPORTED_UNITS)[number] => {
+  return SUPPORTED_UNITS.includes(unit as (typeof SUPPORTED_UNITS)[number]);
+};
+
 const EMPTY_SET = new Set<never>();
 const SPAN_SEARCH_CONFIG = {
   booleanKeys: EMPTY_SET,
@@ -142,6 +216,10 @@ const SPAN_SEARCH_CONFIG = {
   disallowNegation: true,
 };
 
+const FIXED_UNITS_BY_ATTRIBUTE: Record<string, (typeof SUPPORTED_UNITS)[number]> = {
+  [SpanIndexedField.SPAN_DURATION]: 'millisecond',
+};
+
 export function MetricsExtractionRuleForm({
   isEdit,
   projectId,
@@ -151,12 +229,25 @@ export function MetricsExtractionRuleForm({
 }: Props) {
   const organization = useOrganization();
 
-  const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
+  const [customAttributes, setCustomAttributes] = useState<string[]>(() => {
     const {spanAttribute, tags} = props.initialData;
     return [...new Set(spanAttribute ? [...tags, spanAttribute] : tags)];
   });
 
-  const {data: extractionRules} = useMetricsExtractionRules(organization.slug, projectId);
+  const [customUnit, setCustomUnit] = useState<string | null>(() => {
+    const {unit} = props.initialData;
+    return unit && !isSupportedUnit(unit) ? unit : null;
+  });
+
+  const [isUnitDisabled, setIsUnitDisabled] = useState(() => {
+    const {spanAttribute} = props.initialData;
+    return !!(spanAttribute && spanAttribute in FIXED_UNITS_BY_ATTRIBUTE);
+  });
+
+  const {data: extractionRules} = useMetricsExtractionRules({
+    orgId: organization.slug,
+    projectId: projectId,
+  });
   const tags = useSpanFieldSupportedTags({projects: [Number(projectId)]});
 
   // TODO(aknaus): Make this nicer
@@ -179,7 +270,7 @@ export function MetricsExtractionRuleForm({
 
     return (
       allAttributeOptions
-        .map(key => ({
+        .map<SelectValue<string>>(key => ({
           label: key,
           value: key,
           disabled: disabledKeys.has(key),
@@ -196,16 +287,30 @@ export function MetricsExtractionRuleForm({
   }, [allAttributeOptions, extractionRules]);
 
   const tagOptions = useMemo(() => {
-    return allAttributeOptions
-      .filter(
-        // We don't want to suggest numeric fields as tags as they would explode cardinality
-        option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
-      )
-      .map(option => ({
-        label: option,
-        value: option,
-      }));
+    return allAttributeOptions.map<SelectValue<string>>(option => ({
+      label: option,
+      value: option,
+      disabled: isHighCardinalityTag(option),
+      tooltip: isHighCardinalityTag(option)
+        ? t('This tag has high cardinality.')
+        : undefined,
+      tooltipOptions: {position: 'left'},
+    }));
   }, [allAttributeOptions]);
+
+  const unitOptions = useMemo(() => {
+    const options: SelectValue<string>[] = SUPPORTED_UNITS.map(unit => ({
+      label: unit + (unit === 'none' ? '' : 's'),
+      value: unit,
+    }));
+    if (customUnit) {
+      options.push({
+        label: customUnit,
+        value: customUnit,
+      });
+    }
+    return options;
+  }, [customUnit]);
 
   const handleSubmit = useCallback(
     (
@@ -234,69 +339,188 @@ export function MetricsExtractionRuleForm({
     [onSubmit]
   );
 
+  const isNewCustomSpanAttribute = useCallback((value: string) => {
+    return !attributeOptions.some(option => option.value === value);
+    // attributeOptions is being mutated when a new custom attribute is created
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isCardinalityLimited = useMemo(() => {
+    if (!cardinality) {
+      return false;
+    }
+
+    const {conditions} = props.initialData;
+    return conditions.some(condition =>
+      condition.mris.some(conditionMri => cardinality[conditionMri] > 0)
+    );
+  }, [cardinality, props.initialData]);
+
   return (
     <Form onSubmit={onSubmit && handleSubmit} {...props}>
       {({model}) => (
         <Fragment>
-          <SelectField
-            name="spanAttribute"
-            options={attributeOptions}
-            disabled={isEdit}
-            label={t('Measure')}
-            help={tct(
-              'Define the span attribute you want to track. Learn how to instrument custom attributes in [link:our docs].',
-              {
-                // TODO(telemetry-experience): add the correct link here once we have it!!!
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />
-                ),
+          <SpanAttributeUnitWrapper>
+            <SelectField
+              inline={false}
+              stacked
+              name="spanAttribute"
+              options={attributeOptions}
+              disabled={isEdit}
+              label={
+                <TooltipIconLabel
+                  label={t('Measure')}
+                  help={tct(
+                    'Define the span attribute you want to track. Learn how to instrument custom attributes in [link:our docs].',
+                    {
+                      // TODO(telemetry-experience): add the correct link here once we have it!!!
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />
+                      ),
+                    }
+                  )}
+                />
               }
-            )}
-            placeholder={t('Select a span attribute')}
-            creatable
-            formatCreateLabel={value => `Custom: "${value}"`}
-            onCreateOption={value => {
-              setCustomeAttributes(curr => [...curr, value]);
-              model.setValue('spanAttribute', value);
-            }}
-            required
-          />
+              onCreateOption={value => {
+                setCustomAttributes(curr => [...curr, value]);
+                model.setValue('spanAttribute', value);
+              }}
+              components={{
+                MenuList: (
+                  menuListProps: React.ComponentProps<typeof components.MenuList>
+                ) => {
+                  return (
+                    <MenuList
+                      {...menuListProps}
+                      info={tct(
+                        'Select an attribute or create one. [link:See how to instrument a custom attribute.]',
+                        {
+                          link: (
+                            <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                          ),
+                        }
+                      )}
+                    />
+                  );
+                },
+              }}
+              placeholder={t('Select span attribute')}
+              creatable
+              onChange={value => {
+                model.setValue('spanAttribute', value);
+                if (value in FIXED_UNITS_BY_ATTRIBUTE) {
+                  model.setValue('unit', FIXED_UNITS_BY_ATTRIBUTE[value]);
+                  setIsUnitDisabled(true);
+                } else {
+                  setIsUnitDisabled(false);
+                }
+              }}
+              required
+            />
+            <StyledFieldConnector>in</StyledFieldConnector>
+            <SelectField
+              inline={false}
+              stacked
+              allowEmpty
+              name="unit"
+              options={unitOptions}
+              disabled={isUnitDisabled}
+              placeholder={t('Select unit')}
+              creatable
+              onCreateOption={value => {
+                setCustomUnit(value);
+                model.setValue('unit', value);
+              }}
+              css={css`
+                min-width: 150px;
+              `}
+            />
+          </SpanAttributeUnitWrapper>
+
           <SelectField
+            inline={false}
+            stacked
             name="aggregates"
             required
             options={AGGREGATE_OPTIONS}
-            label={t('Aggregate')}
+            label={
+              <TooltipIconLabel
+                label={t('Aggregate')}
+                help={tct(
+                  'Select the aggregations you want to store. For more information, read [link:our docs]',
+                  {
+                    // TODO(telemetry-experience): add the correct link here once we have it!!!
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />
+                    ),
+                  }
+                )}
+              />
+            }
             multiple
-            help={tct(
-              'Select the aggregations you want to store. For more information, read [link:our docs]',
-              {
-                // TODO(telemetry-experience): add the correct link here once we have it!!!
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />
-                ),
-              }
-            )}
           />
           <SelectField
+            inline={false}
+            stacked
             name="tags"
+            aria-label={t('Select tags')}
             options={tagOptions}
-            label={t('Group and filter by')}
             multiple
             placeholder={t('Select tags')}
-            help={t('Select the tags that can be used to group and filter the metric.')}
+            label={
+              <Fragment>
+                {isCardinalityLimited && (
+                  <Tooltip
+                    title={t(
+                      'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
+                    )}
+                  >
+                    <StyledIconWarning size="xs" color="yellow300" />
+                  </Tooltip>
+                )}
+                <TooltipIconLabel
+                  label={t('Group and filter by')}
+                  help={t(
+                    'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+                  )}
+                />
+              </Fragment>
+            }
             creatable
-            formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
-              setCustomeAttributes(curr => [...curr, value]);
+              setCustomAttributes(curr => [...curr, value]);
               const currentTags = model.getValue('tags') as string[];
               model.setValue('tags', [...currentTags, value]);
             }}
+            components={{
+              MenuList: (
+                menuListProps: React.ComponentProps<typeof components.MenuList>
+              ) => {
+                return (
+                  <MenuList
+                    {...menuListProps}
+                    info={tct(
+                      'Select a tag or create one. [link:See how to instrument a custom tag.]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                        ),
+                      }
+                    )}
+                  />
+                );
+              },
+            }}
           />
           <FormField
-            label={t('Queries')}
-            help={t(
-              'Define queries to narrow down the metric extraction to a specific set of spans.'
-            )}
+            stacked
+            label={
+              <TooltipIconLabel
+                label={t('Filters')}
+                help={t(
+                  'Define filters to narrow down the metric to a specific set of spans.'
+                )}
+              />
+            }
             name="conditions"
             inline={false}
             hasControlState={false}
@@ -317,43 +541,17 @@ export function MetricsExtractionRuleForm({
                 );
               };
 
-              const getMaxCardinality = (condition: MetricsExtractionCondition) => {
-                if (!cardinality) {
-                  return 0;
-                }
-                return condition.mris.reduce(
-                  (acc, mri) => Math.max(acc, cardinality[mri] || 0),
-                  0
-                );
-              };
-
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => {
-                      const maxCardinality = getMaxCardinality(condition);
-                      const isExeedingCardinalityLimit =
-                        // TODO: Retrieve limit from BE
-                        maxCardinality >= DEFAULT_METRICS_CARDINALITY_LIMIT;
                       const hasSiblings = conditions.length > 1;
 
                       return (
                         <Fragment key={condition.id}>
-                          <SearchWrapper
-                            hasPrefix={hasSiblings || isExeedingCardinalityLimit}
-                          >
-                            {hasSiblings || isExeedingCardinalityLimit ? (
-                              isExeedingCardinalityLimit ? (
-                                <Tooltip
-                                  title={t(
-                                    'This query is exeeding the cardinality limit. Remove tags or add more filters to receive accurate data.'
-                                  )}
-                                >
-                                  <StyledIconWarning size="xs" color="yellow300" />
-                                </Tooltip>
-                              ) : (
-                                <ConditionSymbol>{index + 1}</ConditionSymbol>
-                              )
+                          <SearchWrapper hasPrefix={hasSiblings}>
+                            {hasSiblings ? (
+                              <ConditionSymbol>{index + 1}</ConditionSymbol>
                             ) : null}
                             <SearchBarWithId
                               {...SPAN_SEARCH_CONFIG}
@@ -367,9 +565,10 @@ export function MetricsExtractionRuleForm({
                                   handleChange(queryString, index);
                                 }
                               }}
-                              placeholder={t('Search for span attributes')}
+                              placeholder={t('Add span attributes')}
                               organization={organization}
                               supportedTags={supportedTags}
+                              excludedTags={[]}
                               dataset={DiscoverDatasets.SPANS_INDEXED}
                               projectIds={[Number(projectId)]}
                               hasRecentSearches={false}
@@ -379,7 +578,7 @@ export function MetricsExtractionRuleForm({
                           </SearchWrapper>
                           {value.length > 1 && (
                             <Button
-                              aria-label={t('Remove Query')}
+                              aria-label={t('Remove Filter')}
                               onClick={() => onChange(conditions.toSpliced(index, 1), {})}
                               icon={<IconClose />}
                             />
@@ -394,18 +593,116 @@ export function MetricsExtractionRuleForm({
                       onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >
-                      {t('Add Query')}
+                      {t('Add Filter')}
                     </Button>
                   </ConditionsButtonBar>
                 </Fragment>
               );
             }}
           </FormField>
+          <Observer>
+            {() =>
+              model.formChanged ? (
+                <Alert
+                  type="info"
+                  showIcon
+                  expand={
+                    <Fragment>
+                      <b>{t('Why that?')}</b>
+                      <p>
+                        {isNewCustomSpanAttribute(model.getValue('spanAttribute'))
+                          ? tct(
+                              'We’ll only collect data from spans sent after you created the metric and not before. If you haven’t already, please [link:instrument your custom attribute.]',
+                              {
+                                link: (
+                                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                                ),
+                              }
+                            )
+                          : t(
+                              'Well, it’s because we’ll only collect data once you’ve created a metric and not before. Likewise, if you deleted an existing metric, then we’ll stop collecting data for that metric.'
+                            )}
+                      </p>
+                    </Fragment>
+                  }
+                >
+                  {t('Hey, we’ll need a moment to collect data that matches the above.')}
+                </Alert>
+              ) : null
+            }
+          </Observer>
         </Fragment>
       )}
     </Form>
   );
 }
+
+function MenuList({
+  children,
+  info,
+  ...props
+}: React.ComponentProps<typeof components.MenuList> & {info: React.ReactNode}) {
+  const theme = useTheme();
+  return (
+    <components.MenuList {...props}>
+      <div
+        css={css`
+          /* The padding must align with the values specified for the option in the forms/controls/selectOption component */
+          padding: ${space(1)};
+          padding-left: calc(${space(0.5)} + ${space(1.5)});
+          color: ${theme.gray300};
+        `}
+      >
+        {info}
+      </div>
+      {children}
+    </components.MenuList>
+  );
+}
+
+function TooltipIconLabel({label, help}) {
+  return (
+    <TooltipIconLabelWrapper>
+      {label}
+      <Tooltip title={help}>
+        <IconQuestion size="sm" color="gray200" />
+      </Tooltip>
+    </TooltipIconLabelWrapper>
+  );
+}
+
+const TooltipIconLabelWrapper = styled('span')`
+  display: inline-flex;
+  font-weight: bold;
+  color: ${p => p.theme.gray300};
+  gap: ${space(0.5)};
+
+  & > span {
+    margin-top: 1px;
+  }
+
+  & > span:hover {
+    cursor: pointer;
+  }
+`;
+
+const StyledFieldConnector = styled('div')`
+  color: ${p => p.theme.gray300};
+  padding-bottom: ${space(1)};
+`;
+
+const SpanAttributeUnitWrapper = styled('div')`
+  display: flex;
+  align-items: flex-end;
+
+  gap: ${space(1)};
+  padding-bottom: ${space(2)};
+
+  & > div:first-child {
+    flex: 1;
+    padding-bottom: 0;
+  }
+`;
 
 function SearchBarWithId(props: React.ComponentProps<typeof SearchBar>) {
   const id = useId();
@@ -413,7 +710,6 @@ function SearchBarWithId(props: React.ComponentProps<typeof SearchBar>) {
 }
 
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
-  padding: ${space(1)} 0;
   display: grid;
   align-items: center;
   gap: ${space(1)};

@@ -18,7 +18,7 @@ import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -131,7 +131,7 @@ function BreadcrumbItem({
       <StyledTimelineItem
         icon={icon}
         title={title}
-        colorConfig={{primary: darkColor, secondary: color}}
+        colorConfig={{title: darkColor, icon: darkColor, iconBorder: color}}
         timestamp={
           <ReplayTimestamp>
             <TimestampButton
@@ -207,6 +207,7 @@ function CrumbHydrationButton({
         replay={replay}
         leftOffsetMs={leftOffsetMs}
         rightOffsetMs={rightOffsetMs}
+        surface="replay-breadcrumbs"
         size="xs"
       >
         {t('Open Hydration Diff')}

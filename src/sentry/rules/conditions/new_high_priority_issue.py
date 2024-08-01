@@ -2,11 +2,10 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.receivers.rules import has_high_priority_issue_alerts
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
-from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.group import PriorityLevel
 
@@ -34,22 +33,19 @@ class NewHighPriorityIssueCondition(EventCondition):
     def get_activity(
         self, start: datetime, end: datetime, limit: int
     ) -> Sequence[ConditionActivity]:
-        # reappearances are recorded as SET_UNRESOLVED with no user
-        activities = (
-            Activity.objects.filter(
+        first_seen = (
+            Group.objects.filter(
                 project=self.project,
-                datetime__gte=start,
-                datetime__lt=end,
-                type__in=[ActivityType.SET_UNRESOLVED.value],
-                user_id=None,
+                first_seen__gte=start,
+                first_seen__lt=end,
+                priority=PriorityLevel.HIGH,
             )
-            .order_by("-datetime")[:limit]
-            .values_list("group", "datetime", "data")
+            .order_by("-first_seen")[:limit]
+            .values_list("id", "first_seen")
         )
-
         return [
             ConditionActivity(
-                group_id=a[0], type=ConditionActivityType.REAPPEARED, timestamp=a[1], data=a[2]
+                group_id=g[0], type=ConditionActivityType.NEW_HIGH_PRIORITY_ISSUE, timestamp=g[1]
             )
-            for a in activities
+            for g in first_seen
         ]

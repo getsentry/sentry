@@ -12,7 +12,6 @@ from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -23,6 +22,8 @@ from sentry.api.serializers.models.group import (
 from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
+from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
@@ -30,7 +31,6 @@ from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel

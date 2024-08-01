@@ -6,7 +6,7 @@ from typing import Any
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
-from sentry.rules import MATCH_CHOICES, EventState, MatchType
+from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_dataset_columns
 from sentry.snuba.dataset import Dataset
@@ -243,71 +243,29 @@ class EventAttributeCondition(EventCondition):
         return self.label.format(**data)
 
     def _passes(self, attribute_values: Sequence[object | None]) -> bool:
-        match = self.get_option("match")
-        value = self.get_option("value")
+        option_match = self.get_option("match")
+        option_value = self.get_option("value")
 
-        if not ((match and value) or (match in (MatchType.IS_SET, MatchType.NOT_SET))):
+        if not (
+            (option_match and option_value)
+            or (option_match in (MatchType.IS_SET, MatchType.NOT_SET))
+        ):
             return False
 
-        value = value.lower()
+        option_value = option_value.lower()
 
-        values = [str(v).lower() for v in attribute_values if v is not None]
+        attr_values = [str(v).lower() for v in attribute_values if v is not None]
 
-        if match == MatchType.EQUAL:
-            for a_value in values:
-                if a_value == value:
-                    return True
-            return False
+        # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
+        if option_match == MatchType.IS_SET:
+            return bool(attr_values)
 
-        elif match == MatchType.NOT_EQUAL:
-            for a_value in values:
-                if a_value == value:
-                    return False
-            return True
+        elif option_match == MatchType.NOT_SET:
+            return not attr_values
 
-        elif match == MatchType.STARTS_WITH:
-            for a_value in values:
-                if a_value.startswith(value):
-                    return True
-            return False
-
-        elif match == MatchType.NOT_STARTS_WITH:
-            for a_value in values:
-                if a_value.startswith(value):
-                    return False
-            return True
-
-        elif match == MatchType.ENDS_WITH:
-            for a_value in values:
-                if a_value.endswith(value):
-                    return True
-            return False
-
-        elif match == MatchType.NOT_ENDS_WITH:
-            for a_value in values:
-                if a_value.endswith(value):
-                    return False
-            return True
-
-        elif match == MatchType.CONTAINS:
-            for a_value in values:
-                if value in a_value:
-                    return True
-            return False
-
-        elif match == MatchType.NOT_CONTAINS:
-            for a_value in values:
-                if value in a_value:
-                    return False
-            return True
-
-        elif match == MatchType.IS_SET:
-            return bool(values)
-
-        elif match == MatchType.NOT_SET:
-            return not values
-
-        raise RuntimeError("Invalid Match")
+        return match_values(
+            group_values=attr_values, match_value=option_value, match_type=option_match
+        )
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         attr = self.get_option("attribute", "")
