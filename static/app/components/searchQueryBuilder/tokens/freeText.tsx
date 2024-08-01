@@ -346,8 +346,6 @@ function SearchQueryBuilderInputInternal({
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
-  const isFocused =
-    state.selectionManager.isFocused && item.key === state.selectionManager.focusedKey;
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -572,7 +570,7 @@ function SearchQueryBuilderInputInternal({
         }}
         onKeyDown={onKeyDown}
         onOpenChange={setIsOpen}
-        tabIndex={isFocused ? 0 : -1}
+        tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
         maxOptions={50}
         onPaste={onPaste}
         displayTabbedMenu={inputValue.length === 0 && filterKeySections.length > 0}
