@@ -878,7 +878,7 @@ class RedisTSDB(BaseTSDB):
         limit: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
-    ) -> dict[str, Iterable[dict[str, float]]]:
+    ) -> dict[str, Iterable[tuple[int, dict[str, float]]]]:
         self.validate_arguments([model], [environment_id])
 
         if not self.enable_frequency_sketches:
