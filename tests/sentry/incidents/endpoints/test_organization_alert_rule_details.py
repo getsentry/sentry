@@ -15,6 +15,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -288,7 +289,12 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
-    def test_dynamic_detection_type(self):
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_dynamic_detection_type(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         rule = self.create_alert_rule(
