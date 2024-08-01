@@ -55,7 +55,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         Retrieve a list of custom views for the current organization member.
         """
-        if not features.has("organizations:issue-stream-custom-views", organization):
+        if not features.has(
+            "organizations:issue-stream-custom-views", organization, actor=request.user
+        ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
@@ -85,7 +87,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         This endpoint is explcititly designed to be used by our frontend.
 
         """
-        if not features.has("organizations:issue-stream-custom-views", organization):
+        if not features.has(
+            "organizations:issue-stream-custom-views", organization, actor=request.user
+        ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         serializer = GroupSearchViewValidator(data=request.data)
