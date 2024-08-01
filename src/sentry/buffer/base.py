@@ -102,7 +102,8 @@ class Buffer(Service):
                 "filters": filters,
                 "extra": extra,
                 "signal_only": signal_only,
-            }
+            },
+            headers={"sentry-propagate-traces": False},
         )
 
     def process_pending(self) -> None:

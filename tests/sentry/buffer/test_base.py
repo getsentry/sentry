@@ -27,7 +27,7 @@ class BufferTest(TestCase):
         filters: dict[str, models.Model | str | int] = {"id": 1}
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None, signal_only=None)
-        process_incr.apply_async.assert_called_once_with(kwargs=kwargs)
+        process_incr.apply_async.assert_called_once_with(kwargs=kwargs, headers=mock.ANY)
 
     def test_process_saves_data(self):
         group = Group.objects.create(project=Project(id=1))
