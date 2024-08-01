@@ -8,7 +8,11 @@ from sentry.utils import json
 
 @pytest.mark.django_db
 @responses.activate
-@override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
+@override_settings(
+    OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/",
+    OPTIONS_AUTOMATOR_HMAC_SECRET_KEY="test-secret-key",
+    SENTRY_REGION="test_region",
+)
 def test_is_slack_enabled():
     responses.add(responses.POST, "https://test/", status=200)
 
@@ -81,7 +85,11 @@ def test_is_slack_enabled():
 
 @pytest.mark.django_db
 @responses.activate
-@override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
+@override_settings(
+    OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/",
+    OPTIONS_AUTOMATOR_HMAC_SECRET_KEY="test-secret-key",
+    SENTRY_REGION="test_region",
+)
 def test_slack_presenter_empty():
     presenter = WebhookPresenter("options-automator")
     assert presenter.is_webhook_enabled()
@@ -92,7 +100,11 @@ def test_slack_presenter_empty():
 
 @pytest.mark.django_db
 @responses.activate
-@override_settings(OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/", SENTRY_REGION="test_region")
+@override_settings(
+    OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/",
+    OPTIONS_AUTOMATOR_HMAC_SECRET_KEY="test-secret-key",
+    SENTRY_REGION="test_region",
+)
 def test_slack_presenter_methods_with_different_types():
     responses.add(responses.POST, "https://test/", status=200)
 

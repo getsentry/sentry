@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from typing import Any
 
 import requests
@@ -125,9 +127,18 @@ class WebhookPresenter(OptionsPresenter):
 
     def _send_to_webhook(self, json_data: dict[str, Any]) -> None:
         if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
-            headers = {"Content-Type": "application/json"}
+
+            json_data_str = json.dumps(json_data)
+
+            secret_key = settings.OPTIONS_AUTOMATOR_HMAC_SECRET.encode()
+            signature = hmac.new(secret_key, json_data_str.encode(), hashlib.sha256).hexdigest()
+
+            headers = {
+                "Content-Type": "application/json",
+                "X-Hub-Signature-256": f"sha256={signature}",
+            }
             requests.post(
                 settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
-                data=json.dumps(json_data),
+                data=json_data_str,
                 headers=headers,
             ).raise_for_status()
