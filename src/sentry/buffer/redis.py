@@ -81,16 +81,13 @@ class BufferHookRegistry:
 redis_buffer_registry = BufferHookRegistry()
 
 
-# Note HMSET is not supported after redis 4.0.0, after updating we can use HSET directly.
 class RedisOperation(Enum):
     SORTED_SET_ADD = "zadd"
     SORTED_SET_GET_RANGE = "zrangebyscore"
     SORTED_SET_DELETE_RANGE = "zremrangebyscore"
     HASH_ADD = "hset"
-    HASH_ADD_BULK = "hmset"
     HASH_GET_ALL = "hgetall"
     HASH_DELETE = "hdel"
-    HASH_LENGTH = "hlen"
 
 
 class PendingBuffer:
@@ -299,15 +296,6 @@ class RedisBuffer(Buffer):
         key = self._make_key(model, filters)
         self._execute_redis_operation(key, RedisOperation.HASH_ADD, field, value)
 
-    def push_to_hash_bulk(
-        self,
-        model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
-        data: dict[str, str],
-    ) -> None:
-        key = self._make_key(model, filters)
-        self._execute_redis_operation(key, RedisOperation.HASH_ADD_BULK, data)
-
     def get_hash(
         self, model: type[models.Model], field: dict[str, models.Model | str | int]
     ) -> dict[str, str]:
@@ -322,12 +310,6 @@ class RedisBuffer(Buffer):
             decoded_hash[k] = v
 
         return decoded_hash
-
-    def get_hash_length(
-        self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> int:
-        key = self._make_key(model, field)
-        return self._execute_redis_operation(key, RedisOperation.HASH_LENGTH)
 
     def process_batch(self) -> None:
         try:

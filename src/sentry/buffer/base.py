@@ -34,7 +34,6 @@ class Buffer(Service):
         "push_to_hash",
         "get_sorted_set",
         "get_hash",
-        "get_hash_length",
         "delete_hash",
         "delete_key",
     )
@@ -55,11 +54,6 @@ class Buffer(Service):
     ) -> dict[str, str]:
         return {}
 
-    def get_hash_length(
-        self, model: type[models.Model], field: dict[str, models.Model | str | int]
-    ) -> int:
-        raise NotImplementedError
-
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         return []
 
@@ -74,14 +68,6 @@ class Buffer(Service):
         value: str,
     ) -> None:
         return None
-
-    def push_to_hash_bulk(
-        self,
-        model: type[models.Model],
-        filters: dict[str, models.Model | str | int],
-        data: dict[str, str],
-    ) -> None:
-        raise NotImplementedError
 
     def delete_hash(
         self,
