@@ -328,31 +328,35 @@ export const MRISelect = memo(function MRISelect({
         size="md"
         sizeLimit={100}
         value={value}
-        menuFooter={({closeOverlay}) => (
-          <FlexBlock>
-            <Button
-              icon={<IconAdd isCircled />}
-              priority="primary"
-              onClick={() => {
-                closeOverlay();
-                openExtractionRuleCreateModal({});
-              }}
-              size="xs"
-            >
-              {t('Create Metric')}
-            </Button>
-            <FlexBlock
-              css={css`
-                gap: ${space(0.75)};
-                color: ${theme.subText};
-                font-size: ${theme.fontSizeSmall};
-              `}
-            >
-              <IconInfo size="xs" />
-              {t('Don’t see your span attribute? Create Metric.')}
-            </FlexBlock>
-          </FlexBlock>
-        )}
+        menuFooter={
+          isLoading
+            ? undefined
+            : ({closeOverlay}) => (
+                <FlexBlock>
+                  <Button
+                    icon={<IconAdd isCircled />}
+                    priority="primary"
+                    onClick={() => {
+                      closeOverlay();
+                      openExtractionRuleCreateModal({});
+                    }}
+                    size="xs"
+                  >
+                    {t('Create Metric')}
+                  </Button>
+                  <FlexBlock
+                    css={css`
+                      gap: ${space(0.75)};
+                      color: ${theme.subText};
+                      font-size: ${theme.fontSizeSmall};
+                    `}
+                  >
+                    <IconInfo size="xs" />
+                    {t('Don’t see your span attribute? Create Metric.')}
+                  </FlexBlock>
+                </FlexBlock>
+              )
+        }
       />
     );
   }
