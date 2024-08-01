@@ -1,14 +1,15 @@
 import logging
 from datetime import timedelta
 
-from snuba_sdk import Column
+from snuba_sdk import Column, Condition
 
+import sentry.models
 from sentry.search.events.builder.profile_functions_metrics import (
     ProfileFunctionsMetricsQueryBuilder,
     TimeseriesProfileFunctionsMetricsQueryBuilder,
     TopProfileFunctionsMetricsQueryBuilder,
 )
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -18,31 +19,31 @@ logger = logging.getLogger(__name__)
 
 
 def query(
-    selected_columns,
-    query,
-    params,
-    snuba_params=None,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    referrer=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    include_equation_fields=False,
-    allow_metric_aggregates=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-    transform_alias_to_input_format=False,
-    sample=None,
-    has_metrics=False,
-    use_metrics_layer=False,
-    skip_tag_resolution=False,
-    extra_columns=None,
-    on_demand_metrics_enabled=False,
+    selected_columns: list[str],
+    query: str,
+    params: ParamsType,
+    snuba_params: SnubaParams | None = None,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int = None,
+    limit: int = 50,
+    referrer: str | None = None,
+    auto_fields: bool = False,
+    auto_aggregations: bool = False,
+    include_equation_fields: bool = False,
+    allow_metric_aggregates: bool = False,
+    use_aggregate_conditions: bool = False,
+    conditions: list[Condition] | None = None,
+    functions_acl: list[str] | None = None,
+    transform_alias_to_input_format: bool = False,
+    sample: float | None = None,
+    has_metrics: bool = False,
+    use_metrics_layer: bool = False,
+    skip_tag_resolution: bool = False,
+    extra_columns: list[Column] | None = None,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions=False,
+    fallback_to_transactions: bool = False,
 ):
     builder = ProfileFunctionsMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
@@ -141,23 +142,23 @@ def timeseries_query(
 
 
 def top_events_timeseries(
-    timeseries_columns,
-    selected_columns,
-    user_query,
-    params,
-    orderby,
-    rollup,
-    limit,
-    organization,
-    snuba_params=None,
-    equations=None,
-    referrer=None,
-    top_events=None,
-    allow_empty=True,
-    zerofill_results=True,
-    include_other=False,
-    functions_acl=None,
-    on_demand_metrics_enabled=False,
+    timeseries_columns: list[str],
+    selected_columns: list[str],
+    user_query: str,
+    params: ParamsType,
+    orderby: list[str],
+    rollup: int,
+    limit: int,
+    organization: sentry.models.Organization,
+    snuba_params: SnubaParams | None = None,
+    equations: list[str] | None = None,
+    referrer: str | None = None,
+    top_events: EventsResponse | None = None,
+    allow_empty: bool = True,
+    zerofill_results: bool = True,
+    include_other: bool = False,
+    functions_acl: list[str] | None = None,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
 ):
     """
