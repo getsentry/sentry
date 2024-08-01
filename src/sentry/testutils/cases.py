@@ -2937,9 +2937,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             blocks[2]["text"]["text"]
             == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
-        assert (
-            blocks[3]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
-        )
+        assert blocks[3]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[4]["elements"][0]["text"]
@@ -2969,9 +2967,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             blocks[3]["text"]["text"]
             == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
-        assert (
-            blocks[4]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
-        )
+        assert blocks[4]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
         optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[5]["elements"][0]["text"]

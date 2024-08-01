@@ -444,7 +444,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.UNRESOLVED
-        assert self.group.substatus == GroupSubStatus.ONGOING
+        assert self.group.substatus == GroupSubStatus.NEW
 
     @responses.activate
     def test_archive_issue_forever_through_unfurl_sdk(self):

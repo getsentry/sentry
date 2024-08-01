@@ -124,7 +124,7 @@ def build_test_message_blocks(
         "elements": [
             {
                 "type": "mrkdwn",
-                "text": f"State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
+                "text": f"State: *New*   First Seen: *{time_since(group.first_seen)}*",
             }
         ],
     }
@@ -1463,10 +1463,11 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         context_without_error_user_count = get_context(group)
         assert (
             context_without_error_user_count
-            == f"State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+            == f"State: *New*   First Seen: *{time_since(group.first_seen)}*"
         )
 
         group.times_seen = 3
+        group.substatus = GroupSubStatus.ONGOING
         group.save()
 
         context_with_error_user_count = get_context(group)
