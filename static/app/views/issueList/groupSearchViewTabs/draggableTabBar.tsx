@@ -13,8 +13,8 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import EditableTabTitle from 'sentry/views/issueList/editableTabTitle';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
+import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
 
 export interface Tab {
   content: React.ReactNode;
