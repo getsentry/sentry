@@ -308,7 +308,7 @@ export function MetricsExtractionRuleForm({
     [onSubmit]
   );
 
-  const isCustomSpanAttribute = useCallback((value: string) => {
+  const isNewCustomSpanAttribute = useCallback((value: string) => {
     return !attributeOptions.some(option => option.value === value);
     // attributeOptions is being mutated when a new custom attribute is created
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -364,7 +364,6 @@ export function MetricsExtractionRuleForm({
               }}
               placeholder={t('Select span attribute')}
               creatable
-              formatCreateLabel={value => tct('Create "[value]"', {value})}
               onChange={value => {
                 model.setValue('spanAttribute', value);
                 if (value in FIXED_UNITS_BY_ATTRIBUTE) {
@@ -386,7 +385,6 @@ export function MetricsExtractionRuleForm({
               disabled={isUnitDisabled}
               placeholder={t('Select unit')}
               creatable
-              formatCreateLabel={value => tct('Create "[value]"', {value})}
               onCreateOption={value => {
                 setCustomUnit(value);
                 model.setValue('unit', value);
@@ -436,7 +434,6 @@ export function MetricsExtractionRuleForm({
               />
             }
             creatable
-            formatCreateLabel={value => tct('Create "[value]"', {value})}
             onCreateOption={value => {
               setCustomAttributes(curr => [...curr, value]);
               const currentTags = model.getValue('tags') as string[];
@@ -582,7 +579,7 @@ export function MetricsExtractionRuleForm({
                     <Fragment>
                       <b>{t('Why that?')}</b>
                       <p>
-                        {isCustomSpanAttribute(model.getValue('spanAttribute'))
+                        {isNewCustomSpanAttribute(model.getValue('spanAttribute'))
                           ? tct(
                               'We’ll only collect data from spans sent after you created the metric and not before. If you haven’t already, please [link:instrument your custom attribute.]',
                               {
