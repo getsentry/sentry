@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
 from sentry import features
@@ -20,7 +20,7 @@ from sentry.utils.http import absolute_uri
 
 
 def format_actor_options(
-    actors: Sequence[Team | RpcUser], is_slack: bool = False
+    actors: Iterable[Team | RpcUser], is_slack: bool = False
 ) -> Sequence[Mapping[str, str]]:
     sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
     if is_slack:
