@@ -381,7 +381,6 @@ module = [
     "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.fields.base",
     "sentry.snuba.metrics.query_builder",
-    "sentry.snuba.profile_functions_metrics",
     "sentry.snuba.sessions_v2",
     "sentry.snuba.spans_indexed",
     "sentry.snuba.spans_metrics",
