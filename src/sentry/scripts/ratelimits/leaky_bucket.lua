@@ -9,6 +9,8 @@
 --   * current_time (current time according to the application server)
 --        ^^^ to understand why we pass this,
 --            read https://github.blog/2021-04-05-how-we-scaled-github-api-sharded-replicated-rate-limiter-redis/
+--   * incr_by (optional, number of drops to add to the bucket, default is 1)
+--
 -- Output:
 --   * bucket_size (limit of drops in the bucket, effecitvely the max burst limit),
 --   * drip_rate (number of drops leaking per second, effectively the sustained rate limit),
@@ -28,6 +30,7 @@ local key = KEYS[1]
 local bucket_size = tonumber(ARGV[1])
 local drip_rate = tonumber(ARGV[2])
 local current_time = tonumber(ARGV[3])
+local incr_by = tonumber(ARGV[4] or 1)  -- default to 1 if not provided
 
 -- maximum time to live for the key in seconds, adding 2 seconds to account for any clock drift
 -- if it's not accessed in that time, the bucket is guaranteed to be empty, so we can expire it
@@ -56,8 +59,8 @@ end
 
 -- time elapsed since the last drip, in seconds
 local elapsed_time = current_time - last_drip
--- bucket cannot be less than empty + we need to add one to the level to account for the new drop
-local new_level = math.max(0, current_level - elapsed_time * drip_rate) + 1
+-- bucket cannot be less than empty + we need to increase to the level to account for the new request
+local new_level = math.max(0, current_level - elapsed_time * drip_rate) + incr_by
 -- check it the current request would overflow the bucket
 local allowed = new_level <= bucket_size
 
