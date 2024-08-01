@@ -8,12 +8,12 @@ from rest_framework.serializers import ValidationError
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
-from sentry.models.rule import Rule
-from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
-from sentry.tasks.integrations.migrate_opsgenie_plugins import (
+from sentry.integrations.opsgenie.tasks import (
     ALERT_LEGACY_INTEGRATIONS,
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
 )
+from sentry.models.rule import Rule
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
