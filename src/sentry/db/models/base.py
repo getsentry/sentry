@@ -332,6 +332,7 @@ class DefaultFieldsModel(Model):
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
     if not isinstance(instance, DefaultFieldsModel):
         return
+    # Only update this field when we're updating the row, not on create.
     if instance.pk is not None:
         instance.date_updated = timezone.now()
 
