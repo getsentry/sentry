@@ -1,6 +1,5 @@
 import dataclasses
 import logging
-import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -104,11 +103,13 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContext:
     """Initialize a Sentry transaction and unpack the message."""
+    # TODO-anton: remove sampled here and let traces_sampler decide
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
-        sampled=random.random()
-        < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        custom_sampling_context={
+            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
+        },
     )
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
     return MessageContext(message.payload.value, transaction, isolation_scope)
@@ -130,11 +131,13 @@ def process_message_threaded(message: Message[MessageContext]) -> Any:
 
 def process_message(message: Message[KafkaPayload]) -> Any:
     """Move the replay payload to permanent storage."""
+    # TODO-anton: remove sampled here and let traces_sampler decide
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
-        sampled=random.random()
-        < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        custom_sampling_context={
+            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
+        },
     )
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
 

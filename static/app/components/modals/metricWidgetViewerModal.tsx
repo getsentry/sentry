@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   MetricWidgetTitle,
   type MetricWidgetTitleState,
@@ -30,9 +31,11 @@ import type {
 } from 'sentry/views/dashboards/metrics/types';
 import {
   expressionsToWidget,
+  formatAlias,
   getMetricEquations,
   getMetricQueries,
   getMetricWidgetTitle,
+  getVirtualAlias,
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -55,12 +58,14 @@ function MetricWidgetViewerModal({
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
-  const {resolveVirtualMRI, getVirtualMRIQuery} = useVirtualMetricsContext();
+  const {resolveVirtualMRI, getVirtualMRIQuery, getExtractionRule, isLoading} =
+    useVirtualMetricsContext();
   const [userHasModified, setUserHasModified] = useState(false);
   const [displayType, setDisplayType] = useState(widget.displayType);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters, getVirtualMRIQuery)
   );
+
   const [metricEquations, setMetricEquations] = useState<DashboardMetricsEquation[]>(() =>
     getMetricEquations(widget)
   );
@@ -70,10 +75,15 @@ function MetricWidgetViewerModal({
     [metricEquations]
   );
 
-  const expressions = useMemo(
-    () => [...metricQueries, ...filteredEquations],
-    [metricQueries, filteredEquations]
-  );
+  const expressions = useMemo(() => {
+    const formattedAliasQueries = metricQueries.map(query => {
+      if (query.alias) {
+        return {...query, alias: formatAlias(query.alias)};
+      }
+      return query;
+    });
+    return [...formattedAliasQueries, ...filteredEquations];
+  }, [metricQueries, filteredEquations]);
 
   const generateQueryId = useGenerateExpressionId(metricQueries);
   const generateEquationId = useGenerateExpressionId(metricEquations);
@@ -98,12 +108,33 @@ function MetricWidgetViewerModal({
     (data: Partial<DashboardMetricsQuery>, index: number) => {
       setMetricQueries(curr => {
         const updated = [...curr];
-        updated[index] = {...updated[index], ...data} as DashboardMetricsQuery;
+        const currentQuery = updated[index];
+        const updatedQuery = {...updated[index], ...data} as DashboardMetricsQuery;
+        const currentSpanAttribute = getExtractionRule(currentQuery.mri)?.spanAttribute;
+        const spanAttribute = getExtractionRule(updatedQuery.mri)?.spanAttribute;
+
+        if (spanAttribute) {
+          if (!updatedQuery.alias) {
+            updatedQuery.alias = getVirtualAlias(updatedQuery.aggregation, spanAttribute);
+          } else if (currentQuery.alias && currentSpanAttribute !== spanAttribute) {
+            if (
+              currentQuery.alias.trim() ===
+              getVirtualAlias(currentQuery.aggregation, currentSpanAttribute)
+            ) {
+              updatedQuery.alias = getVirtualAlias(
+                updatedQuery.aggregation,
+                spanAttribute
+              );
+            }
+          }
+        }
+
+        updated[index] = updatedQuery;
         return updated;
       });
       setUserHasModified(true);
     },
-    [setMetricQueries]
+    [setMetricQueries, getExtractionRule]
   );
 
   const handleEquationChange = useCallback(
@@ -281,6 +312,10 @@ function MetricWidgetViewerModal({
   }, [userHasModified, closeModal]);
 
   const {mri, aggregation, query, condition} = metricQueries[0];
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <Fragment>

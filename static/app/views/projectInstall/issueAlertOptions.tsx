@@ -193,6 +193,10 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   }
 
   shouldUseNewDefaultSetting(): boolean {
+    if (this.props.organization.features.includes('priority-ga-features')) {
+      return true;
+    }
+
     return (
       this.props.organization.features.includes('default-high-priority-alerts') &&
       (this.props.platformLanguage === SupportedLanguages.PYTHON ||

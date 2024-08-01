@@ -8,13 +8,13 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
-import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnboarding/useLoadFeedbackOnboardingDoc';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -33,7 +33,8 @@ import {
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -144,7 +145,8 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
 }
 
 function OnboardingContent({currentProject}: {currentProject: Project}) {
-  const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
+  const organization = useOrganization();
+  const jsFrameworkSelectOptions = replayJsFrameworkOptions().map(platform => {
     return {
       value: platform.id,
       textValue: platform.name,
@@ -157,7 +159,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     };
   });
 
-  const organization = useOrganization();
   const [jsFramework, setJsFramework] = useState<{
     value: PlatformKey;
     label?: ReactNode;
@@ -192,32 +193,30 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     replayJsLoaderInstructionsPlatformList.includes(currentPlatform.id) &&
     !crashReportOnboarding;
 
-  function getJsFramework() {
-    return (
-      replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-      replayJsFrameworkOptions[0]
-    );
-  }
+  const jsFrameworkPlatform =
+    replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
+    replayJsFrameworkOptions()[0];
 
   const {
+    isLoading,
     docs: newDocs,
     dsn,
     cdn,
-    isProjKeysLoading,
-  } = useLoadFeedbackOnboardingDoc({
+  } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && !crashReportOnboarding
-        ? getJsFramework()
+        ? jsFrameworkPlatform
         : currentPlatform,
-    organization,
-    projectSlug: currentProject.slug,
+    projSlug: currentProject.slug,
+    productType: 'feedback',
+    orgSlug: organization.slug,
   });
 
   // New onboarding docs for initial loading of JS Framework options
-  const {docs: jsFrameworkDocs} = useLoadFeedbackOnboardingDoc({
-    platform: getJsFramework(),
-    organization,
-    projectSlug: currentProject.slug,
+  const {docs: jsFrameworkDocs} = useLoadGettingStarted({
+    platform: jsFrameworkPlatform,
+    projSlug: currentProject.slug,
+    orgSlug: organization.slug,
   });
 
   if (webApiPlatform && !crashReportOnboarding) {
@@ -271,7 +270,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       ) : (
         newDocs?.platformOptions &&
         widgetPlatform &&
-        !crashReportOnboarding && (
+        !crashReportOnboarding &&
+        !isLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -284,7 +284,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     </Header>
   );
 
-  if (isProjKeysLoading) {
+  if (isLoading) {
     return (
       <Fragment>
         {radioButtons}
@@ -297,7 +297,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   if (
     !currentPlatform ||
     !feedbackOnboardingPlatforms.includes(currentPlatform.id) ||
-    !newDocs
+    !newDocs ||
+    !dsn
   ) {
     return (
       <Fragment>
@@ -340,18 +341,16 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   return (
     <Fragment>
       {radioButtons}
-      {newDocs && (
-        <FeedbackOnboardingLayout
-          docsConfig={newDocs}
-          dsn={dsn}
-          cdn={cdn}
-          activeProductSelection={[]}
-          platformKey={currentPlatform.id}
-          projectId={currentProject.id}
-          projectSlug={currentProject.slug}
-          configType={getConfig()}
-        />
-      )}
+      <FeedbackOnboardingLayout
+        docsConfig={newDocs}
+        dsn={dsn}
+        cdn={cdn}
+        activeProductSelection={[]}
+        platformKey={currentPlatform.id}
+        projectId={currentProject.id}
+        projectSlug={currentProject.slug}
+        configType={getConfig()}
+      />
     </Fragment>
   );
 }

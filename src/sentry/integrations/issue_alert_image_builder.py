@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 
 import sentry_sdk
 from django.conf import settings
@@ -10,6 +11,7 @@ from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.time_utils import get_approx_start_time, get_relative_time
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import (
+    GroupType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
@@ -41,8 +43,17 @@ class IssueAlertImageBuilder:
         }
         self.lock = locks.get(key=f"lock_{self.cache_key}", duration=10, name="issue_alert_image")
 
+        self.issue_type_to_image_builder: dict[type[GroupType], Callable[[], str | None]] = {
+            PerformanceP95EndpointRegressionGroupType: self._get_endpoint_regression_image_url,
+            ProfileFunctionRegressionType: self._get_function_regression_image_url,
+        }
+
     def get_image_url(self) -> str | None:
         try:
+            # We only generate images for supported issue types
+            if self.group.issue_type not in self.issue_type_to_image_builder:
+                return None
+
             metrics.incr("chartcuterie.issue_alert.attempt", tags=self.tags)
             image_url = cache.get(self.cache_key)
             if image_url is None:
@@ -51,10 +62,7 @@ class IssueAlertImageBuilder:
                 # this thread was acquiring the lock
                 image_url = cache.get(self.cache_key)
                 if image_url is None:
-                    if self.group.issue_type == PerformanceP95EndpointRegressionGroupType:
-                        image_url = self._get_endpoint_regression_image_url()
-                    elif self.group.issue_type == ProfileFunctionRegressionType:
-                        image_url = self._get_function_regression_image_url()
+                    image_url = self.issue_type_to_image_builder[self.group.issue_type]()
                 self.lock.release()
         except UnableToAcquireLock:
             # There is a chance that another thread generated the image
@@ -79,12 +87,22 @@ class IssueAlertImageBuilder:
             # For example slack notification and email notification for the same issue
             cache.set(self.cache_key, image_url, timeout=60 * 5)
             return image_url
+
+        # This would only happen if we support the issue type, but chartcuterie failed to generate the image
+        logger.warning(
+            "issue_alert_chartcuterie_image.empty_image",
+            extra={"group_id": self.group.id},
+        )
         return None
 
     def _get_endpoint_regression_image_url(self) -> str | None:
         organization = self.group.organization
         event = self.group.get_latest_event_for_environments()
         if event is None or event.transaction is None or event.occurrence is None:
+            logger.warning(
+                "issue_alert_chartcuterie_image.empty_event",
+                extra={"event": event},
+            )
             return None
         transaction_name = utils.escape_transaction(event.transaction)
         period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
@@ -116,6 +134,10 @@ class IssueAlertImageBuilder:
         organization = self.group.organization
         event = self.group.get_latest_event_for_environments()
         if event is None or event.occurrence is None:
+            logger.warning(
+                "issue_alert_chartcuterie_image.empty_event",
+                extra={"event": event},
+            )
             return None
 
         period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)

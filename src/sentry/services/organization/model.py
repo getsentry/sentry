@@ -9,12 +9,12 @@ class OrganizationOptions(pydantic.BaseModel):
     owning_user_id: int | None = None
     owning_email: str | None = None
     create_default_team: bool = True
-    is_test = False
+    is_test: bool = False
 
 
 class PostProvisionOptions(pydantic.BaseModel):
-    sentry_options: Any | None  # Placeholder for any sentry post-provisioning data
-    getsentry_options: Any | None  # Reserved for getsentry post-provisioning data
+    sentry_options: Any | None = None  # Placeholder for any sentry post-provisioning data
+    getsentry_options: Any | None = None  # Reserved for getsentry post-provisioning data
 
 
 class OrganizationProvisioningOptions(pydantic.BaseModel):

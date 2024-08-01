@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-import builtins
+import abc
 import io
 import logging
 import mmap
 import os
 import tempfile
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
-from typing import ClassVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import sentry_sdk
 from django.core.files.base import ContentFile
@@ -20,9 +21,9 @@ from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
+from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
 from sentry.utils import metrics
-from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -196,31 +197,60 @@ class ChunkedFileBlobIndexWrapper:
         return bytes(result)
 
 
-class AbstractFile(Model):
+BlobIndexType = TypeVar("BlobIndexType", bound=AbstractFileBlobIndex)
+BlobType = TypeVar("BlobType", bound=AbstractFileBlob)
+
+if TYPE_CHECKING:
+    # Django doesn't permit models to have parent classes that are Generic
+    # this kludge lets satisfy both mypy and django
+    class _Parent(Generic[BlobIndexType, BlobType]):
+        ...
+
+else:
+
+    class _Parent:
+        def __class_getitem__(cls, _):
+            return cls
+
+
+class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     __relocation_scope__ = RelocationScope.Excluded
 
     name = models.TextField()
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
-    headers = JSONField()
+    headers: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     size = BoundedPositiveIntegerField(null=True)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
 
     class Meta:
         abstract = True
 
-    # abstract
-    # XXX: uses `builtins.type` to avoid clash with `type` local
-    FILE_BLOB_MODEL: ClassVar[builtins.type[AbstractFileBlob]]
-    FILE_BLOB_INDEX_MODEL: ClassVar[builtins.type[Model]]
-    DELETE_UNREFERENCED_BLOB_TASK: ClassVar[SentryTask]
     blobs: models.ManyToManyField
+
+    @abc.abstractmethod
+    def _blob_index_records(self) -> Sequence[BlobIndexType]:
+        ...
+
+    @abc.abstractmethod
+    def _create_blob_index(self, blob: BlobType, offset: int) -> BlobIndexType:
+        ...
+
+    @abc.abstractmethod
+    def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> BlobType:
+        ...
+
+    @abc.abstractmethod
+    def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[BlobType]:
+        ...
+
+    @abc.abstractmethod
+    def _delete_unreferenced_blob_task(self) -> SentryTask:
+        ...
 
     def _get_chunked_blob(self, mode=None, prefetch=False, prefetch_to=None, delete=True):
         return ChunkedFileBlobIndexWrapper(
-            self.FILE_BLOB_INDEX_MODEL.objects.filter(file=self)
-            .select_related("blob")
-            .order_by("offset"),
+            self._blob_index_records(),
             mode=mode,
             prefetch=prefetch,
             prefetch_to=prefetch_to,
@@ -292,10 +322,8 @@ class AbstractFile(Model):
             checksum.update(contents)
 
             blob_fileobj = ContentFile(contents)
-            blob = self.FILE_BLOB_MODEL.from_file(blob_fileobj, logger=logger)
-            results.append(
-                self.FILE_BLOB_INDEX_MODEL.objects.create(file=self, blob=blob, offset=offset)
-            )
+            blob = self._create_blob_from_file(blob_fileobj, logger=logger)
+            results.append(self._create_blob_index(blob=blob, offset=offset))
             offset += blob.size
         self.size = offset
         self.checksum = checksum.hexdigest()
@@ -311,14 +339,12 @@ class AbstractFile(Model):
         contents.
         """
         tf = tempfile.NamedTemporaryFile()
-        with atomic_transaction(
-            using=(
-                router.db_for_write(self.FILE_BLOB_MODEL),
-                router.db_for_write(self.FILE_BLOB_INDEX_MODEL),
-            )
-        ):
+
+        # All file tables are on the same connection and this lets us
+        # bypass generics
+        with transaction.atomic(using=router.db_for_write(type(self))):
             try:
-                file_blobs_qs = self.FILE_BLOB_MODEL.objects.filter(id__in=file_blob_ids).all()
+                file_blobs_qs = self._get_blobs_by_id(blob_ids=file_blob_ids)
 
                 # Ensure blobs are in the order and duplication as provided
                 blobs_by_id = {blob.id: blob for blob in file_blobs_qs}
@@ -333,7 +359,7 @@ class AbstractFile(Model):
             offset = 0
             for blob in file_blobs:
                 try:
-                    self.FILE_BLOB_INDEX_MODEL.objects.create(file=self, blob=blob, offset=offset)
+                    self._create_blob_index(blob=blob, offset=offset)
                 except IntegrityError:
                     # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
                     # the blob we want to link does not exist anymore
@@ -368,7 +394,7 @@ class AbstractFile(Model):
         # Wait to delete blobs. This helps prevent
         # races around frequently used blobs in debug images and release files.
         transaction.on_commit(
-            lambda: self.DELETE_UNREFERENCED_BLOB_TASK.apply_async(
+            lambda: self._delete_unreferenced_blob_task().apply_async(
                 kwargs={"blob_ids": blob_ids}, countdown=60 * 5
             ),
             using=router.db_for_write(type(self)),

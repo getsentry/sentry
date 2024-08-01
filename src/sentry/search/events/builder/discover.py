@@ -32,15 +32,25 @@ from sentry.search.events.types import (
     ParamsType,
     QueryBuilderConfig,
     SelectType,
+    SnubaParams,
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 class DiscoverQueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
+    uuid_fields = {
+        "id",
+        "trace",
+        "profile.id",
+        "replay.id",
+    }
+    span_id_fields = {
+        "trace.span",
+        "trace.parent_span",
+    }
     duration_fields = {"transaction.duration"}
 
     def load_config(
@@ -118,27 +128,6 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
         if name in constants.SKIP_FILTER_RESOLUTION:
             name = f"tags[{name}]"
 
-        if name in {"trace.span", "trace.parent_span"}:
-            if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
-            if not search_filter.value.is_span_id():
-                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
-
-        # Validate event ids, trace ids, and profile ids are uuids
-        if name in self.uuid_fields:
-            if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
-            elif not search_filter.value.is_event_id():
-                if name == "trace":
-                    label = "Filter Trace ID"
-                elif name == "profile.id":
-                    label = "Filter Profile ID"
-                elif name == "replay.id":
-                    label = "Filter Replay ID"
-                else:
-                    label = "Filter ID"
-                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
-
         if name in constants.TIMESTAMP_FIELDS:
             if (
                 operator in ["<", "<="]
@@ -171,6 +160,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         dataset: Dataset,
         params: ParamsType,
         interval: int,
+        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
         equations: list[str] | None = None,
@@ -183,6 +173,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         super().__init__(
             dataset,
             params,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=equations,
@@ -287,6 +278,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         params: ParamsType,
         interval: int,
         top_events: list[dict[str, Any]],
+        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -302,6 +294,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         super().__init__(
             dataset,
             params,
+            snuba_params=snuba_params,
             interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),
@@ -342,7 +335,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         conditions = []
         for field in self.fields:
             # If we have a project field, we need to limit results by project so we don't hit the result limit
-            if field in ["project", "project.id"] and top_events:
+            if field in ["project", "project.id", "project.name"] and top_events:
                 # Iterate through the existing conditions to find the project one
                 # the project condition is a requirement of queries so there should always be one
                 project_condition = [
@@ -352,9 +345,9 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
-                if field == "project":
+                if field in ["project", "project.name"]:
                     projects = list(
-                        {self.params.project_slug_map[event["project"]] for event in top_events}
+                        {self.params.project_slug_map[event[field]] for event in top_events}
                     )
                 else:
                     projects = list({event["project.id"] for event in top_events})

@@ -3,12 +3,14 @@ from functools import cached_property
 from unittest import mock
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.core import mail
 from django.forms import ValidationError
 from django.test import override_settings
 from django.utils import timezone
+from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.events import (
@@ -55,7 +57,10 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
@@ -76,11 +81,11 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import GroupStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -91,7 +96,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
-from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]
 
@@ -699,6 +703,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
             comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.comparison_delta == comparison_delta * 60
@@ -795,6 +800,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
             comparison_delta=60,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
 
         assert (
@@ -1191,6 +1197,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
             comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
 
         assert (
@@ -1226,6 +1233,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
             comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
 
         assert alert_rule.snuba_query.resolution == 1800
@@ -1253,6 +1261,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
             comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
 
         assert alert_rule.snuba_query.resolution == 1800
@@ -1266,6 +1275,175 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
             * 60
         )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    def test_update_detection_type(self):
+        comparison_delta = 60
+        # test percent to dynamic
+        rule = self.create_alert_rule(
+            comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
+        )
+
+        updated_rule = update_alert_rule(
+            rule,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
+        )
+
+        assert updated_rule.comparison_delta is None
+        assert updated_rule.sensitivity == AlertRuleSensitivity.HIGH
+        assert updated_rule.seasonality == AlertRuleSeasonality.AUTO
+        assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+
+        # test dynamic to percent
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=comparison_delta, detection_type=AlertRuleDetectionType.PERCENT
+        )
+
+        assert updated_rule.comparison_delta == comparison_delta * 60
+        assert updated_rule.sensitivity is None
+        assert updated_rule.seasonality is None
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # test static to percent
+        rule = self.create_alert_rule()
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=comparison_delta, detection_type=AlertRuleDetectionType.PERCENT
+        )
+
+        assert updated_rule.comparison_delta == comparison_delta * 60
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # test static to dynamic
+        rule = self.create_alert_rule()
+
+        updated_rule = update_alert_rule(
+            rule,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
+        )
+
+        assert updated_rule.sensitivity == AlertRuleSensitivity.HIGH
+        assert updated_rule.seasonality == AlertRuleSeasonality.AUTO
+        assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+
+        # test percent to static
+        rule = self.create_alert_rule(
+            comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
+        )
+
+        updated_rule = update_alert_rule(rule, detection_type=AlertRuleDetectionType.STATIC)
+
+        assert updated_rule.comparison_delta is None
+        assert updated_rule.sensitivity is None
+        assert updated_rule.seasonality is None
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # test dynamic to static
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
+        )
+
+        updated_rule = update_alert_rule(rule, detection_type=AlertRuleDetectionType.STATIC)
+
+        assert updated_rule.comparison_delta is None
+        assert updated_rule.sensitivity is None
+        assert updated_rule.seasonality is None
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # test dynamic to dynamic
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, detection_type=AlertRuleDetectionType.DYNAMIC, time_window=30
+        )
+        assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+
+    def test_update_infer_detection_type(self):
+        # static to static
+        rule = self.create_alert_rule()
+        updated_rule = update_alert_rule(rule, time_window=15)
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # static to percent
+        rule = self.create_alert_rule()
+        updated_rule = update_alert_rule(rule, comparison_delta=60)
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # percent to percent
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        updated_rule = update_alert_rule(rule, time_window=15)
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # percent to static
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        updated_rule = update_alert_rule(rule, comparison_delta=None)
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # dynamic to percentsta
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=60, sensitivity=None, seasonality=None
+        )
+
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # dynamic to static
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=None, sensitivity=None, seasonality=None
+        )
+
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+    def test_update_invalid_time_window(self):
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
+        )
+
+        with pytest.raises(ValidationError):
+            update_alert_rule(rule, detection_type=AlertRuleDetectionType.DYNAMIC, time_window=300)
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1329,7 +1507,7 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
 
-class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
+class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
@@ -1393,6 +1571,17 @@ class CreateAlertRuleTriggerTest(TestCase):
         with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             create_alert_rule_trigger(self.alert_rule, name, 100)
 
+    def test_invalid_threshold_dynamic_alert(self):
+        rule = self.create_alert_rule(
+            time_window=15,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        create_alert_rule_trigger(rule, "yay", 0)
+        with pytest.raises(ValidationError):
+            create_alert_rule_trigger(rule, "no", 10)
+
 
 class UpdateAlertRuleTriggerTest(TestCase):
     @cached_property
@@ -1447,6 +1636,17 @@ class UpdateAlertRuleTriggerTest(TestCase):
         with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
 
+    def test_invalid_threshold_dynamic_alert(self):
+        rule = self.create_alert_rule(
+            time_window=15,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        trigger = create_alert_rule_trigger(rule, "yay", 0)
+        with pytest.raises(ValidationError):
+            update_alert_rule_trigger(trigger, alert_threshold=10)
+
 
 class DeleteAlertRuleTriggerTest(TestCase):
     def test(self):
@@ -1481,6 +1681,48 @@ class BaseAlertRuleTriggerActionTest:
     @cached_property
     def trigger(self):
         return create_alert_rule_trigger(self.alert_rule, "hello", 1000)
+
+    def patch_msg_schedule_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            bodydict = {"ok": False, "error": "channel_not_found"}
+        else:
+            bodydict = {
+                "ok": True,
+                result_name: channel_id,
+                "scheduled_message_id": "Q1298393284",
+            }
+        return patch(
+            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.scheduleMessage",
+                req_args={},
+                data=bodydict,
+                headers={},
+                status_code=200,
+            ),
+        )
+
+    def patch_msg_delete_scheduled_response(self, channel_id):
+        if channel_id == "channel_not_found":
+            bodydict = {"ok": False, "error": "channel_not_found"}
+        else:
+            bodydict = {
+                "ok": True,
+            }
+        return patch(
+            "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.deleteScheduleMessage",
+                req_args={},
+                data=bodydict,
+                headers={},
+                status_code=200,
+            ),
+        )
 
 
 class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase):
@@ -1524,36 +1766,22 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel"
         channel_id = "s_c"
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
-            ),
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.deleteScheduledMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": True}),
-        )
 
-        action = create_alert_rule_trigger_action(
-            self.trigger,
-            type,
-            target_type,
-            target_identifier=channel_name,
-            integration_id=integration.id,
-        )
-        assert action.alert_rule_trigger == self.trigger
-        assert action.type == type.value
-        assert action.target_type == target_type.value
-        assert action.target_identifier == channel_id
-        assert action.target_display == channel_name
-        assert action.integration_id == integration.id
+        with self.patch_msg_schedule_response(channel_id):
+            with self.patch_msg_delete_scheduled_response(channel_id):
+                action = create_alert_rule_trigger_action(
+                    self.trigger,
+                    type,
+                    target_type,
+                    target_identifier=channel_name,
+                    integration_id=integration.id,
+                )
+                assert action.alert_rule_trigger == self.trigger
+                assert action.type == type.value
+                assert action.target_type == target_type.value
+                assert action.target_identifier == channel_id
+                assert action.target_display == channel_name
+                assert action.integration_id == integration.id
 
     def test_slack_not_existing(self):
         integration, _ = self.create_provider_integration_for(
@@ -1566,17 +1794,19 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with pytest.raises(ApiError):
-            create_alert_rule_trigger_action(
-                self.trigger,
-                type,
-                target_type,
-                target_identifier=channel_name,
-                integration_id=integration.id,
-            )
+        with self.patch_msg_schedule_response("channel_not_found"):
+            with pytest.raises(InvalidTriggerActionError):
+                create_alert_rule_trigger_action(
+                    self.trigger,
+                    type,
+                    target_type,
+                    target_identifier=channel_name,
+                    integration_id=integration.id,
+                )
 
     @responses.activate
-    def test_slack_rate_limiting(self):
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_slack_rate_limiting(self, mock_api_call):
         """Should handle 429 from Slack on new Metric Alert creation"""
         integration, _ = self.create_provider_integration_for(
             self.organization,
@@ -1592,29 +1822,21 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel"
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
-        )
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": False, "error": "ratelimited"}).decode(),
+            "headers": {},
+            "status": 429,
+        }
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=429,
-            content_type="application/json",
-            body=json.dumps({"ok": False, "error": "ratelimited"}),
-        )
-        with pytest.raises(ApiRateLimitedError):
-            create_alert_rule_trigger_action(
-                self.trigger,
-                type,
-                target_type,
-                target_identifier=channel_name,
-                integration_id=integration.id,
-            )
+        with self.patch_msg_schedule_response("channel_not_found"):
+            with pytest.raises(ApiRateLimitedError):
+                create_alert_rule_trigger_action(
+                    self.trigger,
+                    type,
+                    target_type,
+                    target_identifier=channel_name,
+                    integration_id=integration.id,
+                )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
@@ -1856,36 +2078,22 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel"
         channel_id = "s_c"
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(
-                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
-            ),
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.deleteScheduledMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": True}),
-        )
 
-        action = update_alert_rule_trigger_action(
-            self.action,
-            type,
-            target_type,
-            target_identifier=channel_name,
-            integration_id=integration.id,
-        )
-        assert action.alert_rule_trigger == self.trigger
-        assert action.type == type.value
-        assert action.target_type == target_type.value
-        assert action.target_identifier == channel_id
-        assert action.target_display == channel_name
-        assert action.integration_id == integration.id
+        with self.patch_msg_schedule_response(channel_id):
+            with self.patch_msg_delete_scheduled_response(channel_id):
+                action = update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_name,
+                    integration_id=integration.id,
+                )
+                assert action.alert_rule_trigger == self.trigger
+                assert action.type == type.value
+                assert action.target_type == target_type.value
+                assert action.target_identifier == channel_id
+                assert action.target_display == channel_name
+                assert action.integration_id == integration.id
 
     def test_slack_not_existing(self):
         integration, _ = self.create_provider_integration_for(
@@ -1898,17 +2106,18 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with pytest.raises(ApiError):
-            update_alert_rule_trigger_action(
-                self.action,
-                type,
-                target_type,
-                target_identifier=channel_name,
-                integration_id=integration.id,
-            )
+        with self.patch_msg_schedule_response("channel_not_found"):
+            with pytest.raises(InvalidTriggerActionError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_name,
+                    integration_id=integration.id,
+                )
 
-    @responses.activate
-    def test_slack_rate_limiting(self):
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_slack_rate_limiting(self, mock_api_call):
         """Should handle 429 from Slack on existing Metric Alert update"""
         integration, _ = self.create_provider_integration_for(
             self.organization,
@@ -1924,29 +2133,21 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel"
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
-        )
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": False, "error": "ratelimited"}).decode(),
+            "headers": {},
+            "status": 429,
+        }
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=429,
-            content_type="application/json",
-            body=json.dumps({"ok": False, "error": "ratelimited"}),
-        )
-        with pytest.raises(ApiRateLimitedError):
-            update_alert_rule_trigger_action(
-                self.action,
-                type,
-                target_type,
-                target_identifier=channel_name,
-                integration_id=integration.id,
-            )
+        with self.patch_msg_schedule_response("channel_not_found"):
+            with pytest.raises(ApiRateLimitedError):
+                update_alert_rule_trigger_action(
+                    self.action,
+                    type,
+                    target_type,
+                    target_identifier=channel_name,
+                    integration_id=integration.id,
+                )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):

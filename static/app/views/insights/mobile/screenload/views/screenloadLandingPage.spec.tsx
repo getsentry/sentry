@@ -19,7 +19,7 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 
 describe('PageloadModule', function () {
-  const project = ProjectFixture({platform: 'react-native'});
+  const project = ProjectFixture({platform: 'react-native', hasInsightsScreenLoad: true});
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
@@ -31,6 +31,7 @@ describe('PageloadModule', function () {
     hasMore: false,
     initiallyLoaded: false,
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
     projects: [project],
   });

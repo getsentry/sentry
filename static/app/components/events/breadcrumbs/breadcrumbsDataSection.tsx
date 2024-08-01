@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -6,19 +6,30 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
-  BreadcrumbsDrawerContent,
-} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawerContent';
+  BreadcrumbsDrawer,
+} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
   getEnhancedBreadcrumbs,
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {
+  BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+  BreadcrumbSort,
+} from 'sentry/components/events/interfaces/breadcrumbs';
+import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import useDrawer from 'sentry/components/globalDrawer';
-import {IconClock, IconEllipsis, IconFilter, IconSearch, IconSort} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {
+  IconClock,
+  IconEllipsis,
+  IconMegaphone,
+  IconSearch,
+  IconTimer,
+} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -26,6 +37,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -38,25 +51,30 @@ export default function BreadcrumbsDataSection({
   group,
   project,
 }: BreadcrumbsDataSectionProps) {
-  const {openDrawer} = useDrawer();
+  const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
-  // Use the local storage preferences, but allow the drawer to do updates
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-    BreadcrumbTimeDisplay.RELATIVE
+    BreadcrumbTimeDisplay.ABSOLUTE
+  );
+  // Use the local storage preferences, but allow the drawer to do updates
+  const [sort, _setSort] = useLocalStorageState<BreadcrumbSort>(
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
   );
 
   const enhancedCrumbs = useMemo(() => getEnhancedBreadcrumbs(event), [event]);
   const summaryCrumbs = useMemo(
-    () => getSummaryBreadcrumbs(enhancedCrumbs),
-    [enhancedCrumbs]
+    () => getSummaryBreadcrumbs(enhancedCrumbs, sort),
+    [enhancedCrumbs, sort]
   );
   const startTimeString = useMemo(
     () =>
       timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-        ? enhancedCrumbs?.at(-1)?.breadcrumb?.timestamp
+        ? summaryCrumbs?.at(0)?.breadcrumb?.timestamp
         : undefined,
-    [enhancedCrumbs, timeDisplay]
+    [summaryCrumbs, timeDisplay]
   );
 
   const onViewAllBreadcrumbs = useCallback(
@@ -66,18 +84,27 @@ export default function BreadcrumbsDataSection({
         organization,
       });
       openDrawer(
-        ({Body}) => (
-          <Body>
-            <BreadcrumbsDrawerContent
-              breadcrumbs={enhancedCrumbs}
-              group={group}
-              event={event}
-              project={project}
-              focusControl={focusControl}
-            />
-          </Body>
+        () => (
+          <BreadcrumbsDrawer
+            breadcrumbs={enhancedCrumbs}
+            focusControl={focusControl}
+            project={project}
+            event={event}
+            group={group}
+          />
         ),
-        {ariaLabel: 'breadcrumb drawer'}
+        {
+          ariaLabel: 'breadcrumb drawer',
+          // We prevent a click on the 'View All' button from closing the drawer so that
+          // we don't reopen it immediately, and instead let the button handle this itself.
+          shouldCloseOnInteractOutside: element => {
+            const viewAllButton = viewAllButtonRef.current;
+            if (viewAllButton?.contains(element)) {
+              return false;
+            }
+            return true;
+          },
+        }
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -87,34 +114,34 @@ export default function BreadcrumbsDataSection({
     return null;
   }
 
+  const nextTimeDisplay =
+    timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
+      ? BreadcrumbTimeDisplay.RELATIVE
+      : BreadcrumbTimeDisplay.ABSOLUTE;
+
   const actions = (
     <ButtonBar gap={1}>
+      <BreadcrumbsFeedback />
       <Button
-        aria-label={t('Search Breadcrumbs')}
+        aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
         size="xs"
+        title={t('Open Search')}
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
       />
       <Button
-        aria-label={t('Filter Breadcrumbs')}
-        icon={<IconFilter size="xs" />}
-        size="xs"
-        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.FILTER)}
-      />
-      <Button
-        aria-label={t('Sort Breadcrumbs')}
-        icon={<IconSort size="xs" />}
-        size="xs"
-        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SORT)}
-      />
-      <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
-        icon={<IconClock size="xs" />}
+        title={tct('Use [format] Timestamps', {
+          format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
+        })}
+        icon={
+          timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+            <IconClock size="xs" />
+          ) : (
+            <IconTimer size="xs" />
+          )
+        }
         onClick={() => {
-          const nextTimeDisplay =
-            timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
-              ? BreadcrumbTimeDisplay.RELATIVE
-              : BreadcrumbTimeDisplay.ABSOLUTE;
           setTimeDisplay(nextTimeDisplay);
           trackAnalytics('breadcrumbs.issue_details.change_time_display', {
             value: nextTimeDisplay,
@@ -129,9 +156,9 @@ export default function BreadcrumbsDataSection({
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
 
   return (
-    <EventDataSection
+    <InterimSection
       key="breadcrumbs"
-      type="breadcrmbs"
+      type={FoldSectionKey.BREADCRUMBS}
       title={t('Breadcrumbs')}
       data-test-id="breadcrumbs-data-section"
       actions={actions}
@@ -149,8 +176,11 @@ export default function BreadcrumbsDataSection({
             <div>
               <ViewAllButton
                 size="sm"
-                onClick={() => onViewAllBreadcrumbs()}
+                // Since we've disabled the button as an 'outside click' for the drawer we can change
+                // the operation based on the drawer state.
+                onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
                 aria-label={t('View All Breadcrumbs')}
+                ref={viewAllButtonRef}
               >
                 {t('View All')}
               </ViewAllButton>
@@ -158,7 +188,30 @@ export default function BreadcrumbsDataSection({
           </ViewAllContainer>
         )}
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
+  );
+}
+
+function BreadcrumbsFeedback() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const feedback = useFeedbackWidget({
+    buttonRef,
+    messagePlaceholder: t('How can we make breadcrumbs more useful to you?'),
+  });
+
+  if (!feedback) {
+    return null;
+  }
+
+  return (
+    <Button
+      ref={buttonRef}
+      aria-label={t('Give Feedback')}
+      icon={<IconMegaphone />}
+      size={'xs'}
+    >
+      {t('Give Feedback')}
+    </Button>
   );
 }
 

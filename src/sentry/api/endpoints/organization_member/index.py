@@ -22,7 +22,7 @@ from sentry.apidocs.examples.organization_member_examples import OrganizationMem
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles

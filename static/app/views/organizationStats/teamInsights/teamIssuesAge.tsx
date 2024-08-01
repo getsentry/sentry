@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import Count from 'sentry/components/count';

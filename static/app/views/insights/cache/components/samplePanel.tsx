@@ -17,13 +17,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
 import {TransactionDurationChart} from 'sentry/views/insights/cache/components/charts/transactionDurationChart';
 import {SpanSamplesTable} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
@@ -32,6 +32,7 @@ import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useMetrics,
@@ -235,7 +236,7 @@ export function CacheSamplePanel() {
     router.replace({
       pathname: location.pathname,
       query: {
-        ...query,
+        ...location.query,
         spanSearchQuery: newSpanSearchQuery,
       },
     });
@@ -299,9 +300,8 @@ export function CacheSamplePanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <MetricsRibbon>
+            <ReadoutRibbon>
               <MetricReadout
-                align="left"
                 title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[
@@ -312,7 +312,6 @@ export function CacheSamplePanel() {
                 isLoading={areCacheTransactionMetricsFetching}
               />
               <MetricReadout
-                align="left"
                 title={getThroughputTitle('cache')}
                 value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
@@ -320,7 +319,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
                 value={
                   transactionDurationData?.[0]?.[
@@ -332,7 +330,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
@@ -342,7 +339,6 @@ export function CacheSamplePanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.timeSpent}
                 value={cacheTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
@@ -351,7 +347,7 @@ export function CacheSamplePanel() {
                 )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
-            </MetricsRibbon>
+            </ReadoutRibbon>
           </ModuleLayout.Full>
           <ModuleLayout.Full>
             <CompactSelect
@@ -404,7 +400,6 @@ export function CacheSamplePanel() {
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 organization={organization}
-                metricAlert={false}
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
@@ -498,10 +493,4 @@ const Title = styled('h4')`
   text-overflow: ellipsis;
   white-space: nowrap;
   margin: 0;
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;

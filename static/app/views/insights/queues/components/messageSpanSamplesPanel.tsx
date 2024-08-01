@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -16,17 +16,18 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
@@ -228,7 +229,7 @@ export function MessageSpanSamplesPanel() {
     router.replace({
       pathname: location.pathname,
       query: {
-        ...query,
+        ...location.query,
         spanSearchQuery: newSpanSearchQuery,
       },
     });
@@ -368,7 +369,6 @@ export function MessageSpanSamplesPanel() {
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 organization={organization}
-                metricAlert={false}
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
@@ -428,22 +428,20 @@ function ProducerMetricsRibbon({
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
-    <Fragment>
+    <ReadoutRibbon>
       <MetricReadout
-        align="left"
         title={t('Published')}
         value={metrics?.[0]?.['count_op(queue.publish)']}
         unit={'count'}
         isLoading={isLoading}
       />
       <MetricReadout
-        align="left"
         title={t('Error Rate')}
         value={errorRate}
         unit={'percentage'}
         isLoading={isLoading}
       />
-    </Fragment>
+    </ReadoutRibbon>
   );
 }
 
@@ -456,16 +454,14 @@ function ConsumerMetricsRibbon({
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
-    <Fragment>
+    <ReadoutRibbon>
       <MetricReadout
-        align="left"
         title={t('Processed')}
         value={metrics?.[0]?.['count_op(queue.process)']}
         unit={'count'}
         isLoading={isLoading}
       />
       <MetricReadout
-        align="left"
         title={t('Error Rate')}
         value={errorRate}
         unit={'percentage'}
@@ -483,7 +479,7 @@ function ConsumerMetricsRibbon({
         unit={DurationUnit.MILLISECOND}
         isLoading={false}
       />
-    </Fragment>
+    </ReadoutRibbon>
   );
 }
 

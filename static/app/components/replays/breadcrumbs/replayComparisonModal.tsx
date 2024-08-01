@@ -2,9 +2,11 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
-import ReplayDiff from 'sentry/components/replays/replayDiff';
-import {t, tct} from 'sentry/locale';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
+import {tct} from 'sentry/locale';
+import ModalStore from 'sentry/stores/modalStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -25,6 +27,10 @@ export default function ReplayComparisonModal({
   replay,
   rightOffsetMs,
 }: Props) {
+  // Callbacks set by GlobalModal on-render.
+  // We need these to interact with feedback opened while a modal is active.
+  const {focusTrap} = useLegacyStore(ModalStore);
+
   return (
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
@@ -33,14 +39,18 @@ export default function ReplayComparisonModal({
             Hydration Error
             <FeatureBadge type="beta" />
           </h4>
-          <GithubFeedbackButton
-            href="https://github.com/getsentry/sentry/discussions/62097"
-            label={t('Discussion')}
-            title={null}
-            analyticsEventKey="replay.details-hydration-discussion-clicked"
-            analyticsEventName="Replay Details Hydration Discussion Clicked"
-            priority="primary"
-          />
+          {focusTrap ? (
+            <FeedbackWidgetButton
+              optionOverrides={{
+                onFormOpen: () => {
+                  focusTrap.pause();
+                },
+                onFormClose: () => {
+                  focusTrap.unpause();
+                },
+              }}
+            />
+          ) : null}
         </ModalHeader>
       </Header>
       <Body>
@@ -53,7 +63,7 @@ export default function ReplayComparisonModal({
             }
           )}
         </StyledParagraph>
-        <ReplayDiff
+        <ReplayDiffChooser
           replay={replay}
           leftOffsetMs={leftOffsetMs}
           rightOffsetMs={rightOffsetMs}

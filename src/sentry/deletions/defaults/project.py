@@ -8,8 +8,10 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
         from sentry.incidents.models.incident import IncidentProject
+        from sentry.integrations.models.repository_project_path_config import (
+            RepositoryProjectPathConfig,
+        )
         from sentry.models.activity import Activity
-        from sentry.models.appconnectbuilds import AppConnectBuild
         from sentry.models.artifactbundle import ProjectArtifactBundle
         from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
         from sentry.models.environment import EnvironmentProject
@@ -24,10 +26,6 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.models.groupseen import GroupSeen
         from sentry.models.groupshare import GroupShare
         from sentry.models.groupsubscription import GroupSubscription
-        from sentry.models.integrations.repository_project_path_config import (
-            RepositoryProjectPathConfig,
-        )
-        from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
         from sentry.models.projectbookmark import ProjectBookmark
         from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectkey import ProjectKey
@@ -49,10 +47,9 @@ class ProjectDeletionTask(ModelDeletionTask):
         ]
 
         # in bulk
-        for m in (
+        for m1 in (
             Activity,
             AlertRuleProjects,
-            AppConnectBuild,
             EnvironmentProject,
             GroupAssignee,
             GroupBookmark,
@@ -63,7 +60,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             GroupSeen,
             GroupShare,
             GroupSubscription,
-            LatestAppConnectBuildsCheck,
             ProjectBookmark,
             ProjectKey,
             ReleaseThreshold,
@@ -85,7 +81,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             DiscoverSavedQueryProject,
             IncidentProject,
         ):
-            relations.append(ModelRelation(m, {"project_id": instance.id}, BulkModelDeletionTask))
+            relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
         relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
         relations.append(ModelRelation(Group, {"project_id": instance.id}))
@@ -99,11 +95,11 @@ class ProjectDeletionTask(ModelDeletionTask):
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
-        for m in (
+        for m2 in (
             ReleaseProject,
             ReleaseProjectEnvironment,
             EventAttachment,
             ProjectDebugFile,
         ):
-            relations.append(ModelRelation(m, {"project_id": instance.id}, ModelDeletionTask))
+            relations.append(ModelRelation(m2, {"project_id": instance.id}, ModelDeletionTask))
         return relations

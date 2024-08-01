@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -9,16 +9,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
@@ -34,18 +29,15 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
 
 export function WebVitalsLandingPage() {
-  const organization = useOrganization();
   const location = useLocation();
-  const onboardingProject = useOnboardingProject();
 
   const router = useRouter();
 
@@ -53,18 +45,16 @@ export function WebVitalsLandingPage() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
-  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({browserType});
+  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({browserTypes});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({browserType});
+    useProjectWebVitalsScoresQuery({browserTypes});
 
   const projectScore =
     isProjectScoresLoading || isLoading
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
-
-  useHasDataTrackAnalytics(ModuleName.VITAL, 'insight.page_loads.vital');
 
   const crumbs = useModuleBreadcrumbs('vital');
 
@@ -92,27 +82,19 @@ export function WebVitalsLandingPage() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <TopMenuContainer>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-            <BrowserTypeSelector />
+            <ModulePageFilterBar
+              moduleName={ModuleName.VITAL}
+              extraFilters={<BrowserTypeSelector />}
+            />
           </TopMenuContainer>
-
-          {onboardingProject && (
-            <OnboardingContainer>
-              <Onboarding organization={organization} project={onboardingProject} />
-            </OnboardingContainer>
-          )}
-          {!onboardingProject && (
-            <Fragment>
+          <MainContentContainer>
+            <ModulesOnboarding moduleName={ModuleName.VITAL}>
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
                   isProjectScoreLoading={isLoading || isProjectScoresLoading}
                   webVital={state.webVital}
-                  browserType={browserType}
+                  browserTypes={browserTypes}
                 />
               </PerformanceScoreChartContainer>
               <WebVitalMetersContainer>
@@ -150,8 +132,8 @@ export function WebVitalsLandingPage() {
                   <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
                 </Tooltip>
               </PagesTooltipContainer>
-            </Fragment>
-          )}
+            </ModulesOnboarding>
+          </MainContentContainer>
         </Layout.Main>
       </Layout.Body>
       <WebVitalsDetailPanel
@@ -170,7 +152,11 @@ export function WebVitalsLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="vital" features="insights-initial-modules">
+    <ModulePageProviders
+      moduleName="vital"
+      features="insights-initial-modules"
+      analyticEventName="insight.page_loads.vital"
+    >
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );
@@ -187,7 +173,7 @@ const PerformanceScoreChartContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const OnboardingContainer = styled('div')`
+const MainContentContainer = styled('div')`
   margin-top: ${space(2)};
 `;
 

@@ -7,11 +7,9 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.organization_traces import process_breakdowns
-from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 
 
@@ -24,10 +22,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = [
-                "organizations:performance-trace-explorer",
-                "organizations:performance-trace-explorer-enforce-projects",
-            ]
+            features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
@@ -373,9 +368,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             "project": [],
             "field": ["id", "parent_span", "span.duration"],
             "query": "foo:[bar, baz]",
-            "suggestedQuery": "foo:baz span.duration:>0s",
             "maxSpansPerTrace": 3,
-            "sort": ["-span.duration"],
         }
 
         response = self.do_request(query)
@@ -467,7 +460,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             "field": ["id", "parent_span", "span.duration"],
             "query": "",
             "maxSpansPerTrace": 3,
-            "sort": ["-span.duration"],
         }
 
         response = self.do_request(query)
@@ -543,7 +535,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             "field": ["id", "parent_span", "span.duration"],
             "query": "",
             "maxSpansPerTrace": 3,
-            "sort": ["-span.duration"],
         }
 
         response = self.do_request(query)
@@ -578,6 +569,43 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         ]
 
+    def test_use_separate_referrers(self):
+        from sentry.api.endpoints.organization_traces import TracesExecutor
+        from sentry.snuba.referrer import Referrer
+        from sentry.utils.snuba import _snuba_query
+
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = now - timedelta(days=2)
+        end = now - timedelta(days=1)
+        trace_id = uuid4().hex
+
+        with (
+            patch.object(
+                TracesExecutor,
+                "get_traces_matching_conditions",
+                return_value=(start, end, trace_id),
+            ),
+            patch("sentry.utils.snuba._snuba_query", wraps=_snuba_query) as mock_snuba_query,
+        ):
+            query = {
+                "project": [self.project.id],
+                "field": ["id", "parent_span", "span.duration"],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+            actual_referrers = {
+                call[0][0][2].headers["referer"] for call in mock_snuba_query.call_args_list
+            }
+
+        assert {
+            Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_META.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
+        } == actual_referrers
+
     def test_matching_tag(self):
         (
             project_1,
@@ -606,9 +634,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     "project": [project_2.id],
                     "field": ["id", "parent_span", "span.duration"],
                     "query": q,
-                    "suggestedQuery": "foo:baz span.duration:>0s",
                     "maxSpansPerTrace": 4,
-                    "sort": ["-span.duration"],
                 }
 
                 response = self.do_request(query, features=features)
@@ -705,200 +731,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     },
                 ]
 
-    def test_sorted(self):
-        (
-            _,
-            _,
-            trace_id_1,
-            trace_id_2,
-            trace_id_3,
-            _,
-            _,
-        ) = self.create_mock_traces()
-
-        for trace_ids in [
-            [trace_id_1, trace_id_2, trace_id_3],
-            [trace_id_1, trace_id_2],
-            [trace_id_1, trace_id_3],
-            [trace_id_2, trace_id_3],
-        ]:
-            query = {
-                "query": [f"trace:[{','.join(trace_ids)}]"],
-                "sort": "-timestamp",
-            }
-
-            response = self.do_request(
-                query,
-                features=[
-                    "organizations:performance-trace-explorer",
-                    "organizations:performance-trace-explorer-sorting",
-                ],
-            )
-            assert response.status_code == 200, response.data
-
-            assert response.data["meta"] == {
-                "dataset": "unknown",
-                "datasetReason": "unchanged",
-                "fields": {},
-                "isMetricsData": False,
-                "isMetricsExtractedData": False,
-                "tips": {},
-                "units": {},
-            }
-
-            assert [row["trace"] for row in response.data["data"]] == trace_ids
-
-    def test_sorted_by_trace_last_seen(self):
-        """
-        trace 1
-        [ span 1 - 70s       ]
-                          [ span 2 - 60s    ]
-
-        trace 2
-                 [ span 3 - 60s       ]
-
-        The query will match spans 1 and 3 using `foo:bar`, but the ordering
-        of the traces should be determined by spans 2 and 3. And since span 2
-        ends after span 3, trace 1 should come before trace 2 in the results.
-        """
-
-        trace_id_1 = uuid4().hex
-        trace_id_2 = uuid4().hex
-
-        span_ids = ["1" + uuid4().hex[:15] for _ in range(3)]
-
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
-
-        self.double_write_segment(
-            project_id=self.project.id,
-            trace_id=trace_id_1,
-            transaction_id=uuid4().hex,
-            span_id=span_ids[0],
-            timestamp=now - timedelta(days=1, minutes=1),
-            duration=70_000,
-            exclusive_time=70_000,
-            tags={"foo": "bar"},
-        )
-
-        self.double_write_segment(
-            project_id=self.project.id,
-            trace_id=trace_id_1,
-            transaction_id=uuid4().hex,
-            span_id=span_ids[1],
-            parent_span_id=span_ids[0],
-            timestamp=now - timedelta(days=1),
-            duration=60_000,
-            exclusive_time=60_000,
-        )
-
-        self.double_write_segment(
-            project_id=self.project.id,
-            trace_id=trace_id_2,
-            transaction_id=uuid4().hex,
-            span_id=span_ids[2],
-            timestamp=now - timedelta(days=1, seconds=30),
-            duration=60_000,
-            exclusive_time=60_000,
-            tags={"foo": "bar"},
-        )
-
-        for q in [
-            ["foo:bar"],
-            ["foo:bar", f"project:{self.project.slug}"],
-        ]:
-            query = {
-                "query": q,
-                "sort": "-timestamp",
-            }
-
-            response = self.do_request(
-                query,
-                features=[
-                    "organizations:performance-trace-explorer",
-                    "organizations:performance-trace-explorer-sorting",
-                ],
-            )
-            assert response.status_code == 200, response.data
-
-            assert response.data["meta"] == {
-                "dataset": "unknown",
-                "datasetReason": "unchanged",
-                "fields": {},
-                "isMetricsData": False,
-                "isMetricsExtractedData": False,
-                "tips": {},
-                "units": {},
-            }
-
-            assert [row["trace"] for row in response.data["data"]] == [trace_id_1, trace_id_2]
-
-    def test_sorted_early_exit(self):
-        (
-            _,
-            _,
-            trace_id_1,
-            trace_id_2,
-            trace_id_3,
-            _,
-            _,
-        ) = self.create_mock_traces()
-
-        trace_ids = [trace_id_1, trace_id_2, trace_id_3]
-        query = {
-            "query": [f"trace:[{','.join(trace_ids)}]"],
-            "sort": "-timestamp",
-            "per_page": 2,
-        }
-
-        response = self.do_request(
-            query,
-            features=[
-                "organizations:performance-trace-explorer",
-                "organizations:performance-trace-explorer-sorting",
-            ],
-        )
-        assert response.status_code == 200, response.data
-
-        assert response.data["meta"] == {
-            "dataset": "unknown",
-            "datasetReason": "unchanged",
-            "fields": {},
-            "isMetricsData": False,
-            "isMetricsExtractedData": False,
-            "tips": {},
-            "units": {},
-        }
-
-        # even though we searched for 3, it should exit after 2
-        assert [row["trace"] for row in response.data["data"]] == [trace_id_1, trace_id_2]
-
-    @override_options(
-        {
-            "performance.traces.trace-explorer-scan-max-block-size-hours": 1,
-            "performance.traces.trace-explorer-scan-max-batches": 1,
-            "performance.traces.trace-explorer-scan-max-parallel-queries": 1,
-        }
-    )
-    def test_sorted_timeout(self):
-        self.create_mock_traces()
-
-        query = {
-            "sort": "-timestamp",
-        }
-
-        response = self.do_request(
-            query,
-            features=[
-                "organizations:performance-trace-explorer",
-                "organizations:performance-trace-explorer-sorting",
-            ],
-        )
-        assert response.status_code == 400, response.data
-
-        assert response.data == {
-            "detail": ErrorDetail(string=TIMEOUT_SPAN_ERROR_MESSAGE, code="parse_error"),
-        }
-
     def test_matching_tag_metrics(self):
         (
             project_1,
@@ -932,9 +764,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     "metricsQuery": ["foo:qux"],
                     "project": [],
                     "field": ["id", "parent_span", "span.duration"],
-                    "suggestedQuery": ["foo:qux"],
                     "maxSpansPerTrace": 3,
-                    "sort": ["-span.duration"],
                     "per_page": 1,
                 }
                 if user_query:
@@ -1007,9 +837,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     "project": [self.project.id],
                     "field": ["id", "parent_span", "span.duration"],
                     "query": "foo:foobar",
-                    "suggestedQuery": ["foo:qux"],
                     "maxSpansPerTrace": 3,
-                    "sort": ["-span.duration"],
                 }
 
                 response = self.do_request(query)
@@ -1031,7 +859,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-trace-spans"
 
-    def do_request(self, trace_id, query, features=None, **kwargs):
+    def _do_request(self, trace_id, query, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
@@ -1052,18 +880,18 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         query = {
             "project": [self.project.id],
         }
-        response = self.do_request(uuid4().hex, query, features=[])
+        response = self._do_request(uuid4().hex, query, features=[])
         assert response.status_code == 404, response.data
 
     def test_no_project(self):
-        response = self.do_request(uuid4().hex, {})
+        response = self._do_request(uuid4().hex, {})
         assert response.status_code == 404, response.data
 
     def test_bad_params_missing_field(self):
         query = {
             "project": [self.project.id],
         }
-        response = self.do_request(uuid4().hex, query)
+        response = self._do_request(uuid4().hex, query)
         assert response.status_code == 400, response.data
         assert response.data == {
             "field": [
@@ -1088,7 +916,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             "sort": "id",
         }
 
-        response = self.do_request(trace_id, query)
+        response = self._do_request(trace_id, query)
         assert response.status_code == 200, response.data
         assert response.data["meta"] == {
             "dataset": "unknown",
@@ -1127,7 +955,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 "query": user_query,
             }
 
-            response = self.do_request(trace_id, query)
+            response = self._do_request(trace_id, query)
             assert response.status_code == 200, response.data
             assert response.data["meta"] == {
                 "dataset": "unknown",
@@ -1182,7 +1010,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 if user_query:
                     query["query"] = user_query
 
-                response = self.do_request(trace_id, query)
+                response = self._do_request(trace_id, query)
                 assert response.status_code == 200, response.data
                 assert response.data["meta"] == {
                     "dataset": "unknown",

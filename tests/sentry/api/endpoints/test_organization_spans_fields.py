@@ -15,10 +15,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
-            features = [
-                "organizations:performance-trace-explorer",
-                "organizations:performance-trace-explorer-enforce-projects",
-            ]
+            features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),

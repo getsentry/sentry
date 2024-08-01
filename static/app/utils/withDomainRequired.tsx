@@ -1,92 +1,16 @@
 import type {RouteComponent, RouteComponentProps} from 'react-router';
-import type {Location, LocationDescriptor} from 'history';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import ConfigStore from 'sentry/stores/configStore';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
-// If you change this also update the patterns in sentry.api.utils
-const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
-  // /organizations/slug/section, but not /organizations/new
-  [/\/organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
-  // For /settings/:orgId/ -> /settings/organization/
-  [
-    /\/settings\/(?!account\/|billing\/|projects\/|teams\/)[^\/]+\/?$/,
-    '/settings/organization/',
-  ],
-  // Move /settings/:orgId/:section -> /settings/:section
-  // but not /settings/organization or /settings/projects which is a new URL
-  [
-    /^\/?settings\/(?!account\/|billing\/|projects\/|teams\/)[^\/]+\/(.*)/,
-    '/settings/$1',
-  ],
-  [/^\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
-  [/^\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
-  // Handles /org-slug/project-slug/getting-started/platform/ -> /getting-started/project-slug/platform/
-  [/^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)/, '/getting-started/$1/$2'],
-  [/^\/?accept-terms\/[^\/]*\/?$/, '/accept-terms/'],
-];
-
-type NormalizeUrlOptions = {
-  forceCustomerDomain: boolean;
+export {
+  /**
+   * @deprecated Use `import normalizeUrl from 'sentry/utils/url/normalizeUrl';` instead
+   */
+  normalizeUrl,
 };
-
-/**
- * Normalize a URL for customer domains based on the organization that was
- * present in the initial page load.
- */
-export function normalizeUrl(path: string, options?: NormalizeUrlOptions): string;
-
-export function normalizeUrl(
-  path: LocationDescriptor,
-  options?: NormalizeUrlOptions
-): LocationDescriptor;
-
-export function normalizeUrl(
-  path: LocationDescriptor,
-  location?: Location,
-  options?: NormalizeUrlOptions
-): LocationDescriptor;
-
-export function normalizeUrl(
-  path: LocationDescriptor,
-  location?: Location | NormalizeUrlOptions,
-  options?: NormalizeUrlOptions
-): LocationDescriptor {
-  if (location && 'forceCustomerDomain' in location) {
-    options = location;
-    location = undefined;
-  }
-
-  const customerDomain = ConfigStore.get('customerDomain');
-  if (!options?.forceCustomerDomain && !customerDomain) {
-    return path;
-  }
-
-  let resolved = path;
-
-  if (typeof resolved === 'string') {
-    for (const patternData of NORMALIZE_PATTERNS) {
-      resolved = resolved.replace(patternData[0], patternData[1]);
-      if (resolved !== path) {
-        return resolved;
-      }
-    }
-    return resolved;
-  }
-
-  if (!resolved.pathname) {
-    return resolved;
-  }
-  for (const patternData of NORMALIZE_PATTERNS) {
-    const replacement = resolved.pathname.replace(patternData[0], patternData[1]);
-    if (replacement !== resolved.pathname) {
-      return {...resolved, pathname: replacement};
-    }
-  }
-
-  return resolved;
-}
 
 /**
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within
@@ -112,7 +36,7 @@ export function normalizeUrl(
  *
  * Whenever https://orgslug.sentry.io/ is accessed in the browser, then both conditions above will be satisfied.
  */
-function withDomainRequired<P extends RouteComponentProps<{}, {}>>(
+export default function withDomainRequired<P extends RouteComponentProps<{}, {}>>(
   WrappedComponent: RouteComponent
 ) {
   return function withDomainRequiredWrapper(props: P) {
@@ -139,5 +63,3 @@ function withDomainRequired<P extends RouteComponentProps<{}, {}>>(
     return <WrappedComponent {...props} params={newParams} />;
   };
 }
-
-export default withDomainRequired;

@@ -8,7 +8,10 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
-import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {
+  useHaveSelectedProjectsSentAnyReplayEvents,
+  useReplayOnboardingSidebarPanel,
+} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useProjects from 'sentry/utils/useProjects';
@@ -17,6 +20,7 @@ import type {ReplayError} from 'sentry/views/replays/types';
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayReader');
 jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 // Replay clip preview is very heavy, mock it out
 jest.mock(
   'sentry/components/events/eventReplay/replayClipPreview',
@@ -97,6 +101,10 @@ describe('EventReplay', function () {
     useReplayOnboardingSidebarPanel
   );
 
+  const MockUseHaveSelectedProjectsSentAnyReplayEvents = jest.mocked(
+    useHaveSelectedProjectsSentAnyReplayEvents
+  );
+
   const organization = OrganizationFixture({
     features: ['session-replay'],
   });
@@ -127,11 +135,16 @@ describe('EventReplay', function () {
       hasMore: false,
       initiallyLoaded: false,
       onSearch: () => Promise.resolve(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       projects: [project],
     });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
+    });
+    MockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
+      hasSentOneReplay: false,
+      fetching: false,
     });
   });
 

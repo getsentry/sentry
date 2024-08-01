@@ -54,7 +54,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             )
         return hours
 
-    def _set_up_activity(self, condition_type):
+    def _set_up_activity(self, condition_type, data=None):
         hours = get_hours(PREVIEW_TIME_RANGE)
         for i in range(hours):
             group = Group.objects.create(id=i, project=self.project)
@@ -63,6 +63,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 group=group,
                 type=condition_type.value,
                 datetime=timezone.now() - timedelta(hours=i + 1),
+                data=data or {},
             )
         return hours
 
@@ -346,6 +347,56 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         result = preview(self.project, mutually_exclusive, [], "all", "all", 60)
         assert result is not None
         assert len(result) == 0
+
+    def test_conditions_with_priority(self):
+        invalid_conditions = [
+            [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+                {
+                    "id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
+                },
+            ],
+            [
+                {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
+                {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
+            ],
+            [
+                {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
+                {
+                    "id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
+                },
+            ],
+        ]
+
+        for condition in invalid_conditions:
+            result = preview(self.project, condition, [], "all", "all", 60)
+            assert result is not None
+            assert len(result) == 0
+
+        hours = self._set_up_first_seen()
+        new_high_priority = [
+            {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+        ]
+
+        result = preview(self.project, new_high_priority, [], "all", "all", 60)
+        assert result is not None
+        assert len(result) == hours
+
+        existing_high_priority = [
+            {
+                "id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
+            },
+            {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
+        ]
+
+        Group.objects.all().delete()
+        hours = self._set_up_activity(
+            ActivityType.SET_PRIORITY, data={"priority": "high", "reason": "escalating"}
+        )
+        result = preview(self.project, existing_high_priority, [], "all", "all", 60)
+        assert result is not None
+        assert len(result) == hours
 
     def test_multiple_projects(self):
         other_project = Project.objects.create(organization=self.organization)

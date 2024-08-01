@@ -1,6 +1,6 @@
 import logging
 
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.team import Team
 
 logger = logging.getLogger("sentry.integrations.notifications")

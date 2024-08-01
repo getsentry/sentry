@@ -4,8 +4,9 @@ import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 interface Props {
@@ -35,7 +36,8 @@ export default function BreadcrumbRow({
   startTimestampMs,
   style,
 }: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
 
   const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
 

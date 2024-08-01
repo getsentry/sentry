@@ -9,7 +9,6 @@ from snuba_sdk import Condition
 
 from sentry import nodestore
 from sentry.eventstore.models import Event
-from sentry.models.rawevent import RawEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
@@ -262,7 +261,7 @@ class EventStorage(Service):
         """
         return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
 
-    def bind_nodes(self, object_list: Sequence[RawEvent | Event]) -> None:
+    def bind_nodes(self, object_list: Sequence[Event]) -> None:
         """
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for

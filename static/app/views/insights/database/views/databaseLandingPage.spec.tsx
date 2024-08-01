@@ -1,18 +1,36 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {DatabaseLandingPage} from 'sentry/views/insights/database/views/databaseLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('DatabaseLandingPage', function () {
   const organization = OrganizationFixture();
 
   let spanListRequestMock, spanChartsRequestMock;
+
+  jest.mocked(useProjects).mockReturnValue({
+    projects: [ProjectFixture({hasInsightsDb: true})],
+    onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
+    placeholders: [],
+    fetching: false,
+    hasMore: null,
+    fetchError: null,
+    initiallyLoaded: false,
+  });
+
+  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,

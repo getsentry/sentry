@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
+    ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
     API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
@@ -368,6 +369,15 @@ class Referrer(Enum):
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
     API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
+    API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES = (
+        "api.profiling.profile-flamegraph-transaction-candidates"
+    )
+    API_PROFILING_PROFILE_FLAMEGRAPH_CHUNK_CANDIDATES = (
+        "api.profiling.profile-flamegraph-chunk-candidates"
+    )
+    API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES = (
+        "api.profiling.profile-flamegraph-profile-candidates"
+    )
     API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP = "api.profiling.flamegraph-spans-with-group"
     API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS = "api.profiling.flamegraph-chunks-with-spans"
     API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
@@ -448,7 +458,10 @@ class Referrer(Enum):
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
     API_TRACE_EXPLORER_SPANS_LIST_SORTED = "api.trace-explorer.spans-list-sorted"
     API_TRACE_EXPLORER_STATS = "api.trace-explorer.stats"
+    API_TRACE_EXPLORER_TRACES_BREAKDOWNS = "api.trace-explorer.traces-breakdowns"
     API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
+    API_TRACE_EXPLORER_TRACES_ERRORS = "api.trace-explorer.traces-errors"
+    API_TRACE_EXPLORER_TRACES_OCCURRENCES = "api.trace-explorer.traces-occurrences"
     API_TRACE_EXPLORER_TRACE_SPANS_LIST = "api.trace-explorer.trace-spans-list"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
@@ -586,6 +599,7 @@ class Referrer(Enum):
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
+    DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
         "dynamic-sampling.distribution.fetch-project-breakdown"
     )

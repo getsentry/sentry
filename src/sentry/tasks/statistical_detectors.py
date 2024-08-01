@@ -34,7 +34,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
 from sentry.profiles.utils import get_from_profiling_service
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import SnubaParams
 from sentry.seer.breakpoints import BreakpointData
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -97,7 +97,7 @@ def get_performance_issue_settings(projects: list[Project]):
     return project_settings
 
 
-def all_projects_with_flags() -> Generator[tuple[int, int], None, None]:
+def all_projects_with_flags() -> Generator[tuple[int, int]]:
     yield from RangeQuerySetWrapper(
         Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", "flags"),
         result_value_getter=lambda item: item[0],
@@ -146,9 +146,9 @@ def compute_delay(
 
 
 def dispatch_performance_projects(
-    all_projects: Generator[tuple[int, int], None, None],
+    all_projects: Generator[tuple[int, int]],
     timestamp: datetime,
-) -> Generator[tuple[int, int], None, None]:
+) -> Generator[tuple[int, int]]:
     projects = []
     count = 0
 
@@ -190,9 +190,9 @@ def dispatch_performance_projects(
 
 
 def dispatch_profiling_projects(
-    all_projects: Generator[tuple[int, int], None, None],
+    all_projects: Generator[tuple[int, int]],
     timestamp: datetime,
-) -> Generator[tuple[int, int], None, None]:
+) -> Generator[tuple[int, int]]:
     projects = []
     count = 0
 
@@ -503,12 +503,11 @@ def emit_function_regression_issue(
     project_ids = [int(regression["project"]) for regression in regressions]
     projects = [projects_by_id[project_id] for project_id in project_ids]
 
-    params: ParamsType = {
-        "start": start,
-        "end": start + timedelta(minutes=1),
-        "project_id": project_ids,
-        "project_objects": projects,
-    }
+    params = SnubaParams(
+        start=start,
+        end=start + timedelta(minutes=1),
+        projects=projects,
+    )
 
     conditions = [
         And(
@@ -523,7 +522,8 @@ def emit_function_regression_issue(
     result = functions.query(
         selected_columns=["project.id", "fingerprint", "examples()"],
         query="is_application:1",
-        params=params,
+        params={},
+        snuba_params=params,
         orderby=["project.id"],
         limit=len(regressions),
         referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE.value,
@@ -718,7 +718,7 @@ def query_transactions_timeseries(
     transactions: list[tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
+) -> Generator[tuple[int, int | str, SnubaTSResult]]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
     start = end - timedelta(days=days_to_query)
@@ -860,7 +860,7 @@ def query_transactions_timeseries(
                     start,
                     end,
                     interval,
-                    "time",
+                    ["time"],
                 ),
                 "project": project_id,
             },
@@ -878,12 +878,11 @@ def query_functions(projects: list[Project], start: datetime) -> list[DetectorPa
     # we just need to query for the 1 minute of data.
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
-    params: ParamsType = {
-        "start": start,
-        "end": start + timedelta(minutes=1),
-        "project_id": [project.id for project in projects],
-        "project_objects": projects,
-    }
+    params = SnubaParams(
+        start=start,
+        end=start + timedelta(minutes=1),
+        projects=projects,
+    )
 
     # TODOs: handle any errors
     query_results = functions.query(
@@ -895,7 +894,8 @@ def query_functions(projects: list[Project], start: datetime) -> list[DetectorPa
             "p95()",
         ],
         query="is_application:1",
-        params=params,
+        params={},
+        snuba_params=params,
         orderby=["project.id", "-count()"],
         limitby=("project.id", FUNCTIONS_PER_PROJECT),
         limit=FUNCTIONS_PER_PROJECT * len(projects),
@@ -922,18 +922,16 @@ def query_functions_timeseries(
     functions_list: list[tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
+) -> Generator[tuple[int, int | str, SnubaTSResult]]:
     projects = [project for project, _ in functions_list]
-    project_ids = [project.id for project in projects]
 
     # take the last 14 days as our window
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    params: ParamsType = {
-        "start": end - timedelta(days=14),
-        "end": end,
-        "project_id": project_ids,
-        "project_objects": projects,
-    }
+    params = SnubaParams(
+        start=end - timedelta(days=14),
+        end=end,
+        projects=projects,
+    )
     interval = 3600  # 1 hour
 
     chunk: list[dict[str, Any]] = [
@@ -948,7 +946,8 @@ def query_functions_timeseries(
         timeseries_columns=[agg_function],
         selected_columns=["project.id", "fingerprint"],
         user_query="is_application:1",
-        params=params,
+        params={},
+        snuba_params=params,
         orderby=None,  # unused because top events is specified
         rollup=interval,
         limit=len(chunk),

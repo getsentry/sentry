@@ -1,23 +1,40 @@
 import type {Event} from 'sentry/types/event';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import {
-  type HydrationErrorFrame,
-  isHydrationErrorFrame,
-} from 'sentry/utils/replays/types';
+import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
+import {EventType, isHydrationErrorFrame} from 'sentry/utils/replays/types';
 
 export function getReplayDiffOffsetsFromFrame(
   replay: ReplayReader | null,
-  frame: HydrationErrorFrame
+  hydrationError: HydrationErrorFrame
 ) {
+  if (!replay) {
+    return {
+      leftOffsetMs: 0,
+      rightOffsetMs: 0,
+    };
+  }
+
+  const startTimestampMs = replay.getReplay().started_at.getTime() ?? 0;
+  const domChangedFrames = replay
+    .getRRWebFrames()
+    .filter(frame =>
+      [EventType.FullSnapshot, EventType.IncrementalSnapshot].includes(frame.type)
+    );
+
+  const prevIncremental = domChangedFrames.filter(
+    frame => frame.timestamp < hydrationError.timestampMs
+  );
+  const nextIncremental = domChangedFrames.filter(
+    frame => frame.timestamp > hydrationError.timestampMs
+  );
+  const leftFrame = prevIncremental.at(-1);
+  const leftOffsetMs = Math.max(0, (leftFrame?.timestamp ?? 0) - startTimestampMs);
+  const rightFrame = nextIncremental.at(1) ?? nextIncremental.at(0);
+  const rightOffsetMs = Math.max(1, (rightFrame?.timestamp ?? 0) - startTimestampMs);
+
   return {
-    leftOffsetMs: frame.offsetMs,
-    rightOffsetMs: Math.max(
-      0,
-      // `next.timestamp` is a timestamp since the unix epoch, so we remove the
-      // replay start timestamp to get an offset
-      (frame.data.mutations.next?.timestamp ?? 0) -
-        (replay?.getReplay().started_at.getTime() ?? 0)
-    ),
+    leftOffsetMs,
+    rightOffsetMs,
   };
 }
 
@@ -25,15 +42,15 @@ export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event
   const startTimestampMS =
     'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
-  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
+  const eventTimestampMs = timeOfEvent ? new Date(timeOfEvent).getTime() : 0;
   // `event.dateCreated` is the most common date to use, and it's in seconds not ms
 
   const hydrationFrame = replay
     .getBreadcrumbFrames()
-    .find(
+    .findLast(
       breadcrumb =>
         isHydrationErrorFrame(breadcrumb) &&
-        breadcrumb.timestampMs > eventTimestampMs &&
+        breadcrumb.timestampMs >= eventTimestampMs &&
         breadcrumb.timestampMs < eventTimestampMs + 1000
     );
 

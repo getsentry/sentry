@@ -18,18 +18,20 @@ import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
 
-import type {SpanResult, TraceResult} from './content';
+import type {TraceResult} from './hooks/useTraces';
+import {BREAKDOWN_SLICES} from './hooks/useTraces';
+import type {SpanResult} from './hooks/useTraceSpans';
 import type {Field} from './data';
 import {getShortenedSdkName, getStylingSliceName} from './utils';
 
@@ -281,7 +283,6 @@ export function TraceBreakdownRenderer({
 }
 
 const BREAKDOWN_SIZE_PX = 200;
-export const BREAKDOWN_SLICES = 40;
 
 /**
  * This renders slices in two different ways;

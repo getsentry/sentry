@@ -48,6 +48,7 @@ type Props = {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onZoom?: AugmentedEChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showSlider?: boolean;
@@ -73,6 +74,7 @@ export function WidgetCardChartContainer({
   showSlider,
   noPadding,
   chartZoomOptions,
+  onWidgetSplitDecision,
   chartGroup,
 }: Props) {
   const location = useLocation();
@@ -162,6 +164,7 @@ export function WidgetCardChartContainer({
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
       dashboardFilters={dashboardFilters}
+      onWidgetSplitDecision={onWidgetSplitDecision}
     >
       {({
         tableResults,

@@ -42,7 +42,7 @@ def monkey_patch_single_process_silo_mode_state():
     state = LocalSiloModeState()
 
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
         assert state.mode is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
@@ -59,7 +59,7 @@ def monkey_patch_single_process_silo_mode_state():
             state.region = old_region
 
     @contextlib.contextmanager
-    def exit() -> Generator[None, None, None]:
+    def exit() -> Generator[None]:
         old_mode = state.mode
         old_region = state.region
         state.mode = None
@@ -196,7 +196,7 @@ class _SiloModeTestModification:
         silo_mode_attr = "__silo_mode_override"
 
         @contextmanager
-        def create_context(obj: TestCase) -> Generator[None, None, None]:
+        def create_context(obj: TestCase) -> Generator[None]:
             tagged_class, tagged_mode = getattr(obj, silo_mode_attr)
 
             if type(obj) is not tagged_class:
@@ -337,7 +337,9 @@ expected to pass with the current silo mode set to REGION.
 
 
 @contextmanager
-def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) -> Any:
+def assume_test_silo_mode(
+    desired_silo: SiloMode, can_be_monolith: bool = True, region_name: str | None = None
+) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
     In monolith mode, this context manager has no effect.
@@ -356,8 +358,12 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     with override_settings(SILO_MODE=desired_silo):
         if desired_silo == SiloMode.REGION:
             region_dir = get_test_env_directory()
-            with region_dir.swap_to_default_region():
-                yield
+            if region_name is None:
+                with region_dir.swap_to_default_region():
+                    yield
+            else:
+                with region_dir.swap_to_region_by_name(region_name):
+                    yield
         else:
             with override_settings(SENTRY_REGION=None):
                 yield

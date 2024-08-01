@@ -11,6 +11,7 @@ from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaPara
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
 
@@ -34,6 +35,7 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -66,6 +68,7 @@ def timeseries_query(
     params: ParamsType,
     rollup: int,
     referrer: str = "",
+    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     comparison_delta: datetime | None = None,
     functions_acl: list[str] | None = None,
@@ -74,10 +77,16 @@ def timeseries_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> Any:
+
+    if len(params) == 0 and snuba_params is not None:
+        params = snuba_params.filter_params
+
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
+        snuba_params=snuba_params,
         query=query,
         interval=rollup,
         selected_columns=selected_columns,
@@ -85,19 +94,21 @@ def timeseries_query(
             functions_acl=functions_acl,
         ),
     )
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer=referrer, query_source=query_source)
 
     return SnubaTSResult(
         {
-            "data": zerofill(
-                results["data"],
-                params["start"],
-                params["end"],
-                rollup,
-                "time",
-            )
-            if zerofill_results
-            else results["data"],
+            "data": (
+                zerofill(
+                    results["data"],
+                    params["start"],
+                    params["end"],
+                    rollup,
+                    ["time"],
+                )
+                if zerofill_results
+                else results["data"]
+            ),
             "meta": {
                 "fields": {
                     value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)

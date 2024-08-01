@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -42,12 +42,15 @@ class FileBlobTest(TestCase):
         path2 = FileBlob.generate_unique_path()
         assert path != path2
 
-    @patch.object(FileBlob, "DELETE_FILE_TASK")
-    def test_delete_handles_database_error(self, mock_delete_file_region):
+    @patch.object(FileBlob, "_delete_file_task")
+    def test_delete_handles_database_error(self, mock_task_factory):
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
         baz_file.putfile(fileobj)
         blob = baz_file.blobs.all()[0]
+
+        mock_delete_file_region = Mock()
+        mock_task_factory.return_value = mock_delete_file_region
 
         with patch("sentry.models.file.super") as mock_super:
             mock_super.side_effect = DatabaseError("server closed connection")

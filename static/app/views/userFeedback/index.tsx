@@ -25,8 +25,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UserReport} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';

@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.repository_project_path_config import (
+from sentry.integrations.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
 )
 from sentry.integrations.services.integration import integration_service
@@ -52,9 +52,11 @@ class ProjectCodeOwnersSerializer(Serializer):
                     logger.exception("Could not get CODEOWNERS URL. Continuing execution.")
 
             attrs[item] = {
-                "provider": integration.provider
-                if item.repository_project_path_config.organization_integration_id
-                else "unknown",
+                "provider": (
+                    integration.provider
+                    if item.repository_project_path_config.organization_integration_id
+                    else "unknown"
+                ),
                 "codeMapping": code_mapping,
                 "codeOwnersUrl": codeowners_url,
             }
@@ -73,7 +75,7 @@ class ProjectCodeOwnersSerializer(Serializer):
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry.api.validators.project_codeowners import validate_codeowners_associations
 
         data = {

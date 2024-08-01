@@ -1,31 +1,42 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from copy import copy
 from logging import Logger, getLogger
+from typing import Any
 
 import orjson
+import sentry_sdk
 from slack_sdk.errors import SlackApiError
 
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.notifications import get_context
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
     IssueAlertNotificationMessageRepository,
 )
-from sentry.integrations.slack import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder import SlackBlock
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.integrations.slack.metrics import (
     SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
     SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC,
+    SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
+    SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.threads.activity_notifications import (
     AssignedActivityNotification,
     ExternalIssueCreatedActivityNotification,
 )
-from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
+from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
 from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
@@ -37,7 +48,10 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 )
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.silo.base import SiloMode
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 
 _default_logger = getLogger(__name__)
@@ -307,3 +321,127 @@ class SlackService:
             return None
 
         return text_description
+
+    def notify_recipient(
+        self,
+        notification: BaseNotification,
+        recipient: Actor,
+        attachments: SlackBlock,
+        channel: str,
+        integration: Integration,
+        shared_context: Mapping[str, Any],
+    ) -> None:
+        from sentry.tasks.integrations.slack.post_message import post_message, post_message_control
+
+        """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
+        This is used in the send_notification_as_slack function."""
+        with sentry_sdk.start_span(op="notification.send_slack", description="notify_recipient"):
+            # Make a local copy to which we can append.
+            local_attachments = copy(attachments)
+
+            text = notification.get_notification_title(ExternalProviders.SLACK, shared_context)
+
+            blocks: list[SlackBlock] = []
+            if text:
+                blocks.append(BlockSlackMessageBuilder.get_markdown_block(text))
+            attachment_blocks = local_attachments.get("blocks")
+            if attachment_blocks:
+                for attachment in attachment_blocks:
+                    blocks.append(attachment)
+            if len(blocks) >= 2 and blocks[1].get("block_id"):
+                # block id needs to be in the first block
+                first_block = blocks[0]
+                first_block["block_id"] = blocks[1]["block_id"]
+                del blocks[1]["block_id"]
+            additional_attachment = get_additional_attachment(
+                integration, notification.organization
+            )
+            if additional_attachment:
+                for block in additional_attachment:
+                    blocks.append(block)
+            if (
+                not text
+            ):  # if there isn't a notification title, try using message description as fallback
+                text = notification.get_message_description(recipient, ExternalProviders.SLACK)
+            payload = {
+                "channel": channel,
+                "unfurl_links": False,
+                "unfurl_media": False,
+                "text": text if text else "",
+                "blocks": orjson.dumps(blocks).decode(),
+            }
+            callback_id = local_attachments.get("callback_id")
+            if callback_id:
+                # callback_id is now at the same level as blocks, rather than within attachments
+                if isinstance(callback_id, str):
+                    payload["callback_id"] = callback_id
+                else:
+                    payload["callback_id"] = orjson.dumps(
+                        local_attachments.get("callback_id")
+                    ).decode()
+
+            post_message_task = post_message
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                post_message_task = post_message_control
+
+            log_params = {
+                "notification": str(notification),
+                "recipient": recipient.id,
+                "channel_id": channel,
+            }
+            post_message_task.apply_async(
+                kwargs={
+                    "integration_id": integration.id,
+                    "payload": payload,
+                    "log_error_message": "slack.notify_recipient.fail",
+                    "log_params": log_params,
+                }
+            )
+        # recording data outside of span
+        notification.record_notification_sent(recipient, ExternalProviders.SLACK)
+
+    def get_attachments(
+        self,
+        notification: BaseNotification,
+        recipient: Actor,
+        shared_context: Mapping[str, Any],
+        extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None,
+    ) -> SlackBlock:
+        """Get the message to send in notify_recipient"""
+
+        extra_context = (
+            extra_context_by_actor[recipient] if extra_context_by_actor and recipient else {}
+        )
+        context = get_context(notification, recipient, shared_context, extra_context)
+        cls = get_message_builder(notification.message_builder)
+        attachments = cls(notification, context, recipient).build()
+        return attachments
+
+    def send_message_to_slack_channel(
+        self,
+        integration_id: int,
+        payload: Mapping[str, Any],
+        log_error_message: str,
+        log_params: Mapping[str, Any],
+    ) -> None:
+        """Execution of send_notification_as_slack."""
+
+        client = SlackSdkClient(integration_id=integration_id)
+        try:
+            client.chat_postMessage(
+                blocks=str(payload.get("blocks", "")),
+                text=str(payload.get("text", "")),
+                channel=str(payload.get("channel", "")),
+                unfurl_links=False,
+                unfurl_media=False,
+                callback_id=str(payload.get("callback_id", "")),
+            )
+            metrics.incr(SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+        except SlackApiError as e:
+            extra = {"error": str(e), **log_params}
+            self._logger.info(log_error_message, extra=extra)
+            metrics.incr(
+                SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
+            )

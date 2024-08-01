@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
 import {lastOfArray} from 'sentry/utils/array/lastOfArray';

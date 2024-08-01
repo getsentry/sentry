@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -16,7 +15,6 @@ import {useParams} from 'sentry/utils/useParams';
 import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
 import ResourceInfo from 'sentry/views/insights/browser/resources/components/resourceInfo';
-import {FilterOptionsContainer} from 'sentry/views/insights/browser/resources/components/resourceView';
 import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
 import ResourceSummaryTable from 'sentry/views/insights/browser/resources/components/tables/resourceSummaryTable';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/insights/browser/resources/constants';
@@ -24,7 +22,10 @@ import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -50,7 +51,7 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data} = useSpanMetrics(
+  const {data, isLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': groupId,
@@ -109,41 +110,57 @@ function ResourceSummary() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <HeaderContainer>
-            <FilterOptionsContainer columnCount={2}>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-              <RenderBlockingSelector
-                value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <HeaderContainer>
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+
+                  <RenderBlockingSelector
+                    value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
+                  />
+                </ToolRibbon>
+                <ResourceInfo
+                  isLoading={isLoading}
+                  avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
+                  avgDecodedContentLength={
+                    spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
+                  }
+                  avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
+                  avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
+                  throughput={spanMetrics['spm()']}
+                  timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
+                  timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
+                />
+              </HeaderContainer>
+            </ModuleLayout.Full>
+
+            {isImage && (
+              <ModuleLayout.Full>
+                <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
+              </ModuleLayout.Full>
+            )}
+
+            <ResourceSummaryCharts groupId={groupId} />
+
+            <ModuleLayout.Full>
+              <ResourceSummaryTable />
+            </ModuleLayout.Full>
+
+            <ModuleLayout.Full>
+              <SampleList
+                transactionRoute={webVitalsModuleURL}
+                groupId={groupId}
+                moduleName={ModuleName.RESOURCE}
+                transactionName={transaction as string}
+                referrer={TraceViewSources.ASSETS_MODULE}
               />
-            </FilterOptionsContainer>
-            <ResourceInfo
-              avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
-              avgDecodedContentLength={
-                spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
-              }
-              avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
-              avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
-              throughput={spanMetrics['spm()']}
-              timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
-              timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
-            />
-          </HeaderContainer>
-          {isImage && (
-            <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
-          )}
-          <ResourceSummaryCharts groupId={groupId} />
-          <ResourceSummaryTable />
-          <SampleList
-            transactionRoute={webVitalsModuleURL}
-            groupId={groupId}
-            moduleName={ModuleName.RESOURCE}
-            transactionName={transaction as string}
-            referrer={TraceViewSources.ASSETS_MODULE}
-          />
+            </ModuleLayout.Full>
+          </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
     </React.Fragment>
@@ -163,9 +180,3 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-`;

@@ -505,13 +505,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'frozen',
-        groups: ['status'],
-        keywords: ['frame', 'mobile'],
-        name: 'Frozen',
-        defaultProps: {},
-      },
-      {
         id: 'slow',
         groups: ['status'],
         keywords: ['frame', 'mobile'],
@@ -1040,7 +1033,7 @@ const SECTIONS: TSection[] = [
   },
   {
     id: 'chart',
-    label: 'Chart',
+    label: 'Visualizations',
     icons: [
       {
         id: 'graph-type-line',
@@ -1074,6 +1067,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'graph-type-scatter',
+        name: 'Graph',
+        defaultProps: {
+          type: 'scatter',
+        },
+      },
+      {
         id: 'stack',
         groups: ['chart'],
         keywords: ['group', 'combine', 'view'],
@@ -1097,6 +1097,11 @@ const SECTIONS: TSection[] = [
       {
         id: 'profiling',
         name: 'Profiling',
+        defaultProps: {},
+      },
+      {
+        id: 'table',
+        name: 'Table',
         defaultProps: {},
       },
     ],
@@ -1201,13 +1206,6 @@ const SECTIONS: TSection[] = [
         groups: ['device'],
         keywords: ['text'],
         name: 'Input',
-        defaultProps: {},
-      },
-      {
-        id: 'option',
-        groups: ['device'],
-        keywords: [''],
-        name: 'Option',
         defaultProps: {},
       },
       {

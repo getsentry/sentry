@@ -118,7 +118,7 @@ describe('GroupHeader', () => {
       });
       const mobileProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
-        platform: 'apple-ios',
+        platform: 'unity',
       });
 
       const MOCK_GROUP = GroupFixture();
@@ -218,16 +218,35 @@ describe('GroupHeader', () => {
         url: '/organizations/org-slug/prompts-activity/',
         body: {data: {dismissed_ts: null}},
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/replay-count/',
+        body: {},
+      });
+    });
+
+    it('shows priority even if stats is off', async () => {
+      render(
+        <GroupHeader
+          baseUrl=""
+          organization={OrganizationFixture()}
+          group={GroupFixture({
+            priority: PriorityLevel.HIGH,
+            // Setting an issue category where stats are turned off
+            issueCategory: IssueCategory.UPTIME,
+          })}
+          project={ProjectFixture()}
+          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+        />
+      );
+
+      expect(await screen.findByText('Priority')).toBeInTheDocument();
+      expect(await screen.findByText('High')).toBeInTheDocument();
     });
 
     it('can change priority', async () => {
       const mockModifyIssue = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/issues/`,
         method: 'PUT',
-        body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/replay-count/',
         body: {},
       });
 

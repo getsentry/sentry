@@ -40,8 +40,12 @@ class OrganizationMetricsExtractionRulesEndpoint(OrganizationEndpoint):
                 {"detail": "You must supply at least one project to see its metrics"}, status=404
             )
 
+        query = request.GET.get("query")
+
         try:
             configs = SpanAttributeExtractionRuleConfig.objects.filter(project__in=projects)
+            if query:
+                configs = configs.filter(span_attribute__icontains=query)
 
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})

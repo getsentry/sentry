@@ -19,7 +19,7 @@ import type {
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 
 type Props = {
-  browserType?: BrowserType;
+  browserTypes?: BrowserType[];
   isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
   transaction?: string;
@@ -33,7 +33,7 @@ export function PerformanceScoreChart({
   webVital,
   transaction,
   isProjectScoreLoading,
-  browserType,
+  browserTypes,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -99,7 +99,7 @@ export function PerformanceScoreChart({
       </PerformanceScoreLabelContainer>
       <PerformanceScoreBreakdownChart
         transaction={transaction}
-        browserType={browserType}
+        browserTypes={browserTypes}
       />
     </Flex>
   );

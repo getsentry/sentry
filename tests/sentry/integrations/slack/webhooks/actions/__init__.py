@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import orjson
 import pytest
+from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
 from sentry.testutils.cases import APITestCase
@@ -33,6 +34,22 @@ class BaseEventTest(APITestCase):
                 status_code=200,
             ),
         ) as self.mock_post:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_view_open(self):
+        with patch(
+            "slack_sdk.web.client.WebClient.views_open",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://api.slack.com/methods/views.open",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_view:
             yield
 
     @patch(

@@ -89,6 +89,8 @@ def save_userreport(
             )
             report_instance = existing_report
 
+            metrics.incr("user_report.create_user_report.overwrite_duplicate")
+
         else:
             if report_instance.group_id:
                 report_instance.notify()
@@ -107,6 +109,11 @@ def save_userreport(
                 "has_feedback_ingest": has_feedback_ingest,
             },
         )
+        metrics.incr(
+            "user_report.create_user_report.saved",
+            tags={"has_event": bool(event), "has_feedback_ingest": has_feedback_ingest},
+        )
+
         if has_feedback_ingest and event:
             logger.info(
                 "ingest.user_report.shim_to_feedback",

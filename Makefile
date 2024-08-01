@@ -8,8 +8,12 @@ POSTGRES_CONTAINER := sentry_postgres
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
 
-bootstrap \
-develop \
+bootstrap:
+	@echo "devenv bootstrap is typically run on new machines."
+	@echo "you probably want to run devenv sync to bring the"
+	@echo "sentry dev environment up to date!"
+
+build-platform-assets \
 clean \
 init-config \
 run-dependent-services \
@@ -17,17 +21,19 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
-setup-git \
-node-version-check \
-install-js-dev \
-install-py-dev :
+node-version-check :
 	@./scripts/do.sh $@
 
-build-platform-assets \
-direnv-help \
-upgrade-pip \
-setup-git-config :
-	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
+develop \
+install-js-dev \
+install-py-dev :
+	@make devenv-sync
+
+# This is to ensure devenv sync's only called once if the above
+# macros are combined e.g. `make install-js-dev install-py-dev`
+.PHONY: devenv-sync
+devenv-sync:
+	devenv sync
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -206,11 +212,5 @@ accept-python-snapshots:
 reject-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta reject --workspace-root `pwd` -e pysnap
-
-lint-js:
-	@echo "--> Linting javascript"
-	bin/lint --js --parseable
-	@echo ""
-
 
 .PHONY: build

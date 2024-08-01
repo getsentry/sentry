@@ -5,20 +5,22 @@
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
-from typing import Any, TypedDict
+from functools import cached_property
+from typing import Any
 
 from django.dispatch import Signal
 from django.utils import timezone
-from pydantic import Field
+from pydantic import Field, PrivateAttr
+from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.hybridcloud.rpc import RpcModel
+from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.projects.services.project import RpcProject
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.signals import sso_enabled
 from sentry.silo.base import SiloMode
-from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.users.services.user.model import RpcUser
 
 
@@ -172,6 +174,8 @@ class RpcOrganizationMappingFlags(RpcModel):
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
     codecov_access: bool = False
+    disable_member_project_creation: bool = False
+    prevent_superuser_access: bool = False
 
 
 class RpcOrganizationFlags(RpcOrganizationMappingFlags):
@@ -186,6 +190,8 @@ class RpcOrganizationFlags(RpcOrganizationMappingFlags):
             self.disable_new_visibility_features,
             self.require_email_verification,
             self.codecov_access,
+            self.disable_member_project_creation,
+            self.prevent_superuser_access,
         )
 
 
@@ -199,7 +205,7 @@ class RpcOrganizationInvite(RpcModel):
     email: str = ""
 
 
-class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
+class RpcOrganizationSummary(RpcModel):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -236,6 +242,28 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
 
         organization_service.delete_option(organization_id=self.id, key=key)
 
+    @cached_property
+    def __has_customer_domain(self) -> bool:
+        """
+        Check if the current organization is using or has access to customer domains.
+        """
+        return has_customer_domain()
+
+    def absolute_url(self, path: str, query: str | None = None, fragment: str | None = None) -> str:
+        """
+        Get an absolute URL to `path` for this organization.
+
+        This method takes customer-domains into account and will update the path when
+        customer-domains are active.
+        """
+        return organization_absolute_url(
+            has_customer_domain=self.__has_customer_domain,
+            slug=self.slug,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
+
 
 class RpcOrganization(RpcOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
@@ -248,7 +276,7 @@ class RpcOrganization(RpcOrganizationSummary):
 
     default_role: str = ""
     date_added: datetime = Field(default_factory=timezone.now)
-    _default_owner_id: int | None = None
+    _default_owner_id: int | None = PrivateAttr(default=None)
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {
@@ -285,7 +313,7 @@ class RpcOrganization(RpcOrganizationSummary):
 
         This mirrors the method on the Organization model.
         """
-        if not hasattr(self, "_default_owner_id"):
+        if getattr(self, "_default_owner_id") is None:
             owners = self.get_owners()
             if len(owners) == 0:
                 return None

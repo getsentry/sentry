@@ -32,7 +32,7 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -59,12 +59,12 @@ export function WebVitalsDetailPanel({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
-  const {data: projectData} = useProjectRawWebVitalsQuery({browserType});
+  const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
-    browserType,
+    browserTypes,
   });
 
   const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
@@ -84,7 +84,7 @@ export function WebVitalsDetailPanel({
       : {}),
     enabled: webVital !== null,
     sortName: 'webVitalsDetailPanelSort',
-    browserType,
+    browserTypes,
   });
 
   const dataByOpportunity = useMemo(() => {
@@ -116,7 +116,7 @@ export function WebVitalsDetailPanel({
   }, [data, projectScoresData?.data, webVital]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectRawWebVitalsValuesTimeseriesQuery({browserType});
+    useProjectRawWebVitalsValuesTimeseriesQuery({browserTypes});
 
   const webVitalData: LineChartSeries = {
     data:
@@ -215,6 +215,7 @@ export function WebVitalsDetailPanel({
                 ...location.query,
                 transaction: row.transaction,
                 webVital,
+                project: row['project.id'],
               },
             }}
           >

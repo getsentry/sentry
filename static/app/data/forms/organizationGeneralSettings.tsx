@@ -58,6 +58,13 @@ const formGroups: JsonFormObject[] = [
         ),
         visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
+      {
+        name: 'uptimeAutodetection',
+        type: 'boolean',
+        label: t('Automatically Configure Uptime Alerts'),
+        help: t('Detect most-used URLs for uptime monitoring.'),
+        visible: ({features}) => features.has('uptime-settings'),
+      },
     ],
   },
 

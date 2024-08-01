@@ -10,13 +10,13 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.message_builder.issues import get_tags
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.identity import Identity, IdentityStatus
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.projectownership import ProjectOwnership
@@ -30,7 +30,6 @@ from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -99,52 +98,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    @patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
-    @patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
-        return_value=TEST_PERF_ISSUE_OCCURRENCE,
-        new_callable=mock.PropertyMock,
-    )
-    def test_performance_issue_alert_user_block(self, occurrence):
-        """
-        Test that performance issue alerts are sent to a Slack user with the proper payload when
-        block kit is enabled.
-        """
-
-        event = self.create_performance_issue()
-        # this is a PerformanceNPlusOneGroupType event
-        notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
-        )
-        with self.tasks():
-            notification.send()
-
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        fallback_text = self.mock_post.call_args.kwargs["text"]
-        assert (
-            fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
-        )
-        assert blocks[0]["text"]["text"] == fallback_text
-        self.assert_performance_issue_blocks(
-            blocks,
-            event.organization,
-            event.project.slug,
-            event.group,
-            "issue_alert-slack",
-            alert_type=FineTuningAPIKey.ALERTS,
-            issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
-        )
-
-    @responses.activate
     @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @with_feature("organizations:slack-culprit-blocks")
-    def test_performance_issue_alert_user_block_with_culprit_blocks(self, occurrence):
+    def test_performance_issue_alert_user_block(self, occurrence):
         """
         Test that performance issue alerts are sent to a Slack user with the proper payload when
         block kit is enabled.
@@ -389,107 +349,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"{event.project.slug} | {environment.name} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
-    def test_issue_alert_team_issue_owners_block(self):
-        """
-        Test that issue alerts are sent to a team in Slack via an Issue Owners rule action with the
-        proper payload when block kit is enabled.
-        """
-
-        # add a second user to the team so we can be sure it's only
-        # sent once (to the team, and not to each individual user)
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(teams=[self.team], user=user2, organization=self.organization)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
-            self.identity = Identity.objects.create(
-                external_id="UXXXXXXX2",
-                idp=self.idp,
-                user=user2,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
-        # update the team's notification settings
-        ExternalActor.objects.create(
-            team_id=self.team.id,
-            organization=self.organization,
-            integration_id=self.integration.id,
-            provider=ExternalProviders.SLACK.value,
-            external_name="goma",
-            external_id="CXXXXXXX2",
-        )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            # provider is disabled by default
-            NotificationSettingProvider.objects.create(
-                team_id=self.team.id,
-                scope_type="team",
-                scope_identifier=self.team.id,
-                provider="slack",
-                type="alerts",
-                value="always",
-            )
-
-        g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(project_id=self.project.id, schema=dump_schema([g_rule]))
-
-        event = self.store_event(
-            data={
-                "message": "Hello world",
-                "level": "error",
-                "stacktrace": {"frames": [{"filename": "foo.py"}]},
-            },
-            project_id=self.project.id,
-        )
-
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-            "targetIdentifier": "",
-        }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
-        )
-
-        notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.team.id
-        )
-
-        with self.tasks():
-            notification.send()
-
-        # check that only one was sent out - more would mean each user is being notified
-        # rather than the team
-        assert self.mock_post.call_count == 1
-
-        # check that the team got a notification
-        assert self.mock_post.call_args.kwargs["channel"] == "CXXXXXXX2"
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        fallback_text = self.mock_post.call_args.kwargs["text"]
-        notification_uuid = notification.notification_uuid
-
-        assert (
-            fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
-        )
-        assert blocks[0]["text"]["text"] == fallback_text
-        assert event.group
-        assert (
-            blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
-        )
-        assert blocks[5]["elements"][0]["text"] == f"Suggested Assignees: #{self.team.slug}"
-        assert (
-            blocks[6]["elements"][0]["text"]
-            == f"{event.project.slug} | <http://testserver/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
-        )
-
     @responses.activate
-    @with_feature("organizations:slack-culprit-blocks")
-    def test_issue_alert_team_issue_owners_block_with_culprit_blocks(self):
+    def test_issue_alert_team_issue_owners_block(self):
         """
         Test that issue alerts are sent to a team in Slack via an Issue Owners rule action with the
         proper payload when block kit is enabled.

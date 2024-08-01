@@ -7,7 +7,6 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
-from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
@@ -26,7 +25,7 @@ from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
-from ..utils import send_slack_response
+from . import SALT
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
@@ -61,7 +60,7 @@ class SlackLinkIdentityView(BaseView):
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=SALT)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("dispatch.signature_error", exc_info=e)
             metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
@@ -140,10 +139,7 @@ class SlackLinkIdentityView(BaseView):
             )
             raise Http404
 
-        if features.has("organizations:slack-sdk-link-commands", params.organization):
-            respond_to_slack_command(params, SUCCESS_LINKED_MESSAGE, command="link")
-        else:
-            send_slack_response(params, SUCCESS_LINKED_MESSAGE, command="link")
+        respond_to_slack_command(params, SUCCESS_LINKED_MESSAGE, command="link")
 
         controller = NotificationController(
             recipients=[request.user],

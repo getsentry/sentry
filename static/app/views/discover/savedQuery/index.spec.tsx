@@ -2,9 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {ALL_VIEWS} from 'sentry/views/discover/data';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import * as utils from 'sentry/views/discover/savedQuery/utils';
@@ -131,6 +133,71 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(
         screen.queryByRole('menuitemradio', {name: /add to dashboard/i})
       ).toBeInTheDocument();
+    });
+
+    it('opens dashboard modal with the right props', async () => {
+      organization = OrganizationFixture({
+        features: [
+          'discover-query',
+          'dashboards-edit',
+          'performance-discover-dataset-selector',
+        ],
+      });
+      mount(
+        location,
+        organization,
+        router,
+        errorsView,
+        {...savedQuery, queryDataset: SavedQueryDatasets.ERRORS},
+        yAxis
+      );
+
+      expect(
+        screen.getByRole('button', {name: /discover context menu/i})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      expect(
+        screen.queryByRole('menuitemradio', {name: /add to dashboard/i})
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: /add to dashboard/i})
+      );
+
+      expect(openAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            displayType: 'line',
+            interval: undefined,
+            limit: undefined,
+            queries: [
+              {
+                aggregates: ['count()', 'failure_count()'],
+                columns: [],
+                conditions: 'event.type:error',
+                fields: ['count()', 'failure_count()'],
+                name: '',
+                orderby: '-count()',
+              },
+            ],
+            title: 'Errors by Title',
+            widgetType: WidgetType.ERRORS,
+          },
+          widgetAsQueryParams: expect.objectContaining({
+            dataset: WidgetType.ERRORS,
+            defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
+            defaultTitle: 'Errors by Title',
+            defaultWidgetQuery:
+              'name=&aggregates=count()%2Cfailure_count()&columns=&fields=count()%2Cfailure_count()&conditions=event.type%3Aerror&orderby=-count()',
+            displayType: 'line',
+            end: undefined,
+            limit: undefined,
+            source: 'discoverv2',
+            start: undefined,
+            statsPeriod: '24h',
+          }),
+        })
+      );
     });
 
     it('hides the banner when save is complete.', async () => {

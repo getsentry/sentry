@@ -11,7 +11,7 @@ export function ConfirmAccountClose({
     <Confirm
       priority="danger"
       message={t(
-        'This is permanent and cannot be undone, are you really sure you want to do this?'
+        'WARNING! This is permanent and cannot be undone, are you really sure you want to do this?'
       )}
       onConfirm={handleRemoveAccount}
     >

@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {XAXisOption, YAXisOption} from 'echarts/types/dist/shared';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';

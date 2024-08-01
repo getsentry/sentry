@@ -9,7 +9,6 @@ import orjson
 import sentry_sdk
 from django.db import connection
 from django.db.models import prefetch_related_objects
-from django.db.models.aggregates import Count
 from django.utils import timezone
 
 from sentry import features, options, projectoptions, release_health, roles
@@ -253,8 +252,10 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     access: list[str]
     hasAccess: bool
     hasCustomMetrics: bool
+    hasFeedbacks: bool
     hasMinifiedStackTrace: bool
     hasMonitors: bool
+    hasNewFeedbacks: bool
     hasProfiles: bool
     hasReplays: bool
     hasSessions: bool
@@ -555,7 +556,7 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
             attrs[item]["organization"] = orgs[str(item.organization_id)]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["organization"] = attrs["organization"]
         return data
@@ -889,7 +890,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
-    groupingAutoUpdate: bool
     fingerprintingRules: str
     organization: OrganizationSerializerResponse
     plugins: list[Plugin]
@@ -902,6 +902,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     eventProcessing: dict[str, bool]
     symbolSources: str
     extrapolateMetrics: bool
+    uptimeAutodetection: bool
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -909,18 +910,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         self, item_list: Sequence[Project], user: User, **kwargs: Any
     ) -> MutableMapping[Project, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
-
-        project_ids = [i.id for i in item_list]
-
-        num_issues_projects = (
-            Project.objects.filter(id__in=project_ids)
-            .annotate(num_issues=Count("processingissue"))
-            .values_list("id", "num_issues")
-        )
-
-        processing_issues_by_project = {}
-        for project_id, num_issues in num_issues_projects:
-            processing_issues_by_project[project_id] = num_issues
 
         queryset = ProjectOption.objects.filter(project__in=item_list, key__in=OPTION_KEYS)
         options_by_project = defaultdict(dict)
@@ -938,7 +927,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "latest_release": latest_release_versions.get(item.id),
                     "org": orgs[str(item.organization_id)],
                     "options": options_by_project[item.id],
-                    "processing_issues": processing_issues_by_project.get(item.id, 0),
+                    "processing_issues": 0,
                     "highlight_preset": get_highlight_preset_for_project(item),
                 }
             )
@@ -1001,9 +990,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "secondaryGroupingConfig": self.get_value_with_default(
                     attrs, "sentry:secondary_grouping_config"
                 ),
-                "groupingAutoUpdate": self.get_value_with_default(
-                    attrs, "sentry:grouping_auto_update"
-                ),
                 "fingerprintingRules": self.get_value_with_default(
                     attrs, "sentry:fingerprinting_rules"
                 ),
@@ -1045,9 +1031,18 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 }
             )
 
+        if features.has("organizations:uptime-settings", obj.organization):
+            data.update(
+                {
+                    "uptimeAutodetection": bool(
+                        attrs["options"].get("sentry:uptime_autodetection", True)
+                    )
+                }
+            )
+
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
-            sources = parse_sources(custom_symbol_sources_json, False)
+            sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
         except Exception:
             # In theory sources stored on the project should be valid. If they are invalid, we don't
             # want to abort serialization just for sources, so just return an empty list instead of
@@ -1121,10 +1116,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
 
-        reprocessing_active = options.get("sentry:reprocessing_active")
-        if reprocessing_active is not None:
-            formatted_options["sentry:reprocessing_active"] = reprocessing_active
-
         return formatted_options
 
     def get_value_with_default(self, attrs, key):
@@ -1137,7 +1128,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
 
 class SharedProjectSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import features
 
         feature_list = []

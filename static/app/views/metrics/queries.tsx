@@ -14,6 +14,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {
   isMetricsQueryWidget,
   MetricExpressionType,
@@ -46,6 +47,7 @@ export function Queries() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const formulaDependencies = useFormulaDependencies();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -73,13 +75,13 @@ export function Queries() {
   const querySymbols = useMemo(() => {
     const querySymbolSet = new Set<string>();
     for (const widget of widgets) {
-      const symbol = getQuerySymbol(widget.id);
+      const symbol = getQuerySymbol(widget.id, metricsNewInputs);
       if (isMetricsQueryWidget(widget)) {
         querySymbolSet.add(symbol);
       }
     }
     return querySymbolSet;
-  }, [widgets]);
+  }, [widgets, metricsNewInputs]);
 
   const visibleWidgets = widgets.filter(widget => !widget.isHidden);
 
@@ -113,6 +115,7 @@ export function Queries() {
                 isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
                 formulaDependencies={formulaDependencies}
+                metricsNewInputs={metricsNewInputs}
               />
             )}
           </Row>
@@ -233,6 +236,7 @@ interface FormulaProps {
   formulaDependencies: ReturnType<typeof useFormulaDependencies>;
   index: number;
   isSelected: boolean;
+  metricsNewInputs: boolean;
   onChange: (index: number, data: Partial<MetricsWidget>) => void;
   onToggleVisibility: (index: number) => void;
   showQuerySymbols: boolean;
@@ -249,6 +253,7 @@ function Formula({
   isSelected,
   showQuerySymbols,
   formulaDependencies,
+  metricsNewInputs,
 }: FormulaProps) {
   const handleToggle = useCallback(() => {
     onToggleVisibility(index);
@@ -279,6 +284,7 @@ function Formula({
         availableVariables={availableVariables}
         value={widget.formula}
         onChange={formula => handleChange({formula})}
+        metricsNewInputs={metricsNewInputs}
       />
       <MetricFormulaContextMenu
         widgetIndex={index}

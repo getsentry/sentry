@@ -8,6 +8,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleThresholdType,
@@ -233,13 +234,20 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert alert_rule.user_id is None
 
     def test_comparison_delta_above(self):
-        alert_rule = self.create_alert_rule(comparison_delta=60, resolve_threshold=110)
+        alert_rule = self.create_alert_rule(
+            comparison_delta=60,
+            resolve_threshold=110,
+            detection_type=AlertRuleDetectionType.PERCENT,
+        )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
 
     def test_comparison_delta_below(self):
         alert_rule = self.create_alert_rule(
-            comparison_delta=60, resolve_threshold=90, threshold_type=AlertRuleThresholdType.BELOW
+            comparison_delta=60,
+            resolve_threshold=90,
+            threshold_type=AlertRuleThresholdType.BELOW,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
@@ -318,9 +326,11 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
             }
         )
         other_alert_rule = self.create_alert_rule()
+        uptime_monitor = self.create_project_uptime_subscription()
 
         result = serialize(
-            [alert_rule, issue_rule, other_alert_rule], serializer=CombinedRuleSerializer()
+            [alert_rule, issue_rule, other_alert_rule, uptime_monitor],
+            serializer=CombinedRuleSerializer(),
         )
 
         self.assert_alert_rule_serialized(alert_rule, result[0])
@@ -328,6 +338,9 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         assert result[1]["status"] == "active"
         assert not result[1]["snooze"]
         self.assert_alert_rule_serialized(other_alert_rule, result[2])
+        serialized_uptime_monitor = serialize(uptime_monitor)
+        serialized_uptime_monitor["type"] = "uptime"
+        assert result[3] == serialized_uptime_monitor
 
     def test_alert_snoozed(self):
         projects = [self.project, self.create_project()]

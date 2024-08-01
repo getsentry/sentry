@@ -1,7 +1,9 @@
 import logging
 from typing import Any, TypeVar
 
+from sentry import options
 from sentry.eventstore.models import Event
+from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -35,6 +37,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         exceptions = exceptions[0].get("values")
 
     frame_count = 0
+    html_frame_count = 0  # for a temporary metric
     stacktrace_str = ""
     found_non_snipped_context_line = False
     result_parts = []
@@ -72,6 +75,17 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     if not _is_snipped_context_line(frame_dict["context-line"]):
                         found_non_snipped_context_line = True
 
+                    # Not an exhaustive list of tests we could run to detect HTML, but this is only
+                    # meant to be a temporary, quick-and-dirty metric
+                    # TODO: Don't let this, and the metric below, hang around forever. It's only to
+                    # help us get a sense of whether it's worthwhile trying to more accurately
+                    # detect, and then exclude, frames containing HTML
+                    if (
+                        frame_dict["filename"].endswith("html")
+                        or "<html>" in frame_dict["context-line"]
+                    ):
+                        html_frame_count += 1
+
                     frame_strings.append(
                         f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
                     )
@@ -94,6 +108,20 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             final_frame_count += len(frame_strings)
 
         stacktrace_str += header + "".join(frame_strings)
+
+    metrics.incr(
+        "seer.grouping.html_in_stacktrace",
+        sample_rate=1.0,
+        tags={
+            "html_frames": (
+                "none"
+                if html_frame_count == 0
+                else "all"
+                if html_frame_count == final_frame_count
+                else "some"
+            )
+        },
+    )
 
     return stacktrace_str.strip()
 
@@ -118,11 +146,47 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def filter_null_from_event_title(title: str) -> str:
+def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
     """
-    Filter out null bytes from event title so that it can be saved in records table.
+    Check both the global and similarity-specific Seer killswitches.
     """
-    return title.replace("\x00", "")
+
+    logger_extra = {"event_id": event.event_id if event else None, "project_id": project_id}
+
+    if options.get("seer.global-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "global-killswitch"},
+        )
+        return True
+
+    if options.get("seer.similarity-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "similarity-killswitch"},
+        )
+        return True
+
+    return False
+
+
+def filter_null_from_string(string: str) -> str:
+    """
+    Filter out null bytes from string so that it can be saved in records table.
+    """
+    return string.replace("\x00", "")
 
 
 T = TypeVar("T", dict[str, Any], str)
@@ -145,4 +209,4 @@ def _is_snipped_context_line(context_line: str) -> bool:
     # This check is implicitly restricted to JS (and friends) events by the fact that the `{snip]`
     # is only added in the JS processor. See
     # https://github.com/getsentry/sentry/blob/d077a5bb7e13a5927794b35d9ae667a4f181feb7/src/sentry/lang/javascript/utils.py#L72-L77.
-    return context_line.startswith("{snip}") and context_line.endswith("{snip}")
+    return context_line.startswith("{snip}") or context_line.endswith("{snip}")

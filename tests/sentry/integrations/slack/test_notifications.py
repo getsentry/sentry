@@ -27,8 +27,8 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         super().setUp()
         self.notification = DummyNotification(self.organization)
 
-    @patch("sentry.tasks.integrations.slack.post_message.metrics")
-    def test_additional_attachment_block_kit(self, mock_metrics):
+    @patch("sentry.integrations.slack.service.metrics")
+    def test_additional_attachment(self, mock_metrics):
         with (
             patch.dict(
                 manager.attachment_generators,
@@ -73,8 +73,8 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             sample_rate=1.0,
         )
 
-    @patch("sentry.tasks.integrations.slack.post_message.metrics")
-    def test_no_additional_attachment_block_kit(self, mock_metrics):
+    @patch("sentry.integrations.slack.service.metrics")
+    def test_no_additional_attachment(self, mock_metrics):
         with self.tasks():
             send_notification_as_slack(self.notification, [self.user], {}, {})
 
@@ -105,7 +105,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             "type": "actions",
         }
 
-    @patch("sentry.tasks.integrations.slack.post_message.metrics")
+    @patch("sentry.integrations.slack.service.metrics")
     def test_send_notification_as_slack(self, mock_metrics):
         with patch.dict(
             manager.attachment_generators,
@@ -119,7 +119,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             sample_rate=1.0,
         )
 
-    @patch("sentry.tasks.integrations.slack.post_message.metrics")
+    @patch("sentry.integrations.slack.service.metrics")
     def test_send_notification_as_slack_error(self, mock_metrics):
         mock_slack_response = SlackResponse(
             client=None,

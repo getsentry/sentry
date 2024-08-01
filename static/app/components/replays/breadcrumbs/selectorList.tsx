@@ -4,9 +4,9 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {ClickFrame} from 'sentry/utils/replays/types';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 export default function SelectorList({frame}: {frame: ClickFrame}) {
   const location = useLocation();

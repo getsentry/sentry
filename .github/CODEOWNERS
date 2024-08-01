@@ -85,19 +85,27 @@ Makefile                                                 @getsentry/owners-sentr
 /bin/react-to-product-owners-yml-changes.sh              @getsentry/open-source
 /static/app/components/sidebar/index.tsx                 @getsentry/open-source
 
-## Relocation - getsentry/team-ospo#153
-/src/sentry/api/endpoints/relocation/                    @getsentry/open-source
+## Backup - getsentry/team-ospo#153
 /src/sentry/backup/                                      @getsentry/open-source
 /src/sentry/runner/commands/backup.py                    @getsentry/open-source
-/src/sentry/services/hybrid-cloud/import_export/         @getsentry/open-source
-/src/sentry/tasks/relocation.py                          @getsentry/open-source
 /src/sentry/testutils/helpers/backups.py                 @getsentry/open-source
-/src/sentry/utils/relocation.py                          @getsentry/open-source
-/tests/sentry/api/endpoints/relocation                   @getsentry/open-source
-/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
-/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
 /tests/sentry/backup/                                    @getsentry/open-source
 /tests/sentry/runner/commands/test_backup.py             @getsentry/open-source
+
+## Relocation - getsentry/team-ospo#153
+/src/sentry/analytics/events/relocation_*.py             @getsentry/open-source
+/src/sentry/api/endpoints/organization_fork.py           @getsentry/open-source
+/src/sentry/api/endpoints/relocation/                    @getsentry/open-source
+/src/sentry/api/serialiers/models/relocation/            @getsentry/open-source
+/src/sentry/models/relocation/                           @getsentry/open-source
+/src/sentry/relocation/                                  @getsentry/open-source
+/src/sentry/tasks/relocation.py                          @getsentry/open-source
+/src/sentry/utils/relocation.py                          @getsentry/open-source
+/tests/sentry/api/endpoints/relocation                   @getsentry/open-source
+/tests/sentry/api/endpoints/test_organization_fork.py    @getsentry/open-source
+/tests/sentry/api/serializer/test_relocation.py          @getsentry/open-source
+/tests/sentry/tasks/test_relocation.py                   @getsentry/open-source
+/tests/sentry/utils/test_relocation.py                   @getsentry/open-source
 
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
@@ -536,14 +544,11 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/event_reprocessable.py                     @getsentry/processing
 /src/sentry/api/endpoints/project_reprocessing.py                    @getsentry/processing
 /src/sentry/api/endpoints/chunk.py                                   @getsentry/processing
-/src/sentry/api/endpoints/project_app_store_connect_credentials.py   @getsentry/processing
 /src/sentry/lang/native/                                             @getsentry/processing
 /src/sentry/processing/realtime_metrics/                             @getsentry/processing
-/src/sentry/tasks/app_store_connect.py                               @getsentry/processing
 /src/sentry/tasks/assemble.py                                        @getsentry/processing
 /src/sentry/tasks/low_priority_symbolication.py                      @getsentry/processing
 /src/sentry/tasks/symbolication.py                                   @getsentry/processing
-/src/sentry/utils/appleconnect/                                      @getsentry/processing
 /tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/processing
 /src/sentry/tasks/reprocessing.py                                    @getsentry/processing
 /src/sentry/tasks/reprocessing2.py                                   @getsentry/processing

@@ -10,6 +10,7 @@ from slack_sdk.errors import SlackApiError
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.issue_alert import (
@@ -29,7 +30,6 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
-from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
@@ -71,7 +71,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 

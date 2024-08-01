@@ -9,6 +9,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
@@ -16,11 +18,13 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
+from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import (
@@ -38,8 +42,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.release import Release
@@ -56,7 +58,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -65,12 +67,19 @@ from sentry.utils import json
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
+@apply_feature_flag_on_cls("organizations:issue-search-snuba")
+@patch(
+    "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+    side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+    autospec=True,
+)
 class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-group-index"
 
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
+        options.set("issues.group_attributes.send_kafka", True)
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -87,7 +96,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    def test_sort_by_date_with_tag(self) -> None:
+    def test_sort_by_date_with_tag(self, _: MagicMock) -> None:
         # XXX(dcramer): this tests a case where an ambiguous column name existed
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
@@ -100,28 +109,21 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_query_for_archived(self) -> None:
+    def test_query_for_archived(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
             project_id=self.project.id,
         )
         group = event.group
-        Group.objects.update_group_status(
-            groups=[group],
-            status=GroupStatus.IGNORED,
-            substatus=None,
-            activity_type=ActivityType.SET_IGNORED,
-        )
+        group.status = GroupStatus.IGNORED
+        group.substatus = None
+        group.save()
         self.login_as(user=self.user)
 
         response = self.get_success_response(sort_by="date", query="is:archived")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    @patch(
-        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-    )
     def test_sort_by_trends(self, mock_query: MagicMock) -> None:
         group = self.store_event(
             data={
@@ -172,7 +174,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         }
 
         response = self.get_success_response(
-            useGroupSnubaDataset=1,  # won't use snuba if trends is used
             sort="trends",
             query="is:unresolved",
             limit=25,
@@ -184,7 +185,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
         assert not mock_query.called
 
-    def test_sort_by_inbox(self) -> None:
+    def test_sort_by_inbox(self, _: MagicMock) -> None:
         group_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -219,7 +220,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert [item["id"] for item in response.data] == [str(group_2.id)]
 
-    def test_sort_by_inbox_me_or_none(self) -> None:
+    def test_sort_by_inbox_me_or_none(self, _: MagicMock) -> None:
         group_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -304,8 +305,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_trace_search(self) -> None:
+    def test_trace_search(self, _: MagicMock) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -334,12 +334,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(
             sort_by="date",
             query="is:unresolved trace:a7d67cf796774551a95be6543cacd459",
-            useGroupSnubaDataset=1,
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
 
-    def test_feature_gate(self) -> None:
+    def test_feature_gate(self, _: MagicMock) -> None:
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
         self.login_as(user=self.user)
@@ -352,13 +351,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_response()
             assert response.status_code == 200
 
-    def test_replay_feature_gate(self) -> None:
+    def test_replay_feature_gate(self, _: MagicMock) -> None:
         # allow replays to query for backend
         self.create_project(organization=self.project.organization)
         self.login_as(user=self.user)
         self.get_success_response(extra_headers={"HTTP_X-Sentry-Replay-Request": "1"})
 
-    def test_with_all_projects(self) -> None:
+    def test_with_all_projects(self, _: MagicMock) -> None:
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
         self.login_as(user=self.user)
@@ -367,7 +366,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(project_id=[-1])
             assert response.status_code == 200
 
-    def test_boolean_search_feature_flag(self) -> None:
+    def test_boolean_search_feature_flag(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="title:hello OR title:goodbye")
         assert response.status_code == 400
@@ -383,7 +382,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
         )
 
-    def test_invalid_query(self) -> None:
+    def test_invalid_query(self, _: MagicMock) -> None:
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
@@ -392,7 +391,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 400
         assert "Invalid number" in response.data["detail"]
 
-    def test_valid_numeric_query(self) -> None:
+    def test_valid_numeric_query(self, _: MagicMock) -> None:
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
@@ -400,7 +399,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(sort_by="date", query="timesSeen:>1k")
         assert response.status_code == 200
 
-    def test_invalid_sort_key(self) -> None:
+    def test_invalid_sort_key(self, _: MagicMock) -> None:
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
@@ -408,7 +407,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(sort="meow", query="is:unresolved")
         assert response.status_code == 400
 
-    def test_simple_pagination(self) -> None:
+    def test_simple_pagination(self, _: MagicMock) -> None:
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -439,7 +438,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert links["previous"]["results"] == "true"
         assert links["next"]["results"] == "false"
 
-    def test_stats_period(self) -> None:
+    def test_stats_period(self, _: MagicMock) -> None:
         # TODO(dcramer): this test really only checks if validation happens
         # on groupStatsPeriod
         now = timezone.now()
@@ -454,7 +453,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(groupStatsPeriod="48h")
         assert response.status_code == 400
 
-    def test_environment(self) -> None:
+    def test_environment(self, _: MagicMock) -> None:
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
@@ -473,6 +472,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         self.login_as(user=self.user)
+        sleep(1)
 
         response = self.get_success_response(environment="production")
         assert len(response.data) == 1
@@ -480,8 +480,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(environment="garbage")
         assert response.status_code == 404
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_project(self) -> None:
+    def test_project(self, _: MagicMock) -> None:
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
@@ -496,12 +495,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(query=f"project:{project.slug}")
         assert len(response.data) == 1
 
-        response = self.get_success_response(
-            query=f"project:{project.slug}", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query=f"project:{project.slug}")
         assert len(response.data) == 1
 
-    def test_auto_resolved(self) -> None:
+    def test_auto_resolved(self, _: MagicMock) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         self.store_event(
@@ -519,19 +516,20 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
 
-    def test_perf_issue(self) -> None:
+    def test_perf_issue(self, _: MagicMock) -> None:
         perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         self.login_as(user=self.user)
         with self.feature(
-            [
-                "organizations:issue-search-allow-postgres-only-search",
-            ]
+            {
+                "organizations:issue-search-allow-postgres-only-search": True,
+                "organizations:issue-search-snuba": False,
+            }
         ):
             response = self.get_success_response(query="issue.category:performance")
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(perf_group.id)
+            assert len(response.data) == 1
+            assert response.data[0]["id"] == str(perf_group.id)
 
-    def test_lookup_by_event_id(self) -> None:
+    def test_lookup_by_event_id(self, _: MagicMock) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
@@ -548,7 +546,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_event_id_incorrect_project_id(self) -> None:
+    def test_lookup_by_event_id_incorrect_project_id(self, _: MagicMock) -> None:
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
@@ -571,7 +569,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_event_id_with_whitespace(self) -> None:
+    def test_lookup_by_event_id_with_whitespace(self, _: MagicMock) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
@@ -587,7 +585,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_unknown_event_id(self) -> None:
+    def test_lookup_by_unknown_event_id(self, _: MagicMock) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         self.create_group()
@@ -597,7 +595,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(query="c" * 32)
         assert len(response.data) == 0
 
-    def test_lookup_by_short_id(self) -> None:
+    def test_lookup_by_short_id(self, _: MagicMock) -> None:
         group = self.group
         short_id = group.qualified_short_id
 
@@ -606,7 +604,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response["X-Sentry-Direct-Hit"] == "1"
 
-    def test_lookup_by_short_id_alias(self) -> None:
+    def test_lookup_by_short_id_alias(self, _: MagicMock) -> None:
         event_id = "f" * 32
         group = self.store_event(
             data={"event_id": event_id, "timestamp": iso_format(before_now(seconds=1))},
@@ -619,8 +617,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response["X-Sentry-Direct-Hit"] == "1"
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_lookup_by_multiple_short_id_alias(self) -> None:
+    def test_lookup_by_multiple_short_id_alias(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
         project2 = self.create_project(name="baz", organization=project.organization)
@@ -644,12 +641,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(
                 query=f"issue:[{event.group.qualified_short_id},{event2.group.qualified_short_id}]",
                 shortIdLookup=1,
-                useGroupSnubaDataset=1,
             )
         assert len(response.data) == 2
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
-    def test_lookup_by_short_id_ignores_project_list(self) -> None:
+    def test_lookup_by_short_id_ignores_project_list(self, _: MagicMock) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         project2 = self.create_project(organization=organization)
@@ -667,7 +663,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.get("X-Sentry-Direct-Hit") == "1"
 
-    def test_lookup_by_short_id_no_perms(self) -> None:
+    def test_lookup_by_short_id_no_perms(self, _: MagicMock) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -682,7 +678,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 0
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
-    def test_lookup_by_group_id(self) -> None:
+    def test_lookup_by_group_id(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(group=self.group.id)
         assert len(response.data) == 1
@@ -691,7 +687,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
-    def test_lookup_by_group_id_no_perms(self) -> None:
+    def test_lookup_by_group_id_no_perms(self, _: MagicMock) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -701,8 +697,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(group=[group.id])
         assert response.status_code == 403
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_lookup_by_first_release(self) -> None:
+    def test_lookup_by_first_release(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
         project2 = self.create_project(name="baz", organization=project.organization)
@@ -729,14 +724,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         with self.feature("organizations:global-views"):
             response = self.get_success_response(
-                **{"query": 'first-release:"%s"' % release.version}, useGroupSnubaDataset=1
+                **{"query": 'first-release:"%s"' % release.version}
             )
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
         assert int(issues[1]["id"]) == event.group.id
 
-    def test_lookup_by_release(self) -> None:
+    def test_lookup_by_release(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
         release = Release.objects.create(organization=project.organization, version="12345")
@@ -754,7 +749,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
-    def test_lookup_by_release_wildcard(self) -> None:
+    def test_lookup_by_release_wildcard(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
         release = Release.objects.create(organization=project.organization, version="12345")
@@ -772,7 +767,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
-    def test_lookup_by_regressed_in_release(self) -> None:
+    def test_lookup_by_regressed_in_release(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
         release = self.create_release()
@@ -788,7 +783,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         issues = json.loads(response.content)
         assert [int(issue["id"]) for issue in issues] == [event.group.id]
 
-    def test_pending_delete_pending_merge_excluded(self) -> None:
+    def test_pending_delete_pending_merge_excluded(self, _: MagicMock) -> None:
         events = []
         for i in "abcd":
             events.append(
@@ -811,7 +806,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(events[1].group.id)
 
-    def test_filters_based_on_retention(self) -> None:
+    def test_filters_based_on_retention(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
 
         self.create_group(last_seen=timezone.now() - timedelta(days=2))
@@ -821,7 +816,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert len(response.data) == 0
 
-    def test_token_auth(self) -> None:
+    def test_token_auth(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
         response = self.client.get(
@@ -831,7 +826,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.status_code == 200, response.content
 
-    def test_date_range(self) -> None:
+    def test_date_range(self, _: MagicMock) -> None:
         with self.options({"system.event-retention-days": 2}):
             event = self.store_event(
                 data={"timestamp": iso_format(before_now(hours=5))}, project_id=self.project.id
@@ -848,7 +843,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             assert len(response.data) == 0
 
     @patch("sentry.analytics.record")
-    def test_advanced_search_errors(self, mock_record: MagicMock) -> None:
+    def test_advanced_search_errors(self, mock_record: MagicMock, _: MagicMock) -> None:
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="!has:user")
         assert response.status_code == 200, response.data
@@ -875,7 +870,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     # the orderby being sent to snuba for a certain call. This function has a simple
     # return value and can be used to set variables in the snuba payload.
     @patch("sentry.utils.snuba.get_query_params_to_update_for_projects")
-    def test_assigned_to_pagination(self, patched_params_update: MagicMock) -> None:
+    @with_feature({"organizations:issue-search-snuba": False})
+    def test_assigned_to_pagination(self, patched_params_update: MagicMock, _: MagicMock) -> None:
         old_sample_size = options.get("snuba.search.hits-sample-size")
         assert options.set("snuba.search.hits-sample-size", 1)
 
@@ -933,7 +929,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
-    def test_assigned_me_none(self) -> None:
+    def test_assigned_me_none(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         groups = []
         for i in range(5):
@@ -957,11 +953,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 5
 
         GroupAssignee.objects.assign(assigned_groups[1], self.create_user("other@user.com"))
+        sleep(1)
+
         response = self.get_response(limit=10, query="assigned:[me, none]")
         assert len(response.data) == 4
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_seen_stats(self) -> None:
+    def test_seen_stats(self, _: MagicMock) -> None:
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1058,15 +1055,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).replace(tzinfo=UTC)
 
         # now with useGroupSnubaDataset = 1
-        response = self.get_response(
-            sort_by="date", limit=10, query="server:example.com", useGroupSnubaDataset=1
-        )
+        response = self.get_response(sort_by="date", limit=10, query="server:example.com")
 
         assert response.status_code == 200
         assert len(response.data) == 2
         assert int(response.data[0]["id"]) == group2.id
 
-    def test_semver_seen_stats(self) -> None:
+    def test_semver_seen_stats(self, _: MagicMock) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
@@ -1138,7 +1133,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(group_data["lifetime"]["count"]) == 3
         assert int(group_data["filtered"]["count"]) == 1
 
-    def test_inbox_search(self) -> None:
+    def test_inbox_search(self, _: MagicMock) -> None:
         self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=200)),
@@ -1178,7 +1173,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"] is not None
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
-    def test_inbox_search_outside_retention(self) -> None:
+    def test_inbox_search_outside_retention(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         response = self.get_response(
             sort="inbox",
@@ -1192,7 +1187,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_assigned_or_suggested_search(self) -> None:
+    @override_options({"issues.group_attributes.send_kafka": False})
+    @with_feature({"organizations:issue-search-snuba": False})
+    def test_assigned_or_suggested_search(self, _: MagicMock) -> None:
         event = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=180)),
@@ -1371,7 +1368,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_semver(self) -> None:
+    def test_semver(self, _: MagicMock) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
@@ -1462,7 +1459,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             release_3_g_2,
         ]
 
-    def test_release_stage(self) -> None:
+    def test_release_stage(self, _: MagicMock) -> None:
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
@@ -1566,7 +1563,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             adopted_release_g_2,
         ]
 
-    def test_semver_package(self) -> None:
+    def test_semver_package(self, _: MagicMock) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test2@1.2.4")
 
@@ -1610,7 +1607,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             release_2_g_1,
         ]
 
-    def test_semver_build(self) -> None:
+    def test_semver_build(self, _: MagicMock) -> None:
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test2@1.2.4+124")
 
@@ -1655,7 +1652,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:[124]")
         assert response.status_code == 400, response.content
 
-    def test_aggregate_stats_regression_test(self) -> None:
+    def test_aggregate_stats_regression_test(self, _: MagicMock) -> None:
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1669,7 +1666,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 1
 
-    def test_skipped_fields(self) -> None:
+    def test_skipped_fields(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1696,7 +1693,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["lifetime"] is not None
         assert response.data[0]["filtered"] is not None
 
-    def test_inbox_fields(self) -> None:
+    def test_inbox_fields(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1730,7 +1727,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    def test_inbox_fields_issue_states(self) -> None:
+    def test_inbox_fields_issue_states(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1762,7 +1759,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.ONGOING.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    def test_expand_string(self) -> None:
+    def test_expand_string(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1778,7 +1775,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
 
-    def test_expand_plugin_actions_and_issues(self) -> None:
+    def test_expand_plugin_actions_and_issues(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1802,7 +1799,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "pluginActions" not in response.data[0]
         assert "pluginIssues" not in response.data[0]
 
-    def test_expand_integration_issues(self) -> None:
+    def test_expand_integration_issues(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1853,7 +1850,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["integrationIssues"][0]["title"] == external_issue_1.title
         assert response.data[0]["integrationIssues"][1]["title"] == external_issue_2.title
 
-    def test_expand_sentry_app_issues(self) -> None:
+    def test_expand_sentry_app_issues(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1908,7 +1905,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
 
     @with_feature("organizations:event-attachments")
-    def test_expand_latest_event_has_attachments(self) -> None:
+    def test_expand_latest_event_has_attachments(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1950,7 +1947,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     @with_feature("organizations:event-attachments")
     @patch("sentry.models.Group.get_latest_event", return_value=None)
-    def test_expand_no_latest_event_has_no_attachments(self, mock_latest_event) -> None:
+    def test_expand_no_latest_event_has_no_attachments(
+        self, _: MagicMock, mock_latest_event: MagicMock
+    ) -> None:
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1965,7 +1964,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Expand should not execute since there is no latest event
         assert "latestEventHasAttachments" not in response.data[0]
 
-    def test_expand_owners(self) -> None:
+    def test_expand_owners(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2026,7 +2025,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.data[0]["owners"][2]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.CODEOWNERS]
 
-    def test_default_search(self) -> None:
+    def test_default_search(self, _: MagicMock) -> None:
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2042,31 +2041,37 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    def test_default_search_with_priority(self) -> None:
+    def test_default_search_with_priority(self, _: MagicMock) -> None:
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        event1.group.update(priority=PriorityLevel.HIGH)
+        event1.group.priority = PriorityLevel.HIGH
+        event1.group.save()
         event2 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-3"]},
             project_id=self.project.id,
         )
-        event2.group.update(
-            priority=PriorityLevel.HIGH, status=GroupStatus.RESOLVED, substatus=None
-        )
+        event2.group.status = GroupStatus.RESOLVED
+        event2.group.substatus = None
+        event2.group.priority = PriorityLevel.HIGH
+        event2.group.save()
+
         event3 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=400)), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
-        event3.group.update(priority=PriorityLevel.LOW)
+        event3.group.priority = PriorityLevel.LOW
+        event3.group.save()
 
         self.login_as(user=self.user)
+        sleep(1)
+
         response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    def test_collapse_stats(self) -> None:
+    def test_collapse_stats(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2086,7 +2091,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 
-    def test_collapse_lifetime(self) -> None:
+    def test_collapse_lifetime(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2105,7 +2110,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" not in response.data[0]
         assert "filtered" in response.data[0]
 
-    def test_collapse_filtered(self) -> None:
+    def test_collapse_filtered(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2124,7 +2129,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" in response.data[0]
         assert "filtered" not in response.data[0]
 
-    def test_collapse_lifetime_and_filtered(self) -> None:
+    def test_collapse_lifetime_and_filtered(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2143,7 +2148,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 
-    def test_collapse_base(self) -> None:
+    def test_collapse_base(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2165,7 +2170,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" in response.data[0]
         assert "filtered" in response.data[0]
 
-    def test_collapse_stats_group_snooze_bug(self) -> None:
+    def test_collapse_stats_group_snooze_bug(self, _: MagicMock) -> None:
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
         event = self.store_event(
@@ -2189,7 +2194,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
 
     @with_feature("organizations:issue-stream-performance")
-    def test_collapse_unhandled(self) -> None:
+    def test_collapse_unhandled(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2203,7 +2208,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
         assert "isUnhandled" not in response.data[0]
 
-    def test_selected_saved_search(self) -> None:
+    def test_selected_saved_search(self, _: MagicMock) -> None:
         saved_search = SavedSearch.objects.create(
             name="Saved Search",
             query="ZeroDivisionError",
@@ -2240,7 +2245,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    def test_pinned_saved_search(self) -> None:
+    def test_pinned_saved_search(self, _: MagicMock) -> None:
         SavedSearch.objects.create(
             name="Saved Search",
             query="ZeroDivisionError",
@@ -2277,7 +2282,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    def test_pinned_saved_search_with_query(self) -> None:
+    def test_pinned_saved_search_with_query(self, _: MagicMock) -> None:
         SavedSearch.objects.create(
             name="Saved Search",
             query="TypeError",
@@ -2316,7 +2321,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
 
     @with_feature("organizations:issue-stream-custom-views")
-    def test_user_default_custom_view_query(self) -> None:
+    def test_user_default_custom_view_query(self, _: MagicMock) -> None:
         SavedSearch.objects.create(
             name="Saved Search",
             query="TypeError",
@@ -2362,7 +2367,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
 
     @with_feature("organizations:issue-stream-custom-views")
-    def test_non_default_custom_view_query(self) -> None:
+    def test_non_default_custom_view_query(self, _: MagicMock) -> None:
         GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
@@ -2403,7 +2408,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
 
     @with_feature("organizations:issue-stream-custom-views")
-    def test_global_default_custom_view_query(self) -> None:
+    def test_global_default_custom_view_query(self, _: MagicMock) -> None:
         event = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=500)),
@@ -2412,7 +2417,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
-        event.group.update(priority=PriorityLevel.LOW)
+        event.group.priority = PriorityLevel.LOW
+        event.group.save()
 
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, collapse=["unhandled"])
@@ -2423,7 +2429,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_query_status_and_substatus_overlapping(self) -> None:
+    def test_query_status_and_substatus_overlapping(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2477,7 +2483,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == [event.group.id]
         )
 
-    def test_query_status_and_substatus_nonoverlapping(self) -> None:
+    def test_query_status_and_substatus_nonoverlapping(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2527,24 +2533,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == []
         )
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    @patch(
-        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-        autospec=True,
-    )
     def test_use_group_snuba_dataset(self, mock_query: MagicMock) -> None:
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
-        response = self.get_success_response(useGroupSnubaDataset=1, query="")
+        response = self.get_success_response(query="")
         assert len(response.data) == 1
         assert mock_query.call_count == 1
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_order_by_first_seen_of_issue(self) -> None:
+    def test_snuba_order_by_first_seen_of_issue(self, _: MagicMock) -> None:
         # issue 1: issue 10 minutes ago
         time = datetime.now() - timedelta(minutes=10)
         event1 = self.store_event(
@@ -2567,7 +2566,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(
             sort="new",
             statsPeriod="1h",
-            useGroupSnubaDataset=1,
             query="",
         )
 
@@ -2575,12 +2573,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event1.group.id
         assert int(response.data[1]["id"]) == event2.group.id
 
-    @patch(
-        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-        autospec=True,
-    )
-    @override_options({"issues.group_attributes.send_kafka": True})
     def test_snuba_order_by_freq(self, mock_query: MagicMock) -> None:
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-1"]},
@@ -2599,7 +2591,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(
             sort="freq",
             statsPeriod="1h",
-            useGroupSnubaDataset=1,
             query="",
         )
 
@@ -2608,12 +2599,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[1]["id"]) == event2.group.id
         assert mock_query.call_count == 1
 
-    @patch(
-        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-        autospec=True,
-    )
-    @override_options({"issues.group_attributes.send_kafka": True})
     def test_snuba_order_by_user_count(self, mock_query: MagicMock) -> None:
         user1 = {
             "email": "foo@example.com",
@@ -2672,7 +2657,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_success_response(
             sort="user",
-            useGroupSnubaDataset=1,
             query="",
         )
 
@@ -2681,8 +2665,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[1]["id"]) == event2.group.id
         assert mock_query.call_count == 1
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_assignee_filter(self) -> None:
+    def test_snuba_assignee_filter(self, _: MagicMock) -> None:
 
         # issue 1: assigned to user
         time = datetime.now() - timedelta(minutes=10)
@@ -2926,33 +2909,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         for query, expected_group_ids in queries_with_expected_ids:
             response = self.get_success_response(
                 sort="new",
-                useGroupSnubaDataset=1,
                 query=query,
             )
             assert [int(row["id"]) for row in response.data] == expected_group_ids
 
-    def test_snuba_unsupported_filters(self) -> None:
-        self.login_as(user=self.user)
-        for query in [
-            "issue.priority:high",
-        ]:
-            with patch(
-                "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-                side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-            ) as mock_query:
-                self.get_success_response(
-                    sort="new",
-                    useGroupSnubaDataset=1,
-                    query=query,
-                )
-                assert mock_query.call_count == 0
-
-    @patch(
-        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-        autospec=True,
-    )
-    @override_options({"issues.group_attributes.send_kafka": True})
     def test_snuba_query_title(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         event1 = self.store_event(
@@ -2968,19 +2928,141 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         sleep(1)
         response = self.get_success_response(
             sort="new",
-            useGroupSnubaDataset=1,
             query="title:MyMessage",
         )
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event1.group.id
         assert mock_query.call_count == 1
 
-    @patch(
-        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-        autospec=True,
-    )
-    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_priority(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        response = self.get_success_response(
+            sort="new",
+            query="issue.priority:high",
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event1.group.id
+
+        response = self.get_success_response(
+            sort="new",
+            query="priority:medium",
+        )
+        assert len(response.data) == 0
+
+    def test_snuba_query_first_release_no_environments(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        old_release = Release.objects.create(organization_id=self.organization.id, version="abc")
+        old_release.add_project(self.project)
+
+        new_release = Release.objects.create(organization_id=self.organization.id, version="def")
+        new_release.add_project(self.project)
+
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        event1.group.first_release = new_release
+        event1.group.save()
+
+        self.login_as(user=self.user)
+
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        for release, expected_groups in (
+            ("fake", []),
+            (old_release.version, []),
+            ("latest", [event1.group.id]),
+            (new_release.version, [event1.group.id]),
+        ):
+            response = self.get_success_response(
+                sort="new",
+                query=f"first_release:{release}",
+            )
+            assert len(response.data) == len(expected_groups)
+            assert {int(r["id"]) for r in response.data} == set(expected_groups)
+
+    def test_snuba_query_first_release_with_environments(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        release = Release.objects.create(organization_id=self.organization.id, version="release1")
+        release.add_project(self.project)
+        Environment.objects.create(organization_id=self.organization.id, name="production")
+
+        event = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage", "environment": "development"},
+            project_id=self.project.id,
+        )
+        GroupEnvironment.objects.filter(group_id=event.group.id).update(first_release=release)
+        event.group.first_release = release
+        event.group.save()
+
+        self.login_as(user=self.user)
+
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+
+        for release_s, environment, expected_groups in (
+            (release.version, "development", [event.group.id]),
+            (release.version, "production", []),
+        ):
+            response = self.get_success_response(
+                sort="new",
+                query=f"first_release:{release_s}",
+                environment=environment,
+            )
+            assert len(response.data) == len(expected_groups)
+            assert {int(r["id"]) for r in response.data} == set(expected_groups)
+
+    def test_snuba_query_unlinked(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"fingerprint": ["group-2"], "message": "AnotherMessage"},
+            project_id=self.project.id,
+        )
+        PlatformExternalIssue.objects.create(project_id=self.project.id, group_id=event1.group.id)
+        self.external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=self.integration.id, key="123"
+        )
+        GroupLink.objects.create(
+            project_id=self.project.id,
+            group_id=event1.group.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=self.external_issue.id,
+        )
+
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+
+        for value in [0, 5]:
+            with override_options({"snuba.search.max-pre-snuba-candidates": value}):
+                response = self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query="is:linked",
+                )
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event1.group.id
+
+                response = self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query="is:unlinked",
+                )
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event2.group.id
+
     def test_snuba_perf_issue(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         # create a performance issue
@@ -3024,7 +3106,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         sleep(1)
         response = self.get_success_response(
             sort="new",
-            useGroupSnubaDataset=1,
             query="user.email:myemail@example.com",
         )
         assert len(response.data) == 2
@@ -3035,16 +3116,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert mock_query.call_count == 1
 
     @patch("sentry.issues.ingest.should_create_group", return_value=True)
-    @patch(
-        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-        autospec=True,
-    )
-    @override_options({"issues.group_attributes.send_kafka": True})
     @with_feature(PerformanceRenderBlockingAssetSpanGroupType.build_visible_feature_name())
     @with_feature(PerformanceNPlusOneGroupType.build_visible_feature_name())
     def test_snuba_type_and_category(
-        self, mock_query: MagicMock, mock_should_create_group: MagicMock
+        self,
+        mock_should_create_group: MagicMock,
+        mock_query: MagicMock,
     ) -> None:
         self.project = self.create_project(organization=self.organization)
         # create a render blocking issue
@@ -3097,7 +3174,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # first test just the category
         response = self.get_success_response(
             sort="new",
-            useGroupSnubaDataset=1,
             query="issue.category:performance",
         )
         assert len(response.data) == 2
@@ -3110,7 +3186,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # now ask for the type
         response = self.get_success_response(
             sort="new",
-            useGroupSnubaDataset=1,
             query="issue.type:performance_n_plus_one_db_queries",
         )
         assert len(response.data) == 1
@@ -3121,13 +3196,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # now ask for the type and category in a way that should return no results
         response = self.get_success_response(
             sort="new",
-            useGroupSnubaDataset=1,
             query="issue.category:replay issue.type:performance_n_plus_one_db_queries",
         )
         assert len(response.data) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_pagination_and_x_hits_header(self) -> None:
+    def test_pagination_and_x_hits_header(self, _: MagicMock) -> None:
         # Create 30 issues
         for i in range(30):
             self.store_event(
@@ -3139,9 +3212,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
 
         self.login_as(user=self.user)
+        sleep(1)
 
         # Request the first page with a limit of 10
-        response = self.get_success_response(limit=10, useGroupSnubaDataset=1)
+        response = self.get_success_response(limit=10)
         assert response.status_code == 200
         assert len(response.data) == 10
         assert response.headers.get("X-Hits") == "30"
@@ -3156,7 +3230,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert prev_obj["results"] == "false"
 
         # Request the second page using the cursor
-        response = self.get_success_response(limit=10, cursor=cursor, useGroupSnubaDataset=1)
+        response = self.get_success_response(limit=10, cursor=cursor)
         assert response.status_code == 200
         assert len(response.data) == 10
 
@@ -3169,7 +3243,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert prev_obj["results"] == "true"
 
         # Request the third page using the cursor
-        response = self.get_success_response(limit=10, cursor=cursor, useGroupSnubaDataset=1)
+        response = self.get_success_response(limit=10, cursor=cursor)
         assert response.status_code == 200
         assert len(response.data) == 10
 
@@ -3180,8 +3254,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
         assert prev_obj["results"] == "true"
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_find_error_by_message_with_snuba_only_search(self) -> None:
+    def test_find_error_by_message_with_snuba_only_search(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         project = self.project
         # Simulate sending an event with Kafka enabled
@@ -3214,22 +3287,21 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         # Retrieve the event based on its message
-        response = self.get_success_response(query="OutOfMemoryError", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="OutOfMemoryError")
         assert response.status_code == 200
         issues = json.loads(response.content)
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
         # Retrieve events based on a wildcard match for any *Error in the message
-        response = self.get_success_response(query="*Error", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="*Error")
         assert response.status_code == 200
         issues = json.loads(response.content)
         assert len(issues) >= 2  # Expecting at least two issues: OutOfMemoryError and MemoryError
         assert any(int(issue["id"]) == event.group.id for issue in issues)
         assert any(int(issue["id"]) == event2.group.id for issue in issues)
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_first_seen_and_last_seen_filters(self) -> None:
+    def test_first_seen_and_last_seen_filters(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         project = self.project
         # Create 4 issues at different times
@@ -3259,33 +3331,26 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         # Test firstSeen filter
         twenty_four_hours_ago = iso_format(before_now(hours=24))
-        response = self.get_success_response(
-            query=f"firstSeen:<{twenty_four_hours_ago}", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query=f"firstSeen:<{twenty_four_hours_ago}")
         assert len(response.data) == 0
-        response = self.get_success_response(query="firstSeen:-24h", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="firstSeen:-24h")
         assert len(response.data) == 4
 
         # Test lastSeen filter
-        response = self.get_success_response(query="lastSeen:-6h", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="lastSeen:-6h")
         assert len(response.data) == 3
 
-        response = self.get_success_response(query="lastSeen:-12h", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="lastSeen:-12h")
         assert len(response.data) == 4
 
         # Test lastSeen filter with an absolute date using before_now
         absolute_date = iso_format(before_now(days=1))  # Assuming 365 days before now as an example
-        response = self.get_success_response(
-            query=f"lastSeen:>{absolute_date}", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query=f"lastSeen:>{absolute_date}")
         assert len(response.data) == 4
-        response = self.get_success_response(
-            query=f"lastSeen:<{absolute_date}", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query=f"lastSeen:<{absolute_date}")
         assert len(response.data) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_filter_by_bookmarked_by(self) -> None:
+    def test_filter_by_bookmarked_by(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         project = self.project
         user2 = self.create_user(email="user2@example.com")
@@ -3314,21 +3379,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         GroupBookmark.objects.create(user_id=user2.id, group=group2, project_id=project.id)
 
         # Filter by bookmarked_by the first user
-        response = self.get_success_response(
-            query=f"bookmarked_by:{self.user.email}", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query=f"bookmarked_by:{self.user.email}")
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == group1.id
 
         # Filter by bookmarked_by the second user
-        response = self.get_success_response(
-            query=f"bookmarked_by:{user2.email}", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query=f"bookmarked_by:{user2.email}")
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == group2.id
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_filter_by_linked(self) -> None:
+    def test_filter_by_linked(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         project = self.project
 
@@ -3359,17 +3419,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group2 = event2.group
 
         # Filter by linked issues
-        response = self.get_success_response(query="is:linked", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="is:linked")
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == group1.id
 
         # Ensure the unlinked issue is not returned
-        response = self.get_success_response(query="is:unlinked", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="is:unlinked")
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == group2.id
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_filter_by_subscribed_by(self) -> None:
+    def test_filter_by_subscribed_by(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         project = self.project
 
@@ -3399,20 +3458,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         # Filter by subscriptions
-        response = self.get_success_response(
-            query=f"subscribed:{self.user.email}", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query=f"subscribed:{self.user.email}")
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == group1.id
 
         # ensure we don't return ny results
-        response = self.get_success_response(
-            query="subscribed:fake@fake.com", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query="subscribed:fake@fake.com")
         assert len(response.data) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_search_lookup_by_regressed_in_release(self) -> None:
+    def test_snuba_search_lookup_by_regressed_in_release(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
         release = self.create_release()
@@ -3424,14 +3478,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
         record_group_history(event.group, GroupHistoryStatus.REGRESSED, release=release)
-        response = self.get_success_response(
-            query=f"regressed_in_release:{release.version}", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query=f"regressed_in_release:{release.version}")
         issues = json.loads(response.content)
         assert [int(issue["id"]) for issue in issues] == [event.group.id]
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_lookup_by_release_build(self) -> None:
+    def test_lookup_by_release_build(self, _: MagicMock) -> None:
 
         for i in range(3):
             j = 119 + i
@@ -3448,17 +3499,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        response = self.get_success_response(query="release.build:123", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="release.build:123")
         issues = json.loads(response.content)
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
-        response = self.get_success_response(query="release.build:122", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="release.build:122")
         issues = json.loads(response.content)
         assert len(issues) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_search_lookup_by_stack_filename(self) -> None:
+    def test_snuba_search_lookup_by_stack_filename(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
         event = self.store_event(
@@ -3510,20 +3560,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=project.id,
         )
 
-        response = self.get_success_response(
-            query="stack.filename:example.py", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query="stack.filename:example.py")
         issues = json.loads(response.content)
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
-        response = self.get_success_response(
-            query="stack.filename:nonexistent.py", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query="stack.filename:nonexistent.py")
         issues = json.loads(response.content)
         assert len(issues) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_error_main_thread_condition(self) -> None:
+    def test_error_main_thread_condition(self, _: MagicMock) -> None:
         self.login_as(user=self.user)
         project = self.project
         # Simulate sending an event with main_thread set to true
@@ -3564,21 +3609,18 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         # Query for events where main_thread is true
-        response = self.get_success_response(query="error.main_thread:true", useGroupSnubaDataset=1)
+        response = self.get_success_response(query="error.main_thread:true")
         issues = json.loads(response.content)
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event1.group.id
 
         # Query for events where main_thread is false
-        response = self.get_success_response(
-            query="error.main_thread:false", useGroupSnubaDataset=1
-        )
+        response = self.get_success_response(query="error.main_thread:false")
         issues = json.loads(response.content)
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event2.group.id
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_heavy_search_aggregate_stats_regression_test(self) -> None:
+    def test_snuba_heavy_search_aggregate_stats_regression_test(self, _: MagicMock) -> None:
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -3589,14 +3631,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date",
             limit=10,
             query="times_seen:>0 last_seen:-1h date:-1h",
-            useGroupSnubaDataset=1,
         )
 
         assert response.status_code == 200
         assert len(response.data) == 1
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_heavy_search_inbox_search(self) -> None:
+    def test_snuba_heavy_search_inbox_search(self, _: MagicMock) -> None:
         self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=200)),
@@ -3632,7 +3672,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             limit=10,
             query="is:unresolved is:for_review",
             expand=["inbox"],
-            useGroupSnubaDataset=1,
         )
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -3641,17 +3680,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
     @patch("sentry.analytics.record")
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_heavy_advanced_search_errors(self, mock_record):
+    def test_snuba_heavy_advanced_search_errors(self, mock_record: MagicMock, _: MagicMock):
         self.login_as(user=self.user)
-        response = self.get_response(sort_by="date", query="!has:user", useGroupSnubaDataset=1)
+        response = self.get_response(sort_by="date", query="!has:user")
         assert response.status_code == 200, response.data
         assert not any(
             c[0][0] == "advanced_search.feature_gated" for c in mock_record.call_args_list
         )
 
         with self.feature({"organizations:advanced-search": False}):
-            response = self.get_response(sort_by="date", query="!has:user", useGroupSnubaDataset=1)
+            response = self.get_response(sort_by="date", query="!has:user")
             assert response.status_code == 400, response.data
             assert (
                 "You need access to the advanced search feature to use negative "
@@ -3665,8 +3703,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 organization_id=self.organization.id,
             )
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_heavy_filter_not_unresolved(self) -> None:
+    def test_snuba_heavy_filter_not_unresolved(self, _: MagicMock) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -3679,13 +3716,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="!is:unresolved",
             expand="inbox",
             collapse="stats",
-            useGroupSnubaDataset=1,
         )
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_heavy_sdk_name_with_negations_and_positive_checks(self) -> None:
+    def test_snuba_heavy_sdk_name_with_negations_and_positive_checks(self, _: MagicMock) -> None:
         # Store an event with sdk.name as sentry.python
         event_python = self.store_event(
             data={
@@ -3713,7 +3748,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date",
             limit=10,
             query="!sdk.name:sentry.javascript",
-            useGroupSnubaDataset=1,
         )
         assert response_negation.status_code == 200
         assert len(response_negation.data) == 1
@@ -3723,7 +3757,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response_positive = self.get_response(
             sort_by="date",
             query="sdk.name:sentry.javascript",
-            useGroupSnubaDataset=1,
         )
         assert response_positive.status_code == 200
         assert len(response_negation.data) == 1
@@ -3733,7 +3766,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response_positive = self.get_response(
             sort_by="date",
             query="sdk.name:sentry.*",
-            useGroupSnubaDataset=1,
         )
         assert response_positive.status_code == 200
         assert len(response_positive.data) == 2
@@ -3742,8 +3774,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             event_javascript.group.id,
         }
 
-    @override_options({"issues.group_attributes.send_kafka": True})
-    def test_snuba_heavy_error_handled_boolean(self):
+    def test_snuba_heavy_error_handled_boolean(self, _: MagicMock) -> None:
         # Create an event with an unhandled exception
         unhandled_event = self.store_event(
             data={
@@ -3783,25 +3814,25 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
 
         # Fetch unhandled exceptions
-        response_unhandled = self.get_response(query="error.handled:false", useGroupSnubaDataset=1)
+        response_unhandled = self.get_response(query="error.handled:false")
         assert response_unhandled.status_code == 200
         assert len(response_unhandled.data) == 1
         assert int(response_unhandled.data[0]["id"]) == unhandled_event.group.id
 
         # Fetch handled exceptions
-        response_handled = self.get_response(query="error.handled:true", useGroupSnubaDataset=1)
+        response_handled = self.get_response(query="error.handled:true")
         assert response_handled.status_code == 200
         assert len(response_handled.data) == 1
         assert int(response_handled.data[0]["id"]) == handled_event.group.id
 
         # Test for error.unhandled:1 (equivalent to error.handled:false)
-        response_unhandled_1 = self.get_response(query="error.unhandled:1", useGroupSnubaDataset=1)
+        response_unhandled_1 = self.get_response(query="error.unhandled:1")
         assert response_unhandled_1.status_code == 200
         assert len(response_unhandled_1.data) == 1
         assert int(response_unhandled_1.data[0]["id"]) == unhandled_event.group.id
 
         # Test for error.unhandled:0 (equivalent to error.handled:true)
-        response_handled_0 = self.get_response(query="error.unhandled:0", useGroupSnubaDataset=1)
+        response_handled_0 = self.get_response(query="error.unhandled:0")
         assert response_handled_0.status_code == 200
         assert len(response_handled_0.data) == 1
         assert int(response_handled_0.data[0]["id"]) == handled_event.group.id

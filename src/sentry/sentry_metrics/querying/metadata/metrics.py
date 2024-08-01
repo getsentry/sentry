@@ -11,6 +11,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.metadata.utils import (
     METRICS_API_HIDDEN_OPERATIONS,
+    NON_QUERYABLE_METRIC_OPERATIONS,
     OperationsConfiguration,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -102,6 +103,8 @@ def generate_operations_config(organization: Organization) -> OperationsConfigur
         ):
             operations_config.hide_operations(METRICS_API_HIDDEN_OPERATIONS[option_key])
 
+    operations_config.hide_operations(NON_QUERYABLE_METRIC_OPERATIONS)
+
     return operations_config
 
 
@@ -136,6 +139,7 @@ def _build_metric_meta(
     blocking_status: Sequence[BlockedMetric],
     operations_config: OperationsConfiguration,
 ) -> MetricMeta:
+
     available_operations = get_available_operations(parsed_mri)
     available_operations = [
         operation

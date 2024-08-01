@@ -6,45 +6,44 @@ import noop from 'lodash/noop';
 import Checkbox from 'sentry/components/checkbox';
 import {space} from 'sentry/styles/space';
 
-type CheckboxValue = string | number;
-
-type SelectedValue = CheckboxValue[];
-
-type Props = {
+type Props<T> = {
   children: ReactNode;
   name: string;
-  value: (string | number)[];
+  value: T[];
   disabled?: boolean;
-  onChange?: (value: SelectedValue, event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (value: T[], event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
-type CheckboxItemProps = {
+type CheckboxItemProps<T> = {
   children: ReactNode;
-  value: string | number;
+  value: T;
   disabled?: boolean;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
-type MultipleCheckboxContextValue = {
-  disabled: Props['disabled'];
-  handleChange: (
-    itemValue: CheckboxValue,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => void;
+type MultipleCheckboxContextValue<T> = {
+  disabled: Props<T>['disabled'];
+  handleChange: (itemValue: T, event: React.ChangeEvent<HTMLInputElement>) => void;
   name: string;
-  value: Props['value'];
+  value: Props<T>['value'];
 };
 
-const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue>({
+const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue<any>>({
   handleChange: noop,
   value: [],
   name: '',
   disabled: false,
 });
 
-function MultipleCheckbox({children, value, disabled, onChange, name}: Props) {
+function MultipleCheckbox<T extends string | number>({
+  children,
+  value,
+  disabled,
+  onChange,
+  name,
+}: Props<T>) {
   const handleChange = useCallback(
-    (itemValue: CheckboxValue, e: React.ChangeEvent<HTMLInputElement>) => {
+    (itemValue: T, e: React.ChangeEvent<HTMLInputElement>) => {
       if (typeof onChange !== 'function') {
         return;
       }
@@ -75,13 +74,15 @@ function MultipleCheckbox({children, value, disabled, onChange, name}: Props) {
   );
 }
 
-function Item({
+function Item<T extends string | number>({
   value: itemValue,
   children,
   disabled: itemDisabled,
   onChange,
-}: CheckboxItemProps) {
-  const {disabled, value, handleChange, name} = useContext(MultipleCheckboxContext);
+}: CheckboxItemProps<T>) {
+  const {disabled, value, handleChange, name} = useContext<
+    MultipleCheckboxContextValue<T>
+  >(MultipleCheckboxContext);
 
   return (
     <LabelContainer>

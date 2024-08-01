@@ -99,9 +99,6 @@
     "sentry.apiapplication",
     "sentry.user"
   ],
-  "sentry.appconnectbuild": [
-    "sentry.project"
-  ],
   "sentry.artifactbundle": [
     "sentry.file",
     "sentry.organization"
@@ -249,10 +246,6 @@
     "sentry.file",
     "sentry.group",
     "sentry.project"
-  ],
-  "sentry.eventprocessingissue": [
-    "sentry.processingissue",
-    "sentry.rawevent"
   ],
   "sentry.exporteddata": [
     "sentry.file",
@@ -431,9 +424,6 @@
     "sentry.organizationintegration"
   ],
   "sentry.integrationfeature": [],
-  "sentry.latestappconnectbuildscheck": [
-    "sentry.project"
-  ],
   "sentry.latestreporeleaseenvironment": [
     "sentry.commit",
     "sentry.deploy",
@@ -559,9 +549,6 @@
     "sentry.group",
     "sentry.project"
   ],
-  "sentry.processingissue": [
-    "sentry.project"
-  ],
   "sentry.proguardartifactrelease": [
     "sentry.organization",
     "sentry.project",
@@ -649,9 +636,6 @@
     "sentry.project",
     "sentry.snubaquery"
   ],
-  "sentry.rawevent": [
-    "sentry.project"
-  ],
   "sentry.recentsearch": [
     "sentry.organization",
     "sentry.user"
@@ -736,9 +720,6 @@
     "sentry.organizationintegration",
     "sentry.project",
     "sentry.repository"
-  ],
-  "sentry.reprocessingreport": [
-    "sentry.project"
   ],
   "sentry.rule": [
     "sentry.environment",
@@ -867,6 +848,8 @@
   ],
   "uptime.projectuptimesubscription": [
     "sentry.project",
+    "sentry.team",
+    "sentry.user",
     "uptime.uptimesubscription"
   ],
   "uptime.uptimesubscription": []

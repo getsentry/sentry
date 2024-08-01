@@ -24,20 +24,12 @@ jobs:
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
-      lintable_prettier_modified: ${{ steps.changes.outputs.lintable_prettier_modified }}
-      lintable_prettier_modified_files: ${{ steps.changes.outputs.lintable_prettier_modified_files }}
-      lintable_css_in_js_modified: ${{ steps.changes.outputs.lintable_css_in_js_modified }}
-      lintable_css_in_js_modified_files: ${{ steps.changes.outputs.lintable_css_in_js_modified_files }}
-      lintable_css_in_js_rules_changed: ${{ steps.changes.outputs.lintable_css_in_js_rules_changed }}
-      lintable_modified: ${{ steps.changes.outputs.lintable_modified }}
-      lintable_modified_files: ${{ steps.changes.outputs.lintable_modified_files }}
-      lintable_rules_changed: ${{ steps.changes.outputs.lintable_rules_changed }}
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
       testable_modified_files: ${{ steps.changes.outputs.testable_modified_files }}
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for frontend file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -47,21 +39,13 @@ jobs:
           filters: .github/file-filters.yml
           list-files: shell
 
-  typescript-and-lint:
+  typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: typescript and lint
+    name: typescript
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Internal github app token
-        id: token
-        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
-        continue-on-error: true
-        with:
-          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
 
@@ -76,57 +60,6 @@ jobs:
           echo "::add-matcher::.github/tsc.json"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      # When we're on master we can run all tasks across all files
-      # or if lint rules have changed, run the related task across all files
-      - name: biome (all files)
-        if: github.ref == 'refs/heads/master'
-        run: yarn lint:biome
-
-      - name: prettier (all files)
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_rules_changed == 'true'
-        run: yarn lint:prettier
-
-      - name: eslint (all files)
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_rules_changed == 'true'
-        run: yarn lint:js
-
-      - name: stylelint (all files)
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_css_in_js_rules_changed == 'true'
-        run: yarn lint:css
-
-      # When on a PR branch, we only need to look at the changed files
-      - name: biome (fix)
-        if: github.ref != 'refs/heads/master'
-        run: yarn fix:biome
-
-      - name: prettier (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true' && needs.files-changed.outputs.lintable_prettier_modified == 'true'
-        run: yarn prettier --write ${{ needs.files-changed.outputs.lintable_prettier_modified_files }}
-
-      - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
-        run: yarn eslint --fix ${{ needs.files-changed.outputs.lintable_modified_files }}
-
-      - name: stylelint (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_css_in_js_rules_changed != 'true' && needs.files-changed.outputs.lintable_css_in_js_modified == 'true'
-        run: yarn stylelint ${{ needs.files-changed.outputs.lintable_css_in_js_modified_files }}
-
-      # Check (and error) for dirty working tree for forks
-      # Reason being we need a different token to auto commit changes and
-      # forks do not have access to said token
-      - name: Check for dirty git working tree (forks)
-        if: github.ref != 'refs/heads/master' && steps.token.outcome != 'success'
-        run: |
-          git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
-
-      # If working tree is dirty, commit and update if we have a token
-      - name: Commit any eslint fixed files
-        if: github.ref != 'refs/heads/master' && steps.token.outcome == 'success'
-        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
-        with:
-          github-token: ${{ steps.token.outputs.token }}
-          message: ':hammer_and_wrench: apply eslint style fixes'
-
       - name: tsc
         id: tsc
         if: steps.dependencies.outcome == 'success'
@@ -134,7 +67,7 @@ jobs:
 
   frontend-jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
-    needs: files-changed
+    needs: [files-changed, typescript]
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
@@ -150,7 +83,7 @@ jobs:
         instance: [0, 1, 2, 3]
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
       - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
@@ -202,7 +135,7 @@ jobs:
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
   frontend-required-check:
-    needs: [files-changed, frontend-jest-tests, typescript-and-lint]
+    needs: [files-changed, frontend-jest-tests, typescript]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()

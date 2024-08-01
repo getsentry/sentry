@@ -11,7 +11,12 @@ from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes, TeamKeyTransaction
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryTypes,
+    TeamKeyTransaction,
+)
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
@@ -189,7 +194,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "trace.span must be a valid 16 character hex (containing only digits, or a-f characters)"
+            == "`trace.span` must be a valid 16 character hex (containing only digits, or a-f characters)"
         )
 
         query = {"field": ["id"], "query": "trace.parent_span:invalid"}
@@ -197,7 +202,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "trace.parent_span must be a valid 16 character hex (containing only digits, or a-f characters)"
+            == "`trace.parent_span` must be a valid 16 character hex (containing only digits, or a-f characters)"
         )
 
         query = {"field": ["id"], "query": "trace.span:*"}
@@ -5700,6 +5705,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
 
         assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+        assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
         features = {
             "organizations:discover-basic": True,
@@ -5720,6 +5726,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+        assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
     def test_saves_discover_saved_query_split_transaction(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
@@ -5755,6 +5762,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        assert model.dataset_source == DatasetSourcesTypes.INFERRED.value
 
     def test_saves_discover_saved_query_split_error(self):
         self.store_event(self.transaction_data, project_id=self.project.id)

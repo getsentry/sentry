@@ -457,6 +457,8 @@ class SearchValue(NamedTuple):
 
         Empty strings are valid, so that it can be used for has:trace.span queries
         """
+        if isinstance(self.raw_value, list):
+            return all(isinstance(value, str) and is_span_id(value) for value in self.raw_value)
         if not isinstance(self.raw_value, str):
             return False
         return is_span_id(self.raw_value) or self.raw_value == ""

@@ -18,8 +18,7 @@ import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -35,6 +34,7 @@ import {
   isFeedbackFrame,
   isHydrationErrorFrame,
 } from 'sentry/utils/replays/types';
+import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -122,19 +122,24 @@ function BreadcrumbItem({
   }, [frame]);
 
   const hasNewTimelineUI = useHasNewTimelineUI();
-  const timeString = new Date(frame.timestampMs).toISOString();
-  const startTimeString = new Date(startTimestampMs).toISOString();
   if (hasNewTimelineUI) {
+    // Coerce previous design colors into new ones. After 'new-timeline-ui' is GA, we can modify
+    // the mapper directly.
+    const darkColor =
+      color === 'gray300' ? color : (color.replace('300', '400') as Color);
     return (
       <StyledTimelineItem
         icon={icon}
         title={title}
-        colorConfig={{primary: color, secondary: color}}
-        timeString={timeString}
-        renderTimestamp={(_ts, _sts) =>
-          formatReplayDuration(Math.abs(frame.timestampMs - startTimestampMs), false)
+        colorConfig={{title: darkColor, icon: darkColor, iconBorder: color}}
+        timestamp={
+          <ReplayTimestamp>
+            <TimestampButton
+              startTimestampMs={startTimestampMs}
+              timestampMs={frame.timestampMs}
+            />
+          </ReplayTimestamp>
         }
-        startTimeString={startTimeString}
         data-is-error-frame={isErrorFrame(frame)}
         style={style}
         className={className}
@@ -202,6 +207,7 @@ function CrumbHydrationButton({
         replay={replay}
         leftOffsetMs={leftOffsetMs}
         rightOffsetMs={rightOffsetMs}
+        surface="replay-breadcrumbs"
         size="xs"
       >
         {t('Open Hydration Diff')}
@@ -295,6 +301,9 @@ const StyledTimelineItem = styled(Timeline.Item)`
   margin: 0;
   &:hover {
     background: ${p => p.theme.translucentSurface200};
+    .icon-wrapper {
+      background: ${p => p.theme.translucentSurface200};
+    }
   }
   cursor: pointer;
   /* vertical line connecting items */
@@ -311,6 +320,12 @@ const StyledTimelineItem = styled(Timeline.Item)`
   &:first-child::before {
     top: 4px;
   }
+`;
+
+const ReplayTimestamp = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+  align-self: flex-start;
 `;
 
 const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
