@@ -47,7 +47,6 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: [
         {
-          description: params.isProfilingSelected,
           language: 'bash',
           code: getInstallSnippet(),
         },
