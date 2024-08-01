@@ -2649,6 +2649,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "similarity.new_project_seer_grouping.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "similarity.backfill_use_reranking",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

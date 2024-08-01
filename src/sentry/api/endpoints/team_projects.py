@@ -1,10 +1,12 @@
+import time
+
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
@@ -21,6 +23,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.models.project import Project
+from sentry.seer.similarity.utils import SEER_ELIGIBLE_PLATFORMS
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
@@ -213,5 +216,15 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 default_rules=result.get("default_rules", True),
                 sender=self,
             )
+
+            # Create project option to turn on ML similarity feature for new EA projects
+            is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
+            if (
+                hasattr(project.organization, "flags")
+                and project.organization.flags.early_adopter
+                and is_seer_eligible_platform
+                and options.get("similarity.new_project_seer_grouping.enabled")
+            ):
+                project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
         return Response(serialize(project, request.user), status=201)
