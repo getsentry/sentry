@@ -222,3 +222,8 @@ export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   RELEASE_FIELDS,
   MISC_FIELDS,
 ];
+
+// TODO: In followup PR, add this
+// export const PLATFORM_KEY_TO_FILTER_SECTIONS
+// will take in a project platform key, and output only the relevant filter key sections.
+// This way, users will not be suggested mobile fields for a backend transaction, for example.
