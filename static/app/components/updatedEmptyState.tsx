@@ -147,13 +147,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                           eventType="error"
                         >
                           {({indicator, firstEventButton}) => (
-                            <div>
+                            <FirstEventWrapper>
                               <IndicatorWrapper>{indicator}</IndicatorWrapper>
                               <StyledButtonBar gap={1}>
                                 <GuidedSteps.BackButton size="md" />
                                 {firstEventButton}
                               </StyledButtonBar>
-                            </div>
+                            </FirstEventWrapper>
                           )}
                         </FirstEventIndicator>
                       )}
@@ -296,13 +296,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       eventType="error"
                     >
                       {({indicator, firstEventButton}) => (
-                        <div>
+                        <FirstEventWrapper>
                           <IndicatorWrapper>{indicator}</IndicatorWrapper>
                           <StyledButtonBar gap={1}>
                             <GuidedSteps.BackButton size="md" />
                             {firstEventButton}
                           </StyledButtonBar>
-                        </div>
+                        </FirstEventWrapper>
                       )}
                     </FirstEventIndicator>
                   </div>
@@ -425,4 +425,8 @@ const CodeSnippetWrapper = styled('div')`
 
 const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
+`;
+
+const FirstEventWrapper = styled('div')`
+  padding-top: ${space(1)};
 `;
