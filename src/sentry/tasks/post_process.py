@@ -824,7 +824,7 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 )
                 if group:
                     logger.warning(
-                        "Found NEW group with incorrect substatus",
+                        "no_substatus: Found NEW group with incorrect substatus",
                         extra={"group_id": group.first().id, "substatus": group.first().substatus},
                     )
 
