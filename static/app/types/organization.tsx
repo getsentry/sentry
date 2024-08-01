@@ -77,6 +77,7 @@ export interface Organization extends OrganizationSummary {
     projectLimit: number | null;
   };
   relayPiiConfig: string | null;
+  requiresSso: boolean;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;

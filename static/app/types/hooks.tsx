@@ -632,6 +632,10 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
      */
     disabled: boolean;
     onTriggerModal: () => void;
+    /**
+     * Whether to display a message that new members must be registered via SSO
+     */
+    isSsoRequired?: boolean;
   }) => React.ReactElement;
   onTriggerModal: () => void;
   organization: Organization;

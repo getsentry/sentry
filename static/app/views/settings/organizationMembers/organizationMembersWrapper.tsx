@@ -6,6 +6,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
@@ -25,11 +26,11 @@ type State = DeprecatedAsyncView['state'] & {
 
 const InviteMembersButtonHook = HookOrDefault({
   hookName: 'member-invite-button:customization',
-  defaultComponent: ({children, organization, onTriggerModal}) =>
-    children({
-      disabled: !organization.features.includes('invite-members'),
-      onTriggerModal,
-    }),
+  defaultComponent: ({children, organization, onTriggerModal}) => {
+    const isSsoRequired = organization.requiresSso;
+    const disabled = isSsoRequired || !organization.features.includes('invite-members');
+    return children({disabled, isSsoRequired, onTriggerModal});
+  },
 });
 
 class OrganizationMembersWrapper extends DeprecatedAsyncView<Props, State> {
@@ -142,10 +143,12 @@ class OrganizationMembersWrapper extends DeprecatedAsyncView<Props, State> {
 
 function renderInviteMembersButton({
   disabled,
+  isSsoRequired,
   onTriggerModal,
 }: {
   onTriggerModal: () => void;
   disabled?: boolean;
+  isSsoRequired?: boolean;
 }) {
   const action = (
     <Button
@@ -161,17 +164,28 @@ function renderInviteMembersButton({
   );
 
   return disabled ? (
-    <Hovercard
-      body={
-        <FeatureDisabled
-          featureName={t('Invite Members')}
-          features="organizations:invite-members"
-          hideHelpToggle
-        />
-      }
-    >
-      {action}
-    </Hovercard>
+    isSsoRequired ? (
+      <Tooltip
+        skipWrapper
+        title={t(
+          `Your organization must use its single sign-on provider to register new members.`
+        )}
+      >
+        {action}
+      </Tooltip>
+    ) : (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            featureName={t('Invite Members')}
+            features="organizations:invite-members"
+            hideHelpToggle
+          />
+        }
+      >
+        {action}
+      </Hovercard>
+    )
   ) : (
     action
   );
