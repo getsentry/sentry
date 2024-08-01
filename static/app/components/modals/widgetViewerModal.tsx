@@ -66,6 +66,7 @@ import {
   getWidgetIssueUrl,
   getWidgetMetricsUrl,
   getWidgetReleasesUrl,
+  hasDatasetSelector,
 } from 'sentry/views/dashboards/utils';
 import {
   SESSION_DURATION_ALERT,
@@ -74,7 +75,6 @@ import {
 import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import WidgetCardChart, {SLIDER_HEIGHT} from 'sentry/views/dashboards/widgetCard/chart';
 import {
-  DashboardsMEPConsumer,
   DashboardsMEPProvider,
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -1022,29 +1022,6 @@ function WidgetViewerModal(props: Props) {
                           <WidgetDescription>{widget.description}</WidgetDescription>
                         </Tooltip>
                       )}
-                      <DashboardsMEPConsumer>
-                        {({}) => {
-                          // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-                          // if (
-                          //   widgetContentLoadingStatus === false &&
-                          //   widget.widgetType === WidgetType.DISCOVER &&
-                          //   isMetricsData === false
-                          // ) {
-                          //   return (
-                          //     <Tooltip
-                          //       containerDisplayMode="inline-flex"
-                          //       title={t(
-                          //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
-                          //       )}
-                          //     >
-                          //       <IconWarning color="warningText" size="md" />
-                          //     </Tooltip>
-                          //   );
-                          // }
-
-                          return null;
-                        }}
-                      </DashboardsMEPConsumer>
                     </WidgetHeader>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
@@ -1131,20 +1108,30 @@ function OpenButton({
       break;
   }
 
+  const optionDisabled =
+    hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
+
   return (
-    <Button
-      to={path}
-      priority="primary"
-      onClick={() => {
-        trackAnalytics('dashboards_views.widget_viewer.open_source', {
-          organization,
-          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-          display_type: widget.displayType,
-        });
-      }}
+    <Tooltip
+      title={t(
+        'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+      )}
     >
-      {openLabel}
-    </Button>
+      <Button
+        to={path}
+        priority="primary"
+        disabled={optionDisabled}
+        onClick={() => {
+          trackAnalytics('dashboards_views.widget_viewer.open_source', {
+            organization,
+            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            display_type: widget.displayType,
+          });
+        }}
+      >
+        {openLabel}
+      </Button>
+    </Tooltip>
   );
 }
 
