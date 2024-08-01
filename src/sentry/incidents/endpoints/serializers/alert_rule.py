@@ -407,7 +407,7 @@ class CombinedRuleSerializer(Serializer):
 
         for item in item_list:
             item_id = str(item.id)
-            if item_id in serialized_alert_rule_map_by_id:
+            if isinstance(item, AlertRule) and item_id in serialized_alert_rule_map_by_id:
                 # This is a metric alert rule
                 serialized_alert_rule = serialized_alert_rule_map_by_id[item_id]
                 if "latestIncident" in self.expand:
@@ -425,10 +425,13 @@ class CombinedRuleSerializer(Serializer):
                             },
                         )
                 results[item] = serialized_alert_rule
-            elif item_id in serialized_issue_rule_map_by_id:
+            elif isinstance(item, Rule) and item_id in serialized_issue_rule_map_by_id:
                 # This is an issue alert rule
                 results[item] = serialized_issue_rule_map_by_id[item_id]
-            elif item_id in serialized_uptime_monitor_map_by_id:
+            elif (
+                isinstance(item, ProjectUptimeSubscription)
+                and item_id in serialized_uptime_monitor_map_by_id
+            ):
                 # This is an uptime monitor
                 results[item] = serialized_uptime_monitor_map_by_id[item_id]
             else:
