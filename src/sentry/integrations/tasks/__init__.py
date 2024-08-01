@@ -1,3 +1,21 @@
+import logging
+
+from sentry import features
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.models.organization import Organization
+
+logger = logging.getLogger("sentry.tasks.integrations")
+
+
+def should_comment_sync(
+    installation: IntegrationInstallation, external_issue: ExternalIssue
+) -> bool:
+    organization = Organization.objects.get(id=external_issue.organization_id)
+    has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+    return has_issue_sync and installation.should_sync("comment")
+
+
 from .create_comment import create_comment
 from .kick_off_status_syncs import kick_off_status_syncs
 from .migrate_repo import migrate_repo
@@ -14,4 +32,5 @@ __all__ = (
     "sync_status_inbound",
     "sync_status_outbound",
     "update_comment",
+    "logger",
 )
