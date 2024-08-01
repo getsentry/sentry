@@ -2,22 +2,24 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
+import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {DeviceName} from 'sentry/components/deviceName';
+import ContextIcon, {
+  type ContextIconProps,
+  getLogoImage,
+} from 'sentry/components/events/contexts/contextIcon';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
-import type {
-  AvatarUser,
-  Event,
-  KeyValueListData,
-  KeyValueListDataItem,
-  Organization,
-  Project,
-} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 
 import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
@@ -382,17 +384,31 @@ export function getContextMeta(event: Event, contextType: string): Record<string
   }
 }
 
+const iconSizesNumber = {
+  xs: 12,
+  sm: 14,
+  md: 18,
+  lg: 24,
+  xl: 32,
+  xxl: 72,
+};
+
 export function getContextIcon({
   alias,
   type,
   value = {},
+  contextIconProps = {},
 }: {
   alias: string;
   type: string;
+  contextIconProps?: Partial<ContextIconProps>;
   value?: Record<string, any>;
 }): React.ReactNode {
   if (KNOWN_PLATFORM_CONTEXTS.has(alias)) {
-    return getPlatformContextIcon({platform: alias});
+    return getPlatformContextIcon({
+      platform: alias,
+      size: contextIconProps?.size ?? 'xl',
+    });
   }
   let iconName = '';
   switch (type) {
@@ -409,7 +425,8 @@ export function getContextIcon({
       break;
     case 'user':
       const user = removeFilterMaskedEntries(value);
-      return <UserAvatar user={user as AvatarUser} size={14} gravatar={false} />;
+      const iconSize = iconSizesNumber?.[contextIconProps?.size ?? 'xl'];
+      return <UserAvatar user={user as AvatarUser} size={iconSize} gravatar={false} />;
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
@@ -419,7 +436,12 @@ export function getContextIcon({
   if (iconName.length === 0) {
     return null;
   }
-  return <ContextIcon name={iconName} size="sm" hideUnknown />;
+
+  const imageName = getLogoImage(iconName);
+  if (imageName === logoUnknown) {
+    return null;
+  }
+  return <ContextIcon name={iconName} {...contextIconProps} />;
 }
 
 export function getFormattedContextData({
@@ -530,6 +552,91 @@ export function getFormattedContextData({
     default:
       return getDefaultContextData(contextValue);
   }
+}
+/**
+ * Reimplemented as util function from legacy summaries deleted in this PR - https://github.com/getsentry/sentry/pull/71695/files
+ * Consildated into one function and neglects any meta annotations since those will be rendered in the proper contexts section.
+ * The only difference is we don't render 'unknown' values, since that doesn't help the user.
+ */
+export function getContextSummary({
+  type,
+  value: data,
+}: {
+  type: string;
+  value?: Record<string, any>;
+}): {
+  subtitle: React.ReactNode;
+  title: React.ReactNode;
+} {
+  let title: React.ReactNode = null;
+  let subtitle: React.ReactNode = null;
+  switch (type) {
+    case 'device':
+      title = (
+        <DeviceName value={data?.model ?? ''}>
+          {deviceName => <span>{deviceName ? deviceName : data?.name}</span>}
+        </DeviceName>
+      );
+      if (defined(data?.arch)) {
+        subtitle = t('Arch: ') + data?.arch;
+      } else if (defined(data?.model)) {
+        subtitle = t('Model: ') + data?.model;
+      }
+      break;
+
+    case 'gpu':
+      title = data?.name ?? null;
+      if (defined(data?.vendor_name)) {
+        subtitle = t('Vendor: ') + data?.vendor_name;
+      }
+      break;
+
+    case 'os':
+    case 'client_os':
+      title = data?.name ?? null;
+      if (defined(data?.version) && typeof data?.version === 'string') {
+        subtitle = t('Version: ') + data?.version;
+      } else if (defined(data?.kernel_version)) {
+        subtitle = t('Kernel: ') + data?.kernel_version;
+      }
+      break;
+
+    case 'user':
+      if (defined(data?.email)) {
+        title = data?.email;
+      }
+      if (defined(data?.ip_address) && !title) {
+        title = data?.ip_address;
+      }
+      if (defined(data?.id)) {
+        title = title ? title : data?.id;
+        subtitle = t('ID: ') + data?.id;
+      }
+      if (defined(data?.username)) {
+        title = title ? title : data?.username;
+        subtitle = t('Username: ') + data?.username;
+      }
+      if (title === subtitle) {
+        return {
+          title,
+          subtitle: null,
+        };
+      }
+      break;
+    case 'runtime':
+    case 'generic':
+      title = data?.name ?? null;
+      if (defined(data?.version)) {
+        subtitle = t('Version: ') + data?.version;
+      }
+      break;
+    default:
+      break;
+  }
+  return {
+    title,
+    subtitle,
+  };
 }
 
 const RelativeTime = styled('span')`
