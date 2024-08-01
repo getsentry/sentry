@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
@@ -15,7 +16,7 @@ import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggreg
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconProfiling} from 'sentry/icons';
+import {IconProfiling, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
@@ -349,11 +350,11 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
     }
 
     if (sortValue === '-transaction.duration') {
-      return {key: 'timestamp', order: 'desc'} as const;
+      return {key: 'transaction.duration', order: 'desc'} as const;
     }
 
     if (sortValue === 'transaction.duration') {
-      return {key: 'timestamp', order: 'asc'} as const;
+      return {key: 'transaction.duration', order: 'asc'} as const;
     }
 
     throw new Error(`Unsupport sort: ${sortValue}`);
@@ -393,7 +394,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
         ...location,
         query: {
           ...location.query,
-          [PROFILES_SORT]: value,
+          [PROFILES_SORT]: value.value,
           [PROFILES_CURSOR]: undefined,
         },
       });
@@ -423,67 +424,75 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
           size="xs"
         />
       </ProfileListControls>
-      <ProfileListResultsContainer>
-        <ProfileDigestLabel>{t('Event ID')}</ProfileDigestLabel>
-        <ProfileDigestLabel align="right">{t('Duration')}</ProfileDigestLabel>
-        <ProfileDigestLabel align="right">{t('Profile')}</ProfileDigestLabel>
-        {profilesList.data?.data?.map(row => {
-          const traceTarget = generateLinkToEventInTraceView({
-            eventId: row.id as string,
-            timestamp: row.timestamp as string,
-            traceSlug: row.trace as string,
-            projectSlug: row['project.name'] as string,
-            location,
-            organization,
-            transactionName: transaction,
-            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY_PROFILES,
-          });
+      {profilesList.isLoading ? (
+        <LoadingIndicator />
+      ) : profilesList.isError ? (
+        <ErrorPanel>
+          <IconWarning color="gray300" size="lg" />
+        </ErrorPanel>
+      ) : (
+        <ProfileListResultsContainer>
+          <ProfileDigestLabel>{t('Event ID')}</ProfileDigestLabel>
+          <ProfileDigestLabel align="right">{t('Duration')}</ProfileDigestLabel>
+          <ProfileDigestLabel align="right">{t('Profile')}</ProfileDigestLabel>
+          {profilesList.data?.data?.map(row => {
+            const traceTarget = generateLinkToEventInTraceView({
+              eventId: row.id as string,
+              timestamp: row.timestamp as string,
+              traceSlug: row.trace as string,
+              projectSlug: row['project.name'] as string,
+              location,
+              organization,
+              transactionName: transaction,
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY_PROFILES,
+            });
 
-          const profileTarget = generateProfileLink()(
-            organization,
-            {
-              id: row.id as string,
-              'project.name': row['project.name'] as string,
-              'profile.id': (row['profile.id'] as string) || '',
-              'profiler.id': (row['profiler.id'] as string) || '',
-              'thread.id': (row['thread.id'] as string) || '',
-              'precise.start_ts': row['precise.start_ts'] as number,
-              'precise.finish_ts': row['precise.finish_ts'] as number,
-              trace: row.trace as string,
-            },
-            location
-          );
+            const profileTarget = generateProfileLink()(
+              organization,
+              {
+                id: row.id as string,
+                'project.name': row['project.name'] as string,
+                'profile.id': (row['profile.id'] as string) || '',
+                'profiler.id': (row['profiler.id'] as string) || '',
+                'thread.id': (row['thread.id'] as string) || '',
+                'precise.start_ts': row['precise.start_ts'] as number,
+                'precise.finish_ts': row['precise.finish_ts'] as number,
+                trace: row.trace as string,
+              },
+              location
+            );
 
-          return (
-            <Fragment key={row.id as string}>
-              <ProfileDigestValue align="left">
-                <Link to={traceTarget}>{getShortEventId(row.id as string)}</Link>
-              </ProfileDigestValue>
-              <ProfileDigestValue align="right">
-                <PerformanceDuration
-                  milliseconds={(row?.['transaction.duration'] as number) ?? 0}
-                  abbreviation
-                />
-              </ProfileDigestValue>
-              <ProfileDigestValue align="right">
-                <LinkButton
-                  disabled={!profileTarget || isEmptyObject(profileTarget)}
-                  to={profileTarget || {}}
-                  onClick={() => {
-                    trackAnalytics('profiling_views.go_to_flamegraph', {
-                      organization,
-                      source: 'profiling_transaction.profiles_table',
-                    });
-                  }}
-                  size="xs"
-                >
-                  <IconProfiling size="xs" />
-                </LinkButton>
-              </ProfileDigestValue>
-            </Fragment>
-          );
-        })}
-      </ProfileListResultsContainer>
+            return (
+              <Fragment key={row.id as string}>
+                <ProfileDigestValue align="left">
+                  <Link to={traceTarget}>{getShortEventId(row.id as string)}</Link>
+                </ProfileDigestValue>
+                <ProfileDigestValue align="right">
+                  <PerformanceDuration
+                    milliseconds={(row?.['transaction.duration'] as number) ?? 0}
+                    abbreviation
+                  />
+                </ProfileDigestValue>
+                <ProfileDigestValue align="right">
+                  <LinkButton
+                    disabled={!profileTarget || isEmptyObject(profileTarget)}
+                    to={profileTarget || {}}
+                    onClick={() => {
+                      trackAnalytics('profiling_views.go_to_flamegraph', {
+                        organization,
+                        source: 'profiling_transaction.profiles_table',
+                      });
+                    }}
+                    size="xs"
+                  >
+                    <IconProfiling size="xs" />
+                  </LinkButton>
+                </ProfileDigestValue>
+              </Fragment>
+            );
+          })}
+        </ProfileListResultsContainer>
+      )}
     </ProfileListContainer>
   );
 }
