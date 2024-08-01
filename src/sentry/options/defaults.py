@@ -1459,21 +1459,33 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables extrapolation on the `transactions` namespace.
 register(
     "sentry-metrics.extrapolation.enable_transactions",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables extrapolation on the `spans` namespace.
 register(
     "sentry-metrics.extrapolation.enable_spans",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Maximum duplication factor for ingest-time extrapolation of distribution
+# values in Relay. Obsolete once `.propagate-rates` is the default.
 register(
     "sentry-metrics.extrapolation.duplication-limit",
     default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Send sample rates for metrics from Relay via the indexer into snuba rather
+# than extrapolating at ingest time.
+register(
+    "sentry-metrics.extrapolation.propagate-rates",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2052,48 +2064,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "delightful_metrics.minimetrics_disable_legacy",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_capture_envelope",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_common_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.emit_gauges",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_code_locations",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.metrics_summary_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_span_attributes",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # IDs of orgs that will stop ingesting custom metrics.
 register(
     "custom-metrics-ingestion-disabled-orgs",
@@ -2622,6 +2592,12 @@ register(
     "profiling.continuous-profiling.chunks-set.size",
     type=Int,
     default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "profiling.continuous-profiling.chunks-query.size",
+    type=Int,
+    default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

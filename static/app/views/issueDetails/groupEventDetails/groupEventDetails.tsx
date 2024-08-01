@@ -37,6 +37,7 @@ import {
   getGroupMostRecentActivity,
   ReprocessingStatus,
   useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
 } from '../utils';
 
 const EscalatingIssuesFeedback = HookOrDefault({
@@ -72,6 +73,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -157,6 +159,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
+  const MainLayoutComponent = hasStreamlinedUI ? GroupContent : StyledLayoutMain;
 
   return (
     <TransactionProfileIdProvider
@@ -182,8 +185,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             />
           ) : (
             <Fragment>
-              <StyledLayoutMain>
-                {renderGroupStatusBanner()}
+              <MainLayoutComponent>
+                {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
                 {eventWithMeta && issueTypeConfig.stats.enabled && (
                   <GroupEventHeader
@@ -193,7 +196,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                   />
                 )}
                 {renderContent()}
-              </StyledLayoutMain>
+              </MainLayoutComponent>
               <StyledLayoutSide>
                 <GroupSidebar
                   organization={organization}
@@ -234,6 +237,21 @@ const StyledLayoutMain = styled(Layout.Main)`
     border-right: 1px solid ${p => p.theme.border};
     padding-right: 0;
   }
+`;
+
+const GroupContent = styled(Layout.Main)`
+  background: ${p => p.theme.backgroundSecondary};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+  padding: ${space(1.5)};
+`;
+
+export const GroupContentItem = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1.5)};
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`

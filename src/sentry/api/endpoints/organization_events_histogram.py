@@ -57,7 +57,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response({})
 
@@ -81,7 +81,8 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
                     results = dataset.histogram_query(
                         fields=data["field"],
                         user_query=data.get("query"),
-                        params=params,
+                        params={},
+                        snuba_params=snuba_params,
                         num_buckets=data["numBuckets"],
                         precision=data["precision"],
                         min_value=data.get("min"),

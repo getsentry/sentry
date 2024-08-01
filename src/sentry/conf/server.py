@@ -395,6 +395,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.monitors",
+    "sentry.integrations",
     "sentry.uptime",
     "sentry.replays",
     "sentry.release_health",
@@ -736,6 +737,9 @@ CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.integrations.github.tasks",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
@@ -1539,10 +1543,6 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # ----
 # end APM config
 # ----
-
-# DSN to use for Sentry monitors
-SENTRY_MONITOR_DSN: str | None = None
-SENTRY_MONITOR_API_ROOT: str | None = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -2859,7 +2859,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
     "outcomes": "default",
+    "outcomes-dlq": "default",
     "outcomes-billing": "default",
+    "outcomes-billing-dlq": "default",
     "events-subscription-results": "default",
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",

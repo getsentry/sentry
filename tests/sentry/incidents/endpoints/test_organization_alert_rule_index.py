@@ -223,10 +223,34 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     )
     def test_anomaly_detection_alert(self, mock_seer_request):
         data = {
-            **self.alert_rule_dict,
+            "aggregate": "count()",
+            "query": "",
+            "time_window": 30,
             "detection_type": AlertRuleDetectionType.DYNAMIC,
             "sensitivity": AlertRuleSensitivity.LOW,
             "seasonality": AlertRuleSeasonality.AUTO,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+            "activations": [],
         }
         mock_seer_request.return_value = HTTPResponse(status=200)
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -275,10 +299,34 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     @patch("sentry.seer.anomaly_detection.store_data.logger")
     def test_anomaly_detection_alert_seer_timeout_max_retry(self, mock_logger, mock_seer_request):
         data = {
-            **self.alert_rule_dict,
+            "aggregate": "count()",
+            "query": "",
+            "time_window": 30,
             "detection_type": AlertRuleDetectionType.DYNAMIC,
             "sensitivity": AlertRuleSensitivity.LOW,
             "seasonality": AlertRuleSeasonality.AUTO,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+            "activations": [],
         }
         mock_seer_request.side_effect = TimeoutError
         with outbox_runner():
@@ -372,6 +420,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "is:unresolved"
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)

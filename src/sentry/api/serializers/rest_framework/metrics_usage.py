@@ -14,7 +14,7 @@ class MetricsUsageAlertSerializer(serializers.Serializer):
         """Associates an alert with a metric MRI which it uses"""
 
         for metric_mri in self.context["metric_mris"]:
-            if metric_mri in obj.snuba_query.aggregate:
+            if obj.snuba_query is not None and metric_mri in obj.snuba_query.aggregate:
                 return metric_mri
 
         # this should never happen
@@ -25,6 +25,7 @@ class MetricsUsageWidgetSerializer(serializers.Serializer):
     metricMRI = serializers.SerializerMethodField(read_only=True)
     widgetId = serializers.IntegerField(read_only=True, source="id")
     dashboardId = serializers.IntegerField(read_only=True, source="dashboard_id")
+    dashboardTitle = serializers.CharField(read_only=True, source="dashboard.title")
     title = serializers.CharField(read_only=True)
     queries = DashboardWidgetQuerySerializer(
         many=True, read_only=True, source="dashboardwidgetquery_set"

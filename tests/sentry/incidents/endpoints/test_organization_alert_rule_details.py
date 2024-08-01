@@ -296,8 +296,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             sensitivity=AlertRuleSensitivity.HIGH,
             threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
         )
-        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        trigger = self.create_alert_rule_trigger(rule, "hi", 0)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.detection_type == resp.data.get("detection_type")
@@ -306,7 +307,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
         ):
             self.create_alert_rule(
-                seasonality=AlertRuleSeasonality.AUTO, detection_type=AlertRuleDetectionType.DYNAMIC
+                seasonality=AlertRuleSeasonality.AUTO,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
             )  # Require both seasonality and sensitivity
 
         with pytest.raises(
@@ -315,13 +318,15 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(
                 sensitivity=AlertRuleSensitivity.MEDIUM,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
             )  # Require both seasonality and sensitivity
 
         with pytest.raises(
             ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
         ):
             self.create_alert_rule(
-                detection_type=AlertRuleDetectionType.DYNAMIC
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
             )  # DYNAMIC detection type requires seasonality and sensitivity
 
         with pytest.raises(
@@ -333,6 +338,16 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 sensitivity=AlertRuleSensitivity.HIGH,
                 comparison_delta=60,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
+            )
+
+        with pytest.raises(ValidationError, match="Invalid time window for dynamic alert"):
+            rule = self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=1,
             )
 
     @responses.activate
@@ -639,7 +654,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(self.alert_rule)
         # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
-        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
+        updated_alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+        assert updated_alert_rule.snuba_query is not None
+        updated_sub = updated_alert_rule.snuba_query.subscriptions.get()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
     def test_update_trigger_label_to_unallowed_value(self):
