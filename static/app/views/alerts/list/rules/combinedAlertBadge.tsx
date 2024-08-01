@@ -17,7 +17,7 @@ const IncidentStatusText: Record<IncidentStatus, string> = {
   [IncidentStatus.CRITICAL]: t('Critical'),
   [IncidentStatus.WARNING]: t('Warning'),
   [IncidentStatus.CLOSED]: t('Resolved'),
-  [IncidentStatus.OPENED]: t('Resolved'),
+  [IncidentStatus.OPENED]: t('Open'),
 };
 
 /**
