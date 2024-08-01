@@ -127,18 +127,21 @@ class WebhookPresenter(OptionsPresenter):
 
     def _send_to_webhook(self, json_data: dict[str, Any]) -> None:
         if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
-
-            json_data_str = json.dumps(json_data)
-
-            secret_key = settings.OPTIONS_AUTOMATOR_HMAC_SECRET.encode()
-            signature = hmac.new(secret_key, json_data_str.encode(), hashlib.sha256).hexdigest()
-
             headers = {
                 "Content-Type": "application/json",
-                "X-Hub-Signature-256": f"sha256={signature}",
             }
+            # Make sure the spacing is consistent
+            payload = json.dumps(json_data, separators=(",", ":")).encode("utf-8")
+            webhook_secret = settings.OPTIONS_AUTOMATOR_HMAC_SECRET
+            # If the webhook secret is set, we need to sign the payload
+            if webhook_secret is not None:
+                signature = hmac.new(
+                    webhook_secret.encode("utf-8"), payload, hashlib.sha256
+                ).hexdigest()
+                headers["x-sentry-options-signature"] = signature
+
             requests.post(
                 settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
-                data=json_data_str,
+                data=payload,
                 headers=headers,
             ).raise_for_status()
