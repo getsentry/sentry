@@ -19,7 +19,7 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {IncidentStatus} from 'sentry/views/alerts/types';
+import {CombinedAlertType, IncidentStatus} from 'sentry/views/alerts/types';
 
 import AlertRulesList from './alertRulesList';
 
@@ -42,24 +42,33 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRuleFixture({
-          id: '123',
-          name: 'First Issue Alert',
-          projects: ['earth'],
-          createdBy: {name: 'Samwise', id: 1, email: ''},
-        }),
-        MetricRuleFixture({
-          id: '345',
-          projects: ['earth'],
-          latestIncident: IncidentFixture({
-            status: IncidentStatus.CRITICAL,
+        {
+          ...ProjectAlertRuleFixture({
+            id: '123',
+            name: 'First Issue Alert',
+            projects: ['earth'],
+            createdBy: {name: 'Samwise', id: 1, email: ''},
           }),
-        }),
-        MetricRuleFixture({
-          id: '678',
-          projects: ['earth'],
-          latestIncident: null,
-        }),
+          type: CombinedAlertType.ISSUE,
+        },
+        {
+          ...MetricRuleFixture({
+            id: '345',
+            projects: ['earth'],
+            latestIncident: IncidentFixture({
+              status: IncidentStatus.CRITICAL,
+            }),
+          }),
+          type: CombinedAlertType.METRIC,
+        },
+        {
+          ...MetricRuleFixture({
+            id: '678',
+            projects: ['earth'],
+            latestIncident: null,
+          }),
+          type: CombinedAlertType.METRIC,
+        },
       ],
     });
 
@@ -178,12 +187,15 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRuleFixture({
-          id: '123',
-          name: deletedRuleName,
-          projects: ['earth'],
-          createdBy: {name: 'Samwise', id: 1, email: ''},
-        }),
+        {
+          ...ProjectAlertRuleFixture({
+            id: '123',
+            name: deletedRuleName,
+            projects: ['earth'],
+            createdBy: {name: 'Samwise', id: 1, email: ''},
+          }),
+          type: CombinedAlertType.ISSUE,
+        },
       ],
     });
     const deleteMock = MockApiClient.addMockResponse({
@@ -343,35 +355,41 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        MetricRuleFixture({
-          id: '1',
-          projects: ['earth'],
-          name: 'Active Activated Alert',
-          monitorType: 1,
-          activationCondition: 0,
-          activations: [
-            {
-              alertRuleId: '1',
-              dateCreated: '2021-08-01T00:00:00Z',
-              finishedAt: '',
-              id: '1',
-              isComplete: false,
-              querySubscriptionId: '1',
-              activator: '123',
-              conditionType: '0',
-            },
-          ],
-          latestIncident: IncidentFixture({
-            status: IncidentStatus.CRITICAL,
+        {
+          ...MetricRuleFixture({
+            id: '1',
+            projects: ['earth'],
+            name: 'Active Activated Alert',
+            monitorType: 1,
+            activationCondition: 0,
+            activations: [
+              {
+                alertRuleId: '1',
+                dateCreated: '2021-08-01T00:00:00Z',
+                finishedAt: '',
+                id: '1',
+                isComplete: false,
+                querySubscriptionId: '1',
+                activator: '123',
+                conditionType: '0',
+              },
+            ],
+            latestIncident: IncidentFixture({
+              status: IncidentStatus.CRITICAL,
+            }),
           }),
-        }),
-        MetricRuleFixture({
-          id: '2',
-          projects: ['earth'],
-          name: 'Ready Activated Alert',
-          monitorType: 1,
-          activationCondition: 0,
-        }),
+          type: CombinedAlertType.METRIC,
+        },
+        {
+          ...MetricRuleFixture({
+            id: '2',
+            projects: ['earth'],
+            name: 'Ready Activated Alert',
+            monitorType: 1,
+            activationCondition: 0,
+          }),
+          type: CombinedAlertType.METRIC,
+        },
       ],
     });
     const {router, organization} = initializeOrg({organization: defaultOrg});
@@ -392,11 +410,14 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRuleFixture({
-          name: 'First Issue Alert',
-          projects: ['earth'],
-          status: 'disabled',
-        }),
+        {
+          ...ProjectAlertRuleFixture({
+            name: 'First Issue Alert',
+            projects: ['earth'],
+            status: 'disabled',
+          }),
+          type: CombinedAlertType.ISSUE,
+        },
       ],
     });
     const {router, organization} = initializeOrg({organization: defaultOrg});
@@ -410,13 +431,16 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRuleFixture({
-          name: 'First Issue Alert',
-          projects: ['earth'],
-          // both disabled and muted
-          status: 'disabled',
-          snooze: true,
-        }),
+        {
+          ...ProjectAlertRuleFixture({
+            name: 'First Issue Alert',
+            projects: ['earth'],
+            // both disabled and muted
+            status: 'disabled',
+            snooze: true,
+          }),
+          type: CombinedAlertType.ISSUE,
+        },
       ],
     });
     const {router, organization} = initializeOrg({organization: defaultOrg});
@@ -431,11 +455,14 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRuleFixture({
-          name: 'First Issue Alert',
-          projects: ['earth'],
-          snooze: true,
-        }),
+        {
+          ...ProjectAlertRuleFixture({
+            name: 'First Issue Alert',
+            projects: ['earth'],
+            snooze: true,
+          }),
+          type: CombinedAlertType.ISSUE,
+        },
       ],
     });
     const {router, organization} = initializeOrg({organization: defaultOrg});
@@ -449,10 +476,13 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        MetricRuleFixture({
-          projects: ['earth'],
-          snooze: true,
-        }),
+        {
+          ...MetricRuleFixture({
+            projects: ['earth'],
+            snooze: true,
+          }),
+          type: CombinedAlertType.METRIC,
+        },
       ],
     });
     const {router, organization} = initializeOrg({organization: defaultOrg});
@@ -503,28 +533,37 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRuleFixture({
-          id: '123',
-          name: 'First Issue Alert',
-          projects: ['earth'],
-          createdBy: {name: 'Samwise', id: 1, email: ''},
-        }),
-        MetricRuleFixture({
-          id: '345',
-          projects: ['earth'],
-          name: 'activated Test Metric Alert',
-          monitorType: 1,
-          latestIncident: IncidentFixture({
-            status: IncidentStatus.CRITICAL,
+        {
+          ...ProjectAlertRuleFixture({
+            id: '123',
+            name: 'First Issue Alert',
+            projects: ['earth'],
+            createdBy: {name: 'Samwise', id: 1, email: ''},
           }),
-        }),
-        MetricRuleFixture({
-          id: '678',
-          name: 'Test Metric Alert 2',
-          monitorType: 0,
-          projects: ['earth'],
-          latestIncident: null,
-        }),
+          type: CombinedAlertType.ISSUE,
+        },
+        {
+          ...MetricRuleFixture({
+            id: '345',
+            projects: ['earth'],
+            name: 'activated Test Metric Alert',
+            monitorType: 1,
+            latestIncident: IncidentFixture({
+              status: IncidentStatus.CRITICAL,
+            }),
+          }),
+          type: CombinedAlertType.METRIC,
+        },
+        {
+          ...MetricRuleFixture({
+            id: '678',
+            name: 'Test Metric Alert 2',
+            monitorType: 0,
+            projects: ['earth'],
+            latestIncident: null,
+          }),
+          type: CombinedAlertType.METRIC,
+        },
       ],
     });
 

@@ -15,8 +15,6 @@ import type {Project} from 'sentry/types/project';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
-import {isIssueAlert} from '../../../utils';
-
 type Props = {
   hasMetricRuleDetailsError: boolean;
   onSnooze: (nextState: {
@@ -40,9 +38,7 @@ function DetailsHeader({
   const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink =
     rule &&
-    `/organizations/${organization.slug}/alerts/${
-      isIssueAlert(rule) ? 'rules' : 'metric-rules'
-    }/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`;
+    `/organizations/${organization.slug}/alerts/metric-rules/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`;
 
   const duplicateLink = {
     pathname: `/organizations/${organization.slug}/alerts/new/metric/`,

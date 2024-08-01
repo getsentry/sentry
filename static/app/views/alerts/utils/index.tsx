@@ -2,7 +2,6 @@ import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
 import {SessionFieldWithOperation} from 'sentry/types';
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import toArray from 'sentry/utils/array/toArray';
@@ -11,7 +10,6 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
 import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
-import type {MetricRule, SavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   Dataset,
   Datasource,
@@ -20,8 +18,8 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
-import type {Incident, IncidentStats} from '../types';
-import {AlertRuleStatus} from '../types';
+import type {CombinedMetricIssueAlerts, Incident, IncidentStats} from '../types';
+import {AlertRuleStatus, CombinedAlertType} from '../types';
 
 /**
  * Gets start and end date query parameters from stats
@@ -35,10 +33,8 @@ export function getStartEndFromStats(stats: IncidentStats) {
   return {start, end};
 }
 
-export function isIssueAlert(
-  data: IssueAlertRule | SavedMetricRule | MetricRule
-): data is IssueAlertRule {
-  return !data.hasOwnProperty('triggers');
+export function isIssueAlert(data: CombinedMetricIssueAlerts) {
+  return data.type === CombinedAlertType.ISSUE;
 }
 
 export const DATA_SOURCE_LABELS = {
