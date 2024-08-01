@@ -292,6 +292,7 @@ export function MetricsExtractionRuleForm({
       tooltip: isHighCardinalityTag(option)
         ? t('This tag has high cardinality.')
         : undefined,
+      tooltipOptions: {position: 'left'},
     }));
   }, [allAttributeOptions]);
 
@@ -335,6 +336,17 @@ export function MetricsExtractionRuleForm({
     },
     [onSubmit]
   );
+
+  const isCardinalityLimited = useMemo(() => {
+    if (!cardinality) {
+      return false;
+    }
+
+    const {conditions} = props.initialData;
+    return conditions.some(condition =>
+      condition.mris.some(conditionMri => cardinality[conditionMri] > 0)
+    );
+  }, [cardinality, props.initialData]);
 
   return (
     <Form onSubmit={onSubmit && handleSubmit} {...props}>
@@ -432,12 +444,23 @@ export function MetricsExtractionRuleForm({
             multiple
             placeholder={t('Select tags')}
             label={
-              <TooltipIconLabel
-                label={t('Group and filter by')}
-                help={t(
-                  'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+              <Fragment>
+                {isCardinalityLimited && (
+                  <Tooltip
+                    title={t(
+                      'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
+                    )}
+                  >
+                    <StyledIconWarning size="xs" color="yellow300" />
+                  </Tooltip>
                 )}
-              />
+                <TooltipIconLabel
+                  label={t('Group and filter by')}
+                  help={t(
+                    'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+                  )}
+                />
+              </Fragment>
             }
             creatable
             formatCreateLabel={value => `Custom: "${value}"`}
@@ -477,39 +500,17 @@ export function MetricsExtractionRuleForm({
                 );
               };
 
-              const isCardinalityLimited = (
-                condition: MetricsExtractionCondition
-              ): boolean => {
-                if (!cardinality) {
-                  return false;
-                }
-                return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
-              };
-
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => {
-                      const isExeedingCardinalityLimit = isCardinalityLimited(condition);
                       const hasSiblings = conditions.length > 1;
 
                       return (
                         <Fragment key={condition.id}>
-                          <SearchWrapper
-                            hasPrefix={hasSiblings || isExeedingCardinalityLimit}
-                          >
-                            {hasSiblings || isExeedingCardinalityLimit ? (
-                              isExeedingCardinalityLimit ? (
-                                <Tooltip
-                                  title={t(
-                                    'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
-                                  )}
-                                >
-                                  <StyledIconWarning size="xs" color="yellow300" />
-                                </Tooltip>
-                              ) : (
-                                <ConditionSymbol>{index + 1}</ConditionSymbol>
-                              )
+                          <SearchWrapper hasPrefix={hasSiblings}>
+                            {hasSiblings ? (
+                              <ConditionSymbol>{index + 1}</ConditionSymbol>
                             ) : null}
                             <SearchBarWithId
                               {...SPAN_SEARCH_CONFIG}
