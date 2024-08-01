@@ -140,7 +140,7 @@ function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): stri
     case RateLimitedReason.PROJECT_QUOTA:
       return 'global limit';
     case RateLimitedReason.KEY_QUOTA:
-      return 'DSN limit"';
+      return 'DSN limit';
     case RateLimitedReason.SPIKE_PROTECTION:
     case RateLimitedReason.SMART_RATE_LIMIT:
       return 'spike protection';
