@@ -72,6 +72,7 @@ enum ClientDiscardReason {
 }
 
 enum RateLimitedReason {
+  PROJECT_QUOTA = 'project_quota',
   ORG_QUOTA = 'org_quota',
   KEY_QUOTA = 'key_quota',
   SPIKE_PROTECTION = 'spike_protection',
@@ -130,11 +131,16 @@ function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): stri
     return 'quota';
   }
 
+  if (reason.endsWith('_disabled')) {
+    return 'disabled';
+  }
+
   switch (reason) {
     case RateLimitedReason.ORG_QUOTA:
-      return 'org quota';
+    case RateLimitedReason.PROJECT_QUOTA:
+      return 'global limit';
     case RateLimitedReason.KEY_QUOTA:
-      return 'key limit';
+      return 'DSN limit"';
     case RateLimitedReason.SPIKE_PROTECTION:
     case RateLimitedReason.SMART_RATE_LIMIT:
       return 'spike protection';
