@@ -1944,6 +1944,7 @@ class Factories:
         url: str,
         interval_seconds: int,
         timeout_ms: int,
+        date_updated: datetime,
     ):
         return UptimeSubscription.objects.create(
             type=type,
@@ -1952,6 +1953,7 @@ class Factories:
             url=url,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
+            date_updated=date_updated,
         )
 
     @staticmethod
