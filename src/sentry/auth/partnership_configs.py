@@ -3,7 +3,7 @@ from enum import Enum
 
 class ChannelName(Enum):
     FLY_IO = "fly"
-    FLY_DISABLEABLE = "fly-disableable"
+    FLY_NON_PARTNER = "fly-non-partner"
 
 
-SPONSOR_OAUTH_NAME = {ChannelName.FLY_IO: "Fly.io", ChannelName.FLY_DISABLEABLE: "Fly.disableable"}
+SPONSOR_OAUTH_NAME = {ChannelName.FLY_IO: "Fly.io", ChannelName.FLY_DISABLEABLE: "Fly.non-partner"}

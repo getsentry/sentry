@@ -73,8 +73,8 @@ class FlyOAuth2ProviderTest(TestCase):
 
 
 @control_silo_test
-class DisableableFlyOAuth2ProviderTest(FlyOAuth2ProviderTest):
+class NonPartnerFlyOAuth2ProviderTest(FlyOAuth2ProviderTest):
     def setUp(self):
         self.auth_provider: AuthProvider = AuthProvider.objects.create(
-            provider=ChannelName.FLY_DISABLEABLE.value, organization_id=self.organization.id
+            provider=ChannelName.FLY_NON_PARTNER.value, organization_id=self.organization.id
         )

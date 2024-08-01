@@ -9,10 +9,10 @@ class Config(AppConfig):
     def ready(self):
         from sentry import auth, options
 
-        from .provider import DisableableFlyOAuth2Provider, FlyOAuth2Provider
+        from .provider import FlyOAuth2Provider, NonPartnerFlyOAuth2Provider
 
         auth.register(ChannelName.FLY_IO.value, FlyOAuth2Provider)
-        auth.register(ChannelName.FLY_DISABLEABLE.value, DisableableFlyOAuth2Provider)
+        auth.register(ChannelName.FLY_NON_PARTNER.value, NonPartnerFlyOAuth2Provider)
 
         options.register(
             "auth-fly.client-id",
