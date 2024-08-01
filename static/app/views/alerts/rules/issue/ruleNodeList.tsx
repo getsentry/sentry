@@ -306,7 +306,9 @@ class RuleNodeList extends Component<Props> {
           placeholder={placeholder}
           value={null}
           onChange={obj => {
-            additionalAction ? additionalAction.onClick() : onAddRow(obj.value);
+            additionalAction && obj === additionalAction.option
+              ? additionalAction.onClick()
+              : onAddRow(obj.value);
           }}
           options={options}
           disabled={disabled}
