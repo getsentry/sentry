@@ -323,6 +323,7 @@ function FeedbackFooter() {
             tags: {
               feedback_source: 'search_query_builder',
               search_source: searchSource,
+              ['feedback.owner']: 'issues',
             },
           })
         }
