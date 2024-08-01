@@ -819,15 +819,21 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             not is_reprocessed and not has_reappeared
         ):  # If true, we added the .ONGOING reason already
             if is_new:
-                updated = (
-                    Group.objects.filter(id=event.group.id)
-                    .exclude(substatus=GroupSubStatus.NEW)
-                    .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+                group = Group.objects.filter(id=event.group.id).exclude(
+                    substatus=GroupSubStatus.NEW
                 )
+                if group:
+                    logger.warning(
+                        "Found NEW group with incorrect substatus",
+                        extra={"group_id": group.first().id, "substatus": group.first().substatus},
+                    )
+
+                updated = group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
                 if updated:
                     event.group.status = GroupStatus.UNRESOLVED
                     event.group.substatus = GroupSubStatus.NEW
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+
+                add_group_to_inbox(event.group, GroupInboxReason.NEW)
             elif is_regression:
                 # we don't need to update the group since that should've already been
                 # handled on event ingest
