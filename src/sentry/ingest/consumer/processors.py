@@ -332,8 +332,12 @@ def collect_span_metrics(
     project: Project,
     data: MutableMapping[str, Any],
 ):
-    if not features.has("organizations:dynamic-sampling", project.organization):
-        amount = len(data.get("spans", []))
+    if not features.has(
+        "organizations:dynamic-sampling", project.organization
+    ) and not features.has("organizations:am3_tier", project.organization):
+        amount = (
+            len(data.get("spans", [])) + 1
+        )  # Segment spans also get added to the total span count.
         metrics.incr(
             "event.save_event.unsampled.spans.count",
             amount=amount,
