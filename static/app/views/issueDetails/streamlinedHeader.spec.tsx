@@ -6,6 +6,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {TeamParticipant, UserParticipant} from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
@@ -100,7 +101,9 @@ describe('UpdatedGroupHeader', () => {
       expect(await screen.findByText('Warning')).toBeInTheDocument();
       expect(await screen.findByText('Unhandled')).toBeInTheDocument();
 
-      expect(await screen.findByText('Releases')).toBeInTheDocument();
+      expect(
+        await screen.findByText(textWithMarkupMatcher('Releases'))
+      ).toBeInTheDocument();
 
       expect(
         await screen.findByRole('button', {name: 'Modify issue priority'})
