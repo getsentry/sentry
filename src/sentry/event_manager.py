@@ -1719,17 +1719,24 @@ def _save_aggregate_new(
         secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
         all_grouphashes = primary.grouphashes + secondary.grouphashes
 
-        # Now we know for sure whether or not a group already exists, so handle both cases
         if secondary.existing_grouphash:
             group_info = handle_existing_grouphash(
                 job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
             )
             result = "found_secondary"
-
+        # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            group_info = create_group_with_grouphashes(
-                job, all_grouphashes, group_processing_kwargs
-            )
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, primary.hashes)
+
+            if seer_matched_grouphash:
+                group_info = handle_existing_grouphash(
+                    job, seer_matched_grouphash, all_grouphashes, group_processing_kwargs
+                )
+            # If we *still* haven't found a group into which to put the event, create a new group
+            else:
+                group_info = create_group_with_grouphashes(
+                    job, all_grouphashes, group_processing_kwargs
+                )
             result = "no_match"
 
     # From here on out, we're just doing housekeeping
