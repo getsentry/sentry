@@ -58,8 +58,8 @@ from sentry.search.events.types import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
-from sentry.users.services.user.service import user_service
 from sentry.snuba.query_sources import QuerySource
+from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (

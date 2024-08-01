@@ -109,7 +109,8 @@ def bulk_timeseries_query(
     groupby: Column | None = None,
     *,
     apply_formatting: Literal[False],
-) -> EventsResponse: ...
+) -> EventsResponse:
+    ...
 
 
 @overload
@@ -129,7 +130,8 @@ def bulk_timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
-) -> SnubaTSResult: ...
+) -> SnubaTSResult:
+    ...
 
 
 def bulk_timeseries_query(
