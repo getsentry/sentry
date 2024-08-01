@@ -9,6 +9,7 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
+import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -27,7 +28,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
-import DropdownList from 'sentry/views/issueDetails/dropdownList';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
@@ -174,13 +174,13 @@ export default function StreamlinedGroupHeader({
             {group.participants.length > 0 && (
               <Wrapper>
                 {t('Participants')}
-                <DropdownList users={userParticipants} teams={teamParticipants} />
+                <ParticipantList users={userParticipants} teams={teamParticipants} />
               </Wrapper>
             )}
             {displayUsers.length > 0 && (
               <Wrapper>
                 {t('Viewers')}
-                <DropdownList users={displayUsers} />
+                <ParticipantList users={displayUsers} />
               </Wrapper>
             )}
           </PriorityWorkflowWrapper>
