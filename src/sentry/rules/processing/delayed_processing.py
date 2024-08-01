@@ -495,7 +495,7 @@ def process_rulegroups_in_batches(project_id: int):
     event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
 
     if event_count < batch_size:
-        return apply_delayed.delayed(project_id)
+        return apply_delayed.delay(project_id)
 
     logger.info(
         "delayed_processing.process_large_batch",
@@ -522,7 +522,7 @@ def process_rulegroups_in_batches(project_id: int):
                 model=Project, filters={"project_id": project_id}, fields=list(batch.keys())
             )
 
-            apply_delayed.delayed(project_id, batch_key)
+            apply_delayed.delay(project_id, batch_key)
 
 
 def process_delayed_alert_conditions() -> None:
