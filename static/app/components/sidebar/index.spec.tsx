@@ -400,6 +400,7 @@ describe('Sidebar', function () {
       localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
       renderSidebarWithFeatures([
         'insights-entry-points',
+        'starfish-mobile-ui-module',
         'insights-mobile-vitals-module',
       ]);
 

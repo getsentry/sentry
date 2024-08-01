@@ -90,7 +90,6 @@ function VitalsScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         `avg(mobile.frames_delay)`,
         `count()`,
       ]}
-      // TODO: Add default sort on count column
       defaultSort={[
         {
           key: `count()`,

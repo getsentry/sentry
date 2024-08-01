@@ -303,9 +303,9 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   },
   // Mobile vitals is not released yet
   'mobile-vitals': {
-    heading: t('TODO'),
-    description: t('TODO'),
-    valuePropDescription: t('Mobile UI load insights include:'),
+    heading: t('Mobile Vitals'),
+    description: t('Explore mobile app metrics.'),
+    valuePropDescription: '',
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
