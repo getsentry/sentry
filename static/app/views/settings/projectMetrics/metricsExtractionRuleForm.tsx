@@ -568,6 +568,7 @@ export function MetricsExtractionRuleForm({
                               placeholder={t('Add span attributes')}
                               organization={organization}
                               supportedTags={supportedTags}
+                              excludedTags={[]}
                               dataset={DiscoverDatasets.SPANS_INDEXED}
                               projectIds={[Number(projectId)]}
                               hasRecentSearches={false}
