@@ -871,10 +871,7 @@ def process_snoozes(job: PostProcessJob) -> None:
 
     # groups less than a day old should use the new -> escalating logic
     group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
-    should_use_new_escalation_logic = (
-        group_age_hours < MAX_NEW_ESCALATION_AGE_HOURS
-        and features.has("projects:first-event-severity-new-escalation", group.project)
-    )
+    should_use_new_escalation_logic = group_age_hours < MAX_NEW_ESCALATION_AGE_HOURS
     # Check if group is escalating
     if (
         not should_use_new_escalation_logic
@@ -1462,9 +1459,7 @@ def detect_new_escalation(job: PostProcessJob):
     from sentry.types.activity import ActivityType
 
     group = job["event"].group
-    if not group or not features.has(
-        "projects:first-event-severity-new-escalation", job["event"].project
-    ):
+    if not group:
         return
     extra = {
         "org_id": group.organization.id,

@@ -39,9 +39,6 @@ filterwarnings = [
 
   # pytest has not yet implemented the replacement for this yet
   "ignore:The --looponfail command line argument.*",
-
-  # Temporarily disable deprecation warnings for pydantic while we upgrade it
-  "ignore::DeprecationWarning:pydantic.*",
 ]
 looponfailroots = ["src", "tests"]
 
@@ -258,10 +255,8 @@ module = [
     "sentry.integrations.bitbucket.integration",
     "sentry.integrations.bitbucket.issues",
     "sentry.integrations.bitbucket.uninstalled",
-    "sentry.integrations.bitbucket.webhook",
     "sentry.integrations.bitbucket_server.client",
     "sentry.integrations.bitbucket_server.integration",
-    "sentry.integrations.bitbucket_server.webhook",
     "sentry.integrations.example.integration",
     "sentry.integrations.example.repository",
     "sentry.integrations.github.client",
@@ -271,7 +266,6 @@ module = [
     "sentry.integrations.gitlab.client",
     "sentry.integrations.gitlab.integration",
     "sentry.integrations.gitlab.issues",
-    "sentry.integrations.gitlab.webhooks",
     "sentry.integrations.jira.actions.form",
     "sentry.integrations.jira.client",
     "sentry.integrations.jira.integration",
@@ -410,8 +404,6 @@ module = [
     "sentry.testutils.helpers.features",
     "sentry.testutils.helpers.notifications",
     "sentry.testutils.helpers.slack",
-    "sentry.tsdb.dummy",
-    "sentry.tsdb.inmemory",
     "sentry.utils.auth",
     "sentry.utils.committers",
     "sentry.utils.services",
@@ -556,6 +548,8 @@ module = [
     "sentry.nodestore.filesystem.backend",
     "sentry.nodestore.models",
     "sentry.organizations.*",
+    "sentry.plugins.base.response",
+    "sentry.plugins.base.view",
     "sentry.profiles.*",
     "sentry.projects.services.*",
     "sentry.ratelimits.leaky_bucket",

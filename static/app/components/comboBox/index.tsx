@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
@@ -45,6 +45,13 @@ interface ComboBoxProps<Value extends string>
   hiddenOptions?: Set<string>;
   isLoading?: boolean;
   loadingMessage?: string;
+  /**
+   * Footer to be rendered at the bottom of the menu.
+   * @closeOverlay is a function that closes the menu
+   */
+  menuFooter?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   menuSize?: FormSize;
   menuWidth?: string;
   size?: FormSize;
@@ -67,6 +74,7 @@ function ComboBox<Value extends string>({
   menuWidth,
   hiddenOptions,
   hasSearch,
+  menuFooter,
   ...props
 }: ComboBoxProps<Value>) {
   const theme = useTheme();
@@ -176,7 +184,11 @@ function ComboBox<Value extends string>({
         zIndex={theme.zIndex?.tooltip}
         visible={state.isOpen}
       >
-        <StyledOverlay ref={popoverRef} width={menuWidth}>
+        <StyledOverlay
+          ref={popoverRef}
+          width={menuWidth}
+          data-menu-has-footer={!!menuFooter}
+        >
           {isLoading && (
             <MenuHeader size={menuSize ?? size}>
               <MenuTitle>{loadingMessage ?? t('Loading...')}</MenuTitle>
@@ -187,7 +199,13 @@ function ComboBox<Value extends string>({
           )}
           {/* Listbox adds a separator if it is not the first item
             To avoid this, we wrap it into a div */}
-          <div>
+          <div
+            css={css`
+              display: flex;
+              min-height: 0;
+              flex-direction: column;
+            `}
+          >
             <ListBox
               {...listBoxProps}
               overlayIsOpen={state.isOpen}
@@ -201,6 +219,13 @@ function ComboBox<Value extends string>({
             />
             <EmptyMessage>No items found</EmptyMessage>
           </div>
+          {menuFooter && (
+            <MenuFooter>
+              {typeof menuFooter === 'function'
+                ? menuFooter({closeOverlay: state.close})
+                : menuFooter}
+            </MenuFooter>
+          )}
         </StyledOverlay>
       </StyledPositionWrapper>
     </ControlWrapper>
@@ -464,4 +489,11 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
     width: 12px;
   }
 `;
+
+const MenuFooter = styled('div')`
+  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
+  padding: ${space(1)} ${space(1.5)};
+  z-index: 2;
+`;
+
 export {ControlledComboBox as ComboBox};

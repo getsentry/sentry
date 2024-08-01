@@ -6,7 +6,10 @@ import {Button} from 'sentry/components/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
-import {DraggableTabBar, type Tab} from 'sentry/views/issueList/draggableTabBar';
+import {
+  DraggableTabBar,
+  type Tab,
+} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
 
 const TabPanelContainer = styled('div')`
   width: 90%;

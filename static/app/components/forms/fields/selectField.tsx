@@ -99,7 +99,8 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   };
 
   render() {
-    const {allowClear, confirm, multiple, hideControlState, ...otherProps} = this.props;
+    const {allowClear, confirm, multiple, hideControlState, components, ...otherProps} =
+      this.props;
 
     return (
       <FormField {...otherProps} hideControlState flexibleControlStateSize>
@@ -134,6 +135,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                     {children}
                   </SelectComponents.IndicatorsContainer>
                 ),
+                ...components,
               }}
               styles={{
                 control: provided => ({

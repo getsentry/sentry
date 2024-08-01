@@ -22,7 +22,7 @@ import type {TraceTree} from '../traceModels/traceTree';
 import {TraceType} from '../traceType';
 
 import {TraceWarningComponents} from './styles';
-import {useTransactionUsageStats} from './useTransactionUsageStats';
+import {usePerformanceUsageStats} from './usePerformanceUsageStats';
 
 type ErrorOnlyWarningsProps = {
   organization: Organization;
@@ -127,19 +127,27 @@ function PerformanceSetupBanner({
 }
 
 type Subscription = {
-  categories: {
-    transactions: {
-      usageExceeded: boolean;
-    };
-  };
+  categories:
+    | {
+        transactions: {
+          usageExceeded: boolean;
+        };
+      }
+    | {
+        spans: {
+          usageExceeded: boolean;
+        };
+      };
   planDetails: {
     billingInterval: 'monthly' | 'annual';
-    hasOnDemandModes: boolean;
+  };
+  onDemandBudgets?: {
+    enabled: boolean;
   };
 };
 
 function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
-  const {data: transactionUsageStats} = useTransactionUsageStats({
+  const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization: props.organization,
     tree: props.tree,
   });
@@ -152,11 +160,19 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   );
 
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
-  const droppedTransactionsCount = transactionUsageStats?.totals['sum(quantity)'] || 0;
+  const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
 
   // Check if the organization still has transaction quota maxed out.
-  const hasExceededTransactionLimit =
-    subscription?.categories.transactions.usageExceeded || false;
+  const dataCategories = subscription?.categories;
+  let hasExceededTransactionLimit = false;
+
+  if (dataCategories) {
+    if ('transactions' in dataCategories) {
+      hasExceededTransactionLimit = dataCategories.transactions.usageExceeded || false;
+    } else if ('spans' in dataCategories) {
+      hasExceededTransactionLimit = dataCategories.spans.usageExceeded || false;
+    }
+  }
 
   const hideBanner =
     droppedTransactionsCount === 0 ||
@@ -177,12 +193,12 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const title = tct("You've exceeded your [billingInterval] [billingType]", {
     billingInterval: subscription?.planDetails.billingInterval ?? 'monthly',
-    billingType: subscription?.planDetails.hasOnDemandModes
+    billingType: subscription?.onDemandBudgets?.enabled
       ? t('pay-as-you-go budget')
       : t('quota'),
   });
 
-  const ctaText = subscription?.planDetails?.hasOnDemandModes
+  const ctaText = subscription?.onDemandBudgets?.enabled
     ? t('Increase Budget')
     : t('Increase Volumes');
 
@@ -196,7 +212,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
         description={tct(
           'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, increase your [billingType].',
           {
-            billingType: subscription?.planDetails?.hasOnDemandModes
+            billingType: subscription?.onDemandBudgets?.enabled
               ? t('budget')
               : t('quota'),
           }

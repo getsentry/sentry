@@ -82,3 +82,8 @@ class FlyOAuth2Provider(OAuth2Provider):
             "data": self.get_oauth_data(data),
             "email_verified": False,
         }
+
+
+class NonPartnerFlyOAuth2Provider(FlyOAuth2Provider):
+    name = SPONSOR_OAUTH_NAME[ChannelName.FLY_NON_PARTNER]
+    is_partner = False
