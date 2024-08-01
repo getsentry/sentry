@@ -21,7 +21,9 @@ import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor, Project} from 'sentry/types';
+import {MonitorType} from 'sentry/types/alerts';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
@@ -57,7 +59,24 @@ function RuleListRow({
   const [assignee, setAssignee] = useState<string>('');
   const activeIncident = hasActiveIncident(rule);
 
-  function renderLastIncidentDate(): React.ReactNode {
+  const isActivatedAlertRule =
+    !isIssueAlert(rule) && rule.monitorType === MonitorType.ACTIVATED;
+
+  // TODO(davidenwang): Decompose this further
+  function renderLastIncidentOrActivationInfo(): React.ReactNode {
+    if (isActivatedAlertRule) {
+      if (!rule.activations?.length) {
+        return t('Alert has not been activated yet');
+      }
+
+      return (
+        <div>
+          {t('Last activated ')}
+          <TimeSince date={rule.activations[0].dateCreated} />
+        </div>
+      );
+    }
+
     if (isIssueAlert(rule)) {
       if (!rule.lastTriggered) {
         return t('Alert not triggered yet');
@@ -221,7 +240,7 @@ function RuleListRow({
               {rule.name}
             </Link>
           </AlertName>
-          <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
+          <AlertIncidentDate>{renderLastIncidentOrActivationInfo()}</AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>
@@ -229,7 +248,11 @@ function RuleListRow({
           <CombinedAlertBadge rule={rule} />
         </FlexCenter>
         <MarginLeft>
-          <AlertRuleStatus rule={rule} />
+          {isActivatedAlertRule ? (
+            <ActivatedMetricAlertRuleStatus rule={rule} />
+          ) : (
+            <AlertRuleStatus rule={rule} />
+          )}
         </MarginLeft>
       </FlexCenter>
       <FlexCenter>

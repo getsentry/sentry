@@ -18,7 +18,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MonitorType} from 'sentry/types/alerts';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -39,7 +38,6 @@ import {AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
-import ActivatedRuleRow from './activatedRuleRow';
 import RuleListRow from './row';
 
 type SortField = 'date_added' | 'name' | ['incident_status', 'date_triggered'];
@@ -250,25 +248,6 @@ function AlertRulesList() {
                       const keyPrefix = isIssueAlertInstance
                         ? AlertRuleType.ISSUE
                         : AlertRuleType.METRIC;
-
-                      if (
-                        !isIssueAlertInstance &&
-                        rule.monitorType === MonitorType.ACTIVATED
-                      ) {
-                        return (
-                          <ActivatedRuleRow
-                            // Metric and issue alerts can have the same id
-                            key={`${keyPrefix}-${rule.id}`}
-                            projectsLoaded={initiallyLoaded}
-                            projects={projects as Project[]}
-                            rule={rule}
-                            orgId={organization.slug}
-                            onOwnerChange={handleOwnerChange}
-                            onDelete={handleDeleteRule}
-                            hasEditAccess={hasEditAccess}
-                          />
-                        );
-                      }
 
                       return (
                         <RuleListRow
