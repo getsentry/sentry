@@ -35,6 +35,7 @@ class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
     fingerprint = serializers.IntegerField(min_value=0, max_value=(1 << 32) - 1, required=False)
     dataSource = serializers.ChoiceField(["transactions", "profiles", "functions"], required=False)
     query = serializers.CharField(required=False)
+    expand = serializers.ListField(child=serializers.ChoiceField(["metrics"]), required=False)
 
     def validate(self, attrs):
         source = attrs.get("dataSource")
@@ -113,7 +114,11 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             )
             profile_candidates = executor.get_profile_candidates()
 
-        profile_candidates["generate_metrics"] = "generate_metrics" in request.query_params
+        expand = serialized.get("expand") or []
+        if expand:
+            if "metrics" in expand:
+                profile_candidates["generate_metrics"] = True
+
         return proxy_profiling_service(
             method="POST",
             path=f"/organizations/{organization.id}/flamegraph",
