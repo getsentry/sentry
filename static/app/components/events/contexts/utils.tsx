@@ -624,7 +624,7 @@ export function getContextSummary({
       }
       break;
     case 'runtime':
-    case 'generic':
+    case 'browser':
       title = data?.name ?? null;
       if (defined(data?.version)) {
         subtitle = t('Version: ') + data?.version;
