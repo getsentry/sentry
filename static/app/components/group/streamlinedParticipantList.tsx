@@ -22,6 +22,7 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
   });
 
   const theme = useTheme();
+  const showHeaders = users.length > 0 && teams && teams.length > 0;
 
   return (
     <div>
@@ -33,7 +34,7 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
           <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
             <StyledOverlay>
               <ParticipantListWrapper>
-                {teams && teams.length > 0 && (
+                {showHeaders && teams && teams.length > 0 && (
                   <ListTitle>{t('Teams (%s)', teams.length)}</ListTitle>
                 )}
                 {teams?.map(team => (
@@ -45,7 +46,9 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
                     </div>
                   </UserRow>
                 ))}
-                {<ListTitle>{t('Individuals (%s)', users.length)}</ListTitle>}
+                {showHeaders && (
+                  <ListTitle>{t('Individuals (%s)', users.length)}</ListTitle>
+                )}
                 {users.map(user => (
                   <UserRow key={user.id}>
                     <Avatar user={user} size={20} />

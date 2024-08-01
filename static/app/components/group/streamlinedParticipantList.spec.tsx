@@ -29,4 +29,12 @@ describe('ParticipantList', () => {
     await userEvent.click(screen.getAllByText('JD')[0]);
     expect(screen.queryByText('Bob Alice')).not.toBeInTheDocument();
   });
+
+  it('does not display section headers when there is only users or teams', async () => {
+    render(<ParticipantList users={users} />);
+    await userEvent.click(screen.getByText('JD'));
+    expect(await screen.findByText('Bob Alice')).toBeInTheDocument();
+
+    expect(screen.queryByText('Teams')).not.toBeInTheDocument();
+  });
 });
