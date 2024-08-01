@@ -19,10 +19,8 @@ import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -51,23 +49,65 @@ interface DebugMetaProps {
     images: Array<Image | null>;
   };
   event: Event;
-  organization: Organization;
   projectSlug: Project['slug'];
   groupId?: Group['id'];
 }
 
 interface FilterState {
+  allImages: Images;
   filterOptions: SelectSection<string>[];
   filterSelections: SelectOption<string>[];
-  filteredImages: Images;
-  filteredImagesByFilter: Images;
-  filteredImagesBySearch: Images;
 }
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
   defaultHeight: 81,
 });
+
+function applyImageFilters(
+  images: Images,
+  filterSelections: SelectOption<string>[],
+  searchTerm: string
+) {
+  const selections = new Set(filterSelections.map(option => option.value));
+
+  let filteredImages = images;
+
+  if (selections.size > 0) {
+    filteredImages = filteredImages.filter(image => selections.has(image.status));
+  }
+
+  if (searchTerm !== '') {
+    filteredImages = filteredImages.filter(image => {
+      const term = searchTerm.toLowerCase();
+      // When searching for an address, check for the address range of the image
+      // instead of an exact match.  Note that images cannot be found by index
+      // if they are at 0x0.  For those relative addressing has to be used.
+      if (term.indexOf('0x') === 0) {
+        const needle = parseAddress(term);
+        if (needle > 0 && image.image_addr !== '0x0') {
+          const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
+          return needle >= startAddress && needle < endAddress;
+        }
+      }
+
+      // the searchTerm ending at "!" is the end of the ID search.
+      const relMatch = term.match(/^\s*(.*?)!/); // debug_id!address
+      const idSearchTerm = normalizeId(relMatch?.[1] || term);
+
+      return (
+        // Prefix match for identifiers
+        normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
+        normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
+        // Any match for file paths
+        (image.code_file?.toLowerCase() || '').includes(term) ||
+        (image.debug_file?.toLowerCase() || '').includes(term)
+      );
+    });
+  }
+
+  return filteredImages;
+}
 
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const organization = useOrganization();
@@ -76,28 +116,12 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const [filterState, setFilterState] = useState<FilterState>({
     filterOptions: [],
     filterSelections: [],
-    filteredImages: [],
-    filteredImagesByFilter: [],
-    filteredImagesBySearch: [],
+    allImages: [],
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
-  const [panelTableHeight, setPanelTableHeight] = useState<number>();
   const [isOpen, setIsOpen] = useState(false);
   const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const getFilteredImagesByFilter = useCallback(
-    (filteredImages: Images, filterOptions: SelectOption<string>[]) => {
-      const checkedOptions = new Set(filterOptions.map(option => option.value));
-
-      if (![...checkedOptions].length) {
-        return filteredImages;
-      }
-
-      return filteredImages.filter(image => checkedOptions.has(image.status));
-    },
-    []
-  );
 
   const getRelevantImages = useCallback(() => {
     const {images} = data;
@@ -149,12 +173,12 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       return true;
     }) as Images;
 
-    const filteredImages = [...usedImages, ...unusedImages];
+    const allImages = [...usedImages, ...unusedImages];
 
     const filterOptions = [
       {
         label: t('Status'),
-        options: [...new Set(filteredImages.map(image => image.status))].map(status => ({
+        options: [...new Set(allImages.map(image => image.status))].map(status => ({
           value: status,
           textValue: status,
           label: <Status status={status} />,
@@ -167,42 +191,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
     setFilterState({
-      filteredImages,
+      allImages,
       filterOptions,
       filterSelections: defaultFilterSelections,
-      filteredImagesByFilter: getFilteredImagesByFilter(
-        filteredImages,
-        defaultFilterSelections
-      ),
-      filteredImagesBySearch: filteredImages,
     });
-  }, [data, getFilteredImagesByFilter]);
-
-  const filterImage = useCallback((image: Image, term: string) => {
-    // When searching for an address, check for the address range of the image
-    // instead of an exact match.  Note that images cannot be found by index
-    // if they are at 0x0.  For those relative addressing has to be used.
-    if (term.indexOf('0x') === 0) {
-      const needle = parseAddress(term);
-      if (needle > 0 && image.image_addr !== '0x0') {
-        const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
-        return needle >= startAddress && needle < endAddress;
-      }
-    }
-
-    // the searchTerm ending at "!" is the end of the ID search.
-    const relMatch = term.match(/^\s*(.*?)!/); // debug_id!address
-    const idSearchTerm = normalizeId(relMatch?.[1] || term);
-
-    return (
-      // Prefix match for identifiers
-      normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
-      normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
-      // Any match for file paths
-      (image.code_file?.toLowerCase() || '').includes(term) ||
-      (image.debug_file?.toLowerCase() || '').includes(term)
-    );
-  }, []);
+  }, [data]);
 
   const handleReprocessEvent = useCallback(
     (id: Group['id']) => {
@@ -233,88 +226,51 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     }
   }, [listRef, getScrollbarWidth]);
 
-  const filterImagesBySearchTerm = useCallback(() => {
-    const {filteredImages, filterSelections} = filterState;
-    const filteredImagesBySearch = filteredImages.filter(image =>
-      filterImage(image, searchTerm.toLowerCase())
-    );
+  const getEmptyMessage = useCallback(
+    images => {
+      const {filterSelections} = filterState;
 
-    const filteredImagesByFilter = getFilteredImagesByFilter(
-      filteredImagesBySearch,
-      filterSelections
-    );
+      if (images.length) {
+        return {};
+      }
 
-    setFilterState(fs => ({
-      ...fs,
-      filteredImagesBySearch,
-      filteredImagesByFilter,
-    }));
-  }, [filterState, getFilteredImagesByFilter, filterImage, searchTerm]);
+      if (searchTerm && !images.length) {
+        const hasActiveFilter = filterSelections.length > 0;
 
-  const getPanelBodyHeight = useCallback(() => {
-    const height = panelTableRef?.current?.offsetHeight;
-    if (height) {
-      setPanelTableHeight(height);
-    }
-  }, [panelTableRef]);
-
-  const getEmptyMessage = useCallback(() => {
-    const {filteredImagesByFilter: images, filterSelections} = filterState;
-
-    if (images.length) {
-      return {};
-    }
-
-    if (searchTerm && !images.length) {
-      const hasActiveFilter = filterSelections.length > 0;
+        return {
+          emptyMessage: t('Sorry, no images match your search query'),
+          emptyAction: hasActiveFilter ? (
+            <Button
+              onClick={() => setFilterState(fs => ({...fs, filterSelections: []}))}
+              priority="primary"
+            >
+              {t('Reset filter')}
+            </Button>
+          ) : (
+            <Button onClick={() => setSearchTerm('')} priority="primary">
+              {t('Clear search bar')}
+            </Button>
+          ),
+        };
+      }
 
       return {
-        emptyMessage: t('Sorry, no images match your search query'),
-        emptyAction: hasActiveFilter ? (
-          <Button
-            onClick={() => setFilterState(fs => ({...fs, filterSelections: []}))}
-            priority="primary"
-          >
-            {t('Reset filter')}
-          </Button>
-        ) : (
-          <Button
-            onClick={() => {
-              setSearchTerm('');
-              setFilterState(fs => ({
-                ...fs,
-                filteredImagesByFilter: fs.filteredImages,
-                filteredImagesBySearch: fs.filteredImages,
-              }));
-            }}
-            priority="primary"
-          >
-            {t('Clear search bar')}
-          </Button>
-        ),
+        emptyMessage: t('There are no images to be displayed'),
       };
-    }
-
-    return {
-      emptyMessage: t('There are no images to be displayed'),
-    };
-  }, [filterState, searchTerm]);
+    },
+    [filterState, searchTerm]
+  );
 
   const handleOpenImageDetailsModal = useCallback(
     (imageCodeId: Image['code_id'], imageDebugId: Image['debug_id']) => {
-      const {filteredImages} = filterState;
-
-      if (!filteredImages.length) {
-        return;
-      }
-
+      const {allImages} = filterState;
       if (!imageCodeId && !imageDebugId) {
         return;
       }
 
       const image =
         imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
-          ? filteredImages.find(
+          ? allImages.find(
               ({code_id, debug_id}) =>
                 code_id === imageCodeId || debug_id === imageDebugId
             )
@@ -359,19 +315,17 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     updateGrid();
   }, [event, getRelevantImages, updateGrid]);
 
-  // Result of conversion from class component -> Replaces setState callback
-  useEffectAfterFirstRender(() => {
-    filterImagesBySearchTerm();
-  }, [searchTerm, filterState, filterImagesBySearchTerm]);
-
-  useEffectAfterFirstRender(() => {
+  useEffect(() => {
     updateGrid();
-    getPanelBodyHeight();
-  }, [filterState, updateGrid, getPanelBodyHeight]);
+  }, [filterState, updateGrid]);
 
-  function renderRow({index, key, parent, style}: ListRowProps) {
-    const {filteredImagesByFilter: images} = filterState;
-
+  function renderRow({
+    index,
+    key,
+    parent,
+    style,
+    images,
+  }: ListRowProps & {images: Images}) {
     return (
       <CellMeasurer
         cache={cache}
@@ -389,19 +343,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     );
   }
 
-  function renderList() {
-    const {filteredImagesByFilter: images} = filterState;
-
-    if (!panelTableHeight) {
-      return images.map((image, index) => (
-        <DebugImage
-          key={index}
-          image={image}
-          onOpenImageDetailsModal={handleOpenImageDetailsModal}
-        />
-      ));
-    }
-
+  function renderList(images: Images) {
     return (
       <AutoSizer disableHeight onResize={updateGrid}>
         {({width}) => (
@@ -412,7 +354,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
-            rowRenderer={renderRow}
+            rowRenderer={listRowProps => renderRow({...listRowProps, images})}
             width={width}
             isScrolling={false}
           />
@@ -421,11 +363,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     );
   }
 
-  const {
-    filteredImagesByFilter: filteredImages,
-    filterOptions,
-    filterSelections,
-  } = filterState;
+  const {allImages, filterOptions, filterSelections} = filterState;
+
+  const filteredImages = applyImageFilters(allImages, filterSelections, searchTerm);
 
   const {images} = data;
 
@@ -464,15 +404,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             query={searchTerm}
             filterOptions={showFilters ? filterOptions : undefined}
             onFilterChange={selections => {
-              const {filteredImagesBySearch} = filterState;
-              const filteredImagesByFilter = getFilteredImagesByFilter(
-                filteredImagesBySearch,
-                selections
-              );
               setFilterState(fs => ({
                 ...fs,
                 filterSelections: selections,
-                filteredImagesByFilter,
               }));
             }}
             filterSelections={filterSelections}
@@ -481,9 +415,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             isEmpty={!filteredImages.length}
             scrollbarWidth={scrollbarWidth}
             headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
-            {...getEmptyMessage()}
+            {...getEmptyMessage(filteredImages)}
           >
-            <div ref={panelTableRef}>{renderList()}</div>
+            <div ref={panelTableRef}>{renderList(filteredImages)}</div>
           </StyledPanelTable>
         </Fragment>
       )}
