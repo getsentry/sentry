@@ -566,6 +566,7 @@ class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
 
 class _FactoryRegistry:
     def __init__(self) -> None:
+        # Two kinds of index. The value sets should be equal at all times.
         self.by_action_service: dict[ActionService, ActionHandlerFactory] = {}
         self.by_slug: dict[str, ActionHandlerFactory] = {}
 
