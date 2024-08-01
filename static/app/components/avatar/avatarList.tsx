@@ -63,7 +63,7 @@ function AvatarList({
     <AvatarListWrapper className={className}>
       {!!numCollapsedAvatars && (
         <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
-          <CollapsedAvatars size={avatarSize}>
+          <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
             {numCollapsedAvatars < 99 && <Plus>+</Plus>}
             {numCollapsedAvatars}
           </CollapsedAvatars>
@@ -101,7 +101,7 @@ export const AvatarListWrapper = styled('div')`
   flex-direction: row-reverse;
 `;
 
-export const AvatarStyle = p => css`
+const AvatarStyle = p => css`
   border: 2px solid ${p.theme.background};
   margin-left: -8px;
   cursor: default;
