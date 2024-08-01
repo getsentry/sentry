@@ -719,6 +719,14 @@ class GetStacktraceStringTest(TestCase):
         assert _is_snipped_context_line("{snip} dogs are great {snip}") is True
         assert _is_snipped_context_line("dogs are great") is False
 
+    def test_base64_encoded_filename(self):
+        data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
+        data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
+            "values"
+        ][1]["values"][0] = "data:text/html;base64, extra content that could be long and useless"
+        stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
+        assert stacktrace_str == ""
+
 
 class EventContentIsSeerEligibleTest(TestCase):
     def get_eligible_event_data(self) -> dict[str, Any]:

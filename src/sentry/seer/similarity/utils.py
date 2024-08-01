@@ -86,6 +86,12 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     ):
                         html_frame_count += 1
 
+                    # We want to skip errors with base64 encoded filenames since they can be large
+                    # and not contain any usable information
+                    if frame_dict["filename"].startswith("data:text/html;base64"):
+                        metrics.incr("seer.grouping.base64_encoded_filename", sample_rate=1.0)
+                        return ""
+
                     frame_strings.append(
                         f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
                     )
