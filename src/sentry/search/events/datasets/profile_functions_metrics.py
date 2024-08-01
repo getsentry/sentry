@@ -112,8 +112,8 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
     def _resolve_cpm_cond(
         self,
         args: Mapping[str, str | Column | SelectType | int | float | datetime],
-        alias: str | None,
         cond: str,
+        alias: str | None,
     ) -> SelectType:
         timestmp = args["timestamp"]
         if cond == "greater":
@@ -169,8 +169,8 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
         return Function(
             "minus",
             [
-                self._resolve_cpm_cond(args, None, "greater"),
-                self._resolve_cpm_cond(args, None, "less"),
+                self._resolve_cpm_cond(args, "greater", None),
+                self._resolve_cpm_cond(args, "less", None),
             ],
             alias,
         )
@@ -186,10 +186,10 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_cpm_cond(args, alias, "greater"),
+                        self._resolve_cpm_cond(args, "greater", None),
                         function_aliases.resolve_metrics_percentile(
                             args=args,
-                            alias=alias,
+                            alias=None,
                             extra_conditions=[
                                 Function("greater", [Column("timestamp"), args["timestamp"]])
                             ],
@@ -199,10 +199,10 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                 Function(
                     "multiply",
                     [
-                        self._resolve_cpm_cond(args, alias, "less"),
+                        self._resolve_cpm_cond(args, "less", None),
                         function_aliases.resolve_metrics_percentile(
                             args=args,
-                            alias=alias,
+                            alias=None,
                             extra_conditions=[
                                 Function("less", [Column("timestamp"), args["timestamp"]])
                             ],
@@ -255,7 +255,7 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                     "cpm_before",
                     required_args=[fields.TimestampArg("timestamp")],
                     snql_distribution=lambda args, alias: self._resolve_cpm_cond(
-                        args, alias, "less"
+                        args, "less", alias
                     ),
                     default_result_type="number",
                 ),
@@ -263,7 +263,7 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                     "cpm_after",
                     required_args=[fields.TimestampArg("timestamp")],
                     snql_distribution=lambda args, alias: self._resolve_cpm_cond(
-                        args, alias, "greater"
+                        args, "greater", alias
                     ),
                     default_result_type="number",
                 ),

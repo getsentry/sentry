@@ -25,6 +25,7 @@ class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
         "transaction",
         "fingerprint",
         "name",
+        "span.description",
         "package",
         "is_application",
         "platform",
