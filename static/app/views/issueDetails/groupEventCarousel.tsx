@@ -9,7 +9,6 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {HighlightIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
@@ -418,7 +417,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 )}
               </EventTimeLabel>
             )}
-            <HighlightIconSummary event={event} />
           </EventIdAndTimeContainer>
         </EventHeading>
       </div>
