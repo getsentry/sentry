@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
-import type {CombinedMetricIssueAlerts, Incident, IncidentStats} from '../types';
+import type {CombinedAlerts, Incident, IncidentStats} from '../types';
 import {AlertRuleStatus, CombinedAlertType} from '../types';
 
 /**
@@ -33,7 +33,7 @@ export function getStartEndFromStats(stats: IncidentStats) {
   return {start, end};
 }
 
-export function isIssueAlert(data: CombinedMetricIssueAlerts) {
+export function isIssueAlert(data: CombinedAlerts) {
   return data.type === CombinedAlertType.ISSUE;
 }
 
