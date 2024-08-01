@@ -65,6 +65,7 @@ def _get_start_and_end(data: SnubaTSResult) -> tuple[int, int]:
         end = indices_with_results[-1]
         return start, end
 
+
 def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> BaseHTTPResponse:
     """
     Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert
