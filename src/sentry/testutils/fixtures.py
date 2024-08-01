@@ -647,7 +647,7 @@ class Fixtures:
         date_updated: None | datetime = None,
     ) -> UptimeSubscription:
         if date_updated is None:
-            date_updated = datetime.utcnow()
+            date_updated = timezone.now()
         return Factories.create_uptime_subscription(
             type=type,
             subscription_id=subscription_id,
