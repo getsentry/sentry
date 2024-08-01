@@ -1,3 +1,4 @@
+import {forwardRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,18 +23,25 @@ type Props = {
   users?: AvatarUser[];
 };
 
-function CollapsedAvatars({children, size}) {
+const CollapsedAvatars = forwardRef(function CollapsedAvatars(
+  {size, children}: {children: React.ReactNode; size: number},
+  ref: React.ForwardedRef<HTMLDivElement>
+) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   if (hasStreamlinedUI) {
-    return <CollapsedAvatarPill>{children}</CollapsedAvatarPill>;
+    return <CollapsedAvatarPill ref={ref}>{children}</CollapsedAvatarPill>;
   }
   return (
-    <CollapsedAvatarsCicle size={size} data-test-id="avatarList-collapsedavatars">
+    <CollapsedAvatarsCicle
+      ref={ref}
+      size={size}
+      data-test-id="avatarList-collapsedavatars"
+    >
       {children}
     </CollapsedAvatarsCicle>
   );
-}
+});
 
 function AvatarList({
   avatarSize = 28,
