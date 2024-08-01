@@ -210,16 +210,17 @@ export const MISC_FIELDS: FilterKeySection = {
 
 export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   TRANSACTION_FILTER_FIELDS,
+  SPAN_OP_FILTER_FIELDS,
+  HTTP_FILTER_FIELDS,
+  WEB_VITAL_FIELDS,
+  RELEASE_FIELDS,
   USER_FILTER_FIELDS,
   GEO_FILTER_FIELDS,
-  HTTP_FILTER_FIELDS,
-  SPAN_OP_FILTER_FIELDS,
-  WEB_VITAL_FIELDS,
   // TODO: In the future, it would be ideal if we could be more 'smart' about which fields we expose here.
   // For example, these mobile vitals are not necessary for a Python transaction, but they should be suggested for mobile SDK transactions
   MOBILE_VITAL_FIELDS,
   DEVICE_FIELDS,
-  RELEASE_FIELDS,
+
   MISC_FIELDS,
 ];
 
