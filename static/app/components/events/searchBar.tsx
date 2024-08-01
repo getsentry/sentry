@@ -36,7 +36,7 @@ import {
   STATIC_SPAN_TAGS,
 } from './searchBarFieldConstants';
 
-const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
+export const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
   if (!fields?.length) {
     return [];
   }

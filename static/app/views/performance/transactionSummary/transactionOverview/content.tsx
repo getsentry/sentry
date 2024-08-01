@@ -6,9 +6,10 @@ import omit from 'lodash/omit';
 import Feature from 'sentry/components/acl/feature';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
-import SearchBar from 'sentry/components/events/searchBar';
+import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -39,7 +40,8 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {FieldKey} from 'sentry/utils/fields';
+import {FieldKey, MobileVital, WebVital} from 'sentry/utils/fields';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -95,8 +97,8 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
     ],
   },
   {
-    value: 'user_identification_fields',
-    label: 'User Identification',
+    value: 'user_fields',
+    label: 'User',
     children: [
       FieldKey.USER,
       FieldKey.USER_DISPLAY,
@@ -131,8 +133,40 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
     label: 'Span Duration',
     children: SPAN_OP_BREAKDOWN_FIELDS,
   },
-  // TODO: In the future, it would be awesome if we could be more 'smart' about which fields we expose here.
-  // For example, these device fields are likely not necessary for a Python transaction, but they should be suggested for mobile
+  {
+    value: 'web_vital_fields',
+    label: 'Web Vitals',
+    children: [
+      WebVital.CLS,
+      WebVital.FCP,
+      WebVital.FID,
+      WebVital.FP,
+      WebVital.INP,
+      WebVital.LCP,
+      WebVital.REQUEST_TIME,
+    ],
+  },
+  // TODO: In the future, it would be ideal if we could be more 'smart' about which fields we expose here.
+  // For example, these mobile vitals are not necessary for a Python transaction, but they should be suggested for mobile SDK transactions
+  {
+    value: 'mobile_vital_fields',
+    label: 'Mobile Vitals',
+    children: [
+      MobileVital.APP_START_COLD,
+      MobileVital.APP_START_WARM,
+      MobileVital.FRAMES_FROZEN,
+      MobileVital.FRAMES_FROZEN_RATE,
+      MobileVital.FRAMES_SLOW,
+      MobileVital.FRAMES_SLOW_RATE,
+      MobileVital.FRAMES_TOTAL,
+      MobileVital.STALL_COUNT,
+      MobileVital.STALL_LONGEST_TIME,
+      MobileVital.STALL_PERCENTAGE,
+      MobileVital.STALL_TOTAL_TIME,
+      MobileVital.TIME_TO_FULL_DISPLAY,
+      MobileVital.TIME_TO_INITIAL_DISPLAY,
+    ],
+  },
   {
     value: 'device_fields',
     label: 'Device',
@@ -155,6 +189,22 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
       FieldKey.DEVICE_SIMULATOR,
       FieldKey.DEVICE_UUID,
     ],
+  },
+  {
+    value: 'release_fields',
+    label: 'Release',
+    children: [
+      FieldKey.RELEASE,
+      FieldKey.RELEASE_BUILD,
+      FieldKey.RELEASE_PACKAGE,
+      FieldKey.RELEASE_STAGE,
+      FieldKey.RELEASE_VERSION,
+    ],
+  },
+  {
+    value: 'misc_fields',
+    label: 'Misc',
+    children: [FieldKey.HAS, FieldKey.DIST],
   },
 ];
 
@@ -674,10 +724,16 @@ function getTransactionsListSort(
 }
 
 function getTransactionFilterTags(): TagCollection {
+  const measurements = getMeasurements();
   const combinedTags: TagCollection = {
     ...STATIC_SPAN_TAGS,
     ...STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+    ...STATIC_SEMVER_TAGS,
+    ...measurements,
   };
+
+  combinedTags.has = getHasTag(combinedTags);
+
   return combinedTags;
 }
 
