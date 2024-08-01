@@ -43,6 +43,7 @@ jobs:
           token: ${{ steps.getsentry.outputs.token }}
 
       - uses: actions/setup-node@v4
+        if: steps.changes.outputs.api_docs == 'true'
         id: setup-node
         with:
           node-version-file: '.volta.json'
