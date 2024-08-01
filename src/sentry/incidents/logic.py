@@ -792,6 +792,7 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
+    previous_detection_type = alert_rule.detection_type
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
     updated_query_fields = {}
     if name:
@@ -834,6 +835,7 @@ def update_alert_rule(
             comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
         updated_fields["comparison_delta"] = comparison_delta
+
     if detection_type is None:
         if "comparison_delta" in updated_fields:  # some value changed -> update type if necessary
             if comparison_delta is not None:
@@ -894,6 +896,33 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         alert_rule.update(**updated_fields)
+        # seer code works better if this happens first, but if we run into an error we need to un-update
+        # make a copy and actually update it after the dynamic stuff?
+        # pass dict containing sensitivity, seasonality, threshold_type, rule id, alert_rule.snuba_query_id, org_id,
+
+        if (
+            detection_type == AlertRuleDetectionType.DYNAMIC.value
+            or alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+        ):
+            if not features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
+                raise ResourceDoesNotExist(
+                    "Your organization does not have access to this feature."
+                )
+
+            update_seer = False
+            if previous_detection_type != alert_rule.detection_type or query or aggregate:
+                update_seer = True
+            elif updated_fields.get("detection_type") is not None:
+                if previous_detection_type != updated_fields.get("detection_type"):
+                    update_seer = True
+
+            if update_seer:
+                project = projects[0] if projects else alert_rule.projects.get()
+                try:
+                    send_historical_data_to_seer(alert_rule=alert_rule, project=project)
+                except (TimeoutError, MaxRetryError):
+                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
+
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,
