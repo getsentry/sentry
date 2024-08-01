@@ -4,13 +4,15 @@ import uuid
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from itertools import islice
 from typing import Any, DefaultDict, NamedTuple
 
 import sentry_sdk
 from django.db.models import OuterRef, Subquery
 
-from sentry import buffer, nodestore
+from sentry import buffer, nodestore, options
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
+from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -85,8 +87,15 @@ def fetch_project(project_id: int) -> Project | None:
         return None
 
 
-def fetch_rulegroup_to_event_data(project_id: int) -> dict[str, str]:
-    return buffer.backend.get_hash(model=Project, field={"project_id": project_id})
+def fetch_rulegroup_to_event_data(project_id: int, batch_key: str | None = None) -> dict[str, str]:
+    field: dict[str, models.Model | int | str] = {
+        "project_id": project_id,
+    }
+
+    if batch_key:
+        field["batch_key"] = batch_key
+
+    return buffer.backend.get_hash(model=Project, field=field)
 
 
 def get_rules_to_groups(rulegroup_to_event_data: dict[str, str]) -> DefaultDict[int, set[int]]:
@@ -447,13 +456,17 @@ def fire_rules(
                 safe_execute(callback, groupevent, futures)
 
 
-def cleanup_redis_buffer(project_id: int, rules_to_groups: DefaultDict[int, set[int]]) -> None:
+def cleanup_redis_buffer(
+    project_id: int, rules_to_groups: DefaultDict[int, set[int]], batch_key: str | None
+) -> None:
     hashes_to_delete = [
         f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
     ]
-    buffer.backend.delete_hash(
-        model=Project, filters={"project_id": project_id}, fields=hashes_to_delete
-    )
+    filters: dict[str, models.Model | str | int] = {"project_id": project_id}
+    if batch_key:
+        filters["batch_key"] = batch_key
+
+    buffer.backend.delete_hash(model=Project, filters=filters, fields=hashes_to_delete)
 
 
 def bucket_num_groups(num_groups: int) -> str:
@@ -461,6 +474,55 @@ def bucket_num_groups(num_groups: int) -> str:
         magnitude = 10 ** int(math.log10(num_groups))
         return f">{magnitude}"
     return "1"
+
+
+def process_rulegroups_in_batches(project_id: int):
+    """
+    This will check the number of rulegroup_to_event_data items in the Redis buffer for a project.
+
+    If the number is larger than the batch size, it will chunk the items and process them in batches.
+
+    The batches are replicated into a new redis hash with a unique filter (a uuid) to identify the batch.
+    We need to use a UUID because these batches can be created in multiple processes and we need to ensure
+    uniqueness across all of them for the centralized redis buffer. The batches are stored in redis because
+    we shouldn't pass objects that need to be pickled and 10k items could be problematic in the celery tasks
+    as arguments could be problematic. Finally, we can't use a pagination system on the data because
+    redis doesn't maintain the sort order of the hash keys.
+
+    `apply_delayed` will fetch the batch from redis and process the rules.
+    """
+    batch_size = options.get("delayed_processing.batch_size")
+    event_count = buffer.backend.get_hash_length(Project, {"project_id": project_id})
+
+    if event_count < batch_size:
+        return apply_delayed.delayed(project_id)
+
+    logger.info(
+        "delayed_processing.process_large_batch",
+        extra={"project_id": project_id, "count": event_count},
+    )
+
+    # if the dictionary is large, get the items and chunk them.
+    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
+
+    with metrics.timer("delayed_processing.process_batch.duration"):
+        items = iter(rulegroup_to_event_data.items())
+
+        while batch := dict(islice(items, batch_size)):
+            batch_key = str(uuid.uuid4())
+
+            buffer.backend.push_to_hash_bulk(
+                model=Project,
+                filters={"project_id": project_id, "batch_key": batch_key},
+                data=batch,
+            )
+
+            # remove the batched items from the project rulegroup_to_event_data
+            buffer.backend.delete_hash(
+                model=Project, filters={"project_id": project_id}, fields=list(batch.keys())
+            )
+
+            apply_delayed.delayed(project_id, batch_key)
 
 
 def process_delayed_alert_conditions() -> None:
@@ -473,7 +535,7 @@ def process_delayed_alert_conditions() -> None:
         logger.info("delayed_processing.project_id_list", extra={"project_ids": log_str})
 
         for project_id, _ in project_ids:
-            apply_delayed.delay(project_id)
+            process_rulegroups_in_batches(project_id)
 
         buffer.backend.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
@@ -487,32 +549,15 @@ def process_delayed_alert_conditions() -> None:
     time_limit=60,
     silo_mode=SiloMode.REGION,
 )
-def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
+def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any) -> None:
     """
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     project = fetch_project(project_id)
     if not project:
-        # Should we remove the project_id from the redis queue?
         return
 
-    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id)
-    num_groups = len(rulegroup_to_event_data)
-    num_groups_bucketed = bucket_num_groups(num_groups)
-    metrics.incr("delayed_processing.num_groups", tags={"num_groups": num_groups_bucketed})
-
-    if num_groups >= 10000:
-        logger.error(
-            "delayed_processing.too_many_groups",
-            extra={
-                "project_id": project_id,
-                "num_groups": num_groups,
-                "organization_id": project.organization_id,
-            },
-        )
-        # TODO @saponifi3d - Split the processing from here into smaller groups
-        return
-
+    rulegroup_to_event_data = fetch_rulegroup_to_event_data(project_id, batch_key)
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
     alert_rules = fetch_alert_rules(list(rules_to_groups.keys()))
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
@@ -542,7 +587,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     with metrics.timer("delayed_processing.fire_rules.duration"):
         fire_rules(rules_to_fire, parsed_rulegroup_to_event_data, alert_rules, project)
 
-    cleanup_redis_buffer(project_id, rules_to_groups)
+    cleanup_redis_buffer(project_id, rules_to_groups, batch_key)
 
 
 if not redis_buffer_registry.has(BufferHookEvent.FLUSH):

@@ -1,7 +1,6 @@
 import {lazy} from 'react';
 import styled from '@emotion/styled';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
@@ -12,6 +11,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
   event: Event;
@@ -62,7 +63,7 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
     `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
 
   return (
-    <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+    <StyledReplayEventDataSection type={FoldSectionKey.RRWEB} title={t('Replay')}>
       <LazyLoad
         LazyComponent={LazyReplayer}
         urls={attachmentList.map(createAttachmentUrl)}
@@ -85,7 +86,7 @@ export function EventRRWebIntegration(props: Props) {
   return <EventRRWebIntegrationContent {...props} />;
 }
 
-const StyledReplayEventDataSection = styled(EventDataSection)`
+const StyledReplayEventDataSection = styled(InterimSection)`
   overflow: hidden;
   margin-bottom: ${space(3)};
 `;

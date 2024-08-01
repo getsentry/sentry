@@ -3,11 +3,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore
-from typing import Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 from uuid import uuid4
 
 import sentry_sdk
-from django.db import IntegrityError, models, router
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -21,12 +21,26 @@ from sentry.models.files.utils import (
     nooplogger,
 )
 from sentry.utils import metrics
-from sentry.utils.db import atomic_transaction
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
+BlobOwnerType = TypeVar("BlobOwnerType", bound=AbstractFileBlobOwner)
 
-class AbstractFileBlob(Model):
+
+if TYPE_CHECKING:
+    # Django doesn't permit models to have parent classes that are Generic
+    # this kludge lets satisfy both mypy and django
+    class _Parent(Generic[BlobOwnerType]):
+        ...
+
+else:
+
+    class _Parent:
+        def __class_getitem__(cls, _):
+            return cls
+
+
+class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
@@ -37,9 +51,13 @@ class AbstractFileBlob(Model):
     class Meta:
         abstract = True
 
-    # abstract
-    FILE_BLOB_OWNER_MODEL: ClassVar[type[AbstractFileBlobOwner]]
-    DELETE_FILE_TASK: ClassVar[SentryTask]
+    @abstractmethod
+    def _create_blob_owner(self, organization_id: int) -> BlobOwnerType:
+        ...
+
+    @abstractmethod
+    def _delete_file_task(self) -> SentryTask:
+        ...
 
     @classmethod
     @abstractmethod
@@ -87,19 +105,16 @@ class AbstractFileBlob(Model):
                 extra={"checksum": checksum, "path": blob.path},
             )
 
-        def _ensure_blob_owned(blob):
+        def _ensure_blob_owned(blob: Self):
             if organization is None:
                 return
             try:
-                with atomic_transaction(using=router.db_for_write(cls.FILE_BLOB_OWNER_MODEL)):
-                    # TODO: file blob inheritance hierarchy is unsound
-                    cls.FILE_BLOB_OWNER_MODEL.objects.create(  # type: ignore[misc]
-                        organization_id=organization.id, blob=blob
-                    )
+                with transaction.atomic(using=router.db_for_write(cls)):
+                    blob._create_blob_owner(organization_id=organization.id)
             except IntegrityError:
                 pass
 
-        def _save_blob(blob):
+        def _save_blob(blob: Self):
             logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
             try:
                 blob.save()
@@ -216,7 +231,7 @@ class AbstractFileBlob(Model):
             # we avoid any transaction isolation where the
             # FileBlob row might still be visible by the
             # task before transaction is committed.
-            self.DELETE_FILE_TASK.apply_async(
+            self._delete_file_task().apply_async(
                 kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
             )
         super().delete(*args, **kwargs)

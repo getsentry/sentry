@@ -3,7 +3,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, ClassVar, NotRequired, Self, TypedDict
 
-from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.models.grouphash import GroupHash
 from sentry.utils.json import apply_key_filter
 
@@ -109,9 +108,3 @@ class SeerSimilarIssueData:
         }
 
         return cls(**similar_issue_data)
-
-
-@dataclass
-class SeerSimilarIssuesMetadata:
-    results: list[SeerSimilarIssueData]
-    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
