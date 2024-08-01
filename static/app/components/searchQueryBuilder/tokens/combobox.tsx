@@ -559,7 +559,6 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the tabbed menu
     shouldCloseOnBlur: false,
-    selectedKey: null,
     ...comboBoxProps,
   });
 
