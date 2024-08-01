@@ -156,6 +156,7 @@ describe('CacheLandingPage', function () {
             'time_spent_percentage()',
             'avg(cache.item_size)',
           ],
+          noPagination: true,
           per_page: 20,
           project: [],
           query: 'span.op:[cache.get_item,cache.get]',
