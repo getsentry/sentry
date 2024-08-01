@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
+BASE64_FILENAME_TRUNCATION_LENGTH = 150
 
 
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
@@ -89,8 +90,14 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     # We want to skip errors with base64 encoded filenames since they can be large
                     # and not contain any usable information
                     if frame_dict["filename"].startswith("data:text/html;base64"):
-                        metrics.incr("seer.grouping.base64_encoded_filename", sample_rate=1.0)
-                        return ""
+                        metrics.incr(
+                            "seer.grouping.base64_encoded_filename",
+                            sample_rate=1.0,
+                            tags={"only_frame": False},
+                        )
+                        frame_dict["filename"] = frame_dict["filename"][
+                            :BASE64_FILENAME_TRUNCATION_LENGTH
+                        ]
 
                     frame_strings.append(
                         f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
@@ -145,6 +152,18 @@ def event_content_is_seer_eligible(event: Event) -> bool:
         event.data, "threads", "values", -1, "stacktrace", "frames"
     ):
         return False
+
+    # If an event's only frame has base64 encoded filename, skip it.
+    if (
+        get_path(event.data, "exception", "values", 0, "stacktrace", "frames")
+        and len(event.data["exception"]["values"]) == 1
+    ):
+        frames = event.data["exception"]["values"][0]["stacktrace"]["frames"]
+        if len(frames) == 1 and frames[0].get("filename", "").startswith("data:text/html;base64"):
+            metrics.incr(
+                "seer.grouping.base64_encoded_filename", sample_rate=1.0, tags={"only_frame": True}
+            )
+            return False
 
     if event.platform not in SEER_ELIGIBLE_PLATFORMS:
         return False
