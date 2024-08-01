@@ -1,10 +1,14 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
-import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -14,12 +18,15 @@ import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import type {Project} from 'sentry/types/project';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+
+import {BrowserProfilingBetaWarning} from '../onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
 function splitProjectsByProfilingSupport(projects: Project[]): {
   supported: Project[];
@@ -190,7 +197,7 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
           />
         </div>
         {currentProject && currentPlatform ? (
-          <SdkDocumentation
+          <ProfilingOnboardingContent
             activeProductSelection={PROFILING_ONBOARDING_STEPS}
             organization={organization}
             platform={currentPlatform}
@@ -202,6 +209,114 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
     </TaskSidebar>
   );
 }
+
+interface ProfilingOnboardingContentProps {
+  activeProductSelection: ProductSolution[];
+  organization: Organization;
+  platform: PlatformIntegration;
+  projectId: Project['id'];
+  projectSlug: Project['slug'];
+}
+
+function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
+  const {isLoading, isError, dsn, cdn, docs, refetch} = useLoadGettingStarted({
+    orgSlug: props.organization.slug,
+    projSlug: props.projectSlug,
+    platform: props.platform,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the getting started documentation for this platform.'
+        )}
+      />
+    );
+  }
+
+  if (!docs) {
+    return (
+      <LoadingError
+        message={t(
+          'The getting started documentation for this platform is currently unavailable.'
+        )}
+      />
+    );
+  }
+
+  if (!dsn) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the DSN for this getting started documentation.'
+        )}
+        onRetry={refetch}
+      />
+    );
+  }
+
+  const docParams: DocsParams<any> = {
+    cdn,
+    dsn,
+    organization: props.organization,
+    platformKey: props.platform.id,
+    projectId: props.projectId,
+    projectSlug: props.projectSlug,
+    isFeedbackSelected: true,
+    isPerformanceSelected: false,
+    isProfilingSelected: false,
+    isReplaySelected: false,
+    sourcePackageRegistries: {
+      isLoading: false,
+      data: undefined,
+    },
+    platformOptions: PROFILING_ONBOARDING_STEPS,
+    newOrg: false,
+    feedbackOptions: {},
+  };
+
+  const steps = [
+    ...docs.onboarding.install(docParams),
+    ...docs.onboarding.configure(docParams),
+  ];
+
+  return (
+    <Fragment>
+      {docs.onboarding.introduction && (
+        <Introduction>{docs.onboarding.introduction(docParams)}</Introduction>
+      )}
+      <BetaWarningContainer>
+        <BrowserProfilingBetaWarning />
+      </BetaWarningContainer>
+      <Steps>
+        {steps.map(step => {
+          return <Step key={step.title ?? step.type} {...step} />;
+        })}
+      </Steps>
+    </Fragment>
+  );
+}
+
+const Steps = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: ${space(4)};
+`;
+
+const BetaWarningContainer = styled('div')`
+  margin-top: ${space(2)};
+`;
 
 const Content = styled('div')`
   padding: ${space(2)};
