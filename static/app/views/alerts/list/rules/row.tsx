@@ -26,24 +26,21 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
-import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
+import {getActor, hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
+import {UptimeMonitorStatus} from 'sentry/views/alerts/rules/uptime/types';
 
-import type {CombinedMetricIssueAlerts} from '../../types';
+import type {CombinedAlerts} from '../../types';
 import {CombinedAlertType} from '../../types';
 import {isIssueAlert} from '../../utils';
 
 type Props = {
   hasEditAccess: boolean;
-  onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
-  onOwnerChange: (
-    projectId: string,
-    rule: CombinedMetricIssueAlerts,
-    ownerValue: string
-  ) => void;
+  onDelete: (projectId: string, rule: CombinedAlerts) => void;
+  onOwnerChange: (projectId: string, rule: CombinedAlerts, ownerValue: string) => void;
   orgId: string;
   projects: Project[];
   projectsLoaded: boolean;
-  rule: CombinedMetricIssueAlerts;
+  rule: CombinedAlerts;
 };
 
 function RuleListRow({
@@ -57,13 +54,19 @@ function RuleListRow({
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
-  const activeIncident = hasActiveIncident(rule);
 
   const isActivatedAlertRule =
-    !isIssueAlert(rule) && rule.monitorType === MonitorType.ACTIVATED;
+    rule.type === CombinedAlertType.METRIC && rule.monitorType === MonitorType.ACTIVATED;
+  const isUptime = rule.type === CombinedAlertType.UPTIME;
 
   // TODO(davidenwang): Decompose this further
   function renderLastIncidentOrActivationInfo(): React.ReactNode {
+    if (isUptime) {
+      return tct('Actively monitoring every [seconds] seconds', {
+        seconds: rule.intervalSeconds,
+      });
+    }
+
     if (isActivatedAlertRule) {
       if (!rule.activations?.length) {
         return t('Alert has not been activated yet');
@@ -93,6 +96,7 @@ function RuleListRow({
       return t('Alert not triggered yet');
     }
 
+    const activeIncident = hasActiveIncident(rule);
     if (activeIncident) {
       return (
         <div>
@@ -110,7 +114,7 @@ function RuleListRow({
     );
   }
 
-  const slug = rule.projects[0];
+  const slug = isUptime ? rule.projectSlug : rule.projects[0];
   const editLink = `/organizations/${orgId}/alerts/${
     isIssueAlert(rule) ? 'rules' : 'metric-rules'
   }/${slug}/${rule.id}/`;
@@ -127,12 +131,11 @@ function RuleListRow({
     },
   };
 
-  const ownerId = rule.owner?.split(':')[1];
-  const teamActor = ownerId
-    ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
-    : null;
+  const ownerActor = getActor(rule);
 
-  const canEdit = ownerId ? userTeams.some(team => team.id === ownerId) : true;
+  const canEdit = ownerActor?.id
+    ? userTeams.some(team => team.id === ownerActor.id)
+    : true;
 
   const actions: MenuItemProps[] = [
     {
@@ -250,6 +253,12 @@ function RuleListRow({
         <MarginLeft>
           {isActivatedAlertRule ? (
             <ActivatedMetricAlertRuleStatus rule={rule} />
+          ) : isUptime ? (
+            rule.status === UptimeMonitorStatus.FAILED ? (
+              t('Down')
+            ) : (
+              t('Up')
+            )
           ) : (
             <AlertRuleStatus rule={rule} />
           )}
@@ -265,8 +274,8 @@ function RuleListRow({
       </FlexCenter>
 
       <FlexCenter>
-        {teamActor ? (
-          <ActorAvatar actor={teamActor} size={24} />
+        {ownerActor ? (
+          <ActorAvatar actor={ownerActor} size={24} />
         ) : (
           <AssigneeWrapper>
             {!projectsLoaded && <StyledLoadingIndicator mini />}

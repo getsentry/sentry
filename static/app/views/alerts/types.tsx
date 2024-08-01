@@ -1,6 +1,7 @@
 import type {AlertRuleActivation, IssueAlertRule} from 'sentry/types/alerts';
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 type Data = [number, {count: number}[]][];
 
@@ -91,6 +92,7 @@ export enum AlertRuleStatus {
 export enum CombinedAlertType {
   METRIC = 'alert_rule',
   ISSUE = 'rule',
+  UPTIME = 'uptime',
 }
 
 interface IssueAlert extends IssueAlertRule {
@@ -102,4 +104,10 @@ export interface MetricAlert extends MetricRule {
   type: CombinedAlertType.METRIC;
 }
 
+export interface UptimeAlert extends UptimeRule {
+  type: CombinedAlertType.UPTIME;
+}
+
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
+
+export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert;
