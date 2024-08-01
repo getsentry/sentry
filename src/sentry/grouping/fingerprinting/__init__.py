@@ -223,7 +223,7 @@ class FingerprintingRules:
         self.changelog = changelog
         self.bases = bases or []
 
-    def iter_rules(self, include_builtin: bool = True) -> Generator[Rule, None, None]:
+    def iter_rules(self, include_builtin: bool = True) -> Generator[Rule]:
         if self.rules:
             yield from self.rules
         if include_builtin:

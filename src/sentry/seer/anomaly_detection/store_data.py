@@ -9,7 +9,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.user import User
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
@@ -18,6 +18,7 @@ from sentry.seer.anomaly_detection.types import (
     StoreDataRequest,
     TimeSeriesPoint,
 )
+from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
@@ -47,18 +48,6 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
         ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get("count", 0))
         formatted_data.append(ts_point)
     return formatted_data
-
-
-def translate_direction(direction: int) -> str:
-    """
-    Temporary translation map to Seer's expected values
-    """
-    direction_map = {
-        AlertRuleThresholdType.ABOVE: "up",
-        AlertRuleThresholdType.BELOW: "down",
-        AlertRuleThresholdType.ABOVE_AND_BELOW: "both",
-    }
-    return direction_map[AlertRuleThresholdType(direction)]
 
 
 def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPResponse:
@@ -106,6 +95,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPR
         not alert_rule.sensitivity
         or not alert_rule.seasonality
         or alert_rule.threshold_type is None
+        or alert_rule.organization is None
     ):
         # this won't happen because we've already gone through the serializer, but mypy insists
         base_error_response.reason = (
@@ -168,7 +158,7 @@ def fetch_historical_data(alert_rule: AlertRule, snuba_query: SnubaQuery) -> Snu
         dataset_label = "errors"
     dataset = get_dataset(dataset_label)
     project = alert_rule.projects.get()
-    if not project or not dataset:
+    if not project or not dataset or not alert_rule.organization:
         return None
 
     historical_data = dataset.timeseries_query(

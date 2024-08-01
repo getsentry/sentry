@@ -50,6 +50,8 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
@@ -447,7 +449,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_1 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.7, "anomaly_type": "anomaly_low"},
+                    "anomaly": {
+                        "anomaly_score": 0.7,
+                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
+                    },
                     "timestamp": 1,
                     "value": 5,
                 }
@@ -465,7 +470,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 5
 
@@ -484,7 +489,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_2 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.9, "anomaly_type": "anomaly_high"},
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
                     "timestamp": 1,
                     "value": 10,
                 }
@@ -502,7 +510,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 10
 
@@ -521,7 +529,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_3 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": "none"},
+                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
                     "value": 1,
                 }
@@ -539,7 +547,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 1
 
@@ -556,19 +564,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule = self.dynamic_rule
         # test alert ABOVE
         anomaly1 = {
-            "anomaly": {"anomaly_score": 0.9, "anomaly_type": "anomaly_high"},
+            "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
         anomaly2 = {
-            "anomaly": {"anomaly_score": 0.6, "anomaly_type": "anomaly_low"},
+            "anomaly": {"anomaly_score": 0.6, "anomaly_type": AnomalyType.LOW_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
         not_anomaly = {
-            "anomaly": {"anomaly_score": 0.2, "anomaly_type": "none"},
+            "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
             "timestamp": 1,
             "value": 10,
         }

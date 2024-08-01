@@ -85,7 +85,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     status: int
     query: str
     aggregate: str
-    timeWindow: int
+    timeWindow: float
     resolution: float
     thresholdPeriod: int
     triggers: list[dict]
@@ -273,6 +273,7 @@ class AlertRuleSerializer(Serializer):
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
+        assert obj.snuba_query is not None
         env = obj.snuba_query.environment
         allow_mri = features.has(
             "organizations:custom-metrics",
