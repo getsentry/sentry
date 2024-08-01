@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
+from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
@@ -70,6 +71,12 @@ class SeerEventManagerGroupingTest(TestCase):
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                     "results": [asdict(seer_result_data)],
                 }
+                # In real life just filtering on group id wouldn't be enough to guarantee us a
+                # single, specific GroupHash record, but since the database resets before each test,
+                # here it's okay
+                expected_grouphash = GroupHash.objects.filter(
+                    group_id=NonNone(existing_event.group_id)
+                ).first()
 
                 # We checked whether to make the call, and then made it
                 assert should_call_seer_spy.call_count == 1
@@ -79,8 +86,8 @@ class SeerEventManagerGroupingTest(TestCase):
                 assert get_seer_similar_issues_return_values[0][0] == expected_metadata
                 assert new_event.data["seer_similarity"] == expected_metadata
 
-                # Parent group returned and used
-                assert get_seer_similar_issues_return_values[0][1] == existing_event.group
+                # Parent grouphash returned and parent group used
+                assert get_seer_similar_issues_return_values[0][1] == expected_grouphash
                 assert new_event.group_id == existing_event.group_id
 
     @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
