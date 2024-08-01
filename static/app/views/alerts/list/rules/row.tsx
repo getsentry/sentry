@@ -18,25 +18,13 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {
-  IconArrow,
-  IconChevron,
-  IconEllipsis,
-  IconMute,
-  IconNot,
-  IconUser,
-} from 'sentry/icons';
+import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor, Project} from 'sentry/types';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
-import {
-  AlertRuleComparisonType,
-  AlertRuleThresholdType,
-  AlertRuleTriggerType,
-} from 'sentry/views/alerts/rules/metric/types';
+import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
+import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 
 import type {CombinedMetricIssueAlerts} from '../../types';
 import {CombinedAlertType, IncidentStatus} from '../../types';
@@ -67,11 +55,7 @@ function RuleListRow({
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
-  const activeIncident =
-    rule.latestIncident?.status !== undefined &&
-    [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
-      rule.latestIncident.status
-    );
+  const activeIncident = hasActiveIncident(rule);
 
   function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
@@ -104,90 +88,6 @@ function RuleListRow({
         {t('Resolved ')}
         <TimeSince date={rule.latestIncident.dateClosed!} />
       </div>
-    );
-  }
-
-  function renderSnoozeStatus(): React.ReactNode {
-    return (
-      <IssueAlertStatusWrapper>
-        <IconMute size="sm" color="subText" />
-        {t('Muted')}
-      </IssueAlertStatusWrapper>
-    );
-  }
-
-  function renderAlertRuleStatus(): React.ReactNode {
-    if (isIssueAlert(rule)) {
-      if (rule.status === 'disabled') {
-        return (
-          <IssueAlertStatusWrapper>
-            <IconNot size="sm" color="subText" />
-            {t('Disabled')}
-          </IssueAlertStatusWrapper>
-        );
-      }
-      if (rule.snooze) {
-        return renderSnoozeStatus();
-      }
-      return null;
-    }
-
-    if (rule.snooze) {
-      return renderSnoozeStatus();
-    }
-
-    const criticalTrigger = rule.triggers.find(
-      ({label}) => label === AlertRuleTriggerType.CRITICAL
-    );
-    const warningTrigger = rule.triggers.find(
-      ({label}) => label === AlertRuleTriggerType.WARNING
-    );
-    const resolvedTrigger = rule.resolveThreshold;
-
-    const trigger =
-      activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
-        ? criticalTrigger
-        : warningTrigger ?? criticalTrigger;
-
-    let iconColor: ColorOrAlias = 'successText';
-    let iconDirection: 'up' | 'down' | undefined;
-    let thresholdTypeText =
-      activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
-        ? t('Above')
-        : t('Below');
-
-    if (activeIncident) {
-      iconColor =
-        trigger?.label === AlertRuleTriggerType.CRITICAL
-          ? 'errorText'
-          : trigger?.label === AlertRuleTriggerType.WARNING
-            ? 'warningText'
-            : 'successText';
-      iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
-    } else {
-      // Use the Resolved threshold type, which is opposite of Critical
-      iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'down' : 'up';
-      thresholdTypeText =
-        rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Below') : t('Above');
-    }
-
-    return (
-      <FlexCenter>
-        <IconArrow color={iconColor} direction={iconDirection} />
-        <TriggerText>
-          {`${thresholdTypeText} ${
-            rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
-              ? trigger?.alertThreshold?.toLocaleString()
-              : resolvedTrigger?.toLocaleString()
-          }`}
-          {getThresholdUnits(
-            rule.aggregate,
-            rule.comparisonDelta
-              ? AlertRuleComparisonType.CHANGE
-              : AlertRuleComparisonType.COUNT
-          )}
-        </TriggerText>
-      </FlexCenter>
     );
   }
 
@@ -351,7 +251,9 @@ function RuleListRow({
             />
           </Tooltip>
         </FlexCenter>
-        <MarginLeft>{renderAlertRuleStatus()}</MarginLeft>
+        <MarginLeft>
+          <AlertRuleStatus rule={rule} />
+        </MarginLeft>
       </FlexCenter>
       <FlexCenter>
         <ProjectBadgeContainer>
@@ -424,13 +326,6 @@ const FlexCenter = styled('div')`
   align-items: center;
 `;
 
-const IssueAlertStatusWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  line-height: 2;
-`;
-
 const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
   ${p => p.theme.overflowEllipsis}
   display: flex;
@@ -459,12 +354,6 @@ const ProjectBadgeContainer = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-`;
-
-const TriggerText = styled('div')`
-  margin-left: ${space(1)};
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 `;
 
 const ActionsColumn = styled('div')`
