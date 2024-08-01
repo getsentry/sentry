@@ -22,6 +22,7 @@ from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse
+from sentry.shared_integrations.response.mapping import MappingApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
@@ -1397,14 +1398,14 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             ],
         )
         cached_1 = self.github_client.check_cache(cache_key)
-        assert isinstance(cached_1, dict)
+        assert isinstance(cached_1, MappingApiResponse)
         assert cached_1["data"] == self.data
         # Calling a second time should work
         response = self.github_client.get_blame_for_files(
             [self.file1, self.file2, self.file3], extra={}
         )
         cached_2 = self.github_client.check_cache(cache_key)
-        assert isinstance(cached_2, dict)
+        assert isinstance(cached_2, MappingApiResponse)
         assert cached_2["data"] == self.data
         # Calling again after the cache has been cleared should still work
         cache.delete(cache_key)
@@ -1412,7 +1413,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             [self.file1, self.file2, self.file3], extra={}
         )
         cached_3 = self.github_client.check_cache(cache_key)
-        assert isinstance(cached_3, dict)
+        assert isinstance(cached_3, MappingApiResponse)
         assert cached_3["data"] == self.data
         assert (
             self.github_client.get_blame_for_files([self.file1, self.file2], extra={}) != response

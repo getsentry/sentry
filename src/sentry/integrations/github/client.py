@@ -719,11 +719,11 @@ class GitHubBaseClient(GithubProxyClient):
             except ValueError as e:
                 logger.exception(str(e), log_info)
                 return []
-            else:
-                self.set_cache(cache_key, response, 60)
 
         if not isinstance(response, MappingApiResponse):
             raise ApiError("Response is not JSON")
+
+        self.set_cache(cache_key, response, 60)
 
         errors = response.get("errors", [])
         if len(errors) > 0:
