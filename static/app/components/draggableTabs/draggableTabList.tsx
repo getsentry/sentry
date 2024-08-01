@@ -134,6 +134,7 @@ function BaseDraggableTabList({
               key={item.key}
               value={item}
               style={{display: 'flex', flexDirection: 'row'}}
+              as="div"
             >
               <Tab
                 key={item.key}
