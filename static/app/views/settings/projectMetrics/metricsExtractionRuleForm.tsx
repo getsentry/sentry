@@ -294,6 +294,7 @@ export function MetricsExtractionRuleForm({
       tooltip: isHighCardinalityTag(option)
         ? t('This tag has high cardinality.')
         : undefined,
+      tooltipOptions: {position: 'left'},
     }));
   }, [allAttributeOptions]);
 
