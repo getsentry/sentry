@@ -6,9 +6,9 @@ import type {TraceTree} from '../traceModels/traceTree';
 // 1 hour in milliseconds
 const ONE_HOUR = 60 * 60 * 1000;
 
-export type TransactionStatsGroup = {
+export type PerformanceStatsGroup = {
   by: {
-    reason: 'transaction_usage_exceeded';
+    reason: string;
   };
   totals: {
     'sum(quantity)': number;
@@ -16,10 +16,10 @@ export type TransactionStatsGroup = {
 };
 
 type PartialUsageStats = {
-  groups: TransactionStatsGroup[];
+  groups: PerformanceStatsGroup[];
 };
 
-export function useTransactionUsageStats({
+export function usePerformanceUsageStats({
   organization,
   tree,
 }: {
@@ -60,8 +60,8 @@ export function useTransactionUsageStats({
 
   return {
     ...results,
-    data: results.data?.groups.find(
-      group => group.by.reason === 'transaction_usage_exceeded'
+    data: results.data?.groups.find(group =>
+      ['transaction_usage_exceeded', 'span_usage_exceeded'].includes(group.by.reason)
     ),
   };
 }
