@@ -1,0 +1,60 @@
+name: shuffle-tests
+
+on:
+  # Allow manually running
+  workflow_dispatch:
+    inputs:
+      per-test-coverage:
+        description: Whether to get per-test coverage (uses ./github/workflows/codecov_per_test_coverage.yml)
+        required: true
+        default: 'true'
+  # Run once a week on sunday
+  schedule:
+    - cron: '0 1 * * 0'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SENTRY_SHUFFLE_TESTS: true
+
+jobs:
+  per-test-coverage:
+    if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
+    uses: ./.github/workflows/codecov_per_test_coverage.yml
+    secrets: inherit
+  backend-test:
+    name: run backend tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3, 4, 5, 6]
+        pg-version: ['14']
+
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 7
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          snuba: true
+          # Right now, we run so few bigtable related tests that the
+          # overhead of running bigtable in all backend tests
+          # is way smaller than the time it would take to run in its own job.
+          bigtable: true
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: |
+          make test-python-ci

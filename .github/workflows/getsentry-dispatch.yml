@@ -1,0 +1,81 @@
+# Dispatch a request to getsentry to run getsentry test suites
+name: getsentry dispatcher
+
+on:
+  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
+  # this to run on forks.  It allows forks to access secrets safely by
+  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
+  #
+  # See https://github.com/getsentry/sentry/pull/21600 for more details
+  pull_request_target:
+    types: [labeled, opened, reopened, synchronize]
+
+# disable all other special privileges
+permissions:
+  # needed for `actions/checkout` to clone the code
+  contents: read
+  # needed to remove the pull-request label
+  pull-requests: write
+
+jobs:
+  dispatch:
+    if: "github.event.action != 'labeled' || github.event.label.name == 'Trigger: getsentry tests'"
+    name: getsentry dispatch
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: permissions
+        run: |
+          python3 -uS .github/workflows/scripts/getsentry-dispatch-setup \
+              --repo-id ${{ github.event.repository.id }} \
+              --pr ${{ github.event.number }} \
+              --event ${{ github.event.action }} \
+              --username "$ARG_USERNAME" \
+              --label-names "$ARG_LABEL_NAMES"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # these can contain special characters
+          ARG_USERNAME: ${{ github.event.pull_request.user.login }}
+          ARG_LABEL_NAMES: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+
+      - name: Check for file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: getsentry token
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+        id: getsentry
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - name: Wait for PR merge commit
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        id: mergecommit
+        with:
+          github-token: ${{ steps.getsentry.outputs.token }}
+          script: |
+            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/wait-for-merge-commit`).waitForMergeCommit({
+              github,
+              context,
+              core,
+            });
+
+      - name: Dispatch getsentry tests
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          github-token: ${{ steps.getsentry.outputs.token }}
+          script: |
+            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/getsentry-dispatch`).dispatch({
+              github,
+              context,
+              core,
+              mergeCommitSha: '${{ steps.mergecommit.outputs.mergeCommitSha }}',
+              fileChanges: ${{ toJson(steps.changes.outputs) }},
+            });

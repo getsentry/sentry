@@ -1,0 +1,162 @@
+name: frontend
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-22.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      testable_modified: ${{ steps.changes.outputs.testable_modified }}
+      testable_modified_files: ${{ steps.changes.outputs.testable_modified_files }}
+      testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for frontend file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+          list-files: shell
+
+  typescript:
+    if: needs.files-changed.outputs.frontend_all == 'true'
+    needs: files-changed
+    name: typescript
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: actions/setup-node@v4
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
+
+      - name: node_modules cache
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      - name: setup matchers
+        run: |
+          echo "::remove-matcher owner=masters::"
+          echo "::add-matcher::.github/tsc.json"
+          echo "::add-matcher::.github/eslint-stylish.json"
+
+      - name: tsc
+        id: tsc
+        if: steps.dependencies.outcome == 'success'
+        run: yarn tsc -p config/tsconfig.ci.json
+
+  frontend-jest-tests:
+    if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
+    needs: [files-changed, typescript]
+    name: Jest
+    # If you change the runs-on image, you must also change the runner in jest-balance.yml
+    # so that the balancer runs in the same environment as the tests.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
+
+        instance: [0, 1, 2, 3]
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        name: Checkout sentry
+
+      - uses: actions/setup-node@v4
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
+
+      - name: node_modules cache
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+          #      Otherwise, if there are other things in the matrix, using strategy.job-total
+          #      wouldn't be correct. Also, if this increases, make sure to also increase
+          #      `flags.frontend.after_n_builds` in `codecov.yml`.
+          CI_NODE_TOTAL: 4
+          CI_NODE_INDEX: ${{ matrix.instance }}
+          # Disable testing-library from printing out any of of the DOM to
+          # stdout. No one actually looks through this in CI, they're just
+          # going to run it locally.
+          #
+          # This quiets up the logs quite a bit.
+          DEBUG_PRINT_LIMIT: 0
+        run: |
+          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+
+      # We only upload coverage data for FE changes since it conflicts with
+      # codecov's carry forward functionality.
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations.
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+        if: always()
+        with:
+          files: .artifacts/coverage/*
+          type: frontend
+          token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
+
+  # This check runs once all dependant jobs have passed
+  # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
+  # This check is the only required Github check
+  frontend-required-check:
+    needs: [files-changed, frontend-jest-tests, typescript]
+    name: Frontend
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      # If any jobs we depend on fail, we will fail since this is a required check
+      # NOTE: A timeout is considered a failure
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
