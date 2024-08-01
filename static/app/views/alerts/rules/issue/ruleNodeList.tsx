@@ -1,4 +1,5 @@
-import {Component, Fragment} from 'react';
+import type React from 'react';
+import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -25,7 +26,6 @@ import {
 import {AlertRuleComparisonType} from '../metric/types';
 
 import RuleNode from './ruleNode';
-import {Button} from 'sentry/components/button';
 
 type Props = {
   disabled: boolean;
@@ -50,10 +50,17 @@ type Props = {
    */
   placeholder: string;
   project: Project;
+  additionalAction?: {
+    label: ReactNode;
+    onClick: () => void;
+    option: {
+      label: ReactNode;
+      value: IssueAlertRuleActionTemplate;
+    };
+  };
   incompatibleBanner?: number | null;
   incompatibleRules?: number[] | null;
   selectType?: 'grouped';
-  additionalStaticNode?: React.ReactNode;
 };
 
 const createSelectOptions = (
@@ -242,6 +249,7 @@ class RuleNodeList extends Component<Props> {
       onResetRow,
       onDeleteRow,
       onPropertyChange,
+      additionalAction,
       nodes,
       placeholder,
       items,
@@ -252,15 +260,23 @@ class RuleNodeList extends Component<Props> {
       selectType,
       incompatibleRules,
       incompatibleBanner,
-      additionalStaticNode,
     } = this.props;
 
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
 
-    const options =
-      selectType === 'grouped'
-        ? groupSelectOptions(enabledNodes)
-        : createSelectOptions(enabledNodes);
+    let options;
+    if (selectType === 'grouped') {
+      options = groupSelectOptions(enabledNodes);
+      if (additionalAction) {
+        for (const option of options) {
+          if (option.label === additionalAction.label) {
+            option.options.push(additionalAction.option);
+          }
+        }
+      }
+    } else {
+      options = createSelectOptions(enabledNodes);
+    }
 
     return (
       <Fragment>
@@ -284,14 +300,13 @@ class RuleNodeList extends Component<Props> {
               />
             )
           )}
-          {t('If you installed an integration but do not see it, refresh this list')}
         </RuleNodes>
 
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
           onChange={obj => {
-            onAddRow(obj.value);
+            additionalAction ? additionalAction.onClick() : onAddRow(obj.value);
           }}
           options={options}
           disabled={disabled}

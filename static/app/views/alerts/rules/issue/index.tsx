@@ -1435,6 +1435,18 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                               </StyledAlert>
                             )
                           }
+                          additionalAction={{
+                            label: 'Notify integration\u{2026}',
+                            option: {
+                              label: 'Missing an integration? Click here to refresh',
+                              value: {
+                                enabled: true,
+                                id: 'refresh_configs',
+                                label: 'Refresh Integration List',
+                              },
+                            },
+                            onClick: this.refetchConfigs,
+                          }}
                         />
                         <TestButtonWrapper>
                           <Button
