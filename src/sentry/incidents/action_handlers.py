@@ -27,7 +27,9 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.integrations.types import ExternalProviders
+from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
@@ -42,9 +44,18 @@ from sentry.utils.email import MessageBuilder, get_email_addresses
 
 class ActionHandler(metaclass=abc.ABCMeta):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
-    provider: str
 
-    def __init__(self, action, incident, project):
+    @property
+    @abc.abstractmethod
+    def provider(self) -> str:
+        raise NotImplementedError
+
+    def __init__(
+        self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        project: Project,
+    ) -> None:
         self.action = action
         self.incident = incident
         self.project = project
@@ -55,7 +66,7 @@ class ActionHandler(metaclass=abc.ABCMeta):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
@@ -64,12 +75,12 @@ class ActionHandler(metaclass=abc.ABCMeta):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         pass
 
     def record_alert_sent_analytics(
         self, external_id: int | str | None = None, notification_uuid: str | None = None
-    ):
+    ) -> None:
         analytics.record(
             "alert.sent",
             organization_id=self.incident.organization_id,
@@ -88,7 +99,7 @@ class DefaultActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
             self.send_alert(metric_value, new_status, notification_uuid)
 
@@ -97,7 +108,7 @@ class DefaultActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
             self.send_alert(metric_value, new_status, notification_uuid)
 
@@ -107,7 +118,7 @@ class DefaultActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         pass
 
 
@@ -117,7 +128,9 @@ class DefaultActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
 )
 class EmailActionHandler(ActionHandler):
-    provider = "email"
+    @property
+    def provider(self) -> str:
+        return "email"
 
     def _get_targets(self) -> set[int]:
         target = self.action.target
@@ -128,6 +141,7 @@ class EmailActionHandler(ActionHandler):
             return set()
 
         if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+            assert isinstance(target, RpcUser)
             if RuleSnooze.objects.is_snoozed_for_user(
                 user_id=target.id, alert_rule=self.incident.alert_rule
             ):
@@ -136,7 +150,7 @@ class EmailActionHandler(ActionHandler):
             return {target.id}
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-            users = None
+            assert isinstance(target, Team)
             out = get_notification_recipients(
                 recipients=list(
                     Actor(id=member.user_id, actor_type=ActorType.USER)
@@ -164,7 +178,7 @@ class EmailActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         self.email_users(
             trigger_status=TriggerStatus.ACTIVE,
             incident_status=new_status,
@@ -176,7 +190,7 @@ class EmailActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         self.email_users(
             trigger_status=TriggerStatus.RESOLVED,
             incident_status=new_status,
@@ -229,7 +243,9 @@ class EmailActionHandler(ActionHandler):
     integration_provider="slack",
 )
 class SlackActionHandler(DefaultActionHandler):
-    provider = "slack"
+    @property
+    def provider(self) -> str:
+        return "slack"
 
     def send_alert(
         self,
@@ -253,7 +269,9 @@ class SlackActionHandler(DefaultActionHandler):
     integration_provider="msteams",
 )
 class MsTeamsActionHandler(DefaultActionHandler):
-    provider = "msteams"
+    @property
+    def provider(self) -> str:
+        return "msteams"
 
     def send_alert(
         self,
@@ -277,7 +295,9 @@ class MsTeamsActionHandler(DefaultActionHandler):
     integration_provider="discord",
 )
 class DiscordActionHandler(DefaultActionHandler):
-    provider = "discord"
+    @property
+    def provider(self) -> str:
+        return "discord"
 
     def send_alert(
         self,
@@ -303,7 +323,9 @@ class DiscordActionHandler(DefaultActionHandler):
     integration_provider="pagerduty",
 )
 class PagerDutyActionHandler(DefaultActionHandler):
-    provider = "pagerduty"
+    @property
+    def provider(self) -> str:
+        return "pagerduty"
 
     def send_alert(
         self,
@@ -327,7 +349,9 @@ class PagerDutyActionHandler(DefaultActionHandler):
     integration_provider="opsgenie",
 )
 class OpsgenieActionHandler(DefaultActionHandler):
-    provider = "opsgenie"
+    @property
+    def provider(self) -> str:
+        return "opsgenie"
 
     def send_alert(
         self,
@@ -350,7 +374,9 @@ class OpsgenieActionHandler(DefaultActionHandler):
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
 )
 class SentryAppActionHandler(DefaultActionHandler):
-    provider = "sentry_app"
+    @property
+    def provider(self) -> str:
+        return "sentry_app"
 
     def send_alert(
         self,
@@ -400,6 +426,7 @@ def generate_incident_trigger_email_context(
     trigger = alert_rule_trigger
     alert_rule = trigger.alert_rule
     activation = incident.activation
+    assert alert_rule.snuba_query is not None
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value

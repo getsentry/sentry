@@ -13,10 +13,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 const requestMocks = {
   missRateChart: jest.fn(),
@@ -69,6 +71,7 @@ describe('CacheLandingPage', function () {
       }),
     ],
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,
@@ -171,8 +174,71 @@ describe('CacheLandingPage', function () {
           environment: [],
           field: ['avg(transaction.duration)', 'transaction'],
           per_page: 50,
+          noPagination: true,
           project: [],
           query: 'transaction:["my-transaction"]',
+          referrer: 'api.performance.cache.landing-cache-transaction-duration',
+          statsPeriod: '10d',
+        },
+      })
+    );
+  });
+
+  it('should escape quote in transaction name', async function () {
+    requestMocks.spanTransactionList.mockClear();
+    requestMocks.spanTransactionList = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.cache.landing-cache-transaction-list',
+        }),
+      ],
+      body: {
+        data: [
+          {
+            transaction: 'transaction with "quote"',
+            project: 'backend',
+            'project.id': 123,
+            'avg(cache.item_size)': 123,
+            'spm()': 123,
+            'sum(span.self_time)': 123,
+            'cache_miss_rate()': 0.123,
+            'time_spent_percentage()': 0.123,
+          },
+        ],
+        meta: {
+          fields: {
+            transaction: 'string',
+            project: 'string',
+            'project.id': 'integer',
+            'avg(cache.item_size)': 'number',
+            'spm()': 'rate',
+            'sum(span.self_time)': 'duration',
+            'cache_miss_rate()': 'percentage',
+            'time_spent_percentage()': 'percentage',
+          },
+          units: {},
+        },
+      },
+    });
+
+    render(<CacheLandingPage />, {organization});
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(requestMocks.transactionDurations).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'metrics',
+          environment: [],
+          field: ['avg(transaction.duration)', 'transaction'],
+          noPagination: true,
+          per_page: 50,
+          project: [],
+          query: 'transaction:["transaction with \\"quote\\""]',
           referrer: 'api.performance.cache.landing-cache-transaction-duration',
           statsPeriod: '10d',
         },
@@ -226,6 +292,7 @@ describe('CacheLandingPage', function () {
   });
 
   it('shows module onboarding', async function () {
+    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
     jest.mocked(useProjects).mockReturnValue({
       projects: [
         ProjectFixture({
@@ -238,6 +305,7 @@ describe('CacheLandingPage', function () {
         }),
       ],
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -249,7 +317,7 @@ describe('CacheLandingPage', function () {
 
     await waitFor(() => {
       expect(
-        screen.getByText('Make sure your application’s caching is behaving properly')
+        screen.getByText('Bringing you one less hard problem in computer science')
       ).toBeInTheDocument();
     });
   });

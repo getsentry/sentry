@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';

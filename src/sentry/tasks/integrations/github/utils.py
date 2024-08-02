@@ -5,7 +5,7 @@ from enum import Enum
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.github.client import GitHubApiClient
 from sentry.models.pullrequest import CommentType, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.utils import metrics
@@ -36,7 +36,7 @@ class GithubAPIErrorType(Enum):
 
 
 def create_or_update_comment(
-    client: GitHubAppsClient,
+    client: GitHubApiClient,
     repo: Repository,
     pr_key: str,
     comment_body: str,

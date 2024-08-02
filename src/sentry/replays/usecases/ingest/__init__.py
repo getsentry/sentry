@@ -115,7 +115,19 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     storage_kv.set(make_recording_filename(segment_data), recording_segment)
 
     if message.replay_video:
+        # Logging org info for bigquery
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "mobile_event",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "size": len(message.replay_video),
+            },
+        )
+
         # Record video size for COGS analysis.
+        metrics.incr("replays.recording_consumer.replay_video_count")
         metrics.distribution(
             "replays.recording_consumer.replay_video_size",
             len(message.replay_video),
@@ -164,7 +176,19 @@ def track_initial_segment_event(
         first_replay_received.send_robust(project=project, sender=Project)
 
     # Replay videos are not billed for now.
-    if not is_replay_video:
+    if is_replay_video:
+        track_outcome(
+            org_id=org_id,
+            project_id=project_id,
+            key_id=key_id,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.fromtimestamp(received, timezone.utc),
+            event_id=replay_id,
+            category=DataCategory.REPLAY_VIDEO,
+            quantity=1,
+        )
+    else:
         track_outcome(
             org_id=org_id,
             project_id=project_id,
@@ -261,6 +285,19 @@ def recording_post_processor(
             message.replay_id,
             parsed_segment_data,
         )
+
+        # Log # of rrweb events to bigquery.
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "rrweb_event_count",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "replay_id": message.replay_id,
+                "size": len(parsed_segment_data),
+            },
+        )
+
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",

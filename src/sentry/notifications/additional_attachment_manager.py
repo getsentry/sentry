@@ -3,15 +3,15 @@ from __future__ import annotations
 from collections.abc import Callable, MutableMapping
 
 from sentry.api.validators.integrations import validate_provider
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.integrations.slack.message_builder import SlackAttachment
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.types import ExternalProviders
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 
 GetAttachment = Callable[
-    [Integration | RpcIntegration, Organization | RpcOrganization], SlackAttachment
+    [Integration | RpcIntegration, Organization | RpcOrganization], list[SlackBlock]
 ]
 
 
@@ -28,7 +28,7 @@ class AdditionalAttachmentManager:
         self,
         integration: Integration | RpcIntegration,
         organization: Organization | RpcOrganization,
-    ) -> SlackAttachment | None:
+    ) -> list[SlackBlock] | None:
         # look up the generator by the provider but only accepting slack for now
         provider = validate_provider(integration.provider, {ExternalProviders.SLACK})
         attachment_generator = self.attachment_generators.get(provider)

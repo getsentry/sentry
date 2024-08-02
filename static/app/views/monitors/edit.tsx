@@ -10,10 +10,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorForm from './components/monitorForm';

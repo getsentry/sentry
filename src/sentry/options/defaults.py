@@ -347,14 +347,6 @@ register(
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
 register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
-# Throttle filestore access in proguard processing. This is in response to
-# INC-635.
-register(
-    "filestore.proguard-throttle",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
 # Whether to use a redis lock on fileblob uploads and deletes
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Whether to use redis to cache `FileBlob.id` lookups
@@ -458,12 +450,6 @@ register(
     default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "replay.organizations.video-slug-denylist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
@@ -513,13 +499,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-# Use Slack SDK in `validate_channel_id`
-register("slack-sdk.valid_channel_id", type=Bool, default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "slack-sdk.valid_channel_id_la_integration_ids", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
@@ -537,6 +516,12 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-enterprise-app.allowed-hosts-legacy-webhooks",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # GitHub Auth
@@ -665,14 +650,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The fraction of prooguard events that will be routed to the
-# separate `store.process_event_proguard` queue
-register(
-    "store.separate-proguard-queue-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
 # Query and supply Bundle Indexes to Symbolicator SourceMap processing
 register(
     "symbolicator.sourcemaps-bundle-index-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -683,25 +660,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Enable use of Symbolicator proguard processing for specific projects.
-#
-# TODO: Unused as of #73905, remove this.
-register(
-    "symbolicator.proguard-processing-projects",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Enable use of Symbolicator proguard processing for fraction of projects.
-#
-# TODO: Unused as of #73905, remove this.
-register(
-    "symbolicator.proguard-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-# TODO: Unused as of #73905, remove this.
-register("symbolicator.proguard-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
@@ -774,13 +732,6 @@ register(
 
 register(
     "issues.severity.high-priority-alerts-projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.severity.new-escalation-projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -873,6 +824,24 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.similarity-embeddings-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity-embeddings-grouping-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity-embeddings-delete-by-hash-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.severity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -910,12 +879,21 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TODO: The default error limit here was estimated based on EA traffic. (In an average 10 min
+# period, there are roughly 35K events without matching hashes. About 2% of orgs are EA, so for
+# simplicity, assume 2% of those events are from EA orgs. If we're willing to tolerate up to a 95%
+# failure rate, then we need 35K * 0.02 * 0.95 events to fail to trip the breaker.)
+#
+# When we GA, we should multiply both the limits by 50 (to remove the 2% part of the current
+# calculation), and remove this TODO.
 register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
-    # TODO: For now we're using the defaults for everything but `allow_passthrough`. We may want to
-    # revisit that choice in the future.
-    default={"allow_passthrough": True},
+    default={
+        "error_limit": 666,
+        "error_limit_window": 600,  # 10 min
+        "broken_state_duration": 300,  # 5 min
+    },
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1102,6 +1080,9 @@ register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MO
 register(
     "relay.compute-metrics-summaries.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+
+# Controls whether generic inbound filters are sent to Relay.
+register("relay.emit-generic-inbound-filters", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1471,9 +1452,33 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables extrapolation on the `transactions` namespace.
+register(
+    "sentry-metrics.extrapolation.enable_transactions",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables extrapolation on the `spans` namespace.
+register(
+    "sentry-metrics.extrapolation.enable_spans",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Maximum duplication factor for ingest-time extrapolation of distribution
+# values in Relay. Obsolete once `.propagate-rates` is the default.
 register(
     "sentry-metrics.extrapolation.duplication-limit",
     default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Send sample rates for metrics from Relay via the indexer into snuba rather
+# than extrapolating at ingest time.
+register(
+    "sentry-metrics.extrapolation.propagate-rates",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1871,11 +1876,7 @@ register(
 register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Flagpole Rollout
-register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Flagpole Configuration (used in getsentry)
 register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
@@ -2052,36 +2053,6 @@ register("metric_extraction.max_span_attribute_specs", default=100, flags=FLAG_A
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_capture_envelope",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_common_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.emit_gauges",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_code_locations",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.metrics_summary_sample_rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2594,20 +2565,6 @@ register(
 )
 
 
-# default brownout crontab for Organization Events API deprecations
-# TODO: remove once endpoint is removed
-register(
-    "api.organization-activity.brownout-cron",
-    default="*/3 * * * *",
-    type=String,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
-register(
-    "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-
 register(
     "sentry.save-event-attachments.project-per-5-minute-limit",
     type=Int,
@@ -2628,6 +2585,12 @@ register(
     "profiling.continuous-profiling.chunks-set.size",
     type=Int,
     default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "profiling.continuous-profiling.chunks-query.size",
+    type=Int,
+    default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2676,5 +2639,20 @@ register(
 register(
     "similarity.backfill_seer_threads",
     default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.new_project_seer_grouping.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_use_reranking",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "delayed_processing.batch_size",
+    default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

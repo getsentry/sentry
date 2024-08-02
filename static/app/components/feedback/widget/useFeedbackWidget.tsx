@@ -1,32 +1,26 @@
 import type {RefObject} from 'react';
 import {useEffect} from 'react';
-import * as Sentry from '@sentry/react';
 
-import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import useAsyncSDKIntegrationStore from 'sentry/views/app/asyncSDKIntegrationProvider';
-
-type FeedbackIntegration = NonNullable<ReturnType<typeof Sentry.getFeedback>>;
+import type {UseFeedbackOptions} from 'sentry/components/feedback/widget/useFeedback';
+import {useFeedback} from 'sentry/components/feedback/widget/useFeedback';
 
 interface Props {
   buttonRef?: RefObject<HTMLButtonElement> | RefObject<HTMLAnchorElement>;
   formTitle?: string;
   messagePlaceholder?: string;
+  optionOverrides?: UseFeedbackOptions;
 }
 
 export default function useFeedbackWidget({
   buttonRef,
   formTitle,
   messagePlaceholder,
+  optionOverrides,
 }: Props) {
-  const config = useLegacyStore(ConfigStore);
-  const {state} = useAsyncSDKIntegrationStore();
-
-  // TODO(ryan953): remove the fallback `?? Sentry.getFeedback()` after
-  // getsentry is calling `store.add(feedback);`
-  const feedback =
-    (state.Feedback as FeedbackIntegration | undefined) ?? Sentry.getFeedback();
+  const {feedback, options: defaultOptions} = useFeedback({
+    formTitle,
+    messagePlaceholder,
+  });
 
   useEffect(() => {
     if (!feedback) {
@@ -34,11 +28,12 @@ export default function useFeedbackWidget({
     }
 
     const options = {
-      colorScheme: config.theme === 'dark' ? ('dark' as const) : ('light' as const),
-      buttonLabel: t('Give Feedback'),
-      submitButtonLabel: t('Send Feedback'),
-      messagePlaceholder: messagePlaceholder ?? t('What did you expect?'),
-      formTitle: formTitle ?? t('Give Feedback'),
+      ...defaultOptions,
+      ...optionOverrides,
+      tags: {
+        ...defaultOptions.tags,
+        ...optionOverrides?.tags,
+      },
     };
 
     if (buttonRef) {
@@ -53,7 +48,7 @@ export default function useFeedbackWidget({
     }
 
     return undefined;
-  }, [buttonRef, config.theme, feedback, formTitle, messagePlaceholder]);
+  }, [buttonRef, feedback, defaultOptions, optionOverrides]);
 
   return feedback;
 }

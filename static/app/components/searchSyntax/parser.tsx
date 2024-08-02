@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
@@ -269,6 +269,7 @@ export enum InvalidReason {
   INVALID_KEY = 'invalid-key',
   INVALID_DURATION = 'invalid-duration',
   INVALID_DATE_FORMAT = 'invalid-date-format',
+  PARENS_NOT_ALLOWED = 'parens-not-allowed',
 }
 
 /**
@@ -422,12 +423,14 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.L_PAREN as const,
     value,
+    invalid: this.checkInvalidParen(),
   });
 
   tokenRParen = (value: ')') => ({
     ...this.defaultTokenFields,
     type: Token.R_PAREN as const,
     value,
+    invalid: this.checkInvalidParen(),
   });
 
   tokenFreeText = (value: string, quoted: boolean) => ({
@@ -736,6 +739,20 @@ export class TokenConverter {
     }
 
     return null;
+  };
+
+  /**
+   * Checks the validity of a parens based on the provided search configuration
+   */
+  checkInvalidParen = () => {
+    if (!this.config.disallowParens) {
+      return null;
+    }
+
+    return {
+      type: InvalidReason.PARENS_NOT_ALLOWED,
+      reason: this.config.invalidMessages[InvalidReason.PARENS_NOT_ALLOWED],
+    };
   };
 
   /**
@@ -1165,6 +1182,18 @@ export type ParseResultToken =
  */
 export type ParseResult = ParseResultToken[];
 
+export type AggregateFilter = (
+  | FilterMap[FilterType.AGGREGATE_DATE]
+  | FilterMap[FilterType.AGGREGATE_DURATION]
+  | FilterMap[FilterType.AGGREGATE_NUMERIC]
+  | FilterMap[FilterType.AGGREGATE_PERCENTAGE]
+  | FilterMap[FilterType.AGGREGATE_RELATIVE_DATE]
+  | FilterMap[FilterType.AGGREGATE_SIZE]
+) & {
+  location: LocationRange;
+  text: string;
+};
+
 /**
  * Configures behavior of search parsing
  */
@@ -1185,6 +1214,10 @@ export type SearchConfig = {
    * Disallow negation for filters
    */
   disallowNegation: boolean;
+  /**
+   * Disallow parens in search
+   */
+  disallowParens: boolean;
   /**
    * Disallow wildcards in free text search AND in tag values
    */
@@ -1282,6 +1315,7 @@ export const defaultConfig: SearchConfig = {
   disallowFreeText: false,
   disallowWildcard: false,
   disallowNegation: false,
+  disallowParens: false,
   invalidMessages: {
     [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t('Free text is not supported in this search'),
     [InvalidReason.WILDCARD_NOT_ALLOWED]: t('Wildcards not supported in search'),
@@ -1304,6 +1338,7 @@ export const defaultConfig: SearchConfig = {
     [InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED]: t(
       'Lists should not have empty values'
     ),
+    [InvalidReason.PARENS_NOT_ALLOWED]: t('Parentheses are not supported in this search'),
   },
 };
 

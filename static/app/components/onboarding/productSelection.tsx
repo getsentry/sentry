@@ -69,10 +69,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   if (!hasPerformance) {
     disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {
       reason,
-      onClick: createClickHandler(
-        'organizations:performance-view',
-        'Performance Monitoring'
-      ),
+      onClick: createClickHandler('organizations:performance-view', 'Tracing'),
     };
   }
   if (!hasProfiling) {
@@ -95,16 +92,13 @@ export const platformProductAvailability = {
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-aspnetcore': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-  ],
+  'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-uwp': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
   flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
@@ -354,7 +348,7 @@ export function ProductSelection({
       );
 
       if (defaultProducts?.includes(ProductSolution.PROFILING)) {
-        // Ensure that if profiling is enabled, performance monitoring is also enabled
+        // Ensure that if profiling is enabled, tracing is also enabled
         if (
           product === ProductSolution.PROFILING &&
           newProduct.has(ProductSolution.PROFILING)
@@ -430,11 +424,11 @@ export function ProductSelection({
         />
         {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
           <Product
-            label={t('Performance Monitoring')}
+            label={t('Tracing')}
             description={t(
               'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
             )}
-            docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/tracing/"
             onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
             disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
             checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
@@ -456,7 +450,7 @@ export function ProductSelection({
           <Product
             label={t('Profiling')}
             description={tct(
-              '[strong:Requires Performance Monitoring]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
+              '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
               {
                 strong: <strong />,
               }

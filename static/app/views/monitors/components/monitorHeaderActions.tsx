@@ -6,9 +6,9 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import type {Monitor} from '../types';
 

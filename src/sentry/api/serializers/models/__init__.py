@@ -14,13 +14,10 @@ from .dashboard import *  # noqa: F401,F403
 from .debug_file import *  # noqa: F401,F403
 from .deploy import *  # noqa: F401,F403
 from .discoversavedquery import *  # noqa: F401,F403
-from .doc_integration import *  # noqa: F401,F403
-from .doc_integration_avatar import *  # noqa: F401,F403
 from .environment import *  # noqa: F401,F403
 from .event import *  # noqa: F401,F403
 from .eventattachment import *  # noqa: F401,F403
 from .exporteddata import *  # noqa: F401,F403
-from .external_actor import *  # noqa: F401,F403
 from .filechange import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
 from .group_stream import *  # noqa: F401,F403
@@ -31,8 +28,6 @@ from .identity import *  # noqa: F401,F403
 from .identityprovider import *  # noqa: F401,F403
 from .incidentactivity import *  # noqa: F401,F403
 from .incidentseen import *  # noqa: F401,F403
-from .integration import *  # noqa: F401,F403
-from .integration_feature import *  # noqa: F401,F403
 from .notification_action import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organization_access_request import *  # noqa: F401,F403
@@ -47,7 +42,6 @@ from .organization_plugin import *  # noqa: F401,F403
 from .orgauthtoken import *  # noqa: F401,F403
 from .platformexternalissue import *  # noqa: F401,F403
 from .plugin import *  # noqa: F401,F403
-from .processingissue import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
 from .project_key import *  # noqa: F401,F403
 from .project_platform import *  # noqa: F401,F403
@@ -63,7 +57,6 @@ from .release_file import *  # noqa: F401,F403
 from .release_threshold import *  # noqa: F401,F403
 from .relocation import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
-from .repository_project_path_config import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
 from .rule import *  # noqa: F401,F403
 from .savedsearch import *  # noqa: F401,F403

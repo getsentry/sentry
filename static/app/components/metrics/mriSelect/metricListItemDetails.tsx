@@ -65,9 +65,7 @@ export function MetricListItemDetails({
 
   const [isQueryEnabled, setIsQueryEnabled] = useState(() => {
     // We only wnat to disable the query if there is no data in the cache
-    const queryKey = getMetricsTagsQueryKey(organization, metric.mri, {
-      projects: projectIds,
-    });
+    const queryKey = getMetricsTagsQueryKey(organization, metric.mri);
     const data = queryClient.getQueryData(queryKey);
     return !!data;
   });
@@ -151,7 +149,7 @@ export function MetricListItemDetails({
               size="xs"
               to={
                 isVirtualMetric
-                  ? `/settings/projects/${firstMetricProject.slug}/metrics/${formatMRI(metric.mri)}/edit`
+                  ? `/settings/projects/${firstMetricProject.slug}/metrics/`
                   : `/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`
               }
               aria-label={t('Open metric settings')}
@@ -207,12 +205,17 @@ export function MetricListItemDetails({
                 return (
                   <Fragment key={tag.key}>
                     <TagWrapper>
-                      <Button
-                        priority="link"
-                        onClick={() => onTagClick(metric.mri, tag.key)}
-                      >
-                        {tag.key}
-                      </Button>
+                      {/* Tags for virtual metrics are not clickable because there is no way of knowing which have been seen and won't cause query error */}
+                      {isVirtualMetric ? (
+                        tag.key
+                      ) : (
+                        <Button
+                          priority="link"
+                          onClick={() => onTagClick(metric.mri, tag.key)}
+                        >
+                          {tag.key}
+                        </Button>
+                      )}
                       {/* Make the comma stick to the Button when the text wraps to the next line */}
                       {shouldAddDelimiter ? ',' : null}
                     </TagWrapper>

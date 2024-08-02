@@ -7,7 +7,7 @@ import {
 } from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 type Props = {
-  browserType: BrowserType;
+  browserTypes: BrowserType[];
   enabled: boolean;
   transaction: string;
 };
@@ -15,7 +15,7 @@ type Props = {
 export function useInteractionsCategorizedSamplesQuery({
   transaction,
   enabled,
-  browserType,
+  browserTypes,
 }: Props) {
   const {data: goodData, isFetching: isGoodDataLoading} = useInpSpanSamplesWebVitalsQuery(
     {
@@ -25,7 +25,7 @@ export function useInteractionsCategorizedSamplesQuery({
       filters: {
         'measurements.inp': `<${PERFORMANCE_SCORE_P90S.inp}`,
       },
-      browserType,
+      browserTypes,
     }
   );
   const {data: mehData, isFetching: isMehDataLoading} = useInpSpanSamplesWebVitalsQuery({
@@ -38,7 +38,7 @@ export function useInteractionsCategorizedSamplesQuery({
         `<${PERFORMANCE_SCORE_MEDIANS.inp}`,
       ],
     },
-    browserType,
+    browserTypes,
   });
   const {data: poorData, isFetching: isBadDataLoading} = useInpSpanSamplesWebVitalsQuery({
     transaction,
@@ -47,7 +47,7 @@ export function useInteractionsCategorizedSamplesQuery({
     filters: {
       'measurements.inp': `>=${PERFORMANCE_SCORE_MEDIANS.inp}`,
     },
-    browserType,
+    browserTypes,
   });
 
   const data = [...goodData, ...mehData, ...poorData];

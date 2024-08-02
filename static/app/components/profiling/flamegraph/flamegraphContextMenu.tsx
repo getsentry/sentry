@@ -28,7 +28,10 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -56,14 +59,14 @@ const DIFFERENTIAL_FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
 
 const DIFFERENTIAL_FLAMEGRAPH_FRAME_OPTIONS = ['all', 'application', 'system'] as const;
 
-interface FlamegraphContextMenuProps {
+export interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   hoveredNode: FlamegraphFrame | null;
   isHighlightingAllOccurrences: boolean;
   onCopyFunctionNameClick: () => void;
   onCopyFunctionSource: () => void;
   onHighlightAllOccurrencesClick: () => void;
-  profileGroup: ProfileGroup | null;
+  profileGroup: ProfileGroup | ContinuousProfileGroup | null;
   disableCallOrderSort?: boolean;
   disableColorCoding?: boolean;
 }
@@ -321,6 +324,187 @@ export function DifferentialFlamegraphMenu(props: DifferentialFlamegraphMenuProp
       </ProfilingContextMenuGroup>
     </ProfilingContextMenu>
   );
+}
+
+export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProps) {
+  const {projects} = useProjects();
+  const organization = useOrganization();
+  const preferences = useFlamegraphPreferences();
+  const dispatch = useDispatchFlamegraphState();
+
+  const project = projects.find(
+    p => p.id === String(props.profileGroup?.metadata?.projectID)
+  );
+
+  const sourceCodeLink = useSourceCodeLink({
+    project: undefined,
+    organization,
+    commitId: undefined,
+    platform: undefined,
+    frame: {file: props.hoveredNode?.frame.file, path: props.hoveredNode?.frame.path},
+  });
+
+  // @TODO: this only works for github right now, other providers will not work
+  const onOpenInGithubClick = useCallback(() => {
+    if (!sourceCodeLink.isSuccess) {
+      return;
+    }
+
+    if (
+      !sourceCodeLink.data.sourceUrl ||
+      sourceCodeLink.data.config?.provider?.key !== 'github'
+    ) {
+      return;
+    }
+
+    // make a best effort to link to the exact line if we can
+    const url =
+      defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
+        ? `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
+        : sourceCodeLink.data.sourceUrl;
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [props.hoveredNode, sourceCodeLink]);
+
+  return props.contextMenu.open ? (
+    <Fragment>
+      <ProfilingContextMenuLayer onClick={() => props.contextMenu.setOpen(false)} />
+      <ProfilingContextMenu
+        {...props.contextMenu.getMenuProps()}
+        style={{
+          position: 'absolute',
+          left: props.contextMenu.position?.left ?? -9999,
+          top: props.contextMenu.position?.top ?? -9999,
+          maxHeight: props.contextMenu.containerCoordinates?.height ?? 'auto',
+        }}
+      >
+        {props.hoveredNode ? (
+          <ProfilingContextMenuGroup>
+            <ProfilingContextMenuHeading>{t('Frame')}</ProfilingContextMenuHeading>
+            {props.hoveredNode.profileIds && (
+              <ProfileIdsSubMenu
+                contextMenu={props.contextMenu}
+                profileIds={props.hoveredNode.profileIds}
+                frameName={props.hoveredNode.frame.name}
+                framePackage={props.hoveredNode.frame.package}
+                organizationSlug={organization.slug}
+                projectSlug={project?.slug}
+                subMenuPortalRef={props.contextMenu.subMenuRef.current}
+              />
+            )}
+            <ProfilingContextMenuItemCheckbox
+              {...props.contextMenu.getMenuItemProps({
+                onClick: props.onHighlightAllOccurrencesClick,
+              })}
+              checked={props.isHighlightingAllOccurrences}
+            >
+              {t('Highlight all occurrences')}
+            </ProfilingContextMenuItemCheckbox>
+
+            <ProfilingContextMenuItemButton
+              disabled={!(props.hoveredNode.frame.file ?? props.hoveredNode.frame.path)}
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => {
+                  props.onCopyFunctionNameClick();
+                  // This is a button, so close the context menu.
+                  props.contextMenu.setOpen(false);
+                },
+              })}
+              icon={<IconCopy size="xs" />}
+            >
+              {t('Copy function name')}
+            </ProfilingContextMenuItemButton>
+            <ProfilingContextMenuItemButton
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => {
+                  props.onCopyFunctionSource();
+                  // This is a button, so close the context menu.
+                  props.contextMenu.setOpen(false);
+                },
+              })}
+              icon={<IconCopy size="xs" />}
+            >
+              {t('Copy source location')}
+            </ProfilingContextMenuItemButton>
+            <ProfilingContextMenuItemButton
+              disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
+              tooltip={
+                sourceCodeLink.isLoading
+                  ? 'Resolving link'
+                  : sourceCodeLink.isSuccess &&
+                      (!sourceCodeLink.data.sourceUrl ||
+                        sourceCodeLink.data.config?.provider?.key !== 'github')
+                    ? t('Could not find source code location in GitHub')
+                    : undefined
+              }
+              {...props.contextMenu.getMenuItemProps({
+                onClick: onOpenInGithubClick,
+              })}
+              icon={
+                sourceCodeLink.isLoading ? (
+                  <StyledLoadingIndicator size={10} hideMessage />
+                ) : (
+                  <IconGithub size="xs" />
+                )
+              }
+            >
+              {t('Open in GitHub')}
+            </ProfilingContextMenuItemButton>
+          </ProfilingContextMenuGroup>
+        ) : null}
+        {props.disableColorCoding ? null : (
+          <ProfilingContextMenuGroup>
+            <ProfilingContextMenuHeading>{t('Color Coding')}</ProfilingContextMenuHeading>
+            {FLAMEGRAPH_COLOR_CODINGS.map((coding, idx) => (
+              <ProfilingContextMenuItemCheckbox
+                key={idx}
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => dispatch({type: 'set color coding', payload: coding}),
+                })}
+                checked={preferences.colorCoding === coding}
+              >
+                {coding}
+              </ProfilingContextMenuItemCheckbox>
+            ))}
+          </ProfilingContextMenuGroup>
+        )}
+        <ProfilingContextMenuGroup>
+          <ProfilingContextMenuHeading>{t('View')}</ProfilingContextMenuHeading>
+          {FLAMEGRAPH_VIEW_OPTIONS.map((view, idx) => (
+            <ProfilingContextMenuItemCheckbox
+              key={idx}
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => dispatch({type: 'set view', payload: view}),
+              })}
+              checked={preferences.view === view}
+            >
+              {view}
+            </ProfilingContextMenuItemCheckbox>
+          ))}
+        </ProfilingContextMenuGroup>
+        <ProfilingContextMenuGroup>
+          <ProfilingContextMenuHeading>{t('Sorting')}</ProfilingContextMenuHeading>
+          {FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => {
+            if (props.disableCallOrderSort && sorting === 'call order') {
+              return null;
+            }
+            return (
+              <ProfilingContextMenuItemCheckbox
+                key={idx}
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => dispatch({type: 'set sorting', payload: sorting}),
+                })}
+                checked={preferences.sorting === sorting}
+              >
+                {sorting}
+              </ProfilingContextMenuItemCheckbox>
+            );
+          })}
+        </ProfilingContextMenuGroup>
+      </ProfilingContextMenu>
+      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+    </Fragment>
+  ) : null;
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

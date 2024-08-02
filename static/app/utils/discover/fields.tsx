@@ -11,7 +11,7 @@ import {
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
-import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/types';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 
 import {
   AGGREGATION_FIELDS,
@@ -754,6 +754,15 @@ export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
 export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
   f => !ERROR_ONLY_FIELDS.includes(f)
 );
+
+export const ERRORS_AGGREGATION_FUNCTIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
+  AggregationKey.LAST_SEEN,
+];
 
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];

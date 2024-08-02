@@ -1,10 +1,6 @@
-import type {MetricAggregation, MRI} from 'sentry/types/metrics';
-import {getDefaultAggregation} from 'sentry/utils/metrics';
-import {
-  DEFAULT_SORT_STATE,
-  emptyMetricsQueryWidget,
-  NO_QUERY_ID,
-} from 'sentry/utils/metrics/constants';
+import type {MetricAggregation} from 'sentry/types/metrics';
+import {getDefaultAggregation, isMetricsAggregation} from 'sentry/utils/metrics';
+import {DEFAULT_SORT_STATE, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {isMRI} from 'sentry/utils/metrics/mri';
 import {
   type BaseWidgetParams,
@@ -102,14 +98,7 @@ function parseSortParam(widget: Record<string, unknown>, key: string): SortState
       ? sort.order
       : DEFAULT_SORT_STATE.order;
 
-  if (
-    name === 'name' ||
-    name === 'avg' ||
-    name === 'min' ||
-    name === 'max' ||
-    name === 'sum' ||
-    name === 'total'
-  ) {
+  if (name && (name === 'name' || isMetricsAggregation(name))) {
     return {name, order};
   }
 
@@ -205,10 +194,7 @@ function fillIds(
   return entries;
 }
 
-export function parseMetricWidgetsQueryParam(
-  queryParam?: string,
-  defaultMRI?: MRI
-): MetricsWidget[] {
+export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget[] {
   let currentWidgets: unknown = undefined;
 
   try {
@@ -295,18 +281,6 @@ export function parseMetricWidgetsQueryParam(
         break;
     }
   });
-
-  // Iterate over the widgets without an id and assign them a unique one
-
-  if (queries.length === 0) {
-    const mri = defaultMRI || emptyMetricsQueryWidget.mri;
-
-    queries.push({
-      ...emptyMetricsQueryWidget,
-      mri,
-      aggregation: getDefaultAggregation(mri),
-    });
-  }
 
   // We can reset the id if there is only one widget
   if (queries.length === 1) {

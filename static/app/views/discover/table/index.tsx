@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
@@ -13,13 +14,14 @@ import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customM
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
-import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import withApi from 'sentry/utils/withApi';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import TableView from './tableView';
 
@@ -36,6 +38,7 @@ type TableProps = {
   title: string;
   dataset?: DiscoverDatasets;
   isHomepage?: boolean;
+  queryDataset?: SavedQueryDatasets;
   setSplitDecision?: (value: SavedQueryDatasets) => void;
   setTips?: (tips: string[]) => void;
 };
@@ -58,6 +61,33 @@ type TableState = {
  * Table is maintained and controlled
  */
 class Table extends PureComponent<TableProps, TableState> {
+  static getDerivedStateFromProps(
+    nextProps: Readonly<TableProps>,
+    prevState: TableState
+  ): TableState {
+    // Force loading state to be true if certain eventView props change.
+    // This is because this (and the TableView) component rerenders before
+    // loading state is set. In some cases, eventView changes such that
+    // the custom field renderer for event id expects trace id (and throws
+    // an error if trace id doesn't exist) but the table data isn't refetched
+    // and loading state isn't set yet. This results in the componen crashing.
+    const nextEventView = nextProps.eventView;
+    const prevEventView = prevState.prevView;
+
+    if (
+      prevEventView &&
+      (!isFieldsSimilar(
+        nextEventView.fields.map(f => f.field),
+        prevEventView.fields.map(f => f.field)
+      ) ||
+        nextEventView.dataset !== prevEventView.dataset)
+    ) {
+      return {...prevState, isLoading: true};
+    }
+
+    return prevState;
+  }
+
   state: TableState = {
     isLoading: true,
     tableFetchID: undefined,
@@ -116,7 +146,7 @@ class Table extends PureComponent<TableProps, TableState> {
     if (!eventView.isValid() || !confirmedQuery) {
       return;
     }
-    this.setState({prevView: eventView});
+    this.setState({prevView: eventView, isLoading: true});
 
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
@@ -154,10 +184,7 @@ class Table extends PureComponent<TableProps, TableState> {
       apiPayload.field.push('timestamp');
     }
 
-    if (
-      organization.features.includes('performance-discover-dataset-selector') &&
-      eventView.id
-    ) {
+    if (hasDatasetSelector(organization) && eventView.id) {
       apiPayload.discoverSavedQueryId = eventView.id;
     }
 
@@ -253,7 +280,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, onCursor, dataset} = this.props;
+    const {eventView, onCursor, dataset, queryDataset} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -274,18 +301,21 @@ class Table extends PureComponent<TableProps, TableState> {
                     hasData={(tableData?.data?.length ?? 0) > 0}
                     isLoading={isLoading}
                   >
-                    <TableView
-                      {...this.props}
-                      isLoading={isLoading}
-                      isFirstPage={isFirstPage}
-                      error={error}
-                      eventView={eventView}
-                      tableData={tableData}
-                      measurementKeys={measurementKeys}
-                      spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
-                      customMeasurements={contextValue?.customMeasurements ?? undefined}
-                      dataset={dataset}
-                    />
+                    <ErrorBoundary>
+                      <TableView
+                        {...this.props}
+                        isLoading={isLoading}
+                        isFirstPage={isFirstPage}
+                        error={error}
+                        eventView={eventView}
+                        tableData={tableData}
+                        measurementKeys={measurementKeys}
+                        spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
+                        customMeasurements={contextValue?.customMeasurements ?? undefined}
+                        dataset={dataset}
+                        queryDataset={queryDataset}
+                      />
+                    </ErrorBoundary>
                   </VisuallyCompleteWithData>
                 )}
               </CustomMeasurementsContext.Consumer>

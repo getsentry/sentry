@@ -1,13 +1,17 @@
+from unittest import TestCase
 from unittest.mock import Mock
 
 from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
+from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class TeamProjectsListTest(APITestCase):
@@ -39,7 +43,7 @@ class TeamProjectsListTest(APITestCase):
         assert str(proj3.id) not in response.data
 
 
-class TeamProjectsCreateTest(APITestCase):
+class TeamProjectsCreateTest(APITestCase, TestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"
 
@@ -63,6 +67,14 @@ class TeamProjectsCreateTest(APITestCase):
         assert project.slug == "bar"
         assert project.platform == "python"
         assert project.teams.first() == self.team
+
+        # Assert project option is not set for non-EA organizations
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is None
+        )
 
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
@@ -95,6 +107,18 @@ class TeamProjectsCreateTest(APITestCase):
             status_code=400,
         )
         assert response.data["platform"][0] == "Invalid platform"
+
+    def test_invalid_name(self):
+
+        invalid_name = list(RESERVED_PROJECT_SLUGS)[0]
+        response = self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            name=invalid_name,
+            platform="python",
+            status_code=400,
+        )
+        assert response.data["name"][0] == f'The name "{invalid_name}" is reserved and not allowed.'
 
     def test_duplicate_slug(self):
         self.create_project(slug="bar")
@@ -215,3 +239,61 @@ class TeamProjectsCreateTest(APITestCase):
         }
         assert javascript_filter_states["web-crawlers"]
         assert javascript_filter_states["filtered-transaction"]
+
+    @override_options({"similarity.new_project_seer_grouping.enabled": True})
+    def test_similarity_project_option_valid(self):
+        """
+        Test that project option for similarity grouping is created for EA organizations
+        where the project platform is Seer-eligible.
+        """
+        self.organization.flags.early_adopter = True
+        self.organization.save()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "python"
+        assert project.teams.first() == self.team
+
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is not None
+        )
+
+    def test_similarity_project_option_invalid(self):
+        """
+        Test that project option for similarity grouping is not created for EA organizations
+        where the project platform is not seer eligible.
+        """
+
+        self.organization.flags.early_adopter = True
+        self.organization.save()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="foo",
+            slug="bar",
+            platform="php",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "php"
+        assert project.teams.first() == self.team
+
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is None
+        )

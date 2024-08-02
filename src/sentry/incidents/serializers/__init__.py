@@ -8,13 +8,8 @@ __all__ = (
     "AlertRuleTriggerActionSerializer",
     "ACTION_TARGET_TYPE_TO_STRING",
     "STRING_TO_ACTION_TARGET_TYPE",
-    "STRING_TO_ACTION_TYPE",
 )
 
-STRING_TO_ACTION_TYPE = {
-    registration.slug: registration.type
-    for registration in AlertRuleTriggerAction.get_registered_types()
-}
 ACTION_TARGET_TYPE_TO_STRING = {
     AlertRuleTriggerAction.TargetType.USER: "user",
     AlertRuleTriggerAction.TargetType.TEAM: "team",

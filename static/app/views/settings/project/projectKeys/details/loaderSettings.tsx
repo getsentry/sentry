@@ -196,7 +196,17 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             help={
               !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? t('Only available in SDK version 7.x and above')
-                : undefined
+                : data.dynamicSdkLoaderOptions.hasPerformance
+                  ? tct(
+                      'The default config is [codeTracesSampleRate:tracesSampleRate: 1.0] and distributed tracing to same-origin requests. [configDocs:Read the docs] to learn how to configure this.',
+                      {
+                        codeTracesSampleRate: <code />,
+                        configDocs: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/loader/#custom-configuration" />
+                        ),
+                      }
+                    )
+                  : undefined
             }
             disabledReason={
               !hasAccess
@@ -226,8 +236,16 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 ? t('Only available in SDK version 7.x and above')
                 : data.dynamicSdkLoaderOptions.hasReplay
                   ? tct(
-                      'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle. The default configurations are [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.',
+                      `[es5Warning]The default config is [codeReplay:replaysSessionSampleRate: 0.1] and [codeError:replaysOnErrorSampleRate: 1]. [configDocs:Read the docs] to learn how to configure this.`,
                       {
+                        es5Warning:
+                          // latest is deprecated but resolves to v7
+                          data.browserSdkVersion === '7.x' ||
+                          data.browserSdkVersion === 'latest'
+                            ? t(
+                                'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+                              ) + ' '
+                            : '',
                         codeReplay: <code />,
                         codeError: <code />,
                         configDocs: (
@@ -265,5 +283,5 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 }
 
 function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
-  return sdkVersion === 'latest' || sdkVersion === '7.x';
+  return sdkVersion === 'latest' || sdkVersion === '7.x' || sdkVersion === '8.x';
 }

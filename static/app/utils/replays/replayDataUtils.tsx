@@ -1,5 +1,5 @@
 import invariant from 'invariant';
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 
 import isValidDate from 'sentry/utils/date/isValidDate';
 import getMinMax from 'sentry/utils/getMinMax';

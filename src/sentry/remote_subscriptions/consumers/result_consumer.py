@@ -54,29 +54,20 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
         except Exception:
             logger.exception("Failed to process message result")
 
-    def get_subscription(self, result: T) -> U:
+    def get_subscription(self, result: T) -> U | None:
         try:
-            subscription = self.subscription_model.objects.get_from_cache(
+            return self.subscription_model.objects.get_from_cache(
                 subscription_id=self.get_subscription_id(result)
             )
         except self.subscription_model.DoesNotExist:
-            # XXX: Create fake rows for now
-            subscription = self.subscription_model(
-                id=FAKE_SUBSCRIPTION_ID,
-                subscription_id=self.get_subscription_id(result),
-                type="test",
-                url="https://sentry.io/",
-                interval_seconds=300,
-                timeout_ms=500,
-            )
-        return subscription
+            return None
 
     @abc.abstractmethod
     def get_subscription_id(self, result: T) -> str:
         pass
 
     @abc.abstractmethod
-    def handle_result(self, subscription: U, result: T):
+    def handle_result(self, subscription: U | None, result: T):
         pass
 
 

@@ -3,11 +3,8 @@ import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Caches');
 export const BASE_URL = 'caches';
-
-// NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
-export const releaseLevelAsBadgeProps = {
-  isNew: true,
-};
+export const DATA_TYPE = t('Cache');
+export const DATA_TYPE_PLURAL = t('Caches');
 
 export const CHART_HEIGHT = 160;
 
@@ -21,11 +18,3 @@ export const MODULE_DESCRIPTION = t(
   'Discover whether your application is utilizing caching effectively and understand the latency associated with cache misses.'
 );
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/caches/';
-
-export const ONBOARDING_CONTENT = {
-  title: t('Make sure your application’s caching is behaving properly'),
-  description: t(
-    'We tell you if your application is hitting cache as often as expected and whether it’s delivering the anticipated performance improvements.'
-  ),
-  link: MODULE_DOC_LINK,
-};

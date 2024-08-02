@@ -1,5 +1,5 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -12,13 +12,12 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Props = {
-  browserType?: BrowserType;
+  browserTypes?: BrowserType[];
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
@@ -38,15 +37,14 @@ export const useTransactionWebVitalsScoresQuery = ({
   webVital = 'total',
   query,
   shouldEscapeFilters = true,
-  browserType,
+  browserTypes,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const shouldUseStaticWeights = useStaticWeightsSetting();
 
   const sort = useWebVitalsSort({sortName, defaultSort});
-  if (sort !== undefined && shouldUseStaticWeights) {
+  if (sort !== undefined) {
     if (sort.field === 'avg(measurements.score.total)') {
       sort.field = 'performance_score(measurements.score.total)';
     }
@@ -62,12 +60,14 @@ export const useTransactionWebVitalsScoresQuery = ({
   if (transaction) {
     search.addFilterValue('transaction', transaction, shouldEscapeFilters);
   }
-  if (browserType !== undefined && browserType !== BrowserType.ALL) {
-    search.addFilterValue(SpanIndexedField.BROWSER_NAME, browserType);
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
   }
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
+        'project.id',
+        'project',
         'transaction',
         'p75(measurements.lcp)',
         'p75(measurements.fcp)',
@@ -78,9 +78,7 @@ export const useTransactionWebVitalsScoresQuery = ({
           ? [`performance_score(measurements.score.${webVital})`]
           : []),
         `opportunity_score(measurements.score.${webVital})`,
-        ...(shouldUseStaticWeights
-          ? ['performance_score(measurements.score.total)']
-          : ['avg(measurements.score.total)']),
+        'performance_score(measurements.score.total)',
         'count()',
         `count_scores(measurements.score.lcp)`,
         `count_scores(measurements.score.fcp)`,
@@ -115,10 +113,7 @@ export const useTransactionWebVitalsScoresQuery = ({
     !isLoading && data?.data.length
       ? data.data.map(row => {
           // Map back performance score key so we don't have to handle both keys in the UI
-          if (
-            shouldUseStaticWeights &&
-            row['performance_score(measurements.score.total)'] !== undefined
-          ) {
+          if (row['performance_score(measurements.score.total)'] !== undefined) {
             row['avg(measurements.score.total)'] =
               row['performance_score(measurements.score.total)'];
           }
@@ -126,6 +121,8 @@ export const useTransactionWebVitalsScoresQuery = ({
             calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
             transaction: row.transaction?.toString(),
+            project: row.project?.toString(),
+            'project.id': parseInt(row['project.id'].toString(), 10),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
@@ -155,7 +152,7 @@ export const useTransactionWebVitalsScoresQuery = ({
             inpScore: inpScore ?? 0,
             // Map back opportunity score key so we don't have to handle both keys in the UI
             opportunity: row[
-              shouldUseStaticWeights && webVital === 'total'
+              webVital === 'total'
                 ? 'total_opportunity_score()'
                 : `opportunity_score(measurements.score.${webVital})`
             ] as number,
@@ -165,6 +162,7 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   return {
     data: tableData,
+    meta: data?.meta as EventsMetaType,
     isLoading,
     ...rest,
   };

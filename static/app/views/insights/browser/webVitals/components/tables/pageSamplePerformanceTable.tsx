@@ -43,7 +43,7 @@ import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
 } from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -101,7 +101,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const routes = useRoutes();
   const router = useRouter();
 
-  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
   let datatype = Datatype.PAGELOADS;
   switch (decodeScalar(location.query[DATATYPE_KEY], 'pageloads')) {
     case 'interactions':
@@ -137,7 +137,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     query: search,
     withProfiles: true,
     enabled: datatype === Datatype.PAGELOADS,
-    browserType,
+    browserTypes,
   });
 
   const {
@@ -149,7 +149,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     enabled: datatype === Datatype.INTERACTIONS,
     limit,
     filters: new MutableSearch(query ?? '').filters,
-    browserType,
+    browserTypes,
   });
 
   const {profileExists} = useProfileExists(

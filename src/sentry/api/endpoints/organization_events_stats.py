@@ -12,17 +12,22 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.middleware import is_frontend_request
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
+    profile_functions_metrics,
     spans_indexed,
     spans_metrics,
+    transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
@@ -73,6 +78,9 @@ METRICS_ENHANCED_REFERRERS: set[str] = {
 ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     Referrer.API_ALERTS_CHARTCUTERIE.value,
+    Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.DISCOVER_SLACK_UNFURL.value,
     Referrer.API_DASHBOARDS_WIDGET_AREA_CHART.value,
     Referrer.API_DASHBOARDS_WIDGET_BAR_CHART.value,
     Referrer.API_DASHBOARDS_WIDGET_LINE_CHART.value,
@@ -106,6 +114,14 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
 }
 
 
+SENTRY_BACKEND_REFERRERS = [
+    Referrer.API_ALERTS_CHARTCUTERIE.value,
+    Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.DISCOVER_SLACK_UNFURL.value,
+]
+
+
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
@@ -113,7 +129,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     }
     sunba_methods = ["GET"]
 
-    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+    def get_features(
+        self, organization: Organization, request: Request
+    ) -> Mapping[str, bool | None]:
         feature_names = [
             "organizations:performance-chart-interpolation",
             "organizations:performance-use-metrics",
@@ -163,6 +181,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         return has_data
 
     def get(self, request: Request, organization: Organization) -> Response:
+        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -201,6 +220,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
                 else Referrer.API_ORGANIZATION_EVENT_STATS.value
             )
+            if referrer in SENTRY_BACKEND_REFERRERS:
+                query_source = QuerySource.SENTRY_BACKEND
             batch_features = self.get_features(organization, request)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
@@ -229,8 +250,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
+                        profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
+                        errors,
+                        transactions,
                     ]
                     else discover
                 )
@@ -257,7 +281,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             rollup: int,
             zerofill_results: bool,
             comparison_delta: datetime | None,
-        ) -> SnubaTSResult:
+        ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -275,6 +299,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_enabled=use_on_demand_metrics,
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
+                    query_source=query_source,
                 )
 
             return scoped_dataset.timeseries_query(
@@ -300,6 +325,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     )
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
 
         def get_event_stats_factory(scoped_dataset):
@@ -318,7 +344,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 rollup: int,
                 zerofill_results: bool,
                 comparison_delta: datetime | None,
-            ) -> SnubaTSResult:
+            ) -> SnubaTSResult | dict[str, SnubaTSResult]:
 
                 if not (metrics_enhanced and dashboard_widget_id):
                     return _get_event_stats(
@@ -393,7 +419,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if isinstance(original_results, SnubaTSResult):
                         dataset_meta = original_results.data.get("meta", {})
                     else:
-                        dataset_meta = list(original_results.values())[0].data.get("meta", {})
+                        if len(original_results) > 0:
+                            dataset_meta = list(original_results.values())[0].data.get("meta", {})
+                        else:
+                            dataset_meta = {}
 
                     using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
                         "isMetricsExtractedData", False
@@ -416,7 +445,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         )
                         has_transactions = self.check_if_results_have_data(transaction_results)
 
-                    decision = self.save_split_decision(widget, has_errors, has_transactions)
+                    decision = self.save_split_decision(
+                        widget, has_errors, has_transactions, organization, request.user
+                    )
 
                     if decision == DashboardWidgetTypes.DISCOVER:
                         # The user needs to be warned to split in this case.
@@ -430,8 +461,32 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             comparison_delta,
                         )
                     elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        for result in (
+                            original_results.values()
+                            if isinstance(original_results, dict)
+                            else [original_results]
+                        ):
+                            if not result.data.get("meta"):
+                                result.data["meta"] = {}
+                            result.data["meta"][
+                                "discoverSplitDecision"
+                            ] = DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                        for result in (
+                            error_results.values()
+                            if isinstance(error_results, dict)
+                            else [error_results]
+                        ):
+                            if not result.data.get("meta"):
+                                result.data["meta"] = {}
+                            result.data["meta"][
+                                "discoverSplitDecision"
+                            ] = DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.ERROR_EVENTS
+                            )
                         return error_results
                     else:
                         return original_results

@@ -473,8 +473,8 @@ class Project(Model, PendingDeletionMixin):
 
     def transfer_to(self, organization):
         from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.environment import Environment, EnvironmentProject
-        from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
@@ -551,29 +551,31 @@ class Project(Model, PendingDeletionMixin):
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(
             Q(user_id__isnull=False) | Q(team_id__isnull=False)
         )
-        for rule in alert_rules:
+        for alert_rule in alert_rules:
             is_member = False
-            if rule.user_id:
-                is_member = organization.member_set.filter(user_id=rule.user_id).exists()
-            if rule.team_id:
+            if alert_rule.user_id:
+                is_member = organization.member_set.filter(user_id=alert_rule.user_id).exists()
+            if alert_rule.team_id:
                 is_member = Team.objects.filter(
-                    organization_id=organization.id, id=rule.team_id
+                    organization_id=organization.id, id=alert_rule.team_id
                 ).exists()
             if not is_member:
-                rule.update(team_id=None, user_id=None)
-        rules = Rule.objects.filter(
+                alert_rule.update(team_id=None, user_id=None)
+        rule_models = Rule.objects.filter(
             Q(owner_team_id__isnull=False) | Q(owner_user_id__isnull=False), project=self
         )
-        for rule in rules:
+        for rule_model in rule_models:
             is_member = False
-            if rule.owner_user_id:
-                is_member = organization.member_set.filter(user_id=rule.owner_user_id).exists()
-            if rule.owner_team_id:
+            if rule_model.owner_user_id:
+                is_member = organization.member_set.filter(
+                    user_id=rule_model.owner_user_id
+                ).exists()
+            if rule_model.owner_team_id:
                 is_member = Team.objects.filter(
-                    organization_id=organization.id, id=rule.owner_team_id
+                    organization_id=organization.id, id=rule_model.owner_team_id
                 ).exists()
             if not is_member:
-                rule.update(owner_user_id=None, owner_team_id=None)
+                rule_model.update(owner_user_id=None, owner_team_id=None)
 
         # [Rule, AlertRule(SnubaQuery->Environment)]
         # id -> name
@@ -719,13 +721,13 @@ class Project(Model, PendingDeletionMixin):
             object_identifier=project_identifier,
         )
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
 
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
-            return super().delete(**kwargs)
+            return super().delete(*args, **kwargs)
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags

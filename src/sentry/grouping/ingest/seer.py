@@ -1,21 +1,28 @@
 import logging
 from dataclasses import asdict
+from typing import Any
+
+import sentry_sdk
+from django.conf import settings
 
 from sentry import features, options
 from sentry import ratelimits as ratelimiter
+from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
-from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
-from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
+from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     event_content_is_seer_eligible,
-    filter_null_from_event_title,
+    filter_null_from_string,
     get_stacktrace_string,
+    killswitch_enabled,
 )
 from sentry.utils import metrics
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
@@ -29,11 +36,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
 
     project = event.project
 
-    has_either_seer_grouping_feature = features.has(
-        "projects:similarity-embeddings-metadata", project
-    ) or features.has("projects:similarity-embeddings-grouping", project)
-
-    if not has_either_seer_grouping_feature:
+    if not _project_has_similarity_grouping_enabled(project):
         return False
 
     if _has_customized_fingerprint(event, primary_hashes):
@@ -48,15 +51,26 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     # (Checking the rate limit for calling Seer also increments the counter of how many times we've
     # tried to call it, and if we fail any of the other checks, it shouldn't count as an attempt.
     # Thus we only want to run the rate limit check if every other check has already succeeded.)
-    #
-    # Note: The circuit breaker check which might naturally be here alongside its killswitch
-    # and rate limiting friends instead happens in the `with_circuit_breaker` helper used where
-    # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
-    # errors arising from that call.)
-    if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
+    if (
+        killswitch_enabled(project.id, event)
+        or _circuit_breaker_broken(event, project)
+        or _ratelimiting_enabled(event, project)
+    ):
         return False
 
     return True
+
+
+def _project_has_similarity_grouping_enabled(project: Project) -> bool:
+    has_seer_grouping_flag_on = features.has("projects:similarity-embeddings-grouping", project)
+
+    # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
+    # the backfill script completes, we turn on this option, enabling ingest immediately rather than
+    # forcing the project to wait until it's been manually added to a feature handler. Once all
+    # projects have been backfilled, the option (and this check) can go away.
+    has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
+
+    return has_seer_grouping_flag_on or has_been_backfilled
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
@@ -90,42 +104,6 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,
             tags={"call_made": False, "blocker": fingerprint_variant.type},
-        )
-        return True
-
-    return False
-
-
-def _killswitch_enabled(event: Event, project: Project) -> bool:
-    """
-    Check both the global and similarity-specific Seer killswitches.
-    """
-
-    logger_extra = {"event_id": event.event_id, "project_id": project.id}
-
-    if options.get("seer.global-killswitch.enabled"):
-        logger.warning(
-            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
-            extra=logger_extra,
-        )
-        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={"call_made": False, "blocker": "global-killswitch"},
-        )
-        return True
-
-    if options.get("seer.similarity-killswitch.enabled"):
-        logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
-            extra=logger_extra,
-        )
-        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={"call_made": False, "blocker": "similarity-killswitch"},
         )
         return True
 
@@ -182,53 +160,71 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     return False
 
 
+def _circuit_breaker_broken(event: Event, project: Project) -> bool:
+    breaker_config = options.get("seer.similarity.circuit-breaker-config")
+    circuit_breaker = CircuitBreaker(settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY, breaker_config)
+    circuit_broken = not circuit_breaker.should_allow_request()
+
+    if circuit_broken:
+        logger.warning(
+            "should_call_seer_for_grouping.broken_circuit_breaker",
+            extra={
+                "event_id": event.event_id,
+                "project_id": project.id,
+                **breaker_config,
+            },
+        )
+        metrics.incr(
+            "grouping.similarity.broken_circuit_breaker",
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "circuit-breaker"},
+        )
+
+    return circuit_broken
+
+
 def get_seer_similar_issues(
     event: Event,
     primary_hashes: CalculatedHashes,
     num_neighbors: int = 1,
-) -> tuple[
-    dict[
-        str, str | list[dict[str, float | bool | int | str]]
-    ],  # a SeerSimilarIssuesMetadata instance, dictified
-    Group | None,
-]:
+) -> tuple[dict[str, Any], GroupHash | None]:
     """
     Ask Seer for the given event's nearest neighbor(s) and return the seer response data, sorted
-    with the best matches first, along with the group Seer decided the event should go in, if any,
-    or None if no neighbor was near enough.
-
-    Will also return `None` for the neighboring group if the `projects:similarity-embeddings-grouping`
-    feature flag is off.
+    with the best matches first, along with a grouphash linked to the group Seer decided the event
+    should go in (if any), or None if no neighbor was near enough.
     """
 
     event_hash = primary_hashes.hashes[0]
     stacktrace_string = get_stacktrace_string(
         get_grouping_info_from_variants(primary_hashes.variants)
     )
+    exception_type = get_path(event.data, "exception", "values", -1, "type")
 
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
-        "message": filter_null_from_event_title(event.title),
-        "exception_type": get_path(event.data, "exception", "values", -1, "type"),
+        "message": filter_null_from_string(event.title),
+        "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
         "referrer": "ingest",
     }
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
-    similar_issues_metadata = asdict(
-        SeerSimilarIssuesMetadata(request_hash=event_hash, results=seer_results)
-    )
-    parent_group = (
-        Group.objects.filter(id=seer_results[0].parent_group_id).first()
-        if (
-            seer_results
-            and seer_results[0].should_group
-            and features.has("projects:similarity-embeddings-grouping", event.project)
-        )
+    similar_issues_metadata = {
+        "results": [asdict(result) for result in seer_results],
+        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+    }
+    parent_grouphash = (
+        GroupHash.objects.filter(
+            hash=seer_results[0].parent_hash, project_id=event.project.id
+        ).first()
+        if seer_results
         else None
     )
 
@@ -238,9 +234,39 @@ def get_seer_similar_issues(
             "event_id": event.event_id,
             "project_id": event.project.id,
             "hash": event_hash,
-            "results": similar_issues_metadata["results"],
-            "group_returned": bool(parent_group),
+            "results": seer_results,
+            "grouphash_returned": bool(parent_grouphash),
         },
     )
 
-    return (similar_issues_metadata, parent_group)
+    return (similar_issues_metadata, parent_grouphash)
+
+
+def maybe_check_seer_for_matching_grouphash(
+    event: Event, primary_hashes: CalculatedHashes
+) -> GroupHash | None:
+    seer_matched_grouphash = None
+
+    if should_call_seer_for_grouping(event, primary_hashes):
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            # TODO: Consider lowering this (in all the spots this metric is
+            # collected) once we roll Seer grouping out more widely
+            sample_rate=1.0,
+            tags={"call_made": True, "blocker": "none"},
+        )
+        try:
+            # If no matching group is found in Seer, we'll still get back result
+            # metadata, but `seer_matched_grouphash` will be None
+            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(
+                event, primary_hashes
+            )
+            event.data["seer_similarity"] = seer_response_data
+
+        # Insurance - in theory we shouldn't ever land here
+        except Exception as e:
+            sentry_sdk.capture_exception(
+                e, tags={"event": event.event_id, "project": event.project.id}
+            )
+
+    return seer_matched_grouphash

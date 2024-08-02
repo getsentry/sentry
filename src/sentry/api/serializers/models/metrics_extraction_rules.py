@@ -8,7 +8,7 @@ class MetricsExtractionRuleSerializer(Serializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "spanAttribute": attrs.get("span_attribute"),
             "type": attrs.get("type"),
@@ -20,10 +20,10 @@ class MetricsExtractionRuleSerializer(Serializer):
 
 
 class SpanAttributeExtractionRuleConfigSerializer(Serializer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "spanAttribute": obj.span_attribute,
             "aggregates": list(obj.aggregates),
@@ -31,6 +31,9 @@ class SpanAttributeExtractionRuleConfigSerializer(Serializer):
             "tags": list(obj.tags),
             "conditions": self._serialize_conditions(obj),
             "projectId": obj.project_id,
+            "createdById": obj.created_by_id,
+            "dateAdded": obj.date_added,
+            "dateUpdated": obj.date_updated,
         }
 
     def _serialize_conditions(self, obj: SpanAttributeExtractionRuleConfig) -> list[dict[str, Any]]:

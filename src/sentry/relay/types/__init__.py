@@ -1,3 +1,4 @@
-from sentry.relay.types.rule_condition import RuleCondition
+from .generic_filters import GenericFilter, GenericFiltersConfig
+from .rule_condition import RuleCondition
 
-__all__ = ["RuleCondition"]
+__all__ = ["GenericFilter", "GenericFiltersConfig", "RuleCondition"]

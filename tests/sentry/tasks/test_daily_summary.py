@@ -261,13 +261,13 @@ class DailySummaryTest(
         )
         assert project_context_map.total_today == 17  # total outcomes from today
         assert project_context_map.comparison_period_avg == 1
-        assert len(project_context_map.key_errors) == 3
-        assert (self.group1, None, 3) in project_context_map.key_errors
-        assert (self.group2, None, 2) in project_context_map.key_errors
-        assert (self.group3, None, 10) in project_context_map.key_errors
+        assert len(project_context_map.key_errors_by_group) == 3
+        assert (self.group1, 3) in project_context_map.key_errors_by_group
+        assert (self.group2, 2) in project_context_map.key_errors_by_group
+        assert (self.group3, 10) in project_context_map.key_errors_by_group
         assert len(project_context_map.key_performance_issues) == 2
-        assert (self.perf_event.group, None, 1) in project_context_map.key_performance_issues
-        assert (self.perf_event2.group, None, 1) in project_context_map.key_performance_issues
+        assert (self.perf_event.group, 1) in project_context_map.key_performance_issues
+        assert (self.perf_event2.group, 1) in project_context_map.key_performance_issues
         assert project_context_map.escalated_today == [self.group3]
         assert project_context_map.regressed_today == [self.group2]
         assert len(project_context_map.new_in_release) == 2
@@ -281,7 +281,7 @@ class DailySummaryTest(
         )
         assert project_context_map2.total_today == 2
         assert project_context_map2.comparison_period_avg == 0
-        assert project_context_map2.key_errors == [(self.group4, None, 2)]
+        assert project_context_map2.key_errors_by_group == [(self.group4, 2)]
         assert project_context_map2.key_performance_issues == []
         assert project_context_map2.escalated_today == []
         assert project_context_map2.regressed_today == []
@@ -328,9 +328,9 @@ class DailySummaryTest(
         )
         assert project_context_map.total_today == 9  # total outcomes from today
         assert project_context_map.comparison_period_avg == 0
-        assert len(project_context_map.key_errors) == 2
-        assert (group1, None, 3) in project_context_map.key_errors
-        assert (group2, None, 3) in project_context_map.key_errors
+        assert len(project_context_map.key_errors_by_group) == 2
+        assert (group1, 3) in project_context_map.key_errors_by_group
+        assert (group2, 3) in project_context_map.key_errors_by_group
 
     def test_build_summary_data_filter_to_error_level(self):
         """Test that non-error level issues are filtered out of the results"""
@@ -371,10 +371,10 @@ class DailySummaryTest(
         )
         assert project_context_map.total_today == 9  # total outcomes from today
         assert project_context_map.comparison_period_avg == 0
-        assert len(project_context_map.key_errors) == 2
-        assert (group1, None, 3) not in project_context_map.key_errors
-        assert (group2, None, 3) in project_context_map.key_errors
-        assert (group3, None, 3) in project_context_map.key_errors
+        assert len(project_context_map.key_errors_by_group) == 2
+        assert (group1, 3) not in project_context_map.key_errors_by_group
+        assert (group2, 3) in project_context_map.key_errors_by_group
+        assert (group3, 3) in project_context_map.key_errors_by_group
 
     def test_build_summary_data_dedupes_groups(self):
         """

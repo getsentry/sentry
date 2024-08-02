@@ -1,4 +1,4 @@
-import type {BaseGroup, Event, GroupStats} from 'sentry/types';
+import type {BaseGroup, Event, GroupStats, Project} from 'sentry/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -21,6 +21,7 @@ export type FeedbackIssue = Overwrite<
       source?: null | string;
     };
     owners: null | unknown;
+    project?: Project;
   }
 >;
 
@@ -44,5 +45,6 @@ export type FeedbackIssueListItem = Overwrite<
       source?: null | string;
     };
     owners: null | unknown;
+    project?: Project;
   }
 >;

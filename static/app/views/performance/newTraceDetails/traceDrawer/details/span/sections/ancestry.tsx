@@ -21,8 +21,9 @@ import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -44,7 +45,7 @@ function SpanChild({
   organization,
   location,
 }: {
-  childTransaction: TraceTreeNode<TraceFullDetailed>;
+  childTransaction: TraceTreeNode<TraceTree.Transaction>;
   location: Location;
   organization: Organization;
 }) {
@@ -147,7 +148,11 @@ function SpanChildrenTraversalButton({
     <StyledDiscoverButton
       data-test-id="view-child-transactions"
       size="xs"
-      to={childrenEventView.getResultsViewUrlTarget(organization.slug)}
+      to={childrenEventView.getResultsViewUrlTarget(
+        organization.slug,
+        false,
+        hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+      )}
     >
       {t('View Children')}
     </StyledDiscoverButton>

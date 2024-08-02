@@ -8,8 +8,8 @@ will then be regenerated, and you should be able to merge without conflicts.
 feedback: 0004_index_together
 hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
-remote_subscriptions: 0002_remove_separate_remote_subscription
+remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0733_relocation_provenance
+sentry: 0746_add_bitflags_to_hybrid_cloud
 social_auth: 0002_default_auto_field
-uptime: 0002_remove_separate_remote_subscription
+uptime: 0006_projectuptimesubscription_name_owner

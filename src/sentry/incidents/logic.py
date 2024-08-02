@@ -14,8 +14,10 @@ from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import analytics, audit_log, features, quotas
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
@@ -23,10 +25,14 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
+    AlertRuleDetectionType,
     AlertRuleExcludedProjects,
     AlertRuleMonitorTypeInt,
     AlertRuleProjects,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
+    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
@@ -52,6 +58,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
@@ -94,6 +101,10 @@ NOT_SET = object()
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
+DYNAMIC_TIME_WINDOWS = {15, 30, 60}
+DYNAMIC_TIME_WINDOWS_SECONDS = {window * 60 for window in DYNAMIC_TIME_WINDOWS}
+INVALID_TIME_WINDOW = f"Invalid time window for dynamic alert (valid windows are {', '.join(map(str, DYNAMIC_TIME_WINDOWS))} minutes)"
+INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
 
 logger = logging.getLogger(__name__)
 
@@ -516,6 +527,9 @@ def create_alert_rule(
     monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
     description: str | None = None,
+    sensitivity: AlertRuleSensitivity | None = None,
+    seasonality: AlertRuleSeasonality | None = None,
+    detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
     **kwargs,
 ):
     """
@@ -545,6 +559,9 @@ def create_alert_rule(
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
+    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
+    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
+    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
 
     :return: The created `AlertRule`
     """
@@ -552,6 +569,33 @@ def create_alert_rule(
         raise ValidationError("Activation condition required for activated alert rule")
 
     resolution = get_alert_resolution(time_window, organization)
+
+    if detection_type == AlertRuleDetectionType.DYNAMIC:
+        if not (sensitivity and seasonality):
+            raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
+        if time_window not in DYNAMIC_TIME_WINDOWS:
+            raise ValidationError(INVALID_TIME_WINDOW)
+    else:
+        if sensitivity or seasonality:
+            raise ValidationError(
+                "Sensitivity and seasonality are not valid fields for this alert type"
+            )
+        if threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW:
+            raise ValidationError(
+                "Above and below is not a valid threshold type for this alert type"
+            )
+
+    if detection_type == AlertRuleDetectionType.PERCENT:
+        if comparison_delta is None:
+            raise ValidationError("Percentage-based alerts require a comparison delta")
+    else:
+        if comparison_delta is not None:
+            if not (sensitivity or seasonality):
+                # this is a user setting up a percent-based metric alert who doesn't know about the new field
+                detection_type = AlertRuleDetectionType.PERCENT
+            else:
+                # this is an incorrect field selection
+                raise ValidationError("Comparison delta is not a valid field for this alert type")
 
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
@@ -583,17 +627,10 @@ def create_alert_rule(
             owner=owner,
             monitor_type=monitor_type,
             description=description,
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            detection_type=detection_type,
         )
-
-        if user:
-            create_audit_entry_from_user(
-                user,
-                ip_address=kwargs.get("ip_address") if kwargs else None,
-                organization_id=organization.id,
-                target_object=alert_rule.id,
-                data=alert_rule.get_audit_log_data(),
-                event=audit_log.get_event_id("ALERT_RULE_ADD"),
-            )
 
         if include_all_projects:
             # NOTE: This feature is not currently utilized.
@@ -606,6 +643,29 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
+
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+            if not features.has("organizations:anomaly-detection-alerts", organization):
+                alert_rule.delete()
+                raise ResourceDoesNotExist(
+                    "Your organization does not have access to this feature."
+                )
+
+            try:
+                send_historical_data_to_seer(alert_rule=alert_rule, project=projects[0])
+            except (TimeoutError, MaxRetryError):
+                alert_rule.delete()
+                raise TimeoutError
+
+        if user:
+            create_audit_entry_from_user(
+                user,
+                ip_address=kwargs.get("ip_address") if kwargs else None,
+                organization_id=organization.id,
+                target_object=alert_rule.id,
+                data=alert_rule.get_audit_log_data(),
+                event=audit_log.get_event_id("ALERT_RULE_ADD"),
+            )
 
         if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and activation_condition:
             # NOTE: if monitor_type is activated, activation_condition is required
@@ -696,6 +756,9 @@ def update_alert_rule(
     comparison_delta=NOT_SET,
     monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
+    sensitivity: AlertRuleSensitivity | None | object = NOT_SET,
+    seasonality: AlertRuleSeasonality | None | object = NOT_SET,
+    detection_type: AlertRuleDetectionType | None = None,
     **kwargs,
 ):
     """
@@ -724,6 +787,9 @@ def update_alert_rule(
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
     :param description: An optional str that will be rendered in the notification
+    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
+    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
+    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
@@ -732,6 +798,10 @@ def update_alert_rule(
         updated_fields["name"] = name
     if description:
         updated_fields["description"] = description
+    if sensitivity is not NOT_SET:
+        updated_fields["sensitivity"] = sensitivity
+    if seasonality is not NOT_SET:
+        updated_fields["seasonality"] = seasonality
     if query is not None:
         updated_query_fields["query"] = query
     if aggregate is not None:
@@ -764,6 +834,12 @@ def update_alert_rule(
             comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
         updated_fields["comparison_delta"] = comparison_delta
+    if detection_type is None:
+        if "comparison_delta" in updated_fields:  # some value changed -> update type if necessary
+            if comparison_delta is not None:
+                detection_type = AlertRuleDetectionType.PERCENT
+            else:
+                detection_type = AlertRuleDetectionType.STATIC
 
     # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
     if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
@@ -785,6 +861,25 @@ def update_alert_rule(
             )
         else:
             updated_query_fields["resolution"] = timedelta(minutes=resolution)
+
+    if detection_type:
+        updated_fields["detection_type"] = detection_type
+        # make sure we clear the incorrect fields for each detection type
+        if detection_type == AlertRuleDetectionType.STATIC:
+            updated_fields["sensitivity"] = None
+            updated_fields["seasonality"] = None
+            updated_fields["comparison_delta"] = None
+        elif detection_type == AlertRuleDetectionType.PERCENT:
+            updated_fields["sensitivity"] = None
+            updated_fields["seasonality"] = None
+        elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            updated_fields["comparison_delta"] = None
+            if (
+                time_window not in DYNAMIC_TIME_WINDOWS
+                or time_window is None
+                and alert_rule.snuba_query.time_window not in DYNAMIC_TIME_WINDOWS_SECONDS
+            ):
+                raise ValidationError(INVALID_TIME_WINDOW)
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -1005,6 +1100,9 @@ def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_proje
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
         raise AlertRuleTriggerLabelAlreadyUsedError()
 
+    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
+        raise ValidationError(INVALID_ALERT_THRESHOLD)
+
     excluded_subs = []
     if excluded_projects:
         excluded_subs = get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
@@ -1040,6 +1138,9 @@ def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, exclude
         .exists()
     ):
         raise AlertRuleTriggerLabelAlreadyUsedError()
+
+    if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
+        raise ValidationError(INVALID_ALERT_THRESHOLD)
 
     updated_fields = {}
     if label is not None:
@@ -1553,7 +1654,7 @@ def get_available_action_integrations_for_org(organization) -> list[RpcIntegrati
 
     providers = [
         registration.integration_provider
-        for registration in AlertRuleTriggerAction.get_registered_types()
+        for registration in AlertRuleTriggerAction.get_registered_factories()
         if registration.integration_provider is not None
     ]
     return integration_service.get_integrations(
@@ -1740,13 +1841,16 @@ def get_filtered_actions(
     alert_rule_data: Mapping[str, Any],
     action_type: ActionService,
 ):
-    from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
+    def is_included(action: Mapping[str, Any]) -> bool:
+        type_slug = action.get("type")
+        factory = AlertRuleTriggerAction.look_up_factory_by_slug(type_slug)
+        return factory is not None and factory.service_type == action_type
 
     return [
         rewrite_trigger_action_fields(action)
         for trigger in alert_rule_data.get("triggers", [])
         for action in trigger.get("actions", [])
-        if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
+        if is_included(action)
     ]
 
 

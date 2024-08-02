@@ -115,7 +115,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "fingerprintingRules",
         "secondaryGroupingConfig",
         "secondaryGroupingExpiry",
-        "groupingAutoUpdate",
         "scrapeJavaScript",
         "allowedDomains",
         "copy_from_project",
@@ -126,6 +125,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "highlightContext",
         "highlightTags",
         "extrapolateMetrics",
+        "uptimeAutodetection",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -202,7 +202,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         required=False, allow_blank=True, allow_null=True
     )
     secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    groupingAutoUpdate = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
@@ -212,6 +211,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     extrapolateMetrics = serializers.BooleanField(required=False)
+    uptimeAutodetection = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -238,6 +238,22 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         return data
+
+    def validate_extrapolateMetrics(self, value):
+        organization = self.context["project"].organization
+        request = self.context["request"]
+
+        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
+        has_metrics_extrapolation = features.has(
+            "organizations:metrics-extrapolation", organization, actor=request.user
+        )
+
+        if not has_metrics_extrapolation:
+            raise serializers.ValidationError(
+                "Organization does not have the metrics extrapolation feature enabled"
+            )
+        else:
+            return value
 
     def validate_allowedDomains(self, value):
         value = list(filter(bool, value))
@@ -310,7 +326,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             # We should really only grab and parse if there are sources in sources_json whose
             # secrets are set to {"hidden-secret":true}
             orig_sources = parse_sources(
-                self.context["project"].get_option("sentry:symbol_sources")
+                self.context["project"].get_option("sentry:symbol_sources"),
+                filter_appconnect=True,
             )
             sources = parse_backfill_sources(sources_json.strip(), orig_sources)
         except InvalidSourcesError as e:
@@ -331,6 +348,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             # This should only apply to sources which are being fed to symbolicator.
             # App Store Connect in particular is managed in a completely different
             # way, and needs its `id` to stay valid for a longer time.
+            # TODO(@anonrig): Remove this when all AppStore connect data is removed.
             if source["type"] != "appStoreConnect":
                 source["id"] = str(uuid4())
 
@@ -344,15 +362,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if not has_sources:
             raise serializers.ValidationError(
                 "Organization is not allowed to set custom symbol sources"
-            )
-
-        has_multiple_appconnect = features.has(
-            "organizations:app-store-connect-multiple", organization, actor=request.user
-        )
-        appconnect_sources = [s for s in sources if s.get("type") == "appStoreConnect"]
-        if not has_multiple_appconnect and len(appconnect_sources) > 1:
-            raise serializers.ValidationError(
-                "Only one Apple App Store Connect application is allowed in this project"
             )
 
         return sources_json
@@ -641,9 +650,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
                     "secondaryGroupingExpiry"
                 ]
-        if result.get("groupingAutoUpdate") is not None:
-            if project.update_option("sentry:grouping_auto_update", result["groupingAutoUpdate"]):
-                changed_proj_settings["sentry:grouping_auto_update"] = result["groupingAutoUpdate"]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]
@@ -714,7 +720,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 # Redact secrets so they don't get logged directly to the Audit Log
                 sources_json = result["symbolSources"] or None
                 try:
-                    sources = parse_sources(sources_json)
+                    sources = parse_sources(sources_json, filter_appconnect=True)
                 except Exception:
                     sources = []
                 redacted_sources = redact_source_secrets(sources)
@@ -748,6 +754,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "extrapolateMetrics" in result:
             if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
                 changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
+
+        if result.get("uptimeAutodetection") is not None:
+            if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
+                changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
 
         if has_elevated_scopes:
             options = result.get("options", {})
@@ -840,11 +850,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:feedback_ai_spam_detection",
                     bool(options["sentry:feedback_ai_spam_detection"]),
                 )
-            if "sentry:reprocessing_active" in options:
-                project.update_option(
-                    "sentry:reprocessing_active",
-                    bool(options["sentry:reprocessing_active"]),
-                )
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",
@@ -897,6 +902,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "sentry:extrapolate_metrics" in options:
                 project.update_option(
                     "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
+                )
+            if "sentry:uptime_autodetection" in options:
+                project.update_option(
+                    "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
                 )
 
         self.create_audit_entry(
@@ -970,7 +979,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has("projects:similarity-embeddings-delete-by-hash", project):
+            if features.has("projects:similarity-embeddings-grouping", project):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

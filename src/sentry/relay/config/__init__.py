@@ -20,6 +20,7 @@ from sentry.ingest.inbound_filters import (
     _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
+    get_generic_filters,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -36,7 +37,6 @@ from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
-from sentry.relay.types import RuleCondition
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
@@ -56,13 +56,13 @@ EXPOSABLE_FEATURES = [
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
+    "organizations:session-replay-video-disabled",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:user-feedback-ingest",
     "projects:discard-transaction",
-    "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
@@ -142,29 +142,6 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
-    # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
-    # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
-    # why the value true is determined by either "1" or True.
-    enable_react = project.get_option("filters:react-hydration-errors") in ("1", True)
-    if enable_react:
-        # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
-        # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
-        # 422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
-        # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
-        # 425 - Text content does not match server-rendered HTML.
-        error_messages += [
-            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*",
-            "*https://react.dev/errors/{418,419,422,423,425}*",
-        ]
-
-    if project.get_option("filters:chunk-load-error") == "1":
-        # ChunkLoadError: Loading chunk 3662 failed.\n(error:
-        # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
-        error_messages += [
-            "ChunkLoadError: Loading chunk *",
-            "*Uncaught *: ChunkLoadError: Loading chunk *",
-        ]
-
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
 
@@ -179,35 +156,20 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
-    try:
-        generic_filters = _get_generic_project_filters()
-    except Exception:
-        logger.exception(
-            "Exception while building Relay project config: error building generic filters"
-        )
-    else:
-        if generic_filters and len(generic_filters["filters"]) > 0:
-            filter_settings["generic"] = generic_filters
+    if options.get("relay.emit-generic-inbound-filters"):
+        try:
+            # At the end we compute the generic inbound filters, which are inbound filters expressible with a
+            # conditional DSL that Relay understands.
+            generic_filters = get_generic_filters(project)
+            if generic_filters is not None:
+                filter_settings["generic"] = generic_filters
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.exception(
+                "Exception while building Relay project config: error building generic filters"
+            )
 
     return filter_settings
-
-
-class GenericFilter(TypedDict):
-    id: str
-    isEnabled: bool
-    condition: RuleCondition
-
-
-class GenericFiltersConfig(TypedDict):
-    version: int
-    filters: Sequence[GenericFilter]
-
-
-def _get_generic_project_filters() -> GenericFiltersConfig:
-    return {
-        "version": 1,
-        "filters": [],
-    }
 
 
 def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:
@@ -240,6 +202,7 @@ class CardinalityLimit(TypedDict):
 class CardinalityLimitOption(TypedDict):
     rollout_rate: NotRequired[float]
     limit: CardinalityLimit
+    projects: NotRequired[list[int]]
 
 
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
@@ -289,6 +252,11 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
     for clo in project_limit_options + organization_limit_options + option_limit_options:
         rollout_rate = clo.get("rollout_rate", 1.0)
         if (project.organization.id % 100000) / 100000 >= rollout_rate:
+            continue
+
+        projects = clo.get("projects")
+        if projects is not None and project.id not in projects:
+            # projects list is defined but the current project is not in the list
             continue
 
         try:
@@ -419,28 +387,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -457,14 +425,14 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": True,
+                    "optional": True,  # Only available on Firefox 122 and beyond
                 },
                 {
                     "measurement": "cls",
@@ -478,7 +446,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -495,7 +463,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
@@ -516,7 +484,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -533,28 +501,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -571,28 +539,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -675,28 +643,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -713,14 +681,14 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": False,
+                    "optional": True,  # Only available on Firefox 122 and beyond
                 },
                 {
                     "measurement": "cls",
@@ -734,7 +702,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -751,7 +719,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
@@ -772,7 +740,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -789,28 +757,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -827,28 +795,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -911,6 +879,64 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                 "op": "eq",
                 "name": "event.contexts.browser.name",
                 "value": "Opera Mobile",
+            },
+        },
+    ]
+
+
+def _get_default_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": "Default",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": True,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": True,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+        },
+        {
+            "name": "Default INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [],
             },
         },
     ]
@@ -1043,7 +1069,8 @@ def _get_project_config(
             config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
         )
 
-        add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
+        if metric_extraction := get_metric_extraction_config(project):
+            config["metricExtraction"] = metric_extraction
 
     config["sessionMetrics"] = {
         "version": (
@@ -1057,6 +1084,7 @@ def _get_project_config(
         *_get_desktop_browser_performance_profiles(project.organization),
         *_get_mobile_browser_performance_profiles(project.organization),
         *_get_mobile_performance_profiles(project.organization),
+        *_get_default_browser_performance_profiles(project.organization),
     ]
     if performance_score_profiles:
         config["performanceScore"] = {"profiles": performance_score_profiles}

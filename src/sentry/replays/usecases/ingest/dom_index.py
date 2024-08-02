@@ -323,7 +323,7 @@ def _should_report_rage_click_issue(project_id: int) -> bool:
     return all([_project_has_feature_enabled(), _project_has_option_enabled()])
 
 
-def _iter_custom_events(events: list[dict[str, Any]]) -> Generator[dict[str, Any], None, None]:
+def _iter_custom_events(events: list[dict[str, Any]]) -> Generator[dict[str, Any]]:
     for event in events:
         if event.get("type") == 5:
             yield event

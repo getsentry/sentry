@@ -12,7 +12,6 @@ from sentry.api.serializers.models.metrics_extraction_rules import (
     SpanAttributeExtractionRuleConfigSerializer,
 )
 from sentry.models.organization import Organization
-from sentry.organizations.services.organization import RpcOrganization
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 
 
@@ -23,12 +22,12 @@ class OrganizationMetricsExtractionRulesEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:custom-metrics-extraction-rule", organization, actor=request.user
         )
 
-    def get(self, request: Request, organization: Organization | RpcOrganization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """GET extraction rules for a list of projects. Returns 200 and a list of extraction rules on success."""
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -40,8 +39,12 @@ class OrganizationMetricsExtractionRulesEndpoint(OrganizationEndpoint):
                 {"detail": "You must supply at least one project to see its metrics"}, status=404
             )
 
+        query = request.GET.get("query")
+
         try:
             configs = SpanAttributeExtractionRuleConfig.objects.filter(project__in=projects)
+            if query:
+                configs = configs.filter(span_attribute__icontains=query)
 
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})

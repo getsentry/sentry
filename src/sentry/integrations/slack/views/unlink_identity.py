@@ -7,15 +7,11 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
-from sentry import features
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_UNLINK_IDENTITY_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_UNLINK_IDENTITY_SUCCESS_DATADOG_METRIC,
 )
-from sentry.integrations.slack.utils.notifications import (
-    respond_to_slack_command,
-    send_slack_response,
-)
+from sentry.integrations.slack.utils.notifications import respond_to_slack_command
 from sentry.integrations.slack.views import build_linking_url as base_build_linking_url
 from sentry.integrations.slack.views import never_cache, render_error_page
 from sentry.integrations.slack.views.types import IdentityParams
@@ -26,6 +22,8 @@ from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
+
+from . import SALT
 
 SUCCESS_UNLINKED_MESSAGE = "Your Slack identity has been unlinked from your Sentry account."
 
@@ -56,7 +54,7 @@ class SlackUnlinkIdentityView(BaseView):
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=SALT)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("dispatch.signature_error", exc_info=e)
             metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
@@ -129,10 +127,7 @@ class SlackUnlinkIdentityView(BaseView):
             )
             raise Http404
 
-        if features.has("organizations:slack-sdk-link-commands", params.organization):
-            respond_to_slack_command(params, SUCCESS_UNLINKED_MESSAGE, command="link")
-        else:
-            send_slack_response(params, SUCCESS_UNLINKED_MESSAGE, command="unlink")
+        respond_to_slack_command(params, SUCCESS_UNLINKED_MESSAGE, command="link")
 
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.unlink_identity", sample_rate=1.0)
 

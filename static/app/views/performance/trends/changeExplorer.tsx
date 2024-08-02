@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -13,7 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {
   DisplayModes,

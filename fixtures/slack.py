@@ -161,3 +161,42 @@ HELP_COMMAND = {
         },
     ]
 }
+
+SUPPORT_COMMAND = {
+    "blocks": [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Need support? Check out these resources:",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "• Want help for your particular case? <https://docs.sentry.io/support|File a ticket in Zendesk>. \n• Want to report an issue, request a feature, or get support? <https://github.com/getsentry/sentry/issues/new/choose|File a GitHub issue>. \n• Have feedback? Email ecosystem-feedback@sentry.io.",
+            },
+        },
+    ]
+}
+
+
+DOCS_COMMAND = {
+    "blocks": [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Want to view documentation? Check out these resources:",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "• <https://docs.sentry.io/organization/integrations/|General Sentry integration docs> \n• <https://docs.sentry.io/organization/integrations/notification-incidents/slack/|Sentry Slack integration docs> \n• <https://sentry.slack.com/apps/A011MFBJEUU-sentry|Sentry Slack app>",
+            },
+        },
+    ]
+}

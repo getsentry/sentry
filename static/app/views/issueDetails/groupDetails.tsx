@@ -43,6 +43,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,12 +53,11 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-
-import {ERROR_TYPES} from './constants';
-import GroupHeader from './header';
-import SampleEventAlert from './sampleEventAlert';
-import {Tab, TabPaths} from './types';
+import GroupHeader from 'sentry/views/issueDetails//header';
+import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
   getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
@@ -67,7 +67,8 @@ import {
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
-} from './utils';
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -683,6 +684,8 @@ function GroupDetailsContent({
 
   const environments = useEnvironmentsFromUrl();
 
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   useTrackView({group, event, project, tab: currentTab});
 
   const childProps = {
@@ -702,14 +705,23 @@ function GroupDetailsContent({
       value={currentTab}
       onChange={tab => trackTabChanged({tab, group, project, event, organization})}
     >
-      <GroupHeader
-        organization={organization}
-        groupReprocessingStatus={groupReprocessingStatus}
-        event={event ?? undefined}
-        group={group}
-        baseUrl={baseUrl}
-        project={project as Project}
-      />
+      {hasStreamlinedUI ? (
+        <StreamlinedGroupHeader
+          group={group}
+          project={project}
+          groupReprocessingStatus={groupReprocessingStatus}
+          baseUrl={baseUrl}
+        />
+      ) : (
+        <GroupHeader
+          organization={organization}
+          groupReprocessingStatus={groupReprocessingStatus}
+          event={event ?? undefined}
+          group={group}
+          baseUrl={baseUrl}
+          project={project as Project}
+        />
+      )}
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>
           {isValidElement(children) ? cloneElement(children, childProps) : children}

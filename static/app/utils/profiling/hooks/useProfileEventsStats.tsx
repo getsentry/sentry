@@ -11,6 +11,7 @@ interface UseProfileEventsStatsOptions<F> {
   dataset: 'discover' | 'profiles' | 'profileFunctions';
   referrer: string;
   yAxes: readonly F[];
+  continuousProfilingCompat?: boolean;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   interval?: string;
@@ -18,6 +19,7 @@ interface UseProfileEventsStatsOptions<F> {
 }
 
 export function useProfileEventsStats<F extends string>({
+  continuousProfilingCompat,
   dataset,
   datetime,
   interval,
@@ -31,15 +33,16 @@ export function useProfileEventsStats<F extends string>({
 
   // when using the profiles dataset and the feature flag is enabled,
   // switch over to the discover dataset under the hood
-  if (
-    dataset === 'profiles' &&
-    organization.features.includes('profiling-using-transactions')
-  ) {
+  if (dataset === 'profiles') {
     dataset = 'discover';
   }
 
   if (dataset === 'discover') {
-    query = `has:profile.id ${query ? `(${query})` : ''}`;
+    if (continuousProfilingCompat) {
+      query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
+    } else {
+      query = `has:profile.id ${query ? `(${query})` : ''}`;
+    }
   }
 
   const path = `/organizations/${organization.slug}/events-stats/`;

@@ -16,6 +16,7 @@ from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
 
 # Attachment file types that are considered a crash report (PII relevant)
@@ -31,8 +32,8 @@ def get_crashreport_key(group_id: int) -> str:
 
 
 def event_attachment_screenshot_filter(
-    queryset: models.QuerySet[EventAttachment],
-) -> models.QuerySet[EventAttachment]:
+    queryset: BaseQuerySet[EventAttachment],
+) -> BaseQuerySet[EventAttachment]:
     # Intentionally a hardcoded list instead of a regex since current usecases do not have more 3 screenshots
     return queryset.filter(
         name__in=[

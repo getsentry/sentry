@@ -1,22 +1,30 @@
 import {createContext, type Dispatch, useContext} from 'react';
 
+import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
-import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import type {FieldDefinition} from 'sentry/utils/fields';
 
 interface ContextData {
+  disabled: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   filterKeySections: FilterKeySection[];
+  filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
+  getFieldDefinition: (key: string) => FieldDefinition | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
-  keys: TagCollection;
+  handleSearch: (query: string) => void;
   parsedQuery: ParseResult | null;
   query: string;
-  onSearch?: (query: string) => void;
+  searchSource: string;
+  size: 'small' | 'normal';
+  wrapperRef: React.RefObject<HTMLDivElement>;
+  placeholder?: string;
+  recentSearches?: SavedSearchType;
 }
 
 export function useSearchQueryBuilder() {
@@ -26,10 +34,15 @@ export function useSearchQueryBuilder() {
 export const SearchQueryBuilerContext = createContext<ContextData>({
   query: '',
   focusOverride: null,
-  keys: {},
+  filterKeys: {},
   filterKeySections: [],
+  getFieldDefinition: () => null,
   getTagValues: () => Promise.resolve([]),
   dispatch: () => {},
   parsedQuery: null,
-  onSearch: () => {},
+  wrapperRef: {current: null},
+  handleSearch: () => {},
+  searchSource: '',
+  size: 'normal',
+  disabled: false,
 });

@@ -13,8 +13,6 @@ import {
 
 export const METRICS_DOCS_URL = 'https://docs.sentry.io/product/metrics/';
 
-export const DEFAULT_METRICS_CARDINALITY_LIMIT = 140000;
-
 export const metricDisplayTypeOptions = [
   {
     value: MetricDisplayType.LINE,
@@ -42,6 +40,7 @@ export const emptyMetricsQueryWidget: MetricsQueryWidget = {
   id: NO_QUERY_ID,
   mri: 'd:transactions/duration@millisecond' satisfies MRI,
   aggregation: 'avg',
+  condition: undefined,
   query: '',
   groupBy: [],
   sort: DEFAULT_SORT_STATE,

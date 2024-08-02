@@ -7,19 +7,22 @@ import {
   IconCursorArrow,
   IconFire,
   IconFix,
+  IconFocus,
   IconHappy,
   IconInfo,
   IconInput,
   IconKeyDown,
+  IconLightning,
   IconLocation,
   IconMegaphone,
   IconMeh,
-  IconMobile,
+  IconRefresh,
   IconSad,
   IconSort,
+  IconTap,
   IconTerminal,
-  IconUser,
   IconWarning,
+  IconWifi,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {explodeSlug} from 'sentry/utils';
@@ -70,7 +73,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     description: stripURLOrigin(frame.message ?? ''),
     tabKey: TabKey.CONSOLE,
     title: 'Replay Start',
-    icon: <IconTerminal size="xs" />,
+    icon: <IconInfo size="xs" />,
   }),
   navigation: (frame: NavFrame) => ({
     color: 'green300',
@@ -80,7 +83,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     icon: <IconLocation size="xs" />,
   }),
   feedback: (frame: FeedbackFrame) => ({
-    color: 'pink300',
+    color: 'purple300',
     description: frame.data.projectSlug,
     tabKey: TabKey.BREADCRUMBS,
     title: defaultTitle(frame),
@@ -153,7 +156,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     color: 'yellow300',
     description: frame.data.limit
       ? tct(
-          'A large number of mutations was detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
+          'Significant mutations detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
           {
             count: frame.data.count,
             link: (
@@ -164,7 +167,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           }
         )
       : tct(
-          'A large number of mutations was detected [count]. This can slow down the Replay SDK and impact your customers. [link]',
+          'Significant mutations detected [count]. This can slow down the Replay SDK, impacting your customers. [link]',
           {
             count: frame.data.count,
             link: (
@@ -175,7 +178,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           }
         ),
     tabKey: TabKey.BREADCRUMBS,
-    title: 'Replay',
+    title: 'DOM Mutations',
     icon: <IconWarning size="xs" />,
   }),
   'replay.hydrate-error': () => ({
@@ -188,60 +191,60 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     icon: <IconFire size="xs" />,
   }),
   'ui.click': frame => ({
-    color: 'blue300',
+    color: 'purple300',
     description: <SelectorList frame={frame} />,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
   'ui.tap': (frame: TapFrame) => ({
-    color: 'blue300',
+    color: 'purple300',
     description: frame.message,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Tap',
-    icon: <IconUser size="xs" />,
+    icon: <IconTap size="xs" />,
   }),
   'ui.input': () => ({
-    color: 'blue300',
+    color: 'purple300',
     description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
-    color: 'blue300',
+    color: 'purple300',
     description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
-    color: 'blue300',
-    description: t('User Action'),
+    color: 'purple300',
+    description: t('The user is preoccupied with another browser, tab, or window'),
     tabKey: TabKey.BREADCRUMBS,
-    title: 'User Blur',
-    icon: <IconUser size="xs" />,
+    title: 'Window Blur',
+    icon: <IconFocus isFocused={false} size="xs" />,
   }),
   'ui.focus': () => ({
-    color: 'blue300',
-    description: t('User Action'),
+    color: 'purple300',
+    description: t('The user is currently focused on your application,'),
     tabKey: TabKey.BREADCRUMBS,
-    title: 'User Focus',
-    icon: <IconUser size="xs" />,
+    title: 'Window Focus',
+    icon: <IconFocus size="xs" />,
   }),
   'app.foreground': () => ({
-    color: 'blue300',
+    color: 'purple300',
     description: t('The user is currently focused on your application'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Foreground',
-    icon: <IconUser size="xs" />,
+    icon: <IconFocus size="xs" />,
   }),
   'app.background': () => ({
-    color: 'blue300',
+    color: 'purple300',
     description: t('The user is preoccupied with another app or activity'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Background',
-    icon: <IconUser size="xs" />,
+    icon: <IconFocus isFocused={false} size="xs" />,
   }),
   console: frame => ({
     color: 'gray300',
@@ -394,7 +397,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     description: DEVICE_CONNECTIVITY_MESSAGE[frame.data.state],
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Connectivity',
-    icon: <IconMobile size="xs" />,
+    icon: <IconWifi size="xs" />,
   }),
   'device.battery': (frame: DeviceBatteryFrame) => ({
     color: 'pink300',
@@ -404,14 +407,16 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     }),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Battery',
-    icon: <IconMobile size="xs" />,
+    icon: <IconLightning size="xs" />,
   }),
   'device.orientation': (frame: DeviceOrientationFrame) => ({
     color: 'pink300',
-    description: frame.data.position,
+    description: tct('Device orientation was changed to [orientation]', {
+      orientation: frame.data.position,
+    }),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Orientation',
-    icon: <IconMobile size="xs" />,
+    icon: <IconRefresh size="xs" />,
   }),
 };
 

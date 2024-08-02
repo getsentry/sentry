@@ -23,13 +23,14 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import {
   hasCustomMetrics,
   hasCustomMetricsExtractionRules,
 } from 'sentry/utils/metrics/features';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
@@ -73,6 +74,10 @@ export const MetricsLayout = memo(() => {
     hasPerformanceMetrics,
     isHasMetricsLoading,
   } = useMetricsContext();
+  const virtualMetrics = useVirtualMetricsContext();
+
+  const isLoading = isHasMetricsLoading || virtualMetrics.isLoading;
+
   const {activateSidebar} = useMetricsOnboardingSidebar();
   const {dismiss: emptyStateDismiss, isDismissed: isEmptyStateDismissed} =
     useDismissAlert({
@@ -174,7 +179,7 @@ export const MetricsLayout = memo(() => {
             )}
 
           {hasCustomMetricsExtractionRules(organization) ? (
-            !isHasMetricsLoading && hasSentCustomMetrics ? (
+            !isLoading && hasSentCustomMetrics ? (
               <MetricsStopIngestionAlert />
             ) : null
           ) : (
@@ -190,7 +195,7 @@ export const MetricsLayout = memo(() => {
             <IntervalSelect />
           </FilterContainer>
 
-          {isHasMetricsLoading ? (
+          {isLoading ? (
             <LoadingIndicator />
           ) : !showOnboardingPanel ? (
             <Fragment>

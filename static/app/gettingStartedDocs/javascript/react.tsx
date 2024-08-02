@@ -17,6 +17,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
@@ -34,6 +38,11 @@ Sentry.init({
     params.isPerformanceSelected
       ? `
         Sentry.browserTracingIntegration(),`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+          Sentry.browserProfilingIntegration(),`
       : ''
   }${
     params.isFeedbackSelected
@@ -56,6 +65,16 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
+    : ''
+}${
+  params.isProfilingSelected
+    ? `
+        // Set profilesSampleRate to 1.0 to profile every transaction.
+        // Since profilesSampleRate is relative to tracesSampleRate,
+        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
+        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
+        // results in 25% of transactions being profiled (0.5*0.5=0.25)
+        profilesSampleRate: 1.0,`
     : ''
 }${
   params.isReplaySelected
@@ -97,6 +116,7 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
+  introduction: MaybeBrowserProfilingBetaWarning,
   install: () => [
     {
       type: StepType.INSTALL,
@@ -127,6 +147,9 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        ...(params.isProfilingSelected
+          ? [getProfilingDocumentHeaderConfigurationStep()]
+          : []),
       ],
     },
     getUploadSourceMapsStep({
@@ -174,7 +197,7 @@ const onboarding: OnboardingConfig = {
       description: t(
         'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
       ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/performance/',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/react/tracing/',
     },
     {
       id: 'session-replay',

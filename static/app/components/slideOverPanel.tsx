@@ -20,7 +20,7 @@ const COLLAPSED_STYLES = {
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
 };
 
-export type SlideOverPanelProps = {
+type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
   ariaLabel?: string;

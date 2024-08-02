@@ -9,6 +9,51 @@ import type {CallTreeNode} from '../callTreeNode';
 
 type FrameIndex = Record<string | number, Frame>;
 
+export function createContinuousProfileFrameIndex(
+  frames: Profiling.SentryContinousProfileChunk['profile']['frames'],
+  platform: 'mobile' | 'node' | 'javascript' | string
+): FrameIndex {
+  const index: FrameIndex = {};
+  const insertionCache: Record<string, Frame> = {};
+  let idx = -1;
+
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i];
+    const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${
+      String(frame.lineno) ?? ''
+    }:${frame.instruction_addr ?? ''}`;
+
+    const existing = insertionCache[frameKey];
+    if (existing) {
+      index[++idx] = existing;
+      continue;
+    }
+
+    const f = new Frame(
+      {
+        key: i,
+        is_application: frame.in_app,
+        file: frame.filename,
+        path: frame.abs_path,
+        module: frame.module,
+        package: frame.package,
+        name: frame.function ?? 'unknown',
+        line: frame.lineno,
+        column: frame.colno ?? frame?.col ?? frame?.column,
+        instructionAddr: frame.instruction_addr,
+        symbol: frame.symbol,
+        symbolAddr: frame.sym_addr,
+        symbolicatorStatus: frame.status,
+      },
+      platform
+    );
+    index[++idx] = f;
+    insertionCache[frameKey] = f;
+  }
+
+  return index;
+}
+
 export function createSentrySampleProfileFrameIndex(
   frames: Profiling.SentrySampledProfile['profile']['frames'],
   platform: 'mobile' | 'node' | 'javascript' | string

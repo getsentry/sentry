@@ -1,3 +1,4 @@
+import type {Dispatch, SetStateAction} from 'react';
 import {useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
@@ -15,15 +16,14 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import domId from 'sentry/utils/domId';
 import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
-import type {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
+import type {DomNodeChartDatapoint} from 'sentry/utils/replays/hooks/useCountDomNodes';
 
 interface Props
-  extends Pick<
-    ReturnType<typeof useReplayContext>,
-    'currentTime' | 'currentHoverTime' | 'setCurrentTime' | 'setCurrentHoverTime'
-  > {
+  extends Pick<ReturnType<typeof useReplayContext>, 'currentTime' | 'setCurrentTime'> {
+  currentHoverTime: undefined | number;
   datapoints: DomNodeChartDatapoint[];
   durationMs: number;
+  setCurrentHoverTime: Dispatch<SetStateAction<number | undefined>>;
   startTimestampMs: number;
 }
 

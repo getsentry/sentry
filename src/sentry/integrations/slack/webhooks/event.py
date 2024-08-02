@@ -10,17 +10,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
 
-from sentry import analytics, features, options
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.metrics import (
-    SLACK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC,
-    SLACK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC,
+    SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC,
+    SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
@@ -28,7 +27,6 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 
 from .base import SlackDMEndpoint
@@ -47,8 +45,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
     """
 
-    _METRIC_FAILURE_KEY = SLACK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC
-    _METRICS_SUCCESS_KEY = SLACK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC
+    _METRIC_FAILURE_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC
+    _METRICS_SUCCESS_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC
 
     authentication_classes = ()
     permission_classes = ()
@@ -64,22 +62,12 @@ class SlackEventEndpoint(SlackDMEndpoint):
             "message": message,
         }
 
-        payload = {"channel": slack_request.channel_id, "text": message}
-        if options.get("slack.event-endpoint-sdk") or slack_request.integration.id in options.get(
-            "slack.event-endpoint-sdk-integration-ids"
-        ):
-            client = SlackSdkClient(integration_id=slack_request.integration.id)
-            try:
-                client.chat_postMessage(channel=slack_request.channel_id, text=message)
-            except SlackApiError:
-                _logger.exception("reply.post-message-error", extra=logger_params)
-                metrics.incr(self._METRIC_FAILURE_KEY + ".reply.post_message", sample_rate=1.0)
-        else:
-            client = SlackClient(integration_id=slack_request.integration.id)
-            try:
-                client.post("/chat.postMessage", data=payload, json=True)
-            except ApiError:
-                _logger.exception("slack.event.on-message-error")
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
+        try:
+            client.chat_postMessage(channel=slack_request.channel_id, text=message)
+        except SlackApiError:
+            _logger.exception("reply.post-message-error", extra=logger_params)
+            metrics.incr(self._METRIC_FAILURE_KEY + ".reply.post_message", sample_rate=1.0)
 
         return self.respond()
 
@@ -119,28 +107,17 @@ class SlackEventEndpoint(SlackDMEndpoint):
             **payload,
         }
 
-        if options.get("slack.event-endpoint-sdk") or slack_request.integration.id in options.get(
-            "slack.event-endpoint-sdk-integration-ids"
-        ):
-            client = SlackSdkClient(integration_id=slack_request.integration.id)
-            try:
-                client.chat_postEphemeral(
-                    channel=slack_request.channel_id,
-                    user=slack_request.user_id,
-                    text=payload["text"],
-                    **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
-                )
-            except SlackApiError:
-                _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
-                metrics.incr(
-                    self._METRIC_FAILURE_KEY + ".prompt_link.post_ephemeral", sample_rate=1.0
-                )
-        else:
-            client = SlackClient(integration_id=slack_request.integration.id)
-            try:
-                client.post("/chat.postEphemeral", data=payload)
-            except ApiError as e:
-                _logger.exception("slack.event.unfurl-error", extra={"error": str(e)})
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
+        try:
+            client.chat_postEphemeral(
+                channel=slack_request.channel_id,
+                user=slack_request.user_id,
+                text=payload["text"],
+                **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
+            )
+        except SlackApiError:
+            _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
+            metrics.incr(self._METRIC_FAILURE_KEY + ".prompt_link.post_ephemeral", sample_rate=1.0)
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -160,24 +137,15 @@ class SlackEventEndpoint(SlackDMEndpoint):
             **payload,
         }
 
-        if options.get("slack.event-endpoint-sdk") or slack_request.integration.id in options.get(
-            "slack.event-endpoint-sdk-integration-ids"
-        ):
-            client = SlackSdkClient(integration_id=slack_request.integration.id)
-            try:
-                client.chat_postMessage(
-                    channel=slack_request.channel_id,
-                    **SlackHelpMessageBuilder(command).as_payload(),
-                )
-            except SlackApiError:
-                _logger.exception("on_message.post-message-error", extra=logger_params)
-                metrics.incr(self._METRIC_FAILURE_KEY + ".on_message.post_message", sample_rate=1.0)
-        else:
-            client = SlackClient(integration_id=slack_request.integration.id)
-            try:
-                client.post("/chat.postMessage", data=payload, json=True)
-            except ApiError:
-                _logger.exception("slack.event.on-message-error")
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
+        try:
+            client.chat_postMessage(
+                channel=slack_request.channel_id,
+                **SlackHelpMessageBuilder(command).as_payload(),
+            )
+        except SlackApiError:
+            _logger.exception("on_message.post-message-error", extra=logger_params)
+            metrics.incr(self._METRIC_FAILURE_KEY + ".on_message.post_message", sample_rate=1.0)
 
         return self.respond()
 
@@ -278,27 +246,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
             "unfurls": orjson.dumps(results).decode(),
         }
 
-        if options.get("slack.event-endpoint-sdk") or slack_request.integration.id in options.get(
-            "slack.event-endpoint-sdk-integration-ids"
-        ):
-            client = SlackSdkClient(integration_id=slack_request.integration.id)
-            try:
-                client.chat_unfurl(
-                    channel=data["channel"],
-                    ts=data["message_ts"],
-                    unfurls=payload["unfurls"],
-                )
-            except SlackApiError:
-                _logger.exception("on_link_shared.unfurl-error", extra=logger_params)
-                metrics.incr(self._METRIC_FAILURE_KEY + ".unfurl", sample_rate=1.0)
-        else:
-            client = SlackClient(integration_id=slack_request.integration.id)
-            try:
-                client.post("/chat.unfurl", data=payload)
-            except ApiError as e:
-                _logger.exception(
-                    "slack.event.unfurl-error", extra={"error": str(e), "payload": payload}
-                )
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
+        try:
+            client.chat_unfurl(
+                channel=data["channel"],
+                ts=data["message_ts"],
+                unfurls=payload["unfurls"],
+            )
+        except SlackApiError:
+            _logger.exception("on_link_shared.unfurl-error", extra=logger_params)
+            metrics.incr(self._METRIC_FAILURE_KEY + ".unfurl", sample_rate=1.0)
 
         return True
 

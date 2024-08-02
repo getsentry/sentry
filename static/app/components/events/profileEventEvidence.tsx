@@ -25,7 +25,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
             subject: 'Transaction Name',
             key: 'Transaction Name',
             value: evidenceData.transactionName,
-            actionButton: (
+            actionButton: traceSlug ? (
               <Button
                 size="xs"
                 to={generateLinkToEventInTraceView({
@@ -39,7 +39,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
               >
                 {t('View Transaction')}
               </Button>
-            ),
+            ) : null,
           },
         ]
       : []),

@@ -18,7 +18,8 @@ interface PlainTextQueryInputProps {
 
 export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const {query, parsedQuery, dispatch, onSearch} = useSearchQueryBuilder();
+  const {query, parsedQuery, dispatch, handleSearch, size, placeholder, disabled} =
+    useSearchQueryBuilder();
   const [cursorPosition, setCursorPosition] = useState(0);
 
   const setCursorPositionOnEvent = (event: SyntheticEvent<HTMLTextAreaElement>) => {
@@ -43,16 +44,16 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
 
       if (e.key === 'Enter') {
         e.preventDefault();
-        onSearch?.(query);
+        handleSearch(query);
       }
     },
-    [onSearch, query]
+    [handleSearch, query]
   );
 
   return (
     <InputWrapper>
       {parsedQuery ? (
-        <Highlight>
+        <Highlight size={size}>
           <HighlightQuery parsedQuery={parsedQuery} cursorPosition={cursorPosition} />
         </Highlight>
       ) : null}
@@ -69,6 +70,9 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
         onClick={setCursorPositionOnEvent}
         onPaste={setCursorPositionOnEvent}
         spellCheck={false}
+        size={size}
+        placeholder={placeholder}
+        disabled={disabled}
       />
     </InputWrapper>
   );
@@ -80,8 +84,11 @@ const InputWrapper = styled('div')`
   height: 100%;
 `;
 
-const Highlight = styled('div')`
-  padding: ${space(0.75)} 48px ${space(0.75)} 44px;
+const Highlight = styled('div')<{size: 'small' | 'normal'}>`
+  padding: ${p =>
+    p.size === 'small'
+      ? `${space(0.75)} ${space(1)}`
+      : `${space(0.75)} 48px ${space(0.75)} 44px`};
   width: 100%;
   height: 100%;
   user-select: none;
@@ -92,8 +99,11 @@ const Highlight = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const InvisibleInput = styled('textarea')`
-  padding: ${space(0.75)} 48px ${space(0.75)} 44px;
+const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
+  padding: ${p =>
+    p.size === 'small'
+      ? `${space(0.75)} ${space(1)}`
+      : `${space(0.75)} 48px ${space(0.75)} 44px`};
   position: absolute;
   inset: 0;
   resize: none;

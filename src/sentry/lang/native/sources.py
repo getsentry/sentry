@@ -138,8 +138,6 @@ SOURCES_SCHEMA = {
     "items": SOURCE_SCHEMA,
 }
 
-# TODO(@anonrig): Remove this when AppStore connect integration is sunset.
-# Ref: https://github.com/getsentry/sentry/issues/51994
 SOURCES_WITHOUT_APPSTORE_CONNECT = {
     "type": "array",
     "items": {
@@ -368,15 +366,15 @@ def secret_fields(source_type):
     yield from []
 
 
-def validate_sources(sources, schema=SOURCES_SCHEMA):
+def validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT):
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
     """
     try:
         jsonschema.validate(sources, schema)
-    except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(f"{e}")
+    except jsonschema.ValidationError:
+        raise InvalidSourcesError(f"Failed to validate source {redact_source_secrets(sources)}")
 
     ids = set()
     for source in sources:
@@ -387,7 +385,7 @@ def validate_sources(sources, schema=SOURCES_SCHEMA):
         ids.add(source["id"])
 
 
-def parse_sources(config, filter_appconnect=True):
+def parse_sources(config, filter_appconnect):
     """
     Parses the given sources in the config string (from JSON).
     """
@@ -398,13 +396,13 @@ def parse_sources(config, filter_appconnect=True):
     try:
         sources = orjson.loads(config)
     except Exception as e:
-        raise InvalidSourcesError(f"{e}")
-
-    validate_sources(sources)
+        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
     if filter_appconnect:
-        filter(lambda src: src.get("type") != "appStoreConnect", sources)
+        sources = [src for src in sources if src.get("type") != "appStoreConnect"]
+
+    validate_sources(sources)
 
     return sources
 
@@ -428,7 +426,7 @@ def parse_backfill_sources(sources_json, original_sources):
     for source in sources:
         backfill_source(source, orig_by_id)
 
-    validate_sources(sources)
+    validate_sources(sources, schema=SOURCES_SCHEMA)
 
     return sources
 
@@ -497,7 +495,7 @@ def get_sources_for_project(project):
 
     if sources_config:
         try:
-            custom_sources = parse_sources(sources_config)
+            custom_sources = parse_sources(sources_config, filter_appconnect=True)
             sources.extend(
                 normalize_user_source(source)
                 for source in custom_sources
@@ -720,8 +718,10 @@ def capture_apple_symbol_stats(json):
             and module.get("unwind_status", "unused") == "unused"
         ):
             continue
+
         if module["type"] != "macho":
             continue
+
         eligible_symbols += 1
 
         old_has_this_symbol = False
@@ -734,7 +734,6 @@ def capture_apple_symbol_stats(json):
                 elif source_id.startswith("sentry:") and source_id.endswith("os-source"):
                     old_has_this_symbol = True
 
-        # again, I miss a good Rust `match`
         if symx_has_this_symbol:
             if old_has_this_symbol:
                 both_have_symbol += 1
@@ -744,37 +743,38 @@ def capture_apple_symbol_stats(json):
             old_has_symbol += 1
         else:
             neither_has_symbol += 1
-
-            # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is supposed
-            # to be a system symbol, and maybe also log those cases specifically as internal messages.
-            # For now, we are only interested in rough numbers.
+            # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is
+            # supposed to be a system symbol, and maybe also log those cases specifically as internal messages. For
+            # now, we are only interested in rough numbers.
 
     if eligible_symbols:
-        # This metric was added to test some discrepancy between internal metrics. We want to remove this after the
-        # investigation is done.
-        metrics.incr("symbol_test_metric", amount=1, sample_rate=1.0)
-
         metrics.incr(
-            "apple_symbol_availability",
+            "apple_symbol_availability_v2",
             amount=neither_has_symbol,
             tags={"availability": "neither"},
             sample_rate=1.0,
         )
-        metrics.incr(
-            "apple_symbol_availability",
-            amount=both_have_symbol,
-            tags={"availability": "both"},
-            sample_rate=1.0,
-        )
-        metrics.incr(
-            "apple_symbol_availability",
-            amount=old_has_symbol,
-            tags={"availability": "old"},
-            sample_rate=1.0,
-        )
-        metrics.incr(
-            "apple_symbol_availability",
-            amount=symx_has_symbol,
-            tags={"availability": "symx"},
-            sample_rate=1.0,
-        )
+
+        # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
+        # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
+        # that matched both.
+        if both_have_symbol:
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=both_have_symbol,
+                tags={"availability": "both"},
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=old_has_symbol,
+                tags={"availability": "old"},
+                sample_rate=1.0,
+            )
+            metrics.incr(
+                "apple_symbol_availability_v2",
+                amount=symx_has_symbol,
+                tags={"availability": "symx"},
+                sample_rate=1.0,
+            )

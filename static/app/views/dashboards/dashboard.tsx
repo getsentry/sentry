@@ -26,8 +26,8 @@ import type {Organization, PageFilters} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 

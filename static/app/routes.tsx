@@ -398,6 +398,13 @@ function buildRoutes() {
             name={t('Create New Token')}
             component={make(() => import('sentry/views/settings/account/apiNewToken'))}
           />
+          <Route
+            path=":tokenId/"
+            name={t('Edit User Auth Token')}
+            component={make(
+              () => import('sentry/views/settings/account/apiTokenDetails')
+            )}
+          />
         </Route>
         <Route path="applications/" name={t('Applications')}>
           <IndexRoute
@@ -532,16 +539,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
       <Route path="metrics/" name={t('Metrics')}>
-        <Redirect from="extract-metric/" to="configure-metric/" />
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectMetrics'))}
-        />
-        <Route
-          name={t('Configure Metric')}
-          path="configure-metric/"
-          component={make(
-            () => import('sentry/views/settings/projectMetrics/extractMetric')
-          )}
         />
         <Route
           name={t('Metrics Details')}
@@ -550,22 +549,11 @@ function buildRoutes() {
             () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
           )}
         />
-        <Route
-          path=":spanAttribute/edit/"
-          component={make(() => import('sentry/views/settings/projectMetrics'))}
-        />
       </Route>
       <Route
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
-      />
-      <Route
-        path="remote-config/"
-        name={t('Remote Config')}
-        component={make(
-          () => import('sentry/views/settings/project/projectRemoteConfig')
-        )}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
@@ -595,13 +583,6 @@ function buildRoutes() {
         </Route>
         <Redirect from=":name/" to="release-bundles/:name/" />
       </Route>
-      <Route
-        path="processing-issues/"
-        name={t('Processing Issues')}
-        component={make(
-          () => import('sentry/views/settings/project/projectProcessingIssues')
-        )}
-      />
       <Route
         path="filters/"
         name={t('Inbound Filters')}
@@ -1384,14 +1365,6 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const activityRoutes = (
-    <Route
-      path="/activity/"
-      component={make(() => import('sentry/views/organizationActivity'))}
-      withOrgPath
-    />
-  );
-
   const statsRoutes = (
     <Fragment>
       <Route path="/stats/" withOrgPath>
@@ -1980,25 +1953,23 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
       />
       <Route
+        path="profile/:projectId/"
+        component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamegraph')
+          )}
+        />
+      </Route>
+      <Route
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
         <Route
           path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
-      </Route>
-      <Route
-        path="profile/:projectId/"
-        component={make(
-          () => import('sentry/views/profiling/continuousProfilesProvider')
-        )}
-      >
-        <Route
-          path="flamegraph/"
-          component={make(
-            () => import('sentry/views/profiling/continuousProfileFlamechart')
-          )}
         />
       </Route>
     </Route>
@@ -2119,7 +2090,6 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
@@ -2181,10 +2151,6 @@ function buildRoutes() {
         <Redirect
           from="debug-symbols/"
           to="/settings/:orgId/projects/:projectId/debug-symbols/"
-        />
-        <Redirect
-          from="processing-issues/"
-          to="/settings/:orgId/projects/:projectId/processing-issues/"
         />
         <Redirect from="filters/" to="/settings/:orgId/projects/:projectId/filters/" />
         <Redirect from="hooks/" to="/settings/:orgId/projects/:projectId/hooks/" />

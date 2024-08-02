@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
@@ -6,22 +6,28 @@ import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/formatter';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {parseMRI} from 'sentry/utils/metrics/mri';
+import {getFormattedMQL, unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumber';
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
 import {MetricTableContainer} from 'sentry/views/dashboards/metrics/table';
+import type {DashboardMetricsExpression} from 'sentry/views/dashboards/metrics/types';
 import {
   expressionsToApiQueries,
+  formatAlias,
   getMetricExpressions,
+  isMetricsEquation,
   toMetricDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -31,7 +37,6 @@ import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboard
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
 import {useMetricsIntervalOptions} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
-import {getWidgetTitle} from 'sentry/views/metrics/widget';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -52,6 +57,30 @@ type Props = {
 
 const EMPTY_FN = () => {};
 
+export function getWidgetTitle(expressions: DashboardMetricsExpression[]) {
+  const filteredExpressions = expressions.filter(query => !query.isQueryOnly);
+
+  if (filteredExpressions.length === 1) {
+    const firstQuery = filteredExpressions[0];
+    if (isMetricsEquation(firstQuery)) {
+      return (
+        <Fragment>
+          <EquationFormatter equation={unescapeMetricsFormula(firstQuery.formula)} />
+        </Fragment>
+      );
+    }
+    return formatAlias(firstQuery.alias) ?? getFormattedMQL(firstQuery);
+  }
+
+  return filteredExpressions
+    .map(q =>
+      isMetricsEquation(q)
+        ? formatAlias(q.alias) ?? unescapeMetricsFormula(q.formula)
+        : formatAlias(q.alias) ?? formatMRIField(MRIToField(q.mri, q.aggregation))
+    )
+    .join(', ');
+}
+
 export function MetricWidgetCard({
   organization,
   selection,
@@ -65,26 +94,43 @@ export function MetricWidgetCard({
   renderErrorMessage,
   showContextMenu = true,
 }: Props) {
-  const {getVirtualMRIQuery} = useVirtualMetricsContext();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
+  const {getVirtualMRIQuery, isLoading: isLoadingVirtualMetrics} =
+    useVirtualMetricsContext();
 
-  const metricQueries = useMemo(
-    () =>
-      expressionsToApiQueries(
-        getMetricExpressions(widget, dashboardFilters, getVirtualMRIQuery)
-      ),
-    [widget, dashboardFilters, getVirtualMRIQuery]
+  const metricExpressions = getMetricExpressions(
+    widget,
+    dashboardFilters,
+    getVirtualMRIQuery
   );
+
   const hasSetMetric = useMemo(
     () =>
-      getMetricExpressions(widget, dashboardFilters, getVirtualMRIQuery).some(
+      metricExpressions.some(
         expression =>
           expression.type === MetricExpressionType.QUERY &&
           parseMRI(expression.mri)!.type === 's'
       ),
-    [widget, dashboardFilters, getVirtualMRIQuery]
+    [metricExpressions]
   );
 
-  const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
+  const widgetMQL = useMemo(
+    () => (isLoadingVirtualMetrics ? '' : getWidgetTitle(metricExpressions)),
+    [isLoadingVirtualMetrics, metricExpressions]
+  );
+
+  const metricQueries = useMemo(() => {
+    const formattedAliasQueries = expressionsToApiQueries(
+      metricExpressions,
+      metricsNewInputs
+    ).map(query => {
+      if (query.alias) {
+        return {...query, alias: formatAlias(query.alias)};
+      }
+      return query;
+    });
+    return [...formattedAliasQueries];
+  }, [metricExpressions, metricsNewInputs]);
 
   const {interval: validatedInterval} = useMetricsIntervalOptions({
     // TODO: Figure out why this can be undefined

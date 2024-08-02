@@ -6,16 +6,20 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('HTTPLandingPage', function () {
   const organization = OrganizationFixture();
 
   let spanListRequestMock, spanChartsRequestMock;
+
+  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -52,9 +56,11 @@ describe('HTTPLandingPage', function () {
         slug: 'backend',
         firstTransactionEvent: true,
         platform: 'javascript',
+        hasInsightsHttp: true,
       }),
     ],
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,

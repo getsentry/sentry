@@ -16,7 +16,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
@@ -36,7 +35,6 @@ type Props = {
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
-  splitDecision?: SavedQueryDatasets;
 };
 
 type State = {
@@ -85,7 +83,7 @@ class ResultsHeader extends Component<Props, State> {
           savedQuery: organization.features.includes(
             'performance-discover-dataset-selector'
           )
-            ? getSavedQueryWithDataset(savedQuery)
+            ? (getSavedQueryWithDataset(savedQuery) as SavedQuery)
             : savedQuery,
           loading: false,
         });
@@ -101,7 +99,7 @@ class ResultsHeader extends Component<Props, State> {
         homepageQuery: organization.features.includes(
           'performance-discover-dataset-selector'
         )
-          ? getSavedQueryWithDataset(homepageQuery)
+          ? (getSavedQueryWithDataset(homepageQuery) as SavedQuery)
           : homepageQuery,
         loading: false,
       });
@@ -155,7 +153,6 @@ class ResultsHeader extends Component<Props, State> {
       router,
       setSavedQuery,
       isHomepage,
-      splitDecision,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
 
@@ -207,9 +204,14 @@ class ResultsHeader extends Component<Props, State> {
             yAxis={yAxis}
             router={router}
             isHomepage={isHomepage}
-            splitDecision={splitDecision}
             setHomepageQuery={updatedHomepageQuery => {
-              this.setState({homepageQuery: updatedHomepageQuery});
+              this.setState({
+                homepageQuery: organization.features.includes(
+                  'performance-discover-dataset-selector'
+                )
+                  ? (getSavedQueryWithDataset(updatedHomepageQuery) as SavedQuery)
+                  : updatedHomepageQuery,
+              });
               if (isHomepage) {
                 setSavedQuery(updatedHomepageQuery);
               }

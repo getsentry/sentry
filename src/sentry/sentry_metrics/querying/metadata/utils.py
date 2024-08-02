@@ -12,6 +12,8 @@ METRICS_API_HIDDEN_OPERATIONS = {
     "sentry:metrics_activate_last_for_gauges": ["last"],
 }
 
+NON_QUERYABLE_METRIC_OPERATIONS = ["histogram", "min_timestamp", "max_timestamp"]
+
 
 class OperationsConfiguration:
     def __init__(self):

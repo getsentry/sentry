@@ -299,6 +299,11 @@ export type TagWithTopValues = {
 /**
  * Inbox, issue owners and Activity
  */
+export type Annotation = {
+  displayName: string;
+  url: string;
+};
+
 export type InboxReasonDetails = {
   count?: number | null;
   until?: string | null;
@@ -777,7 +782,7 @@ export const enum PriorityLevel {
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
-  annotations: string[];
+  annotations: Annotation[];
   assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
@@ -855,36 +860,6 @@ export interface GroupTombstoneHelper extends GroupTombstone {
   isTombstone: true;
 }
 
-export type ProcessingIssueItem = {
-  checksum: string;
-  data: {
-    // TODO(ts) This type is likely incomplete, but this is what
-    // project processing issues settings uses.
-    _scope: string;
-    image_arch: string;
-    image_path: string;
-    image_uuid: string;
-    dist?: string;
-    release?: string;
-  };
-  id: string;
-  lastSeen: string;
-  numEvents: number;
-  type: string;
-};
-
-export type ProcessingIssue = {
-  hasIssues: boolean;
-  hasMoreResolveableIssues: boolean;
-  issuesProcessing: number;
-  lastSeen: string;
-  numIssues: number;
-  project: string;
-  resolveableIssues: number;
-  signedLink: string;
-  issues?: ProcessingIssueItem[];
-};
-
 /**
  * Datascrubbing
  */
@@ -927,6 +902,10 @@ export type KeyValueListDataItem = {
     link?: string | LocationDescriptor;
   };
   actionButton?: React.ReactNode;
+  /**
+   * If true, the action button will always be visible, not just on hover.
+   */
+  actionButtonAlwaysVisible?: boolean;
   isContextData?: boolean;
   isMultiValue?: boolean;
   meta?: Meta;

@@ -145,7 +145,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     let options: Record<string, string> = TIME_WINDOW_MAP;
     const {alertType} = this.props;
 
-    if (alertType === 'custom_metrics') {
+    if (alertType === 'custom_metrics' || alertType === 'span_metrics') {
       // Do not show ONE MINUTE interval as an option for custom_metrics alert
       options = omit(options, TimeWindow.ONE_MINUTE.toString());
     }
@@ -650,7 +650,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         }}
                         searchSource="alert_builder"
                         defaultQuery={initialData?.query ?? ''}
-                        metricAlert
                         {...getSupportedAndOmittedTags(dataset, organization)}
                         includeSessionTagsValues={dataset === Dataset.SESSIONS}
                         disabled={disabled || isErrorMigration}
@@ -663,7 +662,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         highlightUnsupportedTags={
                           organization.features.includes('alert-allow-indexed') ||
                           (hasOnDemandMetricAlertFeature(organization) &&
-                            isOnDemandQueryString(initialData.query))
+                            isOnDemandQueryString(value))
                             ? false
                             : dataset === Dataset.GENERIC_METRICS
                         }
