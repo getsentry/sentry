@@ -401,9 +401,7 @@ function SummaryContent({
         tagKey: tag.key,
         search: queryString,
         projectIds: projectIdStrings,
-        // allows searching for tags on transactions as well
         includeTransactions: true,
-        // allows searching for tags on sessions as well
         includeSessions: true,
       });
 
