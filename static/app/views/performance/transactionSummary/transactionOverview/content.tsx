@@ -1,7 +1,6 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -27,7 +26,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined, generateQueryWithTag} from 'sentry/utils';
@@ -121,12 +120,6 @@ function SummaryContent({
   const mepDataContext = useMEPDataContext();
   const tagStoreCollection = useTags();
   const api = useApi();
-
-  useEffect(() => {
-    // Clear memoized data on mount to make tests more consistent.
-    getTransactionFilterTagValues.cache.clear?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventView.project]);
 
   const filterKeySections = [
     ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -379,41 +372,41 @@ function SummaryContent({
     organization.features.includes('insights-initial-modules');
 
   // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
-  const getTransactionFilterTagValues = memoize(
-    (tag, queryString): Promise<string[]> => {
-      const projectIdStrings = eventView.project?.map(String);
+  const getTransactionFilterTagValues = (
+    tag: Tag,
+    queryString: string
+  ): Promise<string[]> => {
+    const projectIdStrings = eventView.project?.map(String);
 
-      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
-        // We can't really auto suggest values for aggregate fields
-        // or measurements, so we simply don't
-        return Promise.resolve([]);
+    if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
+      // We can't really auto suggest values for aggregate fields
+      // or measurements, so we simply don't
+      return Promise.resolve([]);
+    }
+
+    // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+    // and low search filter values because discover maps device.class to these values.
+    if (isDeviceClass(tag.key)) {
+      return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
+    }
+
+    const fetchPromise = fetchTagValues({
+      api,
+      orgSlug: organization.slug,
+      tagKey: tag.key,
+      search: queryString,
+      projectIds: projectIdStrings,
+      includeTransactions: true,
+      includeSessions: true,
+    });
+
+    return fetchPromise.then(
+      results => results.filter(({name}) => defined(name)).map(({name}) => name),
+      () => {
+        throw new Error('Unable to fetch event field values');
       }
-
-      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
-      // and low search filter values because discover maps device.class to these values.
-      if (isDeviceClass(tag.key)) {
-        return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
-      }
-
-      const fetchPromise = fetchTagValues({
-        api,
-        orgSlug: organization.slug,
-        tagKey: tag.key,
-        search: queryString,
-        projectIds: projectIdStrings,
-        includeTransactions: true,
-        includeSessions: true,
-      });
-
-      return fetchPromise.then(
-        results => results.filter(({name}) => defined(name)).map(({name}) => name),
-        () => {
-          throw new Error('Unable to fetch event field values');
-        }
-      );
-    },
-    ({key}, queryString) => `${key}-${queryString}`
-  );
+    );
+  };
 
   function renderSearchBar() {
     return (
