@@ -9,6 +9,8 @@ from django.db import connection
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
+from sentry.integrations.github.tasks.utils import PullRequestIssue, create_or_update_comment
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwnerType
@@ -23,11 +25,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
-from sentry.tasks.integrations.github.constants import (
-    ISSUE_LOCKED_ERROR_MESSAGE,
-    RATE_LIMITED_MESSAGE,
-)
-from sentry.tasks.integrations.github.utils import PullRequestIssue, create_or_update_comment
 from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.cache import cache
