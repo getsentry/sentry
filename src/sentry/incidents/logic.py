@@ -463,7 +463,7 @@ query_datasets_to_type = {
 }
 
 
-def get_alert_resolution(time_window: int, organization: Organization) -> int:
+def get_alert_resolution(time_window: int) -> int:
     windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
     index = bisect.bisect_right(windows, time_window)
 
@@ -536,7 +536,7 @@ def create_alert_rule(
     if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
-    resolution = get_alert_resolution(time_window, organization)
+    resolution = get_alert_resolution(time_window)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
         if not (sensitivity and seasonality):
@@ -818,7 +818,7 @@ def update_alert_rule(
             / 60
         )
 
-        resolution = get_alert_resolution(window, organization=alert_rule.organization)
+        resolution = get_alert_resolution(window)
         resolution_comparison_delta = updated_fields.get(
             "comparison_delta", alert_rule.comparison_delta
         )
