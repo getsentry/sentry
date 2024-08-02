@@ -268,10 +268,11 @@ class RuleNodeList extends Component<Props> {
     if (selectType === 'grouped') {
       options = groupSelectOptions(enabledNodes);
       if (additionalAction) {
-        for (const option of options) {
-          if (option.label === additionalAction.label) {
-            option.options.push(additionalAction.option);
-          }
+        const optionToModify = options.find(
+          option => option.label === additionalAction.label
+        );
+        if (optionToModify) {
+          optionToModify.options.push(additionalAction.option);
         }
       }
     } else {
