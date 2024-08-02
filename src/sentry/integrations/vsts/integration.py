@@ -163,7 +163,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             return False
         return True
 
-    def get_client(self, base_url) -> VstsApiClient:
+    def get_client(self) -> VstsApiClient:
         base_url = self.instance
         if SiloMode.get_current_mode() != SiloMode.REGION:
             if self.default_identity is None:
