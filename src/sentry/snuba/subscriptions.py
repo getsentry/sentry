@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.db import router, transaction
 
+from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -17,12 +18,12 @@ logger = logging.getLogger(__name__)
 
 def create_snuba_query(
     query_type: SnubaQuery.Type,
-    dataset,
+    dataset: Dataset,
     query: str,
     aggregate: str,
     time_window: timedelta,
     resolution: timedelta,
-    environment,
+    environment: Environment | None,
     event_types: Collection[SnubaQueryEventType.EventType] = (),
 ):
     """
