@@ -464,18 +464,13 @@ query_datasets_to_type = {
 
 
 def get_alert_resolution(time_window: int, organization: Organization) -> int:
-    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
+    index = bisect.bisect_right(windows, time_window)
 
-    if features.has("organizations:metric-alert-load-shedding", organization=organization):
-        windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
-        index = bisect.bisect_right(windows, time_window)
+    if index == 0:
+        return DEFAULT_ALERT_RULE_RESOLUTION
 
-        if index == 0:
-            return DEFAULT_ALERT_RULE_RESOLUTION
-
-        resolution = DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
-
-    return resolution
+    return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
 
 
 def create_alert_rule(

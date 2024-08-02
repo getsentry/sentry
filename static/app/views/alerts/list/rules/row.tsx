@@ -15,7 +15,6 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -24,9 +23,10 @@ import type {Actor, Project} from 'sentry/types';
 import {MonitorType} from 'sentry/types/alerts';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
+import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
-import {getActor, hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
+import {getActor} from 'sentry/views/alerts/list/rules/utils';
 import {UptimeMonitorStatus} from 'sentry/views/alerts/rules/uptime/types';
 
 import type {CombinedAlerts} from '../../types';
@@ -58,61 +58,6 @@ function RuleListRow({
   const isActivatedAlertRule =
     rule.type === CombinedAlertType.METRIC && rule.monitorType === MonitorType.ACTIVATED;
   const isUptime = rule.type === CombinedAlertType.UPTIME;
-
-  // TODO(davidenwang): Decompose this further
-  function renderLastIncidentOrActivationInfo(): React.ReactNode {
-    if (isUptime) {
-      return tct('Actively monitoring every [seconds] seconds', {
-        seconds: rule.intervalSeconds,
-      });
-    }
-
-    if (isActivatedAlertRule) {
-      if (!rule.activations?.length) {
-        return t('Alert has not been activated yet');
-      }
-
-      return (
-        <div>
-          {t('Last activated ')}
-          <TimeSince date={rule.activations[0].dateCreated} />
-        </div>
-      );
-    }
-
-    if (isIssueAlert(rule)) {
-      if (!rule.lastTriggered) {
-        return t('Alert not triggered yet');
-      }
-      return (
-        <div>
-          {t('Triggered ')}
-          <TimeSince date={rule.lastTriggered} />
-        </div>
-      );
-    }
-
-    if (!rule.latestIncident) {
-      return t('Alert not triggered yet');
-    }
-
-    const activeIncident = hasActiveIncident(rule);
-    if (activeIncident) {
-      return (
-        <div>
-          {t('Triggered ')}
-          <TimeSince date={rule.latestIncident.dateCreated} />
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        {t('Resolved ')}
-        <TimeSince date={rule.latestIncident.dateClosed!} />
-      </div>
-    );
-  }
 
   const slug = isUptime ? rule.projectSlug : rule.projects[0];
   const editLink = `/organizations/${orgId}/alerts/${
@@ -243,7 +188,9 @@ function RuleListRow({
               {rule.name}
             </Link>
           </AlertName>
-          <AlertIncidentDate>{renderLastIncidentOrActivationInfo()}</AlertIncidentDate>
+          <AlertIncidentDate>
+            <AlertLastIncidentActivationInfo rule={rule} />
+          </AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>
