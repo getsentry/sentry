@@ -187,7 +187,11 @@ def process_event(
                 event_id=event_id,
                 project_id=project_id,
             )
-            collect_span_metrics(project, data)
+
+            try:
+                collect_span_metrics(project, data)
+            except Exception:
+                pass
 
         elif data.get("type") == "feedback":
             if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
