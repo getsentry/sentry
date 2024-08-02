@@ -74,6 +74,7 @@ enum DetectorConfigAdmin {
   CONSECUTIVE_HTTP_ENABLED = 'consecutive_http_spans_detection_enabled',
   HTTP_OVERHEAD_ENABLED = 'http_overhead_detection_enabled',
   TRANSACTION_DURATION_REGRESSION_ENABLED = 'transaction_duration_regression_detection_enabled',
+  FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -459,6 +460,19 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             performance_issue_settings: {
               ...this.state.performance_issue__settings,
               [DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED]: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED,
+        type: 'boolean',
+        label: t('Function Duration Regression Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue__settings,
+              [DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED]: value,
             },
           }),
       },
