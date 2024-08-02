@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.metadata import convert_metric_names_to_mris, get_tag_values
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricParseException
@@ -21,7 +22,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
     """Get all existing tag values for a metric"""
 
-    def get(self, request: Request, organization, tag_name) -> Response:
+    def get(self, request: Request, organization: Organization, tag_name: str) -> Response:
         metric_names = request.GET.getlist("metric") or []
         tag_value_prefix = request.GET.get("prefix") or ""
         if len(metric_names) > 1:

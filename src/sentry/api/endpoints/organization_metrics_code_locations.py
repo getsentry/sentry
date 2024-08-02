@@ -11,6 +11,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
 from sentry.api.utils import get_date_range_from_params
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -26,11 +27,11 @@ class OrganizationMetricsCodeLocationsEndpoint(OrganizationEndpoint):
     Gets the code locations of a metric.
     """
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         start, end = get_date_range_from_params(request.GET)
         projects = self.get_projects(request, organization)
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> tuple[bool, Sequence[MetricCodeLocations]]:
             return get_metric_code_locations(
                 mris=[request.GET["metric"]],
                 start=start,
@@ -52,9 +53,13 @@ class OrganizationMetricsCodeLocationsEndpoint(OrganizationEndpoint):
 
 
 class MetricsCodeLocationsPaginator(GenericOffsetPaginator):
-    def get_result(self, limit, cursor=None):
+    def get_result(
+        self, limit: int, cursor: Cursor | None = None
+    ) -> CursorResult[Sequence[MetricCodeLocations]]:
         assert limit > 0
-        offset = cursor.offset if cursor is not None else 0
+
+        offset = cursor.offset if isinstance(cursor, Cursor) else 0
+
         has_more, data = self.data_fn(offset=offset, limit=limit)
 
         return CursorResult(

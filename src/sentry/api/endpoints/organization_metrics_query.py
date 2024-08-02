@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationMetricsPermission
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data import (
     MetricsAPIQueryResultsTransformer,
     MQLQuery,
@@ -145,7 +146,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
             return QueryType.TOTALS
         return QueryType.TOTALS_AND_SERIES
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         try:
             if organization.id in (options.get("custom-metrics-querying-disabled-orgs") or ()):
                 return Response(

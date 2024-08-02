@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.metadata.tags import get_tag_keys
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import (
@@ -36,7 +37,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     no metric or more than one will produce an HTTP 400 error.
     """
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         metric_names = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
         if not projects:

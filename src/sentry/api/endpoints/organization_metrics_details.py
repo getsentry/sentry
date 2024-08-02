@@ -5,6 +5,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoint
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.metadata import get_metrics_meta
 from sentry.sentry_metrics.use_case_utils import get_use_case_ids
 
@@ -19,7 +20,7 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
 
     """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)
         if not projects:
             return Response(

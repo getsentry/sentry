@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import metrics_performance
 
@@ -25,7 +26,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     which are the projects which don't have null transactions and have at least 1 transaction with a valid name
     """
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         data = {
             "incompatible_projects": [],
             "compatible_projects": [],
@@ -78,7 +79,7 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
     be
     """
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         data = {
             "sum": {
                 "metrics": None,
