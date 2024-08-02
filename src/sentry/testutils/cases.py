@@ -127,6 +127,7 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
+    PROFILE_METRICS_MAP,
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -2084,6 +2085,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
+        "function.duration": "metrics_distributions",
     }
     ON_DEMAND_KEY_MAP = {
         "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
@@ -2204,7 +2206,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_span_metric(
         self,
-        value: dict[str, int] | list[int] | int,
+        value: dict[str, int] | list[int] | list[dict[str, int]] | int,
         metric: str = "span.self_time",
         internal_metric: str | None = None,
         entity: str | None = None,
@@ -2231,6 +2233,49 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if not isinstance(value, list):
             value = [value]
         for subvalue in value:
+            self.store_metric(
+                org_id,
+                project,
+                internal_metric,
+                tags,
+                int(metric_timestamp),
+                subvalue,
+            )
+
+    def store_profile_functions_metric(
+        self,
+        value: dict[str, int] | list[int] | int,
+        metric: str = "function.duration",
+        internal_metric: str | None = None,
+        entity: str | None = None,
+        tags: dict[str, str] | None = None,
+        timestamp: datetime | None = None,
+        project: int | None = None,
+        use_case_id: UseCaseID = UseCaseID.SPANS,
+    ):
+        internal_metric = (
+            PROFILE_METRICS_MAP[metric] if internal_metric is None else internal_metric
+        )
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
+        org_id = self.organization.id
+
+        if tags is None:
+            tags = {}
+
+        if timestamp is None:
+            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
+        else:
+            metric_timestamp = timestamp.timestamp()
+
+        if project is None:
+            project = self.project.id
+
+        val_list: list[int | dict[str, int]] = []
+        if not isinstance(value, list):
+            val_list.append(value)
+        else:
+            val_list = value
+        for subvalue in val_list:
             self.store_metric(
                 org_id,
                 project,
@@ -3250,7 +3295,7 @@ class UptimeTestCase(TestCase):
         self,
         subscription_id: str | None = None,
         status: str = CHECKSTATUS_FAILURE,
-        scheduled_check_time: datetime = None,
+        scheduled_check_time: datetime | None = None,
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
@@ -3287,9 +3332,9 @@ class SpanTestCase(BaseTestCase):
     def load_data(
         self,
         platform: str = "transaction",
-        timestamp: datetime = None,
-        duration: timedelta = None,
-        **kwargs: dict[str, Any],
+        timestamp: datetime | None = None,
+        duration: timedelta | None = None,
+        **kwargs: Any,
     ) -> dict[str | int, Any]:
         if timestamp is None:
             timestamp = self.ten_mins_ago

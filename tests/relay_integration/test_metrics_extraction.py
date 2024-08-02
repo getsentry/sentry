@@ -1,3 +1,4 @@
+import time
 import uuid
 
 import confluent_kafka as kafka
@@ -148,11 +149,14 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             self.post_and_retrieve_event(event_data)
 
             histogram_outlier_tags = {}
-            for _ in range(1000):
+            buckets = []
+            t0 = time.monotonic()
+            for attempt in range(1000):
                 message = consumer.poll(timeout=1.0)
                 if message is None:
                     break
                 bucket = json.loads(message.value())
+                buckets.append(bucket)
                 try:
                     histogram_outlier_tags[bucket["name"]] = bucket["tags"]["histogram_outlier"]
                 except KeyError:
@@ -163,4 +167,8 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                 "d:transactions/duration@millisecond": "inlier",
                 "d:transactions/measurements.fcp@millisecond": "outlier",
                 "d:transactions/measurements.lcp@millisecond": "inlier",
+            }, {
+                "attempts": attempt,
+                "time_elapsed": time.monotonic() - t0,
+                "bucket_count": len(buckets),
             }

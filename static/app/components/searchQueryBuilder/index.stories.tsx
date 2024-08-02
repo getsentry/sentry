@@ -1,8 +1,12 @@
 import {Fragment, useState} from 'react';
 
+import Alert from 'sentry/components/alert';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  FieldDefinitionGetter,
+  FilterKeySection,
+} from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import JSXNode from 'sentry/components/stories/jsxNode';
@@ -13,6 +17,7 @@ import {
   FieldKey,
   FieldKind,
   FieldValueType,
+  getFieldDefinition,
   MobileVital,
   WebVital,
 } from 'sentry/utils/fields';
@@ -257,7 +262,7 @@ export default storyBook(SearchQueryBuilder, story => {
               </ul>
             </li>
             <li>
-              <strong>Aync</strong>: If the filter key does not have{' '}
+              <strong>Async</strong>: If the filter key does not have{' '}
               <code>predefined: true</code>, it will use the <code>getTagValues</code>{' '}
               function to fetch suggestions. The filter key and query are provided, and it
               is up to the consumer to return the suggestions.
@@ -322,6 +327,147 @@ export default storyBook(SearchQueryBuilder, story => {
               valueType: FieldValueType.BOOLEAN,
             };
           }}
+          searchSource="storybook"
+        />
+      </Fragment>
+    );
+  });
+
+  story('Aggregate filters', () => {
+    const aggregateFilterKeys: TagCollection = {
+      apdex: {
+        key: 'apdex',
+        name: 'apdex',
+        kind: FieldKind.FUNCTION,
+      },
+      count: {
+        key: 'count',
+        name: 'count',
+        kind: FieldKind.FUNCTION,
+      },
+      count_if: {
+        key: 'count_if',
+        name: 'count_if',
+        kind: FieldKind.FUNCTION,
+      },
+      'transaction.duration': {
+        key: 'transaction.duration',
+        name: 'transaction.duration',
+        kind: FieldKind.FIELD,
+      },
+      timesSeen: {
+        key: 'timesSeen',
+        name: 'timesSeen',
+        kind: FieldKind.FIELD,
+      },
+      lastSeen: {
+        key: 'lastSeen',
+        name: 'lastSeen',
+        kind: FieldKind.FIELD,
+      },
+    };
+
+    const getAggregateFieldDefinition: FieldDefinitionGetter = (key: string) => {
+      switch (key) {
+        case 'apdex':
+          return {
+            desc: 'Returns results with the Apdex score that you entered. Values must be between 0 and 1. Higher apdex values indicate higher user satisfaction.',
+            kind: FieldKind.FUNCTION,
+            valueType: FieldValueType.NUMBER,
+            parameters: [
+              {
+                name: 'threshold',
+                kind: 'value' as const,
+                dataType: FieldValueType.NUMBER,
+                defaultValue: '300',
+                required: true,
+              },
+            ],
+          };
+        case 'count':
+          return {
+            desc: 'Returns results with a matching count.',
+            kind: FieldKind.FUNCTION,
+            valueType: FieldValueType.INTEGER,
+            parameters: [],
+          };
+        case 'count_if':
+          return {
+            desc: 'Returns results with a matching count that satisfy the condition passed to the parameters of the function.',
+            kind: FieldKind.FUNCTION,
+            valueType: FieldValueType.INTEGER,
+            parameters: [
+              {
+                name: 'column',
+                kind: 'column' as const,
+                columnTypes: [
+                  FieldValueType.STRING,
+                  FieldValueType.NUMBER,
+                  FieldValueType.DURATION,
+                ],
+                defaultValue: 'transaction.duration',
+                required: true,
+              },
+              {
+                name: 'operator',
+                kind: 'value' as const,
+                options: [
+                  {
+                    label: 'is equal to',
+                    value: 'equals',
+                  },
+                  {
+                    label: 'is not equal to',
+                    value: 'notEquals',
+                  },
+                  {
+                    label: 'is less than',
+                    value: 'less',
+                  },
+                  {
+                    label: 'is greater than',
+                    value: 'greater',
+                  },
+                  {
+                    label: 'is less than or equal to',
+                    value: 'lessOrEquals',
+                  },
+                  {
+                    label: 'is greater than or equal to',
+                    value: 'greaterOrEquals',
+                  },
+                ],
+                dataType: FieldValueType.STRING,
+                defaultValue: 'equals',
+                required: true,
+              },
+              {
+                name: 'value',
+                kind: 'value',
+                dataType: FieldValueType.STRING,
+                defaultValue: '300ms',
+                required: true,
+              },
+            ],
+          };
+        default:
+          return getFieldDefinition(key);
+      }
+    };
+
+    return (
+      <Fragment>
+        <Alert type="warning">Aggregate filter functionality is still in progress.</Alert>
+        <p>
+          Filter keys can be defined as aggregate filters, which allow for more complex
+          operations. They may accept any number of parameters, which are be defined in
+          the field definition.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeys={aggregateFilterKeys}
+          getTagValues={getTagValues}
+          fieldDefinitionGetter={getAggregateFieldDefinition}
           searchSource="storybook"
         />
       </Fragment>
@@ -436,6 +582,18 @@ export default storyBook(SearchQueryBuilder, story => {
     );
   });
 
+  story('Disabled', () => {
+    return (
+      <SearchQueryBuilder
+        initialQuery="is:unresolved assigned:me"
+        filterKeys={FILTER_KEYS}
+        getTagValues={getTagValues}
+        searchSource="storybook"
+        disabled
+      />
+    );
+  });
+
   story('Migrating from SmartSearchBar', () => {
     return (
       <Fragment>
@@ -457,6 +615,9 @@ export default storyBook(SearchQueryBuilder, story => {
               <code>highlightUnsupportedTags</code> {'->'}{' '}
               <code>disallowUnsupportedFilters</code>
             </li>
+            <li>
+              <code>savedSearchType</code> {'->'} <code>recentSearches</code>
+            </li>
           </ul>
         </p>
         <p>
@@ -474,6 +635,10 @@ export default storyBook(SearchQueryBuilder, story => {
               <code>projectIds</code> was used to add <code>is_multi_project</code> to
               some of the analytics events. If your use case requires this, you can record
               these events manually with the <code>onSearch</code> callback.
+            </li>
+            <li>
+              <code>hasRecentSearches</code> is no longer required. Saved searches will be
+              saved and displayed when <code>recentSearches</code> is provided.
             </li>
           </ul>
         </p>

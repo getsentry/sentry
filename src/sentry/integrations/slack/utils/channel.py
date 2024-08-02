@@ -7,14 +7,19 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.metrics import (
     SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
     SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.utils.errors import (
+    CHANNEL_NOT_FOUND,
+    RATE_LIMITED,
+    unpack_slack_api_error,
+)
 from sentry.integrations.slack.utils.users import get_slack_user_list
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
@@ -119,7 +124,7 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
             },
         )
 
-        if "channel_not_found" in str(e):
+        if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
             raise ValidationError("Channel not found. Invalid ID provided.") from e
 
         raise ValidationError("Could not retrieve Slack channel information.") from e
@@ -238,7 +243,7 @@ def check_user_with_timeout(
                 return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
     except SlackApiError as e:
         _logger.exception("rule.slack.user_check_error", extra=logger_params)
-        if "ratelimited" in str(e):
+        if unpack_slack_api_error(e) == RATE_LIMITED:
             metrics.incr(
                 SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,
                 sample_rate=1.0,
@@ -285,7 +290,7 @@ def check_for_channel(
             "post_at": int(time.time() + 500),
         }
         _logger.exception("slack.chat_scheduleMessage.error", extra=logger_params)
-        if "channel_not_found" in str(e):
+        if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
             return None
         else:
             raise

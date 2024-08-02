@@ -123,7 +123,7 @@ class TeamManager(BaseManager["Team"]):
 
         return results
 
-    def post_save(self, instance, **kwargs):
+    def post_save(self, *, instance: Team, created: bool, **kwargs: object) -> None:
         self.process_resource_change(instance, **kwargs)
 
     def post_delete(self, instance, **kwargs):

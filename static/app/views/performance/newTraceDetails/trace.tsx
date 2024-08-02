@@ -299,12 +299,17 @@ export function Trace({
         // else the screen could jump around while we fetch span data
         scrollQueueRef.current = null;
         rerenderRef.current();
+        // Allow react to rerender before dispatching the init event
+        requestAnimationFrame(() => {
+          scheduler.dispatch('initialize virtualized list');
+        });
       });
   }, [
     api,
     trace,
     manager,
     onTraceLoad,
+    scheduler,
     traceDispatch,
     scrollQueueRef,
     initializedRef,

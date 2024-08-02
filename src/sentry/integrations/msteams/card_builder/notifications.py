@@ -127,6 +127,7 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
         recipient: Actor,
     ):
         super().__init__(notification, context, recipient)
+        assert notification.group is not None
         self.group = notification.group
 
     def create_attachment_title_block(self) -> TextBlock | None:

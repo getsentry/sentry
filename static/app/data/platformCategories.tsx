@@ -191,6 +191,12 @@ export const performance: PlatformKey[] = [
 export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
   'javascript',
   'javascript-react',
+  'javascript-nextjs',
+  'python',
+  'python-django',
+  'python-flask',
+  'php',
+  'node',
 ]);
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance

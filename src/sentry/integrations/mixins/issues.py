@@ -7,12 +7,12 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any, ClassVar
 
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import where_should_sync
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.notifications.utils import get_notification_group_title
@@ -63,7 +63,7 @@ class IssueBasicMixin:
     def get_group_title(self, group, event, **kwargs):
         return get_notification_group_title(group, event, **kwargs)
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         """
         Given the key of the external_issue return the external issue link.
         """

@@ -9,7 +9,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
@@ -165,8 +165,35 @@ export function tokenIsInvalid(token: TokenResult<Token>) {
   return Boolean(token.invalid);
 }
 
+export function queryIsValid(parsedQuery: ParseResult | null) {
+  if (!parsedQuery) {
+    return false;
+  }
+
+  return !parsedQuery.some(tokenIsInvalid);
+}
+
 export function isDateToken(token: TokenResult<Token.FILTER>) {
   return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
     token.filter
   );
+}
+
+export function recentSearchTypeToLabel(type: SavedSearchType | undefined) {
+  switch (type) {
+    case SavedSearchType.ISSUE:
+      return 'issues';
+    case SavedSearchType.EVENT:
+      return 'events';
+    case SavedSearchType.METRIC:
+      return 'metrics';
+    case SavedSearchType.REPLAY:
+      return 'replays';
+    case SavedSearchType.SESSION:
+      return 'sessions';
+    case SavedSearchType.SPAN:
+      return 'spans';
+    default:
+      return 'none';
+  }
 }

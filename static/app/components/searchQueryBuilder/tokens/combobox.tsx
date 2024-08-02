@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -72,11 +73,20 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   customMenu?: CustomComboboxMenu;
   /**
+   * If the combobox has additional information to display, passing JSX
+   * to this prop will display it in an overlay at the top left position.
+   */
+  description?: ReactNode;
+  /**
    * Whether to display the tabbed menu.
    */
   displayTabbedMenu?: boolean;
   filterValue?: string;
   isLoading?: boolean;
+  /**
+   * When passing `isOpen`, the open state is controlled by the parent.
+   */
+  isOpen?: boolean;
   maxOptions?: number;
   onClick?: (e: React.MouseEvent) => void;
   /**
@@ -109,6 +119,19 @@ type CustomComboboxMenu = (props: {
   listBoxRef: React.RefObject<HTMLUListElement>;
   popoverRef: React.RefObject<HTMLDivElement>;
 }) => React.ReactNode;
+
+const DESCRIPTION_POPPER_OPTIONS = {
+  placement: 'top-start' as const,
+  strategy: 'fixed' as const,
+  modifiers: [
+    {
+      name: 'offset',
+      options: {
+        offset: [-12, 8],
+      },
+    },
+  ],
+};
 
 function itemIsSection(
   item: SelectOptionOrSectionWithKey<string>
@@ -149,6 +172,7 @@ function menuIsOpen({
   displayTabbedMenu,
   isLoading,
   hasCustomMenu,
+  isOpen,
 }: {
   hiddenOptions: Set<SelectKey>;
   state: ComboBoxState<any>;
@@ -156,14 +180,17 @@ function menuIsOpen({
   displayTabbedMenu?: boolean;
   hasCustomMenu?: boolean;
   isLoading?: boolean;
+  isOpen?: boolean;
 }) {
+  const openState = isOpen ?? state.isOpen;
+
   if (displayTabbedMenu || isLoading || hasCustomMenu) {
-    return state.isOpen;
+    return openState;
   }
 
   // When the tabbed menu is not being displayed and we aren't loading anything,
   // only show when there is something to select from.
-  return state.isOpen && totalOptions > hiddenOptions.size;
+  return openState && totalOptions > hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
@@ -294,8 +321,9 @@ function FeedbackFooter() {
           openForm({
             messagePlaceholder: t('How can we make search better for you?'),
             tags: {
-              feedback_source: 'search_query_builder',
               search_source: searchSource,
+              ['feedback.source']: 'search_query_builder',
+              ['feedback.owner']: 'issues',
             },
           })
         }
@@ -458,6 +486,7 @@ function OverlayContent({
 function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<string>>(
   {
     children,
+    description,
     items,
     inputValue,
     filterValue = inputValue,
@@ -483,13 +512,16 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     isLoading,
     onClick,
     customMenu,
+    isOpen: incomingIsOpen,
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
+  const {disabled} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [selectedSection, setSelectedSection] = useState<Key | null>(null);
+  const descriptionRef = useRef<HTMLDivElement>(null);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
@@ -519,6 +551,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onSelectionChange,
     allowsCustomValue: true,
     disabledKeys,
+    isDisabled: disabled,
   };
 
   const state = useComboBoxState<T>({
@@ -594,6 +627,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     displayTabbedMenu,
     isLoading,
     hasCustomMenu,
+    isOpen: incomingIsOpen,
   });
 
   useEffect(() => {
@@ -629,6 +663,12 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     preventOverflowOptions: {boundary: document.body, altAxis: true},
   });
 
+  const descriptionPopper = usePopper(
+    inputRef.current,
+    descriptionRef.current,
+    DESCRIPTION_POPPER_OPTIONS
+  );
+
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
     e => {
       e.stopPropagation();
@@ -653,8 +693,10 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   //
   // [1]: https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/combobox/src/useComboBox.ts#L337C3-L341C44
   useEffect(() => {
-    if (isOpen && inputRef.current && popoverRef.current) {
-      return ariaHideOutside([inputRef.current, popoverRef.current]);
+    if (isOpen) {
+      return ariaHideOutside(
+        [inputRef.current, popoverRef.current, descriptionRef.current].filter(defined)
+      );
     }
 
     return () => {};
@@ -673,7 +715,19 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         onChange={onInputChange}
         tabIndex={tabIndex}
         onPaste={onPaste}
+        disabled={disabled}
       />
+      {description ? (
+        <StyledPositionWrapper
+          {...descriptionPopper.attributes.popper}
+          ref={descriptionRef}
+          style={descriptionPopper.styles.popper}
+          visible
+          role="tooltip"
+        >
+          <DescriptionOverlay>{description}</DescriptionOverlay>
+        </StyledPositionWrapper>
+      ) : null}
       <StyledPositionWrapper {...overlayProps} visible={isOpen}>
         <OverlayContent
           customMenu={customMenu}
@@ -742,6 +796,13 @@ const ListBoxOverlay = styled(Overlay)`
   width: 600px;
   max-width: min-content;
   overflow-y: auto;
+`;
+
+const DescriptionOverlay = styled(Overlay)`
+  min-width: 200px;
+  max-width: 400px;
+  padding: ${space(1)} ${space(1.5)};
+  line-height: 1.2;
 `;
 
 const SectionedOverlay = styled(Overlay)`

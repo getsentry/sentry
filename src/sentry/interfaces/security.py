@@ -19,6 +19,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     "chromenull://*",
     "data:text/html,chromewebdata",
     "safari-extension://*",
+    "safari-web-extension://*",
     "mxaddon-pkg://*",
     "jar://*",
     "webviewprogressproxy://*",

@@ -55,7 +55,7 @@ with open(os.path.expanduser("~/.docker/config.json"), "w") as f:
 EOF
 
 echo "Starting colima."
-python3 -uS scripts/start-colima.py
+devenv colima start
 
 echo "Recreating your postgres volume for use with colima. May take a few minutes."
 docker volume create --name sentry_postgres

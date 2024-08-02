@@ -90,7 +90,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return result
 
     def get_snuba_dataclass(
-        self, request: Request, organization: Organization, check_global_views: bool = True
+        self,
+        request: Request,
+        organization: Organization,
+        check_global_views: bool = True,
+        quantize_date_params: bool = True,
     ) -> tuple[SnubaParams, ParamsType]:
         """This will eventually replace the get_snuba_params function"""
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
@@ -104,7 +108,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
 
             filter_params: dict[str, Any] = self.get_filter_params(request, organization)
-            filter_params = self.quantize_date_params(request, filter_params)
+            if quantize_date_params:
+                filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
                 start=filter_params["start"],
                 end=filter_params["end"],
@@ -439,6 +444,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         top_events: int = 0,
         query_column: str = "count()",
         params: ParamsType | None = None,
+        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
@@ -446,6 +452,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         additional_query_column: str | None = None,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
+        if (params is None or len(params) == 0) and snuba_params is not None:
+            params = snuba_params.filter_params
+
         with handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"

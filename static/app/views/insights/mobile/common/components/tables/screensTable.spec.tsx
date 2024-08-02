@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -34,6 +34,7 @@ describe('ScreensTable', () => {
         columnNameMap={{
           transaction: 'Screen',
         }}
+        columnTooltipMap={{}}
         columnOrder={['transaction']}
         data={{
           data: [{id: '1', transaction: 'Screen 1'}],
@@ -56,6 +57,7 @@ describe('ScreensTable', () => {
         columnNameMap={{
           transaction: 'Screen',
         }}
+        columnTooltipMap={{}}
         columnOrder={['transaction', 'non-custom']}
         data={{
           data: [
@@ -81,5 +83,36 @@ describe('ScreensTable', () => {
 
     expect(screen.getByText('Custom rendered Screen 1')).toBeInTheDocument();
     expect(screen.getByText('non customized value')).toBeInTheDocument();
+  });
+
+  it('renders column header tooltips', async () => {
+    render(
+      <ScreensTable
+        columnNameMap={{
+          transaction: 'Screen Column',
+        }}
+        columnTooltipMap={{
+          transaction: 'Screen Column Tooltip',
+        }}
+        columnOrder={['transaction', 'non-custom']}
+        data={{
+          data: [
+            {id: '1', transaction: 'Screen 1', 'non-custom': 'non customized value'},
+          ],
+          meta: {fields: {transaction: 'string'}},
+        }}
+        defaultSort={[]}
+        eventView={getMockEventView({
+          fields: [{field: 'transaction'}, {field: 'non-custom'}],
+        })}
+        isLoading={false}
+        pageLinks={undefined}
+      />
+    );
+
+    const columnHeader = screen.getByText('Screen Column');
+    await userEvent.hover(columnHeader);
+
+    expect(await screen.findByText('Screen Column Tooltip')).toBeInTheDocument();
   });
 });

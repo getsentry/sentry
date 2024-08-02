@@ -19,6 +19,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory
+from sentry.utils.hashlib import sha1_text
 
 MAX_NAME_LENGTH = 255
 
@@ -153,7 +154,7 @@ def update_org_auth_token_last_used(auth: object, project_ids: list[int]) -> Non
     # Debounce updates, as we often get bursts of requests when customer
     # run CI or deploys and we don't need second level precision here.
     # We vary on the project ids so that unique requests still make updates
-    project_segment = ",".join(str(i) for i in project_ids)
+    project_segment = sha1_text(",".join(str(i) for i in project_ids)).hexdigest()
     recent_key = f"orgauthtoken:{org_auth_token_id}:last_update:{project_segment}"
     if cache.get(recent_key):
         return

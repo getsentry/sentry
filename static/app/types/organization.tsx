@@ -5,6 +5,7 @@ import type {
   DiscoverDatasets,
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -51,6 +52,7 @@ export interface Organization extends OrganizationSummary {
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
+  allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
   /** @deprecated use orgRoleList instead. */
@@ -76,6 +78,7 @@ export interface Organization extends OrganizationSummary {
     projectLimit: number | null;
   };
   relayPiiConfig: string | null;
+  requiresSso: boolean;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
@@ -293,6 +296,7 @@ export type EventsStats = {
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;
+    discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
   order?: number;

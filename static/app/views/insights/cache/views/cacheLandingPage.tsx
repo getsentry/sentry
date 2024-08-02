@@ -43,7 +43,6 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -134,14 +133,13 @@ export function CacheLandingPage() {
       search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}]`,
       fields: [`avg(transaction.duration)`, 'transaction'],
       enabled: !isTransactionsListFetching && transactionsList.length > 0,
+      noPagination: true,
     },
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );
 
   const onboardingProject = useOnboardingProject();
   const hasData = useHasFirstSpan(ModuleName.CACHE);
-
-  useHasDataTrackAnalytics(ModuleName.CACHE, 'insight.page_loads.cache');
 
   useEffect(() => {
     const hasMissingDataError =
@@ -248,7 +246,11 @@ export function CacheLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="cache" features="insights-addon-modules">
+    <ModulePageProviders
+      moduleName="cache"
+      features="insights-addon-modules"
+      analyticEventName="insight.page_loads.cache"
+    >
       <PageAlertProvider>
         <CacheLandingPage />
       </PageAlertProvider>

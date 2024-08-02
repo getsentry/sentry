@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 
+import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {FieldDefinition} from 'sentry/utils/fields';
 
 export type FilterKeySection = {
@@ -15,7 +16,12 @@ export enum QueryInterfaceType {
 
 export type FocusOverride = {
   itemKey: string;
-  part?: 'value';
+  part?: 'value' | 'key';
 };
 
 export type FieldDefinitionGetter = (key: string) => FieldDefinition | null;
+
+export type CallbackSearchState = {
+  parsedQuery: ParseResult | null;
+  queryIsValid: boolean;
+};

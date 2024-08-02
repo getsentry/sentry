@@ -61,7 +61,7 @@ class SingleProcessSiloModeState(threading.local):
 
     @staticmethod
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
         """
         Prevents re-entrant cases unless the exit_single_process_silo_context is
         explicitly embedded, ensuring that this single process silo mode simulates
@@ -72,7 +72,7 @@ class SingleProcessSiloModeState(threading.local):
 
     @staticmethod
     @contextlib.contextmanager
-    def exit() -> Generator[None, None, None]:
+    def exit() -> Generator[None]:
         """
         Used by silo endpoint decorators and other contexts to signal that a
         potential inter process interaction is being simulated locally for acceptance
