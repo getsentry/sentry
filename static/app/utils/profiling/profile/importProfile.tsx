@@ -314,6 +314,7 @@ export function importSentryContinuousProfileChunk(
     measurements: input.measurements ?? {},
     metadata: {
       platform: input.platform,
+      projectID: input.project_id,
     },
   };
 }
