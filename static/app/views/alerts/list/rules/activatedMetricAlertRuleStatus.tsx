@@ -5,6 +5,7 @@ import {IconArrow, IconMute} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
   AlertRuleComparisonType,
@@ -29,11 +30,7 @@ export default function ActivatedMetricAlertRuleStatus({rule}: Props): ReactNode
     );
   }
 
-  const isUnhealthy =
-    rule.latestIncident?.status !== undefined &&
-    [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
-      rule.latestIncident.status
-    );
+  const isUnhealthy = hasActiveIncident(rule);
 
   let iconColor: ColorOrAlias = 'successText';
   let iconDirection: 'up' | 'down' =

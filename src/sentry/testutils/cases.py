@@ -2206,7 +2206,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_span_metric(
         self,
-        value: dict[str, int] | list[int] | int,
+        value: dict[str, int] | list[int] | list[dict[str, int]] | int,
         metric: str = "span.self_time",
         internal_metric: str | None = None,
         entity: str | None = None,
