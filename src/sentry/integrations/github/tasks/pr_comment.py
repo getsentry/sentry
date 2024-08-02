@@ -121,7 +121,7 @@ def get_top_5_issues_by_count(issue_list: list[int], project: Project) -> list[d
 
 def get_comment_contents(issue_list: list[int]) -> list[PullRequestIssue]:
     """Retrieve the issue information that will be used for comment contents"""
-    issues = Group.objects.filter(id__in=issue_list).all()
+    issues = Group.objects.filter(id__in=issue_list).order_by("id").all()
     return [
         PullRequestIssue(title=issue.title, subtitle=issue.culprit, url=issue.get_absolute_url())
         for issue in issues

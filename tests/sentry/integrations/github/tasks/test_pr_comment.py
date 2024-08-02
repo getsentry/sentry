@@ -413,9 +413,10 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.integrations.github.tasks.utils.metrics")
     @responses.activate
     def test_comment_workflow(self, mock_metrics, mock_issues):
-        groups = [g.id for g in Group.objects.all()]
-        titles = [g.title for g in Group.objects.all()]
-        culprits = [g.culprit for g in Group.objects.all()]
+        group_objs = Group.objects.order_by("id").all()
+        groups = [g.id for g in group_objs]
+        titles = [g.title for g in group_objs]
+        culprits = [g.culprit for g in group_objs]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
         responses.add(
