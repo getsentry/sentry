@@ -49,9 +49,10 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install the SDK via Rubygems by adding it to your [code:Gemfile]:',
+        'The Sentry SDK for Ruby comes as a gem and is straightforward to install. If you are using Bundler just add this to your [gemfileCode:Gemfile] and run [bundleCode:bundle install]:',
         {
-          code: <code />,
+          gemfileCode: <code />,
+          bundleCode: <code />,
         }
       ),
       configurations: [
@@ -78,7 +79,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Add use [sentryRackCode:Sentry::Rack::CaptureExceptions] to your [sentryConfigCode:config.ru] or other rackup file (this is automatically inserted in Rails):',
+        'Add [sentryRackCode:use Sentry::Rack::CaptureExceptions] to your [sentryConfigCode:config.ru] or other rackup file (this is automatically inserted in Rails):',
         {
           sentryRackCode: <code />,
           sentryConfigCode: <code />,

@@ -19,11 +19,7 @@ type Params = DocsParams;
 const getInstallSnippet = (
   params: Params
 ) => `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"
-gem "sentry-rails"
-
-bin/rails generate sentry
-
-bundle install`;
+gem "sentry-rails"`;
 
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
@@ -64,11 +60,10 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add [sentryRubyCode:sentry-ruby] and [sentryRailsCode:sentry-rails] and generate your [sentryGemfileCode:Gemfile]:',
+        'The Sentry SDK for Rails comes as two gems and is straightforward to install. If you are using Bundler just add this to your [gemfileCode:Gemfile] and run [bundleCode:bundle install]:',
         {
-          sentryRubyCode: <code />,
-          sentryRailsCode: <code />,
-          sentryGemfileCode: <code />,
+          gemfileCode: <code />,
+          bundleCode: <code />,
         }
       ),
       configurations: [
@@ -95,7 +90,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Initialize the SDK within your [code:config/initializers/sentry.rb]:',
+        'Run [generate:bin/rails generate sentry] to create the initializer file [code:config/initializers/sentry.rb] and configure it as follows:',
         {
           code: <code />,
         }
