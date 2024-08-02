@@ -1467,7 +1467,7 @@ def get_target_identifier_display_for_integration(
             target_value, organization, integration_id
         )
     elif type == AlertRuleTriggerAction.Type.OPSGENIE.value:
-        target_identifier, target_value = _get_alert_rule_trigger_action_opsgenie_team(
+        target_identifier, target_value = get_alert_rule_trigger_action_opsgenie_team(
             target_value, organization, integration_id
         )
     else:
@@ -1572,7 +1572,7 @@ def _get_alert_rule_trigger_action_pagerduty_service(
     return service["id"], service["service_name"]
 
 
-def _get_alert_rule_trigger_action_opsgenie_team(
+def get_alert_rule_trigger_action_opsgenie_team(
     target_value: str | None, organization: Organization, integration_id: int
 ) -> tuple[str, str]:
     from sentry.integrations.opsgenie.utils import get_team
