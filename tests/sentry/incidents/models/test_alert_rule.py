@@ -24,6 +24,7 @@ from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.users.services.user.service import user_service
 
 
@@ -338,11 +339,10 @@ class AlertRuleTriggerActionActivateBaseTest:
     method: str
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction._factory_registrations
-        AlertRuleTriggerAction._factory_registrations = {}
+        self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
     def tearDown(self):
-        AlertRuleTriggerAction._factory_registrations = self.old_handlers
+        self.suspended_registry.restore()
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
@@ -382,11 +382,10 @@ class AlertRuleTriggerActionActivateTest(TestCase):
             yield
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction._factory_registrations
-        AlertRuleTriggerAction._factory_registrations = {}
+        self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
     def tearDown(self):
-        AlertRuleTriggerAction._factory_registrations = self.old_handlers
+        self.suspended_registry.restore()
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)

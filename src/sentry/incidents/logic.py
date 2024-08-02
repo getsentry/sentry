@@ -1841,13 +1841,16 @@ def get_filtered_actions(
     alert_rule_data: Mapping[str, Any],
     action_type: ActionService,
 ):
-    from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
+    def is_included(action: Mapping[str, Any]) -> bool:
+        type_slug = action.get("type")
+        factory = AlertRuleTriggerAction.look_up_factory_by_slug(type_slug)
+        return factory is not None and factory.service_type == action_type
 
     return [
         rewrite_trigger_action_fields(action)
         for trigger in alert_rule_data.get("triggers", [])
         for action in trigger.get("actions", [])
-        if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
+        if is_included(action)
     ]
 
 

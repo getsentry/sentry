@@ -9,14 +9,11 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.serializers import (
-    ACTION_TARGET_TYPE_TO_STRING,
-    STRING_TO_ACTION_TARGET_TYPE,
-    STRING_TO_ACTION_TYPE,
-)
+from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, STRING_TO_ACTION_TARGET_TYPE
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.integrations.slack.utils import validate_channel_id
+from sentry.models.notificationaction import ActionService
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
@@ -64,12 +61,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "sentry_app_installation_uuid": {"required": False, "allow_null": True},
         }
 
-    def validate_type(self, type):
-        if type not in STRING_TO_ACTION_TYPE:
-            raise serializers.ValidationError(
-                "Invalid type, valid values are [%s]" % ", ".join(STRING_TO_ACTION_TYPE.keys())
-            )
-        return STRING_TO_ACTION_TYPE[type]
+    def validate_type(self, type: str) -> ActionService:
+        factory = AlertRuleTriggerAction.look_up_factory_by_slug(type)
+        if factory is None:
+            valid_slugs = AlertRuleTriggerAction.get_all_slugs()
+            raise serializers.ValidationError(f"Invalid type, valid values are {valid_slugs!r}")
+        return factory.service_type
 
     def validate_target_type(self, target_type):
         if target_type not in STRING_TO_ACTION_TARGET_TYPE:
