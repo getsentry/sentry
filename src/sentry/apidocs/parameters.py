@@ -171,6 +171,14 @@ Valid fields include:
 """,
     )
 
+    EXTERNAL_USER_ID = OpenApiParameter(
+        name="external_user_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the External User Object. This is returned when creating an external user.",
+    )
+
 
 class ReleaseParams:
     VERSION = OpenApiParameter(

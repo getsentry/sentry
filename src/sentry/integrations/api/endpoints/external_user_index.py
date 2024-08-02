@@ -1,5 +1,6 @@
 import logging
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +10,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_SUCCESS
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import GlobalParams
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalUserSerializer,
@@ -19,24 +23,28 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Organizations"])
 class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
 
+    @extend_schema(
+        operation_id="Create an External User",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=ExternalUserSerializer,
+        responses={
+            200: RESPONSE_SUCCESS,
+            201: ExternalUserSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=OrganizationExamples.EXTERNAL_USER_CREATE,
+    )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Create an External User
-        `````````````
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          user belongs to.
-        :param required string provider: enum("github", "gitlab", "slack")
-        :param required string external_name: the associated username for this provider.
-        :param required int user_id: the User ID in Sentry.
-        :param string external_id: the associated user ID for this provider
-        :auth: required
+        Links a user in an external provider to a user in Sentry.
         """
         self.assert_has_feature(request, organization)
 
