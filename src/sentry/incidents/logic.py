@@ -281,16 +281,16 @@ def create_incident_activity(
     incident: Incident,
     activity_type: IncidentActivityType,
     user: RpcUser | None = None,
-    value: str | None = None,
-    previous_value: str | None = None,
+    value: int | None = None,
+    previous_value: int | None = None,
     comment: str | None = None,
     mentioned_user_ids: Collection[int] = (),
     date_added: datetime | None = None,
 ) -> IncidentActivity:
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user.id)
-    value = str(value) if value is not None else value
-    previous_value = str(previous_value) if previous_value is not None else previous_value
+    value = str(value) if value is not None else None
+    previous_value = str(previous_value) if previous_value is not None else None
     kwargs = {}
     if date_added:
         kwargs["date_added"] = date_added
@@ -1484,7 +1484,7 @@ def update_alert_rule_trigger_action(
 
 
 def get_target_identifier_display_for_integration(
-    type: AlertRuleTriggerAction.Type,
+    type: ActionService,
     target_value: str,
     organization: Organization,
     integration_id: int,
@@ -1795,7 +1795,9 @@ def translate_aggregate_field(
 
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(
-    organization: Organization, user: RpcUser, data: Mapping[str, Any]
+    organization: Organization,
+    user: RpcUser | None,
+    data: Mapping[str, Any],
 ) -> list[Mapping[str, Any]]:
     """Return Slack trigger actions that require async lookup"""
     try:
@@ -1834,7 +1836,9 @@ def get_slack_actions_with_async_lookups(
 
 
 def get_slack_channel_ids(
-    organization: Organization, user: RpcUser, data: Mapping[str, Any]
+    organization: Organization,
+    user: RpcUser | None,
+    data: Mapping[str, Any],
 ) -> Mapping[str, Any]:
     slack_actions = get_slack_actions_with_async_lookups(organization, user, data)
     mapped_slack_channels = {}

@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.incidents.logic import set_incident_seen
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 @region_silo_endpoint
@@ -24,5 +25,5 @@ class OrganizationIncidentSeenEndpoint(IncidentEndpoint):
         :auth: required
         """
 
-        set_incident_seen(incident=incident, user=request.user)
+        set_incident_seen(incident=incident, user=serialize_generic_user(request.user))
         return Response({}, status=201)
