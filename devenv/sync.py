@@ -6,7 +6,7 @@ import shlex
 import subprocess
 
 from devenv import constants
-from devenv.lib import colima, config, fs, limactl, proc, venv, volta
+from devenv.lib import colima, config, fs, limactl, node, proc, venv
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -71,6 +71,8 @@ Output:
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
+    repo_config = configparser.ConfigParser()
+    repo_config.read(f"{reporoot}/devenv/config.ini")
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
 
@@ -81,17 +83,16 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    # TODO: move volta version into per-repo config
-    try:
-        volta.install(reporoot)
-    except TypeError:
-        # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
-        volta.install()
+    node.install(
+        repo_config["node"]["version"],
+        repo_config["node"][constants.SYSTEM_MACHINE],
+        repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
+        reporoot,
+    )
+
+    node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
 
     if constants.DARWIN:
-        repo_config = configparser.ConfigParser()
-        repo_config.read(f"{reporoot}/devenv/config.ini")
-
         try:
             colima.install(
                 repo_config["colima"]["version"],
