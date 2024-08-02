@@ -5,6 +5,8 @@ import pytest
 import responses
 from django.utils import timezone
 
+from sentry.integrations.github.constants import STACKFRAME_COUNT
+from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
 from sentry.integrations.github.tasks.open_pr_comment import (
     format_issue_table,
     format_open_pr_comment,
@@ -15,12 +17,10 @@ from sentry.integrations.github.tasks.open_pr_comment import (
     open_pr_comment_workflow,
     safe_for_comment,
 )
+from sentry.integrations.github.tasks.utils import PullRequestFile, PullRequestIssue
 from sentry.models.group import Group, GroupStatus
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.integrations.github.constants import STACKFRAME_COUNT
-from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
-from sentry.tasks.integrations.github.utils import PullRequestFile, PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
@@ -85,7 +85,7 @@ class TestSafeForComment(GithubCommentTestCase):
         super().setUp()
         self.pr = self.create_pr_issues()
         self.mock_metrics = patch(
-            "sentry.tasks.integrations.github.open_pr_comment.metrics"
+            "sentry.integrations.github.tasks.open_pr_comment.metrics"
         ).start()
         self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}/files"
         installation = self.integration.get_installation(organization_id=self.organization.id)
@@ -233,7 +233,7 @@ class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
         self.pr = self.create_pr_issues()
-        self.mock_metrics = patch("sentry.tasks.integrations.github.pr_comment.metrics").start()
+        self.mock_metrics = patch("sentry.integrations.github.tasks.pr_comment.metrics").start()
         self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}/files"
         installation = self.integration.get_installation(organization_id=self.organization.id)
         self.gh_client = installation.get_client()
@@ -814,16 +814,16 @@ Your pull request is modifying functions with the following pre-existing issues:
         assert issue_table == ""
 
 
-@patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
+@patch("sentry.integrations.github.tasks.open_pr_comment.get_pr_files")
 @patch(
-    "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
+    "sentry.integrations.github.tasks.open_pr_comment.get_projects_and_filenames_from_source_file"
 )
 @patch(
-    "sentry.tasks.integrations.github.language_parsers.PythonParser.extract_functions_from_patch"
+    "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
 )
-@patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
-@patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment")
-@patch("sentry.tasks.integrations.github.utils.metrics")
+@patch("sentry.integrations.github.tasks.open_pr_comment.get_top_5_issues_by_count_for_file")
+@patch("sentry.integrations.github.tasks.open_pr_comment.safe_for_comment")
+@patch("sentry.integrations.github.tasks.utils.metrics")
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
 
@@ -971,7 +971,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert not mock_analytics.called
 
     @patch("sentry.analytics.record")
-    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
     @responses.activate
     def test_comment_workflow_early_return(
         self,
@@ -1028,7 +1028,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert not mock_analytics.called
 
     @patch("sentry.analytics.record")
-    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
     @responses.activate
     def test_comment_workflow_api_error(
         self,
@@ -1105,7 +1105,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         )
         assert not mock_analytics.called
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
     def test_comment_workflow_missing_pr(
         self,
         mock_metrics,
@@ -1125,7 +1125,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "missing_pr"}
         )
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
     def test_comment_workflow_missing_org(
         self,
         mock_metrics,
@@ -1146,7 +1146,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "missing_org"}
         )
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
     def test_comment_workflow_missing_repo(
         self,
         mock_metrics,
@@ -1167,7 +1167,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "missing_repo"}
         )
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
     def test_comment_workflow_missing_integration(
         self,
         mock_metrics,
@@ -1189,7 +1189,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "missing_integration"}
         )
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
     def test_comment_workflow_not_safe_for_comment(
         self,
         mock_metrics,
