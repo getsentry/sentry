@@ -57,7 +57,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             title = tag["title"]
             value = tag["value"]
             # remove backticks from value, otherwise it will break the markdown
-            value = value.replace("`", "")
+            value = value.replace("`", "") if isinstance(value, str) else value
             text += f"{title}: `{value}`  "
 
         block = {
@@ -66,8 +66,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
         if block_id:
-            block_id["block"] = "text"
-            block["block_id"] = orjson.dumps(block_id).decode()
+            tags_block_id = block_id.copy()
+            tags_block_id["block"] = "text"
+            block["block_id"] = orjson.dumps(tags_block_id).decode()
 
         return block
 
