@@ -105,6 +105,7 @@ function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
       return {
         value: crumbLevel,
         label: levelComponent,
+        textValue: crumbLevel,
       };
     }
   );
