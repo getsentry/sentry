@@ -79,7 +79,7 @@ describe('BreadcrumbsDrawer', function () {
     expect(drawerScreen.queryByText(logCrumb.category)).not.toBeInTheDocument();
   });
 
-  it('allows crumb filter dropdown to affect displayed crumbs', async function () {
+  it('allows type filter to affect displayed crumbs', async function () {
     const drawerScreen = await renderBreadcrumbDrawer();
 
     const queryCrumb = MOCK_BREADCRUMBS[3];
@@ -94,6 +94,23 @@ describe('BreadcrumbsDrawer', function () {
 
     expect(drawerScreen.getByText(queryCrumb.category)).toBeInTheDocument();
     expect(drawerScreen.queryByText(requestCrumb.category)).not.toBeInTheDocument();
+  });
+
+  it('allows level spofilter to affect displayed crumbs', async function () {
+    const drawerScreen = await renderBreadcrumbDrawer();
+
+    const [warningCrumb, logCrumb] = MOCK_BREADCRUMBS;
+
+    expect(drawerScreen.getByText(warningCrumb.category)).toBeInTheDocument();
+    expect(drawerScreen.getByText(logCrumb.category)).toBeInTheDocument();
+
+    await userEvent.click(
+      drawerScreen.getByRole('button', {name: 'Filter All Breadcrumbs'})
+    );
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'warning'}));
+
+    expect(drawerScreen.getByText(warningCrumb.category)).toBeInTheDocument();
+    expect(drawerScreen.queryByText(logCrumb.category)).not.toBeInTheDocument();
   });
 
   it('allows sort dropdown to affect displayed crumbs', async function () {
