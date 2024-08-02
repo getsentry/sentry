@@ -1,10 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {FocusScope} from '@react-aria/focus';
 
 import Avatar from 'sentry/components/avatar';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import {Button} from 'sentry/components/button';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,6 +19,8 @@ interface DropdownListProps {
 export default function ParticipantList({users, teams}: DropdownListProps) {
   const {overlayProps, isOpen, triggerProps} = useOverlay({
     position: 'bottom-start',
+    shouldCloseOnBlur: true,
+    isKeyboardDismissDisabled: false,
   });
 
   const theme = useTheme();
@@ -26,42 +28,45 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
 
   return (
     <div>
-      <div {...triggerProps}>
-        <StyledAvatarList users={users} avatarSize={24} maxVisibleAvatars={3} />
-      </div>
+      <Button borderless translucentBorder size="zero" {...triggerProps}>
+        <StyledAvatarList
+          teams={teams}
+          users={users}
+          avatarSize={24}
+          maxVisibleAvatars={3}
+        />
+      </Button>
       {isOpen && (
-        <FocusScope contain restoreFocus autoFocus>
-          <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-            <StyledOverlay>
-              <ParticipantListWrapper>
-                {showHeaders && teams && teams.length > 0 && (
-                  <ListTitle>{t('Teams (%s)', teams.length)}</ListTitle>
-                )}
-                {teams?.map(team => (
-                  <UserRow key={team.id}>
-                    <TeamAvatar team={team} size={20} />
-                    <div>
-                      {`#${team.slug}`}
-                      <SubText>{tn('%s member', '%s members', team.memberCount)}</SubText>
-                    </div>
-                  </UserRow>
-                ))}
-                {showHeaders && (
-                  <ListTitle>{t('Individuals (%s)', users.length)}</ListTitle>
-                )}
-                {users.map(user => (
-                  <UserRow key={user.id}>
-                    <Avatar user={user} size={20} />
-                    <div>
-                      {user.name}
-                      <SubText>{user.email}</SubText>
-                    </div>
-                  </UserRow>
-                ))}
-              </ParticipantListWrapper>
-            </StyledOverlay>
-          </PositionWrapper>
-        </FocusScope>
+        <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+          <StyledOverlay>
+            <ParticipantListWrapper>
+              {showHeaders && teams && teams.length > 0 && (
+                <ListTitle>{t('Teams (%s)', teams.length)}</ListTitle>
+              )}
+              {teams?.map(team => (
+                <UserRow key={team.id}>
+                  <TeamAvatar team={team} size={20} />
+                  <div>
+                    {`#${team.slug}`}
+                    <SubText>{tn('%s member', '%s members', team.memberCount)}</SubText>
+                  </div>
+                </UserRow>
+              ))}
+              {showHeaders && (
+                <ListTitle>{t('Individuals (%s)', users.length)}</ListTitle>
+              )}
+              {users.map(user => (
+                <UserRow key={user.id}>
+                  <Avatar user={user} size={20} />
+                  <div>
+                    {user.name}
+                    <SubText>{user.email}</SubText>
+                  </div>
+                </UserRow>
+              ))}
+            </ParticipantListWrapper>
+          </StyledOverlay>
+        </PositionWrapper>
       )}
     </div>
   );
