@@ -822,10 +822,10 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 group = Group.objects.filter(id=event.group.id).exclude(
                     substatus=GroupSubStatus.NEW
                 )
-                if group:
+                if group.exists():
                     logger.warning(
                         "no_substatus: Found NEW group with incorrect substatus",
-                        extra={"group_id": group.first().id, "substatus": group.first().substatus},
+                        extra={"group_id": event.group.id, "substatus": event.group.substatus},
                     )
 
                 updated = group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
