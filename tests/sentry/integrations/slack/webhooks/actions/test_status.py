@@ -81,7 +81,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "escape: `room`  foo: `bar`  release: `<http://testserver/releases/57c9bf0a3e183536ef9d47842e932a9e571b6d04/|57c9bf0a3e18>`  ",
+                        "text": "escape: `room`  foo: `bar baz`  release: `<http://testserver/releases/57c9bf0a3e183536ef9d47842e932a9e571b6d04/|57c9bf0a3e18>`  ",
                     },
                 },
             ],

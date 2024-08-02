@@ -122,10 +122,12 @@ class SlackActionRequest(SlackRequest):
                 continue
 
             text: str = block.get("text", {}).get("text", "")
-            tag_keys = text.split(" ")
-            for tag_key in tag_keys:
-                if not tag_key or tag_key.count("`") == 2:
+            tag_keys = text.split("`")
+
+            for i, tag_key in enumerate(tag_keys):
+                # the tags are organized as tag_key: tag_value, so even indexed tags are keys
+                if i % 2 == 1:
                     continue
-                else:
-                    tags.add(tag_key.strip(":"))
+                if tag_key.strip(" ").endswith(":"):
+                    tags.add(tag_key.strip(": "))
         return tags
