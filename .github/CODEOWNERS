@@ -234,13 +234,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/utils/performance_issues/                                     @getsentry/visibility
 /src/sentry/spans/                                                        @getsentry/visibility
 
-/static/app/views/traces/                                                 @getsentry/visibility
-/static/app/views/performance/                                            @getsentry/visibility
-/static/app/utils/performance/                                            @getsentry/visibility
-/static/app/components/events/interfaces/spans/                           @getsentry/visibility
-/static/app/components/performance/                                       @getsentry/visibility
-/static/app/components/quickTrace/                                        @getsentry/visibility
-
 static/app/components/events/eventStatisticalDetector/                    @getsentry/visibility @getsentry/profiling
 /src/sentry/statistical_detectors                                         @getsentry/visibility @getsentry/profiling
 /src/sentry/tasks/statistical_detectors.py                                @getsentry/visibility @getsentry/profiling
@@ -270,16 +263,26 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/data_export/                                             @getsentry/visibility
 /tests/sentry/data_export/                                           @getsentry/visibility
 
-/static/app/views/discover/                                          @getsentry/visibility
-/static/app/components/dashboards/                                   @getsentry/visibility
-
 /src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/visibility
 /src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/visibility
 /tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/visibility
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/visibility
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/visibility
 
-/static/app/views/insights/                                                         @getsentry/visibility
+/static/app/views/traces/                                                 @getsentry/visibility
+/static/app/components/quickTrace/                                        @getsentry/visibility
+
+/static/app/views/performance/                                            @getsentry/visibility
+/static/app/components/performance/                                       @getsentry/visibility
+/static/app/utils/performance/                                            @getsentry/visibility
+/static/app/components/events/interfaces/spans/                           @getsentry/visibility
+
+/static/app/views/insights/                                               @getsentry/visibility
+
+/static/app/views/dashboards/                                             @getsentry/visibility
+/static/app/components/dashboards/                                        @getsentry/visibility
+
+/static/app/views/discover/                                               @getsentry/visibility
 ## Endof Performance
 
 
