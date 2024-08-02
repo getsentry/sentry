@@ -289,7 +289,10 @@ export function VitalsLandingPage() {
   };
 
   return (
-    <ModulePageProviders moduleName="mobile-vitals" features={['insights-addon-modules']}>
+    <ModulePageProviders
+      moduleName="mobile-vitals"
+      features={['insights-addon-modules', 'insights-mobile-vitals-module']}
+    >
       <Layout.Page>
         <PageAlertProvider>
           <Layout.Header>
@@ -323,7 +326,7 @@ export function VitalsLandingPage() {
               <PageAlert />
               <ErrorBoundary mini>
                 <Container>
-                  <Flex>
+                  <Flex data-test-id="mobile-vitals-top-metrics">
                     {vitalItems.map(item => {
                       const metricValue = metricValueFor(item);
                       const status =
