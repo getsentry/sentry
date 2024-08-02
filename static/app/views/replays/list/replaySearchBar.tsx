@@ -1,6 +1,10 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {
+  SearchQueryBuilder,
+  type SearchQueryBuilderProps,
+} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -103,7 +107,38 @@ function ReplaySearchBar(props: Props) {
     [api, organization.slug, projectIds]
   );
 
-  return (
+  const searchQueryBuilderProps = useMemo(
+    () =>
+      organization.features.includes('search-query-builder-replays')
+        ? Object.keys(props)
+            .filter(key => key in ({} as SearchQueryBuilderProps))
+            .reduce((result, key) => {
+              result[key] = props[key];
+              return result;
+            }, {})
+        : {},
+    [props, organization.features]
+  );
+  return organization.features.includes('search-query-builder-replays') ? (
+    <SearchQueryBuilder
+      {...searchQueryBuilderProps}
+      fieldDefinitionGetter={getReplayFieldDefinition}
+      filterKeys={getSupportedTags(tags)}
+      getTagValues={(key, query) => getTagValues(key, query, {})}
+      // hasRecentSearches
+      initialQuery=""
+      // maxMenuHeight={500}
+      // maxQueryLength={MAX_QUERY_LENGTH}
+      recentSearches={SavedSearchType.REPLAY}
+      searchSource="replay_index"
+      placeholder={
+        placeholder ??
+        t('Search for users, duration, clicked elements, count_errors, and more')
+      }
+      // prepareQuery={prepareQuery}
+      // projectIds={projectIds}
+    />
+  ) : (
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
