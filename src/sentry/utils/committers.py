@@ -13,7 +13,7 @@ from django.db.models import Q
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group
@@ -293,7 +293,7 @@ def get_event_file_committers(
 
 
 def get_serialized_event_file_committers(
-    project: Project, event: Event, frame_limit: int = 25
+    project: Project, event: BaseEvent, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
 
     group_owners = GroupOwner.objects.filter(
