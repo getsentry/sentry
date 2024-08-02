@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from django.db.models import Q
@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_resolutions_and_activity_data_for_groups(
-    affected_groups: list,
-    resolution_strategy: str,
+    affected_groups: Iterable[Group],
+    resolution_strategy: str | None,
     activity_data: dict,
     organization_id: int,
 ):
@@ -79,7 +79,7 @@ def get_resolutions_and_activity_data_for_groups(
                 follows_semver = follows_semver_versioning_scheme(
                     org_id=organization_id,
                     project_id=group.project.id,
-                    release_version=last_release_by_date.version,
+                    release_version=last_release_by_date.version if last_release_by_date else None,
                 )
 
                 local_logging_params.update(
@@ -193,8 +193,10 @@ def sync_status_inbound(
         return
 
     installation = integration.get_installation(organization_id=organization_id)
-    config = installation.org_integration.config
+    if not (hasattr(installation, "get_resolve_sync_action") and installation.org_integration):
+        return
 
+    config = installation.org_integration.config
     try:
         # This makes an API call.
         action = installation.get_resolve_sync_action(data)
