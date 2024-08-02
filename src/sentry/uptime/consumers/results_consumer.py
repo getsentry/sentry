@@ -154,6 +154,14 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     tags={"failure_reason": result["status_reason"]["type"]},
                     sample_rate=1.0,
                 )
+                logger.info(
+                    "uptime_onboarding_failed",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
         elif result["status"] == CHECKSTATUS_SUCCESS:
             assert project_subscription.date_added is not None
             scheduled_check_time = datetime.fromtimestamp(
@@ -175,6 +183,14 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 remove_uptime_subscription_if_unused(onboarding_subscription)
                 metrics.incr(
                     "uptime.result_processor.autodetection.graduated_onboarding", sample_rate=1.0
+                )
+                logger.info(
+                    "uptime_onboarding_graduated",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
                 )
 
     def handle_result_for_project_active_mode(
