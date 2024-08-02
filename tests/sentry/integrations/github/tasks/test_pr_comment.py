@@ -7,6 +7,14 @@ import responses
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.github.tasks.pr_comment import (
+    format_comment,
+    get_comment_contents,
+    get_top_5_issues_by_count,
+    github_comment_reactions,
+    github_comment_workflow,
+    pr_to_issue_query,
+)
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -21,14 +29,6 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
-from sentry.tasks.integrations.github.pr_comment import (
-    format_comment,
-    get_comment_contents,
-    get_top_5_issues_by_count,
-    github_comment_reactions,
-    github_comment_workflow,
-    pr_to_issue_query,
-)
 from sentry.tasks.integrations.github.utils import PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format

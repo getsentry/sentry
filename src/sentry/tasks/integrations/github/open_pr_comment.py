@@ -23,6 +23,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.tasks.pr_comment import format_comment_url
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
@@ -41,7 +42,6 @@ from sentry.tasks.integrations.github.constants import (
     STACKFRAME_COUNT,
 )
 from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
-from sentry.tasks.integrations.github.pr_comment import format_comment_url
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
     PullRequestFile,
