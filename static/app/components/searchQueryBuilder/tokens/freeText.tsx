@@ -282,9 +282,9 @@ function KeyDescription({tag}: {tag: Tag}) {
 
   return (
     <DescriptionWrapper>
-      <p>
-        <strong>{getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}</strong>
-      </p>
+      <DescriptionKeyLabel>
+        {getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
+      </DescriptionKeyLabel>
       {description ? <p>{description}</p> : null}
       <Separator />
       <DescriptionList>
@@ -721,6 +721,11 @@ const DescriptionWrapper = styled('div')`
   p + p {
     margin-top: ${space(0.5)};
   }
+`;
+
+const DescriptionKeyLabel = styled('p')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  word-break: break-all;
 `;
 
 const Separator = styled('hr')`
