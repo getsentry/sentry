@@ -2072,7 +2072,7 @@ describe('SearchQueryBuilder', function () {
       it('can add an aggregate filter with default values', async function () {
         render(<SearchQueryBuilder {...aggregateDefaultProps} />);
         await userEvent.click(getLastInput());
-        await userEvent.click(screen.getByRole('option', {name: 'count_if'}));
+        await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
 
         expect(
           await screen.findByRole('row', {
