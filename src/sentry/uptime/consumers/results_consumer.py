@@ -149,9 +149,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # Mark the url as failed so that we don't attempt to auto-detect it for a while
                 set_failed_url(project_subscription.uptime_subscription.url)
                 redis.delete(key)
+                status_reason = "unknown"
+                if result["status_reason"]:
+                    status_reason = result["status_reason"]["type"]
                 metrics.incr(
                     "uptime.result_processor.autodetection.failed_onboarding",
-                    tags={"failure_reason": result["status_reason"]["type"]},
+                    tags={"failure_reason": status_reason},
                     sample_rate=1.0,
                 )
                 logger.info(
