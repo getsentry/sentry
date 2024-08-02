@@ -13,7 +13,8 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {DraggableTabMenuButton} from 'sentry/views/issueList/draggableTabMenuButton';
+import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
+import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
 
 export interface Tab {
   content: React.ReactNode;
@@ -51,11 +52,6 @@ export interface DraggableTabBarProps {
    */
   onDuplicate?: (key: MenuItemProps['key']) => void;
   /**
-   * Callback function to be called when user clicks the 'Rename' button.
-   * Note: The `Rename` button only appears for persistent views
-   */
-  onRename?: (key: MenuItemProps['key']) => void;
-  /**
    * Callback function to be called when user clicks the 'Save' button.
    * Note: The `Save` button only appears for persistent views when `isChanged=true`
    */
@@ -64,6 +60,11 @@ export interface DraggableTabBarProps {
    * Callback function to be called when user clicks the 'Save View' button for temporary views.
    */
   onSaveTempView?: () => void;
+  /**
+   * Callback function to be called when user renames a tab.
+   * Note: The `Rename` button only appears for persistent views
+   */
+  onTabRenamed?: (key: MenuItemProps['key'], newLabel: string) => void;
   tempTabContent?: React.ReactNode;
   tempTabLabel?: string;
 }
@@ -78,12 +79,14 @@ export function DraggableTabBar({
   onDelete,
   onDiscard,
   onDuplicate,
-  onRename,
+  onTabRenamed,
   onSave,
   onDiscardTempView,
   onSaveTempView,
 }: DraggableTabBarProps) {
   const [selectedTabKey, setSelectedTabKey] = useState<Key>(tabs[0].key);
+  // TODO: Extract this to a separate component encompassing Tab.Item in the future
+  const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!showTempTab && selectedTabKey === 'temporary-tab') {
@@ -131,6 +134,14 @@ export function DraggableTabBar({
     onAddView?.(e);
   };
 
+  const handleOnTabRenamed = (newLabel: string, tabKey: string) => {
+    const tab = tabs.find(tb => tb.key === tabKey);
+    if (tab && newLabel !== tab.label) {
+      setTabs(tabs.map(tb => (tb.key === tab.key ? {...tb, label: newLabel} : tb)));
+      onTabRenamed?.(tab.key, newLabel);
+    }
+  };
+
   const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
     if (tab.key === 'temporary-tab') {
       return makeTempViewMenuOptions({
@@ -140,15 +151,15 @@ export function DraggableTabBar({
     }
     if (tab.hasUnsavedChanges) {
       return makeUnsavedChangesMenuOptions({
-        onRename,
+        onRename: () => setEditingTabKey(tab.key),
         onDuplicate: () => handleOnDuplicate(tab),
         onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
-        onSave,
-        onDiscard,
+        onSave: () => onSave?.(tab.key),
+        onDiscard: () => onDiscard?.(tab.key),
       });
     }
     return makeDefaultMenuOptions({
-      onRename,
+      onRename: () => setEditingTabKey(tab.key),
       onDuplicate: () => handleOnDuplicate(tab),
       onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
     });
@@ -171,7 +182,12 @@ export function DraggableTabBar({
             hidden={tab.key === 'temporary-tab' && !showTempTab}
           >
             <TabContentWrap>
-              {tab.label}
+              <EditableTabTitle
+                label={tab.label}
+                isEditing={editingTabKey === tab.key}
+                setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
+                onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
+              />
               {tab.key !== 'temporary-tab' && tab.queryCount && (
                 <StyledBadge>
                   <QueryCount hideParens count={tab.queryCount} max={1000} />
@@ -181,6 +197,7 @@ export function DraggableTabBar({
                 <DraggableTabMenuButton
                   hasUnsavedChanges={tab.hasUnsavedChanges}
                   menuOptions={makeMenuOptions(tab)}
+                  aria-label={`${tab.label} Tab Options`}
                 />
               )}
             </TabContentWrap>

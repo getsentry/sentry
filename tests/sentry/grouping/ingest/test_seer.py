@@ -5,6 +5,7 @@ from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.grouping.result import CalculatedHashes
+from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
@@ -175,6 +176,11 @@ class ShouldCallSeerTest(TestCase):
 class GetSeerSimilarIssuesTest(TestCase):
     def setUp(self):
         self.existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
+        # In real life just filtering on group id wouldn't be enough to guarantee us a single,
+        # specific GroupHash record, but since the database resets before each test, here it's okay
+        self.existing_event_grouphash = GroupHash.objects.filter(
+            group_id=NonNone(self.existing_event.group_id)
+        ).first()
         self.new_event = Event(
             project_id=self.project.id,
             event_id="11212012123120120415201309082013",
@@ -230,7 +236,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 }
             )
 
-    def test_returns_metadata_and_group_if_sufficiently_close_group_found(self):
+    def test_returns_metadata_and_grouphash_if_sufficiently_close_group_found(self):
         seer_result_data = SeerSimilarIssueData(
             parent_hash=NonNone(self.existing_event.get_primary_hash()),
             parent_group_id=NonNone(self.existing_event.group_id),
@@ -249,10 +255,10 @@ class GetSeerSimilarIssuesTest(TestCase):
         ):
             assert get_seer_similar_issues(self.new_event, self.new_event_hashes) == (
                 expected_metadata,
-                self.existing_event.group,
+                self.existing_event_grouphash,
             )
 
-    def test_returns_no_group_and_empty_metadata_if_no_similar_group_found(self):
+    def test_returns_no_grouphash_and_empty_metadata_if_no_similar_group_found(self):
         expected_metadata = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
             "results": [],

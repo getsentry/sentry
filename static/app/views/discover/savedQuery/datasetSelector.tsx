@@ -60,6 +60,9 @@ export function DatasetSelector(props: Props) {
       value={value}
       options={options}
       onChange={newValue => {
+        if (newValue.value === value) {
+          return;
+        }
         let nextEventView: EventView;
         if (eventView.id) {
           nextEventView = eventView.withDataset(

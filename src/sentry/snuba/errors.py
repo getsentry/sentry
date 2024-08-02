@@ -20,6 +20,7 @@ from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderC
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import OTHER_KEY, create_result_key, transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 is_filter_translation = {}
@@ -55,6 +56,7 @@ def query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -84,7 +86,7 @@ def query(
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(builder.run_query(referrer, query_source=query_source))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -104,6 +106,7 @@ def timeseries_query(
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ):
 
     if len(params) == 0 and snuba_params is not None:
@@ -144,7 +147,7 @@ def timeseries_query(
             query_list.append(comparison_builder)
 
         query_results = bulk_snuba_queries(
-            [query.get_snql_query() for query in query_list], referrer
+            [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
     with sentry_sdk.start_span(op="errors", description="timeseries.transform_results"):
@@ -216,6 +219,7 @@ def top_events_timeseries(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
+    query_source: QuerySource | None = None,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -257,6 +261,7 @@ def top_events_timeseries(
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
                 skip_tag_resolution=True,
+                query_source=query_source,
             )
 
     top_events_builder = ErrorsTopEventsQueryBuilder(
@@ -291,6 +296,7 @@ def top_events_timeseries(
         result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
             referrer=referrer,
+            query_source=query_source,
         )
     else:
         result = top_events_builder.run_query(referrer)

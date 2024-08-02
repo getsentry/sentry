@@ -738,13 +738,6 @@ register(
 )
 
 register(
-    "issues.severity.new-escalation-projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
     default=[],
@@ -1459,21 +1452,33 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables extrapolation on the `transactions` namespace.
 register(
     "sentry-metrics.extrapolation.enable_transactions",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables extrapolation on the `spans` namespace.
 register(
     "sentry-metrics.extrapolation.enable_spans",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Maximum duplication factor for ingest-time extrapolation of distribution
+# values in Relay. Obsolete once `.propagate-rates` is the default.
 register(
     "sentry-metrics.extrapolation.duplication-limit",
     default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Send sample rates for metrics from Relay via the indexer into snuba rather
+# than extrapolating at ingest time.
+register(
+    "sentry-metrics.extrapolation.propagate-rates",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2634,5 +2639,20 @@ register(
 register(
     "similarity.backfill_seer_threads",
     default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.new_project_seer_grouping.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_use_reranking",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "delayed_processing.batch_size",
+    default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

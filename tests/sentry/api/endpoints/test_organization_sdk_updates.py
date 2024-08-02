@@ -2,7 +2,6 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
-from pydantic import PydanticDeprecatedSince20
 
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -189,14 +188,8 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         update_suggestions = response.data
         assert len(update_suggestions) == 0
 
-        # TODO(Gabe): Temporary kludge to allow this to pass while pydantic
-        # deprecation warnings are active.
-        filtered_warnings = [
-            info for info in warninfo if not isinstance(info.message, PydanticDeprecatedSince20)
-        ]
-
         # until it is turned into an error, we'll get a warning about parsing an invalid version
-        (warning,) = filtered_warnings
+        (warning,) = warninfo
         assert isinstance(warning.message, DeprecationWarning)
         (warn_msg,) = warning.message.args
         assert (
