@@ -192,9 +192,14 @@ export function DraggableTabBar({
                 setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
                 onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
               />
-              {tab.key !== 'temporary-tab' && tab.queryCount && (
+              {tab.key !== 'temporary-tab' && tab.queryCount !== undefined && (
                 <StyledBadge>
-                  <QueryCount hideParens count={tab.queryCount} max={1000} />
+                  <QueryCount
+                    hideParens
+                    hideIfEmpty={false}
+                    count={tab.queryCount}
+                    max={1000}
+                  />
                 </StyledBadge>
               )}
               {selectedTabKey === tab.key && (
