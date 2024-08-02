@@ -123,7 +123,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   );
 
   return (
-    <section {...props} ref={ref} id={sectionKey}>
+    <Section {...props} ref={ref} id={sectionKey}>
       <details open={!isCollapsed || preventCollapse}>
         <Summary
           preventCollapse={preventCollapse}
@@ -152,9 +152,11 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
           <Content>{children}</Content>
         </ErrorBoundary>
       </details>
-    </section>
+    </Section>
   );
 });
+
+export const Section = styled('section')``;
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};

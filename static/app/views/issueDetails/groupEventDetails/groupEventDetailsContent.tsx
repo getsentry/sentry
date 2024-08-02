@@ -60,8 +60,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
 import {EventFilter} from 'sentry/views/issueDetails/streamline/eventFilter';
-import EventNavigation from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
+import {FoldSectionKey, Section} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -460,6 +460,8 @@ export default function GroupEventDetailsContent({
   project,
 }: GroupEventDetailsContentProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const navRef = useRef<HTMLDivElement>(null);
+
   if (!event) {
     return (
       <NotFoundMessage>
@@ -493,9 +495,8 @@ export default function GroupEventDetailsContent({
       return hasStreamlinedUI ? (
         <Fragment>
           <EventFilter />
-          <GroupContentItem>
-            <EventNavigation event={event} group={group} />
-            <GroupDivider />
+          <GroupContent navHeight={navRef?.current?.offsetHeight}>
+            <FloatingEventNavigation event={event} group={group} ref={navRef} />
             <GroupContentPadding>
               <DefaultGroupEventDetailsContent
                 group={group}
@@ -503,7 +504,7 @@ export default function GroupEventDetailsContent({
                 project={project}
               />
             </GroupContentPadding>
-          </GroupContentItem>
+          </GroupContent>
         </Fragment>
       ) : (
         <DefaultGroupEventDetailsContent group={group} event={event} project={project} />
@@ -528,15 +529,22 @@ const StyledDataSection = styled(DataSection)`
   }
 `;
 
-const GroupContentItem = styled('div')`
+const FloatingEventNavigation = styled(EventNavigation)`
+  position: sticky;
+  top: 0;
+  background: ${p => p.theme.background};
+  z-index: 100;
+  border-radius: 6px 6px 0 0;
+`;
+
+const GroupContent = styled('div')<{navHeight?: number}>`
   border: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-`;
-
-const GroupDivider = styled('hr')`
-  border-color: ${p => p.theme.border};
-  margin: 0 ${space(1)};
+  position: relative;
+  & ${Section} {
+    scroll-margin-top: ${p => p.navHeight ?? 0}px;
+  }
 `;
 
 const GroupContentPadding = styled('div')`
