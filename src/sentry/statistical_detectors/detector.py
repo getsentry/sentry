@@ -122,6 +122,11 @@ class RegressionDetector(ABC):
             states = []
 
             for raw_state, payload in zip(raw_states, payloads):
+                metrics.distribution(
+                    "statistical_detectors.objects.throughput",
+                    value=payload.count,
+                    tags={"source": cls.source, "kind": cls.kind},
+                )
                 unique_project_ids.add(payload.project_id)
 
                 trend_type, score, new_state = algorithm.update(raw_state, payload)
