@@ -28,32 +28,26 @@ class OrganizationIncidentSeenEndpoint(IncidentEndpoint):
         :auth: required
         """
 
-        set_incident_seen(incident, serialize_generic_user(request.user))
+        user = serialize_generic_user(request.user)
+        if user is not None:
+            _set_incident_seen(incident, user)
         return Response({}, status=201)
 
 
-def set_incident_seen(incident: Incident, user: RpcUser | None = None) -> bool:
+def _set_incident_seen(incident: Incident, user: RpcUser) -> None:
     """
     Updates the incident to be seen
     """
 
-    if user is None:
-        return False
-    is_org_member = incident.organization.has_access(user)
-
-    if is_org_member:
-        is_project_member = False
-        for incident_project in IncidentProject.objects.filter(incident=incident).select_related(
-            "project"
-        ):
+    def is_project_member() -> bool:
+        incident_projects = IncidentProject.objects.filter(incident=incident)
+        for incident_project in incident_projects.select_related("project"):
             if incident_project.project.member_set.filter(user_id=user.id).exists():
-                is_project_member = True
-                break
+                return True
+        return False
 
-        if is_project_member:
-            incident_seen, created = IncidentSeen.objects.create_or_update(
-                incident=incident, user_id=user.id, values={"last_seen": django_timezone.now()}
-            )
-            return incident_seen
-
-    return False
+    is_org_member = incident.organization.has_access(user)
+    if is_org_member and is_project_member():
+        IncidentSeen.objects.create_or_update(
+            incident=incident, user_id=user.id, values={"last_seen": django_timezone.now()}
+        )
