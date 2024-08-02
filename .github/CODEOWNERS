@@ -215,6 +215,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/visibility
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/visibility
 
+/src/sentry/spans/                                                        @getsentry/visibility
 /tests/sentry/spans/                                                        @getsentry/visibility
 
 /static/app/components/events/viewHierarchy/*                               @getsentry/visibility
@@ -232,7 +233,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_transaction_anomaly_detection.py     @getsentry/data
 
 /src/sentry/utils/performance_issues/                                     @getsentry/visibility
-/src/sentry/spans/                                                        @getsentry/visibility
 
 static/app/components/events/eventStatisticalDetector/                    @getsentry/visibility @getsentry/profiling
 /src/sentry/statistical_detectors                                         @getsentry/visibility @getsentry/profiling
