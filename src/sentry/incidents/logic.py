@@ -766,6 +766,7 @@ def should_update_seer(
     elif updated_detection_type is not None:
         if previous_detection_type != updated_detection_type:
             return True
+    return False
 
 
 def update_dynamic_alert_data(
