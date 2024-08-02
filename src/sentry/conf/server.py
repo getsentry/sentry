@@ -1153,6 +1153,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
     },
+    "uptime-subscription-checker": {
+        "task": "sentry.uptime.tasks.subscription_checker",
+        "schedule": crontab(minute="*/10"),
+        "options": {"expires": 10 * 60},
+    },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         # Run every 1 hour at minute 17
