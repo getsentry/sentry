@@ -280,6 +280,7 @@ class ContinuousProfileCandidate(TypedDict):
     thread_id: NotRequired[str]
     start: NotRequired[str]
     end: NotRequired[str]
+    transaction_id: NotRequired[str]
 
 
 class ProfileCandidates(TypedDict):
@@ -295,6 +296,7 @@ class ProfilerMeta:
     thread_id: str
     start: float
     end: float
+    transaction_id: str
 
     def as_condition(self) -> Condition:
         return And(
@@ -400,6 +402,7 @@ class FlamegraphExecutor:
                     thread_id=row["thread.id"],
                     start=row["precise.start_ts"],
                     end=row["precise.finish_ts"],
+                    transaction_id=row["id"],
                 )
                 for row in results["data"]
                 if row["profiler.id"] is not None and row["thread.id"]
@@ -428,6 +431,7 @@ class FlamegraphExecutor:
             params={},
             snuba_params=self.snuba_params,
             selected_columns=[
+                "id",
                 "project.id",
                 "precise.start_ts",
                 "precise.finish_ts",
@@ -480,33 +484,36 @@ class FlamegraphExecutor:
 
         results = self._query_chunks_for_profilers(queries)
 
-        profiler_metas_by_id = {
-            (profiler_meta.project_id, profiler_meta.profiler_id): profiler_meta
-            for profiler_meta in profiler_metas
-        }
+        profiler_metas_by_profiler = defaultdict(list)
+        for profiler_meta in profiler_metas:
+            key = (profiler_meta.project_id, profiler_meta.profiler_id)
+            profiler_metas_by_profiler[key].append(profiler_meta)
 
         continuous_profile_candidates: list[ContinuousProfileCandidate] = []
 
         for result in results:
             for row in result["data"]:
-                profiler_meta = profiler_metas_by_id[(row["project_id"], row["profiler_id"])]
                 start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
                 end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
 
-                continuous_profile_candidates.append(
-                    {
-                        "project_id": profiler_meta.project_id,
-                        "profiler_id": profiler_meta.profiler_id,
-                        "chunk_id": row["chunk_id"],
-                        "thread_id": profiler_meta.thread_id,
-                        "start": str(int(max(start, profiler_meta.start) * 1.0e9)),
-                        "end": str(int(min(end, profiler_meta.end) * 1.0e9)),
-                    }
-                )
+                key = (row["project_id"], row["profiler_id"])
+                for profiler_meta in profiler_metas_by_profiler[key]:
+                    interval_start = max(start, profiler_meta.start)
+                    interval_end = min(end, profiler_meta.end)
+                    if interval_start >= interval_end:
+                        continue
 
-        # TODO: There is the possibility that different transactions use the same
-        # profiler, chunk and thread ids. So make sure to merge overlapping candidates
-        # to avoid using the same sample multiple times.
+                    continuous_profile_candidates.append(
+                        {
+                            "project_id": profiler_meta.project_id,
+                            "profiler_id": profiler_meta.profiler_id,
+                            "chunk_id": row["chunk_id"],
+                            "thread_id": profiler_meta.thread_id,
+                            "start": str(int(interval_start * 1.0e9)),
+                            "end": str(int(interval_end * 1.0e9)),
+                            "transaction_id": profiler_meta.transaction_id,
+                        }
+                    )
 
         return continuous_profile_candidates
 
@@ -660,6 +667,7 @@ class FlamegraphExecutor:
                 thread_id=row["thread.id"],
                 start=row["precise.start_ts"],
                 end=row["precise.finish_ts"],
+                transaction_id=row["id"],
             )
             for row in transaction_profile_results["data"]
             if row["profiler.id"] is not None and row["thread.id"]
