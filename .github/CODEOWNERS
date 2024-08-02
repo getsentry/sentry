@@ -232,36 +232,36 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/snuba/metrics_performance.py                                    @getsentry/visibility
 /src/sentry/snuba/metrics_enhanced_performance.py                           @getsentry/visibility
 
-/tests/snuba/search/test_backend.py      @getsentry/visibility
+/tests/snuba/search/test_backend.py                                         @getsentry/visibility
 
 /src/sentry/search/events/                                                  @getsentry/visibility @getsentry/issues
 
-/src/sentry/utils/performance_issues/                                     @getsentry/visibility
+/src/sentry/utils/performance_issues/                                       @getsentry/performance
 
-/static/app/components/events/eventStatisticalDetector/                    @getsentry/visibility @getsentry/profiling
+/static/app/components/events/eventStatisticalDetector/                     @getsentry/visibility @getsentry/profiling
 
-/src/sentry/statistical_detectors                                         @getsentry/visibility @getsentry/profiling
-/tests/sentry/statistical_detectors                                       @getsentry/visibility @getsentry/profiling
+/src/sentry/statistical_detectors                                           @getsentry/visibility @getsentry/profiling
+/tests/sentry/statistical_detectors                                         @getsentry/visibility @getsentry/profiling
 
 /src/sentry/tasks/statistical_detectors.py                                @getsentry/visibility @getsentry/profiling
 /tests/sentry/tasks/test_statistical_detectors.py                         @getsentry/visibility @getsentry/profiling
 
 /src/sentry/api/bases/organization_events.py                         @getsentry/visibility
 
-/src/sentry/api/endpoints/organization_dashboards.py                 @getsentry/visibility
-/src/sentry/api/endpoints/organization_dashboard_details.py          @getsentry/visibility
-/src/sentry/api/endpoints/organization_dashboard_widget_details.py   @getsentry/visibility
+/src/sentry/api/endpoints/organization_dashboards.py                         @getsentry/dashboards
+/src/sentry/api/endpoints/organization_dashboard_details.py                  @getsentry/dashboards
+/src/sentry/api/endpoints/organization_dashboard_widget_details.py           @getsentry/dashboards
 
-tests/sentry/api/endpoints/test_organization_dashboards.py                   @getsentry/visibility
-tests/sentry/api/endpoints/test_organization_dashboard_details.py            @getsentry/visibility
-tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @getsentry/visibility
+tests/sentry/api/endpoints/test_organization_dashboards.py                   @getsentry/dashboards
+tests/sentry/api/endpoints/test_organization_dashboard_details.py            @getsentry/dashboards
+tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @getsentry/dashboards
 
-/src/sentry/api/serializers/models/dashboard.py                      @getsentry/visibility
+/src/sentry/api/serializers/models/dashboard.py                      @getsentry/dashboards
 /src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/visibility
-/src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/visibility
+/src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/dashboards
 
-/src/sentry/discover/                                                @getsentry/visibility
-/tests/sentry/snuba/test_discover.py                                 @getsentry/visibility
+/src/sentry/discover/                                                @getsentry/explore
+/tests/sentry/snuba/test_discover.py                                 @getsentry/explore
 
 /src/sentry/api/event_search.py                                      @getsentry/visibility
 /tests/sentry/api/test_event_search.py                               @getsentry/visibility
@@ -274,26 +274,27 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/visibility
 /tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/visibility
 
-/src/sentry/api/endpoints/organization_traces.py                                    @getsentry/visibility
-/tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/visibility
+/src/sentry/api/endpoints/organization_traces.py                                    @getsentry/explore
+/tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/explore
 
-/static/app/views/traces/                                                 @getsentry/visibility
-/static/app/components/quickTrace/                                        @getsentry/visibility
+/static/app/views/traces/                                                 @getsentry/explore
+/static/app/components/quickTrace/                                        @getsentry/explore
 
-/static/app/views/performance/                                            @getsentry/visibility
-/static/app/components/performance/                                       @getsentry/visibility
-/static/app/utils/performance/                                            @getsentry/visibility
-/static/app/components/events/interfaces/spans/                           @getsentry/visibility
-/static/app/components/events/viewHierarchy/*                             @getsentry/visibility
+/static/app/views/performance/                                            @getsentry/performance
+/static/app/components/performance/                                       @getsentry/performance
+/static/app/utils/performance/                                            @getsentry/performance
+/static/app/components/events/interfaces/spans/                           @getsentry/performance
+/static/app/components/events/viewHierarchy/*                             @getsentry/performance
+
 /static/app/components/charts/                                            @getsentry/visibility
 
-/static/app/views/insights/                                               @getsentry/visibility
+/static/app/views/insights/                                               @getsentry/insights
 
-/static/app/views/dashboards/                                             @getsentry/visibility
-/static/app/components/dashboards/                                        @getsentry/visibility
+/static/app/views/dashboards/                                             @getsentry/dashboards
+/static/app/components/dashboards/                                        @getsentry/dashboards
 
-/static/app/views/discover/                                               @getsentry/visibility
-/static/app/utils/discover/                                               @getsentry/visibility
+/static/app/views/discover/                                               @getsentry/explore
+/static/app/utils/discover/                                               @getsentry/explore
 ## Endof Visibility
 
 
