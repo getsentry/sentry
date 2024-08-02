@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
+import type {ReplayRecordingMode} from '@sentry/types';
 
 import {Button} from 'sentry/components/button';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
@@ -23,33 +24,40 @@ export default function ReplayPanel() {
   const replay =
     SentrySDK && 'getReplay' in SentrySDK ? SentrySDK.getReplay() : undefined;
 
-  const [replayId, setReplayId] = useState<string | undefined>(() =>
+  // sessionId is undefined iff we are recording in session OR buffer mode.
+  const [sessionId, setSessionId] = useState<string | undefined>(() =>
     replay?.getReplayId()
+  );
+  const [recordingMode, setRecordingMode] = useState<ReplayRecordingMode>(
+    () => replay?._replay.recordingMode
   );
   // Polls periodically since a replay could be started by sessionSampleRate
   useEffect(() => {
-    const intervalId = setInterval(
-      () => setReplayId(replay?.getReplayId()),
-      POLL_INTERVAL_MS
-    );
+    const intervalId = setInterval(() => {
+      setSessionId(replay?.getReplayId());
+      setRecordingMode(replay?._replay.recordingMode);
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(intervalId);
   }, [replay]);
 
   const [isRecording, setIsRecording] = useState(
-    () => replay?.getReplayId() !== undefined
+    () => replay?.getReplayId() && replay?._replay.recordingMode === 'session'
   );
-  // Current replayId is only defined when there is an active recording session
-  useEffect(() => setIsRecording(replayId !== undefined), [replayId]);
+  useEffect(
+    () => setIsRecording(sessionId && recordingMode === 'session'),
+    [sessionId, recordingMode]
+  );
 
-  // Used to persist the link to the last replay even if it's stopped. //TODO: this is lost after leaving the panel
-  const [lastReplayId, setLastReplayId] = useState<string | undefined>(() =>
-    replay?.getReplayId()
-  );
+  // Used to persist the link to the last recorded replay, even if it's stopped.
+  // TODO: this is lost after leaving the panel. Could use a local storage?
+  const [lastReplayId, setLastReplayId] = useState<string | undefined>(() => {
+    return recordingMode === 'session' ? replay?.getReplayId() : undefined;
+  });
   useEffect(() => {
-    if (replayId) {
-      setLastReplayId(replayId);
+    if (sessionId && recordingMode === 'session') {
+      setLastReplayId(sessionId);
     }
-  }, [replayId]);
+  }, [sessionId, recordingMode]);
 
   return (
     <PanelLayout title="Session Replay">
@@ -67,7 +75,7 @@ export default function ReplayPanel() {
                 // In this case start() will do nothing. flush() will switch to session mode + start recording.
                 replay.flush();
               }
-              setReplayId(replay.getReplayId()); // this will set isRecording
+              setSessionId(replay.getReplayId()); // this will set isRecording
             }
           }}
         >
