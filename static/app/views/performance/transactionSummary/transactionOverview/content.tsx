@@ -133,20 +133,23 @@ function SummaryContent({
     },
   ];
 
-  function handleSearch(query: string) {
-    const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
-      query,
-    });
+  const handleSearch = useCallback(
+    (query: string) => {
+      const queryParams = normalizeDateTimeParams({
+        ...(location.query || {}),
+        query,
+      });
 
-    // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, 'cursor');
+      // do not propagate pagination when making a new search
+      const searchQueryParams = omit(queryParams, 'cursor');
 
-    browserHistory.push({
-      pathname: location.pathname,
-      query: searchQueryParams,
-    });
-  }
+      browserHistory.push({
+        pathname: location.pathname,
+        query: searchQueryParams,
+      });
+    },
+    [location]
+  );
 
   function generateTagUrl(key: string, value: string) {
     const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
