@@ -655,7 +655,7 @@ def create_alert_rule(
                 resp = send_historical_data_to_seer(alert_rule=alert_rule, project=projects[0])
                 if resp.status == 202:
                     # if we don't have at least seven days worth of data, then the dynamic alert won't fire
-                    alert_rule.status = AlertRuleStatus.NOT_ENOUGH_DATA
+                    alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError

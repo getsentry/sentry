@@ -552,11 +552,12 @@ class SubscriptionProcessor:
                     # NOTE: There should only be one anomaly in the list
                     for potential_anomaly in potential_anomalies:
                         # check to see if we have enough data for the dynamic alert rule now
-                        if self.alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA:
+                        if self.alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                             if self.has_enough_data(potential_anomaly):
                                 # NOTE: this means "enabled," and it's the default alert rule status.
                                 # TODO: change these status labels to be less confusing
-                                self.alert_rule.status = AlertRuleStatus.PENDING
+                                self.alert_rule.status = AlertRuleStatus.PENDING.value
+                                self.alert_rule.save()
                             else:
                                 # we don't need to check if the alert should fire if the alert can't fire yet
                                 continue
@@ -653,7 +654,7 @@ class SubscriptionProcessor:
         to detect anomalies/send alerts for dynamic alert rules.
         """
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
-        return anomaly_type != AnomalyType.NO_DATA
+        return anomaly_type != AnomalyType.NO_DATA.value
 
     def get_anomaly_data_from_seer(self, aggregation_value: float | None):
         try:

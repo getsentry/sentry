@@ -26,6 +26,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
+    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -619,6 +620,106 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
         assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        # test that we don't activate if we get "no_data"
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.0,
+                        "anomaly_type": AnomalyType.NO_DATA.value,
+                    },
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 5)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_enable_dynamic_alert_rule(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        # test that we activate but don't fire an alert if we get "none"
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.2,
+                        "anomaly_type": AnomalyType.NONE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 5)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.PENDING.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        # test that we can activate and fire an alert
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.7,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 10)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.PENDING.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [self.action],
+            [(10, IncidentStatus.CRITICAL, mock.ANY)],
+        )
 
     @with_feature("organizations:anomaly-detection-alerts")
     @mock.patch(
