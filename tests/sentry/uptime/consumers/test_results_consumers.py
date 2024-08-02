@@ -12,6 +12,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
     CHECKSTATUS_SUCCESS,
+    CHECKSTATUSREASONTYPE_TIMEOUT,
     CheckResult,
 )
 
@@ -261,7 +262,9 @@ class ProcessResultTest(UptimeTestCase):
                         tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_onboarding"},
                     ),
                     call(
-                        "uptime.result_processor.autodetection.failed_onboarding", sample_rate=1.0
+                        "uptime.result_processor.autodetection.failed_onboarding",
+                        tags={"failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT},
+                        sample_rate=1.0,
                     ),
                 ]
             )
