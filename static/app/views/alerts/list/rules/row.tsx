@@ -180,9 +180,11 @@ function RuleListRow({
           <AlertName>
             <Link
               to={
-                isIssueAlert(rule)
+                rule.type === CombinedAlertType.ISSUE
                   ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
-                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+                  : rule.type === CombinedAlertType.METRIC
+                    ? `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+                    : `/organizations/${orgId}/uptime/${rule.projectSlug}/${rule.id}/`
               }
             >
               {rule.name}

@@ -1309,6 +1309,20 @@ function buildRoutes() {
     </Route>
   );
 
+  const uptimeRoutes = (
+    <Route
+      path="/uptime/"
+      component={make(() => import('sentry/views/uptime'))}
+      withOrgPath
+    >
+      <IndexRedirect to="/organizations/:orgId/" />
+      <Route
+        path=":projectId/:uptimeAlertId/"
+        component={make(() => import('sentry/views/uptime/details'))}
+      />
+    </Route>
+  );
+
   const replayRoutes = (
     <Route
       path="/replays/"
@@ -2088,6 +2102,7 @@ function buildRoutes() {
       {issueDetailsRoutes}
       {alertRoutes}
       {cronsRoutes}
+      {uptimeRoutes}
       {replayRoutes}
       {releasesRoutes}
       {statsRoutes}
