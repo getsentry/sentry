@@ -150,7 +150,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 set_failed_url(project_subscription.uptime_subscription.url)
                 redis.delete(key)
                 metrics.incr(
-                    "uptime.result_processor.autodetection.failed_onboarding", sample_rate=1.0
+                    "uptime.result_processor.autodetection.failed_onboarding",
+                    tags={"failure_reason": result["status_reason"]["type"]},
+                    sample_rate=1.0,
                 )
         elif result["status"] == CHECKSTATUS_SUCCESS:
             assert project_subscription.date_added is not None
