@@ -264,7 +264,7 @@ class VstsIssueSync(IssueSyncMixin):
     def sync_status_outbound(
         self, external_issue: "ExternalIssue", is_resolved: bool, project_id: int, **kwargs: Any
     ) -> None:
-        client = self.get_client(self.instance)
+        client = self.get_client()
         work_item = client.get_work_item(external_issue.key)
         # For some reason, vsts doesn't include the project id
         # in the work item response.
@@ -341,9 +341,7 @@ class VstsIssueSync(IssueSyncMixin):
     def create_comment(self, issue_id: int, user_id: int, group_note: Activity) -> Response:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client(base_url=self.instance).update_work_item(
-            issue_id, comment=quoted_comment
-        )
+        return self.get_client().update_work_item(issue_id, comment=quoted_comment)
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml
