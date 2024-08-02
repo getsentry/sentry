@@ -36,7 +36,6 @@ def sync_assignee_outbound(external_issue_id: int, user_id: int | None, assign: 
     if not integration:
         return
 
-    # Assume unassign if None.
     installation = integration.get_installation(organization_id=external_issue.organization_id)
     if not (
         hasattr(installation, "should_sync") and hasattr(installation, "sync_assignee_outbound")
@@ -44,6 +43,7 @@ def sync_assignee_outbound(external_issue_id: int, user_id: int | None, assign: 
         return
 
     if installation.should_sync("outbound_assignee"):
+        # Assume unassign if None.
         user = user_service.get_user(user_id) if user_id else None
         installation.sync_assignee_outbound(external_issue, user, assign=assign)
         analytics.record(
