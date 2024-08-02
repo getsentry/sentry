@@ -8,18 +8,17 @@ from urllib3 import BaseHTTPResponse
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
-from sentry.incidents.models.alert_rule import AlertRule
-from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
+    DynamicAlertRuleData,
+    SnubaQueryData,
     StoreDataRequest,
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
 from sentry.utils import json
@@ -49,7 +48,12 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     return formatted_data
 
 
-def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> BaseHTTPResponse:
+def send_historical_data_to_seer(
+    rule_data: DynamicAlertRuleData,
+    snuba_query_data: SnubaQueryData,
+    project_id: int,
+    organization_id: int,
+) -> BaseHTTPResponse:
     """
     Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert
     """
@@ -62,21 +66,17 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
         request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
     )
 
-    snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
-    window_min = int(snuba_query.time_window / 60)
-    historical_data = fetch_historical_data(alert_rule, snuba_query, project)
+    historical_data = fetch_historical_data(snuba_query_data, project_id, organization_id)
 
     if not historical_data:
         base_error_response.reason = "No historical data available. Cannot create alert_rule."
         return base_error_response
 
-    formatted_data = format_historical_data(historical_data)
-
     if (
-        not alert_rule.sensitivity
-        or not alert_rule.seasonality
-        or alert_rule.threshold_type is None
-        or alert_rule.organization is None
+        not rule_data["sensitivity"]
+        or not rule_data["seasonality"]
+        or rule_data["threshold_type"] is None
+        or organization_id is None
     ):
         # this won't happen because we've already gone through the serializer, but mypy insists
         base_error_response.reason = (
@@ -84,16 +84,19 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
         )
         return base_error_response
 
+    window_min = int(snuba_query_data["time_window"] / 60)
+    formatted_data = format_historical_data(historical_data)
+
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
-        sensitivity=alert_rule.sensitivity,
-        direction=translate_direction(alert_rule.threshold_type),
-        expected_seasonality=alert_rule.seasonality,
+        sensitivity=rule_data["sensitivity"],
+        direction=translate_direction(rule_data["threshold_type"]),
+        expected_seasonality=rule_data["seasonality"],
     )
-    alert = AlertInSeer(id=alert_rule.id)
+    alert = AlertInSeer(id=rule_data["alert_rule_id"])
     body = StoreDataRequest(
-        organization_id=alert_rule.organization.id,
-        project_id=project.id,
+        organization_id=organization_id,
+        project_id=project_id,
         alert=alert,
         config=anomaly_detection_config,
         timeseries=formatted_data,
@@ -109,8 +112,8 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
         logger.warning(
             "Timeout error when hitting Seer store data endpoint",
             extra={
-                "rule_id": alert_rule.id,
-                "project_id": project.id,
+                "rule_id": rule_data["alert_rule_id"],
+                "project_id": project_id,
             },
         )
         raise TimeoutError
@@ -120,7 +123,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
 
 
 def fetch_historical_data(
-    alert_rule: AlertRule, snuba_query: SnubaQuery, project: Project
+    snuba_query_data: SnubaQueryData, project_id: int, organization_id: int
 ) -> SnubaTSResult | None:
     """
     Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
@@ -130,23 +133,23 @@ def fetch_historical_data(
     NUM_DAYS = 28
     end = timezone.now()
     start = end - timedelta(days=NUM_DAYS)
-    granularity = snuba_query.time_window
+    granularity = snuba_query_data["time_window"]
 
-    dataset_label = snuba_query.dataset
+    dataset_label = snuba_query_data["dataset"]
     if dataset_label == "events":
         # DATSET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
     dataset = get_dataset(dataset_label)
 
-    if not project or not dataset or not alert_rule.organization:
+    if not project_id or not dataset or not organization_id:
         return None
 
     historical_data = dataset.timeseries_query(
-        selected_columns=[snuba_query.aggregate],
-        query=snuba_query.query,
+        selected_columns=[snuba_query_data["aggregate"]],
+        query=snuba_query_data["query"],
         params={
-            "organization_id": alert_rule.organization.id,
-            "project_id": [project.id],
+            "organization_id": organization_id,
+            "project_id": [project_id],
             "granularity": granularity,
             "start": start,
             "end": end,

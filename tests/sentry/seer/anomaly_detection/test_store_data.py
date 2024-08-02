@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sentry.seer.anomaly_detection.store_data import fetch_historical_data, format_historical_data
+from sentry.seer.anomaly_detection.types import SnubaQueryData
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.factories import EventType
@@ -56,7 +57,13 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, SnubaTestCase):
                 event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
-        result = fetch_historical_data(alert_rule, snuba_query, self.project)
+        snuba_query_data = SnubaQueryData(
+            query=snuba_query.query,
+            time_window=snuba_query.time_window,
+            dataset=snuba_query.dataset,
+            aggregate=snuba_query.aggregate,
+        )
+        result = fetch_historical_data(snuba_query_data, self.project.id, self.organization.id)
         assert result
         assert {"time": int(datetime.timestamp(time_1)), "count": 1} in result.data.get("data")
         assert {"time": int(datetime.timestamp(time_2)), "count": 1} in result.data.get("data")
