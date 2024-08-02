@@ -47,6 +47,8 @@ from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -629,8 +631,8 @@ class SubscriptionProcessor:
         """
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
-        if anomaly_type == "anomaly_high" or (
-            label == WARNING_TRIGGER_LABEL and anomaly_type == "anomaly_low"
+        if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
+            label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE.value
         ):
             return True
         return False
@@ -641,7 +643,7 @@ class SubscriptionProcessor:
                 "time_period": self.alert_rule.snuba_query.time_window / 60,
                 "sensitivity": self.alert_rule.sensitivity,
                 "seasonality": self.alert_rule.seasonality,
-                "direction": self.alert_rule.threshold_type,
+                "direction": translate_direction(self.alert_rule.threshold_type),
             }
 
             context = {

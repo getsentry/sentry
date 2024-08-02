@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
@@ -83,24 +84,16 @@ function getMaxConfigSpace(
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string
 ): Rect {
-  // We have a transaction, so we should do our best to align the profile
-  // with the transaction's timeline.
-  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   if (transaction) {
     // TODO: Adjust the alignment based on the profile's timestamp if it does
     // not match the transaction's start timestamp
     const transactionDuration = transaction.endTimestamp - transaction.startTimestamp;
-    // On most platforms, profile duration < transaction duration, however
-    // there is one beloved platform where that is not true; android.
-    // Hence, we should take the max of the two to ensure both the transaction
-    // and profile are fully visible to the user.
-    const duration = Math.max(
-      formatTo(transactionDuration, 'seconds', unit),
-      maxProfileDuration
-    );
-    return new Rect(0, 0, duration, 0);
+    return new Rect(0, 0, formatTo(transactionDuration, 'seconds', unit), 0);
   }
 
+  // We have a transaction, so we should do our best to align the profile
+  // with the transaction's timeline.
+  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
   return new Rect(0, 0, maxProfileDuration, 0);
@@ -1560,6 +1553,7 @@ function Flamegraph(): ReactElement {
               flamegraphView={flamegraphView}
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+              contextMenu={FlamegraphContextMenu}
             />
           </ProfileDragDropImport>
         }

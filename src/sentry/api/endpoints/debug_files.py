@@ -117,6 +117,8 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
             error_message = f"Missing required fields: {', '.join(missing_fields)}"
             return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
 
+        assert release_name is not None and proguard_uuid is not None
+
         try:
             uuid.UUID(proguard_uuid)
         except ValueError:

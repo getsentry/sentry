@@ -6,7 +6,6 @@ import {
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
@@ -15,6 +14,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import Modal, {modalCss} from './screenshot/modal';
@@ -127,8 +128,8 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
               title={screenshotLink}
               showPermalink={false}
               help={t('This image was captured around the time that the event occurred.')}
-              type="screenshot-data-section"
               data-test-id="screenshot-data-section"
+              type={FoldSectionKey.SCREENSHOT}
             >
               <Screenshot
                 organization={organization}
@@ -169,7 +170,7 @@ const Wrapper = styled(DataSection)<{
   }
 `;
 
-const StyledScreenshotDataSection = styled(EventDataSection)`
+const StyledScreenshotDataSection = styled(InterimSection)`
   h3 a {
     color: ${p => p.theme.linkColor};
   }

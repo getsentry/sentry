@@ -3,7 +3,11 @@ import {useMemo} from 'react';
 import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
-import {unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {
+  getDefaultAggregation,
+  isVirtualMetric,
+  unescapeMetricsFormula,
+} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {
   formatMRIField,
@@ -13,6 +17,7 @@ import {
 } from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
+import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/useMetricsTags';
 import type {
   DashboardMetricsEquation,
   DashboardMetricsExpression,
@@ -298,8 +303,8 @@ export function defaultMetricWidget(): Widget {
       {
         id: 0,
         type: MetricExpressionType.QUERY,
-        mri: 'd:transactions/duration@millisecond',
-        aggregation: 'avg',
+        mri: SPAN_DURATION_MRI,
+        aggregation: getDefaultAggregation(SPAN_DURATION_MRI),
         query: '',
         orderBy: 'desc',
         isHidden: false,
@@ -309,3 +314,30 @@ export function defaultMetricWidget(): Widget {
     DisplayType.LINE
   );
 }
+
+export const isVirtualExpression = (expression: DashboardMetricsExpression) => {
+  if ('mri' in expression) {
+    return isVirtualMetric(expression);
+  }
+  return false;
+};
+
+export const isVirtualAlias = (alias?: string) => {
+  return alias?.startsWith('v|');
+};
+
+export const formatAlias = (alias?: string) => {
+  if (!alias) {
+    return alias;
+  }
+
+  if (!isVirtualAlias(alias)) {
+    return alias;
+  }
+
+  return alias.replace('v|', '');
+};
+
+export const getVirtualAlias = (aggregation, spanAttribute) => {
+  return `v|${aggregation}(${spanAttribute})`;
+};

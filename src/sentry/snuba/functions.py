@@ -15,6 +15,7 @@ from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaPara
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,7 @@ def query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -67,7 +69,9 @@ def query(
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(
+        builder.run_query(referrer=referrer, query_source=query_source)
+    )
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -87,6 +91,7 @@ def timeseries_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> Any:
 
     if len(params) == 0 and snuba_params is not None:
@@ -103,20 +108,22 @@ def timeseries_query(
             functions_acl=functions_acl,
         ),
     )
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer=referrer, query_source=query_source)
     results = builder.strip_alias_prefix(results)
 
     return SnubaTSResult(
         {
-            "data": zerofill(
-                results["data"],
-                params["start"],
-                params["end"],
-                rollup,
-                ["time"],
-            )
-            if zerofill_results
-            else results["data"],
+            "data": (
+                zerofill(
+                    results["data"],
+                    params["start"],
+                    params["end"],
+                    rollup,
+                    ["time"],
+                )
+                if zerofill_results
+                else results["data"]
+            ),
             "meta": {
                 "fields": {
                     value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)
@@ -150,6 +157,7 @@ def top_events_timeseries(
     result_key_order=None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ):
     assert not include_other, "Other is not supported"  # TODO: support other
 
@@ -166,6 +174,7 @@ def top_events_timeseries(
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                query_source=query_source,
             )
 
     top_functions_builder = ProfileTopFunctionsTimeseriesQueryBuilder(
@@ -188,7 +197,7 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         assert False, "Other is not supported"  # TODO: support other
 
-    result = top_functions_builder.run_query(referrer)
+    result = top_functions_builder.run_query(referrer=referrer, query_source=query_source)
 
     return format_top_events_timeseries_results(
         result,
@@ -224,9 +233,11 @@ def format_top_events_timeseries_results(
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
             {
-                "data": zerofill([], params["start"], params["end"], rollup, ["time"])
-                if zerofill_results
-                else [],
+                "data": (
+                    zerofill([], params["start"], params["end"], rollup, ["time"])
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -263,9 +274,11 @@ def format_top_events_timeseries_results(
         return {
             key: SnubaTSResult(
                 {
-                    "data": zerofill(item["data"], params["start"], params["end"], rollup, ["time"])
-                    if zerofill_results
-                    else item["data"],
+                    "data": (
+                        zerofill(item["data"], params["start"], params["end"], rollup, ["time"])
+                        if zerofill_results
+                        else item["data"]
+                    ),
                     "order": item["order"],
                     "meta": {
                         "fields": {

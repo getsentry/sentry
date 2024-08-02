@@ -71,7 +71,7 @@ from sentry.grouping.ingest.metrics import (
     record_hash_calculation_metrics,
     record_new_group_metrics,
 )
-from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
+from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
@@ -1533,36 +1533,14 @@ def _save_aggregate(
             # If we still haven't found a matching grouphash, we're now safe to go ahead and talk to
             # seer and/or create the group.
             if existing_grouphash is None:
-                seer_matched_group = None
-
-                if should_call_seer_for_grouping(event, primary_hashes):
-                    metrics.incr(
-                        "grouping.similarity.did_call_seer",
-                        # TODO: Consider lowering this (in all the spots this metric is
-                        # collected) once we roll Seer grouping out more widely
-                        sample_rate=1.0,
-                        tags={"call_made": True, "blocker": "none"},
-                    )
-                    try:
-                        # If the `projects:similarity-embeddings-grouping` feature is disabled,
-                        # we'll still get back result metadata, but `seer_matched_group` will be None
-                        seer_response_data, seer_matched_group = get_seer_similar_issues(
-                            event, primary_hashes
-                        )
-                        event.data["seer_similarity"] = seer_response_data
-
-                        # We only want to add this data to new groups, while we're testing
-                        # TODO: Remove this once we're out of the testing phase
-                        if not seer_matched_group:
-                            group_creation_kwargs["data"]["metadata"][
-                                "seer_similarity"
-                            ] = seer_response_data
-
-                    # Insurance - in theory we shouldn't ever land here
-                    except Exception as e:
-                        sentry_sdk.capture_exception(
-                            e, tags={"event": event.event_id, "project": project.id}
-                        )
+                seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
+                    event, primary_hashes
+                )
+                seer_matched_group = (
+                    Group.objects.filter(id=seer_matched_grouphash.group_id).first()
+                    if seer_matched_grouphash
+                    else None
+                )
 
                 group = seer_matched_group or _create_group(project, event, **group_creation_kwargs)
 
@@ -1741,17 +1719,24 @@ def _save_aggregate_new(
         secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
         all_grouphashes = primary.grouphashes + secondary.grouphashes
 
-        # Now we know for sure whether or not a group already exists, so handle both cases
         if secondary.existing_grouphash:
             group_info = handle_existing_grouphash(
                 job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
             )
             result = "found_secondary"
-
+        # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            group_info = create_group_with_grouphashes(
-                job, all_grouphashes, group_processing_kwargs
-            )
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, primary.hashes)
+
+            if seer_matched_grouphash:
+                group_info = handle_existing_grouphash(
+                    job, seer_matched_grouphash, all_grouphashes, group_processing_kwargs
+                )
+            # If we *still* haven't found a group into which to put the event, create a new group
+            else:
+                group_info = create_group_with_grouphashes(
+                    job, all_grouphashes, group_processing_kwargs
+                )
             result = "no_match"
 
     # From here on out, we're just doing housekeeping
@@ -2367,14 +2352,13 @@ def _get_severity_metadata_for_group(
     if not seer_based_priority_enabled and not feature_enabled:
         return {}
 
-    if not seer_based_priority_enabled:
-        is_supported_platform = (
-            any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
-            if event.platform
-            else False
-        )
-        if not is_supported_platform:
-            return {}
+    is_supported_platform = (
+        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
+        if event.platform
+        else False
+    )
+    if not is_supported_platform:
+        return {}
 
     is_error_group = group_type == ErrorGroupType.type_id if group_type else True
     if not is_error_group:
