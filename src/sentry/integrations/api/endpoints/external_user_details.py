@@ -64,7 +64,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         self, request: Request, organization: Organization, external_user: ExternalActor
     ) -> Response:
         """
-        Update an External User
+        Updates a linked user in an external provider to a user in Sentry.
         """
         self.assert_has_feature(request, organization)
 
@@ -98,7 +98,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         self, request: Request, organization: Organization, external_user: ExternalActor
     ) -> Response:
         """
-        Delete an External Team
+        Delete a linked user in an external provider to a user in Sentry.
         """
         external_user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
