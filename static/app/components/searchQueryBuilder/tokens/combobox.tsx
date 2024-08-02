@@ -321,8 +321,9 @@ function FeedbackFooter() {
           openForm({
             messagePlaceholder: t('How can we make search better for you?'),
             tags: {
-              feedback_source: 'search_query_builder',
               search_source: searchSource,
+              ['feedback.source']: 'search_query_builder',
+              ['feedback.owner']: 'issues',
             },
           })
         }
@@ -559,7 +560,6 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the tabbed menu
     shouldCloseOnBlur: false,
-    selectedKey: null,
     ...comboBoxProps,
   });
 

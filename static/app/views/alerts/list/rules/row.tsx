@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
@@ -16,32 +15,32 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor, Project} from 'sentry/types';
+import {MonitorType} from 'sentry/types/alerts';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
+import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
-import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
+import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
+import {getActor} from 'sentry/views/alerts/list/rules/utils';
+import {UptimeMonitorStatus} from 'sentry/views/alerts/rules/uptime/types';
 
-import type {CombinedMetricIssueAlerts} from '../../types';
-import {CombinedAlertType, IncidentStatus} from '../../types';
+import type {CombinedAlerts} from '../../types';
+import {CombinedAlertType} from '../../types';
 import {isIssueAlert} from '../../utils';
 
 type Props = {
   hasEditAccess: boolean;
-  onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
-  onOwnerChange: (
-    projectId: string,
-    rule: CombinedMetricIssueAlerts,
-    ownerValue: string
-  ) => void;
+  onDelete: (projectId: string, rule: CombinedAlerts) => void;
+  onOwnerChange: (projectId: string, rule: CombinedAlerts, ownerValue: string) => void;
   orgId: string;
   projects: Project[];
   projectsLoaded: boolean;
-  rule: CombinedMetricIssueAlerts;
+  rule: CombinedAlerts;
 };
 
 function RuleListRow({
@@ -55,43 +54,12 @@ function RuleListRow({
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
-  const activeIncident = hasActiveIncident(rule);
 
-  function renderLastIncidentDate(): React.ReactNode {
-    if (isIssueAlert(rule)) {
-      if (!rule.lastTriggered) {
-        return t('Alert not triggered yet');
-      }
-      return (
-        <div>
-          {t('Triggered ')}
-          <TimeSince date={rule.lastTriggered} />
-        </div>
-      );
-    }
+  const isActivatedAlertRule =
+    rule.type === CombinedAlertType.METRIC && rule.monitorType === MonitorType.ACTIVATED;
+  const isUptime = rule.type === CombinedAlertType.UPTIME;
 
-    if (!rule.latestIncident) {
-      return t('Alert not triggered yet');
-    }
-
-    if (activeIncident) {
-      return (
-        <div>
-          {t('Triggered ')}
-          <TimeSince date={rule.latestIncident.dateCreated} />
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        {t('Resolved ')}
-        <TimeSince date={rule.latestIncident.dateClosed!} />
-      </div>
-    );
-  }
-
-  const slug = rule.projects[0];
+  const slug = isUptime ? rule.projectSlug : rule.projects[0];
   const editLink = `/organizations/${orgId}/alerts/${
     isIssueAlert(rule) ? 'rules' : 'metric-rules'
   }/${slug}/${rule.id}/`;
@@ -108,19 +76,11 @@ function RuleListRow({
     },
   };
 
-  const ownerId = rule.owner?.split(':')[1];
-  const teamActor = ownerId
-    ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
-    : null;
+  const ownerActor = getActor(rule);
 
-  const canEdit = ownerId ? userTeams.some(team => team.id === ownerId) : true;
-
-  const IssueStatusText: Record<IncidentStatus, string> = {
-    [IncidentStatus.CRITICAL]: t('Critical'),
-    [IncidentStatus.WARNING]: t('Warning'),
-    [IncidentStatus.CLOSED]: t('Resolved'),
-    [IncidentStatus.OPENED]: t('Resolved'),
-  };
+  const canEdit = ownerActor?.id
+    ? userTeams.some(team => team.id === ownerActor.id)
+    : true;
 
   const actions: MenuItemProps[] = [
     {
@@ -228,31 +188,27 @@ function RuleListRow({
               {rule.name}
             </Link>
           </AlertName>
-          <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
+          <AlertIncidentDate>
+            <AlertLastIncidentActivationInfo rule={rule} />
+          </AlertIncidentDate>
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>
         <FlexCenter>
-          <Tooltip
-            title={
-              isIssueAlert(rule)
-                ? t('Issue Alert')
-                : tct('Metric Alert Status: [status]', {
-                    status:
-                      IssueStatusText[
-                        rule?.latestIncident?.status ?? IncidentStatus.CLOSED
-                      ],
-                  })
-            }
-          >
-            <AlertBadge
-              status={rule?.latestIncident?.status}
-              isIssue={isIssueAlert(rule)}
-            />
-          </Tooltip>
+          <CombinedAlertBadge rule={rule} />
         </FlexCenter>
         <MarginLeft>
-          <AlertRuleStatus rule={rule} />
+          {isActivatedAlertRule ? (
+            <ActivatedMetricAlertRuleStatus rule={rule} />
+          ) : isUptime ? (
+            rule.status === UptimeMonitorStatus.FAILED ? (
+              t('Down')
+            ) : (
+              t('Up')
+            )
+          ) : (
+            <AlertRuleStatus rule={rule} />
+          )}
         </MarginLeft>
       </FlexCenter>
       <FlexCenter>
@@ -265,8 +221,8 @@ function RuleListRow({
       </FlexCenter>
 
       <FlexCenter>
-        {teamActor ? (
-          <ActorAvatar actor={teamActor} size={24} />
+        {ownerActor ? (
+          <ActorAvatar actor={ownerActor} size={24} />
         ) : (
           <AssigneeWrapper>
             {!projectsLoaded && <StyledLoadingIndicator mini />}

@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, cast
 
 from django.http import HttpRequest, HttpResponse
 
 from sentry.auth.providers.oauth2 import OAuth2Login
-from sentry.auth.view import AuthView, ConfigureView
+from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.view import AuthView
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.plugins.base.response import DeferredResponse
 
 from .client import FlyClient
 from .constants import AUTHORIZE_URL, ERR_NO_ORG_ACCESS, SCOPE
@@ -50,7 +54,7 @@ class FetchUser(AuthView):
             return helper.next_step()
 
 
-class FlyConfigureView(ConfigureView):
-    # This is the View for configuring your Fly OAuth set up
-    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[explicit-override, override]
-        return cast(HttpResponse, self.render("sentry_auth_fly/configure.html"))
+def fly_configure_view(
+    request: HttpRequest, org: RpcOrganization, auth_provider: RpcAuthProvider
+) -> DeferredResponse:
+    return DeferredResponse("sentry_auth_fly/configure.html")

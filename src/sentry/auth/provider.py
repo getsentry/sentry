@@ -1,22 +1,21 @@
+from __future__ import annotations
+
 import abc
 import logging
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from django.http.response import HttpResponseBase
+from django.http.request import HttpRequest
 from django.utils.encoding import force_str
-from rest_framework.request import Request
 
 from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.authprovider import AuthProvider
-from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import PipelineProvider
-
-from .view import AuthView, ConfigureView
+from sentry.plugins.base.response import DeferredResponse
 
 
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
@@ -64,13 +63,9 @@ class Provider(PipelineProvider, abc.ABC):
 
     def get_configure_view(
         self,
-    ) -> Callable[
-        [Request, RpcOrganization | Organization, AuthProvider | RpcAuthProvider], HttpResponseBase
-    ]:
-        """
-        Return the view which handles configuration (post-setup).
-        """
-        return ConfigureView.as_view()
+    ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse | str]:
+        """Return the view which handles configuration (post-setup)."""
+        return lambda request, organization, auth_provider: ""
 
     def get_auth_pipeline(self) -> Sequence[AuthView]:
         """

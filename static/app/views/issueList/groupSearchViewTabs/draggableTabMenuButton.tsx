@@ -1,42 +1,35 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 
 interface DraggableTabMenuButtonProps {
   menuOptions: MenuItemProps[];
+  'aria-label'?: string;
   hasUnsavedChanges?: boolean;
-  triggerProps?: Omit<React.HTMLAttributes<HTMLElement>, 'children'>;
 }
 
 export function DraggableTabMenuButton({
-  triggerProps,
   hasUnsavedChanges = false,
   menuOptions,
+  ...props
 }: DraggableTabMenuButtonProps) {
   return (
     <TriggerIconWrap>
       <StyledDropdownMenu
         position="bottom-start"
         triggerProps={{
+          'aria-label': props['aria-label'] ?? 'Tab Options',
           size: 'zero',
           showChevron: false,
           borderless: true,
           icon: (
-            <Fragment>
-              <StyledDropdownButton
-                {...triggerProps}
-                aria-label="Tab Options"
-                borderless
-                size="zero"
-                icon={<IconEllipsis compact />}
-              />
+            <ButtonWrapper>
+              <IconEllipsis compact />
               {hasUnsavedChanges && <UnsavedChangesIndicator role="presentation" />}
-            </Fragment>
+            </ButtonWrapper>
           ),
-          style: {width: '18px', height: '16px'},
+          style: {width: '18px', height: '16px', borderRadius: '4px'},
         }}
         items={menuOptions}
         offset={[-10, 5]}
@@ -59,14 +52,13 @@ const UnsavedChangesIndicator = styled('div')`
   top: -3px;
   right: -3px;
 `;
-
-const StyledDropdownButton = styled(Button)`
+const ButtonWrapper = styled('div')`
   width: 18px;
   height: 16px;
   border: 1px solid ${p => p.theme.gray200};
-  gap: 5px;
   border-radius: 4px;
 `;
+
 const TriggerIconWrap = styled('div')`
   position: relative;
   display: flex;
