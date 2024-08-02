@@ -9,7 +9,7 @@ def test_delete_count(monkeypatch):
     cache = redis.RedisProjectConfigCache()
     incr_mock = mock.Mock()
     monkeypatch.setattr(metrics, "incr", incr_mock)
-    cache.set_many({"a": 1})
+    cache.set_many({"a": {"foo": "bar"}})
 
     cache.delete_many(["a", "b"])
 

@@ -78,10 +78,11 @@ class RedisProjectConfigCache(ProjectConfigCache):
                 rv = zstandard.decompress(rv_b).decode()
             except (TypeError, zstandard.ZstdError):
                 # assume raw json
-                rv = rv_b
+                rv = rv_b.decode()
             return json.loads(rv)
         return None
 
     def get_rev(self, public_key) -> str | None:
         if value := self.cluster_read.get(self.__get_redis_rev_key(public_key)):
-            return value.decode("utf-8")
+            return value.decode()
+        return None
