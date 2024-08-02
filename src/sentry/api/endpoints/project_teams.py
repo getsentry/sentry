@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,9 +12,10 @@ from sentry.models.team import Team
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Teams", "Projects"])
 class ProjectTeamsEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
 
