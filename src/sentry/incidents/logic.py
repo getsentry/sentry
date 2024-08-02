@@ -756,16 +756,22 @@ def snapshot_alert_rule(alert_rule, user=None):
 
 def should_update_seer(
     previous_detection_type: AlertRuleDetectionType,
-    existing_detection_type: AlertRuleDetectionType,
     updated_detection_type: AlertRuleDetectionType,
     query: str,
     aggregate: str,
 ) -> bool:
-    if previous_detection_type != existing_detection_type or query or aggregate:
-        return True
-    elif updated_detection_type is not None:
-        if previous_detection_type != updated_detection_type:
+    """
+    Update Seer data if a dynamic alert's query or aggregate has changed OR
+    a static or percent alert has changed to become a dynamic alert
+    """
+    if (
+        previous_detection_type == AlertRuleDetectionType.DYNAMIC
+        and updated_detection_type == AlertRuleDetectionType.DYNAMIC
+    ):
+        if query or aggregate:
             return True
+    elif updated_detection_type == AlertRuleDetectionType.DYNAMIC:
+        return True
     return False
 
 
@@ -866,7 +872,6 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
-    previous_detection_type = alert_rule.detection_type
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
     updated_query_fields = {}
     if name:
@@ -909,7 +914,6 @@ def update_alert_rule(
             comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
         updated_fields["comparison_delta"] = comparison_delta
-
     if detection_type is None:
         if "comparison_delta" in updated_fields:  # some value changed -> update type if necessary
             if comparison_delta is not None:
@@ -975,7 +979,6 @@ def update_alert_rule(
                     "Your organization does not have access to this feature."
                 )
             if should_update_seer(
-                previous_detection_type,
                 alert_rule.detection_type,
                 updated_fields.get("detection_type"),
                 query,
