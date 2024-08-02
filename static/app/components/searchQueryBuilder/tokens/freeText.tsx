@@ -141,6 +141,7 @@ function replaceFocusedWordWithFilter(
 
 function createItem(tag: Tag, fieldDefinition: FieldDefinition | null): KeyItem {
   const description = fieldDefinition?.desc;
+
   return {
     key: getEscapedKey(tag.key),
     label: tag.alias ?? tag.key,
