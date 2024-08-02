@@ -54,8 +54,8 @@ def unsign(data, salt=SALT, max_age=60 * 60 * 24 * 2):
                 urlsafe_b64decode(data).decode("utf-8"), max_age=max_age
             )
         )
+        metrics.incr("utils.signing.salt_compatibility_mode", tags={"salt": salt})
 
-    metrics.incr("utils.signing.salt_compatibility_mode", tags={"salt": salt})
     return result
 
 
