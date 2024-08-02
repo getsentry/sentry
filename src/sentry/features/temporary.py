@@ -511,7 +511,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable calculating a severity score for events which create a new group
     manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable escalation detection for new issues
-    manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Enable severity alerts for new issues based on severity and escalation
     manager.add("projects:high-priority-alerts", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable functionality for attaching  minidumps to events and displaying

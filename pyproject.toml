@@ -404,7 +404,6 @@ module = [
     "sentry.testutils.helpers.features",
     "sentry.testutils.helpers.notifications",
     "sentry.testutils.helpers.slack",
-    "sentry.tsdb.inmemory",
     "sentry.utils.auth",
     "sentry.utils.committers",
     "sentry.utils.services",
