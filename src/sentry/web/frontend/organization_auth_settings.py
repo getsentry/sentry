@@ -195,12 +195,8 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 )
 
         view = provider.get_configure_view()
-        response: HttpResponseBase | DeferredResponse | str = view(
-            request, organization, auth_provider
-        )
-        if isinstance(response, HttpResponse):
-            return response
-        elif isinstance(response, DeferredResponse):
+        response = view(request, organization, auth_provider)
+        if isinstance(response, DeferredResponse):
             response = response.render(
                 request,
                 {
