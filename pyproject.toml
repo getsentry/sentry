@@ -378,8 +378,6 @@ module = [
     "sentry.tasks.base",
     "sentry.tasks.integrations",
     "sentry.tasks.integrations.migrate_repo",
-    "sentry.tasks.integrations.slack.find_channel_id_for_rule",
-    "sentry.tasks.integrations.slack.link_slack_user_identities",
     "sentry.tasks.integrations.sync_assignee_outbound_impl",
     "sentry.tasks.integrations.sync_status_inbound",
     "sentry.tasks.integrations.sync_status_outbound",
