@@ -124,14 +124,17 @@ function SummaryContent({
     return getTransactionFilterTags(tagStoreCollection);
   }, [tagStoreCollection]);
 
-  const filterKeySections = [
-    ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
-    {
-      value: 'custom_fields',
-      label: 'Custom Tags',
-      children: Object.keys(tagStoreCollection),
-    },
-  ];
+  const filterKeySections = useMemo(
+    () => [
+      ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
+      {
+        value: 'custom_fields',
+        label: 'Custom Tags',
+        children: Object.keys(tagStoreCollection),
+      },
+    ],
+    [tagStoreCollection]
+  );
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -255,7 +258,10 @@ function SummaryContent({
     'performance-chart-interpolation'
   );
 
-  const query = decodeScalar(location.query.query, '');
+  const query = useMemo(() => {
+    return decodeScalar(location.query.query, '');
+  }, [location]);
+
   const totalCount = totalValues === null ? null : totalValues['count()'];
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
