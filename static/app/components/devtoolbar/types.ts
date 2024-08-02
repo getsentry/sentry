@@ -56,3 +56,13 @@ export type ApiResult<Data = unknown> = {
   headers: Headers;
   json: Data;
 };
+
+export type ReplayRecordingContext = {
+  currReplayId: string | undefined;
+  disabledReason: string | undefined;
+  isDisabled: boolean;
+  isRecording: boolean;
+  lastReplayId: string | undefined;
+  start(): boolean;
+  stop(): boolean;
+};
