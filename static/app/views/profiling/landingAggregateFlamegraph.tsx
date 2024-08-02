@@ -133,7 +133,7 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
   const location = useLocation();
 
   const {data, isLoading, isError} = useAggregateFlamegraphQuery({
-    query: '',
+    dataSource: 'profiles',
   });
 
   const [visualization, setVisualization] = useLocalStorageState<
