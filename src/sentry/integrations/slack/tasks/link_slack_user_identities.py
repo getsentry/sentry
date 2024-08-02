@@ -29,7 +29,8 @@ def link_slack_user_identities(
     organization_id: int,
 ) -> None:
     integration = integration_service.get_integration(integration_id=integration_id)
-    organization = organization_service.get_organization_by_id(id=organization_id).organization
+    organization_context = organization_service.get_organization_by_id(id=organization_id)
+    organization = organization_context.organization if organization_context else None
     if organization is None or integration is None:
         logger.error(
             "slack.post_install.link_identities.invalid_params",
