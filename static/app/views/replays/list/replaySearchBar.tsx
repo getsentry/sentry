@@ -1,15 +1,12 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {
-  SearchQueryBuilder,
-  type SearchQueryBuilderProps,
-} from 'sentry/components/searchQueryBuilder';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization, PageFilters, Tag, TagCollection, TagValue} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -107,36 +104,31 @@ function ReplaySearchBar(props: Props) {
     [api, organization.slug, projectIds]
   );
 
-  const searchQueryBuilderProps = useMemo(
-    () =>
-      organization.features.includes('search-query-builder-replays')
-        ? Object.keys(props)
-            .filter(key => key in ({} as SearchQueryBuilderProps))
-            .reduce((result, key) => {
-              result[key] = props[key];
-              return result;
-            }, {})
-        : {},
-    [props, organization.features]
-  );
   return organization.features.includes('search-query-builder-replays') ? (
     <SearchQueryBuilder
-      {...searchQueryBuilderProps}
-      fieldDefinitionGetter={getReplayFieldDefinition}
       filterKeys={getSupportedTags(tags)}
       getTagValues={(key, query) => getTagValues(key, query, {})}
-      // hasRecentSearches
-      initialQuery=""
-      // maxMenuHeight={500}
-      // maxQueryLength={MAX_QUERY_LENGTH}
-      recentSearches={SavedSearchType.REPLAY}
+      initialQuery={props.query ?? props.defaultQuery ?? ''}
       searchSource="replay_index"
+      className={props.className}
+      disabled={props.disabled}
+      disallowFreeText={props.disallowFreeText}
+      disallowUnsupportedFilters={props.highlightUnsupportedTags}
+      disallowWildcard={props.disallowWildcard}
+      fieldDefinitionGetter={getReplayFieldDefinition}
+      // TODO: filterKeySections
+      invalidMessages={props.invalidMessages}
+      onBlur={(query, _) => {
+        props.onBlur?.(query);
+      }}
+      onSearch={(query, _) => {
+        props.onSearch?.(query);
+      }}
       placeholder={
         placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')
       }
-      // prepareQuery={prepareQuery}
-      // projectIds={projectIds}
+      recentSearches={SavedSearchType.REPLAY}
     />
   ) : (
     <SmartSearchBar
