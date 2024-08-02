@@ -32,13 +32,13 @@ class VstsIssueSync(IssueSyncMixin):
 
     def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         # default_repo should be the project_id
-        project = self.get_client(base_url=self.instance).get_project(default_repo)
+        project = self.get_client().get_project(default_repo)
         return (project["id"], project["name"])
 
     def get_project_choices(
         self, group: Optional["Group"] = None, **kwargs: Any
     ) -> tuple[str | None, Sequence[tuple[str, str]]]:
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
         try:
             projects = client.get_projects()
         except (ApiError, ApiUnauthorized, KeyError) as e:
@@ -78,7 +78,7 @@ class VstsIssueSync(IssueSyncMixin):
     def get_work_item_choices(
         self, project: str, group: Optional["Group"] = None
     ) -> tuple[str | None, Sequence[tuple[str, str]]]:
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
         try:
             item_categories = client.get_work_item_categories(project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
@@ -172,7 +172,7 @@ class VstsIssueSync(IssueSyncMixin):
         if project_id is None:
             raise ValueError("Azure DevOps expects project")
 
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
 
         title = data["title"]
         description = data["description"]
@@ -199,7 +199,7 @@ class VstsIssueSync(IssueSyncMixin):
         }
 
     def get_issue(self, issue_id: int, **kwargs: Any) -> Mapping[str, Any]:
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
         work_item = client.get_work_item(issue_id)
         return {
             "key": str(work_item["id"]),
@@ -219,7 +219,7 @@ class VstsIssueSync(IssueSyncMixin):
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
         assignee = None
 
         if user and assign is True:
@@ -324,7 +324,7 @@ class VstsIssueSync(IssueSyncMixin):
         )
 
     def _get_done_statuses(self, project: str) -> set[str]:
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
         try:
             all_states = client.get_work_item_states(project)["value"]
         except ApiError as err:
