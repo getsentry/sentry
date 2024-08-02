@@ -1,9 +1,18 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+
+from django.http.request import HttpRequest
+
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
+from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.plugins.base.response import DeferredResponse
 
 from .client import GitHubApiError, GitHubClient
 from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL, CLIENT_ID, CLIENT_SECRET, SCOPE
-from .views import ConfirmEmail, FetchUser, GitHubConfigureView, SelectOrganization
+from .views import ConfirmEmail, FetchUser, SelectOrganization, github_configure_view
 
 
 class GitHubOAuth2Provider(OAuth2Provider):
@@ -21,8 +30,10 @@ class GitHubOAuth2Provider(OAuth2Provider):
         super().__init__(**config)
         self.org = org
 
-    def get_configure_view(self):
-        return GitHubConfigureView.as_view()
+    def get_configure_view(
+        self,
+    ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse]:
+        return github_configure_view
 
     def get_auth_pipeline(self):
         return [
