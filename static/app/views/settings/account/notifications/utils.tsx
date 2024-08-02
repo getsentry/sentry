@@ -40,8 +40,10 @@ export function getDocsLinkForEventType(
 ) {
   switch (event) {
     case 'transaction':
-      return 'https://sentry-docs-git-move-quota-to-billing.sentry.dev/pricing/quotas/manage-transaction-quota/';
+      // For pre-AM3 plans prior to June 11th, 2024
+      return 'https://docs.sentry.io/pricing/quotas/legacy-manage-transaction-quota/';
     case 'span':
+      // For post-AM3 plans after June 11th, 2024
       return 'https://docs.sentry.io/pricing/quotas/manage-transaction-quota/';
     case 'attachment':
       return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
