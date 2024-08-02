@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -86,6 +86,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "exception_type": get_path(latest_event.data, "exception", "values", -1, "type"),
             "read_only": True,
             "referrer": "similar_issues",
+            "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
         }
         # Add optional parameters
         if request.GET.get("k"):

@@ -227,6 +227,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "exception_type": "ZeroDivisionError",
             "read_only": True,
             "referrer": "similar_issues",
+            "use_reranking": True,
             "k": 1,
         }
 
@@ -344,6 +345,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
                 "raw_similar_issue_data": {
                     "message_distance": 0.05,
@@ -559,6 +561,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
             ),
             headers={"content-type": "application/json;charset=utf-8"},
@@ -587,6 +590,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                     "k": 1,
                 },
             ),
@@ -616,6 +620,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
             ),
             headers={"content-type": "application/json;charset=utf-8"},

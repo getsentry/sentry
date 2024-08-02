@@ -897,6 +897,19 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "seer.similarity.ingest.use_reranking",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.similarity.similar_issues.use_reranking",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # seer nearest neighbour endpoint timeout
 register(
