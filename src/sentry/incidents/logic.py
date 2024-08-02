@@ -761,13 +761,11 @@ def should_update_seer(
     query: str,
     aggregate: str,
 ) -> bool:
-    should_update_seer = False
     if previous_detection_type != existing_detection_type or query or aggregate:
-        should_update_seer = True
+        return True
     elif updated_detection_type is not None:
         if previous_detection_type != updated_detection_type:
-            should_update_seer = True
-    return should_update_seer
+            return True
 
 
 def update_dynamic_alert_data(
