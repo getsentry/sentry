@@ -139,7 +139,7 @@ def _environment_filter_converter(
     params: Mapping[str, int | str | datetime] | None,
 ):
     # conditions added to env_conditions are OR'd
-    env_conditions = []
+    env_conditions: list[list[object]] = []
     value = search_filter.value.value
     values = set(value if isinstance(value, (list, tuple)) else [value])
     # the "no environment" environment is null in snuba

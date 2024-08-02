@@ -122,7 +122,7 @@ def update_group(
     )
 
 
-def get_rule(slack_request: SlackActionRequest) -> Group | None:
+def get_rule(slack_request: SlackActionRequest) -> Rule | None:
     """Get the rule that fired"""
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:

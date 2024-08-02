@@ -115,6 +115,7 @@ class RatelimitMiddleware:
                         ),
                         status=429,
                     )
+                    assert request.method is not None
                     return apply_cors_headers(
                         request=request, response=response, allowed_methods=[request.method]
                     )
