@@ -44,7 +44,7 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Links a user in an external provider to a user in Sentry.
+        Links a user from an external provider to a Sentry user.
         """
         self.assert_has_feature(request, organization)
 

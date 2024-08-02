@@ -176,7 +176,7 @@ Valid fields include:
         location="path",
         required=True,
         type=int,
-        description="The ID of the External User Object. This is returned when creating an external user.",
+        description="The ID of the external user object. This is returned when creating an external user.",
     )
 
 

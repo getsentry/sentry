@@ -51,7 +51,7 @@ class ExternalActorResponse(TypedDict):
 
 class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     external_id = serializers.CharField(
-        required=False, allow_null=True, help_text="The associated User ID for provider."
+        required=False, allow_null=True, help_text="The associated user ID for provider."
     )
     external_name = serializers.CharField(
         required=True, help_text="The associated username for the provider."
@@ -124,7 +124,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
 class ExternalUserSerializer(ExternalActorSerializerBase):
     _actor_key = "user_id"
 
-    user_id = serializers.IntegerField(required=True, help_text="The User ID in Sentry.")
+    user_id = serializers.IntegerField(required=True, help_text="The user ID in Sentry.")
 
     def validate_user_id(self, user_id: int) -> RpcUser:
         """Ensure that this user exists and that they belong to the organization."""
