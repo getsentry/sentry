@@ -719,21 +719,14 @@ class GetStacktraceStringTest(TestCase):
         assert _is_snipped_context_line("{snip} dogs are great {snip}") is True
         assert _is_snipped_context_line("dogs are great") is False
 
-    def test_base64_encoded_filename(self):
-        base64_filename = (
-            "data:text/html;base64" + " extra content that could be long and useless" * 4
-        )
+    def test_only_frame_base64_encoded_filename(self):
+        base64_filename = "data:text/html;base64 extra content that could be long and useless"
         data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
         data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
             "values"
         ][1]["values"][0] = base64_filename
         stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
-        assert (
-            stacktrace_str
-            == 'ZeroDivisionError: division by zero\n  File "'
-            + base64_filename[:150]
-            + '", function divide_by_zero\n    divide = 1/0'
-        )
+        assert stacktrace_str == "ZeroDivisionError: division by zero"
 
 
 class EventContentIsSeerEligibleTest(TestCase):
@@ -799,18 +792,6 @@ class EventContentIsSeerEligibleTest(TestCase):
         assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
-
-    def test_only_base64_filename_frame(self):
-        base64_filename_event_data = self.get_eligible_event_data()
-        base64_filename_event_data["exception"]["values"][0]["stacktrace"]["frames"][0][
-            "filename"
-        ] = "data:text/html;base64 extra content that could be long and useless"
-        base64_filename_event = Event(
-            project_id=self.project.id,
-            event_id=uuid1().hex,
-            data=base64_filename_event_data,
-        )
-        assert event_content_is_seer_eligible(base64_filename_event) is False
 
 
 class SeerUtilsTest(TestCase):

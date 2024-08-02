@@ -87,17 +87,14 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     ):
                         html_frame_count += 1
 
-                    # We want to skip errors with base64 encoded filenames since they can be large
+                    # We want to skip frames with base64 encoded filenames since they can be large
                     # and not contain any usable information
                     if frame_dict["filename"].startswith("data:text/html;base64"):
                         metrics.incr(
                             "seer.grouping.base64_encoded_filename",
                             sample_rate=1.0,
-                            tags={"only_frame": False},
                         )
-                        frame_dict["filename"] = frame_dict["filename"][
-                            :BASE64_FILENAME_TRUNCATION_LENGTH
-                        ]
+                        continue
 
                     frame_strings.append(
                         f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
@@ -139,31 +136,23 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     return stacktrace_str.strip()
 
 
+def event_content_has_stacktrace(event: Event) -> bool:
+    # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
+    # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
+    # PLACEHOLDER_EVENT_TITLES` to this check.
+    return get_path(event.data, "exception", "values", -1, "stacktrace", "frames") or get_path(
+        event.data, "threads", "values", -1, "stacktrace", "frames"
+    )
+
+
 def event_content_is_seer_eligible(event: Event) -> bool:
     """
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
     # TODO: Determine if we want to filter out non-sourcemapped events
-
-    # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
-    # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
-    # PLACEHOLDER_EVENT_TITLES` to this check.
-    if not get_path(event.data, "exception", "values", -1, "stacktrace", "frames") and not get_path(
-        event.data, "threads", "values", -1, "stacktrace", "frames"
-    ):
+    event_has_stacktrace = event_content_has_stacktrace(event)
+    if not event_has_stacktrace:
         return False
-
-    # If an event's only frame has base64 encoded filename, skip it.
-    if (
-        get_path(event.data, "exception", "values", 0, "stacktrace", "frames")
-        and len(event.data["exception"]["values"]) == 1
-    ):
-        frames = event.data["exception"]["values"][0]["stacktrace"]["frames"]
-        if len(frames) == 1 and frames[0].get("filename", "").startswith("data:text/html;base64"):
-            metrics.incr(
-                "seer.grouping.base64_encoded_filename", sample_rate=1.0, tags={"only_frame": True}
-            )
-            return False
 
     if event.platform not in SEER_ELIGIBLE_PLATFORMS:
         return False
