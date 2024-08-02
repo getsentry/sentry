@@ -58,7 +58,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     )
     provider = serializers.ChoiceField(
         choices=get_provider_choices(AVAILABLE_PROVIDERS),
-        help_text="The provider. ('github', 'gitlab', 'slack')",
+        help_text="The provider of the external actor.",
     )
     integration_id = serializers.IntegerField(required=True, help_text="The Integration ID.")
     _actor_key: str
