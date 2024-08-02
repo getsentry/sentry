@@ -67,7 +67,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if subscription is None:
             # TODO: We probably want to want to publish a tombstone
             # subscription here
-            metrics.incr("uptime.result_processor.subscription_not_found")
+            metrics.incr("uptime.result_processor.subscription_not_found", sample_rate=1.0)
             return
 
         project_subscriptions = list(subscription.projectuptimesubscription_set.all())
@@ -100,7 +100,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # the same check multiple times and sending duplicate results.
                 # We only ever want to process the first value related to each check, so we just skip and log here
                 metrics.incr(
-                    "uptime.result_processor.skipping_already_processed_update", tags=metric_tags
+                    "uptime.result_processor.skipping_already_processed_update",
+                    tags=metric_tags,
+                    sample_rate=1.0,
                 )
                 return
 
@@ -147,7 +149,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # Mark the url as failed so that we don't attempt to auto-detect it for a while
                 set_failed_url(project_subscription.uptime_subscription.url)
                 redis.delete(key)
-                metrics.incr("uptime.result_processor.autodetection.failed_onboarding")
+                metrics.incr(
+                    "uptime.result_processor.autodetection.failed_onboarding", sample_rate=1.0
+                )
         elif result["status"] == CHECKSTATUS_SUCCESS:
             assert project_subscription.date_added is not None
             scheduled_check_time = datetime.fromtimestamp(
@@ -167,7 +171,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
                 )
                 remove_uptime_subscription_if_unused(onboarding_subscription)
-                metrics.incr("uptime.result_processor.autodetection.graduated_onboarding")
+                metrics.incr(
+                    "uptime.result_processor.autodetection.graduated_onboarding", sample_rate=1.0
+                )
 
     def handle_result_for_project_active_mode(
         self, project_subscription: ProjectUptimeSubscription, result: CheckResult

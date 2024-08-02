@@ -226,7 +226,7 @@ def process_candidate_url(
         # Disable auto-detection on this project now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
 
-    metrics.incr("uptime.detectors.candidate_url.succeeded")
+    metrics.incr("uptime.detectors.candidate_url.succeeded", sample_rate=1.0)
     return True
 
 
@@ -250,7 +250,7 @@ def monitor_url_for_project(project: Project, url: str):
     create_project_uptime_subscription(
         project, subscription, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
     )
-    metrics.incr("uptime.detectors.candidate_url.monitor_created")
+    metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
 
 
 def is_failed_url(url: str) -> bool:
