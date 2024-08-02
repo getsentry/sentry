@@ -95,7 +95,9 @@ class PseudoField:
         ), f"{self.name}: only one of expression, expression_fn is allowed"
 
 
-def project_threshold_config_expression(organization_id, project_ids):
+def project_threshold_config_expression(
+    organization_id: int | None, project_ids: list[int] | None
+) -> list[object]:
     """
     This function returns a column with the threshold and threshold metric
     for each transaction based on project level settings. If no project level
@@ -179,7 +181,7 @@ def project_threshold_config_expression(organization_id, project_ids):
         PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     ]
 
-    project_config_query = (
+    project_config_query: list[object] = (
         [
             "if",
             [

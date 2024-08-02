@@ -6,21 +6,24 @@ const BROWSER_EXTENSION_REGEXP = /^(\@moz-extension\:\/\/|chrome-extension\:\/\/
 export class Frame {
   readonly key: string | number;
   readonly name: string;
-  readonly file?: string;
-  readonly line?: number;
+
   readonly column?: number;
-  readonly is_application: boolean;
-  readonly is_browser_extension?: boolean;
-  readonly path?: string;
-  readonly package?: string;
-  readonly module?: string;
-  readonly resource?: string;
-  readonly threadId?: number;
+  readonly file?: string;
   readonly inline?: boolean;
   readonly instructionAddr?: string;
+  readonly is_application: boolean;
+  readonly is_browser_extension?: boolean;
+  readonly line?: number;
+  readonly module?: string;
+  readonly package?: string;
+  readonly path?: string;
+  readonly platform?: string;
+  readonly resource?: string;
   readonly symbol?: string;
   readonly symbolAddr?: string;
   readonly symbolicatorStatus?: SymbolicatorStatus;
+  readonly threadId?: number;
+
   readonly isRoot: boolean;
 
   totalWeight: number = 0;
@@ -51,6 +54,7 @@ export class Frame {
     this.module = frameInfo.module ?? frameInfo.image;
     this.threadId = frameInfo.threadId;
     this.path = frameInfo.path;
+    this.platform = frameInfo.platform;
     this.instructionAddr = frameInfo.instructionAddr;
     this.symbol = frameInfo.symbol;
     this.symbolAddr = frameInfo.symbolAddr;

@@ -738,13 +738,6 @@ register(
 )
 
 register(
-    "issues.severity.new-escalation-projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
     default=[],
@@ -2002,6 +1995,12 @@ register(
 )
 register(
     "statistical_detectors.query.transactions.timeseries_days",
+    type=Int,
+    default=14,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "statistical_detectors.query.functions.timeseries_days",
     type=Int,
     default=14,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

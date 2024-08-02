@@ -93,7 +93,8 @@ class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, TestCase, metaclass=abc.
         self.metrics.incr.assert_called_once_with(
             "uptime.subscriptions.{}.subscription_does_not_exist".format(
                 self.status_translations[self.expected_status]
-            )
+            ),
+            sample_rate=1.0,
         )
         self.assert_producer_calls()
 
@@ -103,7 +104,8 @@ class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, TestCase, metaclass=abc.
         self.metrics.incr.assert_called_once_with(
             "uptime.subscriptions.{}.incorrect_status".format(
                 self.status_translations[self.expected_status]
-            )
+            ),
+            sample_rate=1.0,
         )
         self.assert_producer_calls()
 
