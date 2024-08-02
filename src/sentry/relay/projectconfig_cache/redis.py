@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 import zstandard
 
@@ -28,7 +30,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
     def __get_redis_key(self, public_key):
         return f"relayconfig:{public_key}"
 
-    def set_many(self, configs):
+    def set_many(self, configs: dict[str, Mapping[str, Any]]):
         metrics.incr("relay.projectconfig_cache.write", amount=len(configs), tags={"action": "set"})
 
         # Note: Those are multiple pipelines, one per cluster node
@@ -41,7 +43,10 @@ class RedisProjectConfigCache(ProjectConfigCache):
             )
             metrics.distribution("relay.projectconfig_cache.size", len(compressed), unit="byte")
 
-            p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, compressed)
+            key = self.__get_redis_key(public_key)
+            if rev := config.get("rev"):
+                p.setex(f"{key}.rev", REDIS_CACHE_TIMEOUT, rev)
+            p.setex(key, REDIS_CACHE_TIMEOUT, compressed)
 
         p.execute()
 
@@ -63,6 +68,11 @@ class RedisProjectConfigCache(ProjectConfigCache):
                 rv = zstandard.decompress(rv_b).decode()
             except (TypeError, zstandard.ZstdError):
                 # assume raw json
-                pass
+                rv = rv_b
             return json.loads(rv)
         return None
+
+    def get_rev(self, public_key) -> str | None:
+        key = self.__get_redis_key(public_key)
+        if value := self.cluster_read.get(f"{key}.rev"):
+            return value.decode("utf-8")
