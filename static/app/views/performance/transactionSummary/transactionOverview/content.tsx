@@ -1,10 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import Feature from 'sentry/components/acl/feature';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
@@ -120,6 +119,10 @@ function SummaryContent({
   const mepDataContext = useMEPDataContext();
   const tagStoreCollection = useTags();
   const api = useApi();
+
+  const filterTags = useMemo(() => {
+    return getTransactionFilterTags(tagStoreCollection);
+  }, [tagStoreCollection]);
 
   const filterKeySections = [
     ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -372,77 +375,71 @@ function SummaryContent({
     organization.features.includes('insights-initial-modules');
 
   // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
-  const getTransactionFilterTagValues = (
-    tag: Tag,
-    queryString: string
-  ): Promise<string[]> => {
-    const projectIdStrings = eventView.project?.map(String);
+  const getTransactionFilterTagValues = useCallback(
+    async (tag: Tag, queryString: string) => {
+      const projectIdStrings = eventView.project?.map(String);
 
-    if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
-      // We can't really auto suggest values for aggregate fields
-      // or measurements, so we simply don't
-      return Promise.resolve([]);
-    }
-
-    // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
-    // and low search filter values because discover maps device.class to these values.
-    if (isDeviceClass(tag.key)) {
-      return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
-    }
-
-    const fetchPromise = fetchTagValues({
-      api,
-      orgSlug: organization.slug,
-      tagKey: tag.key,
-      search: queryString,
-      projectIds: projectIdStrings,
-      includeTransactions: true,
-      includeSessions: true,
-    });
-
-    return fetchPromise.then(
-      results => results.filter(({name}) => defined(name)).map(({name}) => name),
-      () => {
-        throw new Error('Unable to fetch event field values');
+      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // or measurements, so we simply don't
+        return Promise.resolve([]);
       }
-    );
-  };
+
+      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+      // and low search filter values because discover maps device.class to these values.
+      if (isDeviceClass(tag.key)) {
+        return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
+      }
+
+      try {
+        const results = await fetchTagValues({
+          api,
+          orgSlug: organization.slug,
+          tagKey: tag.key,
+          search: queryString,
+          projectIds: projectIdStrings,
+          includeTransactions: true,
+          includeSessions: true,
+          sort: '-count',
+          endpointParams: {start: eventView.start, end: eventView.end},
+        });
+
+        return results.filter(({name}) => defined(name)).map(({name}) => name);
+      } catch (e) {
+        throw new Error(`Unable to fetch event field values: ${e}`);
+      }
+    },
+    [organization, eventView.project, eventView.start, eventView.end, api]
+  );
 
   function renderSearchBar() {
+    if (organization.features.includes('search-query-builder-performance')) {
+      return (
+        <SearchQueryBuilder
+          filterKeys={filterTags}
+          initialQuery={query}
+          onSearch={handleSearch}
+          searchSource={'transaction_summary'}
+          getTagValues={getTransactionFilterTagValues}
+          filterKeySections={filterKeySections}
+          disallowFreeText
+          disallowUnsupportedFilters
+          recentSearches={SavedSearchType.EVENT}
+        />
+      );
+    }
+
     return (
-      <StyledSearchBarWrapper>
-        <Feature
-          features={'search-query-builder-performance'}
-          renderDisabled={() => (
-            <SearchBar
-              searchSource="transaction_summary"
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={handleSearch}
-              maxQueryLength={MAX_QUERY_LENGTH}
-              actionBarItems={generateActionBarItems(
-                organization,
-                location,
-                mepDataContext
-              )}
-            />
-          )}
-        >
-          <SearchQueryBuilder
-            filterKeys={getTransactionFilterTags(tagStoreCollection)}
-            initialQuery={query}
-            onSearch={handleSearch}
-            searchSource={'transaction_summary'}
-            getTagValues={getTransactionFilterTagValues}
-            filterKeySections={filterKeySections}
-            disallowFreeText
-            disallowUnsupportedFilters
-            recentSearches={SavedSearchType.EVENT}
-          />
-        </Feature>
-      </StyledSearchBarWrapper>
+      <SearchBar
+        searchSource="transaction_summary"
+        organization={organization}
+        projectIds={eventView.project}
+        query={query}
+        fields={eventView.fields}
+        onSearch={handleSearch}
+        maxQueryLength={MAX_QUERY_LENGTH}
+        actionBarItems={generateActionBarItems(organization, location, mepDataContext)}
+      />
     );
   }
 
@@ -459,7 +456,7 @@ function SummaryContent({
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
-          {renderSearchBar()}
+          <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
         <PerformanceAtScaleContextProvider>
           <TransactionSummaryCharts
