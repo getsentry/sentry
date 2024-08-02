@@ -148,7 +148,7 @@ function DefaultGroupEventDetailsContent({
   });
 
   // default to show on error or isPromptDismissed === undefined
-  const showFeedback = !isPromptDismissed || promptError;
+  const showFeedback = !isPromptDismissed || promptError || hasStreamlinedUI;
 
   return (
     <Fragment>
@@ -367,7 +367,6 @@ function DefaultGroupEventDetailsContent({
           group={group}
         />
       )}
-
       {!hasReplay && (
         <EventRRWebIntegration
           event={event}
