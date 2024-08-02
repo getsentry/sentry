@@ -233,6 +233,21 @@ function isBrowserRequestSpan(value: TraceTree.Span): boolean {
   return value.op === 'browser' && value.description === 'request';
 }
 
+function getPageloadTransactionChildCount(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): number {
+  if (!isTransactionNode(node)) {
+    return 0;
+  }
+  let count = 0;
+  for (const txn of node.value.children) {
+    if (txn && txn['transaction.op'] === 'pageload') {
+      count++;
+    }
+  }
+  return count;
+}
+
 /**
  * Swaps the two nodes in the graph.
  */
@@ -532,8 +547,7 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError,
-      childrenCount: number
+      value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug:
@@ -597,9 +611,9 @@ export class TraceTree {
       }
 
       if (
-        childrenCount === 1 &&
         isPageloadTransactionNode(node) &&
-        isServerRequestHandlerTransactionNode(parent)
+        isServerRequestHandlerTransactionNode(parent) &&
+        getPageloadTransactionChildCount(parent) === 1
       ) {
         // The swap can occur at a later point when new transactions are fetched,
         // which means we need to invalidate the tree and re-render the UI.
@@ -610,7 +624,7 @@ export class TraceTree {
 
       if (value && 'children' in value) {
         for (const child of value.children) {
-          visit(node, child, value.children.length);
+          visit(node, child);
         }
       }
 
@@ -636,17 +650,17 @@ export class TraceTree {
           typeof orphan.timestamp === 'number' &&
           transaction.start_timestamp <= orphan.timestamp
         ) {
-          visit(traceNode, transaction, transaction.children.length);
+          visit(traceNode, transaction);
           tIdx++;
         } else {
-          visit(traceNode, orphan, 0);
+          visit(traceNode, orphan);
           oIdx++;
         }
       } else if (transaction) {
-        visit(traceNode, transaction, transaction.children.length);
+        visit(traceNode, transaction);
         tIdx++;
       } else if (orphan) {
-        visit(traceNode, orphan, 0);
+        visit(traceNode, orphan);
         oIdx++;
       }
     }
