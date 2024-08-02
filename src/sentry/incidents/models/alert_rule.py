@@ -83,6 +83,7 @@ class AlertRuleStatus(Enum):
     PENDING = 0
     SNAPSHOT = 4
     DISABLED = 5
+    NOT_ENOUGH_DATA = 6
 
 
 class AlertRuleDetectionType(models.TextChoices):
