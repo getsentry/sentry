@@ -106,7 +106,7 @@ class AlertRuleIndexMixin(Endpoint):
             },
             data=data,
         )
-        
+
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
@@ -143,6 +143,7 @@ class AlertRuleIndexMixin(Endpoint):
                     wizard_v3=wizard_v3,
                 )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+
 
 @region_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
