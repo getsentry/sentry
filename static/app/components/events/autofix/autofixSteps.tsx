@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -134,12 +134,7 @@ function Progress({
     return (
       <Fragment>
         <DateTime date={progress.timestamp} format="HH:mm:ss:SSS" />
-        <div
-          style={{overflowX: 'scroll', overflowY: 'hidden'}}
-          dangerouslySetInnerHTML={{
-            __html: html,
-          }}
-        />
+        <LogComponent html={html} />
       </Fragment>
     );
   }
@@ -215,7 +210,9 @@ export function ExpandableStep({
           {activeLog && !isExpanded && (
             <StepHeaderDescription
               dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(replaceHeadersWithBold(activeLog)),
+                __html: singleLineRenderer(
+                  replaceHeadersWithBold(activeLog.replaceAll('\n', ' '))
+                ),
               }}
             />
           )}
@@ -453,4 +450,63 @@ const ProgressContainer = styled('div')`
 
 const ProgressStepContainer = styled('div')`
   grid-column: 1/-1;
+`;
+
+function LogComponent({html}: {html: string}) {
+  const [expanded, setExpanded] = useState(false);
+  const [isExpandable, setIsExpandable] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkExpandable = () => {
+      if (logRef.current) {
+        const {scrollHeight, clientHeight} = logRef.current;
+        setIsExpandable(scrollHeight > clientHeight + 16);
+      }
+    };
+
+    checkExpandable();
+    window.addEventListener('resize', checkExpandable);
+    return () => window.removeEventListener('resize', checkExpandable);
+  }, [html]);
+
+  const toggleExpand = () => {
+    setExpanded(oldState => !oldState);
+  };
+
+  return (
+    <ExpandableLogRow>
+      <LogText
+        ref={logRef}
+        expanded={expanded}
+        isExpandable={isExpandable}
+        dangerouslySetInnerHTML={{__html: html}}
+      />
+      {isExpandable && (
+        <Button
+          icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+          aria-label={t('Toggle step details')}
+          aria-expanded={expanded}
+          size="zero"
+          borderless
+          onClick={toggleExpand}
+        />
+      )}
+    </ExpandableLogRow>
+  );
+}
+
+const LogText = styled('div')<{expanded: boolean; isExpandable: boolean}>`
+  overflow-x: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: ${props => (props.expanded ? 'unset' : '2')};
+  -webkit-box-orient: vertical;
+  overflow-y: hidden;
+  max-height: ${props => (props.expanded ? 'none' : '3em')};
+`;
+
+const ExpandableLogRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start; /* Ensure items align to the start of the container */
 `;

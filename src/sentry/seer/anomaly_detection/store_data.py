@@ -7,10 +7,9 @@ from rest_framework import status
 from urllib3 import BaseHTTPResponse
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import features
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.models.user import User
+from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -50,7 +49,7 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     return formatted_data
 
 
-def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPResponse:
+def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> BaseHTTPResponse:
     """
     Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert
     """
@@ -62,28 +61,10 @@ def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPR
         decode_content=True,
         request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
     )
-    if not features.has(
-        "organizations:anomaly-detection-alerts", alert_rule.organization, actor=user
-    ):
-        base_error_response.reason = "You do not have the anomaly detection alerts feature enabled."
-        return base_error_response
-
-    project = alert_rule.projects.get()
-    if not project:
-        logger.error(
-            "No project associated with alert_rule. Skipping sending historical data to Seer",
-            extra={
-                "rule_id": alert_rule.id,
-            },
-        )
-        base_error_response.reason = (
-            "No project associated with alert_rule. Cannot create alert_rule."
-        )
-        return base_error_response
 
     snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
-    historical_data = fetch_historical_data(alert_rule, snuba_query)
+    historical_data = fetch_historical_data(alert_rule, snuba_query, project)
 
     if not historical_data:
         base_error_response.reason = "No historical data available. Cannot create alert_rule."
@@ -95,6 +76,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPR
         not alert_rule.sensitivity
         or not alert_rule.seasonality
         or alert_rule.threshold_type is None
+        or alert_rule.organization is None
     ):
         # this won't happen because we've already gone through the serializer, but mypy insists
         base_error_response.reason = (
@@ -124,23 +106,22 @@ def send_historical_data_to_seer(alert_rule: AlertRule, user: User) -> BaseHTTPR
         )
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
-        timeout_text = "Timeout error when hitting Seer store data endpoint"
         logger.warning(
-            timeout_text,
+            "Timeout error when hitting Seer store data endpoint",
             extra={
                 "rule_id": alert_rule.id,
                 "project_id": project.id,
             },
         )
-        base_error_response.reason = timeout_text
-        base_error_response.status = status.HTTP_408_REQUEST_TIMEOUT
-        return base_error_response
+        raise TimeoutError
 
     # TODO warn if there isn't at least 7 days of data
     return resp
 
 
-def fetch_historical_data(alert_rule: AlertRule, snuba_query: SnubaQuery) -> SnubaTSResult | None:
+def fetch_historical_data(
+    alert_rule: AlertRule, snuba_query: SnubaQuery, project: Project
+) -> SnubaTSResult | None:
     """
     Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
     """
@@ -156,8 +137,8 @@ def fetch_historical_data(alert_rule: AlertRule, snuba_query: SnubaQuery) -> Snu
         # DATSET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
     dataset = get_dataset(dataset_label)
-    project = alert_rule.projects.get()
-    if not project or not dataset:
+
+    if not project or not dataset or not alert_rule.organization:
         return None
 
     historical_data = dataset.timeseries_query(

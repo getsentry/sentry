@@ -12,6 +12,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
     CHECKSTATUS_SUCCESS,
+    CHECKSTATUSREASONTYPE_TIMEOUT,
     CheckResult,
 )
 
@@ -156,7 +157,9 @@ class ProcessResultTest(UptimeTestCase):
             "sentry.uptime.consumers.results_consumer.metrics"
         ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
-            metrics.incr.assert_has_calls([call("uptime.result_processor.subscription_not_found")])
+            metrics.incr.assert_has_calls(
+                [call("uptime.result_processor.subscription_not_found", sample_rate=1.0)]
+            )
 
     def test_skip_already_processed(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
@@ -177,6 +180,7 @@ class ProcessResultTest(UptimeTestCase):
                     call(
                         "uptime.result_processor.skipping_already_processed_update",
                         tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -257,7 +261,11 @@ class ProcessResultTest(UptimeTestCase):
                         "uptime.result_processor.handle_result_for_project",
                         tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_onboarding"},
                     ),
-                    call("uptime.result_processor.autodetection.failed_onboarding"),
+                    call(
+                        "uptime.result_processor.autodetection.failed_onboarding",
+                        tags={"failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT},
+                        sample_rate=1.0,
+                    ),
                 ]
             )
         assert not redis.exists(key)
@@ -327,7 +335,10 @@ class ProcessResultTest(UptimeTestCase):
                         "uptime.result_processor.handle_result_for_project",
                         tags={"status": CHECKSTATUS_SUCCESS, "mode": "auto_detected_onboarding"},
                     ),
-                    call("uptime.result_processor.autodetection.graduated_onboarding"),
+                    call(
+                        "uptime.result_processor.autodetection.graduated_onboarding",
+                        sample_rate=1.0,
+                    ),
                 ]
             )
         assert not redis.exists(key)

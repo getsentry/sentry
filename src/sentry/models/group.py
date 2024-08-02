@@ -632,12 +632,10 @@ class Group(Model):
 
         if self.issue_category == GroupCategory.FEEDBACK:
             path = f"/organizations/{organization.slug}/feedback/"
-            slug = {"feedbackSlug": f"{self.project.slug}:{self.id}"}
-            project = {"project": self.project.id}
             params = {
                 **(params or {}),
-                **slug,
-                **project,
+                "feedbackSlug": f"{self.project.slug}:{self.id}",
+                "project": str(self.project.id),
             }
             query = urlencode(params)
             return organization.absolute_url(path, query=query)
@@ -833,7 +831,7 @@ class Group(Model):
     def get_first_release(self) -> str | None:
         from sentry.models.release import Release
 
-        if self.first_release_id is None:
+        if self.first_release is None:
             return Release.objects.get_group_release_version(self.project_id, self.id)
 
         return self.first_release.version

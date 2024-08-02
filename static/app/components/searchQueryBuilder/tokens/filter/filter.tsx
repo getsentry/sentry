@@ -10,6 +10,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyOperator';
+import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {formatFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
@@ -19,6 +20,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -137,7 +139,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
 
   return (
     <ValueButton
-      aria-label={t('Edit value for filter: %s', token.key.text)}
+      aria-label={t('Edit value for filter: %s', getKeyName(token.key))}
       onClick={() => {
         setIsEditing(true);
         onActiveChange(true);
@@ -157,7 +159,7 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
 
   return (
     <DeleteButton
-      aria-label={t('Remove filter: %s', token.key.text)}
+      aria-label={t('Remove filter: %s', getKeyName(token.key))}
       onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
       disabled={disabled}
       {...filterButtonProps}
@@ -212,14 +214,14 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
       >
-        <BaseGridCell {...gridCellProps}>
-          <FilterKeyOperator
-            token={token}
-            state={state}
-            item={item}
-            onOpenChange={setFilterMenuOpen}
-          />
-        </BaseGridCell>
+        <FilterKeyOperator
+          token={token}
+          state={state}
+          item={item}
+          onOpenChange={setFilterMenuOpen}
+          filterRef={ref}
+          gridCellProps={gridCellProps}
+        />
         <FilterValueGridCell {...gridCellProps}>
           <FilterValue
             token={token}
@@ -276,18 +278,6 @@ const BaseGridCell = styled('div')`
 const FilterValueGridCell = styled(BaseGridCell)`
   /* When we run out of space, shrink the value */
   min-width: 0;
-`;
-
-const UnstyledButton = styled('button')`
-  background: none;
-  border: none;
-  outline: none;
-  padding: 0;
-  user-select: none;
-
-  :focus {
-    outline: none;
-  }
 `;
 
 const ValueButton = styled(UnstyledButton)`

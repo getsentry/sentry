@@ -55,7 +55,7 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     Convert the Responses class from requests into the drf Response
     """
 
-    def stream_response() -> Generator[bytes, None, None]:
+    def stream_response() -> Generator[bytes]:
         yield from response.iter_content(PROXY_CHUNK_SIZE)
 
     streamed_response = StreamingHttpResponse(

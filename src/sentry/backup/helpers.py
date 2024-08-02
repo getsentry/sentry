@@ -66,10 +66,6 @@ class Filter(Generic[T]):
     allowlist based filtration: models of the given type whose specified field matches ANY of the
     supplied values will be allowed through."""
 
-    model: type[models.base.Model]
-    field: str
-    values: set[T]
-
     def __init__(
         self,
         model: type[models.base.Model],

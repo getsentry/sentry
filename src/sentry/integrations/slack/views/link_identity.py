@@ -1,5 +1,6 @@
 import logging
 
+from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
 from django.http import Http404, HttpRequest, HttpResponse
@@ -104,6 +105,9 @@ class SlackLinkIdentityView(BaseView):
         )
 
     def post(self, request: Request, *args, **kwargs) -> HttpResponse:
+        if isinstance(request.user, AnonymousUser):
+            return HttpResponse(status=401)
+
         try:
             params_dict = kwargs["params"]
             params = IdentityParams(
