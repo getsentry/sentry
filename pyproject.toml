@@ -377,7 +377,6 @@ module = [
     "sentry.tasks.auth",
     "sentry.tasks.base",
     "sentry.tasks.integrations",
-    "sentry.tasks.integrations.migrate_issues",
     "sentry.tasks.integrations.migrate_repo",
     "sentry.tasks.integrations.slack.find_channel_id_for_rule",
     "sentry.tasks.integrations.slack.link_slack_user_identities",
