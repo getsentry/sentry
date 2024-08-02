@@ -502,7 +502,6 @@ const LogText = styled('div')<{expanded: boolean; isExpandable: boolean}>`
   -webkit-line-clamp: ${props => (props.expanded ? 'unset' : '2')};
   -webkit-box-orient: vertical;
   overflow-y: hidden;
-  cursor: ${props => (props.isExpandable ? 'pointer' : 'default')};
   max-height: ${props => (props.expanded ? 'none' : '3em')};
 `;
 
