@@ -1,8 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
@@ -25,7 +27,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined, generateQueryWithTag} from 'sentry/utils';
@@ -34,16 +36,20 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
+  isAggregateField,
+  isMeasurement,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import useApi from 'sentry/utils/useApi';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import useTags from 'sentry/utils/useTags';
 import withProjects from 'sentry/utils/withProjects';
@@ -114,6 +120,13 @@ function SummaryContent({
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
   const tagStoreCollection = useTags();
+  const api = useApi();
+
+  useEffect(() => {
+    // Clear memoized data on mount to make tests more consistent.
+    getTransactionFilterTagValues.cache.clear?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventView.project]);
 
   const filterKeySections = [
     ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -365,6 +378,45 @@ function SummaryContent({
     organization.features.includes('performance-spans-new-ui') &&
     organization.features.includes('insights-initial-modules');
 
+  // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
+  const getTransactionFilterTagValues = memoize(
+    (tag, queryString): Promise<string[]> => {
+      const projectIdStrings = eventView.project?.map(String);
+
+      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // or measurements, so we simply don't
+        return Promise.resolve([]);
+      }
+
+      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+      // and low search filter values because discover maps device.class to these values.
+      if (isDeviceClass(tag.key)) {
+        return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
+      }
+
+      const fetchPromise = fetchTagValues({
+        api,
+        orgSlug: organization.slug,
+        tagKey: tag.key,
+        search: queryString,
+        projectIds: projectIdStrings,
+        // allows searching for tags on transactions as well
+        includeTransactions: true,
+        // allows searching for tags on sessions as well
+        includeSessions: true,
+      });
+
+      return fetchPromise.then(
+        results => results.filter(({name}) => defined(name)).map(({name}) => name),
+        () => {
+          throw new Error('Unable to fetch event field values');
+        }
+      );
+    },
+    ({key}, queryString) => `${key}-${queryString}`
+  );
+
   function renderSearchBar() {
     return (
       <StyledSearchBarWrapper>
@@ -396,6 +448,7 @@ function SummaryContent({
             filterKeySections={filterKeySections}
             disallowFreeText
             disallowUnsupportedFilters
+            recentSearches={SavedSearchType.EVENT}
           />
         </Feature>
       </StyledSearchBarWrapper>
@@ -624,10 +677,6 @@ function getTransactionFilterTags(tagStoreCollection): TagCollection {
   combinedTags.has = getHasTag(combinedTags);
 
   return combinedTags;
-}
-
-function getTransactionFilterTagValues() {
-  return Promise.resolve(['']);
 }
 
 const FilterActions = styled('div')`
