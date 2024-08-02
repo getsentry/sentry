@@ -652,13 +652,18 @@ def create_alert_rule(
                 )
 
             try:
-                resp = send_historical_data_to_seer(alert_rule=alert_rule, project=projects[0])
-                if resp.status == 202:
+                rule_status = send_historical_data_to_seer(
+                    alert_rule=alert_rule, project=projects[0]
+                )
+                if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
                     # if we don't have at least seven days worth of data, then the dynamic alert won't fire
                     alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError
+            except (ValidationError):
+                alert_rule.delete()
+                raise ValidationError
 
         if user:
             create_audit_entry_from_user(

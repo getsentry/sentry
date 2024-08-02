@@ -2,13 +2,12 @@ import logging
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils import timezone
-from rest_framework import status
-from urllib3 import BaseHTTPResponse
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
@@ -51,8 +50,11 @@ def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     return formatted_data
 
 
-# return the start and end indices
-def _get_start_and_end(data: SnubaTSResult) -> tuple[int, int]:
+def _get_start_and_end_indices(data: SnubaTSResult) -> tuple[int, int]:
+    """
+    Helper to return the first and last data points that have event counts.
+    Used to determine whether we have at least a week's worth of data.
+    """
     start, end = -1, -1
     indices_with_results = []
     for i, datum in enumerate(data.data.get("data", [])):
@@ -63,29 +65,20 @@ def _get_start_and_end(data: SnubaTSResult) -> tuple[int, int]:
     else:
         start = indices_with_results[0]
         end = indices_with_results[-1]
+        assert start <= end
         return start, end
 
 
-def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> BaseHTTPResponse:
+def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> AlertRuleStatus:
     """
-    Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert
+    Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert.
     """
-    base_error_response = BaseHTTPResponse(
-        status=status.HTTP_400_BAD_REQUEST,
-        reason="Something went wrong!",
-        version=0,
-        version_string="HTTP/?",
-        decode_content=True,
-        request_url=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
-    )
-
     snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
     historical_data = fetch_historical_data(alert_rule, snuba_query, project)
 
     if not historical_data:
-        base_error_response.reason = "No historical data available. Cannot create alert_rule."
-        return base_error_response
+        raise ValidationError("No historical data available. Cannot create alert_rule.")
 
     formatted_data = format_historical_data(historical_data)
 
@@ -96,10 +89,9 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
         or alert_rule.organization is None
     ):
         # this won't happen because we've already gone through the serializer, but mypy insists
-        base_error_response.reason = (
+        raise ValidationError(
             "Cannot create alert_rule - missing expected configuration for a dynamic alert."
         )
-        return base_error_response
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
@@ -116,7 +108,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
         timeseries=formatted_data,
     )
     try:
-        resp = make_signed_seer_api_request(
+        make_signed_seer_api_request(
             connection_pool=seer_anomaly_detection_connection_pool,
             path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
             body=json.dumps(body).encode("utf-8"),
@@ -133,19 +125,15 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
         raise TimeoutError
 
     MIN_DAYS = 7
-    data_start_index, data_end_index = _get_start_and_end(historical_data)
+    data_start_index, data_end_index = _get_start_and_end_indices(historical_data)
     if data_start_index == -1:
-        resp.status = 202
-        resp.reason = NOT_ENOUGH_DATA  # this reason value isn't read anywhere, but I think it's good to justify the 202
+        return AlertRuleStatus.NOT_ENOUGH_DATA
 
-    data_start_time = datetime.fromtimestamp(
-        historical_data.data.get("data")[data_start_index]["time"]
-    )
-    data_end_time = datetime.fromtimestamp(historical_data.data.get("data")[data_end_index]["time"])
+    data_start_time = datetime.fromtimestamp(formatted_data[data_start_index]["timestamp"])
+    data_end_time = datetime.fromtimestamp(formatted_data[data_end_index]["timestamp"])
     if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
-        resp.status = 202
-        resp.reason = NOT_ENOUGH_DATA
-    return resp
+        return AlertRuleStatus.NOT_ENOUGH_DATA
+    return AlertRuleStatus.PENDING
 
 
 def fetch_historical_data(

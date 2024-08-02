@@ -629,6 +629,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
 
+        rule.refresh_from_db()
+
         # test that we don't activate if we get "no_data"
         seer_return_value = {
             "anomalies": [
@@ -660,6 +662,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
 
+        rule.refresh_from_db()
+
         # test that we activate but don't fire an alert if we get "none"
         seer_return_value = {
             "anomalies": [
@@ -690,6 +694,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        rule.refresh_from_db()
 
         # test that we can activate and fire an alert
         seer_return_value = {

@@ -553,7 +553,7 @@ class SubscriptionProcessor:
                     for potential_anomaly in potential_anomalies:
                         # check to see if we have enough data for the dynamic alert rule now
                         if self.alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
-                            if self.has_enough_data(potential_anomaly):
+                            if self.anomaly_has_confidence(potential_anomaly):
                                 # NOTE: this means "enabled," and it's the default alert rule status.
                                 # TODO: change these status labels to be less confusing
                                 self.alert_rule.status = AlertRuleStatus.PENDING.value
@@ -648,7 +648,7 @@ class SubscriptionProcessor:
             return True
         return False
 
-    def has_enough_data(self, anomaly) -> bool:
+    def anomaly_has_confidence(self, anomaly) -> bool:
         """
         Helper function to determine whether we have the 7+ days of data necessary
         to detect anomalies/send alerts for dynamic alert rules.
