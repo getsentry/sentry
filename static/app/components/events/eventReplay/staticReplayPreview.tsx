@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
-import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
@@ -59,7 +58,6 @@ export function StaticReplayPreview({
       analyticsContext={analyticsContext}
       initialTimeOffsetMs={offset}
       isFetching={isFetching}
-      prefsStrategy={StaticReplayPreferences}
       replay={replay}
     >
       <PlayerContainer data-test-id="player-container">

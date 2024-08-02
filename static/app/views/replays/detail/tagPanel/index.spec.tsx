@@ -2,7 +2,6 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
@@ -24,12 +23,7 @@ const mockReplay = ReplayReader.factory({
 
 const renderComponent = (replay: ReplayReader | null) => {
   return render(
-    <ReplayContextProvider
-      analyticsContext=""
-      isFetching={false}
-      prefsStrategy={StaticReplayPreferences}
-      replay={replay}
-    >
+    <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
       <TagPanel />
     </ReplayContextProvider>
   );

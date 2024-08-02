@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import {t} from 'sentry/locale';
@@ -27,21 +26,21 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
           {t('After Hydration')}
         </Flex>
       </DiffHeader>
+
       <ReplayGrid>
         <ReplayContextProvider
           analyticsContext="replay_comparison_modal_left"
           initialTimeOffsetMs={{offsetMs: leftOffsetMs}}
           isFetching={fetching}
-          prefsStrategy={StaticReplayPreferences}
           replay={replay}
         >
           <ReplayPlayer isPreview />
         </ReplayContextProvider>
+
         <ReplayContextProvider
           analyticsContext="replay_comparison_modal_right"
           initialTimeOffsetMs={{offsetMs: rightOffsetMs}}
           isFetching={fetching}
-          prefsStrategy={StaticReplayPreferences}
           replay={replay}
         >
           {rightOffsetMs > 0 ? <ReplayPlayer isPreview /> : <div />}
