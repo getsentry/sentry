@@ -7,7 +7,8 @@ class UrlVerificationEventTest(BaseEventTest):
     challenge = "3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P"
 
     @patch(
-        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
+        return_value=True,
     )
     def test_valid_event(self, check_signing_secret_mock):
         resp = self.client.post(
