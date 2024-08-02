@@ -455,7 +455,7 @@ const ProgressStepContainer = styled('div')`
 function LogComponent({html}: {html: string}) {
   const [expanded, setExpanded] = useState(false);
   const [isExpandable, setIsExpandable] = useState(false);
-  const logRef = useRef(null);
+  const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkExpandable = () => {
@@ -471,19 +471,28 @@ function LogComponent({html}: {html: string}) {
   }, [html]);
 
   const toggleExpand = () => {
-    if (isExpandable) {
-      setExpanded(!expanded);
-    }
+    setExpanded(oldState => !oldState);
   };
 
   return (
-    <LogText
-      ref={logRef}
-      expanded={expanded}
-      isExpandable={isExpandable}
-      onClick={toggleExpand}
-      dangerouslySetInnerHTML={{__html: html}}
-    />
+    <ExpandableLogRow>
+      <LogText
+        ref={logRef}
+        expanded={expanded}
+        isExpandable={isExpandable}
+        dangerouslySetInnerHTML={{__html: html}}
+      />
+      {isExpandable && (
+        <Button
+          icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+          aria-label={t('Toggle step details')}
+          aria-expanded={expanded}
+          size="zero"
+          borderless
+          onClick={toggleExpand}
+        />
+      )}
+    </ExpandableLogRow>
   );
 }
 
@@ -493,13 +502,12 @@ const LogText = styled('div')<{expanded: boolean; isExpandable: boolean}>`
   -webkit-line-clamp: ${props => (props.expanded ? 'unset' : '2')};
   -webkit-box-orient: vertical;
   overflow-y: hidden;
-  text-overflow: ellipsis;
   cursor: ${props => (props.isExpandable ? 'pointer' : 'default')};
   max-height: ${props => (props.expanded ? 'none' : '3em')};
-  transition: max-height 2s ease-out;
+`;
 
-  &:hover {
-    background-color: ${props =>
-      props.isExpandable ? 'rgba(0, 0, 0, 0.02)' : 'transparent'};
-  }
+const ExpandableLogRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start; /* Ensure items align to the start of the container */
 `;
