@@ -37,7 +37,7 @@ class DynamicAlertRuleData(TypedDict):
     alert_rule_id: int
     seasonality: str
     sensitivity: str
-    threshold_type: str
+    threshold_type: int
 
 
 class SnubaQueryData(TypedDict):

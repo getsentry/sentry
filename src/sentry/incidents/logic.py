@@ -755,7 +755,11 @@ def snapshot_alert_rule(alert_rule, user=None):
 
 
 def should_update_seer(
-    previous_detection_type, existing_detection_type, updated_detection_type, query, aggregate
+    previous_detection_type: AlertRuleDetectionType,
+    existing_detection_type: AlertRuleDetectionType,
+    updated_detection_type: AlertRuleDetectionType,
+    query: str,
+    aggregate: str,
 ) -> bool:
     should_update_seer = False
     if previous_detection_type != existing_detection_type or query or aggregate:
@@ -767,15 +771,15 @@ def should_update_seer(
 
 
 def update_dynamic_alert_data(
-    alert_rule,
-    seasonality,
-    sensitivity,
-    threshold_type,
-    query,
-    time_window,
-    dataset,
-    aggregate,
-    projects,
+    alert_rule: AlertRule,
+    seasonality: AlertRuleSeasonality,
+    sensitivity: AlertRuleSensitivity,
+    threshold_type: int,
+    query: str,
+    time_window: int,
+    dataset: str,
+    aggregate: str,
+    projects: list[Project],
 ) -> None:
     updated_seasonality = seasonality if seasonality is not NOT_SET else alert_rule.seasonality
     updated_sensitivity = sensitivity if sensitivity is not NOT_SET else alert_rule.sensitivity
@@ -974,7 +978,7 @@ def update_alert_rule(
             if should_update_seer(
                 previous_detection_type,
                 alert_rule.detection_type,
-                updated_fields["detection_type"],
+                updated_fields.get("detection_type"),
                 query,
                 aggregate,
             ):
