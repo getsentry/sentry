@@ -353,7 +353,7 @@ def delete_comment(activity: IncidentActivity) -> tuple[int, dict[str, int]]:
     return activity.delete()
 
 
-def build_incident_query_builder(
+def _build_incident_query_builder(
     incident: Incident,
     entity_subscription: EntitySubscription,
     start: datetime | None = None,
@@ -361,7 +361,7 @@ def build_incident_query_builder(
     windowed_stats: bool = False,
 ) -> BaseQueryBuilder:
     snuba_query = incident.alert_rule.snuba_query
-    start, end = calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
+    start, end = _calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
     project_ids = list(
         IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
     )
@@ -392,7 +392,7 @@ def build_incident_query_builder(
     return query_builder
 
 
-def calculate_incident_time_range(
+def _calculate_incident_time_range(
     incident: Incident,
     start: datetime | None = None,
     end: datetime | None = None,
@@ -447,7 +447,7 @@ def get_incident_aggregates(
         snuba_query,
         incident.organization_id,
     )
-    query_builder = build_incident_query_builder(
+    query_builder = _build_incident_query_builder(
         incident, entity_subscription, start, end, windowed_stats
     )
     try:
@@ -1735,7 +1735,7 @@ TRANSLATABLE_COLUMNS = {
 
 def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
     if allow_mri:
-        mri_column = get_column_from_aggregate_with_mri(aggregate)
+        mri_column = _get_column_from_aggregate_with_mri(aggregate)
         # Only if the column was allowed, we return it, otherwise we fallback to the old logic.
         if mri_column:
             return mri_column
@@ -1747,7 +1747,7 @@ def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
     return None
 
 
-def get_column_from_aggregate_with_mri(aggregate: str) -> str | None:
+def _get_column_from_aggregate_with_mri(aggregate: str) -> str | None:
     match = is_function(aggregate)
     if match is None:
         return None
