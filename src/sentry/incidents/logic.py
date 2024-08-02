@@ -654,8 +654,8 @@ def create_alert_rule(
 
             rule_data = DynamicAlertRuleData(
                 alert_rule_id=alert_rule.id,
-                seasonality=alert_rule.seasonality.value,
-                sensitivity=alert_rule.sensitivity.value,
+                seasonality=alert_rule.seasonality,
+                sensitivity=alert_rule.sensitivity,
                 threshold_type=alert_rule.threshold_type,
             )
             snuba_query_data = SnubaQueryData(
