@@ -413,7 +413,7 @@ class CombinedRuleSerializer(Serializer):
                 if "latestIncident" in self.expand:
                     # Eg. we _have_ an incident
                     try:
-                        serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)
+                        serialized_alert_rule["latestIncident"] = incident_map.get(item.incident_id)  # type: ignore[attr-defined]
                     except AttributeError as e:
                         logger.exception(
                             "incident serialization error",
