@@ -23,7 +23,7 @@ if settings.JIRA_USE_EMAIL_SCOPE:
 class JiraDescriptorEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """
     Provides the metadata needed by Jira to setup an instance of the Sentry integration within Jira.

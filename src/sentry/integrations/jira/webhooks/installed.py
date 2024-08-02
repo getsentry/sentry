@@ -19,7 +19,7 @@ from .base import JiraWebhookBase
 class JiraSentryInstalledWebhook(JiraWebhookBase):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
