@@ -256,17 +256,22 @@ class LinkingView(BaseView, ABC):
 
     @property
     @abstractmethod
+    def salt(self) -> str:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
     def user_parameter(self) -> str:
         raise NotImplementedError
+
+    # TODO: Replace thw two template properties below with base templates for all
+    #       integrations to use. Add service-specific parts to the context as needed.
 
     @property
     @abstractmethod
     def confirmation_template(self) -> str:
         """Path to the HTML template to render for a non-POST request."""
         raise NotImplementedError
-
-    # TODO: Replace thw two template properties below with base templates for all
-    #       integrations to use. Add service-specific parts to the context as needed.
 
     @property
     @abstractmethod
@@ -293,7 +298,7 @@ class LinkingView(BaseView, ABC):
         self, request: HttpRequest, signed_params: Any, *args: Any, **kwargs: Any
     ) -> HttpResponseBase:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=self.salt)
         except (SignatureExpired, BadSignature):
             return render_to_response(
                 self.expired_link_template,

@@ -30,6 +30,12 @@ class DiscordLinkingView(LinkingView, ABC):
         return ExternalProviders.DISCORD
 
     @property
+    def salt(self) -> str:
+        from .constants import SALT
+
+        return SALT
+
+    @property
     def user_parameter(self) -> str:
         return "discord_id"
 

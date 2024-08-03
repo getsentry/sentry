@@ -40,6 +40,12 @@ class MsTeamsLinkingView(LinkingView, ABC):
         return ExternalProviders.MSTEAMS
 
     @property
+    def salt(self) -> str:
+        from .constants import SALT
+
+        return SALT
+
+    @property
     def user_parameter(self) -> str:
         return "teams_user_id"
 
