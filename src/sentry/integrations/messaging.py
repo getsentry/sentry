@@ -25,7 +25,6 @@ from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations import Integration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
 from sentry.types.actor import ActorType
@@ -361,8 +360,8 @@ class LinkIdentityView(LinkingView, ABC):
         self, idp: IdentityProvider, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
         user = request.user
-        if not isinstance(user, User):
-            raise TypeError("Cannot link identity without a logged-in user")
+        if user.id is None:
+            raise Exception("Cannot link identity without a logged-in user")
         Identity.objects.link_identity(user=user, idp=idp, external_id=params[self.user_parameter])
         return None
 
