@@ -1,7 +1,7 @@
 # English translations for PROJECT.
 # Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# 
+#
 # Translators:
 # Antoine Lubineau <antoine@lubignon.info>, 2014-2016
 # Benjamin Oertel <ben@punchtab.com>, 2012
@@ -4165,11 +4165,11 @@ msgstr "Préférences d’avatar enregistrées"
 
 #: static/app/components/avatarChooser.tsx:148
 msgid "There was an error saving your preferences."
-msgstr ""
+msgstr "Une erreur s'est produite lors de l'enregistrement de vos préférences."
 
 #: static/app/components/avatarChooser.tsx:193
 msgid "Use default avatar"
-msgstr ""
+msgstr "Utiliser l'avatar par défaut"
 
 #: static/app/components/avatarChooser.tsx:196
 msgid "Use initials"
@@ -4193,7 +4193,7 @@ msgstr "Type d’avatar"
 
 #: static/app/components/avatarChooser.tsx:233
 msgid "Gravatars are managed through "
-msgstr "Les gravatars sont gérés par"
+msgstr "Les gravatars sont gérés par "
 
 #: static/app/components/avatarChooser.tsx:254
 msgid "Save Avatar"
@@ -4201,15 +4201,15 @@ msgstr "Enregistrer l'Avatar"
 
 #: static/app/components/avatarCropper.tsx:287
 msgid "Please upload an image larger than [size]px by [size]px."
-msgstr ""
+msgstr "Veuillez télécharger une image plus grande que [size]px par [size]px."
 
 #: static/app/components/avatarCropper.tsx:293
 msgid "Please upload an image smaller than [size]px by [size]px."
-msgstr ""
+msgstr "Veuillez télécharger une image plus petite que [size]px par [size]px."
 
 #: static/app/components/avatarCropper.tsx:394
 msgid "[upload:Upload an image] to get started."
-msgstr ""
+msgstr "[upload:Télécharger une image] pour commencer."
 
 #: static/app/components/avatarCropper.tsx:404
 msgid "Change Photo"
@@ -4217,7 +4217,7 @@ msgstr "Changer de photo"
 
 #: static/app/components/avatarCropper.tsx:75
 msgid "That is not a supported file type."
-msgstr ""
+msgstr "Ce n'est pas un type de fichier pris en charge."
 
 #: static/app/components/bases/pluginComponentBase.tsx:116
 msgid "Success!"
@@ -4240,31 +4240,31 @@ msgstr[1] ""
 
 #: static/app/components/bulkController/bulkNotice.tsx:13
 msgid "Selected all items across all pages."
-msgstr ""
+msgstr "Tous les éléments sélectionnés sur toutes les pages."
 
 #: static/app/components/bulkController/bulkNotice.tsx:14
 msgid "Select all items across all pages."
-msgstr ""
+msgstr "Sélectionnez tous les éléments sur toutes les pages."
 
 #: static/app/components/bulkController/bulkNotice.tsx:20
 msgid "Selected up to the first [count] items."
-msgstr ""
+msgstr "Sélectionnés jusqu'au premier [count] éléments."
 
 #: static/app/components/bulkController/bulkNotice.tsx:23
 msgid "Select the first [count] items."
-msgstr ""
+msgstr "Sélectionnez les premiers [count] éléments."
 
 #: static/app/components/bulkController/bulkNotice.tsx:30
 msgid "Selected all [count] items."
-msgstr ""
+msgstr "Sélectionnés tous les [count] éléments."
 
 #: static/app/components/bulkController/bulkNotice.tsx:33
 msgid "Select all [count] items."
-msgstr ""
+msgstr "Sélectionnez tous les [count] éléments."
 
 #: static/app/components/bulkController/bulkNotice.tsx:98
 msgid "Cancel selection."
-msgstr ""
+msgstr "Annuler la sélection."
 
 #: static/app/components/charts/eventsChart.tsx:218
 msgid "Current"
@@ -4284,30 +4284,30 @@ msgstr ""
 #: static/app/components/charts/eventsRequest.tsx:260
 #, python-format
 msgid "%s has an invalid date range. Please try a more recent date range."
-msgstr ""
+msgstr "%s a une plage de dates non valide. Veuillez essayer une plage de dates plus récente."
 
 #: static/app/components/charts/eventsRequest.tsx:278
 #: static/app/views/dashboardsV2/widget/metricWidget/statsRequest.tsx:141
 #: static/app/views/projectDetail/charts/projectSessionsChartRequest.tsx:142
 msgid "Error loading chart data"
-msgstr ""
+msgstr "Erreur lors du chargement des données du graphique"
 
 #: static/app/components/charts/releaseSeries.tsx:182
 msgid "Error fetching releases"
-msgstr ""
+msgstr "Erreur lors de la récupération des versions"
 
 #: static/app/components/charts/sessionsRequest.tsx:130
 #: static/app/views/releases/list/releasesRequest.tsx:216
 msgid "Error loading health data"
-msgstr ""
+msgstr "Erreur lors du chargement des données de santé"
 
 #: static/app/components/clipboard.tsx:34
 msgid "Copied to clipboard"
-msgstr ""
+msgstr "Copié dans le presse-papier"
 
 #: static/app/components/clipboard.tsx:35
 msgid "Error copying to clipboard"
-msgstr ""
+msgstr "Erreur lors de la copie dans le presse-papier"
 
 #: static/app/components/clippedBox.tsx:34
 msgid "Show More"
@@ -4362,29 +4362,29 @@ msgstr "Valider"
 #: static/app/components/confirmDelete.tsx:27
 #, python-format
 msgid "Please enter %s to confirm the deletion"
-msgstr ""
+msgstr "Veuillez saisir %s pour confirmer la suppression"
 
 #: static/app/components/contextPickerModal.tsx:270
 msgid "Select an organization and a project to continue"
-msgstr ""
+msgstr "Sélectionnez une organisation et un projet pour continuer"
 
 #: static/app/components/contextPickerModal.tsx:273
 msgid "Select an organization to continue"
-msgstr ""
+msgstr "Sélectionnez une organisation pour continuer"
 
 #: static/app/components/contextPickerModal.tsx:276
 msgid "Select a project to continue"
-msgstr ""
+msgstr "Sélectionnez un projet pour continuer"
 
 #: static/app/components/contextPickerModal.tsx:279
 #: static/app/components/contextPickerModal.tsx:368
 msgid "Select a configuration to continue"
-msgstr ""
+msgstr "Sélectionnez une configuration pour continuer"
 
 #: static/app/components/contextPickerModal.tsx:292
 #: static/app/components/organizations/multipleProjectSelector.tsx:293
 msgid "My Projects"
-msgstr ""
+msgstr "Mes projets"
 
 #: static/app/components/contextPickerModal.tsx:300
 #: static/app/components/organizations/multipleProjectSelector.tsx:292
@@ -4394,7 +4394,7 @@ msgstr "Tout les projets"
 
 #: static/app/components/contextPickerModal.tsx:312
 msgid "You have no projects. Click [link] to make one."
-msgstr ""
+msgstr "Vous n'avez pas de projets. Cliquez [link] pour en créer un."
 
 #: static/app/components/contextPickerModal.tsx:314
 #: static/app/views/alerts/issueRuleEditor/ruleNode.tsx:287
@@ -4403,11 +4403,11 @@ msgstr "ici"
 
 #: static/app/components/contextPickerModal.tsx:327
 msgid "Select a Project to continue"
-msgstr ""
+msgstr "Sélectionnez un projet pour continuer"
 
 #: static/app/components/contextPickerModal.tsx:347
 msgid "[providerName] Configurations"
-msgstr ""
+msgstr "[providerName] Configurations"
 
 #: static/app/components/contextPickerModal.tsx:421
 msgid "Select an Organization"
@@ -4415,13 +4415,15 @@ msgstr "Sélectionnez une Organisation"
 
 #: static/app/components/createAlertButton.tsx:126
 msgid "An alert can use data from only one Project. Select one and try again."
-msgstr ""
+msgstr "Une alerte peut utiliser des données provenant d'un seul projet. Sélectionnez-en un et réessayez."
 
 #: static/app/components/createAlertButton.tsx:128
 msgid ""
 "An alert supports data from a single Environment or All Environments. Pick "
 "one try again."
 msgstr ""
+"Une alerte peut utiliser des données provenant d'un seul projet. "
+"Sélectionnez-en un et réessayez."
 
 #: static/app/components/createAlertButton.tsx:132
 msgid ""
@@ -4430,6 +4432,10 @@ msgid ""
 "[errorDefault:(event.type:error OR event.type:default)]. Use one of these "
 "and try again."
 msgstr ""
+"Une alerte doit avoir un filtre de [error:event.type:error], "
+"[default:event.type:default], [transaction:event.type:transaction], "
+"[errorDefault:(event.type:error OR event.type:default)]. Utilisez l'un de ces "
+"filtres et réessayez."
 
 #: static/app/components/createAlertButton.tsx:137
 #: static/app/components/createAlertButton.tsx:163
@@ -4437,18 +4443,20 @@ msgid ""
 "An alert can’t use the metric [yAxis] just yet. Select another metric and "
 "try again."
 msgstr ""
+"Une alerte ne peut pas utiliser la métrique [yAxis] pour l'instant. "
+"Sélectionnez une autre métrique et réessayez."
 
 #: static/app/components/createAlertButton.tsx:147
 msgid "Yikes! That button didn’t work. Please fix the following problems:"
-msgstr ""
+msgstr "Oups ! Ce bouton n'a pas fonctionné. Veuillez corriger les problèmes suivants :"
 
 #: static/app/components/createAlertButton.tsx:149
 msgid "Select one Project."
-msgstr ""
+msgstr "Sélectionnez un projet."
 
 #: static/app/components/createAlertButton.tsx:151
 msgid "Select a single Environment or All Environments."
-msgstr ""
+msgstr "Sélectionnez un environnement unique ou Toutes les environnements."
 
 #: static/app/components/createAlertButton.tsx:155
 msgid ""
@@ -4459,17 +4467,19 @@ msgstr ""
 
 #: static/app/components/createAlertButton.tsx:359
 msgid "Successfully updated organization settings"
-msgstr ""
+msgstr "Paramètres d'organisation mis à jour avec succès"
 
 #: static/app/components/createAlertButton.tsx:361
 msgid "Unable to update organization settings"
-msgstr ""
+msgstr "Impossible de mettre à jour les paramètres d'organisation"
 
 #: static/app/components/createAlertButton.tsx:365
 msgid ""
 "Ask your organization owner or manager to [settingsLink:enable alerts "
 "access] for you."
 msgstr ""
+"Demandez à votre propriétaire ou gestionnaire de l'organisation "
+"[settingsLink:activer l'accès aux alertes] pour vous."
 
 #: static/app/components/customIgnoreCountModal.tsx:70
 msgid "e.g. 100"
@@ -4570,23 +4580,23 @@ msgstr ""
 #: static/app/views/eventsV2/chartFooter.tsx:86
 #: static/app/views/eventsV2/chartFooter.tsx:95
 msgid "Y-Axis"
-msgstr ""
+msgstr "Axe Y"
 
 #: static/app/components/dashboards/widgetQueryFields.tsx:260
 #: static/app/components/dashboards/widgetQueryFields.tsx:261
 msgid "Remove this Y-Axis"
-msgstr ""
+msgstr "Supprimer cet axe Y"
 
 #: static/app/components/dashboards/widgetQueryFields.tsx:270
 msgid "Add Overlay"
-msgstr ""
+msgstr "Ajouter un Overlay"
 
 #: static/app/components/dashboards/widgetQueryFields.tsx:274
 #: static/app/components/dashboards/widgetQueryFields.tsx:278
 #: static/app/views/eventsV2/table/columnEditCollection.tsx:499
 #: static/app/views/eventsV2/table/columnEditCollection.tsx:505
 msgid "Add an Equation"
-msgstr ""
+msgstr "Ajouter une Équation"
 
 #: static/app/components/dataExport.tsx:107
 msgid "We're working on it..."
@@ -4600,10 +4610,11 @@ msgstr "Tout exporter au format CSV"
 msgid ""
 "Sit tight. We'll shoot you an email when your data is ready for download."
 msgstr ""
+"Restez à l'affût. Nous vous enverrons un e-mail dès que vos données seront prêtes à être téléchargées."
 
 #: static/app/components/dataExport.tsx:81
 msgid "It looks like we're already working on it. Sit tight, we'll email you."
-msgstr ""
+msgstr "Il semblerait que nous travaillions déjà sur cela. Restez à l'affût, nous vous enverrons un e-mail."
 
 #: static/app/components/debugFileFeature.tsx:12
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidate/utils.tsx:18
@@ -4612,6 +4623,8 @@ msgid ""
 "Debug information provides function names and resolves inlined frames during"
 " symbolication"
 msgstr ""
+"Les informations de débogage fournissent des noms de fonctions et résout
+" les cadres incorporés lors de la symbolication"
 
 #: static/app/components/debugFileFeature.tsx:15
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidate/utils.tsx:39
