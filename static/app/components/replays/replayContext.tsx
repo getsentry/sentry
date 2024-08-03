@@ -8,6 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {ReplayPlayerStateFromContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPlayerState';
 import useReplayPrefs from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,12 +32,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * The context in which the replay is being viewed.
    */
   analyticsContext: string;
-
-  /**
-   * The current time of the video, in milliseconds
-   * The value is updated on every animation frame, about every 16.6ms
-   */
-  currentTime: number;
 
   /**
    * Original dimensions in pixels of the captured browser window
@@ -115,7 +110,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
 const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   analyticsContext: '',
   clearAllHighlights: () => {},
-  currentTime: 0,
   dimensions: {height: 0, width: 0},
   fastForwardSpeed: 0,
   addHighlight: () => {},
@@ -566,14 +560,10 @@ export function Provider({
 
   const currentPlayerTime = useCurrentTime(getCurrentPlayerTime);
 
-  const [isBuffering, currentBufferedPlayerTime] =
+  const isBuffering =
     buffer.target !== -1 &&
     buffer.previous === currentPlayerTime &&
-    buffer.target !== buffer.previous
-      ? [true, buffer.target]
-      : [false, currentPlayerTime];
-
-  const currentTime = currentBufferedPlayerTime - startTimeOffsetMs;
+    buffer.target !== buffer.previous;
 
   useEffect(() => {
     if (!isBuffering && events && events.length >= 2 && replayerRef.current) {
@@ -588,33 +578,39 @@ export function Provider({
   }, [isBuffering, buffer.target]);
 
   return (
-    <ReplayCurrentTimeContextProvider>
-      <ReplayPlayerContext.Provider
-        value={{
-          analyticsContext,
-          clearAllHighlights,
-          currentTime,
-          dimensions,
-          fastForwardSpeed,
-          addHighlight,
-          setRoot,
-          isBuffering: isBuffering && !isVideoReplay,
-          isVideoBuffering,
-          isFetching,
-          isVideoReplay,
-          isFinished,
-          isPlaying,
-          removeHighlight,
-          replay,
-          restart,
-          setCurrentTime,
-          togglePlayPause,
-          ...value,
-        }}
-      >
-        {children}
-      </ReplayPlayerContext.Provider>
-    </ReplayCurrentTimeContextProvider>
+    <ReplayPlayerStateFromContextProvider
+      startTimeOffsetMs={startTimeOffsetMs}
+      isFinished={isFinished}
+      isPlaying={isPlaying}
+      replayer={replayerRef.current ?? undefined}
+    >
+      <ReplayCurrentTimeContextProvider>
+        <ReplayPlayerContext.Provider
+          value={{
+            analyticsContext,
+            clearAllHighlights,
+            dimensions,
+            fastForwardSpeed,
+            addHighlight,
+            setRoot,
+            isBuffering: isBuffering && !isVideoReplay,
+            isVideoBuffering,
+            isFetching,
+            isVideoReplay,
+            isFinished,
+            isPlaying,
+            removeHighlight,
+            replay,
+            restart,
+            setCurrentTime,
+            togglePlayPause,
+            ...value,
+          }}
+        >
+          {children}
+        </ReplayPlayerContext.Provider>
+      </ReplayCurrentTimeContextProvider>
+    </ReplayPlayerStateFromContextProvider>
   );
 }
 

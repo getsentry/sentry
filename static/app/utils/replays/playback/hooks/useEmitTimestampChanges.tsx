@@ -1,6 +1,6 @@
-import {useLayoutEffect} from 'react';
+import {useLayoutEffect, useState} from 'react';
 
-import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 
@@ -11,7 +11,8 @@ import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTim
  * <ReplayCurrentTimeContextProvider> ancestor node.
  */
 export default function useEmitTimestampChanges() {
-  const {currentTime} = useReplayContext();
+  const [currentTime, handleCurrentTime] = useState(0);
+  useReplayCurrentTime({callback: handleCurrentTime});
   const [currentHoverTime] = useCurrentHoverTime();
 
   useLayoutEffect(() => {

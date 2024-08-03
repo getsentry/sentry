@@ -18,9 +18,9 @@ import domId from 'sentry/utils/domId';
 import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import type {DomNodeChartDatapoint} from 'sentry/utils/replays/hooks/useCountDomNodes';
 
-interface Props
-  extends Pick<ReturnType<typeof useReplayContext>, 'currentTime' | 'setCurrentTime'> {
+interface Props extends Pick<ReturnType<typeof useReplayContext>, 'setCurrentTime'> {
   currentHoverTime: undefined | number;
+  currentTime: number;
   datapoints: DomNodeChartDatapoint[];
   durationMs: number;
   setCurrentHoverTime: Dispatch<SetStateAction<number | undefined>>;

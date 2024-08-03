@@ -1,9 +1,9 @@
 import type {RefObject} from 'react';
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import type {List as ReactVirtualizedList} from 'react-virtualized';
 
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {getPrevReplayFrame} from 'sentry/utils/replays/getReplayEvent';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
 interface Opts {
@@ -12,7 +12,9 @@ interface Opts {
 }
 
 function useScrollToCurrentItem({frames, ref}: Opts) {
-  const {currentTime} = useReplayContext();
+  const [currentTime, handleCurrentTime] = useState(0);
+  useReplayCurrentTime({callback: handleCurrentTime});
+
   const currentItem = useMemo(
     () =>
       getPrevReplayFrame({

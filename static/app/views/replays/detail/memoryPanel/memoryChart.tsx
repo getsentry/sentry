@@ -18,9 +18,9 @@ import domId from 'sentry/utils/domId';
 import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
-interface Props
-  extends Pick<ReturnType<typeof useReplayContext>, 'currentTime' | 'setCurrentTime'> {
+interface Props extends Pick<ReturnType<typeof useReplayContext>, 'setCurrentTime'> {
   currentHoverTime: undefined | number;
+  currentTime: number;
   durationMs: number;
   memoryFrames: MemoryFrame[];
   setCurrentHoverTime: Dispatch<SetStateAction<number | undefined>>;

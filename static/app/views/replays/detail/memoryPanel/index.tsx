@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -7,12 +7,15 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useCountDomNodes from 'sentry/utils/replays/hooks/useCountDomNodes';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import DomNodesChart from 'sentry/views/replays/detail/memoryPanel/domNodesChart';
 import MemoryChart from 'sentry/views/replays/detail/memoryPanel/memoryChart';
 
 export default function MemoryPanel() {
-  const {currentTime, isFetching, replay, setCurrentTime} = useReplayContext();
+  const {isFetching, replay, setCurrentTime} = useReplayContext();
+  const [currentTime, handleCurrentTime] = useState(0);
+  useReplayCurrentTime({callback: handleCurrentTime});
   const [currentHoverTime, setCurrentHoverTime] = useCurrentHoverTime();
 
   const memoryFrames = replay?.getMemoryFrames();

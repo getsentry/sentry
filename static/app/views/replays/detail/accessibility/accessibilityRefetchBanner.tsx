@@ -8,6 +8,7 @@ import Well from 'sentry/components/well';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
@@ -16,8 +17,9 @@ interface Props {
 }
 
 export default function AccessibilityRefetchBanner({initialOffsetMs, refetch}: Props) {
-  const {currentTime, replay, setCurrentTime, isPlaying, togglePlayPause} =
-    useReplayContext();
+  const {replay, setCurrentTime, isPlaying, togglePlayPause} = useReplayContext();
+  const [currentTime, handleCurrentTime] = useState(0);
+  useReplayCurrentTime({callback: handleCurrentTime});
 
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
   const [lastOffsetMs, setLastOffsetMs] = useState(initialOffsetMs);

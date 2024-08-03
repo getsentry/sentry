@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Input from 'sentry/components/input';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 function ShareModal({currentTimeSec, Header, Body}) {
@@ -73,14 +73,14 @@ function ShareModal({currentTimeSec, Header, Body}) {
 }
 
 export default function useShareReplayAtTimestamp() {
-  const {currentTime} = useReplayContext();
+  const {get: getCurrentTime} = useReplayCurrentTime();
 
   const handleShare = useCallback(() => {
     // floor() to remove ms level precision. It's a cleaner url by default this way.
-    const currentTimeSec = Math.floor(currentTime / 1000);
+    const currentTimeSec = Math.floor((getCurrentTime() ?? 0) / 1000);
 
     openModal(deps => <ShareModal currentTimeSec={currentTimeSec} {...deps} />);
-  }, [currentTime]);
+  }, [getCurrentTime]);
   return handleShare;
 }
 

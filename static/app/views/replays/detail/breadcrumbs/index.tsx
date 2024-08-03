@@ -9,6 +9,7 @@ import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
@@ -28,7 +29,9 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs() {
-  const {currentTime, replay} = useReplayContext();
+  const {replay} = useReplayContext();
+  const [currentTime, handleCurrentTime] = useState(0);
+  useReplayCurrentTime({callback: handleCurrentTime});
   const {onClickTimestamp} = useCrumbHandlers();
 
   const {data: frameToExtraction, isFetching: isFetchingExtractions} = useExtractDomNodes(

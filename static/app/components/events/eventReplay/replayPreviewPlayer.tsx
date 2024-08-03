@@ -20,6 +20,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,8 +56,10 @@ function ReplayPreviewPlayer({
   const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
-    useReplayContext();
+  const {replay, isFetching, isFinished, isPlaying, isVideoReplay} = useReplayContext();
+  const [currentTime, setCurrentTime] = useState(0);
+  useReplayCurrentTime({callback: setCurrentTime});
+
   const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef(null);

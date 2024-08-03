@@ -1,9 +1,10 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useQuery} from 'sentry/utils/queryClient';
 import type {RawA11yResponse} from 'sentry/utils/replays/hydrateA11yFrame';
 import hydrateA11yFrame from 'sentry/utils/replays/hydrateA11yFrame';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -11,7 +12,9 @@ import useProjects from 'sentry/utils/useProjects';
 export default function useA11yData() {
   const api = useApi();
   const organization = useOrganization();
-  const {currentTime, replay} = useReplayContext();
+  const {replay} = useReplayContext();
+  const [currentTime, handleCurrentTime] = useState(0);
+  useReplayCurrentTime({callback: handleCurrentTime});
   const {projects} = useProjects();
   const replayRecord = replay?.getReplay();
   const startTimestampMs = replayRecord?.started_at.getTime();
