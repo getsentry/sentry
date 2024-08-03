@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
 from django.http import Http404, HttpRequest, HttpResponse
@@ -360,8 +361,8 @@ class LinkIdentityView(LinkingView, ABC):
         self, idp: IdentityProvider, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
         user = request.user
-        if user.id is None:
-            raise Exception("Cannot link identity without a logged-in user")
+        if isinstance(user, AnonymousUser):
+            raise TypeError("Cannot link identity without a logged-in user")
         Identity.objects.link_identity(user=user, idp=idp, external_id=params[self.user_parameter])
         return None
 

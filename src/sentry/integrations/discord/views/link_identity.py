@@ -21,7 +21,7 @@ def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
 class DiscordLinkingView(LinkingView, ABC):
     @property
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
-        from sentry.integrations.discord import DiscordMessagingSpec
+        from sentry.integrations.discord.spec import DiscordMessagingSpec
 
         return DiscordMessagingSpec()
 

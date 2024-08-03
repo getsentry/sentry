@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.integrations.messaging import LinkIdentityView, LinkingView, MessagingIntegrationSpec
 from sentry.models.integrations import Integration
+from sentry.models.organization import Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
@@ -14,7 +15,13 @@ from .card_builder.identity import build_linked_card
 from .client import MsTeamsClient
 
 
-def build_linking_url(integration, organization, teams_user_id, team_id, tenant_id):
+def build_linking_url(
+    integration: Integration,
+    organization: Organization,
+    teams_user_id: str,
+    team_id: str,
+    tenant_id: str,
+) -> str:
     signed_params = sign(
         integration_id=integration.id,
         organization_id=organization.id,
@@ -31,7 +38,7 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
 class MsTeamsLinkingView(LinkingView, ABC):
     @property
     def parent_messaging_spec(self) -> MessagingIntegrationSpec:
-        from sentry.integrations.msteams import MsTeamsMessagingSpec
+        from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 
         return MsTeamsMessagingSpec()
 
