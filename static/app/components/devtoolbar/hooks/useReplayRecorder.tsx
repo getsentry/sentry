@@ -41,10 +41,8 @@ export default function useReplayRecorder(): ReplayRecorderState {
     SentrySDK && 'getReplay' in SentrySDK ? SentrySDK.getReplay() : undefined;
 
   // sessionId is defined if we are recording in session OR buffer mode.
-  const [sessionId, setSessionId] = useState<string | undefined>(getSessionId(replay));
-  const [recordingMode, setRecordingMode] = useState<ReplayRecordingMode | undefined>(
-    getRecordingMode(replay)
-  );
+  const [sessionId, setSessionId] = useState<string | undefined>();
+  const [recordingMode, setRecordingMode] = useState<ReplayRecordingMode | undefined>();
   // Polls periodically since a replay could be started by sessionSampleRate
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -64,12 +62,8 @@ export default function useReplayRecorder(): ReplayRecorderState {
         ? 'Failed to load the SDK Replay integration'
         : undefined;
 
-  const [isRecording, setIsRecording] = useState<boolean>(
-    sessionId !== undefined && recordingMode === 'session'
-  );
-  const [currReplayId, setCurrReplayId] = useState<string | undefined>(
-    isRecording ? sessionId : undefined
-  );
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [currReplayId, setCurrReplayId] = useState<string | undefined>();
   const [lastReplayId, setLastReplayId] = useState<string | undefined>(
     sessionStorage.getItem(LAST_REPLAY_STORAGE_KEY) || undefined
   );
