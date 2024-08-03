@@ -37,6 +37,7 @@ import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
@@ -45,6 +46,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
@@ -178,7 +180,11 @@ function SpanDetail(props: Props) {
       <StyledDiscoverButton
         data-test-id="view-child-transactions"
         size="xs"
-        to={childrenEventView.getResultsViewUrlTarget(organization.slug)}
+        to={childrenEventView.getResultsViewUrlTarget(
+          organization.slug,
+          false,
+          hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+        )}
       >
         {t('View Children')}
       </StyledDiscoverButton>

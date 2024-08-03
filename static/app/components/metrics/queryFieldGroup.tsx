@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,6 +11,7 @@ import {
   type SingleSelectProps,
 } from 'sentry/components/compactSelect';
 import {DebouncedInput as _DebouncedInput} from 'sentry/components/modals/metricWidgetViewerModal/queries';
+import {SearchQueryBuilder as _SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import _SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
@@ -69,11 +71,20 @@ function CompactSelect<Value extends SelectKey>({
   );
 }
 
-function DeleteButton({title, onClick}: {onClick: () => void; title: string}) {
+function DeleteButton({
+  title,
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  title: string;
+  disabled?: boolean;
+}) {
   return (
     <Tooltip title={title} delay={SLOW_TOOLTIP_DELAY}>
       <StyledButton
         icon={<IconDelete size="xs" />}
+        disabled={disabled}
         aria-label={title}
         onClick={onClick}
       />
@@ -88,24 +99,38 @@ const StyledButton = styled(Button)`
 `;
 
 const ComboBox = styled(_ComboBox)`
+  width: 100%;
   input {
+    min-width: 100%;
     border-radius: 0;
     font-weight: 600;
   }
   :last-child input {
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   }
+
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+    max-width: min(500px, 100%);
+  }
 `;
 
-const SmartSearchBar = styled(_SmartSearchBar)`
+const searchCss = (theme: Theme) => css`
   border-radius: 0;
   :last-child {
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    border-radius: 0 ${theme.borderRadius} ${theme.borderRadius} 0;
   }
 
   label {
-    color: ${p => p.theme.gray500};
+    color: ${theme.gray500};
   }
+`;
+
+const SmartSearchBar = styled(_SmartSearchBar)`
+  ${p => searchCss(p.theme)}
+`;
+
+const SearchQueryBuilder = styled(_SearchQueryBuilder)`
+  ${p => searchCss(p.theme)}
 `;
 
 const FieldGroup = styled('div')`
@@ -114,6 +139,7 @@ const FieldGroup = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-row-gap: ${space(1)};
+
   > *:nth-child(even) {
     margin-left: -1px;
   }
@@ -155,5 +181,6 @@ QueryFieldGroup.Label = Label;
 QueryFieldGroup.CompactSelect = CompactSelect;
 QueryFieldGroup.ComboBox = ComboBox;
 QueryFieldGroup.SmartSearchBar = SmartSearchBar;
+QueryFieldGroup.SearchQueryBuilder = SearchQueryBuilder;
 QueryFieldGroup.DebouncedInput = DebouncedInput;
 QueryFieldGroup.DeleteButton = DeleteButton;

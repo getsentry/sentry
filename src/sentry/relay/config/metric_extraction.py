@@ -29,7 +29,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.relay.config.experimental import TimeChecker
+from sentry.relay.config.experimental import TimeChecker, build_safe_config
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -98,9 +98,7 @@ def get_max_widget_specs(organization: Organization) -> int:
 
 
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
-def get_metric_extraction_config(
-    timeout: TimeChecker, project: Project
-) -> MetricExtractionConfig | None:
+def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | None:
     """
     Returns generic metric extraction config for the given project.
 
@@ -113,14 +111,17 @@ def get_metric_extraction_config(
     sentry_sdk.set_tag("organization_id", project.organization_id)
 
     with sentry_sdk.start_span(op="get_on_demand_metric_specs"):
-        alert_specs, widget_specs = get_on_demand_metric_specs(timeout, project)
+        alert_specs, widget_specs = build_safe_config(
+            "on_demand_metric_specs", get_on_demand_metric_specs, project
+        ) or ([], [])
     with sentry_sdk.start_span(op="generate_span_attribute_specs"):
-        span_attr_specs = _generate_span_attribute_specs(project)
+        span_attr_specs = (
+            build_safe_config("span_attribute_specs", _generate_span_attribute_specs, project) or []
+        )
     with sentry_sdk.start_span(op="merge_metric_specs"):
         metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
     with sentry_sdk.start_span(op="get_extrapolation_config"):
         extrapolation_config = get_extrapolation_config(project)
-    timeout.check()
 
     if not metric_specs:
         return None
@@ -233,6 +234,8 @@ def _get_alert_metric_specs(
     with metrics.timer("on_demand_metrics.alert_spec_convert"):
         for alert in alert_rules:
             alert_snuba_query = alert.snuba_query
+            if alert_snuba_query is None:
+                continue
             metrics.incr(
                 "on_demand_metrics.before_alert_spec_generation",
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
@@ -861,7 +864,9 @@ def _convert_aggregate_and_query_to_metrics(
     return metric_specs_and_hashes
 
 
-def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
+def _generate_span_attribute_specs(
+    timeout: TimeChecker, project: Project
+) -> list[HashedMetricSpec]:
     if not features.has(
         "organizations:custom-metrics-extraction-rule", organization=project.organization
     ):
@@ -871,6 +876,7 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
     extraction_rules = []
     for extraction_config in extraction_configs:
         extraction_rules.extend(extraction_config.generate_rules())
+        timeout.check()
 
     version = SpecVersion(version=_METRIC_EXTRACTION_VERSION)
 
@@ -886,8 +892,11 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
         except ValueError:
             logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())
 
+        timeout.check()
+
     max_specs = options.get("metric_extraction.max_span_attribute_specs")
     (specs, _) = _trim_if_above_limit(specs, max_specs, project, "span_attributes")
+    timeout.check()
 
     return specs
 

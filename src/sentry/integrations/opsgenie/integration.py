@@ -17,8 +17,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import (
@@ -27,7 +28,6 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationError,
 )
-from sentry.tasks.integrations import migrate_opsgenie_plugin
 from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieClient

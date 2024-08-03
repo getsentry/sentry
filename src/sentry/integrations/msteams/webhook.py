@@ -48,6 +48,7 @@ from .card_builder.installation import (
 )
 from .card_builder.issues import MSTeamsIssueMessageBuilder
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
+from .constants import SALT
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
 from .utils import ACTION_TYPE, get_preinstall_client
@@ -326,7 +327,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             )
 
         # sign the params so this can't be forged
-        signed_params = sign(**installation_params)
+        signed_params = sign(salt=SALT, **installation_params)
 
         # send welcome message to the team
         preinstall_client = get_preinstall_client(installation_params["service_url"])
@@ -433,7 +434,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             },
         )
         # sign the params so this can't be forged
-        signed_params = sign(**params)
+        signed_params = sign(salt=SALT, **params)
 
         # send welcome message to the team
         client = get_preinstall_client(data["serviceUrl"])

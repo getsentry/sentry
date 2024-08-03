@@ -720,6 +720,14 @@ class Columns(Enum):
         discover_name="contexts[trace.parent_span_id]",
         alias="trace.parent_span",
     )
+    TRACE_CLIENT_SAMPLE_RATE = Column(
+        group_name="events.contexts[trace.client_sample_rate]",
+        event_name="contexts[trace.client_sample_rate]",
+        transaction_name="contexts[trace.client_sample_rate]",
+        discover_name="contexts[trace.client_sample_rate]",
+        issue_platform_name="contexts[trace.client_sample_rate]",
+        alias="trace.client_sample_rate",
+    )
 
     # Reprocessing context
     REPROCESSING_ORIGINAL_GROUP_ID = Column(
@@ -728,14 +736,6 @@ class Columns(Enum):
         transaction_name="contexts[reprocessing.original_issue_id]",
         discover_name="contexts[reprocessing.original_issue_id]",
         alias="reprocessing.original_issue_id",
-    )
-    TRACE_SAMPLE_RATE = Column(
-        group_name="events.contexts[trace.client_sample_rate]",
-        event_name="contexts[trace.client_sample_rate]",
-        transaction_name="contexts[trace.client_sample_rate]",
-        discover_name="contexts[trace.client_sample_rate]",
-        issue_platform_name="contexts[trace.client_sample_rate]",
-        alias="trace.client_sample_rate",
     )
 
     APP_START_TYPE = Column(
@@ -764,6 +764,14 @@ class Columns(Enum):
         discover_name="profiler_id",
         issue_platform_name=None,  # TODO: This doesn't exist yet
         alias="profiler.id",
+    )
+    THREAD_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="contexts[trace.thread_id]",
+        discover_name="contexts[trace.thread_id]",
+        issue_platform_name=None,
+        alias="thread.id",
     )
 
     REPLAY_ID = Column(

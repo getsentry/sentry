@@ -65,7 +65,7 @@ class UserManager(BaseManager["User"], DjangoUserManager["User"]):
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        from sentry.models.integrations.organization_integration import OrganizationIntegration
+        from sentry.integrations.models.organization_integration import OrganizationIntegration
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         org_user_ids = OrganizationMemberMapping.objects.filter(
@@ -198,7 +198,7 @@ class User(Model, AbstractBaseUser):
     def class_name(self):
         return "User"
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
@@ -207,7 +207,7 @@ class User(Model, AbstractBaseUser):
                 avatar.delete()
             for outbox in self.outboxes_for_update(is_user_delete=True):
                 outbox.save()
-            return super().delete()
+            return super().delete(*args, **kwargs)
 
     def update(self, *args, **kwds):
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
@@ -377,7 +377,7 @@ class User(Model, AbstractBaseUser):
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
         # the `IntegrityError`s.
-        user_related_models: tuple[type[Model], ...] = (
+        user_related_models = (
             Authenticator,
             Identity,
             UserAvatar,

@@ -81,10 +81,8 @@ class FeatureManagerTest(TestCase):
         manager.add("organizations:feature1", OrganizationFeature)
         manager.add("organizations:feature2", OrganizationFeature, api_expose=True)
         manager.add("organizations:feature3", OrganizationFeature, api_expose=False)
-        exposed = {"organizations:feature1", "organizations:feature2"}
-        hidden = {
-            "organizations:feature3",
-        }
+        exposed = {"organizations:feature2"}
+        hidden = {"organizations:feature1", "organizations:feature3"}
         assert set(manager.all(OrganizationFeature).keys()) == exposed | hidden
         assert (
             set(manager.all(feature_type=OrganizationFeature, api_expose_only=True).keys())
@@ -335,7 +333,7 @@ class FeatureManagerTest(TestCase):
         manager.add("feat:3", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 
         manager.add("feat:4", OrganizationFeature, True)
-        manager.add("feat:5", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+        manager.add("feat:5", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
 
         assert "feat:1" not in manager.entity_features
         assert "feat:2" not in manager.entity_features

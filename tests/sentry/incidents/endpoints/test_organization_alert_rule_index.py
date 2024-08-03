@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import timedelta
 from functools import cached_property
 from unittest.mock import patch
 
@@ -7,13 +8,17 @@ import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
 from rest_framework import status
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -33,7 +38,8 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.factories import EventType
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -93,6 +99,25 @@ class AlertRuleIndexBase(AlertRuleBase):
     __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-alert-rules"
+
+    def setUp(self):
+        super().setUp()
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        self.slack_action = [
+            {
+                "type": "slack",
+                "targetIdentifier": "my-channel",
+                "targetType": "specific",
+                "integration": self.integration.id,
+            }
+        ]
 
 
 class AlertRuleListEndpointTest(AlertRuleIndexBase):
@@ -157,7 +182,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def setUp(self):
-        super(AlertRuleBase, self).setUp()
+        super().setUp()
 
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -206,6 +231,81 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.description == resp.data.get("description")
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert(self, mock_seer_request):
+        data = {
+            "aggregate": "count()",
+            "query": "",
+            "time_window": 30,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+            "activations": [],
+        }
+        mock_seer_request.return_value = HTTPResponse(status=200)
+        day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "super duper bad",
+                    "timestamp": iso_format(day_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "super bad",
+                    "timestamp": iso_format(day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                event_type=EventType.ERROR,
+                project_id=self.project.id,
+            )
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.seasonality == resp.data.get("seasonality")
+        assert alert_rule.sensitivity == resp.data.get("sensitivity")
+        assert mock_seer_request.call_count == 1
 
     def test_monitor_type_with_condition(self):
         data = {
@@ -270,6 +370,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "is:unresolved"
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
@@ -694,28 +795,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration, _ = self.create_provider_integration_for(
-            self.organization,
-            self.user,
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
         valid_alert_rule = {
             **self.alert_rule_dict,
             "triggers": [
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "actions": [
-                        {
-                            "type": "slack",
-                            "targetIdentifier": "my-channel",
-                            "targetType": "specific",
-                            "integration": self.integration.id,
-                        }
-                    ],
+                    "actions": self.slack_action,
                 },
             ],
         }
@@ -723,7 +809,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             resp = self.get_success_response(
                 self.organization.slug, status_code=202, **valid_alert_rule
             )
-        resp.data["uuid"] = "abc123"
+        assert resp.data["uuid"] == "abc123"
         assert not AlertRule.objects.filter(name="JustAValidTestRule").exists()
         kwargs = {
             "organization_id": self.organization.id,
@@ -744,15 +830,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         mock_uuid4.return_value = self.get_mock_uuid()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_provider_integration(
-                provider="slack",
-                name="Team A",
-                external_id="TXXXXXXX1",
-                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-            )
-            self.integration.add_organization(self.organization, self.user)
         name = "MySpecialAsyncTestRule"
         test_params = {
             **self.alert_rule_dict,
@@ -762,14 +839,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 {
                     "label": "critical",
                     "alertThreshold": 75,
-                    "actions": [
-                        {
-                            "type": "slack",
-                            "targetIdentifier": "my-channel",
-                            "targetType": "specific",
-                            "integrationId": self.integration.id,
-                        },
-                    ],
+                    "actions": self.slack_action,
                 },
             ],
         }
@@ -1110,33 +1180,18 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration, _ = self.create_provider_integration_for(
-            self.organization,
-            self.user,
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
         self.valid_alert_rule["triggers"] = [
             {
                 "label": "critical",
                 "alertThreshold": 50,
-                "actions": [
-                    {
-                        "type": "slack",
-                        "targetIdentifier": "my-channel",
-                        "targetType": "specific",
-                        "integration": self.integration.id,
-                    }
-                ],
+                "actions": self.slack_action,
             },
         ]
         with self.feature(["organizations:incidents"]):
             resp = self.get_success_response(
                 self.organization.slug, status_code=202, **self.valid_alert_rule
             )
-        resp.data["uuid"] = "abc123"
+        assert resp.data["uuid"] == "abc123"
         assert not AlertRule.objects.filter(name="JustAValidTestRule").exists()
         kwargs = {
             "organization_id": self.organization.id,

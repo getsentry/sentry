@@ -32,8 +32,8 @@ from sentry.hybridcloud.services.organization_mapping import organization_mappin
 from sentry.locks import locks
 from sentry.models.outbox import OutboxCategory
 from sentry.notifications.services import notifications_service
+from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.roles.manager import Role
-from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
@@ -145,7 +145,7 @@ class OrganizationManager(BaseManager["Organization"]):
 
 @snowflake_id_model
 @region_silo_model
-class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
+class Organization(ReplicatedRegionModel):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -257,10 +257,10 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
     def reserve_snowflake_id(cls):
         return generate_snowflake_id(cls.snowflake_redis_key)
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         if self.is_default:
             raise Exception("You cannot delete the default organization.")
-        return super().delete(**kwargs)
+        return super().delete(*args, **kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.organization_mapping.serial import (
@@ -466,6 +466,28 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
             return reverse(Organization.get_url_viewname(), args=[slug])
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
+
+    @cached_property
+    def __has_customer_domain(self) -> bool:
+        """
+        Check if the current organization is using or has access to customer domains.
+        """
+        return has_customer_domain()
+
+    def absolute_url(self, path: str, query: str | None = None, fragment: str | None = None) -> str:
+        """
+        Get an absolute URL to `path` for this organization.
+
+        This method takes customer-domains into account and will update the path when
+        customer-domains are active.
+        """
+        return organization_absolute_url(
+            has_customer_domain=self.__has_customer_domain,
+            slug=self.slug,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
 
     def get_scopes(self, role: Role) -> frozenset[str]:
         """

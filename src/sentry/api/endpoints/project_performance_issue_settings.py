@@ -24,6 +24,7 @@ from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
+    ProfileFunctionRegressionType,
 )
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
@@ -49,6 +50,7 @@ class InternalProjectOptions(Enum):
     SLOW_DB_QUERY = "slow_db_queries_detection_enabled"
     HTTP_OVERHEAD = "http_overhead_detection_enabled"
     TRANSACTION_DURATION_REGRESSION = "transaction_duration_regression_detection_enabled"
+    FUNCTION_DURATION_REGRESSION = "function_duration_regression_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
@@ -79,6 +81,7 @@ internal_only_project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.SLOW_DB_QUERY.value: PerformanceSlowDBQueryGroupType,
     InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
+    InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
 }
 
 configurable_thresholds_to_internal_settings_map: dict[str, str] = {
@@ -146,6 +149,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     slow_db_queries_detection_enabled = serializers.BooleanField(required=False)
     http_overhead_detection_enabled = serializers.BooleanField(required=False)
     transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
+    function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
 
 
 def get_disabled_threshold_options(payload, current_settings):
@@ -166,9 +170,9 @@ def get_disabled_threshold_options(payload, current_settings):
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     owner = ApiOwner.PERFORMANCE
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectSettingPermission,)
 

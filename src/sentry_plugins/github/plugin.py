@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
-from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -102,7 +102,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
     def get_url_module(self):
         return "sentry_plugins.github.urls"
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("repo", project))
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
@@ -164,7 +164,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return (("", "Unassigned"),) + users
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         # TODO: support multiple identities via a selection input in the form?
         with self.get_client(request.user) as client:
             try:
@@ -196,10 +196,10 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
         return {"title": issue["title"]}
 
-    def get_issue_label(self, group, issue_id, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         return f"GH-{issue_id}"
 
-    def get_issue_url(self, group, issue_id, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         # XXX: get_option may need tweaked in Sentry so that it can be pre-fetched in bulk
         repo = self.get_option("repo", group.project)
 

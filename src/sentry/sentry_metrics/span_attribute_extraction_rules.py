@@ -20,7 +20,7 @@ def create_extraction_rule_config(request: Request, project: Project, config_upd
             or len(obj["conditions"]) == 0
             or (len(obj["conditions"]) == 1 and obj["conditions"][0] == "")
         ):
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.new_scope() as scope:
                 scope.set_tag("project", project.slug)
                 sentry_sdk.capture_message(
                     "A MetricExtractionRuleConfig without conditions was created.",

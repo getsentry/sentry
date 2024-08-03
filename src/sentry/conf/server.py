@@ -395,6 +395,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.monitors",
+    "sentry.integrations",
     "sentry.uptime",
     "sentry.replays",
     "sentry.release_health",
@@ -736,6 +737,9 @@ CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.integrations.github.tasks",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
@@ -809,6 +813,8 @@ CELERY_IMPORTS = (
     "sentry.integrations.slack.tasks",
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.subscriptions.tasks",
+    "sentry.integrations.vsts.tasks",
+    "sentry.integrations.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1146,6 +1152,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 20 minutes
         "schedule": crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
+    },
+    "uptime-subscription-checker": {
+        "task": "sentry.uptime.tasks.subscription_checker",
+        "schedule": crontab(minute="*/10"),
+        "options": {"expires": 10 * 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
@@ -1539,10 +1550,6 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # ----
 # end APM config
 # ----
-
-# DSN to use for Sentry monitors
-SENTRY_MONITOR_DSN: str | None = None
-SENTRY_MONITOR_API_ROOT: str | None = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -2859,7 +2866,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
     "outcomes": "default",
+    "outcomes-dlq": "default",
     "outcomes-billing": "default",
+    "outcomes-billing-dlq": "default",
     "events-subscription-results": "default",
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",
@@ -3188,7 +3197,7 @@ SUPERUSER_STAFF_EMAIL_SUFFIX: str | None = None
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
-MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 400
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 MAX_MORE_FAST_CONDITION_ISSUE_ALERTS = 1000
@@ -3435,6 +3444,10 @@ SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
+SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
+
+SEER_ANOMALY_DETECTION_VERSION = "v1"
+SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 

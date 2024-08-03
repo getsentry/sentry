@@ -2,6 +2,7 @@ import {css} from '@emotion/react';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AlertBadge from 'sentry/components/badge/alertBadge';
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -9,7 +10,7 @@ import TimeSince from 'sentry/components/timeSince';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
+import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 import type {Incident, MetricAlert} from 'sentry/views/alerts/types';
 import {CombinedAlertType} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
@@ -33,7 +34,7 @@ import useTeams from '../teams/useTeams';
 import useInfiniteAlertsList from './useInfiniteAlertsList';
 
 export default function AlertsPanel() {
-  const {projectId, projectSlug, projectPlatform, trackAnalytics} = useConfiguration();
+  const {projectId, projectSlug, projectPlatform} = useConfiguration();
   const queryResult = useInfiniteAlertsList();
 
   const estimateSize = 84;
@@ -41,40 +42,34 @@ export default function AlertsPanel() {
 
   return (
     <PanelLayout title="Alerts">
-      <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-        <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>
-          Active Alerts in{' '}
-          <SentryAppLink
-            to={{url: `/projects/${projectSlug}/`}}
-            onClick={() => {
-              trackAnalytics?.({
-                eventKey: `devtoolbar.alerts-list.header.click`,
-                eventName: `devtoolbar: Click alert-list header`,
-              });
-            }}
-          >
-            <div
-              css={[
-                resetFlexRowCss,
-                {display: 'inline-flex', gap: 'var(--space50)', alignItems: 'center'},
-              ]}
-            >
-              <ProjectBadge
-                css={css({'&& img': {boxShadow: 'none'}})}
-                project={{
-                  slug: projectSlug,
-                  id: projectId,
-                  platform: projectPlatform as PlatformKey,
-                }}
-                avatarSize={16}
-                hideName
-                avatarProps={{hasTooltip: false}}
-              />
-              {projectSlug}
-            </div>
-          </SentryAppLink>
-        </span>
-      </div>
+      <AnalyticsProvider nameVal="header" keyVal="header">
+        <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
+          <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>
+            Active alerts in{' '}
+            <SentryAppLink to={{url: `/projects/${projectSlug}/`}}>
+              <div
+                css={[
+                  resetFlexRowCss,
+                  {display: 'inline-flex', gap: 'var(--space50)', alignItems: 'center'},
+                ]}
+              >
+                <ProjectBadge
+                  css={css({'&& img': {boxShadow: 'none'}})}
+                  project={{
+                    slug: projectSlug,
+                    id: projectId,
+                    platform: projectPlatform as PlatformKey,
+                  }}
+                  avatarSize={16}
+                  hideName
+                  avatarProps={{hasTooltip: false}}
+                />
+                {projectSlug}
+              </div>
+            </SentryAppLink>
+          </span>
+        </div>
+      </AnalyticsProvider>
 
       <div css={resetFlexColumnCss}>
         <InfiniteListState
@@ -109,7 +104,7 @@ export default function AlertsPanel() {
 }
 
 function AlertListItem({item}: {item: Incident}) {
-  const {organizationSlug, trackAnalytics} = useConfiguration();
+  const {organizationSlug} = useConfiguration();
 
   const ownerId = item.alertRule.owner?.split(':').at(1);
 
@@ -143,36 +138,29 @@ function AlertListItem({item}: {item: Incident}) {
         `,
       ]}
     >
-      <div style={{gridArea: 'badge'}}>
+      <div css={{gridArea: 'badge'}}>
         <AlertBadge status={item.status} isIssue={false} />
       </div>
 
-      <div
-        css={[gridFlexEndCss, xSmallCss]}
-        style={{gridArea: 'time', color: 'var(--gray300)'}}
-      >
+      <div css={[gridFlexEndCss, xSmallCss, {gridArea: 'time', color: 'var(--gray300)'}]}>
         <TimeSince date={item.dateStarted} unitStyle="extraShort" />
       </div>
 
-      <TextOverflow css={smallCss} style={{gridArea: 'name'}}>
-        <SentryAppLink
-          to={{
-            url: alertDetailsLink({slug: organizationSlug} as Organization, item),
-            query: {alert: item.identifier},
-          }}
-          onClick={() => {
-            trackAnalytics?.({
-              eventKey: `devtoolbar.alert-list.item.click`,
-              eventName: `devtoolbar: Click alert-list item`,
-            });
-          }}
-        >
-          <strong>{item.title}</strong>
-        </SentryAppLink>
-      </TextOverflow>
+      <AnalyticsProvider nameVal="item" keyVal="item">
+        <TextOverflow css={[smallCss, {gridArea: 'name'}]}>
+          <SentryAppLink
+            to={{
+              url: alertDetailsLink({slug: organizationSlug} as Organization, item),
+              query: {alert: item.identifier},
+            }}
+          >
+            <strong>{item.title}</strong>
+          </SentryAppLink>
+        </TextOverflow>
+      </AnalyticsProvider>
 
-      <div css={smallCss} style={{gridArea: 'message'}}>
-        <AlertRuleStatus rule={rule} />
+      <div css={[smallCss, {gridArea: 'message', '> div': {flexDirection: 'row'}}]}>
+        <ActivatedMetricAlertRuleStatus rule={rule} />
       </div>
 
       {teamActor ? (
@@ -182,9 +170,9 @@ function AlertListItem({item}: {item: Incident}) {
             xSmallCss,
             css`
               justify-self: flex-end;
+              grid-area: icons;
             `,
           ]}
-          style={{gridArea: 'icons'}}
         >
           <ActorAvatar actor={teamActor} size={16} hasTooltip={false} />{' '}
           <TextOverflow>{teamActor.name}</TextOverflow>

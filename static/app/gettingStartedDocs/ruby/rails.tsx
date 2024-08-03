@@ -48,6 +48,9 @@ Sentry.init do |config|
   }
 end`;
 
+const getVerifyRailsSnippet = () => `
+Sentry.capture_message("test message")`;
+
 const onboarding: OnboardingConfig = {
   introduction: () =>
     t(
@@ -57,11 +60,10 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add [sentryRubyCode:sentry-ruby] and [sentryRailsCode:sentry-rails] to your [sentryGemfileCode:Gemfile]:',
+        'The Sentry SDK for Rails comes as two gems and is straightforward to install. If you are using Bundler just add this to your [gemfileCode:Gemfile] and run [bundleCode:bundle install]:',
         {
-          sentryRubyCode: <code />,
-          sentryRailsCode: <code />,
-          sentryGemfileCode: <code />,
+          gemfileCode: <code />,
+          bundleCode: <code />,
         }
       ),
       configurations: [
@@ -88,7 +90,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Initialize the SDK within your [code:config/initializers/sentry.rb]:',
+        'Run [generate:bin/rails generate sentry] to create the initializer file [code:config/initializers/sentry.rb] and configure it as follows:',
         {
           code: <code />,
         }
@@ -110,7 +112,26 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'ruby',
+              value: 'ruby',
+              language: 'ruby',
+              code: getVerifyRailsSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

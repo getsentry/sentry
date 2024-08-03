@@ -1,13 +1,15 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
-import {IconProject, IconWarning} from 'sentry/icons';
+import {IconAdd, IconInfo, IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
@@ -23,10 +25,12 @@ import {
 } from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
+import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 import {MetricListItemDetails} from './metricListItemDetails';
 
@@ -154,11 +158,13 @@ export const MRISelect = memo(function MRISelect({
   isLoading,
   value,
 }: MRISelectProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
   const mriMode = useMriMode();
   const [inputValue, setInputValue] = useState('');
   const hasExtractionRules = hasCustomMetricsExtractionRules(organization);
+  const breakpoints = useBreakpoints();
 
   const metricsWithDuplicateNames = useMetricsWithDuplicateNames(metricsMeta);
   const filteredMRIs = useFilteredMRIs(metricsMeta, inputValue, mriMode);
@@ -214,6 +220,19 @@ export const MRISelect = memo(function MRISelect({
     [onChange]
   );
 
+  const maxLength = useMemo(() => {
+    if (breakpoints.small) {
+      // at least small size screen, no problem with fitting 100 characters
+      return 100;
+    }
+    if (breakpoints.xsmall) {
+      return 35; // at least xsmall size screen, no problem with fitting 35 characters
+    }
+
+    // screen smaller than xsmall, 20 characters is optimal
+    return 20;
+  }, [breakpoints]);
+
   const mriOptions = useMemo(
     () =>
       displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
@@ -262,7 +281,7 @@ export const MRISelect = memo(function MRISelect({
             ? metric.mri
             : isUnresolvedExtractedMetric
               ? t('Deleted Metric')
-              : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
+              : middleEllipsis(formatMRI(metric.mri) ?? '', maxLength, /\.|-|_/),
           value: metric.mri,
           leadingItems: [projectBadge],
           disabled: isUnresolvedExtractedMetric,
@@ -287,6 +306,7 @@ export const MRISelect = memo(function MRISelect({
       onTagClick,
       projects,
       selectedProjects,
+      maxLength,
     ]
   );
 
@@ -299,7 +319,7 @@ export const MRISelect = memo(function MRISelect({
         isLoading={isLoading}
         loadingMessage={t('Loading\u2026')}
         menuSize="sm"
-        menuWidth="450px"
+        menuWidth="450px" // TODO(priscilawebdev): update this value for small screens
         onChange={handleMRIChange}
         onInputChange={setInputValue}
         onOpenChange={onOpenMenu}
@@ -308,7 +328,35 @@ export const MRISelect = memo(function MRISelect({
         size="md"
         sizeLimit={100}
         value={value}
-        css={comboBoxCss}
+        menuFooter={
+          isLoading
+            ? undefined
+            : ({closeOverlay}) => (
+                <FlexBlock>
+                  <Button
+                    icon={<IconAdd isCircled />}
+                    priority="primary"
+                    onClick={() => {
+                      closeOverlay();
+                      openExtractionRuleCreateModal({});
+                    }}
+                    size="xs"
+                  >
+                    {t('Create Metric')}
+                  </Button>
+                  <FlexBlock
+                    css={css`
+                      gap: ${space(0.75)};
+                      color: ${theme.subText};
+                      font-size: ${theme.fontSizeSmall};
+                    `}
+                  >
+                    <IconInfo size="xs" />
+                    {t('Don’t see your span attribute? Create Metric.')}
+                  </FlexBlock>
+                </FlexBlock>
+              )
+        }
       />
     );
   }
@@ -330,7 +378,10 @@ export const MRISelect = memo(function MRISelect({
       size="md"
       sizeLimit={100}
       value={value}
-      css={comboBoxCss}
+      css={css`
+        min-width: 200px;
+        max-width: min(500px, 100%);
+      `}
     />
   );
 });
@@ -339,7 +390,8 @@ const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const comboBoxCss = css`
-  min-width: 200px;
-  max-width: min(500px, 100%);
+const FlexBlock = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
