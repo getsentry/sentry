@@ -3,7 +3,6 @@ import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {ReplayContextProvider} from 'sentry/components/devtoolbar/hooks/useReplayContext';
 import {lightTheme} from 'sentry/utils/theme';
 
 import {ConfigurationContextProvider} from '../hooks/useConfiguration';
@@ -38,11 +37,9 @@ export default function Providers({children, config, container}: Props) {
       <ThemeProvider theme={lightTheme}>
         <ConfigurationContextProvider config={config}>
           <QueryClientProvider client={queryClient}>
-            <ReplayContextProvider sentrySdk={config.SentrySDK} poll_interval_ms={3000}>
-              <VisibilityContextProvider>
-                <ToolbarRouterContextProvider>{children}</ToolbarRouterContextProvider>
-              </VisibilityContextProvider>
-            </ReplayContextProvider>
+            <VisibilityContextProvider>
+              <ToolbarRouterContextProvider>{children}</ToolbarRouterContextProvider>
+            </VisibilityContextProvider>
           </QueryClientProvider>
         </ConfigurationContextProvider>
       </ThemeProvider>

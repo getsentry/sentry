@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 
 import {Button} from 'sentry/components/button';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
-import useReplayContext from 'sentry/components/devtoolbar/hooks/useReplayContext';
+import useReplayRecorder from 'sentry/components/devtoolbar/hooks/useReplayRecorder';
 import {resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconPause, IconPlay} from 'sentry/icons';
@@ -19,7 +19,7 @@ export default function ReplayPanel() {
   const {projectSlug, projectId, projectPlatform, trackAnalytics} = useConfiguration();
 
   const {disabledReason, isDisabled, isRecording, lastReplayId, start, stop} =
-    useReplayContext();
+    useReplayRecorder();
 
   return (
     <PanelLayout title="Session Replay">

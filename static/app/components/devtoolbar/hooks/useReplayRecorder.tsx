@@ -1,19 +1,18 @@
-import {createContext, useContext, useEffect, useState} from 'react';
-import type SentrySDK from '@sentry/react'; // TODO: change to `@sentry/browser` when we have our own package.json
+import {useEffect, useState} from 'react';
 import type {replayIntegration} from '@sentry/react';
 import type {ReplayRecordingMode} from '@sentry/types';
 
-import type {ReplayRecordingContext} from '../types';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 
-const context = createContext<ReplayRecordingContext>({
-  currReplayId: undefined,
-  lastReplayId: undefined,
-  disabledReason: 'No replay context provider',
-  isDisabled: true,
-  isRecording: false,
-  start: () => false,
-  stop: () => false,
-});
+type ReplayRecorderState = {
+  currReplayId: string | undefined;
+  disabledReason: string | undefined;
+  isDisabled: boolean;
+  isRecording: boolean;
+  lastReplayId: string | undefined;
+  start(): boolean;
+  stop(): boolean;
+};
 
 function getSessionId(
   replay: ReturnType<typeof replayIntegration> | undefined
@@ -32,18 +31,14 @@ function getRecordingMode(
   return replay?._replay.recordingMode;
 }
 
-export function ReplayContextProvider({
-  children,
-  poll_interval_ms,
-  sentrySdk,
-}: {
-  children: React.ReactNode;
-  poll_interval_ms: number;
-  sentrySdk: typeof SentrySDK | undefined;
-}) {
+const POLL_INTERVAL_MS = 3000;
+const LAST_REPLAY_STORAGE_KEY = 'devtoolbar.last_replay_id';
+
+export default function useReplayRecorder(): ReplayRecorderState {
   // INTERNAL STATE
+  const {SentrySDK} = useConfiguration();
   const replay =
-    sentrySdk && 'getReplay' in sentrySdk ? sentrySdk.getReplay() : undefined;
+    SentrySDK && 'getReplay' in SentrySDK ? SentrySDK.getReplay() : undefined;
 
   // sessionId is defined if we are recording in session OR buffer mode.
   const [sessionId, setSessionId] = useState<string | undefined>(getSessionId(replay));
@@ -55,15 +50,15 @@ export function ReplayContextProvider({
     const intervalId = setInterval(() => {
       setSessionId(getSessionId(replay));
       setRecordingMode(getRecordingMode(replay));
-    }, poll_interval_ms);
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [replay, poll_interval_ms]);
+  }, [replay]);
 
   // EXPORTED
   const isDisabled = replay === undefined; // TODO: should we also do FF checks?
-  const disabledReason = !sentrySdk
+  const disabledReason = !SentrySDK
     ? 'Failed to load the Sentry SDK.'
-    : !('getReplay' in sentrySdk)
+    : !('getReplay' in SentrySDK)
       ? 'Your SDK version is too outdated to access the Replay integration.'
       : !replay
         ? 'Failed to load the SDK Replay integration'
@@ -76,13 +71,14 @@ export function ReplayContextProvider({
     isRecording ? sessionId : undefined
   );
   const [lastReplayId, setLastReplayId] = useState<string | undefined>(
-    isRecording ? sessionId : undefined
+    sessionStorage.getItem(LAST_REPLAY_STORAGE_KEY) || undefined
   );
   useEffect(() => {
     const newIsRecording = sessionId !== undefined && recordingMode === 'session';
     setIsRecording(newIsRecording);
     setCurrReplayId(newIsRecording ? sessionId : undefined);
     if (newIsRecording) {
+      sessionStorage.setItem(LAST_REPLAY_STORAGE_KEY, sessionId);
       setLastReplayId(sessionId);
     }
   }, [sessionId, recordingMode]);
@@ -114,23 +110,13 @@ export function ReplayContextProvider({
     return false;
   };
 
-  return (
-    <context.Provider
-      value={{
-        currReplayId,
-        disabledReason,
-        isDisabled,
-        isRecording,
-        lastReplayId,
-        start,
-        stop,
-      }}
-    >
-      {children}
-    </context.Provider>
-  );
-}
-
-export default function useReplayContext() {
-  return useContext(context);
+  return {
+    currReplayId,
+    disabledReason,
+    isDisabled,
+    isRecording,
+    lastReplayId,
+    start,
+    stop,
+  };
 }
