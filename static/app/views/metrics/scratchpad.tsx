@@ -21,6 +21,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {METRIC_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
+import {useWaitingForIngestion} from 'sentry/views/metrics/useWaitingForIngestion';
 import {useGetCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 import {widgetToQuery} from 'sentry/views/metrics/utils/widgetToQuery';
@@ -47,6 +48,8 @@ export function MetricScratchpad() {
   const organization = useOrganization();
   const getChartPalette = useGetCachedChartPalette();
   const metricsNewInputs = hasMetricsNewInputs(organization);
+
+  const {endAwaitingMetricIngestion} = useWaitingForIngestion(widgets, updateWidget);
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -156,6 +159,7 @@ export function MetricScratchpad() {
                   }
                   metricsSamples={metricsSamples}
                   overlays={widget.overlays}
+                  endAwaitingMetricIngestion={endAwaitingMetricIngestion}
                 />
               )}
             </MultiChartWidgetQueries>
@@ -183,6 +187,8 @@ export function MetricScratchpad() {
           highlightedSampleId={highlightedSampleId}
           metricsSamples={metricsSamples}
           overlays={firstWidget.overlays}
+          endAwaitingMetricIngestion={endAwaitingMetricIngestion}
+          awaitingMetricIngestion={filteredWidgets.map(w => !!w.awaitingMetricIngestion)}
         />
       )}
     </Wrapper>

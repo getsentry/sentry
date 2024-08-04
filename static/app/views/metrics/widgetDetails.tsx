@@ -37,8 +37,10 @@ export function WidgetDetails() {
     hasPerformanceMetrics,
   } = useMetricsContext();
 
-  const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
+  const awaitingMetricIngestion = widgets[selectedWidgetIndex].awaitingMetricIngestion;
+  const refetchInterval = awaitingMetricIngestion ? 10000 : false;
 
+  const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
   const handleSampleRowHover = useCallback(
     (sampleId?: string) => {
       setHighlightedSampleId(sampleId);
@@ -63,6 +65,7 @@ export function WidgetDetails() {
       setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
       hasPerformanceMetrics={hasPerformanceMetrics}
+      refetchInterval={refetchInterval}
     />
   );
 }
@@ -76,6 +79,7 @@ interface MetricDetailsProps {
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
+  refetchInterval?: number | false;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
   >;
@@ -91,6 +95,7 @@ export function MetricDetails({
   focusArea,
   setMetricsSamples,
   hasPerformanceMetrics,
+  refetchInterval,
 }: MetricDetailsProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -187,6 +192,7 @@ export function MetricDetails({
               query={queryWithFocusedSeries}
               setMetricsSamples={setMetricsSamples}
               hasPerformance={hasPerformanceMetrics}
+              refetchInterval={refetchInterval}
             />
           ) : (
             <MetricSamplesTable
@@ -198,6 +204,7 @@ export function MetricDetails({
               query={queryWithFocusedSeries}
               setMetricsSamples={setMetricsSamples}
               hasPerformance={hasPerformanceMetrics}
+              refetchInterval={refetchInterval}
             />
           )}
         </MetricSampleTableWrapper>

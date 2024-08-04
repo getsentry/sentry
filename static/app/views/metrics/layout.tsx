@@ -23,6 +23,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
@@ -30,7 +31,10 @@ import {
   hasCustomMetrics,
   hasCustomMetricsExtractionRules,
 } from 'sentry/utils/metrics/features';
-import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
+import {
+  createVirtualMRI,
+  useVirtualMetricsContext,
+} from 'sentry/utils/metrics/virtualMetricsContext';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
@@ -73,6 +77,7 @@ export const MetricsLayout = memo(() => {
     hasCustomMetrics: hasSentCustomMetrics,
     hasPerformanceMetrics,
     isHasMetricsLoading,
+    addWidget2,
   } = useMetricsContext();
   const virtualMetrics = useVirtualMetricsContext();
 
@@ -144,6 +149,20 @@ export const MetricsLayout = memo(() => {
         <Layout.HeaderActions>
           {!showOnboardingPanel ? (
             <PageHeaderActions
+              onAddMetric={(rule: MetricsExtractionRule) => {
+                const mri = createVirtualMRI(rule);
+
+                addWidget2({
+                  // @ts-ignore
+                  mri,
+                  aggregation: rule.aggregates[0],
+                  groupBy: [],
+                  // @ts-ignore
+                  query: rule.conditions[0].query,
+                  condition: rule.conditions[0].id,
+                  awaitingMetricIngestion: true,
+                });
+              }}
               showAddMetricButton={
                 hasCustomMetricsExtractionRules(organization) ||
                 hasSentCustomMetrics ||

@@ -36,10 +36,15 @@ import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetric
 
 interface Props {
   addCustomMetric: () => void;
+  onAddMetric: (rule: any) => void;
   showAddMetricButton: boolean;
 }
 
-export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props) {
+export function PageHeaderActions({
+  showAddMetricButton,
+  addCustomMetric,
+  onAddMetric,
+}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const metricsNewInputs = hasMetricsNewInputs(organization);
@@ -152,7 +157,11 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() => openExtractionRuleCreateModal({})}
+            onClick={() =>
+              openExtractionRuleCreateModal({
+                onCreate: onAddMetric,
+              })
+            }
             size="sm"
           >
             {t('Create Metric')}

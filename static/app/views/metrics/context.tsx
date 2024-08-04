@@ -45,7 +45,9 @@ export type FocusAreaProps = {
 
 interface MetricsContextValue {
   addWidget: (type?: MetricExpressionType) => void;
+  addWidget2: (data: Partial<Omit<MetricsWidget, 'type'>>) => void;
   duplicateWidget: (index: number) => void;
+  endAwaitingMetricMode: () => void;
   focusArea: FocusAreaProps;
   hasCustomMetrics: boolean;
   hasPerformanceMetrics: boolean;
@@ -71,6 +73,7 @@ interface MetricsContextValue {
 
 export const MetricsContext = createContext<MetricsContextValue>({
   addWidget: () => {},
+  addWidget2: () => {},
   duplicateWidget: () => {},
   focusArea: {},
   hasCustomMetrics: false,
@@ -91,6 +94,7 @@ export const MetricsContext = createContext<MetricsContextValue>({
   updateWidget: () => {},
   widgets: [],
   toggleWidgetVisibility: () => {},
+  endAwaitingMetricMode: () => {},
 });
 
 export function useMetricsContext() {
@@ -212,6 +216,16 @@ export function useMetricWidgets(
     [currentWidgetsRef, duplicateWidget, setWidgets]
   );
 
+  const addWidget2 = useCallback(
+    data => {
+      setWidgets(currentWidgets => {
+        const newWidgets = [...currentWidgets].map(w => ({...w, isHidden: true}));
+        return [...newWidgets, {...data, isHidden: false}];
+      });
+    },
+    [setWidgets]
+  );
+
   const removeWidget = useCallback(
     (index: number) => {
       setWidgets(currentWidgets => {
@@ -235,6 +249,7 @@ export function useMetricWidgets(
     removeWidget,
     duplicateWidget,
     setWidgets,
+    addWidget2,
   };
 }
 
@@ -290,11 +305,18 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
-  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
-    useMetricWidgets(
-      defaultMetricMeta,
-      defaultMetricMeta && getConditions(defaultMetricMeta.mri)[0]?.id
-    );
+  const {
+    widgets,
+    updateWidget,
+    addWidget,
+    addWidget2,
+    removeWidget,
+    duplicateWidget,
+    setWidgets,
+  } = useMetricWidgets(
+    defaultMetricMeta,
+    defaultMetricMeta && getConditions(defaultMetricMeta.mri)[0]?.id
+  );
 
   const [metricsSamples, setMetricsSamples] = useState<
     MetricsSamplesResults<Field>['data'] | undefined
@@ -359,6 +381,27 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
     [addWidget, handleSetSelectedWidgetIndex, widgets.length]
   );
 
+  const endAwaitingMetricMode = useCallback(() => {
+    setWidgets(currentWidgets => {
+      return currentWidgets.map(w => ({...w, awaitingMetricIngestion: false}));
+    });
+  }, [setWidgets]);
+
+  const handleAddWidget2 = useCallback(
+    (data: Partial<MetricsWidget>) => {
+      addWidget2(data);
+      handleSetSelectedWidgetIndex(widgets.length);
+
+      setTimeout(
+        () => {
+          endAwaitingMetricMode();
+        },
+        5 * 60 * 1000
+      );
+    },
+    [addWidget2, endAwaitingMetricMode, handleSetSelectedWidgetIndex, widgets.length]
+  );
+
   const handleUpdateWidget = useCallback(
     (index: number, data: Partial<MetricsWidget>) => {
       updateWidget(index, data);
@@ -416,6 +459,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const contextValue = useMemo<MetricsContextValue>(
     () => ({
       addWidget: handleAddWidget,
+      addWidget2: handleAddWidget2,
       selectedWidgetIndex: isSelectionValid
         ? selectedWidgetIndex
         : widgets.findIndex(w => !w.isHidden),
@@ -438,9 +482,11 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       metricsSamples,
       setMetricsSamples,
       toggleWidgetVisibility,
+      endAwaitingMetricMode,
     }),
     [
       handleAddWidget,
+      handleAddWidget2,
       isSelectionValid,
       selectedWidgetIndex,
       widgets,
@@ -460,6 +506,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       toggleWidgetVisibility,
       isMetaCustomLoading,
       isMetaPerformanceLoading,
+      endAwaitingMetricMode,
     ]
   );
 

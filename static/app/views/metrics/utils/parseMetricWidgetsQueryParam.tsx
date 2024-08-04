@@ -252,6 +252,8 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
       overlays: widget.overlays
         ? parseArrayParam(widget, 'overlays', entry => entry as MetricChartOverlayType)
         : [MetricChartOverlayType.SAMPLES],
+      awaitingMetricIngestion:
+        parseBooleanParam(widget, 'awaitingMetricIngestion') ?? false,
     };
 
     switch (type) {
