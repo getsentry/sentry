@@ -22,7 +22,10 @@ def build_linking_url(
     team_id: str,
     tenant_id: str,
 ) -> str:
+    from sentry.integrations.msteams.constants import SALT
+
     signed_params = sign(
+        salt=SALT,
         integration_id=integration.id,
         organization_id=organization.id,
         teams_user_id=teams_user_id,
