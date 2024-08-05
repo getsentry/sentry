@@ -175,8 +175,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
       return event;
     },
-
-    debug: true,
   });
 
   if (process.env.NODE_ENV !== 'production') {
