@@ -59,15 +59,15 @@ export function MetricsExtractionRulesTable({project}: Props) {
             {metricsExtractionRules: [rule]},
             {
               onSuccess: () => {
-                addSuccessMessage(t('Metric extraction rule deleted'));
+                addSuccessMessage(t('Metric deleted'));
               },
               onError: () => {
-                addErrorMessage(t('Failed to delete metric extraction rule'));
+                addErrorMessage(t('Failed to delete metric'));
               },
             }
           ),
-        message: t('Are you sure you want to delete this extraction rule?'),
-        confirmText: t('Delete Extraction Rule'),
+        message: t('Are you sure you want to delete this metric?'),
+        confirmText: t('Delete Metric'),
       });
     },
     [deleteMetricsExtractionRules]
