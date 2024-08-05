@@ -2,10 +2,10 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any
 
-from sentry.digests.backends.base import Backend
+from sentry.digests.backends.base import Backend, ScheduleEntry
 
 if TYPE_CHECKING:
-    from sentry.digests import Record, ScheduleEntry
+    from sentry.digests import Record
     from sentry.models.project import Project
 
 
