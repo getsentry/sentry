@@ -14,8 +14,7 @@ class BaseEventTest(APITestCase):
         self.channel = {"channel_id": "C065W1189", "name": "workflow"}
 
     @patch(
-        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
-        return_value=True,
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )
     def post_webhook(
         self,
