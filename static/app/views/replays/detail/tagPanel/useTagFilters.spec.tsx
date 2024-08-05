@@ -3,8 +3,9 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
+// import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {FilterFields} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
@@ -12,12 +13,13 @@ jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
+const mockUseNavigate = jest.mocked(useNavigate);
 
 const tags = ReplayRecordFixture().tags;
 
 describe('useTagsFilters', () => {
   beforeEach(() => {
-    jest.mocked(browserHistory.push).mockReset();
+    mockUseNavigate.mockReset();
   });
 
   it('should not filter anything when no values are set', () => {
