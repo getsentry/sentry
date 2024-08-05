@@ -446,7 +446,7 @@ export function MetricsExtractionRuleForm({
               <TooltipIconLabel
                 label={t('Aggregate')}
                 help={tct(
-                  'Select the aggregations you want to store. For more information, read [link:our docs]',
+                  'Select the aggregations you’d like to view. For more information, read [link:our docs]',
                   {
                     // TODO(telemetry-experience): add the correct link here once we have it!!!
                     link: (
@@ -478,9 +478,9 @@ export function MetricsExtractionRuleForm({
                   </Tooltip>
                 )}
                 <TooltipIconLabel
-                  label={t('Group and filter by')}
+                  label={t('Group by')}
                   help={t(
-                    'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+                    'Select the tags that can be used to group the metric. Tag values have to be non-numeric.'
                   )}
                 />
               </Fragment>
