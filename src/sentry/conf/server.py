@@ -814,6 +814,7 @@ CELERY_IMPORTS = (
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.integrations.vsts.tasks",
+    "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
 )
 
@@ -1001,7 +1002,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
-        "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
+        "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         # Run every 6 hours
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},

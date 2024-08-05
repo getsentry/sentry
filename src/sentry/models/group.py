@@ -388,7 +388,7 @@ class GroupManager(BaseManager["Group"]):
     def get_groups_by_external_issue(
         self,
         integration: RpcIntegration,
-        organizations: Sequence[Organization],
+        organizations: Iterable[Organization],
         external_issue_key: str,
     ) -> QuerySet[Group]:
         from sentry.integrations.models.external_issue import ExternalIssue
