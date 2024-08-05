@@ -297,7 +297,7 @@ type ChangeTypeProps = {regression: boolean};
 
 const ChangeType = styled('p')<ChangeTypeProps>`
   color: ${p => (p.regression ? p.theme.danger : p.theme.success)};
-  margin-bottom: 0px;
+  margin-bottom: 0;
 `;
 
 const FireIcon = styled('div')<ChangeTypeProps>`

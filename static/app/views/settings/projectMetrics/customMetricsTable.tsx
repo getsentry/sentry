@@ -235,7 +235,7 @@ const SearchWrapper = styled('div')`
   align-items: flex-start;
   gap: ${space(1)};
   margin-top: ${space(4)};
-  margin-bottom: 0px;
+  margin-bottom: 0;
 
   & > h6 {
     margin: 0;

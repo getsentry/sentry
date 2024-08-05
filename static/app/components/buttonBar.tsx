@@ -124,7 +124,7 @@ const MergedStyles = () => css`
 const ButtonGrid = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
   display: grid;
   grid-auto-flow: column;
-  grid-column-gap: ${p => (p.gap === 0 ? '0px' : space(p.gap))};
+  grid-column-gap: ${p => (p.gap === 0 ? '0' : space(p.gap))};
   align-items: center;
 
   ${p => p.merged && MergedStyles}

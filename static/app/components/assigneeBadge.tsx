@@ -56,7 +56,7 @@ export function AssigneeBadge({
           // Team avatars need extra left margin since the
           // square team avatar is being fit into a rounded borders
           style={{
-            marginLeft: actor.type === 'team' ? space(0.5) : '0px',
+            marginLeft: actor.type === 'team' ? space(0.5) : '0',
           }}
         />
         {showLabel && (
