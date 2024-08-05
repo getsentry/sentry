@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import orjson
@@ -8,6 +9,8 @@ from rest_framework import status
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.models.group import Group
+
+logger = logging.getLogger(__name__)
 
 
 class SlackActionRequest(SlackRequest):
@@ -111,6 +114,7 @@ class SlackActionRequest(SlackRequest):
         return logging_data
 
     def get_tags(self) -> set[str]:
+        logger.info("slack.action.get_tags", extra={"data": self.data})
         message = self.data.get("message", {})
         if not message:
             return set()
