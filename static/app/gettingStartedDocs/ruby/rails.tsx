@@ -21,6 +21,8 @@ const getInstallSnippet = (
 ) => `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"
 gem "sentry-rails"`;
 
+const generatorSnippet = 'bin/rails generate sentry';
+
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
   config.dsn = '${params.dsn}'
@@ -48,7 +50,13 @@ Sentry.init do |config|
   }
 end`;
 
-const getVerifyRailsSnippet = () => `
+const getVerifySnippet = () => `
+begin
+  1 / 0
+rescue ZeroDivisionError => exception
+  Sentry.capture_exception(exception)
+end
+
 Sentry.capture_message("test message")`;
 
 const onboarding: OnboardingConfig = {
@@ -60,10 +68,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'The Sentry SDK for Rails comes as two gems and is straightforward to install. If you are using Bundler just add this to your [gemfileCode:Gemfile] and run [bundleCode:bundle install]:',
+        'The Sentry SDK for Rails comes as two gems that should be added to your [gemfileCode:Gemfile]:',
         {
           gemfileCode: <code />,
-          bundleCode: <code />,
         }
       ),
       configurations: [
@@ -83,6 +90,11 @@ const onboarding: OnboardingConfig = {
           language: 'ruby',
           code: getInstallSnippet(params),
         },
+        {
+          description: t('After adding the gems, run the following to install the SDK:'),
+          language: 'ruby',
+          code: 'bundle install',
+        },
       ],
     },
   ],
@@ -90,7 +102,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Run [generate:bin/rails generate sentry] to create the initializer file [code:config/initializers/sentry.rb] and configure it as follows:',
+        'Run the following Rails generator to create the initializer file [code:config/initializers/sentry.rb].',
         {
           code: <code />,
         }
@@ -98,25 +110,23 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'ruby',
+          code: generatorSnippet,
+        },
+        {
+          description: t('You can then change the Sentry configuration as follows:'),
+        },
+        {
+          language: 'ruby',
           code: getConfigureSnippet(params),
         },
       ],
-    },
-    {
-      title: t('Caveats'),
-      description: tct(
-        'Currently, custom exception applications [code:(config.exceptions_app)] are not supported. If you are using a custom exception app, you must manually integrate Sentry yourself.',
-        {
-          code: <code />,
-        }
-      ),
     },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
       description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+        "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
       ),
       configurations: [
         {
@@ -125,7 +135,7 @@ const onboarding: OnboardingConfig = {
               label: 'ruby',
               value: 'ruby',
               language: 'ruby',
-              code: getVerifyRailsSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
