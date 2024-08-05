@@ -71,7 +71,6 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
         return base_error_response
 
     formatted_data = format_historical_data(historical_data)
-
     if (
         not alert_rule.sensitivity
         or not alert_rule.seasonality

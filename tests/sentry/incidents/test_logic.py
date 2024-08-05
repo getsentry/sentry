@@ -1607,7 +1607,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         assert mock_seer_request.call_count == 1
-        mock_seer_request.reset_mock()
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_dynamic_alert_static_to_dynamic(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
 
         static_rule = self.create_alert_rule(time_window=30)
         update_alert_rule(
@@ -1618,8 +1624,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         assert mock_seer_request.call_count == 1
-        mock_seer_request.reset_mock()
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_dynamic_alert_percent_to_dynamic(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
         percent_rule = self.create_alert_rule(
             comparison_delta=60, time_window=30, detection_type=AlertRuleDetectionType.PERCENT
         )
@@ -1683,8 +1694,18 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         assert mock_logger.warning.call_count == 1
         assert mock_seer_request.call_count == 1
-        mock_seer_request.reset_mock()
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.store_data.logger")
+    def test_update_alert_rule_static_to_anomaly_detection_seer_timeout(
+        self, mock_logger, mock_seer_request
+    ):
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
         static_rule = self.create_alert_rule(time_window=30)
         with pytest.raises(TimeoutError):
             update_alert_rule(
@@ -1694,6 +1715,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
                 seasonality=AlertRuleSeasonality.AUTO,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
             )
+        static_rule.refresh_from_db()
         assert static_rule.detection_type == AlertRuleDetectionType.STATIC
 
     @patch(

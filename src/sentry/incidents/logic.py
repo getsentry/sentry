@@ -903,7 +903,8 @@ def update_alert_rule(
                 alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
             ):
                 for k, v in updated_fields.items():
-                    alert_rule.k = v
+                    setattr(alert_rule, k, v)
+
                 try:
                     send_historical_data_to_seer(
                         alert_rule=alert_rule,
