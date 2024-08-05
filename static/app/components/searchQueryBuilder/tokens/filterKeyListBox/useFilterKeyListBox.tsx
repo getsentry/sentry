@@ -10,11 +10,14 @@ import type {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 
+const MAX_OPTIONS_WITHOUT_SEARCH = 100;
+const MAX_OPTIONS_WITH_SEARCH = 8;
+
 export function useFilterKeyListBox({
   items,
-  inputValue,
+  filterValue,
 }: {
-  inputValue: string;
+  filterValue: string;
   items: Array<KeyItem | KeySectionItem>;
 }) {
   const {filterKeySections} = useSearchQueryBuilder();
@@ -51,10 +54,12 @@ export function useFilterKeyListBox({
   );
 
   const shouldShowExplorationMenu =
-    inputValue.length === 0 && filterKeySections.length > 0;
+    filterValue.length === 0 && filterKeySections.length > 0;
 
   return {
     sectionItems: shouldShowExplorationMenu ? shownItems : items,
     customMenu: shouldShowExplorationMenu ? customMenu : undefined,
+    maxOptions:
+      filterValue.length === 0 ? MAX_OPTIONS_WITHOUT_SEARCH : MAX_OPTIONS_WITH_SEARCH,
   };
 }
