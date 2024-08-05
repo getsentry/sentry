@@ -19,6 +19,10 @@ function AddIntegrationRow({organization, onClick}: Props) {
     return null;
   }
   const provider = integration.provider;
+  const onAddIntegration = () => {
+    integration.onAddIntegration?.();
+    onClick();
+  };
 
   const buttonProps = {
     size: 'sm',
@@ -38,7 +42,7 @@ function AddIntegrationRow({organization, onClick}: Props) {
             <StyledButton
               organization={organization}
               userHasAccess={hasAccess}
-              onAddIntegration={onClick}
+              onAddIntegration={onAddIntegration}
               onExternalClick={onClick}
               externalInstallText="Add Installation"
               buttonProps={buttonProps}
