@@ -212,6 +212,7 @@ def get_seer_similar_issues(
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
         "referrer": "ingest",
+        "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
     }
 
     # Similar issues are returned with the closest match first
