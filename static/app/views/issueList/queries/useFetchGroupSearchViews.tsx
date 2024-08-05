@@ -13,7 +13,7 @@ export const makeFetchGroupSearchViewsKey = ({
 }: FetchGroupSearchViewsParameters) =>
   [`/organizations/${orgSlug}/group-search-views/`] as const;
 
-export const useFetchGroupSearchViewsForOrg = (
+export const useFetchGroupSearchViews = (
   {orgSlug}: FetchGroupSearchViewsParameters,
   options: Partial<UseApiQueryOptions<FetchGroupSearchViewsResponse>> = {}
 ) => {
