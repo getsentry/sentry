@@ -94,6 +94,10 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if request.GET.get("threshold"):
             similar_issues_params["threshold"] = float(request.GET["threshold"])
 
+        # Override `use_reranking` value if necessary
+        if request.GET.get("useReranking"):
+            similar_issues_params["use_reranking"] = request.GET["useReranking"] == "true"
+
         extra: dict[str, Any] = dict(similar_issues_params.copy())
         extra["group_message"] = extra.pop("message")
         logger.info("Similar issues embeddings parameters", extra=extra)
