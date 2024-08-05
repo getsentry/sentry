@@ -40,6 +40,10 @@ class MsTeamsUnlinkIdentityView(MsTeamsLinkingView, UnlinkIdentityView):
     def no_identity_template(self) -> str | None:
         return "sentry/integrations/msteams/no-identity.html"
 
+    @property
+    def filter_by_user_id(self) -> bool:
+        return True
+
     def notify_on_success(self, integration: Integration, params: Mapping[str, Any]) -> None:
         client = get_preinstall_client(params["service_url"])
         card = build_unlinked_card()

@@ -26,6 +26,7 @@ from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations import Integration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
 from sentry.types.actor import ActorType
@@ -305,19 +306,26 @@ class LinkingView(BaseView, ABC):
                 request=request,
             )
 
-        organization, integration, idp = get_identity_or_404(
-            self.provider,
-            request.user,
-            integration_id=params["integration_id"],
-            organization_id=params["organization_id"],
-        )
+        organization: RpcOrganization | None = None
+        integration: Integration | None = None
+        idp: IdentityProvider | None = None
+        integration_id = params.get("integration_id")
+        organization_id = params.get("organization_id")
+        if integration_id and organization_id:
+            organization, integration, idp = get_identity_or_404(
+                self.provider,
+                request.user,
+                integration_id=integration_id,
+                organization_id=organization_id,
+            )
 
         if request.method != "POST":
-            return render_to_response(
-                self.confirmation_template,
-                request=request,
-                context={"organization": organization, "provider": integration.get_provider()},
-            )
+            context = {}
+            if organization:
+                context["organization"] = organization
+            if integration:
+                context["provider"] = integration.get_provider()
+            return render_to_response(self.confirmation_template, request=request, context=context)
 
         response = self.execute(idp, params, request)
         if response is not None:
@@ -334,15 +342,13 @@ class LinkingView(BaseView, ABC):
                 actor_type=ActorType.USER,
             )
 
-        return render_to_response(
-            self.success_template,
-            request=request,
-            context={"team_id": params["team_id"]},
-        )
+        team_id = params.get("team_id")
+        context = {"team_id": team_id} if team_id else {}
+        return render_to_response(self.success_template, request=request, context=context)
 
     @abstractmethod
     def execute(
-        self, idp: IdentityProvider, params: Mapping[str, Any], request: HttpRequest
+        self, idp: IdentityProvider | None, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
         """Execute the operation on the Identity table.
 
@@ -358,12 +364,20 @@ class LinkIdentityView(LinkingView, ABC):
         return "sentry/auth-link-identity.html"
 
     def execute(
-        self, idp: IdentityProvider, params: Mapping[str, Any], request: HttpRequest
+        self, idp: IdentityProvider | None, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
+        if idp is None:
+            raise ValueError(
+                "idp is required for linking (make sure that it included in the "
+                "params passed to the `handle` method)"
+            )
+
         user = request.user
         if isinstance(user, AnonymousUser):
             raise TypeError("Cannot link identity without a logged-in user")
+
         Identity.objects.link_identity(user=user, idp=idp, external_id=params[self.user_parameter])
+
         return None
 
 
@@ -377,11 +391,20 @@ class UnlinkIdentityView(LinkingView, ABC):
         """Optional page to show if identities were not found."""
         return None
 
+    @property
+    def filter_by_user_id(self) -> bool:
+        # TODO: Is it okay to just make this True everywhere?
+        return False
+
     def execute(
-        self, idp: IdentityProvider, params: Mapping[str, Any], request: HttpRequest
+        self, idp: IdentityProvider | None, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
         try:
-            identities = Identity.objects.filter(idp=idp, external_id=params[self.user_parameter])
+            identities = Identity.objects.filter(external_id=params[self.user_parameter])
+            if idp is not None:
+                identities = identities.filter(idp=idp)
+            if self.filter_by_user_id:
+                identities = identities.filter(user_id=request.user.id)
             if self.no_identity_template and not identities:
                 return render_to_response(self.no_identity_template, request=request, context={})
             identities.delete()
