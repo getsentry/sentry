@@ -21,6 +21,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
@@ -81,6 +82,17 @@ type State = {
 class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
+
+  filterKeys = [
+    ...Object.values(SEMVER_TAGS),
+    {
+      key: 'release',
+      name: 'release',
+    },
+  ].reduce((acc, tag) => {
+    acc[tag.key] = tag;
+    return acc;
+  }, {});
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
@@ -563,23 +575,34 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
-                  <StyledSmartSearchBar
-                    searchSource="releases"
-                    query={this.getQuery()}
-                    placeholder={t('Search by version, build, package, or stage')}
-                    hasRecentSearches={false}
-                    supportedTags={{
-                      ...SEMVER_TAGS,
-                      release: {
-                        key: 'release',
-                        name: 'release',
-                      },
-                    }}
-                    maxMenuHeight={500}
-                    supportedTagType={ItemType.PROPERTY}
-                    onSearch={this.handleSearch}
-                    onGetTagValues={this.getTagValues}
-                  />
+                  {organization.features.includes('search-query-builder-releases') ? (
+                    <StyledSearchQueryBuilder
+                      onSearch={this.handleSearch}
+                      initialQuery={this.getQuery() || ''}
+                      filterKeys={this.filterKeys}
+                      getTagValues={this.getTagValues}
+                      placeholder={t('Search by version, build, package, or stage')}
+                      searchSource="releases"
+                    />
+                  ) : (
+                    <StyledSmartSearchBar
+                      searchSource="releases"
+                      query={this.getQuery()}
+                      placeholder={t('Search by version, build, package, or stage')}
+                      hasRecentSearches={false}
+                      maxMenuHeight={500}
+                      supportedTagType={ItemType.PROPERTY}
+                      onSearch={this.handleSearch}
+                      onGetTagValues={this.getTagValues}
+                      supportedTags={{
+                        ...SEMVER_TAGS,
+                        release: {
+                          key: 'release',
+                          name: 'release',
+                        },
+                      }}
+                    />
+                  )}
                   <ReleasesStatusOptions
                     selected={activeStatus}
                     onSelect={this.handleStatus}
@@ -650,6 +673,12 @@ const SortAndFilterWrapper = styled('div')`
 `;
 
 const StyledSmartSearchBar = styled(SmartSearchBar)`
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    grid-column: 1 / -1;
+  }
+`;
+
+const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-column: 1 / -1;
   }
