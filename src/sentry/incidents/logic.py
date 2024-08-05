@@ -59,7 +59,6 @@ from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flag
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
-from sentry.seer.anomaly_detection.types import DynamicAlertRuleData, SnubaQueryData
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
@@ -652,26 +651,8 @@ def create_alert_rule(
                     "Your organization does not have access to this feature."
                 )
 
-            rule_data = DynamicAlertRuleData(
-                alert_rule_id=alert_rule.id,
-                seasonality=alert_rule.seasonality,
-                sensitivity=alert_rule.sensitivity,
-                threshold_type=alert_rule.threshold_type,
-            )
-            snuba_query_data = SnubaQueryData(
-                query=snuba_query.query,
-                time_window=snuba_query.time_window,
-                dataset=snuba_query.dataset,
-                aggregate=snuba_query.aggregate,
-            )
-
             try:
-                send_historical_data_to_seer(
-                    rule_data=rule_data,
-                    snuba_query_data=snuba_query_data,
-                    project_id=projects[0].id,
-                    organization_id=alert_rule.organization.id,
-                )
+                send_historical_data_to_seer(alert_rule, projects[0])
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError
@@ -752,67 +733,6 @@ def snapshot_alert_rule(alert_rule, user=None):
     tasks.auto_resolve_snapshot_incidents.apply_async(
         kwargs={"alert_rule_id": alert_rule_snapshot.id}, countdown=3
     )
-
-
-def should_update_seer(
-    previous_detection_type: AlertRuleDetectionType,
-    updated_detection_type: AlertRuleDetectionType,
-    query: str,
-    aggregate: str,
-) -> bool:
-    """
-    Update Seer data if a dynamic alert's query or aggregate has changed OR
-    a static or percent alert has changed to become a dynamic alert
-    """
-    if (
-        previous_detection_type == AlertRuleDetectionType.DYNAMIC
-        and updated_detection_type == AlertRuleDetectionType.DYNAMIC
-    ):
-        if query or aggregate:
-            return True
-    elif updated_detection_type == AlertRuleDetectionType.DYNAMIC:
-        return True
-    return False
-
-
-def update_dynamic_alert_data(
-    alert_rule: AlertRule,
-    seasonality: AlertRuleSeasonality,
-    sensitivity: AlertRuleSensitivity,
-    threshold_type: int,
-    query: str,
-    time_window: int,
-    dataset: str,
-    aggregate: str,
-    projects: list[Project],
-) -> None:
-    updated_seasonality = seasonality if seasonality is not NOT_SET else alert_rule.seasonality
-    updated_sensitivity = sensitivity if sensitivity is not NOT_SET else alert_rule.sensitivity
-
-    rule_data = DynamicAlertRuleData(
-        alert_rule_id=alert_rule.id,
-        seasonality=updated_seasonality.value,
-        sensitivity=updated_sensitivity.value,
-        threshold_type=threshold_type or alert_rule.threshold_type,
-    )
-    snuba_query_data = SnubaQueryData(
-        query=query or alert_rule.snuba_query.query,
-        time_window=time_window or alert_rule.snuba_query.time_window,
-        dataset=dataset or alert_rule.snuba_query.dataset,
-        aggregate=aggregate or alert_rule.snuba_query.aggregate,
-    )
-    project = projects[0] if projects else alert_rule.projects.get()
-    # do we need to tell seer when sensitivity, seasonality, or threshold_type changes?
-    # or can they get that from the periodic updates?
-    try:
-        send_historical_data_to_seer(
-            rule_data=rule_data,
-            snuba_query_data=snuba_query_data,
-            project_id=project.id,
-            organization_id=alert_rule.organization.id,
-        )
-    except (TimeoutError, MaxRetryError):
-        raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
 
 
 def update_alert_rule(
@@ -978,23 +898,19 @@ def update_alert_rule(
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
-            if should_update_seer(
-                alert_rule.detection_type,
-                updated_fields.get("detection_type"),
-                query,
-                aggregate,
+
+            previous_detection_type = alert_rule.detection_type
+            if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
+                previous_detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
             ):
-                update_dynamic_alert_data(
-                    alert_rule,
-                    seasonality,
-                    sensitivity,
-                    threshold_type,
-                    query,
-                    time_window,
-                    dataset,
-                    aggregate,
-                    projects,
-                )
+                for k, v in updated_fields.items():
+                    alert_rule.k = v
+                try:
+                    send_historical_data_to_seer(
+                        alert_rule, projects[0] if projects else alert_rule.projects.get()
+                    )
+                except (TimeoutError, MaxRetryError):
+                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
 
         alert_rule.update(**updated_fields)
 

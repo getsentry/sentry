@@ -31,17 +31,3 @@ class AnomalyType(Enum):
     LOW_CONFIDENCE = "anomaly_lower_confidence"
     NONE = "none"
     NO_DATA = "no_data"
-
-
-class DynamicAlertRuleData(TypedDict):
-    alert_rule_id: int
-    seasonality: str
-    sensitivity: str
-    threshold_type: int
-
-
-class SnubaQueryData(TypedDict):
-    query: str
-    time_window: int
-    dataset: str
-    aggregate: str
