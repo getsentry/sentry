@@ -10,13 +10,14 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import BaseTeamSerializerResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.team import Team
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Teams", "Projects"])
+@extend_schema(tags=["Teams"])
 class ProjectTeamsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -34,6 +35,7 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=TeamExamples.LIST_PROJECT_TEAMS,
     )
     def get(self, request: Request, project) -> Response:
         """
