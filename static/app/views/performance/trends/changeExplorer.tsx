@@ -297,7 +297,7 @@ type ChangeTypeProps = {regression: boolean};
 
 const ChangeType = styled('p')<ChangeTypeProps>`
   color: ${p => (p.regression ? p.theme.danger : p.theme.success)};
-  margin-bottom: ${space(0)};
+  margin-bottom: 0px;
 `;
 
 const FireIcon = styled('div')<ChangeTypeProps>`
@@ -311,7 +311,7 @@ const FireIcon = styled('div')<ChangeTypeProps>`
 
 const TransactionName = styled('h4')`
   margin-right: ${space(1)};
-  margin-bottom: ${space(0)};
+  margin-bottom: 0;
   ${p => p.theme.overflowEllipsis};
 `;
 
@@ -323,7 +323,7 @@ const TransactionNameWrapper = styled('div')`
 `;
 
 const ViewTransactionButton = styled(Button)`
-  padding: ${space(0)};
+  padding: 0;
   height: min-content;
   min-height: 0px;
 `;
@@ -347,7 +347,7 @@ export const ExplorerText = styled('p')<{
   color?: string;
   margin?: string;
 }>`
-  margin-bottom: ${p => (p.margin ? p.margin : space(0))};
+  margin-bottom: ${p => (p.margin ? p.margin : 0)};
   color: ${p => p.color};
   text-align: ${p => p.align};
 `;
