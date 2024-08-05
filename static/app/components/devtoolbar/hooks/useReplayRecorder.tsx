@@ -13,41 +13,37 @@ type ReplayRecorderState = {
   stop(): Promise<boolean>;
 };
 
-function getIsRecording(
-  replay: ReturnType<typeof replayIntegration> | undefined
-): boolean {
-  return replay?._replay.isEnabled() ?? false;
+interface ReplayInternalAPI {
+  [other: string]: any;
+  getSessionId(): string | undefined;
+  isEnabled(): boolean;
+  recordingMode: ReplayRecordingMode;
 }
 
-function getSessionId(
-  replay: ReturnType<typeof replayIntegration> | undefined
-): string | undefined {
-  return replay?._replay.getSessionId();
-}
-
-function getRecordingMode(
-  replay: ReturnType<typeof replayIntegration> | undefined
-): ReplayRecordingMode | undefined {
-  return replay?._replay.recordingMode;
+function getReplayInternal(
+  replay: ReturnType<typeof replayIntegration>
+): ReplayInternalAPI {
+  // While the toolbar is internal, we can use the private API for added functionality and reduced dependence on SDK release versions
+  // @ts-ignore:next-line
+  return replay._replay;
 }
 
 const LAST_REPLAY_STORAGE_KEY = 'devtoolbar.last_replay_id';
 
 export default function useReplayRecorder(): ReplayRecorderState {
-  // INTERNAL STATE
   const {SentrySDK} = useConfiguration();
   const replay =
     SentrySDK && 'getReplay' in SentrySDK ? SentrySDK.getReplay() : undefined;
+  const replayInternal = replay ? getReplayInternal(replay) : undefined;
 
   // sessionId is defined if we are recording in session OR buffer mode.
   const [sessionId, setSessionId] = useState<string | undefined>(() =>
-    getSessionId(replay)
+    replayInternal?.getSessionId()
   );
   const [recordingMode, setRecordingMode] = useState<ReplayRecordingMode | undefined>(
-    () => getRecordingMode(replay)
+    () => replayInternal?.recordingMode
   );
 
-  // EXPORTED
   const isDisabled = replay === undefined;
   const disabledReason = !SentrySDK
     ? 'Failed to load the Sentry SDK.'
@@ -57,9 +53,11 @@ export default function useReplayRecorder(): ReplayRecorderState {
         ? "Failed to load your SDK's Replay integration."
         : undefined;
 
-  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState<boolean>(
+    () => replayInternal?.isEnabled() ?? false
+  );
   const [lastReplayId, setLastReplayId] = useState<string | undefined>(
-    sessionStorage.getItem(LAST_REPLAY_STORAGE_KEY) || undefined
+    () => sessionStorage.getItem(LAST_REPLAY_STORAGE_KEY) || undefined
   );
   useEffect(() => {
     if (isRecording && sessionId) {
@@ -69,10 +67,10 @@ export default function useReplayRecorder(): ReplayRecorderState {
   }, [isRecording, sessionId]);
 
   const refreshState = useCallback(() => {
-    setIsRecording(getIsRecording(replay));
-    setSessionId(getSessionId(replay));
-    setRecordingMode(getRecordingMode(replay));
-  }, [replay]);
+    setIsRecording(replayInternal?.isEnabled() ?? false);
+    setSessionId(replayInternal?.getSessionId());
+    setRecordingMode(replayInternal?.recordingMode);
+  }, [replayInternal]);
 
   const start = useCallback(async () => {
     let success = false;
