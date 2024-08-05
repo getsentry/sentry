@@ -475,6 +475,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Allow the Relay to skip normalization of spans for certain hosts.
+register(
+    "relay.span-normalization.allowed_hosts",
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
