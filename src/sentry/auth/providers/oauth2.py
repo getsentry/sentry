@@ -7,8 +7,7 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
@@ -47,7 +46,7 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         if "code" in request.GET:
             return helper.next_step()
 
@@ -86,7 +85,7 @@ class OAuth2Callback(AuthView):
             "client_secret": self.client_secret,
         }
 
-    def exchange_token(self, request: Request, helper, code):
+    def exchange_token(self, request: HttpRequest, helper, code):
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
@@ -95,7 +94,7 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return orjson.loads(body)
 
-    def dispatch(self, request: Request, helper) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, helper) -> HttpResponse:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")

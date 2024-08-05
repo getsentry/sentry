@@ -96,7 +96,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -764,25 +764,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
 
-    def test_create_alert_default_resolution(self):
-        time_window = 1440
-
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "custom metric alert",
-            "transaction.duration:>=1000",
-            "count()",
-            time_window,
-            AlertRuleThresholdType.ABOVE,
-            1,
-            query_type=SnubaQuery.Type.PERFORMANCE,
-            dataset=Dataset.Metrics,
-        )
-
-        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_create_alert_resolution_load_shedding(self):
         time_window = 1440
 
@@ -804,7 +785,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_create_alert_load_shedding_comparison(self):
         time_window = 1440
 
@@ -837,6 +817,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_create_alert_rule_anomaly_detection(self, mock_seer_request):
         mock_seer_request.return_value = HTTPResponse(status=200)
 
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_weeks_ago + timedelta(minutes=1))
+        self.create_event(two_weeks_ago + timedelta(days=10))
+
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -861,7 +845,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule.snuba_query.time_window
             == self.dynamic_metric_alert_settings["time_window"] * 60
         )
-        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+        assert alert_rule.snuba_query.resolution == 120
         assert set(alert_rule.snuba_query.event_types) == set(
             self.dynamic_metric_alert_settings["event_types"]
         )
@@ -869,6 +853,45 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule.threshold_type == self.dynamic_metric_alert_settings["threshold_type"].value
         )
         assert alert_rule.threshold_period == self.dynamic_metric_alert_settings["threshold_period"]
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_create_alert_rule_anomaly_detection_not_enough_data(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_days_ago + timedelta(minutes=1))
+        self.create_event(two_days_ago + timedelta(days=1))
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            **self.dynamic_metric_alert_settings,
+        )
+
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_create_alert_rule_anomaly_detection_no_data(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        # no events, so we expect _get_start_and_end to return -1, -1
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            **self.dynamic_metric_alert_settings,
+        )
+
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
 
     @with_feature("organizations:anomaly-detection-alerts")
     @patch(
@@ -1279,7 +1302,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_update_alert_load_shedding_on_window(self):
         time_window = 1440
         alert_rule = create_alert_rule(
@@ -1307,7 +1329,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_update_alert_load_shedding_on_window_with_comparison(self):
         time_window = 1440
         comparison_delta = 60
@@ -1343,7 +1364,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             * 60
         )
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_update_alert_load_shedding_on_comparison(self):
         time_window = 1440
         comparison_delta = 60
@@ -1371,7 +1391,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             * 60
         )
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_update_alert_load_shedding_on_comparison_and_window(self):
         time_window = 1440
         comparison_delta = 60
@@ -3181,24 +3200,16 @@ class TestCustomMetricAlertRule(TestCase):
 
 
 class TestGetAlertResolution(TestCase):
-    def test_without_feature(self):
-        time_window = 30
-        result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_RESOLUTION
-
-    @with_feature("organizations:metric-alert-load-shedding")
-    def test_enabled_feature(self):
+    def test_simple(self):
         time_window = 30
         result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_low_range(self):
         time_window = 2
         result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_RESOLUTION
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_high_range(self):
         last_window = list(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())[-1]
         time_window = last_window + 1000
@@ -3206,7 +3217,6 @@ class TestGetAlertResolution(TestCase):
 
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window]
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_mid_range(self):
         time_window = 125
         result = get_alert_resolution(time_window, self.organization)
@@ -3214,7 +3224,6 @@ class TestGetAlertResolution(TestCase):
         # 125 is not part of the dict, will round down to the lower window of 120
         assert result == 3
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_crazy_low_range(self):
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)

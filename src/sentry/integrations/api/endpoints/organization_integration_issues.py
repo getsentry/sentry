@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 class OrganizationIntegrationIssuesEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def put(

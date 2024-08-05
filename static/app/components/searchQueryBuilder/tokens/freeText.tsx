@@ -143,18 +143,36 @@ function replaceFocusedWordWithFilter(
   return value;
 }
 
+function getKeyLabel(
+  tag: Tag,
+  fieldDefinition: FieldDefinition | null,
+  {includeAggregateArgs = false} = {}
+) {
+  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
+    if (fieldDefinition.parameters?.length) {
+      if (includeAggregateArgs) {
+        return `${tag.key}(${fieldDefinition.parameters.map(p => p.name).join(', ')})`;
+      }
+      return `${tag.key}(...)`;
+    }
+    return `${tag.key}()`;
+  }
+
+  return tag.key;
+}
+
 function createItem(tag: Tag, fieldDefinition: FieldDefinition | null): KeyItem {
   const description = fieldDefinition?.desc;
 
   return {
     key: getEscapedKey(tag.key),
-    label: tag.key,
+    label: getKeyLabel(tag, fieldDefinition),
     description: description ?? '',
     value: tag.key,
     textValue: tag.key,
     hideCheck: true,
     showDetailsInOverlay: true,
-    details: fieldDefinition?.desc ? <KeyDescription tag={tag} /> : null,
+    details: <KeyDescription tag={tag} />,
   };
 }
 
@@ -242,21 +260,22 @@ function KeyDescription({tag}: {tag: Tag}) {
 
   const fieldDefinition = getFieldDefinition(tag.key);
 
-  if (!fieldDefinition || !fieldDefinition.desc) {
-    return null;
-  }
+  const description =
+    fieldDefinition?.desc ??
+    (tag.kind === FieldKind.TAG ? t('A tag sent with one or more events') : null);
 
   return (
     <DescriptionWrapper>
-      <div>{fieldDefinition.desc}</div>
+      <DescriptionKeyLabel>
+        {getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
+      </DescriptionKeyLabel>
+      {description ? <p>{description}</p> : null}
       <Separator />
       <DescriptionList>
-        {fieldDefinition.valueType ? (
-          <Fragment>
-            <Term>{t('Type')}</Term>
-            <Details>{toTitleCase(fieldDefinition.valueType)}</Details>
-          </Fragment>
-        ) : null}
+        <Term>{t('Type')}</Term>
+        <Details>
+          {toTitleCase(fieldDefinition?.valueType ?? FieldValueType.STRING)}
+        </Details>
       </DescriptionList>
     </DescriptionWrapper>
   );
@@ -674,8 +693,22 @@ const GridCell = styled('div')`
 `;
 
 const DescriptionWrapper = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(0.75)} ${space(1)};
   max-width: 220px;
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: ${space(0.5)};
+  }
+`;
+
+const DescriptionKeyLabel = styled('p')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  word-break: break-all;
 `;
 
 const Separator = styled('hr')`

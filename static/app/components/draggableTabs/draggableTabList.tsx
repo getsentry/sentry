@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -7,7 +7,7 @@ import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
-import {Reorder} from 'framer-motion';
+import {motion, Reorder} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -120,6 +120,7 @@ function BaseDraggableTabList({
         values={[...state.collection]}
         onReorder={onReorder}
         as="div"
+        layoutRoot
       >
         <TabListWrap
           {...tabListProps}
@@ -130,50 +131,56 @@ function BaseDraggableTabList({
           ref={tabListRef}
         >
           {persistentTabs.map(item => (
-            <Reorder.Item
-              key={item.key}
-              value={item}
-              style={{display: 'flex', flexDirection: 'row'}}
-              as="div"
-            >
-              <Tab
+            <Fragment key={item.key}>
+              <Reorder.Item
                 key={item.key}
-                item={item}
-                state={state}
-                orientation={orientation}
-                overflowing={
-                  orientation === 'horizontal' && overflowTabs.includes(item.key)
-                }
-                ref={element => (tabItemsRef.current[item.key] = element)}
-                variant={tabVariant}
-              />
-
+                value={item}
+                style={{display: 'flex', flexDirection: 'row'}}
+                as="div"
+                layout
+              >
+                <Tab
+                  key={item.key}
+                  item={item}
+                  state={state}
+                  orientation={orientation}
+                  overflowing={
+                    orientation === 'horizontal' && overflowTabs.includes(item.key)
+                  }
+                  ref={element => (tabItemsRef.current[item.key] = element)}
+                  variant={tabVariant}
+                />
+              </Reorder.Item>
               {(state.selectedKey === 'temporary-tab' ||
                 (state.selectedKey !== item.key &&
                   state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
-                <TabDivider />
+                <TabDivider layout />
               )}
-            </Reorder.Item>
+            </Fragment>
           ))}
-          <AddViewButton borderless size="zero" onClick={onAddView}>
-            <StyledIconAdd size="xs" />
-            {t('Add View')}
-          </AddViewButton>
-          <TabDivider />
-          {showTempTab && tempTab && (
-            <Tab
-              key={tempTab.key}
-              item={tempTab}
-              state={state}
-              orientation={orientation}
-              overflowing={
-                orientation === 'horizontal' && overflowTabs.includes(tempTab.key)
-              }
-              ref={element => (tabItemsRef.current[tempTab.key] = element)}
-              variant={tabVariant}
-              borderStyle="dashed"
-            />
-          )}
+          <MotionWrapper layout>
+            <AddViewButton borderless size="zero" onClick={onAddView}>
+              <StyledIconAdd size="xs" />
+              {t('Add View')}
+            </AddViewButton>
+          </MotionWrapper>
+          <TabDivider layout />
+          <MotionWrapper layout>
+            {showTempTab && tempTab && (
+              <Tab
+                key={tempTab.key}
+                item={tempTab}
+                state={state}
+                orientation={orientation}
+                overflowing={
+                  orientation === 'horizontal' && overflowTabs.includes(tempTab.key)
+                }
+                ref={element => (tabItemsRef.current[tempTab.key] = element)}
+                variant={tabVariant}
+                borderStyle="dashed"
+              />
+            )}
+          </MotionWrapper>
         </TabListWrap>
       </Reorder.Group>
 
@@ -243,7 +250,7 @@ export function DraggableTabList({
 
 DraggableTabList.Item = Item;
 
-const TabDivider = styled('div')`
+const TabDivider = styled(motion.div)`
   height: 50%;
   width: 1px;
   border-radius: 6px;
@@ -268,7 +275,6 @@ const TabListWrap = styled('ul', {
   margin: 0;
   list-style-type: none;
   flex-shrink: 0;
-  padding-left: 15px;
 
   ${p =>
     p.orientation === 'horizontal'
@@ -289,13 +295,19 @@ const TabListWrap = styled('ul', {
 `;
 
 const AddViewButton = styled(Button)`
+  display: flex;
   color: ${p => p.theme.gray300};
   padding-right: ${space(0.5)};
-  margin: 3px 2px 2px 2px;
+  margin: 4px 2px 2px 2px;
   font-weight: normal;
 `;
 
 const StyledIconAdd = styled(IconAdd)`
   margin-right: 4px;
   margin-left: 2px;
+`;
+
+const MotionWrapper = styled(motion.div)`
+  display: flex;
+  position: relative;
 `;

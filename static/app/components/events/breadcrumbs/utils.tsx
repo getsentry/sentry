@@ -1,6 +1,7 @@
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
@@ -69,29 +70,13 @@ export function getSummaryBreadcrumbs(crumbs: EnhancedCrumb[], sort: BreadcrumbS
   return sortedCrumbs.slice(0, BREADCRUMB_SUMMARY_COUNT);
 }
 
-export function applyBreadcrumbSearch(
-  search: string,
-  crumbs: EnhancedCrumb[]
-): EnhancedCrumb[] {
-  if (!search.trim()) {
-    return crumbs;
-  }
-  return crumbs.filter(
-    ({breadcrumb: c}) =>
-      c.type.includes(search) ||
-      c.category?.includes(search) ||
-      c.message?.includes(search) ||
-      (c.data && JSON.stringify(c.data)?.includes(search))
-  );
-}
-
-export function getBreadcrumbFilterOptions(crumbs: EnhancedCrumb[]) {
+export function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[]) {
   const uniqueCrumbTypes = crumbs.reduce((crumbTypeSet, {breadcrumb: crumb}) => {
     crumbTypeSet.add(crumb.type);
     return crumbTypeSet;
   }, new Set<BreadcrumbType>());
 
-  const filterOptions: SelectOption<string>[] = [...uniqueCrumbTypes].map(crumbType => {
+  const typeOptions: SelectOption<string>[] = [...uniqueCrumbTypes].map(crumbType => {
     const crumbFilter = getBreadcrumbFilter(crumbType);
     return {
       value: crumbFilter,
@@ -103,7 +88,80 @@ export function getBreadcrumbFilterOptions(crumbs: EnhancedCrumb[]) {
       ),
     };
   });
-  return filterOptions.sort((a, b) => a.value.localeCompare(b.value));
+  return typeOptions.sort((a, b) => a.value.localeCompare(b.value));
+}
+
+function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
+  const crumbLevels = crumbs.reduce(
+    (crumbMap, ec) => {
+      crumbMap[ec.breadcrumb.level] = ec.levelComponent;
+      return crumbMap;
+    },
+    {} as Record<BreadcrumbLevelType, EnhancedCrumb['levelComponent']>
+  );
+
+  const levelOptions: SelectOption<string>[] = Object.entries(crumbLevels).map(
+    ([crumbLevel, levelComponent]) => {
+      return {
+        value: crumbLevel,
+        label: levelComponent,
+        textValue: crumbLevel,
+      };
+    }
+  );
+  return levelOptions.sort((a, b) => a.value.localeCompare(b.value));
+}
+
+export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
+  const filterOptions = useMemo(() => {
+    const options: SelectSection<string>[] = [];
+    const typeOptions = getBreadcrumbTypeOptions(crumbs);
+    if (typeOptions.length) {
+      options.push({
+        key: 'types',
+        label: t('Types'),
+        options: typeOptions.map(o => ({...o, value: `type-${o.value}`})),
+      });
+    }
+    const levelOptions = getBreadcrumbLevelOptions(crumbs);
+    if (levelOptions.length) {
+      options.push({
+        key: 'levels',
+        label: t('Levels'),
+        options: levelOptions.map(o => ({...o, value: `level-${o.value}`})),
+      });
+    }
+
+    return options;
+  }, [crumbs]);
+
+  const applyFilters = useCallback(
+    (crumbsToFilter: EnhancedCrumb[], options: SelectOption<string>['value'][]) => {
+      const typeFilterSet = new Set<string>();
+      const levelFilterSet = new Set<string>();
+      options.forEach(optionValue => {
+        const [indicator, value] = optionValue.split('-');
+        if (indicator === 'type') {
+          typeFilterSet.add(value);
+        } else if (indicator === 'level') {
+          levelFilterSet.add(value);
+        }
+      });
+
+      return crumbsToFilter.filter(ec => {
+        if (typeFilterSet.size > 0 && !typeFilterSet.has(ec.filter)) {
+          return false;
+        }
+        if (levelFilterSet.size > 0 && !levelFilterSet.has(ec.breadcrumb.level)) {
+          return false;
+        }
+        return true;
+      });
+    },
+    []
+  );
+
+  return {filterOptions, applyFilters};
 }
 
 export interface EnhancedCrumb {
