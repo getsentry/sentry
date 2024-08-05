@@ -48,13 +48,13 @@ export default function useReplayRecorder(): ReplayRecorderState {
   );
 
   // EXPORTED
-  const isDisabled = replay === undefined; // TODO: should we also do FF checks?
+  const isDisabled = replay === undefined;
   const disabledReason = !SentrySDK
     ? 'Failed to load the Sentry SDK.'
     : !('getReplay' in SentrySDK)
-      ? 'Your SDK version is too outdated to access the Replay integration.'
+      ? 'Your SDK version is too outdated to use the Replay integration.'
       : !replay
-        ? 'Failed to load the SDK Replay integration'
+        ? "Failed to load your SDK's Replay integration."
         : undefined;
 
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -78,11 +78,13 @@ export default function useReplayRecorder(): ReplayRecorderState {
     let success = false;
     if (replay && !isRecording) {
       try {
+        // SDK v8.19.0 and older will throw if a replay is already started.
+        // Details at https://github.com/getsentry/sentry-javascript/pull/13000
         if (recordingMode === 'session') {
           replay.start();
         } else {
+          // For SDK v8.20.0 and up, flush() works for both cases.
           await replay.flush();
-          // TODO: for 8.18, will this start a session replay?
         }
         success = true;
         // eslint-disable-next-line no-empty
