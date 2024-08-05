@@ -67,6 +67,11 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def update_provider(self, organization_id: int, auth_provider_id: int, provider: str) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_organization_api_keys(self, *, organization_id: int) -> list[RpcApiKey]:
         pass
 
