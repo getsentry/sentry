@@ -652,7 +652,7 @@ def create_alert_rule(
                 )
 
             try:
-                send_historical_data_to_seer(alert_rule, projects[0])
+                send_historical_data_to_seer(alert_rule=alert_rule, project=projects[0])
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError
@@ -899,21 +899,20 @@ def update_alert_rule(
                     "Your organization does not have access to this feature."
                 )
 
-            previous_detection_type = alert_rule.detection_type
             if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
-                previous_detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
+                alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
             ):
                 for k, v in updated_fields.items():
                     alert_rule.k = v
                 try:
                     send_historical_data_to_seer(
-                        alert_rule, projects[0] if projects else alert_rule.projects.get()
+                        alert_rule=alert_rule,
+                        project=projects[0] if projects else alert_rule.projects.get(),
                     )
                 except (TimeoutError, MaxRetryError):
                     raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
 
         alert_rule.update(**updated_fields)
-
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,

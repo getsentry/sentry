@@ -72,6 +72,18 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Bas
 
     formatted_data = format_historical_data(historical_data)
 
+    if (
+        not alert_rule.sensitivity
+        or not alert_rule.seasonality
+        or alert_rule.threshold_type is None
+        or alert_rule.organization is None
+    ):
+        # this won't happen because we've already gone through the serializer, but mypy insists
+        base_error_response.reason = (
+            "Cannot create alert_rule - missing expected configuration for a dynamic alert."
+        )
+        return base_error_response
+
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
         sensitivity=alert_rule.sensitivity,
