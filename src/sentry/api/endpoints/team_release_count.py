@@ -20,7 +20,7 @@ from sentry.utils.dates import floor_to_utc_day
 @region_silo_endpoint
 class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, team) -> Response:

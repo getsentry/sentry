@@ -29,8 +29,8 @@ class InvalidPayload(Exception):
 @region_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)

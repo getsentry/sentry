@@ -19,7 +19,7 @@ from .utils import build_user_choice
 class JiraServerSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     provider = "jira_server"
 

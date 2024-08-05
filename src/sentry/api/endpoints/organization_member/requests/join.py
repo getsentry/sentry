@@ -52,7 +52,7 @@ def create_organization_join_request(organization, email, ip_address=None):
 @region_silo_endpoint
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     # Disable authentication and permission requirements.
     permission_classes = ()

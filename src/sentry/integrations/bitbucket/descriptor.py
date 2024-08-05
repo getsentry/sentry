@@ -14,7 +14,7 @@ from .client import BITBUCKET_KEY
 class BitbucketDescriptorEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()

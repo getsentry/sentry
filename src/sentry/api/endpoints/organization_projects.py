@@ -196,7 +196,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 @region_silo_endpoint
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:

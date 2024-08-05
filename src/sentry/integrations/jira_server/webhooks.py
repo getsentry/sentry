@@ -51,7 +51,7 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
 class JiraServerIssueUpdatedWebhook(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()

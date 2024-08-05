@@ -13,7 +13,7 @@ from sentry.models.project import Project
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, installation) -> Response:

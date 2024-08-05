@@ -16,7 +16,7 @@ from sentry.organizations.services.organization import RpcOrganization
 class VstsSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(

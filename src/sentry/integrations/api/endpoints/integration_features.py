@@ -24,7 +24,7 @@ class IntegrationFeaturesPermissions(SentryPermission):
 class IntegrationFeaturesEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (IntegrationFeaturesPermissions,)
 

@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class JiraIssueUpdatedWebhook(JiraWebhookBase):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """
     Webhook hit by Jira whenever an issue is updated in Jira's database.
