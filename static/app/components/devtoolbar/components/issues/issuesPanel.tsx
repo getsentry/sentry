@@ -1,5 +1,6 @@
 import IssueListItem from 'sentry/components/devtoolbar/components/issueListItem';
 import Placeholder from 'sentry/components/placeholder';
+import {IssueCategory} from 'sentry/types/group';
 
 import useCurrentTransactionName from '../../hooks/useCurrentTransactionName';
 import {listItemPlaceholderWrapperCss} from '../../styles/listItem';
@@ -15,7 +16,11 @@ import useInfiniteIssuesList from './useInfiniteIssuesList';
 export default function IssuesPanel() {
   const transactionName = useCurrentTransactionName();
   const queryResult = useInfiniteIssuesList({
-    query: `url:*${transactionName}`,
+    query: [
+      `issue.category:[${IssueCategory.ERROR},${IssueCategory.PERFORMANCE}]',
+      'status:unresolved',
+      'url:*${transactionName}`,
+    ].join(' '),
   });
 
   const estimateSize = 89;

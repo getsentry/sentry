@@ -36,7 +36,7 @@ export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams
     isError,
     data: hydratedSelectorData(
       data ? data.data : [],
-      params.isWidgetData ? params.sort?.replace(/^-/, '') : null
+      params.isWidgetData ? params.sort?.replace(/^-/, '') : undefined
     ),
     pageLinks: getResponseHeader?.('Link') ?? undefined,
   };

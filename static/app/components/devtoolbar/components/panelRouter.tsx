@@ -5,6 +5,7 @@ import AnalyticsProvider from 'sentry/components/devtoolbar/components/analytics
 import useToolbarRoute from '../hooks/useToolbarRoute';
 
 const PanelAlerts = lazy(() => import('./alerts/alertsPanel'));
+const PanelDeadClicks = lazy(() => import('./deadClicks/deadClicksPanel'));
 const PanelFeedback = lazy(() => import('./feedback/feedbackPanel'));
 const PanelIssues = lazy(() => import('./issues/issuesPanel'));
 const PanelFeatureFlags = lazy(() => import('./featureFlags/featureFlagsPanel'));
@@ -18,6 +19,12 @@ export default function PanelRouter() {
       return (
         <AnalyticsProvider keyVal="alerts-panel" nameVal="Alerts panel">
           <PanelAlerts />
+        </AnalyticsProvider>
+      );
+    case 'deadClicks':
+      return (
+        <AnalyticsProvider keyVal="dead-clicks-panel" nameVal="Dead Clicks panel">
+          <PanelDeadClicks />
         </AnalyticsProvider>
       );
     case 'feedback':
