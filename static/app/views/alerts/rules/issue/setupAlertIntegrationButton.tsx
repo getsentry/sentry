@@ -15,6 +15,7 @@ import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messaging
 type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
   projectSlug: string;
+  refetchConfigs: () => void;
 };
 
 type State = DeprecatedAsyncComponent['state'] & {
@@ -56,6 +57,10 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
     const providerKeys = ['slack', 'discord', 'msteams'];
     const {organization} = this.props;
     const {detailedProject} = this.state;
+    const onAddIntegration = () => {
+      this.reloadData();
+      this.props.refetchConfigs();
+    };
     // don't render anything if we don't have the project yet or if an alert integration
     // is installed
     if (!detailedProject || detailedProject.hasAlertIntegrationInstalled) {
@@ -87,6 +92,7 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
                     providerKeys={providerKeys}
                     organization={organization}
                     project={detailedProject}
+                    onAddIntegration={onAddIntegration}
                   />
                 ),
                 {

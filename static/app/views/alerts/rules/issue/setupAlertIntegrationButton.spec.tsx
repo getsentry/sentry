@@ -27,6 +27,7 @@ describe('SetupAlertIntegrationButton', function () {
       <SetupAlertIntegrationButton
         projectSlug={project.slug}
         organization={organization}
+        refetchConfigs={jest.fn()}
       />
     );
     expect(container).toHaveTextContent('Set Up Slack Now');
@@ -43,6 +44,7 @@ describe('SetupAlertIntegrationButton', function () {
       <SetupAlertIntegrationButton
         projectSlug={project.slug}
         organization={organization}
+        refetchConfigs={jest.fn()}
       />
     );
     expect(container).not.toHaveTextContent('Set Up Slack Now');
@@ -56,7 +58,11 @@ describe('SetupAlertIntegrationButton', function () {
       },
     });
     const {container} = render(
-      <SetupAlertIntegrationButton projectSlug={project.slug} organization={featureOrg} />
+      <SetupAlertIntegrationButton
+        projectSlug={project.slug}
+        organization={featureOrg}
+        refetchConfigs={jest.fn()}
+      />
     );
     expect(container).toHaveTextContent('Connect to messaging');
   });
@@ -69,7 +75,11 @@ describe('SetupAlertIntegrationButton', function () {
       },
     });
     const {container} = render(
-      <SetupAlertIntegrationButton projectSlug={project.slug} organization={featureOrg} />
+      <SetupAlertIntegrationButton
+        projectSlug={project.slug}
+        organization={featureOrg}
+        refetchConfigs={jest.fn()}
+      />
     );
     expect(container).not.toHaveTextContent('Connect to messaging');
   });
@@ -82,7 +92,11 @@ describe('SetupAlertIntegrationButton', function () {
       },
     });
     render(
-      <SetupAlertIntegrationButton projectSlug={project.slug} organization={featureOrg} />
+      <SetupAlertIntegrationButton
+        projectSlug={project.slug}
+        organization={featureOrg}
+        refetchConfigs={jest.fn()}
+      />
     );
     await userEvent.click(screen.getByLabelText('Connect to messaging'));
 

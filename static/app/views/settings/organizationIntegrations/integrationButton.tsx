@@ -65,7 +65,7 @@ function IntegrationButton({
       <Button
         icon={externalInstallText ? null : <IconOpen />}
         href={metadata.aspects.externalInstall.url}
-        onClick={() => onExternalClick}
+        onClick={onExternalClick}
         external
         {...buttonProps}
       >
