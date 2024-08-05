@@ -91,7 +91,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             "status": result["status"],
             "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),
         }
-        metrics.incr("uptime.result_processor.handle_result_for_project", tags=metric_tags)
+
+        status_reason = "none"
+        if result["status_reason"]:
+            status_reason = result["status_reason"]["type"]
+
+        metrics.incr(
+            "uptime.result_processor.handle_result_for_project",
+            tags={"status_reason": status_reason, **metric_tags},
+        )
         cluster = _get_cluster()
         try:
             if result["scheduled_check_time_ms"] <= last_update_ms:
