@@ -37,7 +37,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -82,6 +82,39 @@ class AlertRuleBase(APITestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+            "activations": [],
+        }
+
+    @cached_property
+    def dynamic_alert_rule_dict(self):
+        return {
+            "aggregate": "count()",
+            "query": "",
+            "time_window": 30,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -177,7 +210,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
 
 @freeze_time()
-class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
+class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     method = "post"
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -238,44 +271,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_anomaly_detection_alert(self, mock_seer_request):
-        data = {
-            "aggregate": "count()",
-            "query": "",
-            "time_window": 30,
-            "detection_type": AlertRuleDetectionType.DYNAMIC,
-            "sensitivity": AlertRuleSensitivity.LOW,
-            "seasonality": AlertRuleSeasonality.AUTO,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 0,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
-                    ],
-                },
-                {
-                    "label": "warning",
-                    "alertThreshold": 0,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
-                    ],
-                },
-            ],
-            "projects": [self.project.slug],
-            "owner": self.user.id,
-            "name": "JustAValidTestRule",
-            "activations": [],
-        }
+        data = self.dynamic_alert_rule_dict
         mock_seer_request.return_value = HTTPResponse(status=200)
-        day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
                 data={
                     "event_id": "a" * 32,
                     "message": "super duper bad",
-                    "timestamp": iso_format(day_ago + timedelta(minutes=1)),
+                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                 },
@@ -286,7 +290,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 data={
                     "event_id": "b" * 32,
                     "message": "super bad",
-                    "timestamp": iso_format(day_ago + timedelta(minutes=2)),
+                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                 },

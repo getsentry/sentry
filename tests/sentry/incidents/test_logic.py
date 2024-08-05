@@ -96,7 +96,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -817,6 +817,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_create_alert_rule_anomaly_detection(self, mock_seer_request):
         mock_seer_request.return_value = HTTPResponse(status=200)
 
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_weeks_ago + timedelta(minutes=1))
+        self.create_event(two_weeks_ago + timedelta(days=10))
+
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -849,6 +853,45 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule.threshold_type == self.dynamic_metric_alert_settings["threshold_type"].value
         )
         assert alert_rule.threshold_period == self.dynamic_metric_alert_settings["threshold_period"]
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_create_alert_rule_anomaly_detection_not_enough_data(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_days_ago + timedelta(minutes=1))
+        self.create_event(two_days_ago + timedelta(days=1))
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            **self.dynamic_metric_alert_settings,
+        )
+
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_create_alert_rule_anomaly_detection_no_data(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        # no events, so we expect _get_start_and_end to return -1, -1
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            **self.dynamic_metric_alert_settings,
+        )
+
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
 
     @with_feature("organizations:anomaly-detection-alerts")
     @patch(
