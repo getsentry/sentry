@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -130,30 +130,31 @@ function BaseDraggableTabList({
           ref={tabListRef}
         >
           {persistentTabs.map(item => (
-            <Reorder.Item
-              key={item.key}
-              value={item}
-              style={{display: 'flex', flexDirection: 'row'}}
-              as="div"
-            >
-              <Tab
+            <Fragment key={item.key}>
+              <Reorder.Item
                 key={item.key}
-                item={item}
-                state={state}
-                orientation={orientation}
-                overflowing={
-                  orientation === 'horizontal' && overflowTabs.includes(item.key)
-                }
-                ref={element => (tabItemsRef.current[item.key] = element)}
-                variant={tabVariant}
-              />
-
+                value={item}
+                style={{display: 'flex', flexDirection: 'row'}}
+                as="div"
+              >
+                <Tab
+                  key={item.key}
+                  item={item}
+                  state={state}
+                  orientation={orientation}
+                  overflowing={
+                    orientation === 'horizontal' && overflowTabs.includes(item.key)
+                  }
+                  ref={element => (tabItemsRef.current[item.key] = element)}
+                  variant={tabVariant}
+                />
+              </Reorder.Item>
               {(state.selectedKey === 'temporary-tab' ||
                 (state.selectedKey !== item.key &&
                   state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
                 <TabDivider />
               )}
-            </Reorder.Item>
+            </Fragment>
           ))}
           <AddViewButton borderless size="zero" onClick={onAddView}>
             <StyledIconAdd size="xs" />
@@ -268,7 +269,6 @@ const TabListWrap = styled('ul', {
   margin: 0;
   list-style-type: none;
   flex-shrink: 0;
-  padding-left: 15px;
 
   ${p =>
     p.orientation === 'horizontal'
