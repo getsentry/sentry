@@ -241,18 +241,32 @@ def get_pr_files(pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
 
 def get_projects_and_filenames_from_source_file(
     org_id: int,
-    repo_id: int,
     pr_filename: str,
+    repo_id: int | None = None,
+    repo_name: str | None = None,
 ) -> tuple[set[Project], set[str]]:
     # fetch the code mappings in which the source_root is a substring at the start of pr_filename
-    code_mappings = (
-        RepositoryProjectPathConfig.objects.filter(
-            organization_id=org_id,
-            repository_id=repo_id,
+    if not repo_id and not repo_name:
+        raise ValueError("repository ID or repository name are required")
+
+    if repo_id:
+        code_mappings = (
+            RepositoryProjectPathConfig.objects.filter(
+                organization_id=org_id,
+                repository_id=repo_id,
+            )
+            .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
+            .filter(substring_match=1)
         )
-        .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
-        .filter(substring_match=1)
-    )
+    else:
+        code_mappings = (
+            RepositoryProjectPathConfig.objects.filter(
+                organization_id=org_id,
+                repository__name=repo_name,
+            )
+            .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
+            .filter(substring_match=1)
+        )
 
     project_list: set[Project] = set()
     sentry_filenames = set()
@@ -266,8 +280,11 @@ def get_projects_and_filenames_from_source_file(
     return project_list, sentry_filenames
 
 
-def get_top_5_issues_by_count_for_file(
-    projects: list[Project], sentry_filenames: list[str], function_names: list[str]
+def get_top_issues_by_count_for_file(
+    projects: list[Project],
+    sentry_filenames: list[str],
+    function_names: list[str],
+    limit: int | None = 5,
 ) -> list[dict[str, Any]]:
     """
     Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
@@ -387,7 +404,7 @@ def get_top_5_issues_by_count_for_file(
             ]
         )
         .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
-        .set_limit(5)
+        .set_limit(limit)
     )
 
     request = SnubaRequest(
@@ -476,7 +493,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     # fetch issues related to the files
     for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
-            org_id, repo.id, file.filename
+            org_id=org_id, repo_id=repo.id, pr_filename=file.filename
         )
         if not len(projects) or not len(sentry_filenames):
             continue
@@ -540,7 +557,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not len(function_names):
             continue
 
-        top_issues = get_top_5_issues_by_count_for_file(
+        top_issues = get_top_issues_by_count_for_file(
             list(projects), list(sentry_filenames), list(function_names)
         )
         if not len(top_issues):
