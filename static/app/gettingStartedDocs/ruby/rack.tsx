@@ -7,7 +7,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getRubyMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -44,15 +44,23 @@ end
 
 use Sentry::Rack::CaptureExceptions`;
 
+const getVerifySnippet = () => `
+begin
+  1 / 0
+rescue ZeroDivisionError => exception
+  Sentry.capture_exception(exception)
+end
+
+Sentry.capture_message("test message")`;
+
 const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'The Sentry SDK for Ruby comes as a gem and is straightforward to install. If you are using Bundler just add this to your [gemfileCode:Gemfile] and run [bundleCode:bundle install]:',
+        'The Sentry SDK for Ruby comes as a gem that should be added to your [gemfileCode:Gemfile]:',
         {
           gemfileCode: <code />,
-          bundleCode: <code />,
         }
       ),
       configurations: [
@@ -71,6 +79,11 @@ const onboarding: OnboardingConfig = {
             : undefined,
           language: 'ruby',
           code: getInstallSnippet(params),
+        },
+        {
+          description: t('After adding the gems, run the following to install the SDK:'),
+          language: 'ruby',
+          code: 'bundle install',
         },
       ],
     },
@@ -93,7 +106,27 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'ruby',
+              value: 'ruby',
+              language: 'ruby',
+              code: getVerifySnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  nextSteps: () => [],
 };
 
 const docs: Docs = {
