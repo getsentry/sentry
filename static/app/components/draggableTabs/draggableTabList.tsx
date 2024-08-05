@@ -38,6 +38,8 @@ function BaseDraggableTabList({
   ...props
 }: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
+  // This ref is used to define the container that the tabs can be dragged within
+  const dragConstraintsRef = useRef<HTMLDivElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
     value,
@@ -114,7 +116,7 @@ function BaseDraggableTabList({
   const tempTab = [...state.collection].find(item => item.key === 'temporary-tab');
 
   return (
-    <TabListOuterWrap style={outerWrapStyles}>
+    <TabListOuterWrap style={outerWrapStyles} ref={dragConstraintsRef}>
       <Reorder.Group
         axis="x"
         values={[...state.collection]}
@@ -137,6 +139,9 @@ function BaseDraggableTabList({
                 value={item}
                 style={{display: 'flex', flexDirection: 'row'}}
                 as="div"
+                dragConstraints={dragConstraintsRef} // Sets the container that the tabs can be dragged within
+                dragElastic={0} // Prevents tabs from being dragged outside of the tab bar
+                dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic
                 layout
               >
                 <Tab
