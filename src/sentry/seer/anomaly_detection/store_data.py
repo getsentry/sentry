@@ -32,6 +32,10 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 )
 
 
+class UnexpectedSeerError(Exception):
+    pass
+
+
 def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     """
     Format Snuba data into the format the Seer API expects.
@@ -118,6 +122,18 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
             },
         )
         raise TimeoutError
+    except Exception:
+        logger.warning(
+            "Unexpected error sending data to Seer",
+            exc_info=True,
+            extra={"rule_id": alert_rule.id, "project_id": project.id},
+        )
+        raise UnexpectedSeerError("Unexpected error from Seer. Cannot store historical data.")
+    else:
+        logger.info(
+            "Data successfully sent to Seer",
+            extra={"rule_id": alert_rule.id, "project_id": project.id},
+        )
 
     MIN_DAYS = 7
     data_start_index, data_end_index = _get_start_and_end_indices(historical_data)

@@ -58,7 +58,10 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
-from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
+from sentry.seer.anomaly_detection.store_data import (
+    UnexpectedSeerError,
+    send_historical_data_to_seer,
+)
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
@@ -659,6 +662,8 @@ def create_alert_rule(
             except (ValidationError):
                 alert_rule.delete()
                 raise ValidationError
+            except UnexpectedSeerError:
+                raise UnexpectedSeerError("Could not create alert rule.")
 
         if user:
             create_audit_entry_from_user(
@@ -917,6 +922,8 @@ def update_alert_rule(
                     )
                 except (TimeoutError, MaxRetryError):
                     raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
+                except UnexpectedSeerError:
+                    raise UnexpectedSeerError("Could not update alert rule.")
 
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
