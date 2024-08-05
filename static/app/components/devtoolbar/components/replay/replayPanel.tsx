@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 
 import {Button} from 'sentry/components/button';
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
 import useReplayRecorder from 'sentry/components/devtoolbar/hooks/useReplayRecorder';
 import {resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
@@ -17,49 +18,52 @@ import PanelLayout from '../panelLayout';
 const TRUNC_ID_LENGTH = 16;
 
 export default function ReplayPanel() {
-  const {projectSlug, projectId, projectPlatform, trackAnalytics} = useConfiguration();
+  const {projectSlug, projectId, projectPlatform} = useConfiguration();
 
   const {disabledReason, isDisabled, isRecording, lastReplayId, start, stop} =
     useReplayRecorder();
 
   function ReplayLink({children}: {children: React.ReactNode}) {
-    return process.env.NODE_ENV === 'production' ? (
-      <SentryAppLink
-        to={{
-          url: `/replays/${lastReplayId}`,
-          query: {project: projectId},
-        }}
-        onClick={() => {
-          trackAnalytics?.({
-            eventKey: `devtoolbar.current-replay-link.click`,
-            eventName: `devtoolbar: Current replay link clicked`,
-          });
-        }}
-      >
-        {children}
-      </SentryAppLink>
-    ) : (
-      <ExternalLink
-        href={`https://sentry-test.sentry.io/replays/${lastReplayId}/?project=5270453`}
-      >
-        {children}
-      </ExternalLink>
+    return (
+      <AnalyticsProvider keyVal="replay-details-link" nameVal="replay details link">
+        {process.env.NODE_ENV === 'production' ? (
+          <SentryAppLink
+            to={{
+              url: `/replays/${lastReplayId}`,
+              query: {project: projectId},
+            }}
+          >
+            {children}
+          </SentryAppLink>
+        ) : (
+          <ExternalLink
+            href={`https://sentry-test.sentry.io/replays/${lastReplayId}/?project=5270453`}
+          >
+            {children}
+          </ExternalLink>
+        )}
+      </AnalyticsProvider>
     );
   }
 
   return (
     <PanelLayout title="Session Replay">
-      <Button
-        size="sm"
-        icon={isRecording ? <IconPause /> : <IconPlay />}
-        disabled={isDisabled}
-        title={disabledReason}
-        onClick={() => (isRecording ? stop() : start())}
+      <AnalyticsProvider
+        keyVal={`replay-button-${isRecording ? 'stop' : 'start'}`}
+        nameVal={`replay button ${isRecording ? 'stop' : 'start'}`}
       >
-        {isRecording
-          ? 'In progress. Click to stop recording'
-          : 'Start recording the current session'}
-      </Button>
+        <Button
+          size="sm"
+          icon={isRecording ? <IconPause /> : <IconPlay />}
+          disabled={isDisabled}
+          title={disabledReason}
+          onClick={() => (isRecording ? stop() : start())}
+        >
+          {isRecording
+            ? 'In progress. Click to stop recording'
+            : 'Start recording the current session'}
+        </Button>
+      </AnalyticsProvider>
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         {lastReplayId ? (
           <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>

@@ -46,7 +46,11 @@ export default function PanelRouter() {
         </AnalyticsProvider>
       );
     case 'replay':
-      return <PanelReplay />;
+      return (
+        <AnalyticsProvider keyVal="replay-panel" nameVal="Replay panel">
+          <PanelReplay />
+        </AnalyticsProvider>
+      );
     default:
       return null;
   }
