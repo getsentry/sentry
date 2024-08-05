@@ -45,7 +45,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     # Reverse the list of exceptions in order to prioritize the outermost/most recent ones in cases
     # where there are chained exceptions and we end up truncating
-    for exception in reversed(exceptions):
+    for exception in reversed(exceptions[:30]):
         if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
 
