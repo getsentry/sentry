@@ -99,6 +99,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         metrics.incr(
             "uptime.result_processor.handle_result_for_project",
             tags={"status_reason": status_reason, **metric_tags},
+            sample_rate=1.0,
         )
         cluster = _get_cluster()
         try:
