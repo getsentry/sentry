@@ -291,7 +291,7 @@ class LinkingView(BaseView, ABC):
         """Optional analytics key to record on success."""
         return None
 
-    def notify_on_success(self, integration: Integration, params: Mapping[str, Any]) -> None:
+    def notify_on_success(self, integration: Integration | None, params: Mapping[str, Any]) -> None:
         pass
 
     @method_decorator(never_cache)
@@ -319,11 +319,10 @@ class LinkingView(BaseView, ABC):
             )
 
         if request.method != "POST":
-            context = {}
-            if organization:
-                context["organization"] = organization
-            if integration:
-                context["provider"] = integration.get_provider()
+            context = {
+                "organization": organization,
+                "provider": integration.get_provider() if integration else None,
+            }
             return render_to_response(self.confirmation_template, request=request, context=context)
 
         response = self.execute(idp, params, request)
@@ -366,10 +365,7 @@ class LinkIdentityView(LinkingView, ABC):
         self, idp: IdentityProvider | None, params: Mapping[str, Any], request: HttpRequest
     ) -> HttpResponse | None:
         if idp is None:
-            raise ValueError(
-                "idp is required for linking (make sure that it included in the "
-                "params passed to the `handle` method)"
-            )
+            raise ValueError('idp is required for linking (params must include "integration_id")')
 
         user = request.user
         if isinstance(user, AnonymousUser):

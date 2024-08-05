@@ -69,7 +69,11 @@ class MsTeamsLinkIdentityView(MsTeamsLinkingView, LinkIdentityView):
     def success_template(self) -> str:
         return "sentry/integrations/msteams/linked.html"
 
-    def notify_on_success(self, integration: Integration, params: Mapping[str, Any]) -> None:
+    def notify_on_success(self, integration: Integration | None, params: Mapping[str, Any]) -> None:
+        if integration is None:
+            raise ValueError(
+                'Integration is required for linking (params must include "integration_id")'
+            )
         card = build_linked_card()
         client = MsTeamsClient(integration)
         user_conversation_id = client.get_user_conversation_id(
