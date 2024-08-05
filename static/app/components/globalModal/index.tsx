@@ -7,7 +7,7 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
-import {isGlobalModalVisible} from 'sentry/components/globalModal/isGlobalModalVisible';
+import {useModalIsVisible} from 'sentry/components/globalModal/useModalIsVisible';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -111,7 +111,7 @@ function GlobalModal({onClose}: Props) {
 
   const closeEvents = options.closeEvents ?? 'all';
 
-  const visible = isGlobalModalVisible();
+  const visible = useModalIsVisible();
 
   const closeModal = useCallback(() => {
     // Option close callback, from the thing which opened the modal
