@@ -150,8 +150,7 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
     # TODO: Determine if we want to filter out non-sourcemapped events
-    event_has_stacktrace = event_content_has_stacktrace(event)
-    if not event_has_stacktrace:
+    if not event_content_has_stacktrace(event):
         return False
 
     if event.platform not in SEER_ELIGIBLE_PLATFORMS:
