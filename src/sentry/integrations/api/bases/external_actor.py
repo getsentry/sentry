@@ -45,6 +45,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
     integration_id = serializers.IntegerField(required=True)
+    _actor_key: str
 
     @property
     def organization(self) -> Organization:
@@ -74,7 +75,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
         else:
             return dict(user_id=actor_model.id)
 
-    def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
+    def create(self, validated_data: MutableMapping[str, Any]) -> tuple[ExternalActor, bool]:
         actor_params = self.get_actor_params(validated_data)
         return ExternalActor.objects.get_or_create(
             **validated_data,
@@ -95,6 +96,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
         for key, value in validated_data.items():
             setattr(self.instance, key, value)
         try:
+            assert type(self.instance) is ExternalActor, "Instance type must be ExternalActor"
             self.instance.save()
             return self.instance
         except IntegrityError:

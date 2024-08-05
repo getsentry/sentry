@@ -1,9 +1,9 @@
-from sentry.api.bases.external_actor import (
+from sentry.api.serializers import serialize
+from sentry.integrations.api.bases.external_actor import (
     STRICT_NAME_PROVIDERS,
     ExternalTeamSerializer,
     ExternalUserSerializer,
 )
-from sentry.api.serializers import serialize
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_name

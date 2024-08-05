@@ -7,9 +7,8 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.utils.sdk import capture_exception
-
-from .organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 
 # This GET scope map is ideally a public endpoint but for now
 # we are allowing for anyone who has member permissions or above.

@@ -6,9 +6,11 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
+from sentry.integrations.api.bases.organization_integrations import (
+    RegionOrganizationIntegrationBaseEndpoint,
+)
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository

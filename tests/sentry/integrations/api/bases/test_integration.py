@@ -4,7 +4,7 @@ from django.http import HttpRequest
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 
-from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
@@ -33,7 +33,7 @@ class IntegrationEndpointTest(TestCase):
         assert resp.status_code == 400
         assert resp.exception is True
 
-    @patch("sentry.api.bases.integration.capture_exception")
+    @patch("sentry.integrations.api.bases.integration.capture_exception")
     def test_handle_exception_503(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
     ):
