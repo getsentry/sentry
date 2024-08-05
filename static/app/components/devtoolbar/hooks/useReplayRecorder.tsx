@@ -1,11 +1,10 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import type {replayIntegration} from '@sentry/react';
 import type {ReplayRecordingMode} from '@sentry/types';
 
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 
 type ReplayRecorderState = {
-  currReplayId: string | undefined;
   disabledReason: string | undefined;
   isDisabled: boolean;
   isRecording: boolean;
@@ -14,15 +13,16 @@ type ReplayRecorderState = {
   stop(): Promise<boolean>;
 };
 
+function getIsRecording(
+  replay: ReturnType<typeof replayIntegration> | undefined
+): boolean {
+  return replay?._replay.isEnabled() ?? false;
+}
+
 function getSessionId(
   replay: ReturnType<typeof replayIntegration> | undefined
 ): string | undefined {
-  try {
-    return replay?.getReplayId();
-  } catch {
-    // TODO: catch a more specific error
-    return undefined;
-  }
+  return replay?._replay.getSessionId();
 }
 
 function getRecordingMode(
@@ -58,21 +58,24 @@ export default function useReplayRecorder(): ReplayRecorderState {
         : undefined;
 
   const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [currReplayId, setCurrReplayId] = useState<string | undefined>();
   const [lastReplayId, setLastReplayId] = useState<string | undefined>(
     sessionStorage.getItem(LAST_REPLAY_STORAGE_KEY) || undefined
   );
   useEffect(() => {
-    const newIsRecording = sessionId !== undefined && recordingMode === 'session';
-    setIsRecording(newIsRecording);
-    setCurrReplayId(newIsRecording ? sessionId : undefined);
-    if (newIsRecording) {
+    if (isRecording && sessionId) {
       setLastReplayId(sessionId);
       sessionStorage.setItem(LAST_REPLAY_STORAGE_KEY, sessionId);
     }
-  }, [sessionId, recordingMode]);
+  }, [isRecording, sessionId]);
 
-  const start = async () => {
+  const refreshState = useCallback(() => {
+    setIsRecording(getIsRecording(replay));
+    setSessionId(getSessionId(replay));
+    setRecordingMode(getRecordingMode(replay));
+  }, [replay]);
+
+  const start = useCallback(async () => {
+    let success = false;
     if (replay && !isRecording) {
       try {
         if (recordingMode === 'session') {
@@ -81,30 +84,28 @@ export default function useReplayRecorder(): ReplayRecorderState {
           await replay.flush();
           // TODO: for 8.18, will this start a session replay?
         }
-        setSessionId(getSessionId(replay));
-        setRecordingMode(getRecordingMode(replay));
-        return true;
+        success = true;
         // eslint-disable-next-line no-empty
       } catch {}
     }
-    return false;
-  };
+    refreshState();
+    return success;
+  }, [isRecording, recordingMode, replay, refreshState]);
 
-  const stop = async () => {
+  const stop = useCallback(async () => {
+    let success = false;
     if (replay && isRecording) {
       try {
         await replay.stop();
-        setSessionId(getSessionId(replay));
-        setRecordingMode(getRecordingMode(replay));
-        return true;
+        success = true;
         // eslint-disable-next-line no-empty
       } catch {}
     }
-    return false;
-  };
+    refreshState();
+    return success;
+  }, [isRecording, replay, refreshState]);
 
   return {
-    currReplayId,
     disabledReason,
     isDisabled,
     isRecording,
