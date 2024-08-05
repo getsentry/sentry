@@ -183,15 +183,11 @@ function SuggestedFixSnippet({
   snippet: AutofixRootCauseCodeContextSnippet;
 }) {
   function getSourceLink() {
-    for (const repo of repos) {
-      if (repo.name === snippet.repo_name) {
-        if (repo.provider === 'integrations:github') {
-          const sourceLink = `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
-          return sourceLink;
-        }
-      }
-    }
-    return undefined;
+    const repo = repos.find(
+      r => r.name === snippet.repo_name && r.provider === 'integrations:github'
+    );
+    if (!repo) return undefined;
+    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
   }
   const extension = getFileExtension(snippet.file_path);
   const lanugage = extension ? getPrismLanguage(extension) : undefined;
