@@ -2,10 +2,15 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import bannerIllustration from 'sentry-images/spot/alerts-empty-state.svg';
+
+import {Button} from 'sentry/components/button';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {IconAdd, IconSubtract} from 'sentry/icons';
+import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -16,6 +21,7 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface Props {
   commitRow: React.ComponentType<CommitRowProps>;
@@ -32,6 +38,8 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
     projectSlug: project.slug,
   });
   const committers = data?.committers ?? [];
+
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
@@ -80,7 +88,50 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
-  return (
+  return hasStreamlinedUI ? (
+    <StreamlinedPanel>
+      <Header>
+        <Title>{t('Suspect Commit')}</Title>
+        <DismissButton
+          borderless
+          icon={<IconClose />}
+          onClick={() => {}}
+          aria-label={t('Close Suspect Commit Banner')}
+          size="zero"
+        />
+      </Header>
+      {commits.length > 1 && (
+        <ExpandButton
+          onClick={() => setIsExpanded(!isExpanded)}
+          data-test-id="expand-commit-list"
+        >
+          {isExpanded ? (
+            <Fragment>
+              {t('Show less')} <IconSubtract isCircled size="md" />
+            </Fragment>
+          ) : (
+            <Fragment>
+              {t('Show more')} <IconAdd isCircled size="md" />
+            </Fragment>
+          )}
+        </ExpandButton>
+      )}
+      <PanelBody>
+        {commits.slice(0, isExpanded ? 100 : 1).map((commit, commitIndex) => (
+          <CommitRow
+            key={commit.id}
+            commit={commit}
+            onCommitClick={() => handleCommitClick(commit, commitIndex)}
+            onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
+            project={project}
+          />
+        ))}
+      </PanelBody>
+      <IllustrationContainer>
+        <Illustration src={bannerIllustration} />
+      </IllustrationContainer>
+    </StreamlinedPanel>
+  ) : (
     <div>
       <SuspectCommitHeader>
         <h3 data-test-id="suspect-commit">{commitHeading}</h3>
@@ -123,4 +174,39 @@ const ExpandButton = styled('button')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: bold;
+`;
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 12px 0 12px;
+`;
+
+const StreamlinedPanel = styled(Panel)`
+  background: linear-gradient(269.35deg, #f5f3f7 0.32%, rgba(245, 243, 247, 0) 99.69%);
+  overflow: hidden;
+`;
+
+const IllustrationContainer = styled('div')`
+  position: absolute;
+  top: 0px;
+  right: 50px;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+    pointer-events: none;
+  }
+`;
+
+const Illustration = styled('img')`
+  height: 110px;
+`;
+const DismissButton = styled(Button)`
+  color: ${p => p.theme.gray300};
 `;

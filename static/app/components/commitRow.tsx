@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -6,16 +6,23 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
+import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {Hovercard} from 'sentry/components/hovercard';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {AvatarProject} from 'sentry/types';
 import type {Commit} from 'sentry/types/integrations';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {
@@ -30,6 +37,7 @@ export interface CommitRowProps {
   customAvatar?: React.ReactNode;
   onCommitClick?: (commit: Commit) => void;
   onPullRequestClick?: () => void;
+  project?: AvatarProject;
 }
 
 function CommitRow({
@@ -37,7 +45,10 @@ function CommitRow({
   customAvatar,
   onPullRequestClick,
   onCommitClick,
+  project,
 }: CommitRowProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const organization = useOrganization();
   const handleInviteClick = useCallback(() => {
     if (!commit.author?.email) {
       Sentry.captureException(
@@ -59,7 +70,64 @@ function CommitRow({
   const user = ConfigStore.get('user');
   const isUser = user?.id === commit.author?.id;
 
-  return (
+  const firstRelease = commit.releases?.[0];
+
+  return hasStreamlinedUI ? (
+    <StreamlinedPanel data-test-id="commit-row">
+      {commit.pullRequest?.externalUrl ? (
+        <StyledExternalLink href={commit.pullRequest?.externalUrl}>
+          {formatCommitMessage(commit.message)}
+        </StyledExternalLink>
+      ) : (
+        <Message>{formatCommitMessage(commit.message)}</Message>
+      )}
+      <MetaWrapper>
+        <span>
+          {customAvatar ? customAvatar : <UserAvatar size={16} user={commit.author} />}
+        </span>
+        <Meta hasStreamlinedUI={hasStreamlinedUI}>
+          {tct('[author] committed [commitLink] [date]', {
+            author: (
+              <span>
+                {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+              </span>
+            ),
+            commitLink: (
+              <CommitLink
+                inline
+                showIcon={false}
+                commitId={commit.id}
+                repository={commit.repository}
+                onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
+              />
+            ),
+            date: <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />,
+          })}
+        </Meta>
+        {project && firstRelease && (
+          <Fragment>
+            <Divider />
+            {tct('First deployed in release [release]', {
+              release: (
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={project.slug}
+                  releaseVersion={firstRelease.version}
+                >
+                  <span>
+                    <Version
+                      version={firstRelease.version}
+                      projectId={project.id?.toString()}
+                    />
+                  </span>
+                </VersionHoverCard>
+              ),
+            })}
+          </Fragment>
+        )}
+      </MetaWrapper>
+    </StreamlinedPanel>
+  ) : (
     <StyledPanelItem key={commit.id} data-test-id="commit-row">
       {customAvatar ? (
         customAvatar
@@ -181,11 +249,35 @@ const Message = styled(TextOverflow)`
   line-height: 1.2;
 `;
 
-const Meta = styled(TextOverflow)`
-  font-size: 13px;
+const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
+  font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSizeMedium : '13px')};
   line-height: 1.5;
   margin: 0;
   color: ${p => p.theme.subText};
+
+  a {
+    color: ${p => p.theme.subText};
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
+`;
+
+const StreamlinedPanel = styled(PanelItem)`
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+`;
+
+const MetaWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  ${Message}
 `;
 
 export {CommitRow};
