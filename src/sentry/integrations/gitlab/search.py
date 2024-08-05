@@ -17,7 +17,7 @@ from sentry.shared_integrations.exceptions import ApiError
 class GitlabIssueSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(

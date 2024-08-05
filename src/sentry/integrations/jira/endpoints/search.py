@@ -21,7 +21,7 @@ from ..utils import build_user_choice
 class JiraSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """
     Called by our front end when it needs to make requests to Jira's API for data.

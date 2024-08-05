@@ -647,10 +647,18 @@ def create_alert_rule(
                 )
 
             try:
-                send_historical_data_to_seer(alert_rule=alert_rule, project=projects[0])
+                rule_status = send_historical_data_to_seer(
+                    alert_rule=alert_rule, project=projects[0]
+                )
+                if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
+                    # if we don't have at least seven days worth of data, then the dynamic alert won't fire
+                    alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError
+            except (ValidationError):
+                alert_rule.delete()
+                raise ValidationError
 
         if user:
             create_audit_entry_from_user(
@@ -868,6 +876,8 @@ def update_alert_rule(
             updated_fields["sensitivity"] = None
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            # TODO: if updating to a dynamic alert rule, check to see if there's enough data
+            # This must be done after backfill PR lands
             updated_fields["comparison_delta"] = None
             if (
                 time_window not in DYNAMIC_TIME_WINDOWS
