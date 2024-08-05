@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -72,6 +73,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   customMenu?: CustomComboboxMenu;
   /**
+   * If the combobox has additional information to display, passing JSX
+   * to this prop will display it in an overlay at the top left position.
+   */
+  description?: ReactNode;
+  /**
    * Whether to display the tabbed menu.
    */
   displayTabbedMenu?: boolean;
@@ -113,6 +119,19 @@ type CustomComboboxMenu = (props: {
   listBoxRef: React.RefObject<HTMLUListElement>;
   popoverRef: React.RefObject<HTMLDivElement>;
 }) => React.ReactNode;
+
+const DESCRIPTION_POPPER_OPTIONS = {
+  placement: 'top-start' as const,
+  strategy: 'fixed' as const,
+  modifiers: [
+    {
+      name: 'offset',
+      options: {
+        offset: [-12, 8],
+      },
+    },
+  ],
+};
 
 function itemIsSection(
   item: SelectOptionOrSectionWithKey<string>
@@ -302,8 +321,9 @@ function FeedbackFooter() {
           openForm({
             messagePlaceholder: t('How can we make search better for you?'),
             tags: {
-              feedback_source: 'search_query_builder',
               search_source: searchSource,
+              ['feedback.source']: 'search_query_builder',
+              ['feedback.owner']: 'issues',
             },
           })
         }
@@ -466,6 +486,7 @@ function OverlayContent({
 function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<string>>(
   {
     children,
+    description,
     items,
     inputValue,
     filterValue = inputValue,
@@ -500,6 +521,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [selectedSection, setSelectedSection] = useState<Key | null>(null);
+  const descriptionRef = useRef<HTMLDivElement>(null);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
@@ -538,7 +560,6 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the tabbed menu
     shouldCloseOnBlur: false,
-    selectedKey: null,
     ...comboBoxProps,
   });
 
@@ -642,6 +663,12 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     preventOverflowOptions: {boundary: document.body, altAxis: true},
   });
 
+  const descriptionPopper = usePopper(
+    inputRef.current,
+    descriptionRef.current,
+    DESCRIPTION_POPPER_OPTIONS
+  );
+
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
     e => {
       e.stopPropagation();
@@ -666,8 +693,10 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   //
   // [1]: https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/combobox/src/useComboBox.ts#L337C3-L341C44
   useEffect(() => {
-    if (isOpen && inputRef.current && popoverRef.current) {
-      return ariaHideOutside([inputRef.current, popoverRef.current]);
+    if (isOpen) {
+      return ariaHideOutside(
+        [inputRef.current, popoverRef.current, descriptionRef.current].filter(defined)
+      );
     }
 
     return () => {};
@@ -688,6 +717,17 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         onPaste={onPaste}
         disabled={disabled}
       />
+      {description ? (
+        <StyledPositionWrapper
+          {...descriptionPopper.attributes.popper}
+          ref={descriptionRef}
+          style={descriptionPopper.styles.popper}
+          visible
+          role="tooltip"
+        >
+          <DescriptionOverlay>{description}</DescriptionOverlay>
+        </StyledPositionWrapper>
+      ) : null}
       <StyledPositionWrapper {...overlayProps} visible={isOpen}>
         <OverlayContent
           customMenu={customMenu}
@@ -756,6 +796,13 @@ const ListBoxOverlay = styled(Overlay)`
   width: 600px;
   max-width: min-content;
   overflow-y: auto;
+`;
+
+const DescriptionOverlay = styled(Overlay)`
+  min-width: 200px;
+  max-width: 400px;
+  padding: ${space(1)} ${space(1.5)};
+  line-height: 1.2;
 `;
 
 const SectionedOverlay = styled(Overlay)`

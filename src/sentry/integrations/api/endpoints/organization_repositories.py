@@ -85,7 +85,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
             return Response(serialize(repos, request.user))
 
-        else:
+        elif status:
             queryset = queryset.none()
 
         return self.paginate(

@@ -8,6 +8,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   SearchQueryBuilder,
@@ -2024,7 +2025,7 @@ describe('SearchQueryBuilder', function () {
             };
           case 'count_if':
             return {
-              desc: 'count_if()  description',
+              desc: 'count_if() description',
               kind: FieldKind.FUNCTION,
               valueType: FieldValueType.INTEGER,
               parameters: [
@@ -2052,7 +2053,7 @@ describe('SearchQueryBuilder', function () {
                   kind: 'value' as const,
                   dataType: FieldValueType.STRING,
                   defaultValue: '300ms',
-                  required: true,
+                  required: false,
                 },
               ],
             };
@@ -2071,7 +2072,7 @@ describe('SearchQueryBuilder', function () {
       it('can add an aggregate filter with default values', async function () {
         render(<SearchQueryBuilder {...aggregateDefaultProps} />);
         await userEvent.click(getLastInput());
-        await userEvent.click(screen.getByRole('option', {name: 'count_if'}));
+        await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
 
         expect(
           await screen.findByRole('row', {
@@ -2159,6 +2160,38 @@ describe('SearchQueryBuilder', function () {
             name: 'count_if(a,b,c):>100',
           })
         ).toBeInTheDocument();
+      });
+
+      it('displays a description of the function and parameters while editing', async function () {
+        render(
+          <SearchQueryBuilder {...aggregateDefaultProps} initialQuery="count_if():>100" />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+
+        const descriptionTooltip = await screen.findByRole('tooltip');
+        expect(
+          within(descriptionTooltip).getByText('count_if() description')
+        ).toBeInTheDocument();
+        expect(
+          within(descriptionTooltip).getByText(
+            textWithMarkupMatcher(
+              'count_if(column: string, operator: string, value?: string)'
+            )
+          )
+        ).toBeInTheDocument();
+        expect(within(descriptionTooltip).getByTestId('focused-param')).toHaveTextContent(
+          'column: string'
+        );
+
+        // After moving to next parameter, should now highlight 'operator'
+        await userEvent.keyboard('a,');
+        await waitFor(() => {
+          expect(
+            within(descriptionTooltip).getByTestId('focused-param')
+          ).toHaveTextContent('operator: string');
+        });
       });
     });
   });

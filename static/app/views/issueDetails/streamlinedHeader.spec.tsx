@@ -1,10 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {TeamParticipant, UserParticipant} from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
@@ -28,15 +30,30 @@ describe('UpdatedGroupHeader', () => {
       project,
     };
 
+    const release = ReleaseFixture();
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
         method: 'GET',
-        body: {},
+        body: {firstRelease: release, lastRelease: release},
       });
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/replay-count/',
+        body: {},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/repos/`,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(release.version)}/`,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/releases/${encodeURIComponent(release.version)}/deploys/`,
         body: {},
       });
     });
@@ -84,8 +101,9 @@ describe('UpdatedGroupHeader', () => {
       expect(await screen.findByText('Warning')).toBeInTheDocument();
       expect(await screen.findByText('Unhandled')).toBeInTheDocument();
 
-      expect(await screen.findByText('First Seen in')).toBeInTheDocument();
-      expect(await screen.findByText('Last Seen in')).toBeInTheDocument();
+      expect(
+        await screen.findByText(textWithMarkupMatcher('Releases'))
+      ).toBeInTheDocument();
 
       expect(
         await screen.findByRole('button', {name: 'Modify issue priority'})

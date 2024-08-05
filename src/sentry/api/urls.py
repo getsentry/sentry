@@ -255,6 +255,7 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -2708,10 +2709,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionNamesCluster.as_view(),
         name="sentry-api-0-organization-project-cluster-transaction-names",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/plugins?/",
-        include("sentry.plugins.base.project_api_urls"),
-    ),
     # Tombstone
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tombstones/$",
@@ -2808,6 +2805,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/create/$",
         ProjectAutofixCreateCodebaseIndexEndpoint.as_view(),
         name="sentry-api-0-project-autofix-codebase-index-create",
+    ),
+    # Uptime
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/(?P<uptime_subscription_id>[^\/]+)/$",
+        ProjectUptimeAlertDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-details",
     ),
 ]
 

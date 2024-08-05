@@ -16,7 +16,10 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -46,10 +49,6 @@ const getNextStep = (
     nextStepDocs = nextStepDocs.filter(
       step => step.id !== ProductSolution.SESSION_REPLAY
     );
-  }
-
-  if (params.isProfilingSelected) {
-    nextStepDocs = nextStepDocs.filter(step => step.id !== ProductSolution.PROFILING);
   }
   return nextStepDocs;
 };
@@ -81,6 +80,7 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
+  introduction: MaybeBrowserProfilingBetaWarning,
   install: () => [
     {
       type: StepType.INSTALL,
@@ -136,11 +136,11 @@ const onboarding: OnboardingConfig = {
     })
     export class AppModule {}`,
         },
+        ...(params.isProfilingSelected
+          ? [getProfilingDocumentHeaderConfigurationStep()]
+          : []),
       ],
     },
-    ...(params.isProfilingSelected
-      ? [getProfilingDocumentHeaderConfigurationStep()]
-      : []),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
       ...params,
@@ -195,7 +195,6 @@ function getSdkSetupSnippet(params: Params) {
   import * as Sentry from "@sentry/angular";
 
   import { AppModule } from "./app/app.module";
-import { getProfilingDocumentHeaderConfigurationStep } from '../../components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 
   Sentry.init({
     dsn: "${params.dsn}",
@@ -241,8 +240,12 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
   }${
     params.isProfilingSelected
       ? `
-        // Profiling
-        profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
+        // Set profilesSampleRate to 1.0 to profile every transaction.
+        // Since profilesSampleRate is relative to tracesSampleRate,
+        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
+        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
+        // results in 25% of transactions being profiled (0.5*0.5=0.25)
+        profilesSampleRate: 1.0,`
       : ''
   }
   });`;

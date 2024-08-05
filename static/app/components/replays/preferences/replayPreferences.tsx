@@ -7,26 +7,50 @@ export type ReplayPrefs = {
   playbackSpeed: number;
 };
 
-const DEFAULT_PREFS = {
+const CAN_SKIP_PREFS: ReplayPrefs = {
   isSkippingInactive: true,
   playbackSpeed: 1,
 };
 
+const NO_SKIP_PREFS: ReplayPrefs = {
+  isSkippingInactive: false,
+  playbackSpeed: 1,
+};
+
 export interface PrefsStrategy {
+  _prefs: ReplayPrefs;
   get: () => ReplayPrefs;
   set: (prefs: ReplayPrefs) => void;
 }
 
 export const StaticReplayPreferences: PrefsStrategy = {
-  get: (): ReplayPrefs => DEFAULT_PREFS,
-  set: () => {},
+  _prefs: {...CAN_SKIP_PREFS},
+  get() {
+    return this._prefs;
+  },
+  set(prefs) {
+    this._prefs = prefs;
+  },
+};
+
+export const StaticNoSkipReplayPreferences: PrefsStrategy = {
+  _prefs: {...NO_SKIP_PREFS},
+  get() {
+    return this._prefs;
+  },
+  set(prefs) {
+    this._prefs = prefs;
+  },
 };
 
 export const LocalStorageReplayPreferences: PrefsStrategy = {
-  get: (): ReplayPrefs => {
+  _prefs: {...CAN_SKIP_PREFS},
+  get() {
     const parsed = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
-    return {...DEFAULT_PREFS, ...parsed};
+    return {...CAN_SKIP_PREFS, ...parsed};
   },
-  set: (prefs: ReplayPrefs) =>
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs)),
+  set(prefs) {
+    this._prefs = prefs;
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs));
+  },
 };

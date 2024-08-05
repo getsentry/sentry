@@ -395,6 +395,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.monitors",
+    "sentry.integrations",
     "sentry.uptime",
     "sentry.replays",
     "sentry.release_health",
@@ -736,6 +737,9 @@ CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.integrations.github.tasks",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
@@ -809,6 +813,8 @@ CELERY_IMPORTS = (
     "sentry.integrations.slack.tasks",
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.subscriptions.tasks",
+    "sentry.integrations.vsts.tasks",
+    "sentry.integrations.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1146,6 +1152,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 20 minutes
         "schedule": crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
+    },
+    "uptime-subscription-checker": {
+        "task": "sentry.uptime.tasks.subscription_checker",
+        "schedule": crontab(minute="*/10"),
+        "options": {"expires": 10 * 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
@@ -3347,6 +3358,8 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 # This webhook url can be configured to log the changes made to runtime options as they
 # are changed by sentry configoptions.
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
+
+OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
