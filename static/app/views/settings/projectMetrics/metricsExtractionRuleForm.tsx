@@ -442,6 +442,7 @@ export function MetricsExtractionRuleForm({
             name="aggregates"
             required
             options={AGGREGATE_OPTIONS}
+            placeholder={t('Select aggregations')}
             label={
               <TooltipIconLabel
                 label={t('Aggregate')}
