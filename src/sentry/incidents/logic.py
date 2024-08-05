@@ -881,6 +881,8 @@ def update_alert_rule(
             updated_fields["sensitivity"] = None
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            # TODO: if updating to a dynamic alert rule, check to see if there's enough data
+            # This must be done after backfill PR lands
             updated_fields["comparison_delta"] = None
             if (
                 time_window not in DYNAMIC_TIME_WINDOWS

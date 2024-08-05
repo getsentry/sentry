@@ -31,8 +31,6 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
-NOT_ENOUGH_DATA = "Fewer than seven days of historical data available"
-
 
 def format_historical_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     """
@@ -78,7 +76,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     historical_data = fetch_historical_data(alert_rule, snuba_query, project)
 
     if not historical_data:
-        raise ValidationError("No historical data available. Cannot create alert_rule.")
+        raise ValidationError("No historical data available.")
 
     formatted_data = format_historical_data(historical_data)
 
@@ -89,9 +87,7 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         or alert_rule.organization is None
     ):
         # this won't happen because we've already gone through the serializer, but mypy insists
-        raise ValidationError(
-            "Cannot create alert_rule - missing expected configuration for a dynamic alert."
-        )
+        raise ValidationError("Missing expected configuration for a dynamic alert.")
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
