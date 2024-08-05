@@ -335,6 +335,11 @@ export default storyBook(SearchQueryBuilder, story => {
 
   story('Aggregate filters', () => {
     const aggregateFilterKeys: TagCollection = {
+      apdex: {
+        key: 'apdex',
+        name: 'apdex',
+        kind: FieldKind.FUNCTION,
+      },
       count: {
         key: 'count',
         name: 'count',
@@ -364,6 +369,21 @@ export default storyBook(SearchQueryBuilder, story => {
 
     const getAggregateFieldDefinition: FieldDefinitionGetter = (key: string) => {
       switch (key) {
+        case 'apdex':
+          return {
+            desc: 'Returns results with the Apdex score that you entered. Values must be between 0 and 1. Higher apdex values indicate higher user satisfaction.',
+            kind: FieldKind.FUNCTION,
+            valueType: FieldValueType.NUMBER,
+            parameters: [
+              {
+                name: 'threshold',
+                kind: 'value' as const,
+                dataType: FieldValueType.NUMBER,
+                defaultValue: '300',
+                required: true,
+              },
+            ],
+          };
         case 'count':
           return {
             desc: 'Returns results with a matching count.',

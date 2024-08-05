@@ -1,10 +1,12 @@
+import type React from 'react';
 import {Fragment} from 'react';
 
 import {
   type StepProps,
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {tct} from 'sentry/locale';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {t, tct} from 'sentry/locale';
 
 export function getProfilingDocumentHeaderConfigurationStep(): StepProps {
   return {
@@ -35,4 +37,27 @@ export function getProfilingDocumentHeaderConfigurationStep(): StepProps {
       </Fragment>
     ),
   };
+}
+
+export function MaybeBrowserProfilingBetaWarning(
+  props: DocsParams<any>
+): React.ReactElement | null {
+  if (!props.isProfilingSelected) {
+    return null;
+  }
+
+  return (
+    <p>
+      {tct(
+        `Browser profiling is currently in Beta as we wait for the JS Self Profiling spec to gain wider support. You can read the detailed explanation [explainer].`,
+        {
+          explainer: (
+            <a href="https://docs.sentry.io/platforms/javascript/profiling/">
+              {t('here')}
+            </a>
+          ),
+        }
+      )}
+    </p>
+  );
 }

@@ -13,8 +13,8 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {DraggableTabMenuButton} from 'sentry/views/issueList/draggableTabMenuButton';
-import EditableTabTitle from 'sentry/views/issueList/editableTabTitle';
+import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
+import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
 
 export interface Tab {
   content: React.ReactNode;
@@ -154,8 +154,8 @@ export function DraggableTabBar({
         onRename: () => setEditingTabKey(tab.key),
         onDuplicate: () => handleOnDuplicate(tab),
         onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
-        onSave,
-        onDiscard,
+        onSave: () => onSave?.(tab.key),
+        onDiscard: () => onDiscard?.(tab.key),
       });
     }
     return makeDefaultMenuOptions({
@@ -197,6 +197,7 @@ export function DraggableTabBar({
                 <DraggableTabMenuButton
                   hasUnsavedChanges={tab.hasUnsavedChanges}
                   menuOptions={makeMenuOptions(tab)}
+                  aria-label={`${tab.label} Tab Options`}
                 />
               )}
             </TabContentWrap>
