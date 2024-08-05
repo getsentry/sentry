@@ -13,13 +13,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalUserSerializer,
 )
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
-from sentry.apidocs.examples.organization_examples import OrganizationExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 
