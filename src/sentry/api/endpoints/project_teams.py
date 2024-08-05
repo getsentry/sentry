@@ -8,6 +8,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.team import BaseTeamSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.team import Team
 
 
@@ -19,6 +23,18 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.ENTERPRISE
 
+    @extend_schema(
+        operation_id="List a Project's Teams",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectTeamsResponse", list[BaseTeamSerializerResponse]
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request: Request, project) -> Response:
         """
         List a Project's Teams
@@ -37,5 +53,5 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
             queryset=queryset,
             order_by="name",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda team: serialize(team, request.user),
         )
