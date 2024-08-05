@@ -8,6 +8,7 @@ from enum import Enum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
+from django_stubs_ext import StrOrPromise
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
@@ -58,10 +59,10 @@ class FeatureDescription(NamedTuple):
 
 
 class IntegrationMetadata(NamedTuple):
-    description: str  # A markdown description of the integration
+    description: StrOrPromise  # A markdown description of the integration
     features: Sequence[FeatureDescription]  # A list of FeatureDescriptions
     author: str  # The integration author's name
-    noun: str  # The noun used to identify the integration
+    noun: StrOrPromise  # The noun used to identify the integration
     issue_url: str  # URL where issues should be opened
     source_url: str  # URL to view the source
     aspects: dict[str, Any]  # A map of integration specific 'aspects' to the aspect config.
