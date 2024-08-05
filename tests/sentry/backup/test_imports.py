@@ -693,9 +693,7 @@ class SignalingTests(ImportTestCase):
         assert Project.objects.filter(name="other-project-some-org").exists()
 
         assert ProjectKey.objects.count() == 2
-        assert ProjectOption.objects.count() == 6
-        assert ProjectOption.objects.filter(key="sentry:relay-rev").exists()
-        assert ProjectOption.objects.filter(key="sentry:relay-rev-lastchange").exists()
+        assert ProjectOption.objects.count() == 2
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
         with assume_test_silo_mode(SiloMode.CONTROL):

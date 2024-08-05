@@ -12,7 +12,6 @@ register = default_manager.register
 all = default_manager.all
 isset = default_manager.isset
 lookup_well_known_key = default_manager.lookup_well_known_key
-update_rev_for_option = default_manager.update_rev_for_option
 
 
 def get_well_known_default(key, project=None, epoch=None):

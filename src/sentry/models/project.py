@@ -16,7 +16,6 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
-from sentry import projectoptions
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -385,7 +384,6 @@ class Project(Model, PendingDeletionMixin):
             )
         else:
             super().save(*args, **kwargs)
-        self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
         path = f"/organizations/{self.organization.slug}/issues/"
@@ -424,15 +422,10 @@ class Project(Model, PendingDeletionMixin):
         return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
-        projectoptions.update_rev_for_option(self)
         return self.option_manager.set_value(self, key, value)
 
     def delete_option(self, key: str) -> None:
-        projectoptions.update_rev_for_option(self)
         self.option_manager.unset_value(self, key)
-
-    def update_rev_for_option(self):
-        return projectoptions.update_rev_for_option(self)
 
     @property
     def color(self):
