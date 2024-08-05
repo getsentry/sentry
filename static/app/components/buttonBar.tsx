@@ -12,7 +12,7 @@ type ButtonBarProps = {
   children: React.ReactNode;
   active?: ButtonProps['barId'];
   className?: string;
-  gap?: ValidSize;
+  gap?: ValidSize | 0;
   merged?: boolean;
 };
 
@@ -121,10 +121,10 @@ const MergedStyles = () => css`
   }
 `;
 
-const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
+const ButtonGrid = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
   display: grid;
   grid-auto-flow: column;
-  grid-column-gap: ${p => space(p.gap)};
+  grid-column-gap: ${p => (p.gap === 0 ? '0px' : space(p.gap))};
   align-items: center;
 
   ${p => p.merged && MergedStyles}
