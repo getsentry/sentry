@@ -1,6 +1,7 @@
+import os
 import secrets
 from typing import Any, ClassVar, Self
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 import petname
 from django.db import models, router, transaction
@@ -101,9 +102,14 @@ class ApiApplication(Model):
         return value in ("code", "token")
 
     def is_valid_redirect_uri(self, value):
-        v_netloc = urlparse(value).netloc
+        parts = urlparse(value)
+        normalized_path = os.path.normpath(parts.path)
+        if value.endswith("/"):
+            normalized_path += "/"
+        value = urlunparse(parts._replace(path=normalized_path))
+
         for ruri in self.redirect_uris.split("\n"):
-            if v_netloc != urlparse(ruri).netloc:
+            if parts.netloc != urlparse(ruri).netloc:
                 continue
             if value.startswith(ruri):
                 return True
