@@ -46,7 +46,7 @@ class PullRequestFileSerializer(serializers.Serializer):
 class OrganizationPullRequestFilesIssuesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def post(self, request: Request, organization: Organization) -> Response:

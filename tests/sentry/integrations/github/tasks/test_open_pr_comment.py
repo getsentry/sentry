@@ -309,7 +309,7 @@ class TestGetFilenames(GithubCommentTestCase):
         ]
 
         project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
-            self.organization.id, self.gh_repo.id, filename
+            org_id=self.organization.id, repo_id=self.gh_repo.id, pr_filename=filename
         )
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)
@@ -356,7 +356,7 @@ class TestGetFilenames(GithubCommentTestCase):
         ]
 
         project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
-            self.organization.id, self.gh_repo.id, filename
+            org_id=self.organization.id, repo_id=self.gh_repo.id, pr_filename=filename
         )
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)
