@@ -3,6 +3,7 @@ import 'intersection-observer'; // polyfill
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Key, Node} from '@react-types/shared';
+import type {LocationDescriptor} from 'history';
 
 import Badge from 'sentry/components/badge/badge';
 import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
@@ -13,23 +14,24 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {DraggableTabMenuButton} from 'sentry/views/issueList/draggableTabMenuButton';
-import EditableTabTitle from 'sentry/views/issueList/editableTabTitle';
+import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
+import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
 
 export interface Tab {
-  content: React.ReactNode;
   key: string;
   label: string;
+  content?: React.ReactNode;
   hasUnsavedChanges?: boolean;
   queryCount?: number;
+  to?: LocationDescriptor;
 }
 
 export interface DraggableTabBarProps {
-  defaultNewTab: Tab;
   setTabs: (tabs: Tab[]) => void;
   showTempTab: boolean;
   tabs: Tab[];
   tempTab: Tab;
+  defaultNewTab?: Tab;
   onAddView?: React.MouseEventHandler;
   /**
    * Callback function to be called when user clicks the `Delete` button.
@@ -130,7 +132,9 @@ export function DraggableTabBar({
   };
 
   const handleOnAddView = (e: React.MouseEvent<Element, MouseEvent>) => {
-    setTabs([...tabs, defaultNewTab]);
+    if (defaultNewTab) {
+      setTabs([...tabs, defaultNewTab]);
+    }
     onAddView?.(e);
   };
 
@@ -154,8 +158,8 @@ export function DraggableTabBar({
         onRename: () => setEditingTabKey(tab.key),
         onDuplicate: () => handleOnDuplicate(tab),
         onDelete: tabs.length > 1 ? () => handleOnDelete(tab) : undefined,
-        onSave,
-        onDiscard,
+        onSave: () => onSave?.(tab.key),
+        onDiscard: () => onDiscard?.(tab.key),
       });
     }
     return makeDefaultMenuOptions({
@@ -166,10 +170,9 @@ export function DraggableTabBar({
   };
 
   return (
-    <Tabs>
+    <Tabs value={selectedTabKey} onChange={setSelectedTabKey}>
       <DraggableTabList
         onReorder={onReorder}
-        onSelectionChange={setSelectedTabKey}
         selectedKey={selectedTabKey}
         showTempTab={showTempTab}
         onAddView={e => handleOnAddView(e)}
@@ -180,6 +183,7 @@ export function DraggableTabBar({
             textValue={`${tab.label} tab`}
             key={tab.key}
             hidden={tab.key === 'temporary-tab' && !showTempTab}
+            to={tab.to}
           >
             <TabContentWrap>
               <EditableTabTitle
@@ -188,15 +192,21 @@ export function DraggableTabBar({
                 setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
                 onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
               />
-              {tab.key !== 'temporary-tab' && tab.queryCount && (
+              {tab.key !== 'temporary-tab' && tab.queryCount !== undefined && (
                 <StyledBadge>
-                  <QueryCount hideParens count={tab.queryCount} max={1000} />
+                  <QueryCount
+                    hideParens
+                    hideIfEmpty={false}
+                    count={tab.queryCount}
+                    max={1000}
+                  />
                 </StyledBadge>
               )}
               {selectedTabKey === tab.key && (
                 <DraggableTabMenuButton
                   hasUnsavedChanges={tab.hasUnsavedChanges}
                   menuOptions={makeMenuOptions(tab)}
+                  aria-label={`${tab.label} Tab Options`}
                 />
               )}
             </TabContentWrap>

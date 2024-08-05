@@ -3,8 +3,10 @@ import {Item} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -153,7 +155,7 @@ function useParameterSuggestions({
   const createItem = useCallback(
     (suggestion: SuggestionItem): SelectOptionWithKey<string> => {
       return {
-        key: suggestion.value,
+        key: getEscapedKey(suggestion.value),
         label: suggestion.label ?? suggestion.value,
         value: suggestion.value,
         details: suggestion.description,
@@ -252,6 +254,7 @@ export function SearchQueryBuilderParametersCombobox({
       autoFocus
       maxOptions={20}
       isOpen
+      description={<FunctionDescription token={token} parameterIndex={parameterIndex} />}
     >
       {item => (
         <Item {...item} key={item.key}>

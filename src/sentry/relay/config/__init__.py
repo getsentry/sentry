@@ -1013,8 +1013,8 @@ def _get_project_config(
             "disabled": False,
             "slug": project.slug,
             "lastFetch": now,
-            "lastChange": project.get_option("sentry:relay-rev-lastchange", now),
-            "rev": project.get_option("sentry:relay-rev", uuid.uuid4().hex),
+            "lastChange": now,
+            "rev": uuid.uuid4().hex,
             "publicKeys": public_keys,
             "config": {
                 "allowedDomains": list(get_origins(project)),
