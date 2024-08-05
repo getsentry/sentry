@@ -131,6 +131,7 @@
     "less-loader": "^12.2.0",
     "lightningcss": "^1.23.0",
     "lodash": "^4.17.19",
+    "madge": "^7.0.0",
     "marked": "6.0.0",
     "mini-css-extract-plugin": "^2.8.0",
     "mobx": "^6.8.0",
