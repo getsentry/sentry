@@ -1074,11 +1074,11 @@ class OrganizationExamples:
         OpenApiExample(
             "Create an external user",
             value={
-                "id": "123",
+                "id": 123,
                 "provider": "github",
-                "externalName": "@billy",
-                "integrationId": "123",
-                "userId": "123",
+                "external_name": "@billy",
+                "integration_id": 123,
+                "user_id": 123,
             },
             status_codes=["200", "201"],
             response_only=True,

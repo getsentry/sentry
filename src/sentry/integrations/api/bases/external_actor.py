@@ -125,6 +125,9 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
     _actor_key = "user_id"
 
     user_id = serializers.IntegerField(required=True, help_text="The user ID in Sentry.")
+    id = serializers.IntegerField(
+        required=False, read_only=True, help_text="The external actor ID."
+    )
 
     def validate_user_id(self, user_id: int) -> RpcUser:
         """Ensure that this user exists and that they belong to the organization."""
@@ -149,7 +152,7 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
 
     class Meta:
         model = ExternalActor
-        fields = ["user_id", "external_id", "external_name", "provider", "integration_id"]
+        fields = ["user_id", "external_id", "external_name", "provider", "integration_id", "id"]
 
 
 class ExternalTeamSerializer(ExternalActorSerializerBase):
