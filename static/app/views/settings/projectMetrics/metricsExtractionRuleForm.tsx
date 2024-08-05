@@ -481,7 +481,7 @@ export function MetricsExtractionRuleForm({
                 <TooltipIconLabel
                   label={t('Group by')}
                   help={t(
-                    'Select the tags that can be used to group the metric. Tag values have to be non-numeric.'
+                    'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
                   )}
                 />
               </Fragment>
