@@ -525,6 +525,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isErrorMigration,
       aggregate,
       project,
+      router,
     } = this.props;
 
     const {environments} = this.state;
@@ -656,7 +657,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         useFormWrapper={false}
                         organization={organization}
                         placeholder={this.searchPlaceholder}
-                        onChange={onChange}
+                        onChange={query => onChange(query, {})}
                         query={initialData.query}
                         // We only need strict validation for Transaction queries, everything else is fine
                         highlightUnsupportedTags={
@@ -687,6 +688,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           onChange(query, {});
                         }}
                         hasRecentSearches={dataset !== Dataset.SESSIONS}
+                        location={router.location}
+                        router={router}
+                        params={router.params}
+                        routes={router.routes}
                       />
                       {isExtrapolatedChartData && isOnDemandQueryString(value) && (
                         <OnDemandWarningIcon

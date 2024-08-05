@@ -1,11 +1,17 @@
 import {useEffect, useMemo} from 'react';
+import type {WithRouterProps} from 'react-router';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import {
+  SearchQueryBuilder,
+  // type SearchQueryBuilderProps,
+} from 'sentry/components/searchQueryBuilder';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {SmartSearchBar, type SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -129,23 +135,26 @@ export const getHasTag = (tags: TagCollection) => ({
   kind: FieldKind.FIELD,
 });
 
-export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
-  organization: Organization;
-  tags: TagCollection;
-  customMeasurements?: CustomMeasurementCollection;
-  dataset?: DiscoverDatasets;
-  fields?: Readonly<Field[]>;
-  includeSessionTagsValues?: boolean;
-  /**
-   * Used to define the max height of the menu in px.
-   */
-  maxMenuHeight?: number;
-  maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
-  omitTags?: string[];
-  projectIds?: number[] | Readonly<number[]>;
-  savedSearchType?: SavedSearchType;
-  supportedTags?: TagCollection | undefined;
-};
+export type SearchBarProps = Partial<WithRouterProps> &
+  Omit<SmartSearchBarProps, 'tags' | 'api'> & {
+    onChange: (query: string) => void;
+    organization: Organization;
+    searchSource: string;
+    tags: TagCollection;
+    customMeasurements?: CustomMeasurementCollection;
+    dataset?: DiscoverDatasets;
+    fields?: Readonly<Field[]>;
+    includeSessionTagsValues?: boolean;
+    /**
+     * Used to define the max height of the menu in px.
+     */
+    maxMenuHeight?: number;
+    maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
+    omitTags?: string[];
+    projectIds?: number[] | Readonly<number[]>;
+    savedSearchType?: SavedSearchType;
+    supportedTags?: TagCollection | undefined;
+  };
 
 function SearchBar(props: SearchBarProps) {
   const {
@@ -184,7 +193,7 @@ function SearchBar(props: SearchBarProps) {
   // Returns array of tag values that substring match `query`; invokes `callback`
   // with data when ready
   const getEventFieldValues = memoize(
-    (tag, query, endpointParams): Promise<string[]> => {
+    (tag, query, endpointParams?): Promise<string[]> => {
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
@@ -278,24 +287,35 @@ function SearchBar(props: SearchBarProps) {
 
   return (
     <Measurements>
-      {({measurements}) => (
-        <SmartSearchBar
-          hasRecentSearches
-          savedSearchType={savedSearchType}
-          projectIds={projectIds}
-          onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList(measurements)}
-          prepareQuery={query => {
-            // Prepare query string (e.g. strip special characters like negation operator)
-            return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
-          }}
-          maxSearchItems={maxSearchItems}
-          excludedTags={[FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT]}
-          maxMenuHeight={maxMenuHeight ?? 300}
-          {...customPerformanceMetricsSearchConfig}
-          {...props}
-        />
-      )}
+      {({measurements}) =>
+        organization.features.includes('search-query-builder-releases') ? (
+          <SearchQueryBuilder
+            initialQuery={props.defaultQuery || ''}
+            filterKeys={getTagList(measurements)}
+            getTagValues={getEventFieldValues}
+            placeholder={t('Search by version, build, package, or stage')}
+            {...props}
+          />
+        ) : (
+          <SmartSearchBar
+            api={api}
+            hasRecentSearches
+            savedSearchType={savedSearchType}
+            projectIds={projectIds}
+            onGetTagValues={getEventFieldValues}
+            supportedTags={getTagList(measurements)}
+            prepareQuery={query => {
+              // Prepare query string (e.g. strip special characters like negation operator)
+              return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
+            }}
+            maxSearchItems={maxSearchItems}
+            excludedTags={[FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT]}
+            maxMenuHeight={maxMenuHeight ?? 300}
+            {...customPerformanceMetricsSearchConfig}
+            {...props}
+          />
+        )
+      }
     </Measurements>
   );
 }
