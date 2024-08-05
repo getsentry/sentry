@@ -171,7 +171,6 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "should_call_seer_for_grouping.seer_global_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
         metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,
@@ -184,7 +183,6 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
         metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,
