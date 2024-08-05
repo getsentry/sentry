@@ -588,10 +588,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
+        # set up block id
+        block_id = {"issue": self.group.id}
+        if rule_id:
+            block_id["rule"] = rule_id
+
         # build tags block
-        tags = get_tags(event_for_tags, self.tags)
+        tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
         if tags:
-            blocks.append(self.get_tags_block(tags))
+            blocks.append(self.get_tags_block(tags, block_id))
 
         # add event count, user count, substate, first seen
         context = get_context(self.group)
@@ -645,10 +650,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build footer block
         blocks.append(self.get_footer())
         blocks.append(self.get_divider())
-
-        block_id = {"issue": self.group.id}
-        if rule_id:
-            block_id["rule"] = rule_id
 
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
         if chart_block:

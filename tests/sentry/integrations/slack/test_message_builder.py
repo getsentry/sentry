@@ -116,7 +116,11 @@ def build_test_message_blocks(
             v = v.replace("`", "")
             tags_text += f"{k}: `{v}`  "
 
-        tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
+        tags_section = {
+            "block_id": f'{{"issue":{group.id},"block":"text"}}',
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": tags_text},
+        }
         blocks.append(tags_section)
 
     # add event and user count, state, first seen

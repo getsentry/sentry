@@ -111,9 +111,23 @@ class SlackActionRequest(SlackRequest):
         return logging_data
 
     def get_tags(self) -> set[str]:
-        attachments = self.data.get("original_message", {}).get("attachments", [{}])
+        message = self.data.get("message", {})
+        if not message:
+            return set()
+
+        blocks = message.get("blocks", [{}])
         tags = set()
-        for attachment in attachments:
-            for field in attachment.get("fields", []):
-                tags.add(field["title"])
+        for block in blocks:
+            if "tags" not in block.get("block_id", ""):
+                continue
+
+            text: str = block.get("text", {}).get("text", "")
+            tag_keys = text.split("`")
+
+            for i, tag_key in enumerate(tag_keys):
+                # the tags are organized as tag_key: tag_value, so even indexed tags are keys
+                if i % 2 == 1:
+                    continue
+                if tag_key.strip(" ").endswith(":"):
+                    tags.add(tag_key.strip(": "))
         return tags
