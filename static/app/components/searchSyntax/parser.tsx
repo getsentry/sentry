@@ -21,14 +21,15 @@ type ListItem<V> = [
   space: ReturnType<TokenConverter['tokenSpaces']>,
   comma: string,
   space: ReturnType<TokenConverter['tokenSpaces']>,
-  notComma: undefined,
-  value: V | null,
+  value?: [notComma: undefined, value: V | null],
 ];
 
-const listJoiner = <K,>([s1, comma, s2, _, value]: ListItem<K>) => ({
-  separator: [s1.value, comma, s2.value].join(''),
-  value,
-});
+const listJoiner = <K,>([s1, comma, s2, value]: ListItem<K>) => {
+  return {
+    separator: [s1.value, comma, s2.value].join(''),
+    value: value ? value[1] : null,
+  };
+};
 
 /**
  * A token represents a node in the syntax tree. These are all extrapolated
@@ -266,6 +267,7 @@ export enum InvalidReason {
   INVALID_FILE_SIZE = 'invalid-file-size',
   INVALID_NUMBER = 'invalid-number',
   EMPTY_VALUE_IN_LIST_NOT_ALLOWED = 'empty-value-in-list-not-allowed',
+  EMPTY_PARAMETER_NOT_ALLOWED = 'empty-parameter-not-allowed',
   INVALID_KEY = 'invalid-key',
   INVALID_DURATION = 'invalid-duration',
   INVALID_DATE_FORMAT = 'invalid-date-format',
@@ -331,6 +333,13 @@ type FilterMap = {
 
 type TextFilter = FilterMap[FilterType.TEXT];
 type InFilter = FilterMap[FilterType.TEXT_IN] | FilterMap[FilterType.NUMERIC_IN];
+type AggregateFilterType =
+  | FilterMap[FilterType.AGGREGATE_DATE]
+  | FilterMap[FilterType.AGGREGATE_DURATION]
+  | FilterMap[FilterType.AGGREGATE_NUMERIC]
+  | FilterMap[FilterType.AGGREGATE_PERCENTAGE]
+  | FilterMap[FilterType.AGGREGATE_RELATIVE_DATE]
+  | FilterMap[FilterType.AGGREGATE_SIZE];
 
 /**
  * The Filter type discriminates on the FilterType enum using the `filter` key.
@@ -501,11 +510,13 @@ export class TokenConverter {
   tokenKeyAggregateArgs = (
     arg1: ReturnType<TokenConverter['tokenKeyAggregateParam']>,
     args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
-  ) => ({
-    ...this.defaultTokenFields,
-    type: Token.KEY_AGGREGATE_ARGS as const,
-    args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
-  });
+  ) => {
+    return {
+      ...this.defaultTokenFields,
+      type: Token.KEY_AGGREGATE_ARGS as const,
+      args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
+    };
+  };
 
   tokenValueIso8601Date = (
     value: string,
@@ -812,6 +823,10 @@ export class TokenConverter {
       return this.checkInvalidInFilter(value as InFilter['value']);
     }
 
+    if ('name' in key) {
+      return this.checkInvalidAggregateKey(key);
+    }
+
     return null;
   };
 
@@ -931,6 +946,19 @@ export class TokenConverter {
       return {
         type: InvalidReason.WILDCARD_NOT_ALLOWED,
         reason: this.config.invalidMessages[InvalidReason.WILDCARD_NOT_ALLOWED],
+      };
+    }
+
+    return null;
+  };
+
+  checkInvalidAggregateKey = (key: AggregateFilterType['key']) => {
+    const hasEmptyParameter = key.args?.args.some(arg => arg.value === null);
+
+    if (hasEmptyParameter) {
+      return {
+        type: InvalidReason.EMPTY_PARAMETER_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.EMPTY_PARAMETER_NOT_ALLOWED],
       };
     }
 
@@ -1182,14 +1210,7 @@ export type ParseResultToken =
  */
 export type ParseResult = ParseResultToken[];
 
-export type AggregateFilter = (
-  | FilterMap[FilterType.AGGREGATE_DATE]
-  | FilterMap[FilterType.AGGREGATE_DURATION]
-  | FilterMap[FilterType.AGGREGATE_NUMERIC]
-  | FilterMap[FilterType.AGGREGATE_PERCENTAGE]
-  | FilterMap[FilterType.AGGREGATE_RELATIVE_DATE]
-  | FilterMap[FilterType.AGGREGATE_SIZE]
-) & {
+export type AggregateFilter = AggregateFilterType & {
   location: LocationRange;
   text: string;
 };
@@ -1334,6 +1355,9 @@ export const defaultConfig: SearchConfig = {
     ),
     [InvalidReason.INVALID_NUMBER]: t(
       'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)'
+    ),
+    [InvalidReason.EMPTY_PARAMETER_NOT_ALLOWED]: t(
+      'Function parameters should not have empty values'
     ),
     [InvalidReason.EMPTY_VALUE_IN_LIST_NOT_ALLOWED]: t(
       'Lists should not have empty values'
