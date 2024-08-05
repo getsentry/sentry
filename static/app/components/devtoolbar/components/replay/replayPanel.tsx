@@ -5,6 +5,7 @@ import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink
 import useReplayRecorder from 'sentry/components/devtoolbar/hooks/useReplayRecorder';
 import {resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconPause, IconPlay} from 'sentry/icons';
 import type {PlatformKey} from 'sentry/types/project';
 
@@ -20,6 +21,31 @@ export default function ReplayPanel() {
 
   const {disabledReason, isDisabled, isRecording, lastReplayId, start, stop} =
     useReplayRecorder();
+
+  function ReplayLink({children}: {children: React.ReactNode}) {
+    return process.env.NODE_ENV === 'production' ? (
+      <SentryAppLink
+        to={{
+          url: `/replays/${lastReplayId}`,
+          query: {project: projectId},
+        }}
+        onClick={() => {
+          trackAnalytics?.({
+            eventKey: `devtoolbar.current-replay-link.click`,
+            eventName: `devtoolbar: Current replay link clicked`,
+          });
+        }}
+      >
+        {children}
+      </SentryAppLink>
+    ) : (
+      <ExternalLink
+        href={`https://sentry-test.sentry.io/replays/${lastReplayId}/?project=5270453`}
+      >
+        {children}
+      </ExternalLink>
+    );
+  }
 
   return (
     <PanelLayout title="Session Replay">
@@ -38,18 +64,7 @@ export default function ReplayPanel() {
         {lastReplayId ? (
           <span css={[resetFlexRowCss, {gap: 'var(--space50)'}]}>
             {isRecording ? 'Current replay: ' : 'Last recorded replay: '}
-            <SentryAppLink
-              to={{
-                url: `/replays/${lastReplayId}`,
-                query: {project: projectId},
-              }}
-              onClick={() => {
-                trackAnalytics?.({
-                  eventKey: `devtoolbar.current-replay-link.click`,
-                  eventName: `devtoolbar: Current replay link clicked`,
-                });
-              }}
-            >
+            <ReplayLink>
               <div
                 css={[
                   resetFlexRowCss,
@@ -73,7 +88,7 @@ export default function ReplayPanel() {
                 />
                 {lastReplayId.slice(0, TRUNC_ID_LENGTH)}
               </div>
-            </SentryAppLink>
+            </ReplayLink>
           </span>
         ) : (
           'No replay is recording this session.'
