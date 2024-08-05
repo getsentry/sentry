@@ -7,7 +7,7 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
-import {useModal} from 'sentry/components/globalModal/useModal';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {space} from 'sentry/styles/space';
@@ -105,7 +105,7 @@ type Props = {
 };
 
 function GlobalModal({onClose}: Props) {
-  const {renderer, options, visible} = useModal();
+  const {renderer, options, visible} = useGlobalModal();
   const location = useLocation();
 
   const closeEvents = options.closeEvents ?? 'all';

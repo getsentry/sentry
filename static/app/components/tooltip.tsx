@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {useModal} from 'sentry/components/globalModal/useModal';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
@@ -36,7 +36,7 @@ function Tooltip({
   ...hoverOverlayProps
 }: TooltipProps) {
   const theme = useTheme();
-  const {visible: modalIsVisible} = useModal();
+  const {visible: modalIsVisible} = useGlobalModal();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
     useHoverOverlay('tooltip', hoverOverlayProps);
 
