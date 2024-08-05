@@ -1153,6 +1153,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/20"),
         "options": {"expires": 20 * 60},
     },
+    "uptime-subscription-checker": {
+        "task": "sentry.uptime.tasks.subscription_checker",
+        "schedule": crontab(minute="*/10"),
+        "options": {"expires": 10 * 60},
+    },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         # Run every 1 hour at minute 17
@@ -3353,6 +3358,8 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 # This webhook url can be configured to log the changes made to runtime options as they
 # are changed by sentry configoptions.
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
+
+OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}

@@ -20,6 +20,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
@@ -35,7 +36,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.silo.base import all_silo_function
-from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars

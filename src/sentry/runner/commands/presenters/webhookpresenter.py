@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from typing import Any
 
 import requests
@@ -125,9 +127,20 @@ class WebhookPresenter(OptionsPresenter):
 
     def _send_to_webhook(self, json_data: dict[str, Any]) -> None:
         if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
-            headers = {"Content-Type": "application/json"}
+            headers = {
+                "Content-Type": "application/json",
+            }
+            payload = json.dumps(json_data).encode("utf-8")
+            webhook_secret = settings.OPTIONS_AUTOMATOR_HMAC_SECRET
+            # If the webhook secret is set, we need to sign the payload
+            if webhook_secret is not None:
+                signature = hmac.new(
+                    webhook_secret.encode("utf-8"), payload, hashlib.sha256
+                ).hexdigest()
+                headers["x-sentry-options-signature"] = signature
+
             requests.post(
                 settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
-                data=json.dumps(json_data),
+                data=payload,
                 headers=headers,
             ).raise_for_status()
