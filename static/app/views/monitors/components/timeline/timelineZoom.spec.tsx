@@ -118,15 +118,13 @@ describe('TimelineZoom', function () {
     expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
   });
 
-  it('does not select for very small regions', function () {
+  it('does not select for very small regions', async function () {
     const {handleSelect, body, container} = setupTestComponent();
 
     // Left click starts selection
-    act(() => {
-      fireEvent.mouseMove(body, {clientX: 20, clientY: 20});
-      fireEvent.mouseDown(body, {button: 0, clientX: 20, clientY: 20});
-      fireEvent.mouseMove(body, {clientX: 22, clientY: 20});
-    });
+    act(() => fireEvent.mouseMove(body, {clientX: 20, clientY: 20}));
+    act(() => fireEvent.mouseDown(body, {button: 0, clientX: 20, clientY: 20}));
+    act(() => fireEvent.mouseMove(body, {clientX: 22, clientY: 20}));
 
     const selection = screen.getByRole('presentation');
     expect(selection).toBeInTheDocument();
@@ -136,9 +134,10 @@ describe('TimelineZoom', function () {
     expect(container.style.getPropertyValue('--selectionWidth')).toBe('2px');
 
     // Relase does not make selection for such a small range
-    act(() => {
-      fireEvent.mouseUp(body, {clientX: 22, clientY: 20});
-    });
+    act(() => fireEvent.mouseUp(body, {clientX: 22, clientY: 20}));
+
+    // Can't wait for the handleSelect to be called, as it's not called
+    await act(tick);
     expect(handleSelect).not.toHaveBeenCalledWith(0, 10);
   });
 });
