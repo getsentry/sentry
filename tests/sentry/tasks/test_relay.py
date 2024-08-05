@@ -201,7 +201,7 @@ def test_project_update_option(
     redis_cache.set_many({default_projectkey.public_key: "dummy"})
 
     # XXX: there should only be one hook triggered, regardless of debouncing
-    with emulate_transactions(assert_num_callbacks=4):
+    with emulate_transactions(assert_num_callbacks=2):
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
@@ -238,7 +238,7 @@ def test_project_delete_option(
     redis_cache.set_many({default_projectkey.public_key: "dummy"})
 
     # XXX: there should only be one hook triggered, regardless of debouncing
-    with emulate_transactions(assert_num_callbacks=3):
+    with emulate_transactions(assert_num_callbacks=1):
         default_project.delete_option("sentry:relay_pii_config")
 
     assert redis_cache.get(default_projectkey)["config"]["piiConfig"] == {}
@@ -280,7 +280,7 @@ def test_invalidation_project_deleted(
     project_id = default_project.id
 
     # Delete the project normally, this will delete it from the cache
-    with emulate_transactions(assert_num_callbacks=6):
+    with emulate_transactions(assert_num_callbacks=4):
         default_project.delete()
     assert redis_cache.get(project_key)["disabled"]
 
