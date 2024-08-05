@@ -1013,8 +1013,8 @@ def _get_project_config(
             "disabled": False,
             "slug": project.slug,
             "lastFetch": now,
-            "lastChange": project.get_option("sentry:relay-rev-lastchange", now),
-            "rev": project.get_option("sentry:relay-rev", uuid.uuid4().hex),
+            "lastChange": now,
+            "rev": uuid.uuid4().hex,
             "publicKeys": public_keys,
             "config": {
                 "allowedDomains": list(get_origins(project)),
@@ -1069,7 +1069,8 @@ def _get_project_config(
             config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
         )
 
-        add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
+        if metric_extraction := get_metric_extraction_config(project):
+            config["metricExtraction"] = metric_extraction
 
     config["sessionMetrics"] = {
         "version": (

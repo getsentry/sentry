@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeGuard
 
 from django.db.models import Subquery
 
@@ -109,7 +109,9 @@ def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, 
     }
 
 
-def recipient_is_user(recipient: Actor | Team | RpcUser | User) -> bool:
+def recipient_is_user(
+    recipient: Actor | Team | RpcUser | User,
+) -> TypeGuard[Actor | RpcUser | User]:
     from sentry.users.models.user import User
 
     if isinstance(recipient, Actor) and recipient.is_user:
@@ -117,7 +119,7 @@ def recipient_is_user(recipient: Actor | Team | RpcUser | User) -> bool:
     return isinstance(recipient, (RpcUser, User))
 
 
-def recipient_is_team(recipient: Actor | Team | RpcUser | User) -> bool:
+def recipient_is_team(recipient: Actor | Team | RpcUser | User) -> TypeGuard[Actor | Team]:
     from sentry.models.team import Team
 
     if isinstance(recipient, Actor) and recipient.is_team:

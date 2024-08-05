@@ -355,6 +355,16 @@ class MonitorParams:
     )
 
 
+class UptimeParams:
+    UPTIME_ALERT_ID = OpenApiParameter(
+        name="uptime_subscription_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the uptime alert rule you'd like to query.",
+    )
+
+
 class EventParams:
     EVENT_ID = OpenApiParameter(
         name="event_id",
@@ -611,4 +621,41 @@ class DashboardParams:
         required=True,
         type=int,
         description="""The ID of the dashboard you'd like to retrieve.""",
+    )
+
+
+class DiscoverSavedQueryParams:
+    DISCOVER_SAVED_QUERY_ID = OpenApiParameter(
+        name="query_id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the Discover query you'd like to retrieve.""",
+    )
+
+
+class DiscoverSavedQueriesParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""The name of the Discover query you'd like to filter by.""",
+    )
+
+    SORT = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the results are sorted by query name.
+
+Available fields are:
+- name
+- dateCreated
+- dateUpdated
+- mostPopular
+- recentlyViewed
+- myqueries
+        """,
     )

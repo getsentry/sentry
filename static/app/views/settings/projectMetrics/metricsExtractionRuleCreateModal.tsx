@@ -31,7 +31,7 @@ interface Props {
   projectId?: string | number;
 }
 
-const INITIAL_DATA: FormData = {
+export const INITIAL_DATA: FormData = {
   spanAttribute: null,
   unit: 'none',
   aggregates: ['count'],
@@ -199,6 +199,7 @@ function FormWrapper({
     },
     [closeModal, projectId, createExtractionRuleMutation]
   );
+
   return (
     <MetricsExtractionRuleForm
       initialData={initialData}

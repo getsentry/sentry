@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Q
 
 from sentry import features
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
@@ -262,7 +263,7 @@ def get_owner_reason(
     return None
 
 
-def get_suspect_commit_users(project: Project, event: Event) -> list[RpcUser]:
+def get_suspect_commit_users(project: Project, event: Event | GroupEvent) -> list[RpcUser]:
     """
     Returns a list of users that are suspect committers for the given event.
 
@@ -285,7 +286,7 @@ def get_suspect_commit_users(project: Project, event: Event) -> list[RpcUser]:
     return [committer for committer in suspect_committers if committer.id in in_project_user_ids]
 
 
-def dedupe_suggested_assignees(suggested_assignees: Iterable[Actor]) -> Iterable[Actor]:
+def dedupe_suggested_assignees(suggested_assignees: Iterable[Actor]) -> list[Actor]:
     return list({assignee.id: assignee for assignee in suggested_assignees}.values())
 
 

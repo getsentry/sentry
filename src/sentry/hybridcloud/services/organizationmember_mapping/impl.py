@@ -43,8 +43,9 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     user = orm_mapping.user
                 except User.DoesNotExist:
                     return
-                for outbox in user.outboxes_for_update():
-                    outbox.save()
+                if user is not None:
+                    for outbox in user.outboxes_for_update():
+                        outbox.save()
 
         orm_mapping: OrganizationMemberMapping = OrganizationMemberMapping(
             organization_id=organization_id

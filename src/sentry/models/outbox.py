@@ -541,9 +541,7 @@ class OutboxBase(Model):
         super().save(**kwds)
 
     @contextlib.contextmanager
-    def process_shard(
-        self, latest_shard_row: OutboxBase | None
-    ) -> Generator[OutboxBase | None, None, None]:
+    def process_shard(self, latest_shard_row: OutboxBase | None) -> Generator[OutboxBase | None]:
         flush_all: bool = not bool(latest_shard_row)
         next_shard_row: OutboxBase | None
         using: str = db.router.db_for_write(type(self))
@@ -567,7 +565,7 @@ class OutboxBase(Model):
     def process_coalesced(
         self,
         is_synchronous_flush: bool,
-    ) -> Generator[OutboxBase | None, None, None]:
+    ) -> Generator[OutboxBase | None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
         tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
@@ -852,7 +850,7 @@ _outbox_context = OutboxContext()
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
-) -> Generator[Atomic | None, None, None]:
+) -> Generator[Atomic | None]:
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled

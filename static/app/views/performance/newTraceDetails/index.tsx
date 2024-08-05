@@ -85,12 +85,12 @@ import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   loadTraceViewPreferences,
 } from './traceState/tracePreferences';
-import {PerformanceSetupWarning} from './traceWarnings/performanceSetupWarning';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
+import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
@@ -318,6 +318,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         loadingTraceRef.current
       );
       setTree(errorTree);
+      return;
     }
 
     if (
@@ -341,10 +342,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
       loadingTraceRef.current = loadingTrace;
       setTree(loadingTrace);
+      return;
     }
 
     if (props.trace) {
       const trace = TraceTree.FromTrace(props.trace, props.replayRecord);
+
       // Root frame + 2 nodes
       const promises: Promise<void>[] = [];
       if (trace.list.length < 4) {
@@ -354,6 +357,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           }
         }
       }
+
       Promise.allSettled(promises).finally(() => {
         setTree(trace);
       });
@@ -787,7 +791,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         // At load time, we want to scroll the row into view, but we need to wait for the view
         // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
-        // to the row in the view.
+        // to the row in the view if it is not in view yet. If its in the view, then scroll to it immediately.
         traceScheduler.once('initialize virtualized list', () => {
           function onTargetRowMeasure() {
             if (!nodeToScrollTo || !viewManager.row_measurer.cache.has(nodeToScrollTo)) {
@@ -957,7 +961,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   return (
     <Fragment>
-      <PerformanceSetupWarning
+      <TraceTypeWarnings
         tree={tree}
         traceSlug={props.traceSlug}
         organization={organization}

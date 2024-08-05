@@ -25,7 +25,6 @@ from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
-from sentry.api.utils import generate_organization_url
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -41,6 +40,7 @@ from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.outbox import outbox_context
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationFlagsUpdate,

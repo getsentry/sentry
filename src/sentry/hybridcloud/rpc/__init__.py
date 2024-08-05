@@ -130,7 +130,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     @contextlib.contextmanager
     def with_replacement(
         self, service: ServiceInterface | None, silo_mode: SiloMode
-    ) -> Generator[None, None, None]:
+    ) -> Generator[None]:
         with self._lock:
             prev = self._singleton.get(silo_mode, None)
             self._singleton[silo_mode] = service

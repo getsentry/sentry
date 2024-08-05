@@ -30,7 +30,7 @@ def mark_failed(
     failed_checkin: MonitorCheckIn,
     ts: datetime,
     received: datetime | None = None,
-):
+) -> bool:
     """
     Given a failing check-in, mark the monitor environment as failed and trigger
     side effects for creating monitor incidents and issues.
@@ -41,6 +41,10 @@ def mark_failed(
     computed based on the tasks reference time.
     """
     monitor_env = failed_checkin.monitor_environment
+
+    if monitor_env is None:
+        return False
+
     failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 1)
     if not failure_issue_threshold:
         failure_issue_threshold = 1
@@ -100,10 +104,13 @@ def mark_failed_threshold(
     failed_checkin: MonitorCheckIn,
     failure_issue_threshold: int,
     received: datetime | None,
-):
+) -> bool:
     from sentry.signals import monitor_environment_failed
 
     monitor_env = failed_checkin.monitor_environment
+
+    if monitor_env is None:
+        return False
 
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
@@ -191,11 +198,15 @@ def create_issue_platform_occurrence(
     failed_checkin: MonitorCheckIn,
     incident: MonitorIncident,
     received: datetime | None,
-):
+) -> None:
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
     from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 
     monitor_env = failed_checkin.monitor_environment
+
+    if monitor_env is None:
+        return
+
     current_timestamp = datetime.now(timezone.utc)
 
     # Get last successful check-in to show in evidence display

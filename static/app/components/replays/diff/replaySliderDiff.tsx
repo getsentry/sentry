@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ReplayIFrameRoot from 'sentry/components/replays/player/replayIFrameRoot';
-import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -106,7 +105,6 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
             analyticsContext="replay_comparison_modal_left"
             initialTimeOffsetMs={{offsetMs: leftOffsetMs}}
             isFetching={false}
-            prefsStrategy={StaticReplayPreferences}
             replay={replay}
           >
             <ReplayIFrameRoot viewDimensions={viewDimensions} />
@@ -119,7 +117,6 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
             analyticsContext="replay_comparison_modal_right"
             initialTimeOffsetMs={{offsetMs: rightOffsetMs}}
             isFetching={false}
-            prefsStrategy={StaticReplayPreferences}
             replay={replay}
           >
             <ReplayIFrameRoot viewDimensions={viewDimensions} />

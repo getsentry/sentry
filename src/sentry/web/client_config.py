@@ -16,11 +16,12 @@ from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
-from sentry.api.utils import generate_organization_url, generate_region_url
+from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
