@@ -17,6 +17,7 @@ const ALLOWED_SPAN_DURATION_TAGS = [
   'span.action',
   'span.domain',
   'span.op',
+  'transaction',
 ];
 
 export function getMetricsTagsQueryKey(organization: Organization, mri: MRI | undefined) {
