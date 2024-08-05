@@ -10,6 +10,7 @@ describe('AutofixRootCause', function () {
     groupId: '1',
     rootCauseSelection: null,
     runId: '101',
+    repos: [],
   };
 
   it('can select a relevant code snippet', async function () {
@@ -32,7 +33,7 @@ describe('AutofixRootCause', function () {
       screen.getByText('This is the description of a relevant code snippet.')
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Continue with a fix'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
 
     expect(mockSelectFix).toHaveBeenCalledWith(
       expect.anything(),
@@ -62,8 +63,8 @@ describe('AutofixRootCause', function () {
     await userEvent.keyboard('custom root cause');
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'Continue with a fix',
-        description: 'Continue with a fix',
+        name: 'Find a Fix',
+        description: 'Find a Fix',
       })
     );
 
