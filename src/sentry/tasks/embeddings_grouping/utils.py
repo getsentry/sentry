@@ -30,7 +30,11 @@ from sentry.seer.similarity.types import (
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,
 )
-from sentry.seer.similarity.utils import filter_null_from_string, get_stacktrace_string
+from sentry.seer.similarity.utils import (
+    event_content_has_stacktrace,
+    filter_null_from_string,
+    get_stacktrace_string,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -299,7 +303,12 @@ def get_events_from_nodestore(
     bulk_event_ids = set()
     for group_id, event in nodestore_events.items():
         event._project_cache = project
-        if event and event.data and event.data.get("exception"):
+        if (
+            event
+            and event.data
+            and event.data.get("exception")
+            and event_content_has_stacktrace(event)
+        ):
             grouping_info = get_grouping_info(None, project=project, event=event)
             stacktrace_string = get_stacktrace_string(grouping_info)
             if stacktrace_string == "":
