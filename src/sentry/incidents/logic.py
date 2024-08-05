@@ -898,6 +898,26 @@ def update_alert_rule(
             updated_fields["user_id"] = alert_rule.user_id
             updated_fields["team_id"] = alert_rule.team_id
 
+        if detection_type == AlertRuleDetectionType.DYNAMIC:
+            if not features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
+                raise ResourceDoesNotExist(
+                    "Your organization does not have access to this feature."
+                )
+
+            if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
+                alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
+            ):
+                for k, v in updated_fields.items():
+                    setattr(alert_rule, k, v)
+
+                try:
+                    send_historical_data_to_seer(
+                        alert_rule=alert_rule,
+                        project=projects[0] if projects else alert_rule.projects.get(),
+                    )
+                except (TimeoutError, MaxRetryError):
+                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
+
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
