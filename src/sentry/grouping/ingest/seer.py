@@ -128,10 +128,6 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         logger.warning("should_call_seer_for_grouping.global_ratelimit_hit", extra=logger_extra)
 
         metrics.incr(
-            "grouping.similarity.global_ratelimit_hit",
-            tags={"limit_per_sec": global_limit_per_sec},
-        )
-        metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,
             tags={"call_made": False, "blocker": "global-rate-limit"},
@@ -145,10 +141,6 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         logger_extra["limit_per_sec"] = project_limit_per_sec
         logger.warning("should_call_seer_for_grouping.project_ratelimit_hit", extra=logger_extra)
 
-        metrics.incr(
-            "grouping.similarity.project_ratelimit_hit",
-            tags={"limit_per_sec": project_limit_per_sec},
-        )
         metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,
@@ -173,9 +165,6 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
                 "project_id": project.id,
                 **breaker_config,
             },
-        )
-        metrics.incr(
-            "grouping.similarity.broken_circuit_breaker",
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
