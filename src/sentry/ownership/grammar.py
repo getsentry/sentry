@@ -147,7 +147,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
                 match_frame_value_func=lambda val, pattern: bool(codeowners_match(val, pattern)),
-                match_frame_func=lambda frame: frame.get("in_app") != False,
+                match_frame_func=lambda frame: frame.get("in_app") is not False,
             )
         return False
 
