@@ -387,6 +387,7 @@ export function MetricsExtractionRuleForm({
               disabled={isEdit}
               label={
                 <TooltipIconLabel
+                  isHoverable
                   label={t('Measure')}
                   help={tct(
                     'Define the span attribute you want to track. Learn how to instrument custom attributes in [link:our docs].',
@@ -463,6 +464,7 @@ export function MetricsExtractionRuleForm({
             options={AGGREGATE_OPTIONS}
             label={
               <TooltipIconLabel
+                isHoverable
                 label={t('Aggregate')}
                 help={tct(
                   'Select the aggregations you want to store. For more information, read [link:our docs]',
@@ -682,14 +684,16 @@ function MenuList({
 function TooltipIconLabel({
   label,
   help,
+  isHoverable,
 }: {
   help: React.ReactNode;
   label: React.ReactNode;
+  isHoverable?: boolean;
 }) {
   return (
     <TooltipIconLabelWrapper>
       {label}
-      <Tooltip title={help} isHoverable>
+      <Tooltip title={help} isHoverable={isHoverable}>
         <IconQuestion size="sm" color="gray200" />
       </Tooltip>
     </TooltipIconLabelWrapper>
