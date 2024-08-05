@@ -215,7 +215,6 @@ const TabDivider = styled(motion.div)`
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
-  margin: 8px 4px;
 `;
 
 const TabListOuterWrap = styled('div')<{
@@ -235,6 +234,7 @@ const AddViewTempTabWrap = styled('div')`
   flex-shrink: 0;
   grid-auto-flow: column;
   justify-content: start;
+  align-items: center;
 `;
 
 const TabListWrap = styled('ul')`
@@ -246,6 +246,7 @@ const TabListWrap = styled('ul')`
   margin: 0;
   list-style-type: none;
   flex-shrink: 0;
+  align-items: center;
 `;
 
 const AddViewButton = styled(Button)`
