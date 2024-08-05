@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {useModalIsVisible} from 'sentry/components/globalModal/useModalIsVisible';
+import {useModal} from 'sentry/components/globalModal/useModal';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
@@ -36,7 +36,7 @@ function Tooltip({
   ...hoverOverlayProps
 }: TooltipProps) {
   const theme = useTheme();
-  const modalVisible = useModalIsVisible();
+  const {visible: modalIsVisible} = useModal();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
     useHoverOverlay('tooltip', hoverOverlayProps);
 
@@ -67,7 +67,7 @@ function Tooltip({
 
   // If the tooltip is rendered outside the modal's DOM node, it will be unclickable and unselectable.
   // Therefore, we check if the global modal is active. If it is, the tooltip should be rendered within the same node to ensure interactivity.
-  const container = modalVisible ? getModalPortal() : document.body;
+  const container = modalIsVisible ? getModalPortal() : document.body;
 
   return (
     <Fragment>
