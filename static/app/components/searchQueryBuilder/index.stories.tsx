@@ -86,13 +86,7 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_1',
     label: 'Category 1',
-    children: [
-      FieldKey.ASSIGNED,
-      FieldKey.BROWSER_NAME,
-      FieldKey.IS,
-      FieldKey.LAST_SEEN,
-      FieldKey.TIMES_SEEN,
-    ],
+    children: [FieldKey.ASSIGNED, FieldKey.BROWSER_NAME, FieldKey.IS],
   },
   {
     value: 'cat_2',
@@ -102,6 +96,16 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_3',
     label: 'Category 3',
+    children: [FieldKey.TIMES_SEEN],
+  },
+  {
+    value: 'cat_4',
+    label: 'Category 4',
+    children: [FieldKey.LAST_SEEN],
+  },
+  {
+    value: 'cat_5',
+    label: 'Category 5',
     children: ['custom_tag_name'],
   },
 ];
