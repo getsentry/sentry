@@ -3225,6 +3225,20 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             str(np1_group_id),
         }
 
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:performance",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:[performance,cron]",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
     def test_pagination_and_x_hits_header(self, _: MagicMock) -> None:
         # Create 30 issues
         for i in range(30):
