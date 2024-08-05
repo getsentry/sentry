@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 import zstandard
 
@@ -28,11 +30,14 @@ class RedisProjectConfigCache(ProjectConfigCache):
     def __get_redis_key(self, public_key):
         return f"relayconfig:{public_key}"
 
-    def set_many(self, configs):
+    def __get_redis_rev_key(self, public_key):
+        return f"{self.__get_redis_key(public_key)}.rev"
+
+    def set_many(self, configs: dict[str, Mapping[str, Any]]):
         metrics.incr("relay.projectconfig_cache.write", amount=len(configs), tags={"action": "set"})
 
-        # Note: Those are multiple pipelines, one per cluster node
-        p = self.cluster.pipeline()
+        # Note: Those are multiple pipelines, one per cluster node.
+        p = self.cluster.pipeline(transaction=False)
         for public_key, config in configs.items():
             serialized = json.dumps(config).encode()
             compressed = zstandard.compress(serialized, level=COMPRESSION_LEVEL)
@@ -42,6 +47,16 @@ class RedisProjectConfigCache(ProjectConfigCache):
             metrics.distribution("relay.projectconfig_cache.size", len(compressed), unit="byte")
 
             p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, compressed)
+            # Update the revision after updating the config, while not strictly necessary
+            # this means when the reader is checking the revision before reading the key
+            # the revision won't be updated already while the project config is still the old.
+            #
+            # Note: This is best effort! Readers using the revision key always need to use
+            # the actual revision on the project config for consistency, the revision key can and
+            # should only be used as an optimization. This is also why the used pipeline is not
+            # made transactional.
+            if rev := config.get("rev"):
+                p.setex(self.__get_redis_rev_key(public_key), REDIS_CACHE_TIMEOUT, rev)
 
         p.execute()
 
@@ -63,6 +78,11 @@ class RedisProjectConfigCache(ProjectConfigCache):
                 rv = zstandard.decompress(rv_b).decode()
             except (TypeError, zstandard.ZstdError):
                 # assume raw json
-                pass
+                rv = rv_b.decode()
             return json.loads(rv)
+        return None
+
+    def get_rev(self, public_key) -> str | None:
+        if value := self.cluster_read.get(self.__get_redis_rev_key(public_key)):
+            return value.decode()
         return None
