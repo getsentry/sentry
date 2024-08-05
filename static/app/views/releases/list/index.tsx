@@ -83,6 +83,17 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
 
+  filterKeys = [
+    ...Object.values(SEMVER_TAGS),
+    {
+      key: 'release',
+      name: 'release',
+    },
+  ].reduce((acc, tag) => {
+    acc[tag.key] = tag;
+    return acc;
+  }, {});
+
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
@@ -284,21 +295,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       projectIds: projectId ? [projectId] : undefined,
       endpointParams: location.query,
     });
-  };
-
-  filterKeys = () => {
-    const tags = [
-      ...Object.values(SEMVER_TAGS),
-      {
-        key: 'release',
-        name: 'release',
-      },
-    ];
-
-    return tags.reduce((acc, tag) => {
-      acc[tag.key] = tag;
-      return acc;
-    }, {});
   };
 
   getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
@@ -583,7 +579,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                     <StyledSearchQueryBuilder
                       onSearch={this.handleSearch}
                       initialQuery={this.getQuery() || ''}
-                      filterKeys={this.filterKeys()}
+                      filterKeys={this.filterKeys}
                       getTagValues={this.getTagValues}
                       placeholder={t('Search by version, build, package, or stage')}
                       searchSource="releases"
@@ -598,6 +594,13 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                       supportedTagType={ItemType.PROPERTY}
                       onSearch={this.handleSearch}
                       onGetTagValues={this.getTagValues}
+                      supportedTags={{
+                        ...SEMVER_TAGS,
+                        release: {
+                          key: 'release',
+                          name: 'release',
+                        },
+                      }}
                     />
                   )}
                   <ReleasesStatusOptions
