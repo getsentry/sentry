@@ -138,19 +138,16 @@ function AlertListItem({item}: {item: Incident}) {
         `,
       ]}
     >
-      <div style={{gridArea: 'badge'}}>
+      <div css={{gridArea: 'badge'}}>
         <AlertBadge status={item.status} isIssue={false} />
       </div>
 
-      <div
-        css={[gridFlexEndCss, xSmallCss]}
-        style={{gridArea: 'time', color: 'var(--gray300)'}}
-      >
+      <div css={[gridFlexEndCss, xSmallCss, {gridArea: 'time', color: 'var(--gray300)'}]}>
         <TimeSince date={item.dateStarted} unitStyle="extraShort" />
       </div>
 
       <AnalyticsProvider nameVal="item" keyVal="item">
-        <TextOverflow css={smallCss} style={{gridArea: 'name'}}>
+        <TextOverflow css={[smallCss, {gridArea: 'name'}]}>
           <SentryAppLink
             to={{
               url: alertDetailsLink({slug: organizationSlug} as Organization, item),
@@ -162,7 +159,7 @@ function AlertListItem({item}: {item: Incident}) {
         </TextOverflow>
       </AnalyticsProvider>
 
-      <div css={smallCss} style={{gridArea: 'message'}}>
+      <div css={[smallCss, {gridArea: 'message', '> div': {flexDirection: 'row'}}]}>
         <ActivatedMetricAlertRuleStatus rule={rule} />
       </div>
 
@@ -173,9 +170,9 @@ function AlertListItem({item}: {item: Incident}) {
             xSmallCss,
             css`
               justify-self: flex-end;
+              grid-area: icons;
             `,
           ]}
-          style={{gridArea: 'icons'}}
         >
           <ActorAvatar actor={teamActor} size={16} hasTooltip={false} />{' '}
           <TextOverflow>{teamActor.name}</TextOverflow>

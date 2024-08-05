@@ -33,8 +33,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import FilterBar from '../../filterBar';
-import type {CombinedMetricIssueAlerts} from '../../types';
-import {AlertRuleType} from '../../types';
+import type {CombinedAlerts, CombinedMetricIssueAlerts} from '../../types';
+import {AlertRuleType, CombinedAlertType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
@@ -81,7 +81,7 @@ function AlertRulesList() {
     getResponseHeader,
     isLoading,
     isError,
-  } = useApiQuery<Array<CombinedMetricIssueAlerts | null>>(
+  } = useApiQuery<Array<CombinedAlerts | null>>(
     getAlertListQueryKey(organization.slug, location.query),
     {
       staleTime: 0,
@@ -112,9 +112,14 @@ function AlertRulesList() {
 
   const handleOwnerChange = (
     projectId: string,
-    rule: CombinedMetricIssueAlerts,
+    rule: CombinedAlerts,
     ownerValue: string
   ) => {
+    // TODO(davidenwang): Once we have edit apis for uptime alerts, fill this in
+    if (rule.type === CombinedAlertType.UPTIME) {
+      return;
+    }
+
     const endpoint =
       rule.type === 'alert_rule'
         ? `/organizations/${organization.slug}/alert-rules/${rule.id}`
@@ -133,7 +138,12 @@ function AlertRulesList() {
     });
   };
 
-  const handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
+  const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {
+    // TODO(davidenwang): Once we have edit apis for uptime alerts, fill this in
+    if (rule.type === CombinedAlertType.UPTIME) {
+      return;
+    }
+
     try {
       await api.requestPromise(
         isIssueAlert(rule)
@@ -158,7 +168,11 @@ function AlertRulesList() {
   const hasEditAccess = organization.access.includes('alerts:write');
 
   const ruleList = ruleListResponse.filter(defined);
-  const projectsFromResults = uniq(ruleList.flatMap(({projects}) => projects));
+  const projectsFromResults = uniq(
+    ruleList.flatMap(rule =>
+      rule.type === CombinedAlertType.UPTIME ? [rule.projectSlug] : rule.projects
+    )
+  );
   const ruleListPageLinks = getResponseHeader?.('Link');
 
   const sort: {asc: boolean; field: SortField} = {

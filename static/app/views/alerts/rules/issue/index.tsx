@@ -419,7 +419,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       .catch(_err => addErrorMessage(t('Unable to fetch environments')));
   }
 
-  refetchConfigs() {
+  refetchConfigs = () => {
     const {organization} = this.props;
     const {project} = this.state;
 
@@ -431,7 +431,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       .catch(() => {
         // No need to alert user if this fails, can use existing data
       });
-  }
+  };
 
   fetchStatus() {
     // pollHandler calls itself until it gets either a success
@@ -1232,6 +1232,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               <SetupAlertIntegrationButton
                 projectSlug={project.slug}
                 organization={organization}
+                refetchConfigs={this.refetchConfigs}
               />
             </SetConditionsListItem>
             <ContentIndent>
@@ -1434,6 +1435,18 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                               </StyledAlert>
                             )
                           }
+                          additionalAction={{
+                            label: 'Notify integration\u{2026}',
+                            option: {
+                              label: 'Missing an integration? Click here to refresh',
+                              value: {
+                                enabled: true,
+                                id: 'refresh_configs',
+                                label: 'Refresh Integration List',
+                              },
+                            },
+                            onClick: this.refetchConfigs,
+                          }}
                         />
                         <TestButtonWrapper>
                           <Button

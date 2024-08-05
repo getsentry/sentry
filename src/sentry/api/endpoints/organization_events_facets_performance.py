@@ -510,7 +510,7 @@ def query_facet_performance_key_histogram(
     num_buckets_per_key: int,
     limit: int,
     referrer: str,
-    aggregate_column: str | None = None,
+    aggregate_column: str,
     filter_query: str | None = None,
 ) -> dict:
     precision = 0
@@ -518,9 +518,7 @@ def query_facet_performance_key_histogram(
     tag_values = [x["tags_value"] for x in top_tags]
 
     results = discover.histogram_query(
-        fields=[
-            aggregate_column,
-        ],
+        fields=[aggregate_column],
         user_query=filter_query,
         params=params,
         num_buckets=num_buckets_per_key,

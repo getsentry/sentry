@@ -355,6 +355,16 @@ class MonitorParams:
     )
 
 
+class UptimeParams:
+    UPTIME_ALERT_ID = OpenApiParameter(
+        name="uptime_subscription_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the uptime alert rule you'd like to query.",
+    )
+
+
 class EventParams:
     EVENT_ID = OpenApiParameter(
         name="event_id",
