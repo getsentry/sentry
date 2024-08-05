@@ -310,13 +310,12 @@ class LinkingView(BaseView, ABC):
         integration: Integration | None = None
         idp: IdentityProvider | None = None
         integration_id = params.get("integration_id")
-        organization_id = params.get("organization_id")
-        if integration_id and organization_id:
+        if integration_id:
             organization, integration, idp = get_identity_or_404(
                 self.provider,
                 request.user,
                 integration_id=integration_id,
-                organization_id=organization_id,
+                organization_id=params.get("organization_id"),
             )
 
         if request.method != "POST":
