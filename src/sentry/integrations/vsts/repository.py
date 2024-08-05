@@ -23,8 +23,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         self, organization: Organization, config: MutableMapping[str, Any]
     ) -> Mapping[str, str]:
         installation = self.get_installation(config.get("installation"), organization.id)
-        instance = installation.instance
-        client = installation.get_client(base_url=instance)
+        client = installation.get_client()
 
         repo_id = config["identifier"]
 
@@ -34,7 +33,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
             raise installation.raise_error(e)
         config.update(
             {
-                "instance": instance,
+                "instance": installation.instance,
                 "project": repo["project"]["name"],
                 "name": repo["name"],
                 "external_id": str(repo["id"]),
@@ -76,18 +75,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         self, repo: Repository, commit_list: Sequence[Commit], organization_id: int
     ) -> Sequence[Commit]:
         installation = self.get_installation(repo.integration_id, organization_id)
-        instance = repo.config["instance"]
-        if installation.instance != instance:
-            logger.info(
-                "integrations.vsts.mismatched_instance",
-                extra={
-                    "repo_instance": instance,
-                    "installation_instance": installation.instance,
-                    "org_integration_id": repo.integration_id,
-                    "repo_id": repo.id,
-                },
-            )
-        client = installation.get_client(base_url=instance)
+        client = installation.get_client()
         n = 0
         for commit in commit_list:
             # Azure will truncate commit comments to only the first line.
@@ -113,18 +101,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
     ) -> Sequence[Mapping[str, str]]:
         """TODO(mgaeta): This function is kinda a mess."""
         installation = self.get_installation(repo.integration_id, repo.organization_id)
-        instance = repo.config["instance"]
-        if installation.instance != instance:
-            logger.info(
-                "integrations.vsts.mismatched_instance",
-                extra={
-                    "repo_instance": instance,
-                    "installation_instance": installation.instance,
-                    "org_integration_id": repo.integration_id,
-                    "repo_id": repo.id,
-                },
-            )
-        client = installation.get_client(base_url=instance)
+        client = installation.get_client()
 
         try:
             if start_sha is None:

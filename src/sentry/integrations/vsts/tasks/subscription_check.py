@@ -25,7 +25,7 @@ def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
     installation = integration.get_installation(organization_id=organization_id)
     assert isinstance(installation, VstsIntegration), installation
     try:
-        client = installation.get_client(base_url=installation.instance)
+        client = installation.get_client()
     except ObjectDoesNotExist:
         return
 
