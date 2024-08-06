@@ -20,6 +20,7 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
@@ -112,6 +113,16 @@ export function PerformanceLanding(props: Props) {
   useEffect(() => {
     hasMounted.current = true;
   }, []);
+
+  useEffect(() => {
+    if (showOnboarding) {
+      trackAnalytics('performance_views.overview.has_data', {
+        table_data_state: 'onboarding',
+        tab: paramLandingDisplay?.field,
+        organization,
+      });
+    }
+  }, [showOnboarding, paramLandingDisplay, organization]);
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
