@@ -608,7 +608,7 @@ const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   gap: ${space(1)};
-  padding: ${space(0.5)} ${space(0)};
+  padding: ${space(0.5)} 0;
 
   > *:first-child {
     min-width: 0;

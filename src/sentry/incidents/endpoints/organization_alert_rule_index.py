@@ -108,6 +108,7 @@ class AlertRuleIndexMixin(Endpoint):
             },
             data=data,
         )
+
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 

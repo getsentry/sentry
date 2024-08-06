@@ -227,6 +227,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "exception_type": "ZeroDivisionError",
             "read_only": True,
             "referrer": "similar_issues",
+            "use_reranking": True,
             "k": 1,
         }
 
@@ -344,6 +345,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
                 "raw_similar_issue_data": {
                     "message_distance": 0.05,
@@ -559,6 +561,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
             ),
             headers={"content-type": "application/json;charset=utf-8"},
@@ -587,6 +590,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                     "k": 1,
                 },
             ),
@@ -616,7 +620,19 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_obeys_useReranking_query_param(self, mock_seer_request):
+        for incoming_value, outgoing_value in [("true", True), ("false", False)]:
+            self.client.get(self.path, data={"useReranking": incoming_value})
+
+            assert mock_seer_request.call_count == 1
+            request_params = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+            assert request_params["use_reranking"] == outgoing_value
+
+            mock_seer_request.reset_mock()

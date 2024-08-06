@@ -738,6 +738,7 @@ CELERY_IMPORTS = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
     "sentry.integrations.github.tasks",
+    "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
     "sentry.snuba.tasks",
@@ -814,6 +815,7 @@ CELERY_IMPORTS = (
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.integrations.vsts.tasks",
+    "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
 )
 
@@ -1001,7 +1003,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
-        "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
+        "task": "sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
         # Run every 6 hours
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
@@ -1219,7 +1221,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
-        "task": "sentry.tasks.integrations.github_comment_reactions",
+        "task": "sentry.integrations.github.tasks.github_comment_reactions",
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
     },
@@ -3358,6 +3360,8 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 # This webhook url can be configured to log the changes made to runtime options as they
 # are changed by sentry configoptions.
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
+
+OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}

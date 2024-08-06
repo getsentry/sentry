@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 def queue_comment_task_if_needed(
     commit: Commit, group_owner: GroupOwner, repo: Repository, installation: IntegrationInstallation
 ) -> None:
-    from sentry.tasks.integrations.github.pr_comment import github_comment_workflow
+    from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
 
     logger.info(
         "github.pr_comment.queue_comment_check",
