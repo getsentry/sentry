@@ -17,6 +17,7 @@ const TabPanelContainer = styled('div')`
   height: 250px;
   background-color: white;
 `;
+
 const TABS: Tab[] = [
   {
     id: 'one',
@@ -51,6 +52,7 @@ export default storyBook(DraggableTabBar, story => {
   story('Default', () => {
     const [showTempTab, setShowTempTab] = useState(false);
     const [tabs, setTabs] = useState(TABS);
+    const [selectedTabKey, setSelectedTabKey] = useState('one');
 
     return (
       <Fragment>
@@ -70,6 +72,8 @@ export default storyBook(DraggableTabBar, story => {
           </StyledButton>
           <TabBarContainer>
             <DraggableTabBar
+              selectedTabKey={selectedTabKey}
+              setSelectedTabKey={setSelectedTabKey}
               tabs={tabs}
               setTabs={setTabs}
               onDiscardTempView={() => {

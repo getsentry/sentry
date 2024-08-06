@@ -215,6 +215,7 @@ const TabDivider = styled(motion.div)`
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
+  margin: 0px ${space(0.5)};
 `;
 
 const TabListOuterWrap = styled('div')<{
@@ -252,9 +253,8 @@ const TabListWrap = styled('ul')`
 const AddViewButton = styled(Button)`
   display: flex;
   color: ${p => p.theme.gray300};
-  padding-right: ${space(0.5)};
-  margin: 4px 2px 2px 2px;
   font-weight: normal;
+  padding: ${space(0.5)};
 `;
 
 const StyledIconAdd = styled(IconAdd)`
