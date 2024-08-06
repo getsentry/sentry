@@ -501,6 +501,11 @@ describe('SearchQueryBuilder', function () {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
+      // Should show tab button for each section
+      expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Category 1'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Category 2'})).toBeInTheDocument();
+
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
       expect(groups).toHaveLength(2);
@@ -518,6 +523,13 @@ describe('SearchQueryBuilder', function () {
       expect(
         within(group2).getByRole('option', {name: 'custom_tag_name'})
       ).toBeInTheDocument();
+
+      // Clicking "Category 2" should filter the options to only category 2
+      await userEvent.click(screen.getByRole('button', {name: 'Category 2'}));
+      await waitFor(() => {
+        expect(screen.queryByRole('option', {name: 'age'})).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('option', {name: 'custom_tag_name'})).toBeInTheDocument();
     });
 
     it('can search by key description', async function () {
