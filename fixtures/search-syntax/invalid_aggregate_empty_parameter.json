@@ -1,0 +1,48 @@
+[
+  {
+    "query": "percentile(measurements.fp,):3.3s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateDuration",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "percentile", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.fp",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": null
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "",
+        "value": {
+          "type": "valueDuration",
+          "value": "3.3",
+          "unit": "s",
+          "parsed": {"value": 3300}
+        },
+        "invalid":  {
+           "reason": "Function parameters should not have empty values",
+           "type": "empty-parameter-not-allowed"
+         }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]
