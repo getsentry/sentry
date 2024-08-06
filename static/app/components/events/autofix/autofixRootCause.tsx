@@ -183,6 +183,7 @@ function SuggestedFixSnippet({
   snippet: AutofixRootCauseCodeContextSnippet;
 }) {
   function getSourceLink() {
+    if (!repos) return undefined;
     const repo = repos.find(
       r => r.name === snippet.repo_name && r.provider === 'integrations:github'
     );
@@ -366,6 +367,7 @@ function AutofixRootCauseDisplay({
   repos,
 }: AutofixRootCauseProps) {
   const [selectedId, setSelectedId] = useState(() => causes[0].id);
+  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   if (rootCauseSelection) {
     if ('custom_root_cause' in rootCauseSelection) {
@@ -398,11 +400,24 @@ function AutofixRootCauseDisplay({
           <AutofixShowMore title={t('Show unselected causes')}>
             {otherCauses.map(cause => (
               <RootCauseOption selected key={cause.id}>
-                <Title
-                  dangerouslySetInnerHTML={{
-                    __html: singleLineRenderer(t('Cause: %s', cause.title)),
-                  }}
-                />
+                <RootCauseOptionHeader>
+                  <Title
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(t('Cause: %s', cause.title)),
+                    }}
+                  />
+                  <Button
+                    size="xs"
+                    onClick={() => handleSelectFix({causeId: cause.id})}
+                    busy={isLoading}
+                    analyticsEventName="Autofix: Root Cause Fix Selected"
+                    analyticsEventKey="autofix.root_cause_fix_selected"
+                    analyticsParams={{group_id: groupId}}
+                  >
+                    {t('Fix This Instead')}
+                  </Button>
+                </RootCauseOptionHeader>
+
                 <CauseDescription
                   dangerouslySetInnerHTML={{
                     __html: marked(cause.description),
