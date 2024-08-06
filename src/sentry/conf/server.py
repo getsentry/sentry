@@ -40,13 +40,11 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str:
-    ...
+def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
-    ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
 
 
 def env(
@@ -3150,6 +3148,8 @@ SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_TIMEOUT = 1
+
+SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
