@@ -1,4 +1,5 @@
 import {type ReactNode, useState} from 'react';
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -8,6 +9,7 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {AutofixShowMore} from 'sentry/components/events/autofix/autofixShowMore';
 import {
+  type AutofixRepository,
   type AutofixRootCauseCodeContext,
   type AutofixRootCauseCodeContextSnippet,
   type AutofixRootCauseData,
@@ -20,10 +22,13 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {getPrismLanguage} from 'sentry/utils/prism';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -33,6 +38,7 @@ import useApi from 'sentry/utils/useApi';
 type AutofixRootCauseProps = {
   causes: AutofixRootCauseData[];
   groupId: string;
+  repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
 };
@@ -170,15 +176,25 @@ function RootCauseContent({
 function SuggestedFixSnippet({
   snippet,
   linesToHighlight,
+  repos,
 }: {
   linesToHighlight: number[];
+  repos: AutofixRepository[];
   snippet: AutofixRootCauseCodeContextSnippet;
 }) {
+  function getSourceLink() {
+    const repo = repos.find(
+      r => r.name === snippet.repo_name && r.provider === 'integrations:github'
+    );
+    if (!repo) return undefined;
+    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
+  }
   const extension = getFileExtension(snippet.file_path);
   const lanugage = extension ? getPrismLanguage(extension) : undefined;
+  const sourceLink = getSourceLink();
 
   return (
-    <div>
+    <CodeSnippetWrapper>
       <StyledCodeSnippet
         filename={snippet.file_path}
         language={lanugage}
@@ -187,7 +203,16 @@ function SuggestedFixSnippet({
       >
         {snippet.snippet}
       </StyledCodeSnippet>
-    </div>
+      {sourceLink && (
+        <CodeLinkWrapper>
+          <Tooltip title={t('Open this file in GitHub')} skipWrapper>
+            <OpenInLink href={sourceLink} openInNewTab aria-label={t('GitHub')}>
+              <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+            </OpenInLink>
+          </Tooltip>
+        </CodeLinkWrapper>
+      )}
+    </CodeSnippetWrapper>
   );
 }
 
@@ -197,9 +222,11 @@ function CauseOption({
   setSelectedId,
   runId,
   groupId,
+  repos,
 }: {
   cause: AutofixRootCauseData;
   groupId: string;
+  repos: AutofixRepository[];
   runId: string;
   selected: boolean;
   setSelectedId: (id: string) => void;
@@ -224,7 +251,7 @@ function CauseOption({
             analyticsEventKey="autofix.root_cause_fix_selected"
             analyticsParams={{group_id: groupId}}
           >
-            {t('Continue with a fix')}
+            {t('Find a Fix')}
           </Button>
           <Button
             icon={<IconChevron size="xs" direction={selected ? 'down' : 'right'} />}
@@ -242,7 +269,7 @@ function CauseOption({
             __html: marked(cause.description),
           }}
         />
-        <AutofixRootCauseCodeContexts codeContext={cause.code_context} />
+        <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
       </RootCauseContent>
     </RootCauseOption>
   );
@@ -251,8 +278,10 @@ function CauseOption({
 function SelectedRootCauseOption({
   selectedCause,
   codeContext,
+  repos,
 }: {
   codeContext: AutofixRootCauseCodeContext[];
+  repos: AutofixRepository[];
   selectedCause: AutofixRootCauseData;
 }) {
   return (
@@ -267,7 +296,7 @@ function SelectedRootCauseOption({
           __html: marked(selectedCause.description),
         }}
       />
-      <AutofixRootCauseCodeContexts codeContext={codeContext} />
+      <AutofixRootCauseCodeContexts codeContext={codeContext} repos={repos} />
     </RootCauseOption>
   );
 }
@@ -321,7 +350,7 @@ function ProvideYourOwn({
             aria-describedby="continue-custom-root-cause"
             id="continue-custom-root-cause"
           >
-            {t('Continue with a fix')}
+            {t('Find a Fix')}
           </Button>
         </OptionFooter>
       </RootCauseContent>
@@ -334,6 +363,7 @@ function AutofixRootCauseDisplay({
   groupId,
   runId,
   rootCauseSelection,
+  repos,
 }: AutofixRootCauseProps) {
   const [selectedId, setSelectedId] = useState(() => causes[0].id);
 
@@ -362,6 +392,7 @@ function AutofixRootCauseDisplay({
         <SelectedRootCauseOption
           codeContext={selectedCause?.code_context}
           selectedCause={selectedCause}
+          repos={repos}
         />
         {otherCauses.length > 0 && (
           <AutofixShowMore title={t('Show unselected causes')}>
@@ -377,7 +408,10 @@ function AutofixRootCauseDisplay({
                     __html: marked(cause.description),
                   }}
                 />
-                <AutofixRootCauseCodeContexts codeContext={cause.code_context} />
+                <AutofixRootCauseCodeContexts
+                  codeContext={cause.code_context}
+                  repos={repos}
+                />
               </RootCauseOption>
             ))}
           </AutofixShowMore>
@@ -405,6 +439,7 @@ function AutofixRootCauseDisplay({
               setSelectedId={setSelectedId}
               runId={runId}
               groupId={groupId}
+              repos={repos}
             />
           ))}
           <ProvideYourOwn
@@ -435,8 +470,10 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
 
 export function AutofixRootCauseCodeContexts({
   codeContext,
+  repos,
 }: {
   codeContext: AutofixRootCauseCodeContext[];
+  repos: AutofixRepository[];
 }) {
   return codeContext?.map((fix, index) => (
     <SuggestedFixWrapper key={fix.id}>
@@ -456,6 +493,7 @@ export function AutofixRootCauseCodeContexts({
         <SuggestedFixSnippet
           snippet={fix.snippet}
           linesToHighlight={getLinesToHighlight(fix)}
+          repos={repos}
         />
       )}
     </SuggestedFixWrapper>
@@ -564,4 +602,42 @@ const CustomRootCausePadding = styled('div')`
 const RootCauseOptionsRow = styled('div')`
   display: flex;
   flex-direction: row;
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const StyledIconWrapper = styled('span')`
+  color: inherit;
+  line-height: 0;
+`;
+
+const LinkStyles = css`
+  align-items: center;
+  gap: ${space(0.75)};
+`;
+
+const OpenInLink = styled(ExternalLink)`
+  ${LinkStyles}
+  color: ${p => p.theme.subText};
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const CodeLinkWrapper = styled('div')`
+  gap: ${space(1)};
+  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.text.family};
+  padding: 0 ${space(1)};
+  position: absolute;
+  top: 8px;
+  right: 0;
+`;
+
+const CodeSnippetWrapper = styled('div')`
+  position: relative;
 `;

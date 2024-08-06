@@ -174,6 +174,7 @@ describe('Autofix', () => {
                       snippet: {
                         file_path: 'test/file/path.py',
                         snippet: 'two = 1 + 1',
+                        repo_name: 'owner/repo',
                       },
                     },
                   ],
