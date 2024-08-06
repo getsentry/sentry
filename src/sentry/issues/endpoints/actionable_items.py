@@ -16,6 +16,9 @@ from sentry.api.helpers.actionable_items_helper import (
     errors_to_hide,
     priority_ranking,
 )
+from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.services.integration import integration_service
+from sentry.models.actionableitemsissues import ActionableItemsIssues
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
 from sentry.utils.platform_categories import REPLAY_PLATFORMS
@@ -66,7 +69,6 @@ class ActionableItemsEndpoint(ProjectEndpoint):
             actions.append(response)
 
         # Check if replays are set up
-
         if project.platform:
             org_has_sent_replays = (
                 Project.objects.filter(organization=project.organization)
@@ -76,11 +78,30 @@ class ActionableItemsEndpoint(ProjectEndpoint):
             if project.platform in REPLAY_PLATFORMS and not org_has_sent_replays:
                 actions.append(
                     {
-                        "type": "replay_setup",
+                        "type": ActionableItemsIssues.REPLAY_NOT_SETUP,
                         "message": "Replays are not set up for this organization",
                         "data": {},
                     }
                 )
+
+        # Check for Git integrations
+
+        integrations = integration_service.get_integrations(organization_id=project.organization_id)
+        # TODO(meredith): should use get_provider.has_feature() instead once this is
+        # no longer feature gated and is added as an IntegrationFeature
+        has_git_integrations = (
+            len(filter(lambda i: i.has_feature(IntegrationFeatures.STACKTRACE_LINK)), integrations)
+            > 0
+        )
+
+        if not has_git_integrations:
+            actions.append(
+                {
+                    "type": ActionableItemsIssues.MISSING_GIT_INTEGRATION,
+                    "message": "No Git integrations are set up for this organization",
+                    "data": {},
+                }
+            )
 
         priority_get = lambda x: priority_ranking.get(x["type"], ActionPriority.UNKNOWN)
         sorted_errors = sorted(actions, key=priority_get)
