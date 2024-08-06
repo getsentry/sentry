@@ -268,7 +268,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </EventInfo>
           <JumpTo>
             <div>{t('Jump to:')}</div>
-            <ButtonBar>
+            <StyledButtonBar>
               {jumpToSections.map(jump => (
                 <Button
                   key={jump.section}
@@ -284,7 +284,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   {jump.label}
                 </Button>
               ))}
-            </ButtonBar>
+            </StyledButtonBar>
           </JumpTo>
         </EventInfoJumpToWrapper>
         <Divider />
@@ -332,6 +332,9 @@ const JumpTo = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
+  max-width: 50%;
+  width: 400px;
 `;
 
 const Divider = styled('hr')`
@@ -370,4 +373,8 @@ const CopyIconContainer = styled('span')`
 
 const EventTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  overflow-x: auto;
 `;
