@@ -410,7 +410,7 @@ function AutofixRootCauseDisplay({
                     size="xs"
                     onClick={() => handleSelectFix({causeId: cause.id})}
                     busy={isLoading}
-                    analyticsEventName="Autofix: Root Cause Fix Selected"
+                    analyticsEventName="Autofix: Root Cause Fix Re-Selected"
                     analyticsEventKey="autofix.root_cause_fix_selected"
                     analyticsParams={{group_id: groupId}}
                   >
