@@ -8,7 +8,6 @@ from enum import Enum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
-from django_stubs_ext import StrOrPromise
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
@@ -47,6 +46,8 @@ from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.sdk import Scope
 
 if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
+
     from sentry.integrations.services.integration import RpcOrganizationIntegration
     from sentry.integrations.services.integration.model import RpcIntegration
 
@@ -59,10 +60,10 @@ class FeatureDescription(NamedTuple):
 
 
 class IntegrationMetadata(NamedTuple):
-    description: StrOrPromise  # A markdown description of the integration
+    description: str | _StrPromise  # A markdown description of the integration
     features: Sequence[FeatureDescription]  # A list of FeatureDescriptions
     author: str  # The integration author's name
-    noun: StrOrPromise  # The noun used to identify the integration
+    noun: str | _StrPromise  # The noun used to identify the integration
     issue_url: str  # URL where issues should be opened
     source_url: str  # URL to view the source
     aspects: dict[str, Any]  # A map of integration specific 'aspects' to the aspect config.
