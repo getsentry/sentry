@@ -271,6 +271,17 @@ class FeatureManagerTest(TestCase):
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
 
+    def test_batch_has_error(self):
+        manager = features.FeatureManager()
+        manager.add("organizations:feature", OrganizationFeature)
+        manager.add("projects:feature", ProjectFeature)
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.batch_has.side_effect = Exception("something bad")
+        manager.add_entity_handler(handler)
+
+        ret = manager.batch_has(["auth:register"], actor=self.user)
+        assert ret is None
+
     def test_batch_has_no_entity(self):
         manager = features.FeatureManager()
         manager.add("auth:register")
