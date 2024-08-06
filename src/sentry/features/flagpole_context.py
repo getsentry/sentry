@@ -89,7 +89,7 @@ def user_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     if isinstance(user, RpcUser):
         verified_emails = list(user.emails)
     else:
-        verified_emails = user.get_verified_emails().values_list("email", flat=True)
+        verified_emails = list(user.get_verified_emails().values_list("email", flat=True))
 
     if user.email in verified_emails:
         context_data["user_email"] = user.email
