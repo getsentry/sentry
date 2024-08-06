@@ -368,18 +368,24 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         cases: list[Any] = [
-            [LEGACY_CONFIG, None, None, 1],
-            [NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
+            ["Dogs are great!", LEGACY_CONFIG, None, None, 1],
+            ["Adopt don't shop", NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
         ]
 
-        for primary_config, secondary_config, transition_expiry, expected_total_calcs in cases:
+        for (
+            message,
+            primary_config,
+            secondary_config,
+            transition_expiry,
+            expected_total_calcs,
+        ) in cases:
             mock_metrics_incr.reset_mock()
 
             project.update_option("sentry:grouping_config", primary_config)
             project.update_option("sentry:secondary_grouping_config", secondary_config)
             project.update_option("sentry:secondary_grouping_expiry", transition_expiry)
 
-            save_new_event({"message": "Dogs are great!"}, self.project)
+            save_new_event({"message": message}, self.project)
 
             total_calculations_calls = get_relevant_metrics_calls(
                 mock_metrics_incr, "grouping.total_calculations"
@@ -423,9 +429,16 @@ class EventManagerGroupingMetricsTest(TestCase):
             transition_expiry,
             expected_in_transition,
         ) in in_transition_cases:
-            for has_flag, expected_using_optimization in optimized_logic_cases:
-                with self.feature(
-                    {"organizations:grouping-suppress-unnecessary-secondary-hash": has_flag}
+            for using_optimization, expected_using_optimization in optimized_logic_cases:
+                with (
+                    mock.patch(
+                        "sentry.event_manager.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
+                    mock.patch(
+                        "sentry.grouping.ingest.metrics.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
                 ):
                     mock_metrics_incr.reset_mock()
 

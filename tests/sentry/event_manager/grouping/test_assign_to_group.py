@@ -19,7 +19,6 @@ from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
@@ -162,7 +161,9 @@ def get_results_from_saving_event(
 
     with (
         patch_grouping_helpers(return_values) as spies,
-        Feature({"organizations:grouping-suppress-unnecessary-secondary-hash": new_logic_enabled}),
+        mock.patch(
+            "sentry.event_manager.project_uses_optimized_grouping", return_value=new_logic_enabled
+        ),
     ):
         calculate_secondary_hash_spy = spies["_calculate_secondary_hash"]
         create_group_spy = spies["_create_group"]
