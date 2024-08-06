@@ -18,6 +18,7 @@ import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {RichHttpContentClippedBoxBodySection} from './richHttpContentClippedBoxBodySection';
 import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBoxKeyValueList';
@@ -52,6 +53,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
 }
 
 export function Request({data, event}: RequestProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.REQUEST);
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
@@ -110,10 +112,11 @@ export function Request({data, event}: RequestProps) {
   return (
     <InterimSection
       type={FoldSectionKey.REQUEST}
-      title={title}
+      title={hasStreamlinedUI ? t('HTTP Request') : title}
       actions={actions}
       className="request"
     >
+      {hasStreamlinedUI && title}
       {view === 'curl' ? (
         <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
       ) : (

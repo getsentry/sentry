@@ -396,7 +396,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       )}
       actions={actions}
     >
-      {!isOpen ? null : (
+      {isOpen || hasStreamlinedUI ? (
         <Fragment>
           <StyledSearchBarAction
             placeholder={t('Search images loaded')}
@@ -420,7 +420,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             <div ref={panelTableRef}>{renderList(filteredImages)}</div>
           </StyledPanelTable>
         </Fragment>
-      )}
+      ) : null}
     </InterimSection>
   );
 }

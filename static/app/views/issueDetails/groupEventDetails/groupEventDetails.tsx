@@ -188,7 +188,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
               <MainLayoutComponent>
                 {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
-                {eventWithMeta && issueTypeConfig.stats.enabled && (
+                {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
                   <GroupEventHeader
                     group={group}
                     event={eventWithMeta}
@@ -244,13 +244,6 @@ const GroupContent = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-  padding: ${space(1.5)};
-`;
-
-export const GroupContentItem = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};
 `;
 
