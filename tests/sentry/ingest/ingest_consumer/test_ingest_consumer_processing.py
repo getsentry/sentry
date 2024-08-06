@@ -561,6 +561,7 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     assert report.comments == "hello world"
 
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
+    assert event is not None
     evtuser = EventUser.from_event(event)
     # Event got saved after user report, and the sync only works in the
     # opposite direction. That's fine, we just accept it.
