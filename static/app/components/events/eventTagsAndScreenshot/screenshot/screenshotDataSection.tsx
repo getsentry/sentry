@@ -57,9 +57,8 @@ export function ScreenshotDataSection({
     {enabled: !isShare}
   );
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  let screenshots =
+  const screenshots =
     attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
-  screenshots = [...screenshots, ...screenshots, ...screenshots, ...screenshots];
 
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
