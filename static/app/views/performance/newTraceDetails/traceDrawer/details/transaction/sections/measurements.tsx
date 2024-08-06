@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   getFieldTypeFromUnit,
   isNotMarkMeasurement,
@@ -90,7 +89,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
         value: (
           <MeasurementValue>
             {rendered}
-            <DropdownMenu
+            <TraceDrawerComponents.DropdownMenu
               items={[
                 {
                   key: 'includeEvents',
