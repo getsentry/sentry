@@ -14,7 +14,10 @@ import {INSIGHTS_TITLE, MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
-export type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
+export type TitleableModuleNames = Exclude<
+  ModuleNameStrings,
+  '' | 'other' | 'mobile-vitals'
+>;
 
 interface Props {
   children: React.ReactNode;
