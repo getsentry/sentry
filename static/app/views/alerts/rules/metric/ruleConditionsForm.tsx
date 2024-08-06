@@ -163,7 +163,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     const orgHasPerformanceView = organization.features.includes('performance-view');
     const combinedTags: TagCollection =
       dataset === Dataset.ERRORS
-        ? Object.assign({}, [], STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
+        ? Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
         : dataset === Dataset.TRANSACTIONS
           ? Object.assign(
               {},
