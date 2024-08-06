@@ -92,7 +92,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
-        prebuilt = Dashboard.get_prebuilt_list(organization, query)
+        prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
 
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):

@@ -13,6 +13,7 @@ import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirt
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -78,6 +79,7 @@ type ViewHierarchyProps = {
 
 function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -188,7 +190,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     );
   }
 
-  return (
+  const viewHierarchyContent = (
     <Fragment>
       <RenderingSystem
         platform={project?.platform}
@@ -224,9 +226,20 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       </Content>
     </Fragment>
   );
+
+  return hasStreamlinedUI ? (
+    <Container>{viewHierarchyContent}</Container>
+  ) : (
+    viewHierarchyContent
+  );
 }
 
 export {ViewHierarchy};
+
+const Container = styled('div')`
+  position: relative;
+  margin-left: ${space(2)};
+`;
 
 const Content = styled('div')`
   display: flex;
