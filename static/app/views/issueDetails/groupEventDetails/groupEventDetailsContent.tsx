@@ -124,7 +124,6 @@ function DefaultGroupEventDetailsContent({
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
   const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
 
   const eventEntryProps = {group, event, project};
@@ -262,7 +261,7 @@ function DefaultGroupEventDetailsContent({
         entryType={EntryType.THREADS}
         {...eventEntryProps}
       />
-      {hasAnrImprovementsFeature && isANR && (
+      {isANR && (
         <QuickTraceQuery
           event={event}
           location={location}
