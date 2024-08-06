@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import orjson
@@ -8,6 +9,8 @@ from rest_framework import status
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.models.group import Group
+
+logger = logging.getLogger(__name__)
 
 
 class SlackActionRequest(SlackRequest):
@@ -111,9 +114,24 @@ class SlackActionRequest(SlackRequest):
         return logging_data
 
     def get_tags(self) -> set[str]:
-        attachments = self.data.get("original_message", {}).get("attachments", [{}])
+        logger.info("slack.action.get_tags", extra={"data": self.data})
+        message = self.data.get("message", {})
+        if not message:
+            return set()
+
+        blocks = message.get("blocks", [{}])
         tags = set()
-        for attachment in attachments:
-            for field in attachment.get("fields", []):
-                tags.add(field["title"])
+        for block in blocks:
+            if "tags" not in block.get("block_id", ""):
+                continue
+
+            text: str = block.get("text", {}).get("text", "")
+            tag_keys = text.split("`")
+
+            for i, tag_key in enumerate(tag_keys):
+                # the tags are organized as tag_key: tag_value, so even indexed tags are keys
+                if i % 2 == 1:
+                    continue
+                if tag_key.strip(" ").endswith(":"):
+                    tags.add(tag_key.strip(": "))
         return tags

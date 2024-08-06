@@ -6,15 +6,12 @@ import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {Node} from '@react-types/shared';
 import {motion, Reorder} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
-import type {SelectOption} from 'sentry/components/compactSelect';
 import {TabsContext} from 'sentry/components/tabs';
 import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
-import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
-import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -79,34 +76,6 @@ function BaseDraggableTabList({
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
-  const overflowTabs = useOverflowTabs({
-    tabListRef,
-    tabItemsRef,
-    tabItems: props.items,
-  });
-
-  const overflowMenuItems = useMemo(() => {
-    // Sort overflow items in the order that they appear in TabList
-    const sortedKeys = [...state.collection].map(item => item.key);
-    const sortedOverflowTabs = overflowTabs.sort(
-      (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
-    );
-
-    return sortedOverflowTabs.flatMap<SelectOption<string | number>>(key => {
-      const item = state.collection.getItem(key);
-
-      if (!item) {
-        return [];
-      }
-
-      return {
-        value: key,
-        label: item.props.children,
-        disabled: item.props.disabled,
-        textValue: item.textValue,
-      };
-    });
-  }, [state.collection, overflowTabs]);
 
   const persistentTabs = [...state.collection].filter(
     item => item.key !== 'temporary-tab'
@@ -114,22 +83,20 @@ function BaseDraggableTabList({
   const tempTab = [...state.collection].find(item => item.key === 'temporary-tab');
 
   return (
-    <TabListOuterWrap style={outerWrapStyles}>
+    <TabListOuterWrap
+      style={outerWrapStyles}
+      hideBorder={hideBorder}
+      borderStyle={state.selectedKey === 'temporary-tab' ? 'dashed' : 'solid'}
+    >
       <Reorder.Group
         axis="x"
         values={[...state.collection]}
         onReorder={onReorder}
         as="div"
+        style={{display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'min-content'}}
         layoutRoot
       >
-        <TabListWrap
-          {...tabListProps}
-          orientation={orientation}
-          hideBorder={hideBorder}
-          borderStyle={state.selectedKey === 'temporary-tab' ? 'dashed' : 'solid'}
-          className={className}
-          ref={tabListRef}
-        >
+        <TabListWrap {...tabListProps} className={className} ref={tabListRef}>
           {persistentTabs.map(item => (
             <Fragment key={item.key}>
               <Reorder.Item
@@ -137,6 +104,9 @@ function BaseDraggableTabList({
                 value={item}
                 style={{display: 'flex', flexDirection: 'row'}}
                 as="div"
+                dragConstraints={tabListRef} // Sets the container that the tabs can be dragged within
+                dragElastic={0} // Prevents tabs from being dragged outside of the tab bar
+                dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic
                 layout
               >
                 <Tab
@@ -144,9 +114,7 @@ function BaseDraggableTabList({
                   item={item}
                   state={state}
                   orientation={orientation}
-                  overflowing={
-                    orientation === 'horizontal' && overflowTabs.includes(item.key)
-                  }
+                  overflowing={false}
                   ref={element => (tabItemsRef.current[item.key] = element)}
                   variant={tabVariant}
                 />
@@ -158,6 +126,8 @@ function BaseDraggableTabList({
               )}
             </Fragment>
           ))}
+        </TabListWrap>
+        <AddViewTempTabWrap>
           <MotionWrapper layout>
             <AddViewButton borderless size="zero" onClick={onAddView}>
               <StyledIconAdd size="xs" />
@@ -172,25 +142,15 @@ function BaseDraggableTabList({
                 item={tempTab}
                 state={state}
                 orientation={orientation}
-                overflowing={
-                  orientation === 'horizontal' && overflowTabs.includes(tempTab.key)
-                }
+                overflowing={false}
                 ref={element => (tabItemsRef.current[tempTab.key] = element)}
                 variant={tabVariant}
                 borderStyle="dashed"
               />
             )}
           </MotionWrapper>
-        </TabListWrap>
+        </AddViewTempTabWrap>
       </Reorder.Group>
-
-      {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <OverflowMenu
-          state={state}
-          overflowMenuItems={overflowMenuItems}
-          disabled={disabled}
-        />
-      )}
     </TabListOuterWrap>
   );
 }
@@ -255,43 +215,38 @@ const TabDivider = styled(motion.div)`
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
-  margin: 8px 4px;
 `;
 
-const TabListOuterWrap = styled('div')`
-  position: relative;
-`;
-
-const TabListWrap = styled('ul', {
-  shouldForwardProp: tabsShouldForwardProp,
-})<{
+const TabListOuterWrap = styled('div')<{
   borderStyle: 'dashed' | 'solid';
   hideBorder: boolean;
-  orientation: Orientation;
 }>`
+  position: relative;
+  ${p => !p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+`;
+
+const AddViewTempTabWrap = styled('div')`
   position: relative;
   display: grid;
   padding: 0;
   margin: 0;
   list-style-type: none;
   flex-shrink: 0;
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+`;
 
-  ${p =>
-    p.orientation === 'horizontal'
-      ? `
-        grid-auto-flow: column;
-        justify-content: start;
-        ${!p.hideBorder && `border-bottom: ${p.borderStyle} 1px ${p.theme.border};`}
-        stroke-dasharray: 4, 3;
-      `
-      : `
-        height: 100%;
-        grid-auto-flow: row;
-        align-content: start;
-        gap: 1px;
-        padding-right: ${space(2)};
-        ${!p.hideBorder && `border-right: ${p.borderStyle} 1px ${p.theme.border};`}
-      `};
+const TabListWrap = styled('ul')`
+  position: relative;
+  display: grid;
+  justify-content: start;
+  grid-auto-flow: column;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  flex-shrink: 0;
+  align-items: center;
 `;
 
 const AddViewButton = styled(Button)`

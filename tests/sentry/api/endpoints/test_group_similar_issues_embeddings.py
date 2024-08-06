@@ -5,13 +5,13 @@ from unittest import mock
 import orjson
 from urllib3.response import HTTPResponse
 
+from sentry import options
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
 )
 from sentry.api.serializers.base import serialize
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.group import Group
-from sentry.seer.similarity.similar_issues import SIMILARITY_REQUEST_METRIC_SAMPLE_RATE
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -244,7 +244,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={
                 "response_status": 200,
                 "outcome": "matching_group_found",
@@ -356,7 +356,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={
                 "response_status": 200,
                 "outcome": "error",
@@ -409,7 +409,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={
                 "response_status": 200,
                 "outcome": "error",
@@ -625,3 +625,14 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_obeys_useReranking_query_param(self, mock_seer_request):
+        for incoming_value, outgoing_value in [("true", True), ("false", False)]:
+            self.client.get(self.path, data={"useReranking": incoming_value})
+
+            assert mock_seer_request.call_count == 1
+            request_params = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+            assert request_params["use_reranking"] == outgoing_value
+
+            mock_seer_request.reset_mock()
