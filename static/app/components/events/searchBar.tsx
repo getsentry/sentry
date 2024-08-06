@@ -13,7 +13,10 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';
 import {isAggregateField, isEquation, isMeasurement} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DiscoverDatasetsToDatasetMap,
+} from 'sentry/utils/discover/types';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,
@@ -220,6 +223,7 @@ function SearchBar(props: SearchBarProps) {
               includeTransactions: true,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
+              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
             });
 
       return fetchPromise.then(
