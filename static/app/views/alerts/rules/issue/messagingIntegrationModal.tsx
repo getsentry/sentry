@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -32,6 +33,13 @@ function MessagingIntegrationModal({
   project,
   onAddIntegration,
 }: Props) {
+  useEffect(() => {
+    trackAnalytics('onboarding.messaging_integration_modal_rendered', {
+      project_id: project.id,
+      organization,
+    });
+  }, [project.id, organization]);
+
   const queryResults = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
       `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
@@ -70,7 +78,7 @@ function MessagingIntegrationModal({
                   installStatus: 'Not Installed',
                   analyticsParams: {
                     already_installed: false,
-                    view: 'onboarding',
+                    view: 'messaging_integration_onboarding',
                   },
                   onAddIntegration: onAddIntegration,
                   modalParams: {projectId: project.id},
