@@ -13,6 +13,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.types import Dict
 
@@ -305,14 +306,14 @@ class FeatureManager(RegisteredFeatureManager):
                 )
 
                 return False
-        except Exception:
-            logger.exception("Failed to run feature check")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return False
 
     def batch_has(
         self,
         feature_names: Sequence[str],
-        actor: User | AnonymousUser | None = None,
+        actor: User | RpcUser | AnonymousUser | None = None,
         projects: Sequence[Project] | None = None,
         organization: Organization | None = None,
     ) -> Mapping[str, Mapping[str, bool | None]] | None:
@@ -323,40 +324,47 @@ class FeatureManager(RegisteredFeatureManager):
         Will only accept one type of feature, either all ProjectFeatures or all
         OrganizationFeatures.
         """
-        if self._entity_handler:
-            with metrics.timer("features.entity_batch_has", sample_rate=0.01):
-                return self._entity_handler.batch_has(
-                    feature_names, actor, projects=projects, organization=organization
+        try:
+            if self._entity_handler:
+                with metrics.timer("features.entity_batch_has", sample_rate=0.01):
+                    return self._entity_handler.batch_has(
+                        feature_names, actor, projects=projects, organization=organization
+                    )
+            else:
+                # Fall back to default handler if no entity handler available.
+                project_features = [name for name in feature_names if name.startswith("projects:")]
+                if projects and project_features:
+                    results: MutableMapping[str, Mapping[str, bool]] = {}
+                    for project in projects:
+                        proj_results = results[f"project:{project.id}"] = {}
+                        for feature_name in project_features:
+                            proj_results[feature_name] = self.has(
+                                feature_name, project, actor=actor
+                            )
+                    return results
+
+                org_features = filter(lambda name: name.startswith("organizations:"), feature_names)
+                if organization and org_features:
+                    org_results = {}
+                    for feature_name in org_features:
+                        org_results[feature_name] = self.has(
+                            feature_name, organization, actor=actor
+                        )
+                    return {f"organization:{organization.id}": org_results}
+
+                unscoped_features = filter(
+                    lambda name: not name.startswith("organizations:")
+                    and not name.startswith("projects:"),
+                    feature_names,
                 )
-
-        else:
-            # Fall back to default handler if no entity handler available.
-            project_features = [name for name in feature_names if name.startswith("projects:")]
-            if projects and project_features:
-                results: MutableMapping[str, Mapping[str, bool]] = {}
-                for project in projects:
-                    proj_results = results[f"project:{project.id}"] = {}
-                    for feature_name in project_features:
-                        proj_results[feature_name] = self.has(feature_name, project, actor=actor)
-                return results
-
-            org_features = filter(lambda name: name.startswith("organizations:"), feature_names)
-            if organization and org_features:
-                org_results = {}
-                for feature_name in org_features:
-                    org_results[feature_name] = self.has(feature_name, organization, actor=actor)
-                return {f"organization:{organization.id}": org_results}
-
-            unscoped_features = filter(
-                lambda name: not name.startswith("organizations:")
-                and not name.startswith("projects:"),
-                feature_names,
-            )
-            if unscoped_features:
-                unscoped_results = {}
-                for feature_name in unscoped_features:
-                    unscoped_results[feature_name] = self.has(feature_name, actor=actor)
-                return {"unscoped": unscoped_results}
+                if unscoped_features:
+                    unscoped_results = {}
+                    for feature_name in unscoped_features:
+                        unscoped_results[feature_name] = self.has(feature_name, actor=actor)
+                    return {"unscoped": unscoped_results}
+                return None
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return None
 
     @staticmethod
