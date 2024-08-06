@@ -48,12 +48,12 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     # Reverse the list of exceptions in order to prioritize the outermost/most recent ones in cases
     # where there are chained exceptions and we end up truncating
-    # Limit the number of chained exceptions to 30
+    # Limit the number of chained exceptions
     for exception in reversed(exceptions[-MAX_EXCEPTION_COUNT:]):
         if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
 
-        # For each exception, extract its type, value, and up to 30 stacktrace frames
+        # For each exception, extract its type, value, and up to limit number of stacktrace frames
         exc_type, exc_value, frame_strings = "", "", []
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
