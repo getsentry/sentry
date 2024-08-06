@@ -8,6 +8,7 @@ import {IconAdd, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
+import {BUILT_IN_CONDITION_ID} from 'sentry/utils/metrics/extractionRules';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
@@ -53,6 +54,8 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
             <Tooltip showOnlyOnOverflow title={condition.value} skipWrapper>
               <QueryLabel>{condition.value}</QueryLabel>
             </Tooltip>
+          ) : condition.id === BUILT_IN_CONDITION_ID ? (
+            t('Built-in')
           ) : (
             t('All spans')
           ),
