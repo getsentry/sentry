@@ -51,7 +51,7 @@ const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
 
 /**
- * Merges organization tags and replay search fields into one collection.
+ * Merges a list of supported tags and replay search fields into one collection.
  */
 function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
   return {
@@ -69,6 +69,9 @@ function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
   };
 }
 
+/**
+ * Returns 3 sections: replay fields, replay click fields, and (filtered, non-field) tags.
+ */
 function getFilterKeySections(
   supportedTags: TagCollection,
   organization: Organization
