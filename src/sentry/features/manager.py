@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import logging
 
-from sentry.users.services.user.model import RpcUser
-
 __all__ = ["FeatureManager"]
 
 import abc
@@ -15,6 +13,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.types import Dict
 

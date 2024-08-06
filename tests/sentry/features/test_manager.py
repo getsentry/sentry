@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 
 from sentry import features
@@ -25,7 +26,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
     def has(
         self,
         feature: Feature,
-        actor: User | RpcUser,
+        actor: User | RpcUser | AnonymousUser | None,
         skip_entity: bool | None = False,
     ) -> bool:
         return True
