@@ -1483,6 +1483,28 @@
     "table_name": "sentry_dashboardwidgetqueryondemand",
     "uniques": []
   },
+  "sentry.datasecrecywaiver": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "sentry.datasecrecywaiver",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_datasecrecywaiver",
+    "uniques": [
+      [
+        "organization"
+      ]
+    ]
+  },
   "sentry.debugidartifactbundle": {
     "dangling": false,
     "foreign_keys": {
