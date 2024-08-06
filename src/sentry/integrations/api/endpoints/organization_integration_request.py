@@ -45,7 +45,7 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
 class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, organization) -> Response:

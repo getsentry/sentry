@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
+BASE64_FILENAME_TRUNCATION_LENGTH = 150
 
 
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
@@ -86,6 +87,15 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     ):
                         html_frame_count += 1
 
+                    # We want to skip frames with base64 encoded filenames since they can be large
+                    # and not contain any usable information
+                    if frame_dict["filename"].startswith("data:text/html;base64"):
+                        metrics.incr(
+                            "seer.grouping.base64_encoded_filename",
+                            sample_rate=1.0,
+                        )
+                        continue
+
                     frame_strings.append(
                         f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
                     )
@@ -126,18 +136,21 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     return stacktrace_str.strip()
 
 
+def event_content_has_stacktrace(event: Event) -> bool:
+    # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
+    # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
+    # PLACEHOLDER_EVENT_TITLES` to this check.
+    return get_path(event.data, "exception", "values", -1, "stacktrace", "frames") or get_path(
+        event.data, "threads", "values", -1, "stacktrace", "frames"
+    )
+
+
 def event_content_is_seer_eligible(event: Event) -> bool:
     """
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
     # TODO: Determine if we want to filter out non-sourcemapped events
-
-    # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
-    # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
-    # PLACEHOLDER_EVENT_TITLES` to this check.
-    if not get_path(event.data, "exception", "values", -1, "stacktrace", "frames") and not get_path(
-        event.data, "threads", "values", -1, "stacktrace", "frames"
-    ):
+    if not event_content_has_stacktrace(event):
         return False
 
     if event.platform not in SEER_ELIGIBLE_PLATFORMS:
@@ -158,7 +171,6 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "should_call_seer_for_grouping.seer_global_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
         metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,
@@ -171,7 +183,6 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
         metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,

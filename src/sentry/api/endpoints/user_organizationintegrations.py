@@ -16,7 +16,7 @@ from sentry.users.services.user.service import user_service
 class UserOrganizationIntegrationsEndpoint(UserEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, user) -> Response:

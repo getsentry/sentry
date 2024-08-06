@@ -30,6 +30,7 @@ from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -37,7 +38,6 @@ from sentry.organizations.services.organization import RpcOrganizationSummary, o
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.tasks.integrations import migrate_repo
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response

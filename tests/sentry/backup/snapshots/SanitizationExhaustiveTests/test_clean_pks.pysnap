@@ -1,5 +1,5 @@
 ---
-created: '2024-07-01T10:57:26.660720+00:00'
+created: '2024-08-05T07:13:33.857381+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -593,30 +593,6 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields: []
 - model_name: sentry.projectoption
   ordinal: 4
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 5
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 6
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 7
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 8
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 9
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 10
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 11
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 12
   sanitized_fields: []
 - model_name: sentry.projectkey
   ordinal: 1

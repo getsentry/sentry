@@ -9,14 +9,14 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
-  applyBreadcrumbSearch,
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
   type EnhancedCrumb,
-  getBreadcrumbFilterOptions,
+  useBreadcrumbFilters,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {
+  applyBreadcrumbSearch,
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
@@ -74,7 +74,7 @@ export function BreadcrumbsDrawer({
   const theme = useTheme();
 
   const [search, setSearch] = useState('');
-  const [filterSet, setFilterSet] = useState(new Set<string>());
+  const [filters, setFilters] = useState<string[]>([]);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
@@ -85,20 +85,15 @@ export function BreadcrumbsDrawer({
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
-  const filterOptions = useMemo(
-    () => getBreadcrumbFilterOptions(breadcrumbs),
-    [breadcrumbs]
-  );
+  const {filterOptions, applyFilters} = useBreadcrumbFilters(breadcrumbs);
 
   const displayCrumbs = useMemo(() => {
     const sortedCrumbs =
       sort === BreadcrumbSort.OLDEST ? breadcrumbs : [...breadcrumbs].reverse();
-    const filteredCrumbs = sortedCrumbs.filter(ec =>
-      filterSet.size === 0 ? true : filterSet.has(ec.filter)
-    );
-    const searchedCrumbs = applyBreadcrumbSearch(search, filteredCrumbs);
+    const filteredCrumbs = applyFilters(sortedCrumbs, filters);
+    const searchedCrumbs = applyBreadcrumbSearch(filteredCrumbs, search);
     return searchedCrumbs;
-  }, [breadcrumbs, sort, filterSet, search]);
+  }, [breadcrumbs, sort, filters, search, applyFilters]);
 
   const startTimeString = useMemo(
     () =>
@@ -132,7 +127,7 @@ export function BreadcrumbsDrawer({
         size="xs"
         onChange={options => {
           const newFilters = options.map(({value}) => value);
-          setFilterSet(new Set(newFilters));
+          setFilters(newFilters);
           trackAnalytics('breadcrumbs.drawer.action', {
             control: BreadcrumbControlOptions.FILTER,
             organization,
@@ -145,13 +140,13 @@ export function BreadcrumbsDrawer({
           <VisibleFocusButton
             size="xs"
             borderless
-            style={{background: filterSet.size > 0 ? theme.purple100 : 'transparent'}}
+            style={{background: filters.length > 0 ? theme.purple100 : 'transparent'}}
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
             {...props}
             {...getFocusProps(BreadcrumbControlOptions.FILTER)}
           >
-            {filterSet.size > 0 ? filterSet.size : null}
+            {filters.length > 0 ? filters.length : null}
           </VisibleFocusButton>
         )}
       />
@@ -239,7 +234,7 @@ export function BreadcrumbsDrawer({
               <Button
                 priority="link"
                 onClick={() => {
-                  setFilterSet(new Set());
+                  setFilters([]);
                   setSearch('');
                   trackAnalytics('breadcrumbs.drawer.action', {
                     control: 'clear_filters',
