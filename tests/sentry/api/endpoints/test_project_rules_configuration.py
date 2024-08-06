@@ -192,7 +192,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         assert IssueCategoryFilter.id in filter_ids
 
     def test_high_priority_issue_condition(self):
-        with self.feature({"projects:priority-ga-features": True}):
+        with self.feature({"organizations:priority-ga-features": True}):
             response = self.get_success_response(self.organization.slug, self.project.slug)
             assert "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition" in [
                 filter["id"] for filter in response.data["conditions"]
