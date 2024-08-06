@@ -60,7 +60,8 @@ function VitalsScreensTable({data, eventView, isLoading, pageLinks}: Props) {
       );
     }
 
-    if (field.startsWith('avg(mobile.frames_delay')) {
+    // backend doesn't provide unit for frames_delay, manually format it right now
+    if (field === `avg(mobile.frames_delay)`) {
       return (
         <NumberContainer>
           {row[field] ? (
