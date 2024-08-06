@@ -71,7 +71,7 @@ const getFilterKeySections = (
   return [
     {
       value: FieldKind.ISSUE_FIELD,
-      label: t('Issue Filters'),
+      label: t('Issues'),
       children: issueFields,
     },
     {

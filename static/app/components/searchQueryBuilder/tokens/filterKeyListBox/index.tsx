@@ -140,13 +140,9 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
 }
 
 const SectionedOverlay = styled(Overlay)`
-  overflow: hidden;
   display: grid;
-  grid-template-columns: 120px 240px;
-  grid-template-rows: 1fr auto;
-  grid-template-areas:
-    'left right'
-    'footer footer';
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
   height: 400px;
   width: 360px;
 `;
@@ -155,37 +151,34 @@ const SectionedOverlayFooter = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  grid-area: footer;
   padding: ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const SectionedListBoxPane = styled('div')`
   overflow-y: auto;
+  border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const SectionedListBoxTabPane = styled(SectionedListBoxPane)`
-  padding: ${space(1)};
+  padding: ${space(0.5)};
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: ${space(0.25)};
-  border-right: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const SectionButton = styled(Button)`
-  display: block;
-  height: 32px;
-  width: 100%;
+  height: 20px;
   text-align: left;
   font-weight: ${p => p.theme.fontWeightNormal};
-  padding: 0 ${space(1)};
-
-  span {
-    justify-content: flex-start;
-  }
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: 0 ${space(1.5)};
+  color: ${p => p.theme.subText};
+  border: 0;
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.purple100};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.purple100};
     color: ${p => p.theme.purple300};
     font-weight: ${p => p.theme.fontWeightBold};
   }
