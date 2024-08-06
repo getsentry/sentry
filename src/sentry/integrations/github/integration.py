@@ -159,6 +159,10 @@ class GitHubIntegration(IntegrationInstallation, RepositoryIntegration, CommitCo
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
+    @property
+    def integration_name(self):
+        return "github"
+
     def get_client(self) -> GitHubBaseClient:
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
