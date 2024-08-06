@@ -55,8 +55,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:anomaly-detection-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable anr frame analysis
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable anr improvements ui
-    manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable auth provider configuration through api
     manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=True)
@@ -182,8 +180,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metric alert charts in email/slack
     manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Enable load shedding for newly created metric alerts
-    manager.add("organizations:metric-alert-load-shedding", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable threshold period in metric alert rule builder
     manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the search bar for metrics samples list
@@ -271,6 +267,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-new-widget-designs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable performance on-boarding checklist
     manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable MongoDB support for the Queries module
+    manager.add("organizations:performance-queries-mongodb-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable removing the fallback for metrics compatibility
     manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable span search bar in Insights module sample panels

@@ -23,6 +23,19 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.constants import (
+    ISSUE_LOCKED_ERROR_MESSAGE,
+    RATE_LIMITED_MESSAGE,
+    STACKFRAME_COUNT,
+)
+from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
+from sentry.integrations.github.tasks.pr_comment import format_comment_url
+from sentry.integrations.github.tasks.utils import (
+    GithubAPIErrorType,
+    PullRequestFile,
+    PullRequestIssue,
+    create_or_update_comment,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
@@ -35,19 +48,6 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.integrations.github.constants import (
-    ISSUE_LOCKED_ERROR_MESSAGE,
-    RATE_LIMITED_MESSAGE,
-    STACKFRAME_COUNT,
-)
-from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
-from sentry.tasks.integrations.github.pr_comment import format_comment_url
-from sentry.tasks.integrations.github.utils import (
-    GithubAPIErrorType,
-    PullRequestFile,
-    PullRequestIssue,
-    create_or_update_comment,
-)
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics

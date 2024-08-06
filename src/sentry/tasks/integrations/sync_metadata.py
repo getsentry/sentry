@@ -1,3 +1,4 @@
+from sentry.integrations.jira.tasks import sync_metadata as sync_metadata_new
 from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
@@ -13,13 +14,4 @@ from sentry.tasks.base import instrumented_task, retry
 )
 @retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))
 def sync_metadata(integration_id: int) -> None:
-    from sentry.integrations.jira.integration import JiraIntegration
-    from sentry.integrations.jira_server.integration import JiraServerIntegration
-
-    integration = Integration.objects.get(id=integration_id)
-    org_install = integration.organizationintegration_set.first()
-    if not org_install:
-        return
-    installation = integration.get_installation(org_install.organization_id)
-    assert isinstance(installation, (JiraIntegration, JiraServerIntegration)), installation
-    installation.sync_metadata()
+    sync_metadata_new(integration_id=integration_id)

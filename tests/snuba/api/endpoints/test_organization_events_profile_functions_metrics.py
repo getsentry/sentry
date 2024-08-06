@@ -193,41 +193,41 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     # This needs to be revisited
     # see --> Column name was not found in metrics indexer
     def test_regression_score_regression(self):
-        # This span increases in duration
+        # This function increases in duration
         self.store_profile_functions_metric(
             1,
             timestamp=self.six_min_ago,
-            tags={"transaction": "/api/0/projects/", "platform": "Regressed"},
+            tags={"function": "func_a", "release": "Regressed"},
             project=self.project.id,
         )
         self.store_profile_functions_metric(
             100,
             timestamp=self.min_ago,
-            tags={"transaction": "/api/0/projects/", "platform": "Regressed"},
+            tags={"function": "func_a", "release": "Regressed"},
             project=self.project.id,
         )
 
-        # This span stays the same
+        # This function stays the same
         self.store_profile_functions_metric(
             1,
             timestamp=self.three_days_ago,
-            tags={"transaction": "/api/0/projects/", "platform": "Non-regressed"},
+            tags={"function": "func_a", "release": "Non-regressed"},
             project=self.project.id,
         )
         self.store_profile_functions_metric(
             1,
             timestamp=self.min_ago,
-            tags={"transaction": "/api/0/projects/", "platform": "Non-regressed"},
+            tags={"function": "func_a", "release": "Non-regressed"},
             project=self.project.id,
         )
 
         response = self.do_request(
             {
                 "field": [
-                    "platform",
+                    "release",
                     f"regression_score(function.duration,{int(self.two_min_ago.timestamp())}, 0.95)",
                 ],
-                "query": "transaction:/api/0/projects/",
+                "query": "function:func_a",
                 "dataset": "profileFunctionsMetrics",
                 "orderby": [
                     f"-regression_score(function.duration,{int(self.two_min_ago.timestamp())}, 0.95)"
@@ -240,4 +240,4 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert [row["platform"] for row in data] == ["Regressed", "Non-regressed"]
+        assert [row["release"] for row in data] == ["Regressed", "Non-regressed"]

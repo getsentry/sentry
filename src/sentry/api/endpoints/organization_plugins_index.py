@@ -16,7 +16,7 @@ from sentry.plugins.base import plugins
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:

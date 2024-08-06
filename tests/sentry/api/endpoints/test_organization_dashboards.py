@@ -62,7 +62,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         assert "default-overview" == response.data[0]["id"]
 
-        default_overview_data = Dashboard.get_prebuilt("default-overview")
+        default_overview_data = Dashboard.get_prebuilt(
+            self.organization, self.user, "default-overview"
+        )
         default_overview = response.data[0]
         assert default_overview["widgetPreview"] == [
             {"displayType": w["displayType"], "layout": None}

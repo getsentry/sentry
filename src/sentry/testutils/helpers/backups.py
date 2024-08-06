@@ -41,6 +41,7 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
+from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
@@ -616,6 +617,13 @@ class ExhaustiveFixtures(Fixtures):
                 group=group,
                 user_id=owner_id,
             )
+
+        # DataSecrecyWaiver
+        DataSecrecyWaiver.objects.create(
+            organization=org,
+            access_start=timezone.now(),
+            access_end=timezone.now() + timedelta(days=1),
+        )
 
         return org
 

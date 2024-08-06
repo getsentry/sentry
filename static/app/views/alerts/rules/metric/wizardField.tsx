@@ -293,7 +293,7 @@ const StyledFormField = styled(FormField)<{alertType?: AlertType}>`
 
 const Container = styled('div')<{hideGap: boolean; alertType?: AlertType}>`
   display: grid;
-  gap: ${p => (p.hideGap ? space(0) : space(1))};
+  gap: ${p => (p.hideGap ? 0 : space(1))};
   grid-template-columns: 1fr auto;
 
   ${p =>

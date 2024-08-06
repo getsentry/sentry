@@ -265,14 +265,15 @@ export const MRISelect = memo(function MRISelect({
         if (isDuplicateWithDifferentUnit) {
           trailingItems.push(<IconWarning key="warning" size="xs" color="yellow400" />);
         }
-        if (parsedMRI.useCase === 'custom' && !mriMode) {
+        if (
+          parsedMRI.useCase === 'custom' &&
+          parsedMRI.type !== 'v' &&
+          !isUnresolvedExtractedMetric &&
+          !mriMode
+        ) {
           trailingItems.push(
             <CustomMetricInfoText key="text">
-              {parsedMRI.type === 'v' ||
-              !hasExtractionRules ||
-              isUnresolvedExtractedMetric
-                ? t('Custom')
-                : t('Deprecated')}
+              {hasExtractionRules ? t('Deprecated') : t('Custom')}
             </CustomMetricInfoText>
           );
         }

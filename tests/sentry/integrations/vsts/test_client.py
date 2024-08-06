@@ -47,7 +47,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         self._stub_vsts()
 
         # Make a request with expired token
-        installation.get_client(base_url=self.vsts_base_url).get_projects()
+        installation.get_client().get_projects()
 
         # Second to last request, before the Projects request, was to refresh
         # the Access Token.
@@ -91,7 +91,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         self._stub_vsts()
 
         # Make a request
-        installation.get_client(base_url=self.vsts_base_url).get_projects()
+        installation.get_client().get_projects()
         assert len(responses.calls) == 1
         assert (
             responses.calls[0].request.url
@@ -122,7 +122,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             callback=request_callback,
         )
 
-        projects = installation.get_client(base_url=self.vsts_base_url).get_projects()
+        projects = installation.get_client().get_projects()
         assert len(projects) == 220
 
     @responses.activate
@@ -150,7 +150,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
                 external_id="albertos-apples",
             )
 
-        client = installation.get_client(base_url=self.vsts_base_url)
+        client = installation.get_client()
 
         responses.calls.reset()
         assert repo.external_id is not None
@@ -206,7 +206,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
                 external_id="albertos-apples",
             )
 
-        client = installation.get_client(base_url=self.vsts_base_url)
+        client = installation.get_client()
 
         path = "src/sentry/integrations/vsts/client.py"
         version = "master"
@@ -239,7 +239,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
                 external_id="albertos-apples",
             )
 
-        client = installation.get_client(base_url=self.vsts_base_url)
+        client = installation.get_client()
 
         path = "src/sentry/integrations/vsts/client.py"
         version = "master"
