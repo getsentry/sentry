@@ -749,6 +749,7 @@ export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
   FieldKey.STACK_COLNO,
   FieldKey.STACK_LINENO,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.EVENT_TYPE,
 ];
 
 export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
@@ -761,7 +762,6 @@ export const ERRORS_AGGREGATION_FUNCTIONS = [
   AggregationKey.COUNT_UNIQUE,
   AggregationKey.EPS,
   AggregationKey.EPM,
-  AggregationKey.LAST_SEEN,
 ];
 
 // This list contains fields/functions that are available with profiling feature.
