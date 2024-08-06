@@ -9,7 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 
 @region_silo_endpoint
 class ProjectReprocessingEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

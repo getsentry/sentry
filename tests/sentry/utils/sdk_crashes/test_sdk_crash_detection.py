@@ -159,6 +159,7 @@ class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
             cocoa_sdk_crashes_project.id, sdk_crash_event.event_id
         )
 
+        assert fetched_sdk_crash_event is not None
         assert cocoa_sdk_crashes_project.id == fetched_sdk_crash_event.project_id
         assert sdk_crash_event.event_id == fetched_sdk_crash_event.event_id
 

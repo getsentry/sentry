@@ -475,6 +475,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Allow the Relay to skip normalization of spans for certain hosts.
+register(
+    "relay.span-normalization.allowed_hosts",
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -883,6 +890,28 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "seer.similarity.ingest.use_reranking",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.similarity.similar_issues.use_reranking",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# TODO: Once Seer grouping is GA-ed, we probably either want to turn this down or get rid of it in
+# favor of the default 10% sample rate
+register(
+    "seer.similarity.metrics_sample_rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # seer nearest neighbour endpoint timeout
 register(

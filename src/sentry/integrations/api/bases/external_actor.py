@@ -6,6 +6,7 @@ from django.http import Http404
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
+from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -40,11 +41,27 @@ STRICT_NAME_PROVIDERS = {
 }
 
 
+class ExternalActorResponse(TypedDict):
+    id: int
+    external_id: str | None
+    external_name: str
+    provider: int
+    integration_id: int
+
+
 class ExternalActorSerializerBase(CamelSnakeModelSerializer):
-    external_id = serializers.CharField(required=False, allow_null=True)
-    external_name = serializers.CharField(required=True)
-    provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
-    integration_id = serializers.IntegerField(required=True)
+    external_id = serializers.CharField(
+        required=False, allow_null=True, help_text="The associated user ID for provider."
+    )
+    external_name = serializers.CharField(
+        required=True, help_text="The associated username for the provider."
+    )
+    provider = serializers.ChoiceField(
+        choices=get_provider_choices(AVAILABLE_PROVIDERS),
+        help_text="The provider of the external actor.",
+    )
+    integration_id = serializers.IntegerField(required=True, help_text="The Integration ID.")
+    _actor_key: str
 
     @property
     def organization(self) -> Organization:
@@ -74,7 +91,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
         else:
             return dict(user_id=actor_model.id)
 
-    def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
+    def create(self, validated_data: MutableMapping[str, Any]) -> tuple[ExternalActor, bool]:
         actor_params = self.get_actor_params(validated_data)
         return ExternalActor.objects.get_or_create(
             **validated_data,
@@ -95,6 +112,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
         for key, value in validated_data.items():
             setattr(self.instance, key, value)
         try:
+            assert type(self.instance) is ExternalActor, "Instance type must be ExternalActor"
             self.instance.save()
             return self.instance
         except IntegrityError:
@@ -106,7 +124,10 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
 class ExternalUserSerializer(ExternalActorSerializerBase):
     _actor_key = "user_id"
 
-    user_id = serializers.IntegerField(required=True)
+    user_id = serializers.IntegerField(required=True, help_text="The user ID in Sentry.")
+    id = serializers.IntegerField(
+        required=False, read_only=True, help_text="The external actor ID."
+    )
 
     def validate_user_id(self, user_id: int) -> RpcUser:
         """Ensure that this user exists and that they belong to the organization."""
@@ -120,9 +141,18 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
             raise serializers.ValidationError("This member does not exist.")
         return user
 
+    def serialize(self, instance: ExternalActor) -> ExternalActorResponse:
+        return {
+            "id": instance.id,
+            "external_id": instance.external_id,
+            "external_name": instance.external_name,
+            "provider": instance.provider,
+            "integration_id": instance.integration_id,
+        }
+
     class Meta:
         model = ExternalActor
-        fields = ["user_id", "external_id", "external_name", "provider", "integration_id"]
+        fields = ["user_id", "external_id", "external_name", "provider", "integration_id", "id"]
 
 
 class ExternalTeamSerializer(ExternalActorSerializerBase):
