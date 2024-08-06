@@ -74,9 +74,9 @@ def main():
     upload_test_results_thread.join()
 
     # so that the logs are not interleaved when printed
-    with open(upload_coverage_log_file, "rb") as f:
+    with open(upload_coverage_log_file, "r") as f:
         print(f.read())
-    with open(upload_test_results_log_file, "rb") as f:
+    with open(upload_test_results_log_file, "r") as f:
         print(f.read())
 
 
