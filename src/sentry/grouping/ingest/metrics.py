@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry import features, options
 from sentry.grouping.api import GroupingConfig
-from sentry.grouping.ingest.config import _config_update_happened_recently, is_in_transition
+from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.utils import extract_hashes
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.project import Project
@@ -40,7 +40,7 @@ def record_hash_calculation_metrics(
         # recording a metric
         #
         # TODO: If we fix the issue outlined in https://github.com/getsentry/sentry/pull/65116, we
-        # can ditch both this check and the logging below
+        # can ditch this check
         if tags["primary_config"] != tags["secondary_config"]:
             current_values = primary_hashes.hashes
             secondary_values = secondary_hashes.hashes
@@ -60,15 +60,6 @@ def record_hash_calculation_metrics(
                 sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
                 tags=tags,
             )
-        else:
-            if not _config_update_happened_recently(project, 30):
-                logger.info(
-                    "Equal primary and secondary configs",
-                    extra={
-                        "project": project.id,
-                        "primary_config": primary_config["id"],
-                    },
-                )
 
 
 # TODO: Once the legacy `_save_aggregate` goes away, this logic can be pulled into
