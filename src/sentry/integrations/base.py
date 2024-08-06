@@ -443,8 +443,8 @@ class IntegrationInstallation:
         raise NotImplementedError
 
     @property
-    def metadata(self) -> IntegrationMetadata:
-        return IntegrationMetadata(**self.model.metadata)
+    def metadata(self) -> dict[str, Any]:
+        return self.model.metadata
 
     def uninstall(self) -> None:
         """
