@@ -38,6 +38,7 @@ from typing import Any, Literal, Union
 from typing import get_type_hints as _get_type_hints
 from typing import is_typeddict
 
+import drf_spectacular
 from drf_spectacular.drainage import get_override
 from drf_spectacular.plumbing import (
     UnableToProceedError,
@@ -81,6 +82,20 @@ def get_type_hints(hint, **kwargs):
 
 def _get_type_hint_origin(hint):
     return typing.get_origin(hint), typing.get_args(hint)
+
+
+def build_choice_description_list(choices) -> str:
+    """
+    Override the default generated description for choicefields if the value and
+    label are identical to be (* `value`) instead of (* `value` - `label`).
+    """
+    return "\n".join(
+        f"* `{value}` - {label}" if value != label else f"* `{value}`" for value, label in choices
+    )
+
+
+# Monkey patch build_choice_description_list
+drf_spectacular.plumbing.build_choice_description_list = build_choice_description_list
 
 
 def resolve_type_hint(hint) -> Any:
