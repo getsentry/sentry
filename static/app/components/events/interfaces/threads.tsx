@@ -19,7 +19,6 @@ import {space} from 'sentry/styles/space';
 import {StackType, StackView} from 'sentry/types';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -43,7 +42,6 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
     values?: Array<Thread>;
   };
   event: Event;
-  organization: Organization;
   projectSlug: Project['slug'];
 };
 
@@ -103,7 +101,6 @@ export function Threads({
   projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-  organization,
 }: Props) {
   const threads = data.values ?? [];
 
@@ -234,7 +231,7 @@ export function Threads({
 
   return (
     <Fragment>
-      {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
+      {hasMoreThanOneThread && (
         <Fragment>
           <Grid>
             <InterimSection type={FoldSectionKey.THREADS} title={t('Threads')}>
@@ -286,26 +283,7 @@ export function Threads({
         eventId={event.id}
         recentFirst={isStacktraceNewestFirst()}
         fullStackTrace={stackView === StackView.FULL}
-        title={
-          hasMoreThanOneThread &&
-          activeThread &&
-          !organization.features.includes('anr-improvements') ? (
-            <ThreadSelector
-              threads={threads}
-              activeThread={activeThread}
-              event={event}
-              onChange={thread => {
-                setActiveThread(thread);
-              }}
-              exception={exception}
-              fullWidth
-            />
-          ) : hasMoreThanOneThread ? (
-            t('Thread Stack Trace')
-          ) : (
-            t('Stack Trace')
-          )
-        }
+        title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
         platform={platform}
         hasMinified={
           !!exception?.values?.find(value => value.rawStacktrace) ||
@@ -363,8 +341,6 @@ export function Threads({
 
           return (
             <Fragment>
-              {!organization.features.includes('anr-improvements') && renderPills()}
-
               {stackTrace && !isRaw && (
                 <ErrorBoundary customComponent={null}>
                   <StacktraceBanners event={event} stacktrace={stackTrace} />
