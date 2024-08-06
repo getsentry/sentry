@@ -93,14 +93,19 @@ class OrganizationEventsEndpointTest(APITestCase):
             },
             project_id=project2.id,
         )
-        response = self.do_request({"field": ["project"], "project": -1})
+        response = self.do_request(
+            {"field": ["project"], "project": -1, "referrer": "api.issues.issue_events"}
+        )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
 
+        # The test will now not work since the membership is closed
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         assert bool(self.organization.flags.allow_joinleave) is False
-        response = self.do_request({"field": ["project"], "project": -1})
+        response = self.do_request(
+            {"field": ["project"], "project": -1, "referrer": "api.issues.issue_events"}
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {

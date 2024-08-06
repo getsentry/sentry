@@ -22,7 +22,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
@@ -861,7 +861,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
 
     def _do_request(self, trace_id, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
         with self.feature(features):
             return self.client.get(
                 reverse(
