@@ -10,7 +10,6 @@ describe('AutofixRootCause', function () {
     groupId: '1',
     rootCauseSelection: null,
     runId: '101',
-    repos: [],
   };
 
   it('can select a relevant code snippet', async function () {
@@ -33,7 +32,7 @@ describe('AutofixRootCause', function () {
       screen.getByText('This is the description of a relevant code snippet.')
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Continue with a fix'}));
 
     expect(mockSelectFix).toHaveBeenCalledWith(
       expect.anything(),
@@ -63,8 +62,8 @@ describe('AutofixRootCause', function () {
     await userEvent.keyboard('custom root cause');
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'Find a Fix',
-        description: 'Find a Fix',
+        name: 'Continue with a fix',
+        description: 'Continue with a fix',
       })
     );
 
@@ -96,43 +95,5 @@ describe('AutofixRootCause', function () {
     expect(
       screen.getByText('Autofix was not able to find a root cause. Maybe try again?')
     ).toBeInTheDocument();
-  });
-
-  it('shows hyperlink when matching GitHub repo available', function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          repos: [
-            {
-              default_branch: 'main',
-              external_id: 'id',
-              name: 'owner/repo',
-              provider: 'integrations:github',
-              url: 'https://github.com/test_owner/test_repo',
-            },
-          ],
-        }}
-      />
-    );
-
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toHaveAttribute(
-      'href',
-      'https://github.com/test_owner/test_repo/blob/main/src/file.py'
-    );
-  });
-
-  it('shows no hyperlink when no matching GitHub repo available', function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          repos: [],
-        }}
-      />
-    );
-
-    expect(screen.queryByRole('link', {name: 'GitHub'})).not.toBeInTheDocument();
   });
 });
