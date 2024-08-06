@@ -97,4 +97,38 @@ describe('AutofixRootCause', function () {
       screen.getByText('Autofix was not able to find a root cause. Maybe try again?')
     ).toBeInTheDocument();
   });
+
+  it('shows hyperlink when matching GitHub repo available', function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          repos: [
+            {
+              default_branch: 'main',
+              external_id: 'id',
+              name: 'test_owner/test_repo',
+              provider: 'integrations:github',
+              url: 'https://github.com/test_owner/test_repo',
+            },
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText('GitHub')).toBeInTheDocument();
+  });
+
+  it('shows no hyperlink when no matching GitHub repo available', function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          repos: [],
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText('GitHub')).not.toBeInTheDocument();
+  });
 });
