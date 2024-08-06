@@ -8,10 +8,11 @@ from typing import Any
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import features
+from sentry import features, options
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -93,6 +94,11 @@ def update_grouping_config_if_permitted(project: Project, source: str) -> None:
             target_object=project.id,
             event=audit_log.get_event_id("PROJECT_EDIT"),
             data={**changes, **project.get_audit_log_data()},
+        )
+        metrics.incr(
+            "grouping.config_updated",
+            sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+            tags={"current_config": current_config, "source": source},
         )
 
 
