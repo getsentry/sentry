@@ -1,7 +1,8 @@
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
 import type {Project} from 'sentry/types/project';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
@@ -23,10 +24,11 @@ interface PresetCta {
 }
 
 interface PresetCtaOpts {
-  orgSlug: string;
+  organization: Organization;
   projects: Project[];
   timePeriod: TimePeriodType;
   dataset?: DiscoverDatasets;
+  openInDiscoverDataset?: SavedQueryDatasets;
   query?: string;
   rule?: MetricRule;
 }
@@ -35,13 +37,15 @@ interface PresetCtaOpts {
  * Get the CTA used for alert rules that do not have a preset
  */
 export function makeDefaultCta({
-  orgSlug,
+  organization,
   projects,
   rule,
   timePeriod,
   query,
   dataset,
+  openInDiscoverDataset,
 }: PresetCtaOpts): PresetCta {
+  const orgSlug = organization.slug;
   if (!rule) {
     return {
       buttonText: t('Open in Discover'),
@@ -84,12 +88,13 @@ export function makeDefaultCta({
   return {
     buttonText: t('Open in Discover'),
     to: getMetricRuleDiscoverUrl({
-      orgSlug,
+      organization,
       projects,
       rule,
       timePeriod,
       query,
       extraQueryParams,
+      openInDiscoverDataset,
     }),
   };
 }
