@@ -92,8 +92,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:custom-metrics-extraction-rule-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables metrics extrapolation feature
     manager.add("organizations:metrics-extrapolation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the default alert at project creation to be the high priority alert
-    manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enables automatically deriving of code mappings
     manager.add("organizations:derive-code-mappings", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enables synthesis of device.class in ingest
@@ -510,8 +508,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable escalation detection for new issues
     manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
-    # Enable severity alerts for new issues based on severity and escalation
-    manager.add("projects:high-priority-alerts", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable functionality for attaching  minidumps to events and displaying
     # them in the group UI.
     manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
