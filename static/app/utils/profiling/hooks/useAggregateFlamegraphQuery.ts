@@ -101,5 +101,5 @@ function isDataSourceFunctions(
 function isDataSourceTransactions(
   props: AggregateFlamegraphQueryParameters
 ): props is TransactionsAggregateFlamegraphQueryParameters {
-  return !isDataSourceProfiles(props) && isDataSourceFunctions(props);
+  return !isDataSourceProfiles(props) && !isDataSourceFunctions(props);
 }
