@@ -145,10 +145,6 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
     };
   }, [enabled, handleMouseMove, handleMouseDown, handleMouseUp]);
 
-  useEffect(() => {
-    return () => {};
-  });
-
   const timelineSelector = (
     <AnimatePresence>{isActive && <Selection role="presentation" />}</AnimatePresence>
   );
