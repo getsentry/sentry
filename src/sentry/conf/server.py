@@ -773,8 +773,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.email",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
-    "sentry.tasks.integrations",
-    "sentry.tasks.integrations.slack",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
