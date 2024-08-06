@@ -107,7 +107,7 @@ describe('AutofixRootCause', function () {
             {
               default_branch: 'main',
               external_id: 'id',
-              name: 'test_owner/test_repo',
+              name: 'owner/repo',
               provider: 'integrations:github',
               url: 'https://github.com/test_owner/test_repo',
             },
@@ -116,7 +116,11 @@ describe('AutofixRootCause', function () {
       />
     );
 
-    expect(screen.getByLabelText('GitHub')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'GitHub'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'GitHub'})).toHaveAttribute(
+      'href',
+      'https://github.com/test_owner/test_repo/blob/main/src/file.py'
+    );
   });
 
   it('shows no hyperlink when no matching GitHub repo available', function () {
@@ -129,6 +133,6 @@ describe('AutofixRootCause', function () {
       />
     );
 
-    expect(screen.getByLabelText('GitHub')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'GitHub'})).not.toBeInTheDocument();
   });
 });
