@@ -1603,13 +1603,15 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert mock_seer_request.call_count == 1
         mock_seer_request.reset_mock()
+        # update time_window
         update_alert_rule(dynamic_rule, time_window=30)
         assert mock_seer_request.call_count == 0
         mock_seer_request.reset_mock()
+        # update name
         update_alert_rule(dynamic_rule, name="everything is broken")
         assert mock_seer_request.call_count == 0
         mock_seer_request.reset_mock()
-
+        # update query
         update_alert_rule(
             dynamic_rule,
             query="is:unresolved",
@@ -1618,7 +1620,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert mock_seer_request.call_count == 1
         mock_seer_request.reset_mock()
-
+        # update aggregate
         update_alert_rule(
             dynamic_rule,
             aggregate="count_unique(user)",
@@ -1737,6 +1739,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.side_effect = TimeoutError
 
         with pytest.raises(TimeoutError):
+            # attempt to update query
             update_alert_rule(
                 dynamic_rule,
                 time_window=30,
@@ -1756,6 +1759,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
         )
         with pytest.raises(TimeoutError):
+            # attempt to update query
             update_alert_rule(
                 dynamic_rule,
                 time_window=30,
