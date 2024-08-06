@@ -8,34 +8,60 @@ ORGANIZATION_MEMBER_ON_TEAM = deepcopy(ORGANIZATION_MEMBER)
 ORGANIZATION_MEMBER_ON_TEAM["teamRole"] = "member"
 ORGANIZATION_MEMBER_ON_TEAM["teamSlug"] = "powerful-abolitionist"
 
+BASE_TEAM_1 = {
+    "id": "4502349234123",
+    "slug": "ancient-gabelers",
+    "name": "Ancient Gabelers",
+    "dateCreated": "2023-05-31T19:47:53.621181Z",
+    "isMember": True,
+    "teamRole": "contributor",
+    "flags": {"idp:provisioned": False},
+    "access": [
+        "alerts:read",
+        "event:write",
+        "project:read",
+        "team:read",
+        "member:read",
+        "project:releases",
+        "event:read",
+        "org:read",
+    ],
+    "hasAccess": True,
+    "isPending": False,
+    "memberCount": 3,
+    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+}
+
+BASE_TEAM_2 = {
+    "id": "4502349234125",
+    "slug": "squeaky-minnows",
+    "name": "Squeaky Minnows",
+    "dateCreated": "2023-07-27T11:23:34.621181Z",
+    "isMember": True,
+    "teamRole": "contributor",
+    "flags": {"idp:provisioned": False},
+    "access": [
+        "alerts:read",
+        "event:write",
+        "project:read",
+        "team:read",
+        "member:read",
+        "project:releases",
+        "event:read",
+        "org:read",
+    ],
+    "hasAccess": True,
+    "isPending": False,
+    "memberCount": 5,
+    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+}
+
 
 class TeamExamples:
     ADD_TO_TEAM = [
         OpenApiExample(
             "Join, request access to or add a member to a team",
-            value={
-                "id": "4502349234123",
-                "slug": "ancient-gabelers",
-                "name": "Ancient Gabelers",
-                "dateCreated": "2023-05-31T19:47:53.621181Z",
-                "isMember": True,
-                "teamRole": "contributor",
-                "flags": {"idp:provisioned": False},
-                "access": [
-                    "alerts:read",
-                    "event:write",
-                    "project:read",
-                    "team:read",
-                    "member:read",
-                    "project:releases",
-                    "event:read",
-                    "org:read",
-                ],
-                "hasAccess": True,
-                "isPending": False,
-                "memberCount": 3,
-                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-            },
+            value=BASE_TEAM_1,
             status_codes=["201"],
             response_only=True,
         )
@@ -289,6 +315,14 @@ class TeamExamples:
                     ],
                 },
             ],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+    LIST_PROJECT_TEAMS = [
+        OpenApiExample(
+            "List a project's teams",
+            value=[BASE_TEAM_1, BASE_TEAM_2],
             status_codes=["200"],
             response_only=True,
         )
