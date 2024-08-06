@@ -174,6 +174,11 @@ const Summary = styled('summary')<{preventCollapse: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;
+  overflow: hidden;
+  &::marker,
+  &::-webkit-details-marker {
+    display: none;
+  }
 `;
 
 const IconWrapper = styled('div')<{preventCollapse: boolean}>`
