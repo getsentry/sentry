@@ -175,6 +175,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   componentDidMount() {
+    window.addEventListener('beforeunload', this.onUnload);
     this.checkIfShouldMountWidgetViewerModal();
   }
 
@@ -186,6 +187,28 @@ class DashboardDetail extends Component<Props, State> {
       this.setState({dashboardState: this.props.initialState});
     }
   }
+
+  componentWillUnmount() {
+    window.removeEventListener('beforeunload', this.onUnload);
+  }
+
+  onUnload = (event: BeforeUnloadEvent) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+
+    if (
+      [
+        DashboardState.VIEW,
+        DashboardState.PENDING_DELETE,
+        DashboardState.PREVIEW,
+      ].includes(this.state.dashboardState) ||
+      isEqual(modifiedDashboard, dashboard)
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = UNSAVED_MESSAGE;
+  };
 
   checkIfShouldMountWidgetViewerModal() {
     const {
