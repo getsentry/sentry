@@ -1,6 +1,7 @@
-import {forwardRef} from 'react';
+import {type CSSProperties, forwardRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import color from 'color';
 import omit from 'lodash/omit';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -31,6 +32,8 @@ import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 type EventNavigationProps = {
   event: Event;
   group: Group;
+  className?: string;
+  style?: CSSProperties;
 };
 
 type SectionDefinition = {
@@ -346,8 +349,7 @@ const EventId = styled('span')`
   position: relative;
   font-weight: ${p => p.theme.fontWeightBold};
   text-decoration: underline;
-  /** gray200 w/ 50% opacity */
-  text-decoration-color: rgba(128, 112, 143, 0.5);
+  text-decoration-color: ${p => color(p.theme.gray200).alpha(0.5).string()};
   &:hover {
     > span {
       display: flex;

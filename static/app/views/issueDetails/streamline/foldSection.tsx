@@ -1,4 +1,4 @@
-import {forwardRef, useCallback, useState} from 'react';
+import {type CSSProperties, forwardRef, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -78,6 +78,7 @@ interface FoldSectionProps {
    * Actions associated with the section, only visible when open
    */
   actions?: React.ReactNode;
+  className?: string;
   /**
    * Should this section be initially open, gets overridden by user preferences
    */
@@ -86,6 +87,7 @@ interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
+  style?: CSSProperties;
 }
 
 export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
