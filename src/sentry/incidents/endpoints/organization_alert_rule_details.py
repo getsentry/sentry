@@ -1,8 +1,10 @@
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -95,8 +97,22 @@ def update_alert_rule(request: Request, organization, alert_rule):
             # The user has requested a new Slack channel and we tell the client to check again in a bit
             return Response({"uuid": client.uuid}, status=202)
         else:
-            alert_rule = serializer.save()
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
+            try:
+                alert_rule = serializer.save()
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
+            except (TimeoutError, MaxRetryError) as e:
+                return Response(
+                    data={"detail": str(e)}, status=status.HTTP_408_REQUEST_TIMEOUT, exception=True
+                )
+            except (ValidationError) as e:
+                return Response(
+                    data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
+                )
+            except Exception as e:
+                # catch-all for other errors
+                return Response(
+                    data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
+                )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
