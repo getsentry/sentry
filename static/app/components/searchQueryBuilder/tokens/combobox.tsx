@@ -85,7 +85,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onExit?: () => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
-  onKeyDown?: (e: KeyboardEvent) => void;
+  onKeyDown?: (e: KeyboardEvent, extra: {state: ComboBoxState<T>}) => void;
+  onKeyDownCapture?: (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    extra: {state: ComboBoxState<T>}
+  ) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
@@ -301,6 +305,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     inputLabel,
     onExit,
     onKeyDown,
+    onKeyDownCapture,
     onKeyUp,
     onInputChange,
     onOpenChange,
@@ -384,7 +389,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         state.close();
       },
       onKeyDown: e => {
-        onKeyDown?.(e);
+        onKeyDown?.(e, {state});
         switch (e.key) {
           case 'Escape':
             state.close();
@@ -515,6 +520,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={disabled}
+        onKeyDownCapture={e => onKeyDownCapture?.(e, {state})}
       />
       {description ? (
         <StyledPositionWrapper
