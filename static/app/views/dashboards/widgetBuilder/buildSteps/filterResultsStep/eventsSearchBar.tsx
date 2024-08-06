@@ -9,7 +9,7 @@ import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,
@@ -55,6 +55,7 @@ export function EventsSearchBar({
       savedSearchType={SavedSearchType.EVENT}
       customMeasurements={customMeasurements}
       dataset={dataset}
+      includeTransactions={hasDatasetSelector(organization) ? false : true}
     />
   );
 }
