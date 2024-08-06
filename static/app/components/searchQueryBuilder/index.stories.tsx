@@ -82,7 +82,7 @@ const FILTER_KEYS: TagCollection = {
   },
 };
 
-const FITLER_KEY_SECTIONS: FilterKeySection[] = [
+const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_1',
     label: 'Category 1',
@@ -284,7 +284,7 @@ export default storyBook(SearchQueryBuilder, story => {
       <Fragment>
         <p>
           A special menu can be displayed when no text is entered in the search input,
-          allowing for better oranization and discovery of filter keys.
+          allowing for better organization and discovery of filter keys.
         </p>
         <p>
           This menu is defined by <code>filterKeySections</code>, which accepts a list of
@@ -293,7 +293,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery=""
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
@@ -322,7 +322,7 @@ export default storyBook(SearchQueryBuilder, story => {
           getTagValues={getTagValues}
           fieldDefinitionGetter={() => {
             return {
-              desc: 'Customized field defintion',
+              desc: 'Customized field definition',
               kind: FieldKind.FIELD,
               valueType: FieldValueType.BOOLEAN,
             };
@@ -506,7 +506,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery=""
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
@@ -552,7 +552,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </MultipleCheckbox>
         <SearchQueryBuilder
           initialQuery="(unsupported_key:value OR browser.name:Internet*) TypeError"
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
@@ -571,7 +571,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery="AND"
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
