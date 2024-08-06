@@ -38,7 +38,7 @@ class RepositoryIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_client(self) -> type[RepositoryClient]:
+    def get_client(self) -> RepositoryClient:
         """Returns the client for the integration. The client must be a subclass of RepositoryClient."""
         raise NotImplementedError
 
