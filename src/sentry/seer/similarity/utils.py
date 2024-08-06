@@ -9,6 +9,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 MAX_FRAME_COUNT = 30
+MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
 
@@ -42,13 +43,16 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     found_non_snipped_context_line = False
     result_parts = []
 
+    metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
+
     # Reverse the list of exceptions in order to prioritize the outermost/most recent ones in cases
     # where there are chained exceptions and we end up truncating
-    for exception in reversed(exceptions):
+    # Limit the number of chained exceptions
+    for exception in reversed(exceptions[-MAX_EXCEPTION_COUNT:]):
         if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
 
-        # For each exception, extract its type, value, and up to 30 stacktrace frames
+        # For each exception, extract its type, value, and up to limit number of stacktrace frames
         exc_type, exc_value, frame_strings = "", "", []
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
