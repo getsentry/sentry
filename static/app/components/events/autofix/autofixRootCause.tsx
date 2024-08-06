@@ -632,7 +632,7 @@ const CodeLinkWrapper = styled('div')`
   gap: ${space(1)};
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
-  padding: ${space(0)} ${space(1)};
+  padding: 0 ${space(1)};
   position: absolute;
   top: 8px;
   right: 0;
