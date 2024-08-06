@@ -18,6 +18,7 @@ type Props = ModalRenderProps & {
   project: Project;
   providerKeys: string[];
   bodyContent?: React.ReactElement<any, any>;
+  onAddIntegration?: () => void;
 };
 
 function MessagingIntegrationModal({
@@ -29,6 +30,7 @@ function MessagingIntegrationModal({
   providerKeys,
   organization,
   project,
+  onAddIntegration,
 }: Props) {
   const queryResults = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
@@ -70,6 +72,7 @@ function MessagingIntegrationModal({
                     already_installed: false,
                     view: 'onboarding',
                   },
+                  onAddIntegration: onAddIntegration,
                   modalParams: {projectId: project.id},
                 }}
               >
