@@ -11,6 +11,7 @@ from sentry_sdk.api import capture_exception
 
 from sentry.db.models import Model
 from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
 from sentry.types.region import find_regions_for_orgs, find_regions_for_user
@@ -18,7 +19,8 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.snowflake import uses_snowflake_id
 
 if TYPE_CHECKING:
-    from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
+    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
+
 
 logger = logging.getLogger("sentry.outboxes")
 

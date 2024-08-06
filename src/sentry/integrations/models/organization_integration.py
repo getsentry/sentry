@@ -14,7 +14,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, co
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
-from sentry.models.outbox import OutboxCategory
+from sentry.hybridcloud.outbox.category import OutboxCategory
 
 
 @control_silo_model

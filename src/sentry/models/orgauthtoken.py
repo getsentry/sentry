@@ -17,8 +17,8 @@ from sentry.db.models import ArrayField, FlexibleForeignKey, control_silo_model,
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organization import Organization
-from sentry.models.outbox import OutboxCategory
 from sentry.utils.hashlib import sha1_text
 
 MAX_NAME_LENGTH = 255

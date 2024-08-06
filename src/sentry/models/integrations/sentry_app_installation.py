@@ -16,6 +16,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, co
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.projects.services.project import RpcProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.types.region import find_regions_for_orgs
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
     from sentry.models.integrations.sentry_app_component import SentryAppComponent
     from sentry.models.project import Project
 
-from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
+from sentry.models.outbox import ControlOutboxBase, outbox_context
 
 
 def default_uuid():

@@ -13,7 +13,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
-from sentry.models.outbox import OutboxCategory
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.types.region import find_regions_for_orgs
 
 
