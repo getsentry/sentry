@@ -32,11 +32,6 @@ class Record(NamedTuple):
         return to_datetime(self.timestamp)
 
 
-class ScheduleEntry(NamedTuple):
-    key: str
-    timestamp: float
-
-
 OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
 
 Digest: TypeAlias = MutableMapping["Rule", MutableMapping["Group", list[Record]]]

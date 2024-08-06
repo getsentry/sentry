@@ -129,16 +129,22 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const eventView = EventView.fromSavedQueryOrLocation(
-      nextProps.savedQuery,
-      nextProps.location
-    );
     const savedQueryDataset = getSavedQueryDataset(
       nextProps.organization,
       nextProps.location,
       nextProps.savedQuery,
       undefined
     );
+    const eventViewFromQuery = EventView.fromSavedQueryOrLocation(
+      nextProps.savedQuery,
+      nextProps.location
+    );
+    const eventView =
+      hasDatasetSelector(nextProps.organization) && !eventViewFromQuery.dataset
+        ? eventViewFromQuery.withDataset(
+            getDatasetFromLocationOrSavedQueryDataset(undefined, savedQueryDataset)
+          )
+        : eventViewFromQuery;
     return {...prevState, eventView, savedQuery: nextProps.savedQuery, savedQueryDataset};
   }
 
@@ -754,6 +760,7 @@ export class Results extends Component<Props, State> {
                       maxQueryLength={MAX_QUERY_LENGTH}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
                       dataset={eventView.dataset}
+                      includeTransactions={hasDatasetSelectorFeature ? false : true}
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>

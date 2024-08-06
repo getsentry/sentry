@@ -531,7 +531,7 @@ function BaseGroupRow({
       ) : (
         <Fragment>
           {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
-            <EventCountsWrapper leftMargin={space(0)}>{groupCount}</EventCountsWrapper>
+            <EventCountsWrapper leftMargin="0px">{groupCount}</EventCountsWrapper>
           )}
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>

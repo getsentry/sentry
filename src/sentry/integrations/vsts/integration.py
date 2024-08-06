@@ -31,6 +31,7 @@ from sentry.integrations.models.integration_external_project import IntegrationE
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
@@ -42,7 +43,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
 )
 from sentry.silo.base import SiloMode
-from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -163,9 +163,8 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             return False
         return True
 
-    def get_client(self, base_url: str | None = None) -> VstsApiClient:
-        if base_url is None:
-            base_url = self.instance
+    def get_client(self) -> VstsApiClient:
+        base_url = self.instance
         if SiloMode.get_current_mode() != SiloMode.REGION:
             if self.default_identity is None:
                 self.default_identity = self.get_default_identity()
