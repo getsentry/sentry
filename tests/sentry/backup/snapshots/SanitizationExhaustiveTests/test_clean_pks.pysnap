@@ -1,5 +1,5 @@
 ---
-created: '2024-08-05T07:13:33.857381+00:00'
+created: '2024-08-06T16:58:28.527320+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -357,6 +357,13 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - email
+- model_name: sentry.datasecrecywaiver
+  ordinal: 1
+  sanitized_fields:
+  - access_end
+  - access_start
+  - date_added
+  - date_updated
 - model_name: sentry.dashboardtombstone
   ordinal: 1
   sanitized_fields:
