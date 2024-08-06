@@ -7,6 +7,7 @@ from typing import Any
 from django.db.models.signals import post_save
 
 from sentry import options
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
@@ -14,7 +15,6 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
-from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.utils import json
