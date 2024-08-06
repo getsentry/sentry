@@ -1,9 +1,7 @@
 import {useEffect, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import {HierarchicalGroupingContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/hierarchicalGroupingContent';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
@@ -58,7 +56,6 @@ export function getStacktrace(event: Event): StacktraceType | null {
 export function StackTracePreviewContent({
   event,
   stacktrace,
-  orgFeatures = [],
   groupingCurrentLevel,
 }: {
   event: Event;
@@ -86,15 +83,6 @@ export function StackTracePreviewContent({
 
   if (isNativePlatform(platform)) {
     return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
-  }
-
-  if (orgFeatures.includes('grouping-stacktrace-ui')) {
-    return (
-      <HierarchicalGroupingContent
-        {...commonProps}
-        groupingCurrentLevel={groupingCurrentLevel}
-      />
-    );
   }
 
   return <StackTraceContent {...commonProps} />;
@@ -176,52 +164,27 @@ function StackTracePreviewBody({
 }
 
 function StackTracePreview({children, ...props}: StackTracePreviewProps) {
-  const organization = useOrganization();
   const {shouldShowLoadingState, onRequestBegin, onRequestEnd, reset} =
     useDelayedLoadingState();
 
-  const hasGroupingStacktraceUI = organization.features.includes(
-    'grouping-stacktrace-ui'
-  );
-
   return (
-    <Wrapper
-      data-testid="stacktrace-preview"
-      hasGroupingStacktraceUI={hasGroupingStacktraceUI}
+    <GroupPreviewHovercard
+      hide={!shouldShowLoadingState}
+      body={
+        <StackTracePreviewBody
+          onRequestBegin={onRequestBegin}
+          onRequestEnd={onRequestEnd}
+          onUnmount={reset}
+          {...props}
+        />
+      }
     >
-      <GroupPreviewHovercard
-        hide={!shouldShowLoadingState}
-        body={
-          <StackTracePreviewBody
-            onRequestBegin={onRequestBegin}
-            onRequestEnd={onRequestEnd}
-            onUnmount={reset}
-            {...props}
-          />
-        }
-      >
-        {children}
-      </GroupPreviewHovercard>
-    </Wrapper>
+      {children}
+    </GroupPreviewHovercard>
   );
 }
 
 export {StackTracePreview};
-
-const Wrapper = styled('span')<{
-  hasGroupingStacktraceUI: boolean;
-}>`
-  ${p =>
-    p.hasGroupingStacktraceUI &&
-    css`
-      display: inline-flex;
-      overflow: hidden;
-      height: 100%;
-      > span:first-child {
-        ${p.theme.overflowEllipsis}
-      }
-    `}
-`;
 
 const StackTracePreviewWrapper = styled('div')`
   width: 700px;

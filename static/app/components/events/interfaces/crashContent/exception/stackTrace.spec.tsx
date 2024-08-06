@@ -85,7 +85,6 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   }),
   data: stacktrace,
   stacktrace,
-  hasHierarchicalGrouping: false,
   groupingCurrentLevel: undefined,
   meta: undefined,
 };

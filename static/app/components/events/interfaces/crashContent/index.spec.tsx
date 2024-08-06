@@ -54,7 +54,6 @@ describe('CrashContent', function () {
         newestFirst
         exception={(proxiedExc as any).exception}
         projectSlug={ProjectFixture().slug}
-        hasHierarchicalGrouping={false}
       />
     );
   });

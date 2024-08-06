@@ -34,10 +34,7 @@ type Props = {
   stackView?: StackTraceProps['stackView'];
   threadId?: number;
 } & Pick<ExceptionType, 'values'> &
-  Pick<
-    React.ComponentProps<typeof StackTrace>,
-    'groupingCurrentLevel' | 'hasHierarchicalGrouping'
-  >;
+  Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
 type CollapsedExceptionMap = {[exceptionId: number]: boolean};
 
@@ -126,7 +123,6 @@ export function Content({
   event,
   stackView,
   groupingCurrentLevel,
-  hasHierarchicalGrouping,
   projectSlug,
   values,
   type,
@@ -218,7 +214,6 @@ export function Content({
           newestFirst={newestFirst}
           event={event}
           chainedException={values.length > 1}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           threadId={threadId}
