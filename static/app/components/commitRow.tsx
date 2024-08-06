@@ -51,7 +51,7 @@ function CommitRow({
 
     trackAnalytics('issue_details.suspect_commits.missing_user', {
       organization,
-      source: 'invite_user',
+      link: 'invite_user',
     });
 
     openInviteMembersModal({
@@ -87,7 +87,7 @@ function CommitRow({
                         onClick={() =>
                           trackAnalytics('issue_details.suspect_commits.missing_user', {
                             organization,
-                            source: 'account_settings',
+                            link: 'account_settings',
                           })
                         }
                       />

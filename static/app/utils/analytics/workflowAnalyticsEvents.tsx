@@ -134,7 +134,7 @@ export type TeamInsightsEventParameters = {
     suspect_commit_calculation: string;
     suspect_commit_index: number;
   };
-  'issue_details.suspect_commits.missing_user': {source: string};
+  'issue_details.suspect_commits.missing_user': {link: string};
   'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert & {
     suspect_commit_calculation: string;
     suspect_commit_index: number;
