@@ -79,8 +79,7 @@ export type PerformanceEventParameters = {
     metric: string;
   };
   'performance_views.overview.has_data': {
-    // either "has_data", "no_data", or "empty" (when the user only sees the onboarding screen)
-    table_data_state: string;
+    table_data_state: 'has_data' | 'no_data' | 'onboarding';
     tab?: LandingDisplayField;
   };
   'performance_views.overview.navigate.summary': {

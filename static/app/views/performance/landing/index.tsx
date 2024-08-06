@@ -117,7 +117,7 @@ export function PerformanceLanding(props: Props) {
   useEffect(() => {
     if (showOnboarding) {
       trackAnalytics('performance_views.overview.has_data', {
-        table_data_state: 'empty',
+        table_data_state: 'onboarding',
         tab: paramLandingDisplay?.field,
         organization,
       });
