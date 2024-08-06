@@ -8,8 +8,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalUserSerializer
 from sentry.api.serializers import serialize
+from sentry.integrations.api.bases.external_actor import (
+    ExternalActorEndpointMixin,
+    ExternalUserSerializer,
+)
 from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)

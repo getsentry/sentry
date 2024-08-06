@@ -33,3 +33,5 @@ export function findExtractionRuleCondition(
   }
   return undefined;
 }
+
+export const BUILT_IN_CONDITION_ID = -1;
