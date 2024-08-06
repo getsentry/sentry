@@ -370,8 +370,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         # This is essentially cached behaviour and we skip the check
                         split_query = query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
-                            split_dataset = discover
-                            split_query = f"({query}) AND !event.type:transaction"
+                            split_dataset = errors
                         elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
                             # We can't add event.type:transaction for now because of on-demand.
                             split_dataset = scoped_dataset
@@ -390,13 +389,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         )
 
                     # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
-                    errors_only_query = f"({query}) AND !event.type:transaction"
                     error_results = None
                     try:
                         error_results = _get_event_stats(
-                            discover,
+                            errors,
                             query_columns,
-                            errors_only_query,
+                            query,
                             params,
                             rollup,
                             zerofill_results,
@@ -433,11 +431,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if has_errors and has_other_data and not using_metrics:
                         # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                         sentry_sdk.set_tag("third_split_query", True)
-                        transactions_only_query = f"({query}) AND event.type:transaction"
                         transaction_results = _get_event_stats(
-                            discover,
+                            transactions,
                             query_columns,
-                            transactions_only_query,
+                            query,
                             params,
                             rollup,
                             zerofill_results,
