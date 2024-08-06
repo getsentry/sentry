@@ -1008,7 +1008,6 @@ function WidgetViewerModal(props: Props) {
                         <h3>{widget.title}</h3>
                         {widget.thresholds &&
                           tableData &&
-                          organization.features.includes('dashboard-widget-indicators') &&
                           getColoredWidgetIndicator(widget.thresholds, tableData)}
                       </WidgetTitleRow>
                       {widget.description && (

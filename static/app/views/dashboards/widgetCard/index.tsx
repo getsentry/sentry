@@ -344,7 +344,6 @@ class WidgetCard extends Component<Props, State> {
                       {widget.thresholds &&
                         hasThresholdMaxValue(widget.thresholds) &&
                         this.state.tableData &&
-                        organization.features.includes('dashboard-widget-indicators') &&
                         getColoredWidgetIndicator(
                           widget.thresholds,
                           this.state.tableData
