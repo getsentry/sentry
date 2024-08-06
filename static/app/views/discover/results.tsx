@@ -760,7 +760,7 @@ export class Results extends Component<Props, State> {
                       maxQueryLength={MAX_QUERY_LENGTH}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
                       dataset={eventView.dataset}
-                      includeTransactions={false}
+                      includeTransactions={hasDatasetSelectorFeature ? false : true}
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
