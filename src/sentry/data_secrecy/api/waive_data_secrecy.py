@@ -1,10 +1,11 @@
-from collections.abc import Sequence
+from collections.abc import Mapping
 from typing import Any
 
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers, status
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,7 +18,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.models.organization import Organization
-from sentry.models.user import User
 
 
 class WaiveDataSecrecyPermission(OrganizationPermission):
@@ -48,12 +48,8 @@ class DataSecrecyWaiverSerializer(serializers.Serializer, Serializer):
         return data
 
     def serialize(
-        self,
-        obj: DataSecrecyWaiver,
-        attrs: Sequence[Any],
-        user: User,
-        **kwargs: Any,
-    ) -> serializers.Mapping[str, Any]:
+        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> Mapping[str, Any]:
         return {
             "access_start": obj.access_start.isoformat(),
             "access_end": obj.access_end.isoformat(),
@@ -63,7 +59,7 @@ class DataSecrecyWaiverSerializer(serializers.Serializer, Serializer):
 
 @region_silo_endpoint
 class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
-    permission_classes = [WaiveDataSecrecyPermission]
+    permission_classes: tuple[type[BasePermission], ...] = (WaiveDataSecrecyPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
