@@ -1,4 +1,4 @@
-import { AutofixData } from 'sentry/components/events/autofix/types';
+import {AutofixData} from 'sentry/components/events/autofix/types';
 
 export function AutofixDataFixture(params: Partial<AutofixData>): AutofixData {
   return {
@@ -7,7 +7,6 @@ export function AutofixDataFixture(params: Partial<AutofixData>): AutofixData {
     completed_at: '',
     created_at: '',
     steps: [],
-    repositories: [],
     ...params,
   };
 }
