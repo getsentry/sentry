@@ -24,7 +24,6 @@ from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.middleware import is_frontend_request
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -1135,9 +1134,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 event_id,
                 detailed,
                 use_spans,
-                query_source=(
-                    QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
-                ),
+                query_source=self.get_request_source(request),
             )
         )
 
@@ -1603,8 +1600,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         warning_extra: dict[str, str],
         event_id: str | None,
         detailed: bool = False,
+        query_source: QuerySource | None = None,
     ) -> SerializedTrace:
-        query_source: QuerySource | None = (None,)
         root_traces: list[TraceEvent] = []
         orphans: list[TraceEvent] = []
         orphan_event_ids: set[str] = set()
