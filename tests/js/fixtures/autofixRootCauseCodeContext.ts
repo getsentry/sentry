@@ -10,6 +10,7 @@ export function AutofixRootCauseCodeContext(
     snippet: {
       file_path: 'src/file.py',
       snippet: 'x = 1 + 1;',
+      repo_name: 'owner/repo'
     },
     ...params,
   };

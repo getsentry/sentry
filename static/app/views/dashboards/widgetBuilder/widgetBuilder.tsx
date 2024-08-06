@@ -1282,10 +1282,7 @@ function WidgetBuilder({
                                     />
                                   )}
                                   {state.displayType === 'big_number' &&
-                                    state.dataType !== 'date' &&
-                                    organization.features.includes(
-                                      'dashboard-widget-indicators'
-                                    ) && (
+                                    state.dataType !== 'date' && (
                                       <ThresholdsStep
                                         onThresholdChange={handleThresholdChange}
                                         onUnitChange={handleThresholdUnitChange}

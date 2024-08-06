@@ -38,8 +38,17 @@ export type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
+export type AutofixRepository = {
+  default_branch: string;
+  external_id: string;
+  name: string;
+  provider: string;
+  url: string;
+};
+
 export type AutofixData = {
   created_at: string;
+  repositories: AutofixRepository[];
   run_id: string;
   status:
     | 'PENDING'
@@ -123,6 +132,7 @@ export interface AutofixUserResponseStep extends BaseStep {
 
 export type AutofixRootCauseCodeContextSnippet = {
   file_path: string;
+  repo_name: string;
   snippet: string;
 };
 

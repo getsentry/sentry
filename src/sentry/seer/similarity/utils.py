@@ -12,7 +12,6 @@ MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
-BASE64_FILENAME_TRUNCATION_LENGTH = 150
 
 
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
@@ -93,7 +92,9 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
                     # We want to skip frames with base64 encoded filenames since they can be large
                     # and not contain any usable information
-                    if frame_dict["filename"].startswith("data:text/html;base64"):
+                    if frame_dict["filename"].startswith("data:text/html;base64") or frame_dict[
+                        "filename"
+                    ].startswith("data:text/javascript;base64"):
                         metrics.incr(
                             "seer.grouping.base64_encoded_filename",
                             sample_rate=1.0,
@@ -125,7 +126,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     metrics.incr(
         "seer.grouping.html_in_stacktrace",
-        sample_rate=1.0,
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags={
             "html_frames": (
                 "none"
@@ -177,7 +178,7 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "global-killswitch"},
         )
         return True
@@ -189,7 +190,7 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "similarity-killswitch"},
         )
         return True
