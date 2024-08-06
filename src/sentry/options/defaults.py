@@ -2400,6 +2400,17 @@ register(
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
 
+# TODO: For now, only a small number of projects are going through a grouping config transition at
+# any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
+# transitioned to the optimized logic, and before the next config change, we probably either want to
+# turn this down or get rid of it in favor of the default 10% sample rate
+register(
+    "grouping.config_transition.metrics_sample_rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sample rate for double writing to experimental dsn
 register(
     "store.experimental-dsn-double-write.sample-rate",
