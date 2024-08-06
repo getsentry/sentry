@@ -453,7 +453,7 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {customMenu, sectionItems, maxOptions} = useFilterKeyListBox({
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
     items,
     filterValue,
   });
@@ -577,6 +577,7 @@ function SearchQueryBuilderInputInternal({
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}
+        onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
         maxOptions={maxOptions}
