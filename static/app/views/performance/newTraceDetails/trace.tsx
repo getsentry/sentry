@@ -1840,6 +1840,7 @@ const TraceStylingWrapper = styled('div')`
 
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};
+  --debug: ${p => p.theme.blue300};
   --error: ${p => p.theme.error};
   --fatal: ${p => p.theme.error};
   --default: ${p => p.theme.gray300};
@@ -2164,6 +2165,8 @@ const TraceStylingWrapper = styled('div')`
     }
     &.warning {
     }
+    &.debug {
+    }
     &.error,
     &.fatal,
     &.performance_issue {
@@ -2209,6 +2212,9 @@ const TraceStylingWrapper = styled('div')`
       }
       &.warning {
         background-color: var(--warning);
+      }
+      &.debug {
+        background-color: var(--debug);
       }
       &.error,
       &.fatal {
