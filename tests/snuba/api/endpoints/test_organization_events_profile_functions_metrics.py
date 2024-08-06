@@ -197,13 +197,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_profile_functions_metric(
             1,
             timestamp=self.six_min_ago,
-            tags={"name": "func_a", "release": "Regressed"},
+            tags={"function": "func_a", "release": "Regressed"},
             project=self.project.id,
         )
         self.store_profile_functions_metric(
             100,
             timestamp=self.min_ago,
-            tags={"name": "func_a", "release": "Regressed"},
+            tags={"function": "func_a", "release": "Regressed"},
             project=self.project.id,
         )
 
@@ -211,13 +211,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_profile_functions_metric(
             1,
             timestamp=self.three_days_ago,
-            tags={"name": "func_a", "release": "Non-regressed"},
+            tags={"function": "func_a", "release": "Non-regressed"},
             project=self.project.id,
         )
         self.store_profile_functions_metric(
             1,
             timestamp=self.min_ago,
-            tags={"name": "func_a", "release": "Non-regressed"},
+            tags={"function": "func_a", "release": "Non-regressed"},
             project=self.project.id,
         )
 
@@ -227,7 +227,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "release",
                     f"regression_score(function.duration,{int(self.two_min_ago.timestamp())}, 0.95)",
                 ],
-                "query": "name:func_a",
+                "query": "function:func_a",
                 "dataset": "profileFunctionsMetrics",
                 "orderby": [
                     f"-regression_score(function.duration,{int(self.two_min_ago.timestamp())}, 0.95)"
