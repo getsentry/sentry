@@ -324,7 +324,7 @@ const SparklineContainer = styled('div')<SparklineContainerProps>`
   flex-grow: 4;
   max-height: ${p => p.height}px;
   max-width: ${p => p.width}px;
-  margin: ${space(1)} ${space(0)} ${space(0.5)} ${space(3)};
+  margin: ${space(1)} 0 ${space(0.5)} ${space(3)};
 `;
 
 const VitalsContainer = styled('div')`

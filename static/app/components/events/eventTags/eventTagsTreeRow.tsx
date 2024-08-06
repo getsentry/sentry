@@ -425,7 +425,7 @@ const TreeValueDropdown = styled(DropdownMenu)`
   .tag-button {
     height: 20px;
     min-height: 20px;
-    padding: ${space(0)} ${space(0.75)};
+    padding: 0 ${space(0.75)};
     border-radius: ${space(0.5)};
     z-index: 0;
   }

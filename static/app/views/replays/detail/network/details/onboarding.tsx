@@ -200,7 +200,7 @@ const StyledTextCopyInput = styled(TextCopyInput)`
 `;
 
 const NetworkUrlWrapper = styled('div')`
-  margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(0)};
+  margin: ${space(1)} 0 ${space(1.5)} 0;
 `;
 
 const NoMarginAlert = styled(Alert)`

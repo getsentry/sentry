@@ -658,7 +658,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const StyledText = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(2)} ${space(0)};
+  margin: ${space(2)} 0;
 `;
 
 function TextTr({children}) {
