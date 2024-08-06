@@ -7,7 +7,7 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
-from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.types.region import find_regions_for_user
 

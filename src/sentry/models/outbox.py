@@ -29,12 +29,12 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
-from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     enforce_constraints,
     in_test_assert_no_transaction,
 )
+from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedRegionModel
 from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write

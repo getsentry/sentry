@@ -17,7 +17,7 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
-from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import OutboxCategory
