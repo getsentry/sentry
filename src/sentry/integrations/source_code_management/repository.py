@@ -14,6 +14,10 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.utils import metrics
+
+REPOSITORY_INTEGRATION_CHECK_FILE_METRIC = "repository_integration.check_file.{result}"
+REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{result}"
 
 
 class RepositoryIntegration(ABC):
@@ -27,6 +31,11 @@ class RepositoryIntegration(ABC):
         A list of possible locations for the CODEOWNERS file.
         """
         return None
+
+    @abstractmethod
+    @property
+    def integration_name(self) -> str:
+        raise NotImplementedError
 
     @abstractmethod
     def get_client(self) -> RepositoryClient:
@@ -74,12 +83,20 @@ class RepositoryIntegration(ABC):
             return None
         try:
             response = client.check_file(repo, filepath, branch)
+            metrics.incr(
+                REPOSITORY_INTEGRATION_CHECK_FILE_METRIC.format(result="success"),
+                tags={"integration": self.integration_name},
+            )
             if response is None:
                 return None
         except IdentityNotValid:
             return None
         except ApiError as e:
             if e.code != 404:
+                metrics.incr(
+                    REPOSITORY_INTEGRATION_CHECK_FILE_METRIC.format(result="failure"),
+                    tags={"integration": self.integration_name},
+                )
                 sentry_sdk.capture_exception()
                 raise
 
@@ -166,7 +183,15 @@ class RepositoryIntegration(ABC):
             if html_url:
                 try:
                     contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
+                    metrics.incr(
+                        REPOSITORY_INTEGRATION_GET_FILE_METRIC.format(result="success"),
+                        tags={"integration": self.integration_name},
+                    )
                 except ApiError:
+                    metrics.incr(
+                        REPOSITORY_INTEGRATION_GET_FILE_METRIC.format(result="success"),
+                        tags={"integration": self.integration_name},
+                    )
                     continue
                 return {"filepath": filepath, "html_url": html_url, "raw": contents}
         return None
