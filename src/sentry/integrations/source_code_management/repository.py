@@ -24,16 +24,16 @@ class RepositoryIntegration(ABC):
     repo_search = False
     model: RpcIntegration | Integration
 
-    # @abstractmethod
     @property
+    # @abstractmethod
     def codeowners_locations(self) -> Sequence[str] | None:
         """
         A list of possible locations for the CODEOWNERS file.
         """
         return None
 
-    @abstractmethod
     @property
+    @abstractmethod
     def integration_name(self) -> str:
         raise NotImplementedError
 
