@@ -654,8 +654,8 @@ Available fields are:
 - `name`
 - `dateCreated`
 - `dateUpdated`
-- `recentlyViewed`
 - `mostPopular`
+- `recentlyViewed`
 - `myqueries`
         """,
     )
