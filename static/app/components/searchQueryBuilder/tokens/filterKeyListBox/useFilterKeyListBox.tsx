@@ -73,37 +73,30 @@ export function useFilterKeyListBox({
       e: React.KeyboardEvent<HTMLInputElement>,
       {state}: {state: ComboBoxState<KeyItem | KeySectionItem>}
     ) => {
-      switch (e.key) {
-        case 'ArrowRight':
-        case 'ArrowLeft': {
-          if (state.selectionManager.focusedKey === null) {
-            return;
-          }
-
-          e.preventDefault();
-          e.stopPropagation();
-
-          const sectionKeyOrder = [null, ...sections.map(section => section.key)];
-
-          const selectedSectionIndex = sectionKeyOrder.indexOf(selectedSectionKey);
-          const newIndex = clamp(
-            selectedSectionIndex + (e.key === 'ArrowRight' ? 1 : -1),
-            0,
-            sectionKeyOrder.length - 1
-          );
-          const newSectionKey = sectionKeyOrder[newIndex];
-          setSelectedSection(newSectionKey);
-          const selectedSection =
-            sections.find(section => section.key === newSectionKey) ?? sections[0];
-          state.selectionManager.setFocusedKey(
-            selectedSection?.options?.[0]?.key ?? null
-          );
-
-          return;
-        }
-        default:
-          return;
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+        return;
       }
+
+      if (state.selectionManager.focusedKey === null) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const sectionKeyOrder = [null, ...sections.map(section => section.key)];
+
+      const selectedSectionIndex = sectionKeyOrder.indexOf(selectedSectionKey);
+      const newIndex = clamp(
+        selectedSectionIndex + (e.key === 'ArrowRight' ? 1 : -1),
+        0,
+        sectionKeyOrder.length - 1
+      );
+      const newSectionKey = sectionKeyOrder[newIndex];
+      setSelectedSection(newSectionKey);
+      const selectedSection =
+        sections.find(section => section.key === newSectionKey) ?? sections[0];
+      state.selectionManager.setFocusedKey(selectedSection?.options?.[0]?.key ?? null);
     },
     [sections, selectedSectionKey]
   );
