@@ -1,18 +1,21 @@
 import {Children, isValidElement} from 'react';
+import type {InjectedRouter, PlainRoute} from 'react-router';
 import {
   generatePath,
+  type Location,
   type Location as Location6,
   Navigate,
   type NavigateProps,
   Outlet,
   type RouteObject,
   type To,
+  unstable_usePrompt,
   useOutletContext,
 } from 'react-router-dom';
 import type {Location as Location3, LocationDescriptor, Query} from 'history';
 import * as qs from 'query-string';
 
-import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {USING_CUSTOMER_DOMAIN, USING_REACT_ROUTER_SIX} from 'sentry/constants';
 
 import {useLocation} from './useLocation';
 import {useParams} from './useParams';
@@ -226,4 +229,47 @@ export function location6ToLocation3<Q extends Query = DefaultQuery>(
     // shimming it it's a little hard, so for now just mock
     action: 'POP',
   } satisfies Location3<Q>;
+}
+
+// Shims useRouteLeave between react router versions
+export function useRouteLeave() {
+  if (USING_REACT_ROUTER_SIX) {
+    unstable_usePrompt({
+      message: 'Are you sure?',
+      when: ({currentLocation, nextLocation}) =>
+        currentLocation.pathname !== nextLocation.pathname,
+    });
+  }
+}
+
+type ReactRouterV6RouteLeaveCallback = (state: {
+  currentLocation: Location;
+  nextLocation: Location;
+}) => boolean;
+type ReactRouterV3RouteLeaveCallback = () => string | undefined;
+
+interface OnRouteLeaveProps {
+  legacyWhen: ReactRouterV3RouteLeaveCallback;
+  message: string;
+  route: PlainRoute;
+  router: InjectedRouter<any, any>;
+  when: ReactRouterV6RouteLeaveCallback;
+}
+
+export function OnRouteLeave(props: OnRouteLeaveProps) {
+  if (USING_REACT_ROUTER_SIX) {
+    unstable_usePrompt({
+      message: props.message,
+      when: state =>
+        props.when({
+          currentLocation: state.currentLocation,
+          nextLocation: state.nextLocation,
+        }),
+    });
+
+    return null;
+  }
+
+  props.router.setRouteLeaveHook(props.route, props.legacyWhen);
+  return null;
 }
