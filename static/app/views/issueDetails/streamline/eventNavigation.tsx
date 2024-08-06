@@ -26,8 +26,10 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type EventNavigationProps = {
   event: Event;
@@ -46,18 +48,21 @@ enum EventNavOptions {
   RECOMMENDED = 'recommended',
   LATEST = 'latest',
   OLDEST = 'oldest',
+  CUSTOM = 'custom',
 }
 
 const EventNavLabels = {
   [EventNavOptions.RECOMMENDED]: t('Recommended Event'),
   [EventNavOptions.OLDEST]: t('First Event'),
   [EventNavOptions.LATEST]: t('Last Event'),
+  [EventNavOptions.CUSTOM]: t('Custom Event'),
 };
 
 const EventNavOrder = [
   EventNavOptions.RECOMMENDED,
   EventNavOptions.OLDEST,
   EventNavOptions.LATEST,
+  EventNavOptions.CUSTOM,
 ];
 
 const eventDataSections: SectionDefinition[] = [
@@ -109,6 +114,23 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const location = useLocation();
     const organization = useOrganization();
     const theme = useTheme();
+    const params = useParams<{eventId?: string}>();
+    const defaultIssueEvent = useDefaultIssueEvent();
+
+    const getSelectedOption = () => {
+      switch (params.eventId) {
+        case EventNavOptions.RECOMMENDED:
+        case EventNavOptions.LATEST:
+        case EventNavOptions.OLDEST:
+          return params.eventId;
+        case undefined:
+          return defaultIssueEvent;
+        default:
+          return 'custom';
+      }
+    };
+
+    const selectedOption = getSelectedOption();
 
     const hasPreviousEvent = defined(event.previousEventID);
     const hasNextEvent = defined(event.nextEventID);
@@ -153,16 +175,21 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     return (
       <div {...props} ref={ref}>
         <EventNavigationWrapper>
-          <Tabs>
+          <Tabs value={selectedOption}>
             <TabList hideBorder variant="floating">
               {EventNavOrder.map(label => {
+                const eventPath =
+                  label === selectedOption
+                    ? undefined
+                    : {
+                        pathname: normalizeUrl(baseEventsPath + label + '/'),
+                        query: {...location.query, referrer: `${label}-event`},
+                      };
                 return (
                   <TabList.Item
-                    to={{
-                      pathname: normalizeUrl(baseEventsPath + label + '/'),
-                      query: {...location.query, referrer: `${label}-event`},
-                    }}
+                    to={eventPath}
                     key={label}
+                    hidden={label === 'custom' && selectedOption !== 'custom'}
                   >
                     {EventNavLabels[label]}
                   </TabList.Item>
