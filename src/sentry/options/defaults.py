@@ -893,7 +893,7 @@ register(
 register(
     "seer.similarity.ingest.use_reranking",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
