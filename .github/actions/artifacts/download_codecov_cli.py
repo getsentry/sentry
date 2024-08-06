@@ -23,13 +23,15 @@ def main():
     sha256sig_url = "https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig"
 
     download_file(key_url, "pgp_keys.asc")
-    run_command("gpg --no-default-keyring --keyring trustedkeys.gpg --import pgp_keys.asc")
+    run_command(
+        ["gpg", "--no-default-keyring", "--keyring", "trustedkeys.gpg", "--import", "pgp_keys.asc"]
+    )
 
     download_file(cli_url, "codecov")
     download_file(sha256sum_url, "codecov.SHA256SUM")
     download_file(sha256sig_url, "codecov.SHA256SUM.sig")
-    run_command("gpgv codecov.SHA256SUM.sig codecov.SHA256SUM")
-    run_command("shasum -a 256 -c codecov.SHA256SUM")
+    run_command(["gpgv", "codecov.SHA256SUM.sig", "codecov.SHA256SUM"])
+    run_command(["shasum", "-a", "256", "-c", "codecov.SHA256SUM"])
     os.chmod("codecov", 0o755)
 
 
