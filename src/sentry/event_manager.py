@@ -56,7 +56,7 @@ from sentry.grouping.api import (
 from sentry.grouping.ingest.config import (
     is_in_transition,
     project_uses_optimized_grouping,
-    update_grouping_config_if_permitted,
+    update_grouping_config_if_needed,
 )
 from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
@@ -1403,7 +1403,7 @@ def _save_aggregate(
     # hashes, we're free to perform a config update if permitted. Future events will use the new
     # config, but will also be grandfathered into the current config for a month, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_permitted(project)
+    update_grouping_config_if_needed(project)
 
     _materialize_metadata_many([job])
     metadata = dict(job["event_metadata"])
@@ -1747,7 +1747,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        project, primary.config, primary.hashes, secondary.config, secondary.hashes
+        primary.config, primary.hashes, secondary.config, secondary.hashes
     )
     # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
     # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
@@ -1761,7 +1761,7 @@ def _save_aggregate_new(
     # hashes, we're free to perform a config update if needed. Future events will use the new
     # config, but will also be grandfathered into the current config for a week, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_permitted(project)
+    update_grouping_config_if_needed(project)
 
     return group_info
 
