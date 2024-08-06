@@ -67,8 +67,8 @@ class OutboxCategory(IntEnum):
             object_identifier: int,
             payload: Mapping[str, Any] | None,
             shard_identifier: int,
-            *args,
-            **kwds,
+            *args: Any,
+            **kwds: Any,
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
@@ -90,8 +90,8 @@ class OutboxCategory(IntEnum):
             payload: Mapping[str, Any] | None,
             shard_identifier: int,
             region_name: str,
-            *args,
-            **kwds,
+            *args: Any,
+            **kwds: Any,
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
