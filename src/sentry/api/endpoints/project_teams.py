@@ -39,9 +39,6 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project) -> Response:
         """
-        List a Project's Teams
-        ``````````````````````
-
         Return a list of teams that have access to this project.
         """
         queryset = Team.objects.filter(projectteam__project=project)
