@@ -4,7 +4,7 @@ import logging
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
-from sentry import features
+from sentry import features, options
 from sentry.grouping.api import GroupingConfig
 from sentry.grouping.ingest.config import _config_update_happened_recently, is_in_transition
 from sentry.grouping.ingest.utils import extract_hashes
@@ -55,8 +55,11 @@ def record_hash_calculation_metrics(
                 else:
                     tags["result"] = "full change"
 
-            metrics.incr("grouping.hash_comparison", tags=tags)
-
+            metrics.incr(
+                "grouping.hash_comparison",
+                sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+                tags=tags,
+            )
         else:
             if not _config_update_happened_recently(project, 30):
                 logger.info(
@@ -89,8 +92,17 @@ def record_calculation_metric_with_result(
         ),
         "result": result,
     }
-    metrics.incr("grouping.event_hashes_calculated", tags=tags)
-    metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1, tags=tags)
+    metrics.incr(
+        "grouping.event_hashes_calculated",
+        sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+        tags=tags,
+    )
+    metrics.incr(
+        "grouping.total_calculations",
+        amount=2 if has_secondary_hashes else 1,
+        sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+        tags=tags,
+    )
 
 
 def record_new_group_metrics(event: Event) -> None:
