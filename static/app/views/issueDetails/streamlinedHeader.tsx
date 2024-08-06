@@ -95,7 +95,7 @@ export default function StreamlinedGroupHeader({
   }, [group, activeUser.id]);
 
   return (
-    <Layout.Header>
+    <Header>
       <div>
         <Breadcrumbs
           crumbs={[
@@ -199,7 +199,7 @@ export default function StreamlinedGroupHeader({
         </InfoWrapper>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
       </div>
-    </Layout.Header>
+    </Header>
   );
 }
 
@@ -248,7 +248,7 @@ const InfoWrapper = styled('div')<{isResolved: boolean}>`
   background-color: ${p =>
     p.isResolved
       ? 'linear-gradient(to right, rgba(235, 250, 246, 0.2) , rgb(235, 250, 246))0'
-      : p.theme.backgroundSecondary};
+      : p.theme.background};
   color: ${p => p.theme.gray300};
 `;
 
@@ -277,4 +277,8 @@ const ReleaseWrapper = styled('div')`
     text-decoration: underline;
     text-decoration-style: dotted;
   }
+`;
+
+const Header = styled(Layout.Header)`
+  background-color: ${p => p.theme.background};
 `;
