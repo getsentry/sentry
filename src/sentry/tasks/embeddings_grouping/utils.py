@@ -243,7 +243,10 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
             )
             snuba_requests.append(request)
 
-        with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+        with metrics.timer(
+            f"{BACKFILL_NAME}.bulk_snuba_queries",
+            sample_rate=1.0,
+        ):
             snuba_results_chunk = _make_snuba_call(
                 project, snuba_requests, Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
             )
@@ -377,25 +380,27 @@ def _make_seer_call(
 
 
 @sentry_sdk.tracing.trace
-@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
 def send_group_and_stacktrace_to_seer(
     groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
     nodestore_results,
     project_id,
 ):
-    return _make_seer_call(
-        CreateGroupingRecordsRequest(
-            group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-            data=nodestore_results["data"],
-            stacktrace_list=nodestore_results["stacktrace_list"],
-            use_reranking=options.get("similarity.backfill_use_reranking"),
-        ),
-        project_id,
-    )
+    with metrics.timer(
+        f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
+        sample_rate=1.0,
+    ):
+        return _make_seer_call(
+            CreateGroupingRecordsRequest(
+                group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+                data=nodestore_results["data"],
+                stacktrace_list=nodestore_results["stacktrace_list"],
+                use_reranking=options.get("similarity.backfill_use_reranking"),
+            ),
+            project_id,
+        )
 
 
 @sentry_sdk.tracing.trace
-@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
 def send_group_and_stacktrace_to_seer_multithreaded(
     groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
     nodestore_results,
@@ -412,49 +417,55 @@ def send_group_and_stacktrace_to_seer_multithreaded(
             project_id,
         )
 
-    chunk_size = options.get("similarity.backfill_seer_chunk_size")
-    chunks = [
-        {
-            "group_ids": groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row[
-                i : i + chunk_size
-            ],
-            "data": nodestore_results["data"][i : i + chunk_size],
+    with metrics.timer(
+        f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
+        sample_rate=1.0,
+    ):
+        chunk_size = options.get("similarity.backfill_seer_chunk_size")
+        chunks = [
+            {
+                "group_ids": groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row[
+                    i : i + chunk_size
+                ],
+                "data": nodestore_results["data"][i : i + chunk_size],
+            }
+            for i in range(
+                0,
+                len(groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row),
+                chunk_size,
+            )
+        ]
+        stacktrace_chunks = [
+            nodestore_results["stacktrace_list"][i : i + chunk_size]
+            for i in range(0, len(nodestore_results["stacktrace_list"]), chunk_size)
+        ]
+
+        seer_responses = []
+        with ThreadPoolExecutor(
+            max_workers=options.get("similarity.backfill_seer_threads")
+        ) as executor:
+            future_to_chunk = {
+                executor.submit(process_chunk, chunk, stacktrace_chunks[i]): chunk
+                for i, chunk in enumerate(chunks)
+            }
+            for future in as_completed(future_to_chunk):
+                chunk_response = future.result()
+                seer_responses.append(chunk_response)
+
+        aggregated_response: dict[str, Any] = {
+            "success": True,
+            "groups_with_neighbor": {},
         }
-        for i in range(
-            0,
-            len(groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row),
-            chunk_size,
-        )
-    ]
-    stacktrace_chunks = [
-        nodestore_results["stacktrace_list"][i : i + chunk_size]
-        for i in range(0, len(nodestore_results["stacktrace_list"]), chunk_size)
-    ]
+        for seer_response in seer_responses:
+            if not seer_response["success"]:
+                aggregated_response["success"] = False
+                return aggregated_response
 
-    seer_responses = []
-    with ThreadPoolExecutor(
-        max_workers=options.get("similarity.backfill_seer_threads")
-    ) as executor:
-        future_to_chunk = {
-            executor.submit(process_chunk, chunk, stacktrace_chunks[i]): chunk
-            for i, chunk in enumerate(chunks)
-        }
-        for future in as_completed(future_to_chunk):
-            chunk_response = future.result()
-            seer_responses.append(chunk_response)
+            aggregated_response["groups_with_neighbor"].update(
+                seer_response["groups_with_neighbor"]
+            )
 
-    aggregated_response: dict[str, Any] = {
-        "success": True,
-        "groups_with_neighbor": {},
-    }
-    for seer_response in seer_responses:
-        if not seer_response["success"]:
-            aggregated_response["success"] = False
-            return aggregated_response
-
-        aggregated_response["groups_with_neighbor"].update(seer_response["groups_with_neighbor"])
-
-    return aggregated_response
+        return aggregated_response
 
 
 @sentry_sdk.tracing.trace
@@ -553,74 +564,82 @@ def make_nodestore_call_multithreaded(project, node_keys):
     return bulk_data
 
 
-@metrics.wraps(f"{BACKFILL_NAME}.lookup_event_bulk", sample_rate=1.0)
 @sentry_sdk.tracing.trace
 def lookup_group_data_stacktrace_bulk(
     project: Project, rows: list[GroupEventRow]
 ) -> dict[int, Event]:
-    project_id = project.id
-    node_id_to_group_data = {
-        Event.generate_node_id(project_id, event_id=row["event_id"]): (
-            row["event_id"],
-            row["group_id"],
-        )
-        for row in rows
-    }
-
-    groups_to_event = {}
-
-    if options.get("similarity.backfill_nodestore_use_multithread"):
-        bulk_data = make_nodestore_call_multithreaded(project, list(node_id_to_group_data.keys()))
-    else:
-        bulk_data = _make_nodestore_call(project, list(node_id_to_group_data.keys()))
-
-    with sentry_sdk.start_span(op="lookup_event_bulk.loop", description="lookup_event_bulk.loop"):
-        for node_id, data in bulk_data.items():
-            if node_id in node_id_to_group_data:
-                event_id, group_id = (
-                    node_id_to_group_data[node_id][0],
-                    node_id_to_group_data[node_id][1],
-                )
-                event = Event(
-                    event_id=event_id, project_id=project_id, group_id=group_id, data=data
-                )
-                groups_to_event[group_id] = event
-
-    with sentry_sdk.start_span(
-        op="lookup_event_bulk.individual_lookup", description="lookup_event_bulk.individual_lookup"
+    with metrics.timer(
+        f"{BACKFILL_NAME}.lookup_event_bulk",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
     ):
-        # look up individually any that may have failed during bulk lookup
-        for node_id, (event_id, group_id) in node_id_to_group_data.items():
-            if node_id not in bulk_data:
-                data = _retry_operation(
-                    nodestore.backend.get,
-                    Event.generate_node_id(project_id, event_id),
-                    retries=3,
-                    delay=2,
-                    exceptions=(ServiceUnavailable, DeadlineExceeded),
-                )
-                if data is None:
-                    extra = {
-                        "organization_id": project.organization.id,
-                        "project_id": project.id,
-                        "group_id": group_id,
-                        "event_id": event_id,
-                    }
-                    logger.error(
-                        "tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra
+        project_id = project.id
+        node_id_to_group_data = {
+            Event.generate_node_id(project_id, event_id=row["event_id"]): (
+                row["event_id"],
+                row["group_id"],
+            )
+            for row in rows
+        }
+
+        groups_to_event = {}
+
+        if options.get("similarity.backfill_nodestore_use_multithread"):
+            bulk_data = make_nodestore_call_multithreaded(
+                project, list(node_id_to_group_data.keys())
+            )
+        else:
+            bulk_data = _make_nodestore_call(project, list(node_id_to_group_data.keys()))
+
+        with sentry_sdk.start_span(
+            op="lookup_event_bulk.loop", description="lookup_event_bulk.loop"
+        ):
+            for node_id, data in bulk_data.items():
+                if node_id in node_id_to_group_data:
+                    event_id, group_id = (
+                        node_id_to_group_data[node_id][0],
+                        node_id_to_group_data[node_id][1],
                     )
-                    continue
-                event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
-                event.data = data
-                groups_to_event[group_id] = event
+                    event = Event(
+                        event_id=event_id, project_id=project_id, group_id=group_id, data=data
+                    )
+                    groups_to_event[group_id] = event
 
-    metrics.gauge(
-        f"{BACKFILL_NAME}._lookup_event_bulk.hit_ratio",
-        round(len(bulk_data.items()) / len(rows)) * 100,
-        sample_rate=1.0,
-    )
+        with sentry_sdk.start_span(
+            op="lookup_event_bulk.individual_lookup",
+            description="lookup_event_bulk.individual_lookup",
+        ):
+            # look up individually any that may have failed during bulk lookup
+            for node_id, (event_id, group_id) in node_id_to_group_data.items():
+                if node_id not in bulk_data:
+                    data = _retry_operation(
+                        nodestore.backend.get,
+                        Event.generate_node_id(project_id, event_id),
+                        retries=3,
+                        delay=2,
+                        exceptions=(ServiceUnavailable, DeadlineExceeded),
+                    )
+                    if data is None:
+                        extra = {
+                            "organization_id": project.organization.id,
+                            "project_id": project.id,
+                            "group_id": group_id,
+                            "event_id": event_id,
+                        }
+                        logger.error(
+                            "tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra
+                        )
+                        continue
+                    event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
+                    event.data = data
+                    groups_to_event[group_id] = event
 
-    return groups_to_event
+        metrics.gauge(
+            f"{BACKFILL_NAME}._lookup_event_bulk.hit_ratio",
+            round(len(bulk_data.items()) / len(rows)) * 100,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        )
+
+        return groups_to_event
 
 
 def _retry_operation(operation, *args, retries, delay, exceptions, **kwargs):
