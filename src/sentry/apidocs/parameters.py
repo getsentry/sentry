@@ -531,22 +531,22 @@ class IntegrationParams:
         type=str,
         many=True,
         description="""Integration features to filter by. See our [Integrations Documentation](/product/integrations/) for an updated list of features. Current available ones are:
-- alert-rule
-- chat-unfurl
-- codeowners
-- commits
-- data-forwarding
-- deployment
-- enterprise-alert-rule
-- enterprise-incident-management
-- incident-management
-- issue-basic
-- issue-sync
-- mobile
-- serverless
-- session-replay
-- stacktrace-link
-- ticket-rules
+- `alert-rule`
+- `chat-unfurl`
+- `codeowners`
+- `commits`
+- `data-forwarding`
+- `deployment`
+- `enterprise-alert-rule`
+- `enterprise-incident-management`
+- `incident-management`
+- `issue-basic`
+- `issue-sync`
+- `mobile`
+- `serverless`
+- `session-replay`
+- `stacktrace-link`
+- `ticket-rules`
     """,
     )
     INCLUDE_CONFIG = OpenApiParameter(
@@ -659,11 +659,11 @@ class DiscoverSavedQueriesParams:
         description="""The property to sort results by. If not specified, the results are sorted by query name.
 
 Available fields are:
-- name
-- dateCreated
-- dateUpdated
-- mostPopular
-- recentlyViewed
-- myqueries
+- `name`
+- `dateCreated`
+- `dateUpdated`
+- `mostPopular`
+- `recentlyViewed`
+- `myqueries`
         """,
     )
