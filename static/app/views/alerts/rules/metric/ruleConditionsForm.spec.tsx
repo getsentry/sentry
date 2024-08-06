@@ -42,6 +42,7 @@ describe('RuleConditionsForm', () => {
       url: '/projects/org-slug/project-slug/environments/',
       body: [],
     });
+
     const props = {
       aggregate: 'foo',
       alertType: 'errors' as AlertType,

@@ -726,7 +726,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     />
                   ) : (
                     <SearchContainer>
-                      {!organization.features.includes('search-query-builder-alerts') ? (
+                      {organization.features.includes('search-query-builder-alerts') ? (
                         <SearchQueryBuilder
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
