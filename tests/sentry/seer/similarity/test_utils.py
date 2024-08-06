@@ -646,9 +646,9 @@ class GetStacktraceStringTest(TestCase):
             for i in range(1, 32)
         ]
         stacktrace_str = get_stacktrace_string(data_chained_exception)
-        for i in range(1, 31):
+        for i in range(2, 32):
             assert f"value {i}!" in stacktrace_str
-        assert "value 31!" not in stacktrace_str
+        assert "value 1!" not in stacktrace_str
 
     def test_thread(self):
         stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
