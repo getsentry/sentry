@@ -89,7 +89,7 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
         else:
             metrics.incr(
                 "grouping.similarity.did_call_seer",
-                sample_rate=1.0,
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"call_made": False, "blocker": "hybrid-fingerprint"},
             )
             return True
@@ -102,7 +102,7 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
     if fingerprint_variant:
         metrics.incr(
             "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": fingerprint_variant.type},
         )
         return True
@@ -128,12 +128,8 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         logger.warning("should_call_seer_for_grouping.global_ratelimit_hit", extra=logger_extra)
 
         metrics.incr(
-            "grouping.similarity.global_ratelimit_hit",
-            tags={"limit_per_sec": global_limit_per_sec},
-        )
-        metrics.incr(
             "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "global-rate-limit"},
         )
 
@@ -146,12 +142,8 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         logger.warning("should_call_seer_for_grouping.project_ratelimit_hit", extra=logger_extra)
 
         metrics.incr(
-            "grouping.similarity.project_ratelimit_hit",
-            tags={"limit_per_sec": project_limit_per_sec},
-        )
-        metrics.incr(
             "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "project-rate-limit"},
         )
 
@@ -175,11 +167,8 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
             },
         )
         metrics.incr(
-            "grouping.similarity.broken_circuit_breaker",
-        )
-        metrics.incr(
             "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "circuit-breaker"},
         )
 
@@ -212,6 +201,7 @@ def get_seer_similar_issues(
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
         "referrer": "ingest",
+        "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
     }
 
     # Similar issues are returned with the closest match first
@@ -250,9 +240,7 @@ def maybe_check_seer_for_matching_grouphash(
     if should_call_seer_for_grouping(event, primary_hashes):
         metrics.incr(
             "grouping.similarity.did_call_seer",
-            # TODO: Consider lowering this (in all the spots this metric is
-            # collected) once we roll Seer grouping out more widely
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": True, "blocker": "none"},
         )
         try:

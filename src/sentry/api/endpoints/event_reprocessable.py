@@ -11,7 +11,7 @@ from sentry.reprocessing2 import CannotReprocess, pull_event_data
 
 @region_silo_endpoint
 class EventReprocessableEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

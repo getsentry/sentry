@@ -53,11 +53,21 @@ jobs:
             all:
               - added|modified: '**/*'
 
-      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
 
-      - name: Install node dependencies
-        run: |
-          yarn install --frozen-lockfile
+      - name: node_modules cache
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock', '.volta.json') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
 
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:

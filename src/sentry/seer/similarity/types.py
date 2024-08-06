@@ -28,6 +28,7 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     read_only: NotRequired[bool]
     event_id: NotRequired[str]
     referrer: NotRequired[str]
+    use_reranking: NotRequired[bool]
 
 
 class RawSeerSimilarIssueData(TypedDict):

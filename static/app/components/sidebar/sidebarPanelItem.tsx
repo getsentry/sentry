@@ -79,10 +79,13 @@ export default SidebarPanelItem;
 
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
-  border-top: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.background};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(3)};
+
+  :not(:first-child) {
+    border-top: 1px solid ${p => p.theme.innerBorder};
+  }
 `;
 
 const TitleWrapper = styled('div')`

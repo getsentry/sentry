@@ -4,6 +4,7 @@ from typing import NotRequired, TypedDict
 from django.conf import settings
 from urllib3.exceptions import ReadTimeoutError
 
+from sentry import options
 from sentry.conf.server import (
     SEER_GROUPING_RECORDS_URL,
     SEER_HASH_GROUPING_RECORDS_DELETE_URL,
@@ -106,13 +107,21 @@ def delete_project_grouping_records(
             "seer.delete_grouping_records.project.success",
             extra={"project_id": project_id},
         )
-        metrics.incr("grouping.similarity.delete_records_by_project", tags={"success": True})
+        metrics.incr(
+            "grouping.similarity.delete_records_by_project",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"success": True},
+        )
         return True
     else:
         logger.error(
             "seer.delete_grouping_records.project.failure",
         )
-        metrics.incr("grouping.similarity.delete_records_by_project", tags={"success": False})
+        metrics.incr(
+            "grouping.similarity.delete_records_by_project",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"success": False},
+        )
         return False
 
 
@@ -140,9 +149,17 @@ def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
             "seer.delete_grouping_records.hashes.success",
             extra=extra,
         )
-        metrics.incr("grouping.similarity.delete_records_by_hash", tags={"success": True})
+        metrics.incr(
+            "grouping.similarity.delete_records_by_hash",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"success": True},
+        )
         return True
     else:
         logger.error("seer.delete_grouping_records.hashes.failure", extra=extra)
-        metrics.incr("grouping.similarity.delete_records_by_hash", tags={"success": False})
+        metrics.incr(
+            "grouping.similarity.delete_records_by_hash",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"success": False},
+        )
         return False
