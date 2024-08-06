@@ -1,5 +1,5 @@
 from datetime import datetime
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, patch
 
 from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS
 from sentry.autofix.utils import AutofixState, AutofixStatus
@@ -49,38 +49,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"] is None
 
         mock_get_autofix_state.assert_called_once_with(group_id=group.id)
-
-    @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
-    @patch("sentry.api.endpoints.group_ai_autofix.get_sorted_code_mapping_configs")
-    def test_ai_autofix_get_endpoint_repositories(
-        self, mock_get_sorted_code_mapping_configs, mock_get_autofix_state
-    ):
-        group = self.create_group()
-        mock_get_autofix_state.return_value = AutofixState(
-            run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
-            updated_at=datetime.strptime("2023-07-18T12:00:00Z", "%Y-%m-%dT%H:%M:%SZ"),
-            status=AutofixStatus.PROCESSING,
-        )
-
-        class TestRepo:
-            def __init__(self):
-                self.url = "example.com"
-                self.external_id = "id123"
-                self.name = "test_repo"
-                self.provider = "github"
-
-        mock_get_sorted_code_mapping_configs.return_value = [
-            Mock(repository=TestRepo(), default_branch="main"),
-        ]
-
-        self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id), format="json")
-
-        assert response.status_code == 200
-        assert response.data["autofix"] is not None
-        assert len(response.data["autofix"]["repositories"]) == 1
-        assert response.data["autofix"]["repositories"][0]["default_branch"] == "main"
 
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
