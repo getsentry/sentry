@@ -12,17 +12,22 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.middleware import is_frontend_request
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
+    profile_functions_metrics,
     spans_indexed,
     spans_metrics,
+    transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
@@ -73,6 +78,9 @@ METRICS_ENHANCED_REFERRERS: set[str] = {
 ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     Referrer.API_ALERTS_CHARTCUTERIE.value,
+    Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.DISCOVER_SLACK_UNFURL.value,
     Referrer.API_DASHBOARDS_WIDGET_AREA_CHART.value,
     Referrer.API_DASHBOARDS_WIDGET_BAR_CHART.value,
     Referrer.API_DASHBOARDS_WIDGET_LINE_CHART.value,
@@ -104,6 +112,14 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
 }
+
+
+SENTRY_BACKEND_REFERRERS = [
+    Referrer.API_ALERTS_CHARTCUTERIE.value,
+    Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.DISCOVER_SLACK_UNFURL.value,
+]
 
 
 @region_silo_endpoint
@@ -165,6 +181,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         return has_data
 
     def get(self, request: Request, organization: Organization) -> Response:
+        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -203,6 +220,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
                 else Referrer.API_ORGANIZATION_EVENT_STATS.value
             )
+            if referrer in SENTRY_BACKEND_REFERRERS:
+                query_source = QuerySource.SENTRY_BACKEND
             batch_features = self.get_features(organization, request)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
@@ -231,8 +250,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
+                        profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
+                        errors,
+                        transactions,
                     ]
                     else discover
                 )
@@ -277,6 +299,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_enabled=use_on_demand_metrics,
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
+                    query_source=query_source,
                 )
 
             return scoped_dataset.timeseries_query(
@@ -302,6 +325,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     )
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
 
         def get_event_stats_factory(scoped_dataset):
@@ -421,7 +445,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         )
                         has_transactions = self.check_if_results_have_data(transaction_results)
 
-                    decision = self.save_split_decision(widget, has_errors, has_transactions)
+                    decision = self.save_split_decision(
+                        widget, has_errors, has_transactions, organization, request.user
+                    )
 
                     if decision == DashboardWidgetTypes.DISCOVER:
                         # The user needs to be warned to split in this case.

@@ -107,6 +107,10 @@ def register_permanent_features(manager: FeatureManager):
         # Prefix host with organization ID when giving users DSNs (can be
         # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE) eg. o123.ingest.us.sentry.io
         "organizations:org-ingest-subdomains": False,
+        # Replace the footer Sentry logo with a Sentry pride logo
+        "organizations:sentry-pride-logo-footer": False,
+        # Enable priority calculations using Seer's severity endpoint
+        "organizations:seer-based-priority": False,
     }
 
     permanent_project_features = {
@@ -124,15 +128,27 @@ def register_permanent_features(manager: FeatureManager):
 
     for org_feature, default in permanent_organization_features.items():
         manager.add(
-            org_feature, OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=default
+            org_feature,
+            OrganizationFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
+            api_expose=True,
         )
 
     for project_feature, default in permanent_project_features.items():
         manager.add(
-            project_feature, ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=default
+            project_feature,
+            ProjectFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
+            api_expose=True,
         )
 
     # Enable support for multiple regions, and org slug subdomains (customer-domains).
     manager.add(
-        "system:multi-region", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=False
+        "system:multi-region",
+        SystemFeature,
+        FeatureHandlerStrategy.INTERNAL,
+        default=False,
+        api_expose=False,
     )

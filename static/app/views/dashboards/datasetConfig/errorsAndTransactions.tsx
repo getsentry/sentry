@@ -103,7 +103,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   filterYAxisAggregateParams,
   filterYAxisOptions,
   getTableFieldOptions: getEventsTableFieldOptions,
-  getTimeseriesSortOptions,
+  getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
+    getTimeseriesSortOptions(organization, widgetQuery, tags, getEventsTableFieldOptions),
   getTableSortOptions,
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
@@ -183,7 +184,7 @@ export function getTableSortOptions(
   return options;
 }
 
-function filterSeriesSortOptions(columns: Set<string>) {
+export function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (
       option.value.kind === FieldValueKind.FUNCTION ||
@@ -199,10 +200,11 @@ function filterSeriesSortOptions(columns: Set<string>) {
   };
 }
 
-function getTimeseriesSortOptions(
+export function getTimeseriesSortOptions(
   organization: Organization,
   widgetQuery: WidgetQuery,
-  tags?: TagCollection
+  tags?: TagCollection,
+  getFieldOptions: typeof getEventsTableFieldOptions = getEventsTableFieldOptions
 ) {
   const options: Record<string, SelectValue<FieldValue>> = {};
   options[`field:${CUSTOM_EQUATION_VALUE}`] = {
@@ -235,7 +237,7 @@ function getTimeseriesSortOptions(
       }
     });
 
-  const fieldOptions = getEventsTableFieldOptions(organization, tags);
+  const fieldOptions = getFieldOptions(organization, tags);
 
   return {...options, ...fieldOptions};
 }
@@ -275,7 +277,7 @@ export function transformEventsResponseToTable(
   return tableData as TableData;
 }
 
-function filterYAxisAggregateParams(
+export function filterYAxisAggregateParams(
   fieldValue: QueryFieldValue,
   displayType: DisplayType
 ) {
@@ -311,7 +313,7 @@ function filterYAxisAggregateParams(
   };
 }
 
-function filterYAxisOptions(displayType: DisplayType) {
+export function filterYAxisOptions(displayType: DisplayType) {
   return (option: FieldValueOption) => {
     // Only validate function names for timeseries widgets and
     // world map widgets.
@@ -333,7 +335,7 @@ function filterYAxisOptions(displayType: DisplayType) {
   };
 }
 
-function transformEventsResponseToSeries(
+export function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery
 ): Series[] {
@@ -480,7 +482,7 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
   return getFieldRenderer(field, meta, false);
 }
 
-function getEventsRequest(
+export function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
@@ -633,10 +635,17 @@ function getEventsSeriesRequest(
     return doOnDemandMetricsRequest(api, requestData);
   }
 
+  if (organization.features.includes('performance-discover-dataset-selector')) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...getQueryExtraForSplittingDiscover(widget, organization, false),
+    };
+  }
+
   return doEventsRequest<true>(api, requestData);
 }
 
-async function doOnDemandMetricsRequest(
+export async function doOnDemandMetricsRequest(
   api,
   requestData
 ): Promise<
@@ -685,20 +694,35 @@ export function filterAggregateParams(
   return true;
 }
 
-const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
-  return organization.features.includes('performance-discover-widget-split-ui');
-};
-
 const getQueryExtraForSplittingDiscover = (
   widget: Widget,
   organization: Organization,
   useOnDemandMetrics: boolean
 ) => {
-  if (!useOnDemandMetrics || !shouldSendWidgetForSplittingDiscover(organization)) {
+  // We want to send the dashboardWidgetId on the request if we're in the Widget
+  // Builder with the selector feature flag
+  const isEditing = location.pathname.endsWith('/edit/');
+  const hasDiscoverSelector = organization.features.includes(
+    'performance-discover-dataset-selector'
+  );
+
+  if (!hasDiscoverSelector) {
+    if (
+      !useOnDemandMetrics ||
+      !organization.features.includes('performance-discover-widget-split-ui')
+    ) {
+      return {};
+    }
+    if (widget.id) {
+      return {dashboardWidgetId: widget.id};
+    }
+
     return {};
   }
-  if (widget.id) {
+
+  if (isEditing && widget.id) {
     return {dashboardWidgetId: widget.id};
   }
+
   return {};
 };

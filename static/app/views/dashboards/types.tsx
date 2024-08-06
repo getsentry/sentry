@@ -1,6 +1,7 @@
 import type {Layout} from 'react-grid-layout';
 
 import type {User} from 'sentry/types/user';
+import {type DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
@@ -27,7 +28,7 @@ export enum WidgetType {
   RELEASE = 'metrics', // TODO(metrics): rename RELEASE to 'release', and METRICS to 'metrics'
   METRICS = 'custom-metrics',
   ERRORS = 'error-events',
-  TRANSACTIONS = 'transactions',
+  TRANSACTIONS = 'transaction-like',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -52,6 +53,11 @@ export enum OnDemandExtractionState {
   ENABLED_MANUAL = 'enabled:manual',
   ENABLED_CREATION = 'enabled:creation',
 }
+
+export const WIDGET_TYPE_TO_SAVED_QUERY_DATASET = {
+  [WidgetType.ERRORS]: SavedQueryDatasets.ERRORS,
+  [WidgetType.TRANSACTIONS]: SavedQueryDatasets.TRANSACTIONS,
+};
 
 interface WidgetQueryOnDemand {
   enabled: boolean;
@@ -81,6 +87,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  datasetSource?: DatasetSource;
   description?: string;
   id?: string;
   layout?: WidgetLayout | null;

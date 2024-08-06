@@ -51,12 +51,23 @@ export type ReplayEventParameters = {
     title: string;
   };
   'replay.details-tab-changed': {
+    mobile: boolean;
     tab: string;
   };
   'replay.details-time-spent': {
     seconds: number;
     user_email: string;
   };
+  'replay.frame-after-background': {
+    frame: string;
+  };
+
+  'replay.hydration-error.issue-details-opened': {};
+  'replay.hydration-modal.slider-interaction': {};
+  'replay.hydration-modal.tab-change': {
+    tabKey: string;
+  };
+
   // similar purpose as "replay.details-viewed", however we're capturing the navigation action
   // in order to also include a project platform
   'replay.list-navigate-to-details': {
@@ -78,6 +89,7 @@ export type ReplayEventParameters = {
   'replay.list-view-setup-sidebar': {};
   'replay.play-pause': {
     context: string;
+    mobile: boolean;
     play: boolean;
     user_email: string;
   };
@@ -91,6 +103,9 @@ export type ReplayEventParameters = {
   'replay.render-issues-group-list': {
     platform: string | undefined;
     project_id: string | undefined;
+  };
+  'replay.render-missing-replay-alert': {
+    surface: string;
   };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
@@ -127,6 +142,10 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-resource-docs-clicked': 'Replay Details Resource Docs Clicked',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
+  'replay.frame-after-background': 'Replay Frame Following Background Frame',
+  'replay.hydration-error.issue-details-opened': 'Hydration Issue Details Opened',
+  'replay.hydration-modal.slider-interaction': 'Hydration Modal Slider Clicked',
+  'replay.hydration-modal.tab-change': 'Hydration Modal Tab Changed',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',
@@ -136,6 +155,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
   'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
+  'replay.render-missing-replay-alert': 'Render Missing Replay Alert',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',

@@ -2,7 +2,6 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
@@ -17,11 +16,15 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization, Project, Thread} from 'sentry/types';
-import {EntryType, StackType, StackView} from 'sentry/types';
+import {StackType, StackView} from 'sentry/types';
+import type {Event, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
@@ -39,7 +42,6 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
     values?: Array<Thread>;
   };
   event: Event;
-  organization: Organization;
   projectSlug: Project['slug'];
 };
 
@@ -99,7 +101,6 @@ export function Threads({
   projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-  organization,
 }: Props) {
   const threads = data.values ?? [];
 
@@ -230,10 +231,10 @@ export function Threads({
 
   return (
     <Fragment>
-      {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
+      {hasMoreThanOneThread && (
         <Fragment>
           <Grid>
-            <EventDataSection type={EntryType.THREADS} title={t('Threads')}>
+            <InterimSection type={FoldSectionKey.THREADS} title={t('Threads')}>
               {activeThread && (
                 <Wrapper>
                   <ThreadSelector
@@ -247,9 +248,12 @@ export function Threads({
                   />
                 </Wrapper>
               )}
-            </EventDataSection>
+            </InterimSection>
             {activeThread?.state && (
-              <EventDataSection type={EntryType.THREAD_STATE} title={t('Thread State')}>
+              <InterimSection
+                title={t('Thread State')}
+                type={FoldSectionKey.THREAD_STATE}
+              >
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}
                   <ThreadState>{threadStateDisplay}</ThreadState>
@@ -263,13 +267,13 @@ export function Threads({
                   )}
                   <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
                 </ThreadStateWrapper>
-              </EventDataSection>
+              </InterimSection>
             )}
           </Grid>
           {!hideThreadTags && (
-            <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
+            <InterimSection title={t('Thread Tags')} type={FoldSectionKey.THREAD_TAGS}>
               {renderPills()}
-            </EventDataSection>
+            </InterimSection>
           )}
         </Fragment>
       )}
@@ -279,26 +283,7 @@ export function Threads({
         eventId={event.id}
         recentFirst={isStacktraceNewestFirst()}
         fullStackTrace={stackView === StackView.FULL}
-        title={
-          hasMoreThanOneThread &&
-          activeThread &&
-          !organization.features.includes('anr-improvements') ? (
-            <ThreadSelector
-              threads={threads}
-              activeThread={activeThread}
-              event={event}
-              onChange={thread => {
-                setActiveThread(thread);
-              }}
-              exception={exception}
-              fullWidth
-            />
-          ) : (
-            <PermalinkTitle>
-              {hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
-            </PermalinkTitle>
-          )
-        }
+        title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
         platform={platform}
         hasMinified={
           !!exception?.values?.find(value => value.rawStacktrace) ||
@@ -342,7 +327,6 @@ export function Threads({
           ) || (activeThread?.stacktrace?.frames ?? []).length > 1
         }
         stackTraceNotFound={stackTraceNotFound}
-        wrapTitle={false}
       >
         {childrenProps => {
           // TODO(scttcper): These are duplicated from renderContent, should consolidate
@@ -357,8 +341,6 @@ export function Threads({
 
           return (
             <Fragment>
-              {!organization.features.includes('anr-improvements') && renderPills()}
-
               {stackTrace && !isRaw && (
                 <ErrorBoundary customComponent={null}>
                   <StacktraceBanners event={event} stacktrace={stackTrace} />

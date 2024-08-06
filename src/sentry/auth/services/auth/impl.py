@@ -44,7 +44,7 @@ class DatabaseBackedAuthService(AuthService):
         *,
         organization_id: int,
         provider_key: str,
-        provider_config: Mapping[str, Any],
+        provider_config: dict[str, Any],
         user_id: int | None = None,
         sender: str | None = None,
     ) -> None:
@@ -179,7 +179,7 @@ class DatabaseBackedAuthService(AuthService):
             auth_provider.delete()
 
     def update_provider_config(
-        self, organization_id: int, auth_provider_id: int, config: Mapping[str, Any]
+        self, organization_id: int, auth_provider_id: int, config: dict[str, Any]
     ) -> None:
         current_provider = AuthProvider.objects.filter(
             organization_id=organization_id, id=auth_provider_id
@@ -187,6 +187,15 @@ class DatabaseBackedAuthService(AuthService):
         if current_provider is None:
             return
         current_provider.config = config
+        current_provider.save()
+
+    def update_provider(self, organization_id: int, auth_provider_id: int, provider: str) -> None:
+        current_provider = AuthProvider.objects.filter(
+            organization_id=organization_id, id=auth_provider_id
+        ).first()
+        if current_provider is None:
+            return
+        current_provider.provider = provider
         current_provider.save()
 
 

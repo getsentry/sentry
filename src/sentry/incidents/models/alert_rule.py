@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import abc
 import logging
-from collections import namedtuple
 from collections.abc import Callable, Collection, Iterable
 from datetime import timedelta
 from enum import Enum, IntEnum, StrEnum
@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Protocol, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
@@ -83,6 +83,7 @@ class AlertRuleStatus(Enum):
     PENDING = 0
     SNAPSHOT = 4
     DISABLED = 5
+    NOT_ENOUGH_DATA = 6
 
 
 class AlertRuleDetectionType(models.TextChoices):
@@ -222,6 +223,20 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 },
             )
         return []
+
+    def get_for_metrics(
+        self, organization: Organization, metric_mris: list[str]
+    ) -> BaseQuerySet[AlertRule]:
+        """
+        Fetches AlertRules associated with the metric MRIs
+        """
+
+        alert_query = Q()
+        for metric_mri in metric_mris:
+            alert_query |= Q(snuba_query__aggregate__contains=metric_mri)
+
+        queryset = self.filter(organization=organization).filter(alert_query)
+        return queryset
 
 
 @region_silo_model
@@ -497,6 +512,74 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
         return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
+class ActionHandlerFactory(abc.ABC):
+    """A factory for action handlers tied to a specific incident service.
+
+    The factory's builder method is augmented with metadata about which service it is
+    for and which target types that service supports.
+    """
+
+    def __init__(
+        self,
+        slug: str,
+        service_type: ActionService,
+        supported_target_types: Iterable[ActionTarget],
+        integration_provider: str | None,
+    ) -> None:
+        self.slug = slug
+        self.service_type = service_type
+        self.supported_target_types = frozenset(supported_target_types)
+        self.integration_provider = integration_provider
+
+    @abc.abstractmethod
+    def build_handler(
+        self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        project: Project,
+    ) -> ActionHandler:
+        raise NotImplementedError
+
+
+class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
+    """A factory derived from a concrete ActionHandler class.
+
+    The factory builds a handler simply by instantiating the provided class. The
+    `AlertRuleTriggerAction.register_type` decorator provides the rest of the metadata.
+    """
+
+    def __init__(
+        self,
+        slug: str,
+        service_type: ActionService,
+        supported_target_types: Iterable[ActionTarget],
+        integration_provider: str | None,
+        trigger_action_class: type[ActionHandler],
+    ) -> None:
+        super().__init__(slug, service_type, supported_target_types, integration_provider)
+        self.trigger_action_class = trigger_action_class
+
+    def build_handler(
+        self, action: AlertRuleTriggerAction, incident: Incident, project: Project
+    ) -> ActionHandler:
+        return self.trigger_action_class(action, incident, project)
+
+
+class _FactoryRegistry:
+    def __init__(self) -> None:
+        # Two kinds of index. The value sets should be equal at all times.
+        self.by_action_service: dict[ActionService, ActionHandlerFactory] = {}
+        self.by_slug: dict[str, ActionHandlerFactory] = {}
+
+    def register(self, factory: ActionHandlerFactory) -> None:
+        if factory.service_type in self.by_action_service:
+            raise Exception(f"Handler already registered for type {factory.service_type}")
+        if factory.slug in self.by_slug:
+            raise Exception(f"Handler already registered with slug={factory.slug!r}")
+        self.by_action_service[factory.service_type] = factory
+        self.by_slug[factory.slug] = factory
+
+
 @region_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
@@ -511,7 +594,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     Type = ActionService
     TargetType = ActionTarget
 
-    _type_registrations: dict[ActionService, TypeRegistration] = {}
+    # As a test utility, TemporaryAlertRuleTriggerActionRegistry has privileged
+    # access to this otherwise private class variable
+    _factory_registrations = _FactoryRegistry()
 
     INTEGRATION_TYPES = frozenset(
         (
@@ -525,11 +610,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     # ActionService items which are not supported for AlertRuleTriggerActions
     EXEMPT_SERVICES = frozenset((Type.SENTRY_NOTIFICATION.value,))
-
-    TypeRegistration = namedtuple(
-        "TypeRegistration",
-        ["handler", "slug", "type", "supported_target_types", "integration_provider"],
-    )
 
     objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
     objects_for_deletion: ClassVar[BaseManager] = BaseManager()
@@ -569,9 +649,10 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     def build_handler(
         self, action: AlertRuleTriggerAction, incident: Incident, project: Project
     ) -> ActionHandler | None:
-        type = AlertRuleTriggerAction.Type(self.type)
-        if type in self._type_registrations:
-            return self._type_registrations[type].handler(action, incident, project)
+        service_type = AlertRuleTriggerAction.Type(self.type)
+        factory = self._factory_registrations.by_action_service.get(service_type)
+        if factory is not None:
+            return factory.build_handler(action, incident, project)
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
             return None
@@ -603,43 +684,55 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             return handler.resolve(metric_value, new_status, notification_uuid)
 
     @classmethod
+    def register_factory(cls, factory: ActionHandlerFactory) -> None:
+        cls._factory_registrations.register(factory)
+
+    @classmethod
     def register_type(
         cls,
         slug: str,
         service_type: ActionService,
-        supported_target_types: Iterable[ActionTarget],
+        supported_target_types: Collection[ActionTarget],
         integration_provider: str | None = None,
     ) -> Callable[[type[ActionHandler]], type[ActionHandler]]:
         """
-        Registers a handler for a given type.
+        Register a factory for the decorated ActionHandler class, for a given service type.
+
         :param slug: A string representing the name of this type registration
-        :param service_type: The `Type` to handle.
-        :param handler: A subclass of `ActionHandler` that accepts the
-        `AlertRuleTriggerAction` and `Incident`.
+        :param service_type: The action service type the decorated handler supports.
+        :param supported_target_types: The target types the decorated handler supports.
         :param integration_provider: String representing the integration provider
-        related to this type.
+               related to this type.
         """
 
-        supported_target_types_set = frozenset(supported_target_types)
-
         def inner(handler: type[ActionHandler]) -> type[ActionHandler]:
-            if service_type not in cls._type_registrations:
-                cls._type_registrations[service_type] = cls.TypeRegistration(
-                    handler, slug, service_type, supported_target_types_set, integration_provider
-                )
-            else:
-                raise Exception("Handler already registered for type %s" % service_type)
+            """
+            :param handler: A subclass of `ActionHandler` that accepts the
+                            `AlertRuleActionHandler` and `Incident`.
+            """
+            factory = _AlertRuleActionHandlerClassFactory(
+                slug, service_type, supported_target_types, integration_provider, handler
+            )
+            cls.register_factory(factory)
             return handler
 
         return inner
 
     @classmethod
-    def get_registered_type(cls, type: ActionService) -> TypeRegistration:
-        return cls._type_registrations[type]
+    def get_registered_factory(cls, service_type: ActionService) -> ActionHandlerFactory:
+        return cls._factory_registrations.by_action_service[service_type]
 
     @classmethod
-    def get_registered_types(cls) -> list[TypeRegistration]:
-        return list(cls._type_registrations.values())
+    def get_registered_factories(cls) -> list[ActionHandlerFactory]:
+        return list(cls._factory_registrations.by_action_service.values())
+
+    @classmethod
+    def look_up_factory_by_slug(cls, slug: str) -> ActionHandlerFactory | None:
+        return cls._factory_registrations.by_slug.get(slug)
+
+    @classmethod
+    def get_all_slugs(cls) -> list[str]:
+        return list(cls._factory_registrations.by_slug)
 
 
 class AlertRuleActivityType(Enum):
@@ -678,6 +771,9 @@ class AlertRuleActivity(Model):
 def update_alert_activations(
     subscription: QuerySubscription, alert_rule: AlertRule, value: float
 ) -> bool:
+    if subscription.snuba_query is None:
+        return False
+
     now = timezone.now()
     subscription_end = subscription.date_added + timedelta(
         seconds=subscription.snuba_query.time_window

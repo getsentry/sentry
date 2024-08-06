@@ -35,7 +35,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import type {NewQuery, Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -44,6 +44,7 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
+  DatasetSource,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
@@ -56,6 +57,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   DATASET_LABEL_MAP,
   DatasetSelector,
@@ -127,11 +129,23 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const eventView = EventView.fromSavedQueryOrLocation(
+    const savedQueryDataset = getSavedQueryDataset(
+      nextProps.organization,
+      nextProps.location,
+      nextProps.savedQuery,
+      undefined
+    );
+    const eventViewFromQuery = EventView.fromSavedQueryOrLocation(
       nextProps.savedQuery,
       nextProps.location
     );
-    return {...prevState, eventView, savedQuery: nextProps.savedQuery};
+    const eventView =
+      hasDatasetSelector(nextProps.organization) && !eventViewFromQuery.dataset
+        ? eventViewFromQuery.withDataset(
+            getDatasetFromLocationOrSavedQueryDataset(undefined, savedQueryDataset)
+          )
+        : eventViewFromQuery;
+    return {...prevState, eventView, savedQuery: nextProps.savedQuery, savedQueryDataset};
   }
 
   state: State = {
@@ -140,6 +154,7 @@ export class Results extends Component<Props, State> {
       this.props.location
     ),
     savedQueryDataset: getSavedQueryDataset(
+      this.props.organization,
       this.props.location,
       this.props.savedQuery,
       undefined
@@ -152,6 +167,7 @@ export class Results extends Component<Props, State> {
     needConfirmation: false,
     confirmedQuery: false,
     tips: [],
+    showForcedDatasetAlert: true,
   };
 
   componentDidMount() {
@@ -189,6 +205,14 @@ export class Results extends Component<Props, State> {
     const yAxisArray = getYAxis(location, eventView, savedQuery);
     const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
 
+    const savedQueryDataset =
+      decodeScalar(location.query.queryDataset) ?? savedQuery?.queryDataset;
+    const prevSavedQueryDataset =
+      decodeScalar(prevProps.location.query.queryDataset) ??
+      prevState.savedQuery?.queryDataset;
+
+    const datasetChanged = !isEqual(savedQueryDataset, prevSavedQueryDataset);
+
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
       this.hasChartParametersChanged(
@@ -196,7 +220,8 @@ export class Results extends Component<Props, State> {
         eventView,
         prevYAxisArray,
         yAxisArray
-      )
+      ) ||
+      datasetChanged
     ) {
       this.canLoadEvents();
     }
@@ -314,7 +339,7 @@ export class Results extends Component<Props, State> {
   }
 
   checkEventView() {
-    const {eventView, splitDecision} = this.state;
+    const {eventView, splitDecision, savedQueryDataset} = this.state;
     const {loading} = this.props;
     if (eventView.isValid() || loading) {
       return;
@@ -323,12 +348,9 @@ export class Results extends Component<Props, State> {
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
 
-    const hasDatasetSelector = organization.features.includes(
-      'performance-discover-dataset-selector'
-    );
-    const value = getSavedQueryDataset(location, savedQuery, splitDecision);
-    const defaultEventView = hasDatasetSelector
-      ? DEFAULT_EVENT_VIEW_MAP[value]
+    const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
+    const defaultEventView = hasDatasetSelector(organization)
+      ? (getSavedQueryWithDataset(DEFAULT_EVENT_VIEW_MAP[value]) as NewQuery)
       : DEFAULT_EVENT_VIEW;
 
     const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
@@ -351,7 +373,13 @@ export class Results extends Component<Props, State> {
       this.setState({savedQuery, eventView: nextEventView});
     }
     browserHistory.replace(
-      normalizeUrl(nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage))
+      normalizeUrl(
+        nextEventView.getResultsViewUrlTarget(
+          organization.slug,
+          isHomepage,
+          hasDatasetSelector(organization) ? savedQueryDataset : undefined
+        )
+      )
     );
   }
 
@@ -518,9 +546,13 @@ export class Results extends Component<Props, State> {
 
   generateTagUrl = (key: string, value: string) => {
     const {organization, isHomepage} = this.props;
-    const {eventView} = this.state;
+    const {eventView, savedQueryDataset} = this.state;
 
-    const url = eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
+    const url = eventView.getResultsViewUrlTarget(
+      organization.slug,
+      isHomepage,
+      hasDatasetSelector(organization) ? savedQueryDataset : undefined
+    );
     url.query = generateQueryWithTag(url.query, {
       key: formatTagKey(key),
       value,
@@ -575,12 +607,16 @@ export class Results extends Component<Props, State> {
   }
 
   renderForcedDatasetBanner() {
-    const {organization} = this.props;
+    const {organization, savedQuery} = this.props;
     if (
-      organization.features.includes('performance-discover-dataset-selector') &&
+      hasDatasetSelector(organization) &&
       this.state.showForcedDatasetAlert &&
-      this.state.splitDecision
+      (this.state.splitDecision || savedQuery?.datasetSource === DatasetSource.FORCED)
     ) {
+      const splitDecision = this.state.splitDecision ?? savedQuery?.queryDataset;
+      if (!splitDecision) {
+        return null;
+      }
       return (
         <Alert
           type="warning"
@@ -599,7 +635,7 @@ export class Results extends Component<Props, State> {
         >
           {tct(
             "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-            {splitDecision: DATASET_LABEL_MAP[this.state.splitDecision]}
+            {splitDecision: DATASET_LABEL_MAP[splitDecision]}
           )}
         </Alert>
       );
@@ -652,10 +688,13 @@ export class Results extends Component<Props, State> {
       confirmedQuery,
       savedQuery,
       splitDecision,
+      savedQueryDataset,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
+
+    const hasDatasetSelectorFeature = hasDatasetSelector(organization);
 
     const query = eventView.query;
     const title = this.getDocumentTitle();
@@ -685,6 +724,7 @@ export class Results extends Component<Props, State> {
                 {this.renderError(error)}
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
+                {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
                   <Feature
@@ -720,10 +760,10 @@ export class Results extends Component<Props, State> {
                       maxQueryLength={MAX_QUERY_LENGTH}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
                       dataset={eventView.dataset}
+                      includeTransactions={hasDatasetSelectorFeature ? false : true}
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
-                <SampleDataAlert query={query} />
                 <MetricsCardinalityProvider
                   organization={organization}
                   location={location}
@@ -757,25 +797,17 @@ export class Results extends Component<Props, State> {
                   onCursor={this.handleCursor}
                   isHomepage={isHomepage}
                   setTips={this.setTips}
+                  queryDataset={savedQueryDataset}
                   setSplitDecision={(value?: SavedQueryDatasets) => {
                     if (
-                      organization.features.includes(
-                        'performance-discover-dataset-selector'
-                      ) &&
+                      hasDatasetSelectorFeature &&
                       value !== SavedQueryDatasets.DISCOVER &&
                       value !== savedQuery?.dataset
                     ) {
                       this.setSplitDecision(value);
-                      this.setState({showForcedDatasetAlert: true});
                     }
                   }}
-                  dataset={
-                    organization.features.includes(
-                      'performance-discover-dataset-selector'
-                    )
-                      ? eventView.dataset
-                      : undefined
-                  }
+                  dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
@@ -866,11 +898,8 @@ class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
     const {organization} = this.props;
     const {savedQuery, loading} = this.state;
     let savedQueryWithDataset = savedQuery;
-    if (
-      organization.features.includes('performance-discover-dataset-selector') &&
-      savedQuery
-    ) {
-      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery);
+    if (hasDatasetSelector(organization) && savedQuery) {
+      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery) as SavedQuery;
     }
     return (
       <Results

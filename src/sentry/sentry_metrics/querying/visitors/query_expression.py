@@ -423,6 +423,9 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, Query
 
         parsed_mri = parse_mri(timeseries.metric.mri)
         if parsed_mri is not None:
+            if parsed_mri.entity == "c":
+                return None
+
             if rule_id := parsed_mri.span_attribute_rule_id:
                 try:
                     return SpanAttributeExtractionRuleCondition.objects.get(id=rule_id).config.unit

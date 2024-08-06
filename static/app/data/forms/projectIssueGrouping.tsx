@@ -1,51 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {GroupingConfigItem} from 'sentry/components/events/groupingInfo';
 import type {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import marked from 'sentry/utils/marked';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/issue-grouping/';
-
-const groupingConfigField: Field = {
-  name: 'groupingConfig',
-  type: 'select',
-  label: t('Grouping Config'),
-  saveOnBlur: false,
-  saveMessageAlertType: 'info',
-  saveMessage: t(
-    'Changing grouping config will apply to future events only (can take up to a minute).'
-  ),
-  selectionInfoFunction: args => {
-    const {groupingConfigs, value} = args;
-    const selection = groupingConfigs.find(({id}) => id === value);
-    const changelog = selection?.changelog || '';
-    if (!changelog) {
-      return null;
-    }
-    return (
-      <Changelog>
-        <ChangelogTitle>
-          {tct('New in version [version]', {version: selection.id})}:
-        </ChangelogTitle>
-        <div dangerouslySetInnerHTML={{__html: marked(changelog)}} />
-      </Changelog>
-    );
-  },
-  choices: ({groupingConfigs}) =>
-    groupingConfigs.map(({id, hidden}) => [
-      id.toString(),
-      <GroupingConfigItem key={id} isHidden={hidden}>
-        {id}
-      </GroupingConfigItem>,
-    ]),
-  help: t('Sets the grouping algorithm to be used for new events.'),
-  visible: ({features}) => features.has('set-grouping-config'),
-};
 
 export const fields: Record<string, Field> = {
   fingerprintingRules: {
@@ -135,48 +97,6 @@ stack.function:mylibrary_* +app`}
     validate: () => [],
     visible: true,
   },
-  groupingConfig: groupingConfigField,
-  secondaryGroupingConfig: {
-    ...groupingConfigField,
-    name: 'secondaryGroupingConfig',
-    label: t('Fallback/Secondary Grouping Config'),
-    help: t(
-      'Sets the secondary grouping algorithm that should be run in addition to avoid creating too many new groups. Controlled by expiration date below.'
-    ),
-    saveMessage: t(
-      'Changing the secondary grouping strategy will affect how many new issues are created.'
-    ),
-  },
-  secondaryGroupingExpiry: {
-    name: 'secondaryGroupingExpiry',
-    type: 'number',
-    label: t('Expiration date of secondary grouping'),
-    help: t(
-      'If this UNIX timestamp is in the past, the secondary grouping configuration stops applying automatically.'
-    ),
-    saveOnBlur: false,
-    saveMessageAlertType: 'info',
-    saveMessage: t(
-      'Changing the expiration date will affect how many new issues are created.'
-    ),
-  },
-  groupingAutoUpdate: {
-    name: 'groupingAutoUpdate',
-    type: 'boolean',
-    label: t('Automatically Update Grouping'),
-    saveOnBlur: false,
-    help: t(
-      'When enabled projects will in the future automatically update to the latest grouping algorithm. Right now this setting does nothing.'
-    ),
-    saveMessage: ({value}) =>
-      value
-        ? t(
-            'Enabling automatic upgrading will take effect on the next incoming event once auto updating has been rolled out.'
-          )
-        : t(
-            'Disabling auto updates will cause you to no longer receive improvements to the grouping algorithm.'
-          ),
-  },
 };
 
 const RuleDescription = styled('div')`
@@ -188,25 +108,4 @@ const RuleDescription = styled('div')`
 const RuleExample = styled('pre')`
   margin-bottom: ${space(1)};
   margin-right: 36px;
-`;
-
-const Changelog = styled('div')`
-  position: relative;
-  top: -1px;
-  margin-bottom: -1px;
-  padding: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background: ${p => p.theme.backgroundSecondary};
-  font-size: ${p => p.theme.fontSizeMedium};
-
-  &:last-child {
-    border: 0;
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
-  }
-`;
-
-const ChangelogTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(0.75)} !important;
 `;

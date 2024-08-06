@@ -26,6 +26,7 @@ describe('WebVitalsLandingPage', function () {
     jest.mocked(useProjects).mockReturnValue({
       projects: [ProjectFixture({hasInsightsVitals: true})],
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -78,7 +79,7 @@ describe('WebVitalsLandingPage', function () {
   it('renders', async () => {
     render(<WebVitalsLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    // Project performance score ring query
+    // Table query
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -86,38 +87,8 @@ describe('WebVitalsLandingPage', function () {
         query: expect.objectContaining({
           dataset: 'metrics',
           field: [
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.cls)',
-            `performance_score(measurements.score.inp)`,
-            'performance_score(measurements.score.ttfb)',
-            'avg(measurements.score.total)',
-            'avg(measurements.score.weight.lcp)',
-            'avg(measurements.score.weight.fcp)',
-            'avg(measurements.score.weight.cls)',
-            `avg(measurements.score.weight.inp)`,
-            'avg(measurements.score.weight.ttfb)',
-            'count()',
-            'count_scores(measurements.score.total)',
-            'count_scores(measurements.score.lcp)',
-            'count_scores(measurements.score.fcp)',
-            'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.ttfb)',
-            `count_scores(measurements.score.inp)`,
-          ],
-          query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
-        }),
-      })
-    );
-    // Table query
-    expect(eventsMock).toHaveBeenNthCalledWith(
-      2,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: 'metrics',
-          field: [
+            'project.id',
+            'project',
             'transaction',
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
@@ -125,7 +96,7 @@ describe('WebVitalsLandingPage', function () {
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
             'opportunity_score(measurements.score.total)',
-            'avg(measurements.score.total)',
+            'performance_score(measurements.score.total)',
             'count()',
             'count_scores(measurements.score.lcp)',
             'count_scores(measurements.score.fcp)',
@@ -141,7 +112,7 @@ describe('WebVitalsLandingPage', function () {
     );
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
-      3,
+      2,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
@@ -159,6 +130,38 @@ describe('WebVitalsLandingPage', function () {
             'count_web_vitals(measurements.ttfb, any)',
             'count_web_vitals(measurements.inp, any)',
             'count()',
+          ],
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+        }),
+      })
+    );
+    // Project performance score ring query
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      3,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.cls)',
+            `performance_score(measurements.score.inp)`,
+            'performance_score(measurements.score.ttfb)',
+            'performance_score(measurements.score.total)',
+            'avg(measurements.score.weight.lcp)',
+            'avg(measurements.score.weight.fcp)',
+            'avg(measurements.score.weight.cls)',
+            `avg(measurements.score.weight.inp)`,
+            'avg(measurements.score.weight.ttfb)',
+            'count()',
+            'count_scores(measurements.score.total)',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.ttfb)',
+            `count_scores(measurements.score.inp)`,
           ],
           query:
             'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',

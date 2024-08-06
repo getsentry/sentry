@@ -32,6 +32,7 @@ from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
 from sentry.models.environment import Environment
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -65,7 +66,6 @@ from .permissions import (
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
-from .utils import generate_organization_url
 
 __all__ = [
     "Endpoint",
@@ -221,8 +221,8 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: RateLimitConfig | dict[
-        str, dict[RateLimitCategory, RateLimit]
+    rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]] | Callable[
+        ..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     snuba_methods: list[HTTP_METHOD_NAME] = []

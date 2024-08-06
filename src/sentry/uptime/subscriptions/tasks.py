@@ -4,6 +4,7 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
+from django.utils import timezone
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 
 from sentry.snuba.models import QuerySubscription
@@ -28,10 +29,10 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
-        metrics.incr("uptime.subscriptions.create.subscription_does_not_exist")
+        metrics.incr("uptime.subscriptions.create.subscription_does_not_exist", sample_rate=1.0)
         return
     if subscription.status != UptimeSubscription.Status.CREATING.value:
-        metrics.incr("uptime.subscriptions.create.incorrect_status")
+        metrics.incr("uptime.subscriptions.create.incorrect_status", sample_rate=1.0)
         return
 
     subscription_id = send_uptime_subscription_config(subscription)
@@ -51,14 +52,14 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
-        metrics.incr("uptime.subscriptions.delete.subscription_does_not_exist")
+        metrics.incr("uptime.subscriptions.delete.subscription_does_not_exist", sample_rate=1.0)
         return
 
     if subscription.status not in [
         UptimeSubscription.Status.DELETING.value,
         UptimeSubscription.Status.DISABLED.value,
     ]:
-        metrics.incr("uptime.subscriptions.delete.incorrect_status")
+        metrics.incr("uptime.subscriptions.delete.incorrect_status", sample_rate=1.0)
         return
 
     subscription_id = subscription.subscription_id
@@ -68,7 +69,7 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
     if subscription_id is not None:
-        send_uptime_config_deletion(subscription.subscription_id)
+        send_uptime_config_deletion(subscription_id)
 
 
 def send_uptime_subscription_config(subscription: UptimeSubscription) -> str:
@@ -92,3 +93,30 @@ def uptime_subscription_to_check_config(
 
 def send_uptime_config_deletion(subscription_id: str) -> None:
     produce_config_removal(subscription_id)
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.subscription_checker",
+    queue="uptime",
+)
+def subscription_checker(**kwargs):
+    """
+    Checks for subscriptions stuck in a transition status and attempts to repair them. This
+    typically happens when we had some kind of error running the task the first time around.
+    Usually network or configuration related.
+    """
+    count = 0
+    for subscription in UptimeSubscription.objects.filter(
+        status__in=(
+            UptimeSubscription.Status.CREATING.value,
+            UptimeSubscription.Status.DELETING.value,
+        ),
+        date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
+    ):
+        count += 1
+        if subscription.status == UptimeSubscription.Status.CREATING.value:
+            create_remote_uptime_subscription.delay(uptime_subscription_id=subscription.id)
+        elif subscription.status == UptimeSubscription.Status.DELETING.value:
+            delete_remote_uptime_subscription.delay(uptime_subscription_id=subscription.id)
+
+    metrics.incr("uptime.subscriptions.repair", amount=count, sample_rate=1.0)

@@ -1,6 +1,5 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import type {
   FieldDefinitionGetter,
@@ -82,6 +81,12 @@ type DeleteLastMultiSelectFilterValueAction = {
   type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE';
 };
 
+type UpdateAggregateArgsAction = {
+  token: TokenResult<Token.KEY_AGGREGATE_ARGS> | TokenResult<Token.SPACES>;
+  type: 'UPDATE_AGGREGATE_ARGS';
+  value: string;
+};
+
 export type QueryBuilderActions =
   | ClearAction
   | UpdateQueryAction
@@ -92,6 +97,7 @@ export type QueryBuilderActions =
   | ReplaceTokensWithTextAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
+  | UpdateAggregateArgsAction
   | MultiSelectFilterValueAction
   | DeleteLastMultiSelectFilterValueAction;
 
@@ -318,7 +324,7 @@ function updateFilterMultipleValues(
     new Set(values.filter(value => value.length > 0))
   );
   if (uniqNonEmptyValues.length === 0) {
-    return {...state, query: replaceQueryToken(state.query, token.value, '')};
+    return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
 
   const newValue =
@@ -349,10 +355,10 @@ function multiSelectTokenValue(
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
-      return updateFilterMultipleValues(state, action.token, [
-        tokenValue.text,
-        action.value,
-      ]);
+      const newValue = tokenValue.value
+        ? [tokenValue.text, action.value]
+        : [action.value];
+      return updateFilterMultipleValues(state, action.token, newValue);
   }
 }
 
@@ -373,12 +379,23 @@ function deleteLastMultiSelectTokenValue(
   }
 }
 
-export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
+export function useQueryBuilderState({
+  initialQuery,
+  getFieldDefinition,
+  disabled,
+}: {
+  disabled: boolean;
+  getFieldDefinition: FieldDefinitionGetter;
+  initialQuery: string;
+}) {
   const initialState: QueryBuilderState = {query: initialQuery, focusOverride: null};
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
+      if (disabled) {
+        return state;
+      }
+
       switch (action.type) {
         case 'CLEAR':
           return {
@@ -420,6 +437,11 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
             ...state,
             query: modifyFilterValue(state.query, action.token, action.value),
           };
+        case 'UPDATE_AGGREGATE_ARGS':
+          return {
+            ...state,
+            query: replaceQueryToken(state.query, action.token, action.value),
+          };
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
         case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':
@@ -428,7 +450,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           return state;
       }
     },
-    [getFieldDefinition]
+    [disabled, getFieldDefinition]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);

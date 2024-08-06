@@ -1,6 +1,11 @@
 import type {Project} from 'sentry/types/project';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import type {
+  DatasetSource,
+  DiscoverDatasets,
+  SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -36,6 +41,7 @@ export interface OrganizationSummary {
     id: ObjectStatus;
     name: string;
   };
+  uptimeAutodetection?: boolean;
 }
 
 /**
@@ -46,6 +52,7 @@ export interface Organization extends OrganizationSummary {
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
+  allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
   /** @deprecated use orgRoleList instead. */
@@ -71,6 +78,7 @@ export interface Organization extends OrganizationSummary {
     projectLimit: number | null;
   };
   relayPiiConfig: string | null;
+  requiresSso: boolean;
   safeFields: string[];
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
@@ -242,6 +250,7 @@ export interface NewQuery {
   version: SavedQueryVersions;
   createdBy?: User;
   dataset?: DiscoverDatasets;
+  datasetSource?: DatasetSource;
   display?: string;
   end?: string | Date;
   environment?: Readonly<string[]>;
@@ -287,6 +296,7 @@ export type EventsStats = {
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;
+    discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
   order?: number;

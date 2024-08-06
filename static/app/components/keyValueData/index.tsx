@@ -1,5 +1,6 @@
 import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
 import React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
@@ -18,7 +19,8 @@ export interface KeyValueDataContentProps {
    * Specifies the item to display.
    * - If set, item.subjectNode will override displaying item.subject.
    * - If item.subjectNode is null, the value section will span the whole card.
-   * - The only displayed action is item.action.link, not item.actionButton
+   * - If item.action.link is specified, the value will appear as a link.
+   * - If item.actionButton is specified, the button will be rendered inline with the value.
    */
   item: KeyValueListDataItem;
   /**
@@ -47,7 +49,14 @@ export function Content({
   disableFormattedData = false,
   ...props
 }: KeyValueDataContentProps) {
-  const {subject, subjectNode, value: contextValue, action = {}, actionButton} = item;
+  const {
+    subject,
+    subjectNode,
+    value: contextValue,
+    action = {},
+    actionButton,
+    actionButtonAlwaysVisible,
+  } = item;
 
   const hasErrors = errors.length > 0;
   const hasSuffix = !!(hasErrors || actionButton);
@@ -82,7 +91,11 @@ export function Content({
         {hasSuffix && (
           <div>
             {hasErrors && <AnnotatedTextErrors errors={errors} />}
-            {actionButton && <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>}
+            {actionButton && (
+              <ActionButtonWrapper actionButtonAlwaysVisible={actionButtonAlwaysVisible}>
+                {actionButton}
+              </ActionButtonWrapper>
+            )}
           </div>
         )}
       </ValueSection>
@@ -272,15 +285,19 @@ const CardColumn = styled('div')`
   grid-column: span 1;
 `;
 
-const ValueLink = styled(Link)`
+export const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.linkUnderline} underline dotted;
 `;
 
-const ActionButtonWrapper = styled('div')`
-  visibility: hidden;
-  ${ContentWrapper}:hover & {
-    visibility: visible;
-  }
+const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>`
+  ${p =>
+    !p.actionButtonAlwaysVisible &&
+    css`
+      visibility: hidden;
+      ${ContentWrapper}:hover & {
+        visibility: visible;
+      }
+    `}
 `;
 
 export const KeyValueData = {

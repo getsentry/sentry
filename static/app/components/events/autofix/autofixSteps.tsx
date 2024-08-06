@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -28,6 +28,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import usePrevious from 'sentry/utils/usePrevious';
 
 function StepIcon({step}: {step: AutofixStep}) {
@@ -99,6 +100,15 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
+function replaceHeadersWithBold(markdown: string) {
+  const headerRegex = /^(#{1,6})\s+(.*)$/gm;
+  const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
+    return ` **${content}** `;
+  });
+
+  return boldMarkdown;
+}
+
 function Progress({
   progress,
   groupId,
@@ -111,10 +121,20 @@ function Progress({
   runId: string;
 }) {
   if (isProgressLog(progress)) {
+    const html = progress.message.includes('\n')
+      ? marked(replaceHeadersWithBold(progress.message), {
+          breaks: true,
+          gfm: true,
+        })
+      : singleLineRenderer(replaceHeadersWithBold(progress.message), {
+          breaks: true,
+          gfm: true,
+        });
+
     return (
       <Fragment>
         <DateTime date={progress.timestamp} format="HH:mm:ss:SSS" />
-        <div>{progress.message}</div>
+        <LogComponent html={html} />
       </Fragment>
     );
   }
@@ -182,9 +202,19 @@ export function ExpandableStep({
           <StepIconContainer>
             <StepIcon step={step} />
           </StepIconContainer>
-          <StepTitle>{step.title}</StepTitle>
+          <StepTitle
+            dangerouslySetInnerHTML={{
+              __html: singleLineRenderer(step.title),
+            }}
+          />
           {activeLog && !isExpanded && (
-            <StepHeaderDescription>{activeLog}</StepHeaderDescription>
+            <StepHeaderDescription
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(
+                  replaceHeadersWithBold(activeLog.replaceAll('\n', ' '))
+                ),
+              }}
+            />
           )}
         </StepHeaderLeft>
         <StepHeaderRight>
@@ -420,4 +450,63 @@ const ProgressContainer = styled('div')`
 
 const ProgressStepContainer = styled('div')`
   grid-column: 1/-1;
+`;
+
+function LogComponent({html}: {html: string}) {
+  const [expanded, setExpanded] = useState(false);
+  const [isExpandable, setIsExpandable] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkExpandable = () => {
+      if (logRef.current) {
+        const {scrollHeight, clientHeight} = logRef.current;
+        setIsExpandable(scrollHeight > clientHeight + 16);
+      }
+    };
+
+    checkExpandable();
+    window.addEventListener('resize', checkExpandable);
+    return () => window.removeEventListener('resize', checkExpandable);
+  }, [html]);
+
+  const toggleExpand = () => {
+    setExpanded(oldState => !oldState);
+  };
+
+  return (
+    <ExpandableLogRow>
+      <LogText
+        ref={logRef}
+        expanded={expanded}
+        isExpandable={isExpandable}
+        dangerouslySetInnerHTML={{__html: html}}
+      />
+      {isExpandable && (
+        <Button
+          icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+          aria-label={t('Toggle step details')}
+          aria-expanded={expanded}
+          size="zero"
+          borderless
+          onClick={toggleExpand}
+        />
+      )}
+    </ExpandableLogRow>
+  );
+}
+
+const LogText = styled('div')<{expanded: boolean; isExpandable: boolean}>`
+  overflow-x: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: ${props => (props.expanded ? 'unset' : '2')};
+  -webkit-box-orient: vertical;
+  overflow-y: hidden;
+  max-height: ${props => (props.expanded ? 'none' : '3em')};
+`;
+
+const ExpandableLogRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start; /* Ensure items align to the start of the container */
 `;

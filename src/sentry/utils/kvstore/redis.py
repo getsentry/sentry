@@ -29,7 +29,7 @@ class RedisKVStorage(KVStorage[str, T]):
     def delete(self, key: str) -> None:
         self.client.delete(key.encode("utf8"))
 
-    def bootstrap(self) -> None:
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         pass  # nothing to do
 
     def destroy(self) -> None:

@@ -32,7 +32,7 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
@@ -218,25 +218,6 @@ export function HTTPSamplesPanel() {
     referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
   });
 
-  // NOTE: Due to some data confusion, the `domain` column in the spans table can either be `null` or `""`. Searches like `"!has:span.domain"` are turned into the ClickHouse clause `isNull(domain)`, and do not match the empty string. We need a query that matches empty strings _and_ null_ which is `(!has:domain OR domain:[""])`. This hack can be removed in August 2024, once https://github.com/getsentry/snuba/pull/5780 has been deployed for 90 days and all `""` domains have fallen out of the data retention window. Also, `null` domains will become more rare as people upgrade the JS SDK to versions that populate the `server.address` span attribute
-  const sampleSpansSearch = MutableSearch.fromQueryObject({
-    ...filters,
-    'span.domain': undefined,
-  });
-
-  // filter by key-value filters specified in the search bar query
-  sampleSpansSearch.addStringMultiFilter(query.spanSearchQuery);
-
-  if (query.domain === '') {
-    sampleSpansSearch.addOp('(');
-    sampleSpansSearch.addFilterValue('!has', 'span.domain');
-    sampleSpansSearch.addOp('OR');
-    // HACK: Use `addOp` to add the condition `'span.domain:[""]'` and avoid escaping the double quotes. Ideally there'd be a way to specify this explicitly, but this whole thing is a hack anyway. Once a plain `!has:span.domain` condition works, this is not necessary
-    sampleSpansSearch.addOp('span.domain:[""]');
-    sampleSpansSearch.addOp(')');
-  } else {
-    sampleSpansSearch.addFilterValue('span.domain', query.domain);
-  }
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
@@ -245,7 +226,7 @@ export function HTTPSamplesPanel() {
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
-    search: sampleSpansSearch,
+    search,
     fields: [
       SpanIndexedField.TRACE,
       SpanIndexedField.TRANSACTION_ID,
@@ -265,7 +246,7 @@ export function HTTPSamplesPanel() {
     refetch: refetchResponseCodeSpanSamples,
   } = useSpansIndexed(
     {
-      search: sampleSpansSearch,
+      search,
       fields: [
         SpanIndexedField.PROJECT,
         SpanIndexedField.TRACE,
@@ -355,9 +336,8 @@ export function HTTPSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <Ribbon>
+            <ReadoutRibbon>
               <MetricReadout
-                align="left"
                 title={getThroughputTitle('http')}
                 value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
@@ -365,7 +345,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.avg}
                 value={
                   domainTransactionMetrics?.[0]?.[
@@ -377,7 +356,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('3XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(3)`]}
                 unit="percentage"
@@ -385,7 +363,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('4XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(4)`]}
                 unit="percentage"
@@ -393,7 +370,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={t('5XXs')}
                 value={domainTransactionMetrics?.[0]?.[`http_response_rate(5)`]}
                 unit="percentage"
@@ -401,7 +377,6 @@ export function HTTPSamplesPanel() {
               />
 
               <MetricReadout
-                align="left"
                 title={DataTitles.timeSpent}
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
@@ -411,7 +386,7 @@ export function HTTPSamplesPanel() {
                 )}
                 isLoading={areDomainTransactionMetricsFetching}
               />
-            </Ribbon>
+            </ReadoutRibbon>
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>

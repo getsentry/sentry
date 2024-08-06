@@ -1,5 +1,6 @@
 import type {Location, LocationDescriptor} from 'history';
 
+import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {
   isSpanNode,
@@ -9,25 +10,6 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-
-function toDate(value: unknown): Date | null {
-  if (typeof value !== 'string' && typeof value !== 'number') {
-    return null;
-  }
-
-  const dateObj = new Date(value);
-
-  if (isNaN(dateObj.getTime())) {
-    return null;
-  }
-
-  return dateObj;
-}
-
-function getTimeOffsetForDuration(duration: number): number {
-  // 100ms window for spans shorter than 100ms, otherwise 10% of the duration capped at 2s
-  return duration < 100 ? 100 : Math.min(duration * 0.1, 2_000);
-}
 
 function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
   if (isTransactionNode(node)) {
@@ -56,6 +38,7 @@ export function makeTraceContinuousProfilingLink(
   options: {
     orgSlug: string;
     projectSlug: string;
+    threadId: string | undefined;
     traceId: string;
   },
   query: Location['query'] = {}
@@ -66,9 +49,14 @@ export function makeTraceContinuousProfilingLink(
 
   // We compute a time offset based on the duration of the span so that
   // users can see some context of things that occurred before and after the span.
-  const timeOffset = getTimeOffsetForDuration(node.space[1]);
-  let start: Date | null = toDate(node.space[0] - timeOffset);
-  let end: Date | null = toDate(node.space[0] + node.space[1] + timeOffset);
+  const transaction = isTransactionNode(node) ? node : node.parent_transaction;
+  if (!transaction) {
+    return null;
+  }
+  let start: Date | null = getDateFromTimestamp(transaction.space[0]);
+  let end: Date | null = getDateFromTimestamp(
+    transaction.space[0] + transaction.space[1]
+  );
 
   // End timestamp is required to generate a link
   if (end === null || typeof profilerId !== 'string' || profilerId === '') {
@@ -96,15 +84,19 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
-  const queryWithSpanIdAndTraceId: Record<string, string> = {
+  const queryWithEventData: Record<string, string> = {
     ...query,
     eventId,
     traceId: options.traceId,
   };
 
+  if (typeof options.threadId === 'string') {
+    queryWithEventData.tid = options.threadId;
+  }
+
   const spanId = getNodeId(node);
   if (spanId) {
-    queryWithSpanIdAndTraceId.spanId = spanId;
+    queryWithEventData.spanId = spanId;
   }
 
   return generateContinuousProfileFlamechartRouteWithQuery(
@@ -113,6 +105,6 @@ export function makeTraceContinuousProfilingLink(
     profilerId,
     start.toISOString(),
     end.toISOString(),
-    queryWithSpanIdAndTraceId
+    queryWithEventData
   );
 }

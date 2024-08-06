@@ -16,7 +16,6 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
-from sentry import projectoptions
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -385,7 +384,6 @@ class Project(Model, PendingDeletionMixin):
             )
         else:
             super().save(*args, **kwargs)
-        self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
         path = f"/organizations/{self.organization.slug}/issues/"
@@ -424,15 +422,10 @@ class Project(Model, PendingDeletionMixin):
         return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
-        projectoptions.update_rev_for_option(self)
         return self.option_manager.set_value(self, key, value)
 
     def delete_option(self, key: str) -> None:
-        projectoptions.update_rev_for_option(self)
         self.option_manager.unset_value(self, key)
-
-    def update_rev_for_option(self):
-        return projectoptions.update_rev_for_option(self)
 
     @property
     def color(self):
@@ -473,8 +466,8 @@ class Project(Model, PendingDeletionMixin):
 
     def transfer_to(self, organization):
         from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.environment import Environment, EnvironmentProject
-        from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
@@ -721,13 +714,13 @@ class Project(Model, PendingDeletionMixin):
             object_identifier=project_identifier,
         )
 
-    def delete(self, **kwargs):
+    def delete(self, *args, **kwargs):
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
 
         with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
-            return super().delete(**kwargs)
+            return super().delete(*args, **kwargs)
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags

@@ -64,12 +64,14 @@ export enum MEPAlertsDataset {
 
 export type MetricAlertType = Exclude<AlertType, 'issues'>;
 
-export const DatasetMEPAlertQueryTypes: Record<Dataset, MEPAlertsQueryType> = {
+export const DatasetMEPAlertQueryTypes: Record<
+  Exclude<Dataset, 'search_issues' | Dataset.SESSIONS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  MEPAlertsQueryType
+> = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.METRICS]: MEPAlertsQueryType.CRASH_RATE,
-  [Dataset.SESSIONS]: MEPAlertsQueryType.CRASH_RATE,
 };
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
@@ -224,14 +226,12 @@ export const AlertWizardRuleTemplates: Record<
   },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
-    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
-    dataset: Dataset.SESSIONS,
+    dataset: Dataset.METRICS,
     eventTypes: EventTypes.SESSION,
   },
   crash_free_users: {
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
-    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
-    dataset: Dataset.SESSIONS,
+    dataset: Dataset.METRICS,
     eventTypes: EventTypes.USER,
   },
 };

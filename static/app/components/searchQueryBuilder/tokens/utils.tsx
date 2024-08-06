@@ -3,6 +3,10 @@ import {getFocusableTreeWalker} from '@react-aria/focus';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import type {
+  SelectOptionOrSectionWithKey,
+  SelectSectionWithKey,
+} from 'sentry/components/compactSelect/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
 
@@ -63,8 +67,26 @@ export function getDefaultFilterValue({
       return '-24h';
     case FieldValueType.DURATION:
       return '10ms';
+    case FieldValueType.PERCENTAGE:
+      return '0.5';
     case FieldValueType.STRING:
     default:
       return '""';
   }
+}
+
+export function mergeSets<T>(...sets: Set<T>[]) {
+  const combinedSet = new Set<T>();
+  for (const set of sets) {
+    for (const value of set) {
+      combinedSet.add(value);
+    }
+  }
+  return combinedSet;
+}
+
+export function itemIsSection(
+  item: SelectOptionOrSectionWithKey<string>
+): item is SelectSectionWithKey<string> {
+  return 'options' in item;
 }

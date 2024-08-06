@@ -58,6 +58,13 @@ const formGroups: JsonFormObject[] = [
         ),
         visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
+      {
+        name: 'uptimeAutodetection',
+        type: 'boolean',
+        label: t('Automatically Configure Uptime Alerts'),
+        help: t('Detect most-used URLs for uptime monitoring.'),
+        visible: ({features}) => features.has('uptime-settings'),
+      },
     ],
   },
 
@@ -67,7 +74,6 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'defaultRole',
         type: 'select',
-        required: true,
         label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
@@ -78,9 +84,14 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'openMembership',
         type: 'boolean',
-        required: true,
         label: t('Open Membership'),
         help: t('Allow organization members to freely join any team'),
+      },
+      {
+        name: 'allowMemberProjectCreation',
+        type: 'boolean',
+        label: t('Let Members Create Projects'),
+        help: t('Allow organization members to create and configure new projects.'),
       },
       {
         name: 'eventsMemberAdmin',

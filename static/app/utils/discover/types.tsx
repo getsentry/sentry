@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export const TOP_N = 5;
 
@@ -23,10 +24,22 @@ export enum DiscoverDatasets {
   TRANSACTIONS = 'transactions',
 }
 
+export const DiscoverDatasetsToDatasetMap = {
+  [DiscoverDatasets.ERRORS]: Dataset.ERRORS,
+  [DiscoverDatasets.TRANSACTIONS]: Dataset.TRANSACTIONS,
+};
+
 export enum SavedQueryDatasets {
   DISCOVER = 'discover',
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
+}
+
+export enum DatasetSource {
+  USER = 'user',
+  UNKNOWN = 'unknown',
+  INFERRED = 'inferred',
+  FORCED = 'forced',
 }
 
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];

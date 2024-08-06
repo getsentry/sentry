@@ -332,7 +332,9 @@ class DefaultFieldsModel(Model):
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
     if not isinstance(instance, DefaultFieldsModel):
         return
-    instance.date_updated = timezone.now()
+    # Only update this field when we're updating the row, not on create.
+    if instance.pk is not None:
+        instance.date_updated = timezone.now()
 
 
 def __model_post_save(instance: models.Model, **kwargs: Any) -> None:
@@ -361,6 +363,15 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
         raise ValueError(
             f"{sender!r} model uses a set of __relocation_scope__ values, one of which is "
             f"`Excluded`, which does not make sense. `Excluded` must always be a standalone value."
+        )
+
+    if (
+        getattr(sender._meta, "app_label", None) == "getsentry"
+        and sender.__relocation_scope__ != RelocationScope.Excluded
+    ):
+        raise ValueError(
+            f"{sender!r} model is in the `getsentry` app, and therefore cannot be exported. "
+            f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
         )
 
     from .outboxes import ReplicatedControlModel, ReplicatedRegionModel

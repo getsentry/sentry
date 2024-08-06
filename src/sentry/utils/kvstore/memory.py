@@ -42,7 +42,7 @@ class MemoryKVStorage(KVStorage[K, V]):
         except KeyError:
             pass
 
-    def bootstrap(self) -> None:
+    def bootstrap(self, automatic_expiry: bool = True) -> None:
         pass
 
     def destroy(self) -> None:

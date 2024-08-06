@@ -4,6 +4,7 @@ import {useGridListItem} from '@react-aria/gridlist';
 import type {ListState} from '@react-stately/list';
 import type {FocusableElement, Node} from '@react-types/shared';
 
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
 function isInputElement(target: EventTarget): target is HTMLInputElement {
@@ -27,12 +28,18 @@ export function useQueryBuilderGridItem(
   state: ListState<ParseResultToken>,
   ref: RefObject<FocusableElement>
 ) {
+  const {wrapperRef} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useGridListItem({node: item}, state, ref);
 
   // When focus is inside the input, we want to handle some things differently.
   // Returns true if the default behavior should be used, false if not.
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>, input: HTMLInputElement): boolean => {
+      // If the focus is within a combobox menu, let the combobox handle the event
+      if (input.hasAttribute('aria-activedescendant')) {
+        return false;
+      }
+
       if (input.selectionStart === 0 && input.selectionEnd === 0) {
         // At start and going left, focus the previous grid cell (default behavior)
         if (e.key === 'ArrowLeft') {
@@ -89,7 +96,7 @@ export function useQueryBuilderGridItem(
           e.stopPropagation();
 
           // Focus the next token
-          const el = document.querySelector(
+          const el = wrapperRef.current?.querySelector(
             `[data-key="${state.collection.getKeyAfter(item.key)}"]`
           );
 
@@ -118,7 +125,7 @@ export function useQueryBuilderGridItem(
           e.stopPropagation();
 
           // Focus the previous token
-          const el = document.querySelector(
+          const el = wrapperRef.current?.querySelector(
             `[data-key="${state.collection.getKeyBefore(item.key)}"]`
           );
 
@@ -133,7 +140,7 @@ export function useQueryBuilderGridItem(
         }
       }
     },
-    [handleInputKeyDown, item.key, state.collection]
+    [handleInputKeyDown, item.key, state.collection, wrapperRef]
   );
 
   const onKeyDown = useCallback(

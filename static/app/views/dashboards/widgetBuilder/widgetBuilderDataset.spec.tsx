@@ -16,6 +16,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import {ERROR_FIELDS, ERRORS_AGGREGATION_FUNCTIONS} from 'sentry/utils/discover/fields';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
@@ -1316,6 +1317,107 @@ describe('WidgetBuilder', function () {
         expect(
           within(screen.getByTestId('sort-by-step')).getByText('count()')
         ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Errors dataset', function () {
+    it('only shows the correct aggregates for timeseries charts', async function () {
+      renderTestComponent({
+        dashboard: {
+          ...testDashboard,
+          widgets: [
+            {
+              title: 'Errors Widget',
+              interval: '1d',
+              id: '1',
+              widgetType: WidgetType.ERRORS,
+              displayType: DisplayType.LINE,
+              queries: [
+                {
+                  conditions: '',
+                  name: '',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  orderby: '-count()',
+                },
+              ],
+            },
+          ],
+        },
+        params: {
+          widgetIndex: '0',
+        },
+        orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+      });
+
+      // Open the y-axis options dropdown
+      const yAxisStep = screen
+        .getByRole('heading', {name: /choose what to plot in the y-axis/i})
+        .closest('li');
+      await userEvent.click(within(yAxisStep!).getByText('count()'));
+
+      // Verify the error aggregates are present
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(
+        ERRORS_AGGREGATION_FUNCTIONS.length
+      );
+      ERRORS_AGGREGATION_FUNCTIONS.forEach(aggregation => {
+        expect(
+          screen.getByRole('menuitemradio', {name: new RegExp(`${aggregation}\\(…?\\)`)})
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('only shows the correct aggregate params for timeseries charts', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        method: 'GET',
+        body: [],
+      });
+      renderTestComponent({
+        dashboard: {
+          ...testDashboard,
+          widgets: [
+            {
+              title: 'Errors Widget',
+              interval: '1d',
+              id: '1',
+              widgetType: WidgetType.ERRORS,
+              displayType: DisplayType.LINE,
+              queries: [
+                {
+                  conditions: '',
+                  name: '',
+                  fields: ['count_unique(user)'],
+                  columns: [],
+                  aggregates: ['count_unique(user)'],
+                  orderby: '-count_unique(user)',
+                },
+              ],
+            },
+          ],
+        },
+        params: {
+          widgetIndex: '0',
+        },
+        orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+      });
+
+      expect(await screen.findByText('Select group')).toBeInTheDocument();
+
+      // Open the aggregate parameter dropdown
+      const yAxisStep = screen
+        .getByRole('heading', {name: /choose what to plot in the y-axis/i})
+        .closest('li');
+      await userEvent.click(within(yAxisStep!).getByText('user'));
+
+      // Verify the error aggregate params are present
+      expect(screen.getAllByTestId('menu-list-item-label')).toHaveLength(
+        ERROR_FIELDS.length
+      );
+      ERROR_FIELDS.forEach(field => {
+        expect(screen.getByRole('menuitemradio', {name: field})).toBeInTheDocument();
       });
     });
   });

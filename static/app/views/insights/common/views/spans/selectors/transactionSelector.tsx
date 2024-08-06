@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -25,7 +25,6 @@ export function TransactionSelector({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
 
-  const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
   const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,18 +63,22 @@ export function TransactionSelector({
   const options = [{value: '', label: 'All'}, ...transactionOptions];
 
   return (
-    <SelectControl
-      inFieldLabel={`${t('Page')}:`}
-      inputValue={searchInputValue}
+    <CompactSelect
+      style={{maxWidth: '400px'}}
       value={value}
       options={options}
-      isLoading={isLoading}
-      onInputChange={input => {
-        setSearchInputValue(input);
-
+      emptyMessage={t('No results')}
+      loading={isLoading}
+      searchable
+      menuTitle={t('Page')}
+      maxMenuWidth={'600px'}
+      onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
-          debouncedSetSearch(input);
+          debouncedSetSearch(newValue);
         }
+      }}
+      triggerProps={{
+        prefix: t('Page'),
       }}
       onChange={newValue => {
         trackAnalytics('insight.asset.filter_by_page', {
@@ -90,7 +93,6 @@ export function TransactionSelector({
           },
         });
       }}
-      noOptionsMessage={() => t('No results')}
     />
   );
 }

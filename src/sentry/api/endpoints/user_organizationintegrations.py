@@ -8,7 +8,7 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.users.services.user.service import user_service
 
 
@@ -16,7 +16,7 @@ from sentry.users.services.user.service import user_service
 class UserOrganizationIntegrationsEndpoint(UserEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, user) -> Response:

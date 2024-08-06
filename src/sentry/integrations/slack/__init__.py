@@ -4,7 +4,6 @@ from .actions.form import *  # noqa: F401,F403
 from .actions.notification import *  # noqa: F401,F403
 from .actions.notification import SlackNotifyServiceAction
 from .analytics import *  # noqa: F401,F403
-from .client import *  # noqa: F401,F403
 from .integration import *  # noqa: F401,F403
 from .message_builder.base.base import *  # noqa: F401,F403
 from .message_builder.base.block import *  # noqa: F401,F403

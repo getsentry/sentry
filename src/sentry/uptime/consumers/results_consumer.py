@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
-from django.conf import settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
@@ -11,18 +10,19 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
+from sentry import features
 from sentry.conf.types.kafka_definition import Topic
-from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
 )
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import set_failed_url
-from sentry.uptime.issue_platform import create_issue_platform_occurrence
+from sentry.uptime.issue_platform import create_issue_platform_occurrence, resolve_uptime_issue
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
@@ -61,24 +61,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
 
-    def handle_result(self, subscription: UptimeSubscription, result: CheckResult):
+    def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
+        logger.info("process_result", extra=result)
+
+        if subscription is None:
+            # TODO: We probably want to want to publish a tombstone
+            # subscription here
+            metrics.incr("uptime.result_processor.subscription_not_found", sample_rate=1.0)
+            return
+
         project_subscriptions = list(subscription.projectuptimesubscription_set.all())
-        if not project_subscriptions:
-            # XXX: Hack for now, just create a fake row. Once we remove this, we should instead
-            # drop the uptime subscription
-            try:
-                project = Project.objects.get(id=settings.UPTIME_POC_PROJECT_ID)
-            except Project.DoesNotExist:
-                pass
-            else:
-                project_subscriptions = [
-                    ProjectUptimeSubscription(
-                        id=subscription.id,
-                        uptime_subscription=subscription,
-                        project=project,
-                        mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-                    )
-                ]
 
         cluster = _get_cluster()
         last_updates: list[str | None] = cluster.mget(
@@ -88,8 +80,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         for last_update_raw, project_subscription in zip(last_updates, project_subscriptions):
             last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
             self.handle_result_for_project(project_subscription, result, last_update_ms)
-
-        logger.info("process_result", extra=result)
 
     def handle_result_for_project(
         self,
@@ -101,7 +91,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             "status": result["status"],
             "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),
         }
-        metrics.incr("uptime.result_processor.handle_result_for_project", tags=metric_tags)
+
+        status_reason = "none"
+        if result["status_reason"]:
+            status_reason = result["status_reason"]["type"]
+
+        metrics.incr(
+            "uptime.result_processor.handle_result_for_project",
+            tags={"status_reason": status_reason, **metric_tags},
+            sample_rate=1.0,
+        )
         cluster = _get_cluster()
         try:
             if result["scheduled_check_time_ms"] <= last_update_ms:
@@ -110,7 +109,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # the same check multiple times and sending duplicate results.
                 # We only ever want to process the first value related to each check, so we just skip and log here
                 metrics.incr(
-                    "uptime.result_processor.skipping_already_processed_update", tags=metric_tags
+                    "uptime.result_processor.skipping_already_processed_update",
+                    tags=metric_tags,
+                    sample_rate=1.0,
                 )
                 return
 
@@ -157,7 +158,22 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # Mark the url as failed so that we don't attempt to auto-detect it for a while
                 set_failed_url(project_subscription.uptime_subscription.url)
                 redis.delete(key)
-                metrics.incr("uptime.result_processor.autodetection.failed_onboarding")
+                status_reason = "unknown"
+                if result["status_reason"]:
+                    status_reason = result["status_reason"]["type"]
+                metrics.incr(
+                    "uptime.result_processor.autodetection.failed_onboarding",
+                    tags={"failure_reason": status_reason},
+                    sample_rate=1.0,
+                )
+                logger.info(
+                    "uptime_onboarding_failed",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
         elif result["status"] == CHECKSTATUS_SUCCESS:
             assert project_subscription.date_added is not None
             scheduled_check_time = datetime.fromtimestamp(
@@ -177,13 +193,39 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
                 )
                 remove_uptime_subscription_if_unused(onboarding_subscription)
-                metrics.incr("uptime.result_processor.autodetection.graduated_onboarding")
+                metrics.incr(
+                    "uptime.result_processor.autodetection.graduated_onboarding", sample_rate=1.0
+                )
+                logger.info(
+                    "uptime_onboarding_graduated",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
 
     def handle_result_for_project_active_mode(
         self, project_subscription: ProjectUptimeSubscription, result: CheckResult
     ):
-        if result["status"] == CHECKSTATUS_FAILURE:
-            create_issue_platform_occurrence(result, project_subscription)
+        if (
+            project_subscription.uptime_status == UptimeStatus.OK
+            and result["status"] == CHECKSTATUS_FAILURE
+        ):
+            if features.has(
+                "organizations:uptime-create-issues", project_subscription.project.organization
+            ):
+                create_issue_platform_occurrence(result, project_subscription)
+            project_subscription.update(uptime_status=UptimeStatus.FAILED)
+        elif (
+            project_subscription.uptime_status == UptimeStatus.FAILED
+            and result["status"] == CHECKSTATUS_SUCCESS
+        ):
+            if features.has(
+                "organizations:uptime-create-issues", project_subscription.project.organization
+            ):
+                resolve_uptime_issue(project_subscription)
+            project_subscription.update(uptime_status=UptimeStatus.OK)
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):

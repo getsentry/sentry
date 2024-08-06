@@ -1,8 +1,7 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
-import type {PLATFORM_TO_ICON} from 'platformicons/build/platformIcon';
 
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
 import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
@@ -20,7 +19,9 @@ import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -33,8 +34,6 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 import PerformanceOnboarding from 'sentry/views/performance/onboarding';
 
-type PlatformIcons = keyof typeof PLATFORM_TO_ICON;
-
 export function ModulesOnboarding({
   children,
   moduleName,
@@ -44,7 +43,18 @@ export function ModulesOnboarding({
 }) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
+  const {reloadProjects} = useProjects();
   const hasData = useHasFirstSpan(moduleName);
+
+  // Refetch the project metadata if the selected project does not have insights data, because
+  // we may have received insight data (and subsequently updated `Project.hasInsightxx`)
+  // after the initial project fetch.
+  useEffect(() => {
+    if (!hasData) {
+      reloadProjects();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasData]);
 
   if (onboardingProject) {
     return (
@@ -109,7 +119,7 @@ type ModulePreviewProps = {moduleName: ModuleName};
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
-  const [hoveredIcon, setHoveredIcon] = useState<PlatformIcons | null>(null);
+  const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
   return (
     <ModulePreviewContainer>
@@ -118,7 +128,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
         <SupportedSdkContainer>
           <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
-            {emptyStateContent.supportedSdks.map((sdk: PlatformIcons) => (
+            {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
               <Tooltip title={startCase(sdk)} key={sdk} position="top">
                 <SupportedSdkIconContainer
                   onMouseOver={() => setHoveredIcon(sdk)}
@@ -203,6 +213,7 @@ const SupportedSdkList = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(0.5)};
+  justify-content: center;
 `;
 
 const SupportedSdkIconContainer = styled('div')`
@@ -232,7 +243,7 @@ type EmptyStateContent = {
   imageSrc: any;
   valuePropDescription: React.ReactNode;
   valuePropPoints: React.ReactNode[];
-  supportedSdks?: PlatformIcons[];
+  supportedSdks?: PlatformKey[];
 };
 
 const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
@@ -254,6 +265,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Real user performance metrics.'),
     ],
     imageSrc: appStartPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   ai: {
     heading: t('Find out what your LLM model is actually saying'),
@@ -279,6 +291,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     imageSrc: llmPreviewImg,
+    supportedSdks: ['python'],
   },
   // Mobile UI is not released yet
   'mobile-ui': {
@@ -304,16 +317,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Hit / miss ratio of keys accessed by your application.'),
     ],
     imageSrc: cachesPreviewImg,
-    supportedSdks: [
-      'ruby',
-      'python',
-      'javascript',
-      'java',
-      'dotnet',
-      'php-laravel',
-      'php-symfony',
-      'python-django',
-    ],
+    supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
   },
   db: {
     heading: tct(
@@ -376,6 +380,21 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     imageSrc: assetsPreviewImg,
+    // TODO - this is a lot of manual work, and its duplicated between here and our docs, it would great if there's a single source of truth
+    supportedSdks: [
+      'javascript',
+      'javascript-angular',
+      'javascript-astro',
+      'javascript-ember',
+      'javascript-gatsby',
+      'javascript-nextjs',
+      'javascript-react',
+      'javascript-remix',
+      'javascript-solid',
+      'javascript-svelte',
+      'javascript-sveltekit',
+      'javascript-vue',
+    ],
   },
   vital: {
     heading: t('Finally answer, is this page slow for everyone or just me?'),
@@ -409,6 +428,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Published vs., processed job volume.'),
     ],
     imageSrc: queuesPreviewImg,
+    supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
   },
   screen_load: {
     heading: t(`Don’t lose your user's attention once your app loads`),
@@ -428,5 +448,6 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Drill down to real user sessions.'),
     ],
     imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
 };

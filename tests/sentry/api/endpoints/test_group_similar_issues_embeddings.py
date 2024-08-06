@@ -227,6 +227,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "exception_type": "ZeroDivisionError",
             "read_only": True,
             "referrer": "similar_issues",
+            "use_reranking": True,
             "k": 1,
         }
 
@@ -344,6 +345,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
                 "raw_similar_issue_data": {
                     "message_distance": 0.05,
@@ -367,10 +369,17 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
+    @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_nonexistent_group(self, mock_seer_request, mock_logger, mock_metrics_incr):
+    def test_nonexistent_group(
+        self,
+        mock_seer_similarity_request,
+        mock_logger,
+        mock_metrics_incr,
+        mock_seer_deletion_request,
+    ):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
         Test that these groups are not returned.
@@ -393,7 +402,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 },
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_seer_similarity_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
         response = self.client.get(self.path)
 
         mock_metrics_incr.assert_any_call(
@@ -417,6 +428,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "project_id": self.project.id,
             },
         )
+        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["not a real hash"])
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -549,6 +561,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
             ),
             headers={"content-type": "application/json;charset=utf-8"},
@@ -577,6 +590,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                     "k": 1,
                 },
             ),
@@ -606,7 +620,19 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
+                    "use_reranking": True,
                 },
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_obeys_useReranking_query_param(self, mock_seer_request):
+        for incoming_value, outgoing_value in [("true", True), ("false", False)]:
+            self.client.get(self.path, data={"useReranking": incoming_value})
+
+            assert mock_seer_request.call_count == 1
+            request_params = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+            assert request_params["use_reranking"] == outgoing_value
+
+            mock_seer_request.reset_mock()

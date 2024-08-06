@@ -127,8 +127,8 @@ export function FlamegraphSpans({
 
     const drawSpans = () => {
       spansRenderer.draw(
-        spansView.configView.transformRect(spansView.configSpaceTransform),
-        spansView.fromConfigView(spansCanvas.physicalSpace)
+        spansView.toOriginConfigView(spansView.configView),
+        spansView.fromTransformedConfigView(spansCanvas.physicalSpace)
       );
     };
 
@@ -174,7 +174,17 @@ export function FlamegraphSpans({
     if (!span_id) {
       return;
     }
-    const span = spanChart.spans.find(s => s.node.span.span_id === span_id);
+
+    const span = spanChart.spans.find(s => {
+      if ('span_id' in s.node.span && s.node.span.span_id === span_id) {
+        return true;
+      }
+      if ('event_id' in s.node.span && s.node.span.event_id === span_id) {
+        return true;
+      }
+      return false;
+    });
+
     if (!span) {
       return;
     }

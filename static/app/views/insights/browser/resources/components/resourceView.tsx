@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -9,7 +10,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
-import SelectControlWithProps from 'sentry/views/insights/browser/resources/components/selectControlWithProps';
 import ResourceTable from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
 import {
   FONT_FILE_EXTENSIONS,
@@ -25,7 +25,6 @@ import {
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
-import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionSelector} from 'sentry/views/insights/common/views/spans/selectors/transactionSelector';
 import {SpanTimeCharts} from 'sentry/views/insights/common/views/spans/spanTimeCharts';
@@ -55,8 +54,6 @@ function ResourceView() {
 
   const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
 
-  useHasDataTrackAnalytics(ModuleName.RESOURCE, 'insight.page_loads.assets');
-
   return (
     <Fragment>
       <SpanTimeChartsContainer>
@@ -68,14 +65,14 @@ function ResourceView() {
         />
       </SpanTimeChartsContainer>
 
-      <FilterOptionsContainer columnCount={3}>
+      <DropdownContainer>
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
         <TransactionSelector
           value={filters[TRANSACTION] || ''}
           defaultResourceTypes={DEFAULT_RESOURCE_TYPES}
         />
         <RenderBlockingSelector value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''} />
-      </FilterOptionsContainer>
+      </DropdownContainer>
       <ResourceTable sort={sort} defaultResourceTypes={DEFAULT_RESOURCE_TYPES} />
     </Fragment>
   );
@@ -105,10 +102,11 @@ function ResourceTypeSelector({value}: {value?: string}) {
   ];
 
   return (
-    <SelectControlWithProps
-      inFieldLabel={`${t('Type')}:`}
+    <CompactSelect
+      style={{maxWidth: '200px'}}
+      triggerProps={{prefix: `${t('Type')}`}}
       options={options}
-      value={value}
+      value={value ?? ''}
       onChange={newValue => {
         trackAnalytics('insight.asset.filter_by_type', {
           organization,
@@ -131,12 +129,11 @@ export const SpanTimeChartsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export const FilterOptionsContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  grid-template-columns: repeat(${props => props.columnCount}, 1fr);
+const DropdownContainer = styled('div')`
+  display: flex;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
-  max-width: 800px;
+  flex-wrap: wrap;
 `;
 
 export default ResourceView;

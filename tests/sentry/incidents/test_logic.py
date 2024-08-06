@@ -11,7 +11,11 @@ from django.forms import ValidationError
 from django.test import override_settings
 from django.utils import timezone
 from slack_sdk.web.slack_response import SlackResponse
+from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.response import HTTPResponse
 
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
@@ -81,17 +85,18 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import GroupStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -457,6 +462,21 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
+    def setUp(self):
+        super().setUp()
+        self.dynamic_metric_alert_settings = {
+            "name": "hello",
+            "query": "level:error",
+            "aggregate": "count(*)",
+            "time_window": 30,
+            "threshold_type": AlertRuleThresholdType.ABOVE,
+            "threshold_period": 1,
+            "event_types": [SnubaQueryEventType.EventType.ERROR],
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+        }
+
     def test_create_alert_rule(self):
         # pytest parametrize does not work in TestCase subclasses, so hack around this
         # TODO: backfill projects so all monitor_types include 'projects' fk
@@ -744,25 +764,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
 
-    def test_create_alert_default_resolution(self):
-        time_window = 1440
-
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "custom metric alert",
-            "transaction.duration:>=1000",
-            "count()",
-            time_window,
-            AlertRuleThresholdType.ABOVE,
-            1,
-            query_type=SnubaQuery.Type.PERFORMANCE,
-            dataset=Dataset.Metrics,
-        )
-
-        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_create_alert_resolution_load_shedding(self):
         time_window = 1440
 
@@ -784,7 +785,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_create_alert_load_shedding_comparison(self):
         time_window = 1440
 
@@ -809,6 +809,155 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             * 60
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_create_alert_rule_anomaly_detection(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_weeks_ago + timedelta(minutes=1))
+        self.create_event(two_weeks_ago + timedelta(days=10))
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            **self.dynamic_metric_alert_settings,
+        )
+
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
+        assert alert_rule.status == AlertRuleStatus.PENDING.value
+        assert alert_rule.sensitivity == self.dynamic_metric_alert_settings["sensitivity"]
+        assert alert_rule.seasonality == self.dynamic_metric_alert_settings["seasonality"]
+        assert alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
+        assert alert_rule.snuba_query.subscriptions.all().count() == 1
+        assert alert_rule.snuba_query.type == SnubaQuery.Type.ERROR.value
+        assert alert_rule.snuba_query.dataset == Dataset.Events.value
+        assert alert_rule.snuba_query.query == self.dynamic_metric_alert_settings["query"]
+        assert alert_rule.snuba_query.aggregate == self.dynamic_metric_alert_settings["aggregate"]
+        assert (
+            alert_rule.snuba_query.time_window
+            == self.dynamic_metric_alert_settings["time_window"] * 60
+        )
+        assert alert_rule.snuba_query.resolution == 120
+        assert set(alert_rule.snuba_query.event_types) == set(
+            self.dynamic_metric_alert_settings["event_types"]
+        )
+        assert (
+            alert_rule.threshold_type == self.dynamic_metric_alert_settings["threshold_type"].value
+        )
+        assert alert_rule.threshold_period == self.dynamic_metric_alert_settings["threshold_period"]
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_create_alert_rule_anomaly_detection_not_enough_data(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_days_ago + timedelta(minutes=1))
+        self.create_event(two_days_ago + timedelta(days=1))
+
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            **self.dynamic_metric_alert_settings,
+        )
+
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_create_alert_rule_anomaly_detection_no_data(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        # no events, so we expect _get_start_and_end to return -1, -1
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            **self.dynamic_metric_alert_settings,
+        )
+
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.name == self.dynamic_metric_alert_settings["name"]
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.store_data.logger")
+    def test_create_alert_rule_anomaly_detection_seer_timeout_max_retry(
+        self, mock_logger, mock_seer_request
+    ):
+        mock_seer_request.side_effect = TimeoutError
+
+        with pytest.raises(TimeoutError):
+            create_alert_rule(
+                self.organization,
+                [self.project],
+                **self.dynamic_metric_alert_settings,
+            )
+
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert not SnubaQuery.objects.filter(
+            aggregate=self.dynamic_metric_alert_settings["aggregate"],
+            query=self.dynamic_metric_alert_settings["query"],
+            time_window=self.dynamic_metric_alert_settings["time_window"],
+        ).exists()
+        assert mock_logger.warning.call_count == 1
+        assert mock_seer_request.call_count == 1
+
+        mock_seer_request.reset_mock()
+        mock_logger.reset_mock()
+
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+
+        with pytest.raises(TimeoutError):
+            create_alert_rule(
+                self.organization,
+                [self.project],
+                **self.dynamic_metric_alert_settings,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert not SnubaQuery.objects.filter(
+            aggregate=self.dynamic_metric_alert_settings["aggregate"],
+            query=self.dynamic_metric_alert_settings["query"],
+            time_window=self.dynamic_metric_alert_settings["time_window"],
+        ).exists()
+        assert mock_logger.warning.call_count == 1
+        assert mock_seer_request.call_count == 1
+
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_create_alert_rule_anomaly_detection_no_feature(self, mock_seer_request):
+        with pytest.raises(ResourceDoesNotExist):
+            create_alert_rule(
+                self.organization,
+                [self.project],
+                **self.dynamic_metric_alert_settings,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert not SnubaQuery.objects.filter(
+            aggregate=self.dynamic_metric_alert_settings["aggregate"],
+            query=self.dynamic_metric_alert_settings["query"],
+            time_window=self.dynamic_metric_alert_settings["time_window"],
+        ).exists()
+        assert mock_seer_request.call_count == 0
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1153,7 +1302,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_update_alert_load_shedding_on_window(self):
         time_window = 1440
         alert_rule = create_alert_rule(
@@ -1181,7 +1329,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_update_alert_load_shedding_on_window_with_comparison(self):
         time_window = 1440
         comparison_delta = 60
@@ -1217,7 +1364,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             * 60
         )
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_update_alert_load_shedding_on_comparison(self):
         time_window = 1440
         comparison_delta = 60
@@ -1245,7 +1391,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             * 60
         )
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_update_alert_load_shedding_on_comparison_and_window(self):
         time_window = 1440
         comparison_delta = 60
@@ -1277,7 +1422,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    def test_update_detection_type(self):
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_detection_type(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
         comparison_delta = 60
         # test percent to dynamic
         rule = self.create_alert_rule(
@@ -1290,6 +1439,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
         )
 
         assert updated_rule.comparison_delta is None
@@ -1302,6 +1452,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
         )
 
         updated_rule = update_alert_rule(
@@ -1331,6 +1482,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
         )
 
         assert updated_rule.sensitivity == AlertRuleSensitivity.HIGH
@@ -1355,6 +1507,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sensitivity=AlertRuleSensitivity.HIGH,
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
         )
 
         updated_rule = update_alert_rule(rule, detection_type=AlertRuleDetectionType.STATIC)
@@ -1363,6 +1516,319 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert updated_rule.sensitivity is None
         assert updated_rule.seasonality is None
         assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # test dynamic to dynamic
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, detection_type=AlertRuleDetectionType.DYNAMIC, time_window=30
+        )
+        assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_infer_detection_type(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+        # static to static
+        rule = self.create_alert_rule()
+        updated_rule = update_alert_rule(rule, time_window=15)
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # static to percent
+        rule = self.create_alert_rule()
+        updated_rule = update_alert_rule(rule, comparison_delta=60)
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # percent to percent
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        updated_rule = update_alert_rule(rule, time_window=15)
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # percent to static
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        updated_rule = update_alert_rule(rule, comparison_delta=None)
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # dynamic to percent
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=60, sensitivity=None, seasonality=None
+        )
+
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # dynamic to static
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=None, sensitivity=None, seasonality=None
+        )
+
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_dynamic_alerts(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        dynamic_rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        mock_seer_request.reset_mock()
+        # update time_window
+        update_alert_rule(dynamic_rule, time_window=30)
+        assert mock_seer_request.call_count == 0
+        mock_seer_request.reset_mock()
+        # update name
+        update_alert_rule(dynamic_rule, name="everything is broken")
+        assert mock_seer_request.call_count == 0
+        mock_seer_request.reset_mock()
+        # update query
+        update_alert_rule(
+            dynamic_rule,
+            query="is:unresolved",
+            time_window=30,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        mock_seer_request.reset_mock()
+        # update aggregate
+        update_alert_rule(
+            dynamic_rule,
+            aggregate="count_unique(user)",
+            time_window=30,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_dynamic_alert_static_to_dynamic(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        static_rule = self.create_alert_rule(time_window=30)
+        update_alert_rule(
+            static_rule,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_dynamic_alert_percent_to_dynamic(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+        percent_rule = self.create_alert_rule(
+            comparison_delta=60, time_window=30, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        update_alert_rule(
+            percent_rule,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_alert_rule_static_to_dynamic_enough_data(self, mock_seer_request):
+        """
+        Assert that the status is PENDING if enough data exists.
+        """
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_weeks_ago + timedelta(minutes=1))
+        self.create_event(two_weeks_ago + timedelta(days=10))
+
+        alert_rule = self.create_alert_rule(
+            time_window=30, detection_type=AlertRuleDetectionType.STATIC
+        )
+        update_alert_rule(
+            alert_rule,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.status == AlertRuleStatus.PENDING.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_alert_rule_static_to_dynamic_not_enough_data(self, mock_seer_request):
+        """
+        Assert that the status is NOT_ENOUGH_DATA if we don't have 7 days of data.
+        """
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_days_ago + timedelta(minutes=1))
+        self.create_event(two_days_ago + timedelta(days=1))
+
+        alert_rule = self.create_alert_rule(
+            time_window=30, detection_type=AlertRuleDetectionType.STATIC
+        )
+        update_alert_rule(
+            alert_rule,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.store_data.logger")
+    def test_update_alert_rule_anomaly_detection_seer_timeout_max_retry(
+        self, mock_logger, mock_seer_request
+    ):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+        dynamic_rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        mock_seer_request.reset_mock()
+
+        mock_seer_request.side_effect = TimeoutError
+
+        with pytest.raises(TimeoutError):
+            # attempt to update query
+            update_alert_rule(
+                dynamic_rule,
+                time_window=30,
+                query="is:unresolved",
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                seasonality=AlertRuleSeasonality.AUTO,
+            )
+
+        assert mock_logger.warning.call_count == 1
+        assert mock_seer_request.call_count == 1
+
+        mock_seer_request.reset_mock()
+        mock_logger.reset_mock()
+
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+        with pytest.raises(TimeoutError):
+            # attempt to update query
+            update_alert_rule(
+                dynamic_rule,
+                time_window=30,
+                query="is:unresolved",
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                seasonality=AlertRuleSeasonality.AUTO,
+            )
+
+        assert mock_logger.warning.call_count == 1
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.store_data.logger")
+    def test_update_alert_rule_static_to_anomaly_detection_seer_timeout(
+        self, mock_logger, mock_seer_request
+    ):
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+        static_rule = self.create_alert_rule(time_window=30)
+        with pytest.raises(TimeoutError):
+            update_alert_rule(
+                static_rule,
+                time_window=30,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                seasonality=AlertRuleSeasonality.AUTO,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+            )
+        static_rule.refresh_from_db()
+        assert static_rule.detection_type == AlertRuleDetectionType.STATIC
+
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_alert_rule_anomaly_detection_no_feature(self, mock_seer_request):
+        static_rule = self.create_alert_rule(time_window=30)
+
+        with pytest.raises(ResourceDoesNotExist):
+            update_alert_rule(
+                static_rule,
+                time_window=30,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                seasonality=AlertRuleSeasonality.AUTO,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+            )
+
+        assert mock_seer_request.call_count == 0
+        assert static_rule.detection_type == AlertRuleDetectionType.STATIC
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_invalid_time_window(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=15,
+        )
+
+        with pytest.raises(ValidationError):
+            update_alert_rule(rule, detection_type=AlertRuleDetectionType.DYNAMIC, time_window=300)
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1426,7 +1892,7 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
 
-class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
+class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
     def alert_rule(self):
         return self.create_alert_rule()
@@ -1490,6 +1956,23 @@ class CreateAlertRuleTriggerTest(TestCase):
         with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             create_alert_rule_trigger(self.alert_rule, name, 100)
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        rule = self.create_alert_rule(
+            time_window=15,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        create_alert_rule_trigger(rule, "yay", 0)
+        with pytest.raises(ValidationError):
+            create_alert_rule_trigger(rule, "no", 10)
+
 
 class UpdateAlertRuleTriggerTest(TestCase):
     @cached_property
@@ -1543,6 +2026,23 @@ class UpdateAlertRuleTriggerTest(TestCase):
 
         with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        rule = self.create_alert_rule(
+            time_window=15,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        trigger = create_alert_rule_trigger(rule, "yay", 0)
+        with pytest.raises(ValidationError):
+            update_alert_rule_trigger(trigger, alert_threshold=10)
 
 
 class DeleteAlertRuleTriggerTest(TestCase):
@@ -2925,24 +3425,16 @@ class TestCustomMetricAlertRule(TestCase):
 
 
 class TestGetAlertResolution(TestCase):
-    def test_without_feature(self):
-        time_window = 30
-        result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_RESOLUTION
-
-    @with_feature("organizations:metric-alert-load-shedding")
-    def test_enabled_feature(self):
+    def test_simple(self):
         time_window = 30
         result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_low_range(self):
         time_window = 2
         result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_RESOLUTION
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_high_range(self):
         last_window = list(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())[-1]
         time_window = last_window + 1000
@@ -2950,7 +3442,6 @@ class TestGetAlertResolution(TestCase):
 
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window]
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_mid_range(self):
         time_window = 125
         result = get_alert_resolution(time_window, self.organization)
@@ -2958,7 +3449,6 @@ class TestGetAlertResolution(TestCase):
         # 125 is not part of the dict, will round down to the lower window of 120
         assert result == 3
 
-    @with_feature("organizations:metric-alert-load-shedding")
     def test_crazy_low_range(self):
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)

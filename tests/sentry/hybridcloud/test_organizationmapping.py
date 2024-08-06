@@ -47,6 +47,10 @@ def assert_matching_organization_mapping(
         )
         assert org_mapping.require_email_verification == bool(org.flags.require_email_verification)
         assert org_mapping.codecov_access == bool(org.flags.codecov_access)
+        assert org_mapping.disable_member_project_creation == bool(
+            org.flags.disable_member_project_creation
+        )
+        assert org_mapping.prevent_superuser_access == bool(org.flags.prevent_superuser_access)
 
 
 @control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)

@@ -38,11 +38,13 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
+  type SavedQueryDatasets,
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {WidgetType} from 'sentry/views/dashboards/types';
 import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -65,6 +67,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
 };
@@ -1189,12 +1192,17 @@ class EventView {
 
   getResultsViewUrlTarget(
     slug: string,
-    isHomepage: boolean = false
+    isHomepage: boolean = false,
+    queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';
+    const query = this.generateQueryStringObject();
+    if (queryDataset) {
+      query.queryDataset = queryDataset;
+    }
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
-      query: this.generateQueryStringObject(),
+      query: query,
     };
   }
 
@@ -1438,7 +1446,7 @@ class EventView {
 
 export type ImmutableEventView = Readonly<Omit<EventView, 'additionalConditions'>>;
 
-const isFieldsSimilar = (
+export const isFieldsSimilar = (
   currentValue: Array<string>,
   otherValue: Array<string>
 ): boolean => {

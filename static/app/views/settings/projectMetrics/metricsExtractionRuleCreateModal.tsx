@@ -31,7 +31,7 @@ interface Props {
   projectId?: string | number;
 }
 
-const INITIAL_DATA: FormData = {
+export const INITIAL_DATA: FormData = {
   spanAttribute: null,
   unit: 'none',
   aggregates: ['count'],
@@ -109,7 +109,7 @@ export function MetricsExtractionRuleCreateModal({
   return (
     <Fragment>
       <Header>
-        <h4>{t('Configure Metric')}</h4>
+        <h4>{t('Create Metric')}</h4>
       </Header>
       <CloseButton />
       <Body>
@@ -122,6 +122,7 @@ export function MetricsExtractionRuleCreateModal({
               options={projectOptions}
               value={projectId}
               onChange={({value}) => setProjectId(value)}
+              stacked={false}
             />
           </ProjectSelectionWrapper>
         ) : null}
@@ -198,6 +199,7 @@ function FormWrapper({
     },
     [closeModal, projectId, createExtractionRuleMutation]
   );
+
   return (
     <MetricsExtractionRuleForm
       initialData={initialData}
@@ -207,15 +209,16 @@ function FormWrapper({
       onCancel={closeModal}
       onSubmit={handleSubmit}
       cardinality={cardinality}
+      submitDisabled={createExtractionRuleMutation.isLoading}
     />
   );
 }
 
 const ProjectSelectionWrapper = styled('div')`
   padding-bottom: ${space(2)};
-  padding-left: ${space(2)};
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  & > label {
+    color: ${p => p.theme.gray300};
   }
 `;
 

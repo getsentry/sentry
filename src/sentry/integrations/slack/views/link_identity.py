@@ -1,5 +1,6 @@
 import logging
 
+from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
 from django.http import Http404, HttpRequest, HttpResponse
@@ -25,6 +26,7 @@ from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
+from . import SALT
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
@@ -59,7 +61,7 @@ class SlackLinkIdentityView(BaseView):
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
         try:
-            params = unsign(signed_params)
+            params = unsign(signed_params, salt=SALT)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("dispatch.signature_error", exc_info=e)
             metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
@@ -103,6 +105,9 @@ class SlackLinkIdentityView(BaseView):
         )
 
     def post(self, request: Request, *args, **kwargs) -> HttpResponse:
+        if isinstance(request.user, AnonymousUser):
+            return HttpResponse(status=401)
+
         try:
             params_dict = kwargs["params"]
             params = IdentityParams(

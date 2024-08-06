@@ -13,7 +13,10 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';
 import {isAggregateField, isEquation, isMeasurement} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DiscoverDatasetsToDatasetMap,
+} from 'sentry/utils/discover/types';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,
@@ -136,6 +139,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   dataset?: DiscoverDatasets;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
+  includeTransactions?: boolean;
   /**
    * Used to define the max height of the menu in px.
    */
@@ -160,6 +164,7 @@ function SearchBar(props: SearchBarProps) {
     customMeasurements,
     dataset,
     savedSearchType = SavedSearchType.EVENT,
+    includeTransactions = true,
   } = props;
 
   const api = useApi();
@@ -217,9 +222,10 @@ function SearchBar(props: SearchBarProps) {
               projectIds: projectIdStrings,
               endpointParams,
               // allows searching for tags on transactions as well
-              includeTransactions: true,
+              includeTransactions: includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
+              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
             });
 
       return fetchPromise.then(
@@ -243,7 +249,8 @@ function SearchBar(props: SearchBarProps) {
     const combinedTags: TagCollection =
       dataset === DiscoverDatasets.ERRORS
         ? Object.assign({}, functionTags, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
-        : dataset === DiscoverDatasets.TRANSACTIONS
+        : dataset === DiscoverDatasets.TRANSACTIONS ||
+            dataset === DiscoverDatasets.METRICS_ENHANCED
           ? Object.assign(
               {},
               measurementsWithKind,

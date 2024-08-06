@@ -17,6 +17,16 @@ if TYPE_CHECKING:
 
 
 class FeatureHandler:
+    """
+    Base class for defining custom logic for feature decisions.
+
+    Subclasses should implement `has` and contain the logic
+    necessary for the feature check.
+
+    Generally FeatureHandlers are only implemented in `getsentry.features`
+    as we don't programatically release features in self-hosted.
+    """
+
     features: MutableSet[str] = set()
 
     def __call__(self, feature: Feature, actor: User) -> bool | None:
@@ -50,13 +60,20 @@ class FeatureHandler:
         raise NotImplementedError
 
 
-# It is generally better to extend BatchFeatureHandler if it is possible to do
-# the check with no more than the feature name, organization, and actor. If it
-# needs to unpack the Feature object and examine the flagged entity, extend
-# FeatureHandler directly.
-
-
 class BatchFeatureHandler(FeatureHandler):
+    """
+    Base class for feature handlers that apply to an organization
+    and an optional collection of `objects` (e.g. projects).
+
+    Subclasses are expected to implement `_check_for_batch` and perform a feature check
+    using only the organization.
+
+    It is generally better to extend BatchFeatureHandler if it is possible to do
+    the check with no more than the feature name, organization, and actor. If it
+    needs to unpack the Feature object and examine the flagged entity, extend
+    FeatureHandler instead.
+    """
+
     @abc.abstractmethod
     def _check_for_batch(
         self, feature_name: str, entity: Organization | User, actor: User

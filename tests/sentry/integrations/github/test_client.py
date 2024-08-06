@@ -14,7 +14,7 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubAppsClient
+from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.notify_disable import notify_disable
@@ -38,7 +38,7 @@ GITHUB_CODEOWNERS = {
 }
 
 
-class GitHubAppsClientTest(TestCase):
+class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
         ten_days = timezone.now() + timedelta(days=10)
@@ -332,6 +332,40 @@ class GitHubAppsClientTest(TestCase):
         del stored_reactions["url"]
         assert reactions == stored_reactions
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_merge_commit_sha_from_commit(self, get_jwt):
+        merge_commit_sha = "jkl123"
+        pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]
+        commit_sha = "asdf"
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/commits/{commit_sha}/pulls",
+            json=pull_requests,
+        )
+
+        sha = self.github_client.get_merge_commit_sha_from_commit(
+            repo=self.repo.name, sha=commit_sha
+        )
+        assert sha == merge_commit_sha
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_merge_commit_sha_from_commit_open_pr(self, get_jwt):
+        merge_commit_sha = "jkl123"
+        pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "open"}]
+        commit_sha = "asdf"
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/commits/{commit_sha}/pulls",
+            json=pull_requests,
+        )
+
+        sha = self.github_client.get_merge_commit_sha_from_commit(
+            repo=self.repo.name, sha=commit_sha
+        )
+        assert sha is None
+
     @responses.activate
     def test_disable_email(self):
         with self.tasks():
@@ -488,7 +522,7 @@ class GithubProxyClientTest(TestCase):
         "sentry.integrations.github.client.GithubProxyClient._get_token", return_value=access_token
     )
     def test_integration_proxy_is_active(self, mock_get_token):
-        class GithubProxyTestClient(GitHubAppsClient):
+        class GithubProxyTestClient(GitHubApiClient):
             _use_proxy_url_for_tests = True
 
             def assert_proxy_request(self, request, is_proxy=True):

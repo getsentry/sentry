@@ -8,18 +8,17 @@ import pytest
 from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Partition, Topic
-from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
     CHECKSTATUS_SUCCESS,
+    CHECKSTATUSREASONTYPE_TIMEOUT,
     CheckResult,
 )
 
 from sentry.conf.types import kafka_definition
 from sentry.issues.grouptype import UptimeDomainCheckFailure
-from sentry.models.group import Group
-from sentry.remote_subscriptions.consumers.result_consumer import FAKE_SUBSCRIPTION_ID
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.consumers.results_consumer import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
@@ -33,6 +32,7 @@ from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
 )
 
@@ -65,24 +65,121 @@ class ProcessResultTest(UptimeTestCase):
 
     def test(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
-        self.send_result(result)
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    ),
+                ]
+            )
+
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_no_subscription(self):
-        # Temporary test to make sure hack fake subscription keeps working
-        other_project = self.create_project()
-        subscription_id = uuid.uuid4().hex
-        result = self.create_uptime_result(subscription_id)
-        # TODO: Remove this once we have a subscription
-        with override_settings(UPTIME_POC_PROJECT_ID=other_project.id):
+    def test_no_create_issues_feature(self):
+        result = self.create_uptime_result(self.subscription.subscription_id)
+        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
             self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    )
+                ]
+            )
 
-        hashed_fingerprint = md5(str(FAKE_SUBSCRIPTION_ID).encode("utf-8")).hexdigest()
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.get(grouphash__hash=hashed_fingerprint)
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
+    def test_resolve(self):
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    ),
+                ]
+            )
+
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
+        assert group.status == GroupStatus.UNRESOLVED
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+        )
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "success",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    )
+                ]
+            )
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.OK
+
+    def test_no_subscription(self):
+        subscription_id = uuid.uuid4().hex
+        result = self.create_uptime_result(subscription_id)
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [call("uptime.result_processor.subscription_not_found", sample_rate=1.0)]
+            )
 
     def test_skip_already_processed(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
@@ -90,17 +187,25 @@ class ProcessResultTest(UptimeTestCase):
             build_last_update_key(self.project_subscription),
             int(result["scheduled_check_time_ms"]),
         )
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.skipping_already_processed_update",
                         tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -116,11 +221,17 @@ class ProcessResultTest(UptimeTestCase):
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+            self.feature("organizations:uptime-create-issues"),
         ):
             self.send_result(result)
             metrics.incr.assert_called_once_with(
                 "uptime.result_processor.handle_result_for_project",
-                tags={"status": CHECKSTATUS_MISSED_WINDOW, "mode": "auto_detected_active"},
+                tags={
+                    "status": CHECKSTATUS_MISSED_WINDOW,
+                    "mode": "auto_detected_active",
+                    "status_reason": "timeout",
+                },
+                sample_rate=1.0,
             )
             logger.info.assert_any_call(
                 "handle_result_for_project.missed",
@@ -142,13 +253,20 @@ class ProcessResultTest(UptimeTestCase):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_onboarding"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_onboarding",
+                            "status_reason": "timeout",
+                        },
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -169,15 +287,25 @@ class ProcessResultTest(UptimeTestCase):
                 "sentry.uptime.consumers.results_consumer.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
+            self.feature("organizations:uptime-create-issues"),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_onboarding"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_onboarding",
+                            "status_reason": "timeout",
+                        },
+                        sample_rate=1.0,
                     ),
-                    call("uptime.result_processor.autodetection.failed_onboarding"),
+                    call(
+                        "uptime.result_processor.autodetection.failed_onboarding",
+                        tags={"failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT},
+                        sample_rate=1.0,
+                    ),
                 ]
             )
         assert not redis.exists(key)
@@ -204,13 +332,20 @@ class ProcessResultTest(UptimeTestCase):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+        with mock.patch(
+            "sentry.uptime.consumers.results_consumer.metrics"
+        ) as metrics, self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_SUCCESS, "mode": "auto_detected_onboarding"},
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "success",
+                            "mode": "auto_detected_onboarding",
+                        },
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -237,15 +372,23 @@ class ProcessResultTest(UptimeTestCase):
         assert redis.get(key) is None
         with mock.patch(
             "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.tasks():
+        ) as metrics, self.tasks(), self.feature("organizations:uptime-create-issues"):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_SUCCESS, "mode": "auto_detected_onboarding"},
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "success",
+                            "mode": "auto_detected_onboarding",
+                        },
+                        sample_rate=1.0,
                     ),
-                    call("uptime.result_processor.autodetection.graduated_onboarding"),
+                    call(
+                        "uptime.result_processor.autodetection.graduated_onboarding",
+                        sample_rate=1.0,
+                    ),
                 ]
             )
         assert not redis.exists(key)

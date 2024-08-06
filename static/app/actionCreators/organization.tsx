@@ -14,6 +14,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
@@ -38,6 +39,8 @@ async function fetchOrg(
   if (!org) {
     throw new Error('retrieved organization is falsey');
   }
+
+  FeatureFlagOverrides.singleton().loadOrg(org);
 
   OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);

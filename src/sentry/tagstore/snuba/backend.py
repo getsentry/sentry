@@ -1176,6 +1176,7 @@ class SnubaTagStorage(TagStorage):
         key,
         start=None,
         end=None,
+        dataset: Dataset | None = None,
         query: str | None = None,
         order_by="-last_seen",
         include_transactions: bool = False,
@@ -1193,11 +1194,12 @@ class SnubaTagStorage(TagStorage):
         if order_by == "-count":
             order_by = "-times_seen"
 
-        dataset = Dataset.Events
-        if include_transactions:
-            dataset = Dataset.Discover
-        if include_replays:
-            dataset = Dataset.Replays
+        if not dataset:
+            dataset = Dataset.Events
+            if include_transactions:
+                dataset = Dataset.Discover
+            if include_replays:
+                dataset = Dataset.Replays
 
         snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 
