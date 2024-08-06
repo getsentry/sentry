@@ -21,7 +21,6 @@ class ApiOwner(Enum):
     OWNERS_INGEST = "ingest"
     OWNERS_SNUBA = "owners-snuba"
     PERFORMANCE = "performance"
-    PROCESSING = "processing"
     PROFILING = "profiling"
     REPLAY = "replay-backend"
     SECURITY = "security"

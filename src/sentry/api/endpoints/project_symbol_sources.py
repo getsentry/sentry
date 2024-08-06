@@ -181,7 +181,7 @@ class SourceSerializer(serializers.Serializer):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,

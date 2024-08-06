@@ -48,7 +48,7 @@ class ProjectArtifactBundleFileDetailsMixin:
 class ProjectArtifactBundleFileDetailsEndpoint(
     ProjectEndpoint, ProjectArtifactBundleFileDetailsMixin
 ):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

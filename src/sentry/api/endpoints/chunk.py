@@ -53,7 +53,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     permission_classes = (OrganizationReleasePermission,)
     rate_limits = RateLimitConfig(group="CLI")
 

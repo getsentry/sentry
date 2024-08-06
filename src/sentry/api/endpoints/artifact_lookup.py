@@ -50,7 +50,7 @@ class _Artifact(TypedDict):
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
-    owner = ApiOwner.PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
