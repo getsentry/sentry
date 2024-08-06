@@ -1667,7 +1667,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_update_alert_rule_static_to_dynamic_enough_data(self, mock_seer_request):
-        # assert that the status is PENDING if enough data exists
+        """
+        Assert that the status is PENDING if enough data exists.
+        """
         mock_seer_request.return_value = HTTPResponse(status=200)
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -1692,7 +1694,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_update_alert_rule_static_to_dynamic_not_enough_data(self, mock_seer_request):
-        # assert that the status is NOT_ENOUGH_DATA if we don't have 7 days of data
+        """
+        Assert that the status is NOT_ENOUGH_DATA if we don't have 7 days of data.
+        """
         mock_seer_request.return_value = HTTPResponse(status=200)
 
         two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
