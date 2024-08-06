@@ -165,6 +165,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
 
+    def test_multi_project_feature_gate_rejection(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
+        response = self.do_request(query)
+        assert response.status_code == 400
+        assert "events from multiple projects" in response.data["detail"]
+
     def test_multi_project_feature_gate_replays(self):
         team = self.create_team(organization=self.organization, members=[self.user])
 

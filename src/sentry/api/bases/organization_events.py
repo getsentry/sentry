@@ -130,9 +130,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                         has_global_views,
                         len(params.projects) <= 1,
                         fetching_replay_data,
-                        # If a developer can view issues of a project they do not belong to
-                        # via open membership, we will also allow the endpoint to return events for it
-                        organization.flags.allow_joinleave,
                     ]
                 ):
                     raise ParseError(detail="You cannot view events from multiple projects.")
