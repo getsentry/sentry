@@ -2,7 +2,7 @@ import 'intersection-observer'; // polyfill
 
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Key, Node} from '@react-types/shared';
+import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import Badge from 'sentry/components/badge/badge';
@@ -10,7 +10,7 @@ import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import QueryCount from 'sentry/components/queryCount';
-import {TabPanels, Tabs} from 'sentry/components/tabs';
+import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -22,11 +22,14 @@ export interface Tab {
   label: string;
   content?: React.ReactNode;
   hasUnsavedChanges?: boolean;
+  query?: string;
   queryCount?: number;
   to?: LocationDescriptor;
 }
 
 export interface DraggableTabBarProps {
+  selectedTabKey: string;
+  setSelectedTabKey: (key: string) => void;
   setTabs: (tabs: Tab[]) => void;
   showTempTab: boolean;
   tabs: Tab[];
@@ -72,6 +75,8 @@ export interface DraggableTabBarProps {
 }
 
 export function DraggableTabBar({
+  selectedTabKey,
+  setSelectedTabKey,
   tabs,
   setTabs,
   tempTab,
@@ -86,7 +91,6 @@ export function DraggableTabBar({
   onDiscardTempView,
   onSaveTempView,
 }: DraggableTabBarProps) {
-  const [selectedTabKey, setSelectedTabKey] = useState<Key>(tabs[0].key);
   // TODO: Extract this to a separate component encompassing Tab.Item in the future
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
@@ -94,7 +98,7 @@ export function DraggableTabBar({
     if (!showTempTab && selectedTabKey === 'temporary-tab') {
       setSelectedTabKey(tabs[0].key);
     }
-  }, [showTempTab, selectedTabKey, tabs]);
+  }, [showTempTab, selectedTabKey, setSelectedTabKey, tabs]);
 
   const onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void = newOrder => {
     setTabs(
@@ -177,6 +181,7 @@ export function DraggableTabBar({
         showTempTab={showTempTab}
         onAddView={e => handleOnAddView(e)}
         orientation="horizontal"
+        hideBorder
       >
         {[...tabs, tempTab].map(tab => (
           <DraggableTabList.Item
@@ -213,11 +218,6 @@ export function DraggableTabBar({
           </DraggableTabList.Item>
         ))}
       </DraggableTabList>
-      <TabPanels>
-        {[...tabs, tempTab].map(tab => (
-          <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-        ))}
-      </TabPanels>
     </Tabs>
   );
 }
