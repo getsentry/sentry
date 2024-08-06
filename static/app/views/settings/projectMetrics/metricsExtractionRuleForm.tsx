@@ -22,6 +22,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
@@ -270,17 +271,35 @@ export function MetricsExtractionRuleForm({
 
     return (
       allAttributeOptions
-        .map<SelectValue<string>>(key => ({
-          label: key,
-          value: key,
-          disabled: disabledKeys.has(key),
-          tooltip: disabledKeys.has(key)
-            ? t(
-                'This attribute is already in use. Please select another one or edit the existing metric.'
-              )
-            : undefined,
-          tooltipOptions: {position: 'left'},
-        }))
+        .map<SelectValue<string>>(key => {
+          const disabledRule = disabledKeys.has(key)
+            ? extractionRules?.find(rule => rule.spanAttribute === key)
+            : undefined;
+          return {
+            label: key,
+            value: key,
+            disabled: disabledKeys.has(key),
+            tooltip: disabledKeys.has(key)
+              ? tct(
+                  'This attribute is already in use. Please select another one or [link:edit the existing metric].',
+                  {
+                    link: disabledRule ? (
+                      <Button
+                        priority="link"
+                        aria-label={t('Edit %s metric', disabledRule.spanAttribute)}
+                        onClick={() => {
+                          openExtractionRuleEditModal({
+                            metricExtractionRule: disabledRule,
+                          });
+                        }}
+                      />
+                    ) : null,
+                  }
+                )
+              : undefined,
+            tooltipOptions: {position: 'left', isHoverable: true},
+          };
+        })
         // Sort disabled attributes to bottom
         .sort((a, b) => Number(a.disabled) - Number(b.disabled))
     );
@@ -368,6 +387,7 @@ export function MetricsExtractionRuleForm({
               disabled={isEdit}
               label={
                 <TooltipIconLabel
+                  isHoverable
                   label={t('Measure')}
                   help={tct(
                     'Define the span attribute you want to track. Learn how to instrument custom attributes in [link:our docs].',
@@ -445,6 +465,7 @@ export function MetricsExtractionRuleForm({
             placeholder={t('Select aggregations')}
             label={
               <TooltipIconLabel
+                isHoverable
                 label={t('Aggregate')}
                 help={tct(
                   'Select the aggregations you’d like to view. For more information, read [link:our docs]',
@@ -661,11 +682,19 @@ function MenuList({
   );
 }
 
-function TooltipIconLabel({label, help}) {
+function TooltipIconLabel({
+  label,
+  help,
+  isHoverable,
+}: {
+  help: React.ReactNode;
+  label: React.ReactNode;
+  isHoverable?: boolean;
+}) {
   return (
     <TooltipIconLabelWrapper>
       {label}
-      <Tooltip title={help}>
+      <Tooltip title={help} isHoverable={isHoverable}>
         <IconQuestion size="sm" color="gray200" />
       </Tooltip>
     </TooltipIconLabelWrapper>
