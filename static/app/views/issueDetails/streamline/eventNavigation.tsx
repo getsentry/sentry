@@ -126,7 +126,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
         case undefined:
           return defaultIssueEvent;
         default:
-          return 'custom';
+          return EventNavOptions.CUSTOM;
       }
     };
 
@@ -189,7 +189,10 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   <TabList.Item
                     to={eventPath}
                     key={label}
-                    hidden={label === 'custom' && selectedOption !== 'custom'}
+                    hidden={
+                      label === EventNavOptions.CUSTOM &&
+                      selectedOption !== EventNavOptions.CUSTOM
+                    }
                   >
                     {EventNavLabels[label]}
                   </TabList.Item>
