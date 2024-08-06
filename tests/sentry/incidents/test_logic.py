@@ -1666,6 +1666,60 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
+    def test_update_alert_rule_static_to_dynamic_enough_data(self, mock_seer_request):
+        """
+        Assert that the status is PENDING if enough data exists.
+        """
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_weeks_ago + timedelta(minutes=1))
+        self.create_event(two_weeks_ago + timedelta(days=10))
+
+        alert_rule = self.create_alert_rule(
+            time_window=30, detection_type=AlertRuleDetectionType.STATIC
+        )
+        update_alert_rule(
+            alert_rule,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.status == AlertRuleStatus.PENDING.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_alert_rule_static_to_dynamic_not_enough_data(self, mock_seer_request):
+        """
+        Assert that the status is NOT_ENOUGH_DATA if we don't have 7 days of data.
+        """
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.create_event(two_days_ago + timedelta(minutes=1))
+        self.create_event(two_days_ago + timedelta(days=1))
+
+        alert_rule = self.create_alert_rule(
+            time_window=30, detection_type=AlertRuleDetectionType.STATIC
+        )
+        update_alert_rule(
+            alert_rule,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
     @patch("sentry.seer.anomaly_detection.store_data.logger")
     def test_update_alert_rule_anomaly_detection_seer_timeout_max_retry(
         self, mock_logger, mock_seer_request
