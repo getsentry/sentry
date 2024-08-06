@@ -1071,7 +1071,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
-        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+        query_source = self.get_request_source(request)
         with handle_query_errors():
             transaction_params = create_transaction_params(
                 trace_id, snuba_params, query_source=query_source
@@ -1719,7 +1719,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         update_snuba_params_with_timestamp(request, snuba_params)
-        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+        query_source = self.get_request_source(request)
         meta_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             selected_columns=[

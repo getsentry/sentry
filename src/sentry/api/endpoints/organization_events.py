@@ -21,7 +21,6 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams, Visibili
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
-from sentry.middleware import is_frontend_request
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
@@ -32,7 +31,6 @@ from sentry.snuba import (
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -391,7 +389,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
-            query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+            query_source = self.get_request_source(request)
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
@@ -471,14 +469,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if decision == DashboardWidgetTypes.DISCOVER:
                     return _data_fn(discover, offset, limit, scoped_query)
                 elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
-                    original_results["meta"]["discoverSplitDecision"] = (
-                        DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
-                    )
+                    original_results["meta"][
+                        "discoverSplitDecision"
+                    ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
                     return original_results
                 elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
-                    error_results["meta"]["discoverSplitDecision"] = (
-                        DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
-                    )
+                    error_results["meta"][
+                        "discoverSplitDecision"
+                    ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
                     return error_results
                 else:
                     return original_results
@@ -551,10 +549,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                     try:
                         error_results = map["errors"]
-                        error_results["meta"]["discoverSplitDecision"] = (
-                            DiscoverSavedQueryTypes.get_type_name(
-                                DiscoverSavedQueryTypes.ERROR_EVENTS
-                            )
+                        error_results["meta"][
+                            "discoverSplitDecision"
+                        ] = DiscoverSavedQueryTypes.get_type_name(
+                            DiscoverSavedQueryTypes.ERROR_EVENTS
                         )
                         has_errors = len(error_results["data"]) > 0
                     except KeyError:
@@ -562,10 +560,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                     try:
                         transaction_results = map["transactions"]
-                        transaction_results["meta"]["discoverSplitDecision"] = (
-                            DiscoverSavedQueryTypes.get_type_name(
-                                DiscoverSavedQueryTypes.TRANSACTION_LIKE
-                            )
+                        transaction_results["meta"][
+                            "discoverSplitDecision"
+                        ] = DiscoverSavedQueryTypes.get_type_name(
+                            DiscoverSavedQueryTypes.TRANSACTION_LIKE
                         )
                         has_transactions = len(transaction_results["data"]) > 0
                     except KeyError:
