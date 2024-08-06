@@ -331,7 +331,7 @@ class SlackService:
         integration: Integration,
         shared_context: Mapping[str, Any],
     ) -> None:
-        from sentry.integrations.slack.tasks.post_message import post_message, post_message_control
+        from sentry.tasks.integrations.slack.post_message import post_message, post_message_control
 
         """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
         This is used in the send_notification_as_slack function."""
