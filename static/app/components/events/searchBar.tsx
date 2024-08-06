@@ -139,6 +139,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   dataset?: DiscoverDatasets;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
+  includeTransactions?: boolean;
   /**
    * Used to define the max height of the menu in px.
    */
@@ -163,6 +164,7 @@ function SearchBar(props: SearchBarProps) {
     customMeasurements,
     dataset,
     savedSearchType = SavedSearchType.EVENT,
+    includeTransactions = true,
   } = props;
 
   const api = useApi();
@@ -220,7 +222,7 @@ function SearchBar(props: SearchBarProps) {
               projectIds: projectIdStrings,
               endpointParams,
               // allows searching for tags on transactions as well
-              includeTransactions: true,
+              includeTransactions: includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
               dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
