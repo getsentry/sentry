@@ -1232,6 +1232,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ) == {event.project.id: 1}
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert event.get_tag("sentry:user") == euser.tag_value
 
@@ -1249,6 +1250,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id_2)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert event.get_tag("sentry:user") == euser.tag_value
         assert euser.name == "jane"
@@ -1271,6 +1273,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert euser.ip_address is None
 
@@ -1282,6 +1285,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert euser.username == "foô"
 
