@@ -1448,7 +1448,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 
 SENTRY_EARLY_FEATURES = {
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:anr-improvements": "Enable anr improvements ui",
     "organizations:device-classification": "Enable device.class as a selectable column",
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
