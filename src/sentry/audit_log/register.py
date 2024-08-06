@@ -544,3 +544,13 @@ default_manager.add(
         template="Created project template {name} for organization {organization_id}",
     )
 )
+
+default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=1142,
+        name="DATA_SECRECY_REINSTATED",
+        api_name="data-secrecy.reinstated",
+    )
+)
