@@ -5,14 +5,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import {
-  STATIC_FIELD_TAGS,
-  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
-  STATIC_FIELD_TAGS_WITHOUT_TRACING,
-  STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
-  STATIC_SEMVER_TAGS,
-  STATIC_SPAN_TAGS,
-} from 'static/app/components/events/searchBarFieldConstants';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -22,6 +14,14 @@ import {
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
+import {
+  STATIC_FIELD_TAGS,
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_FIELD_TAGS_WITHOUT_TRACING,
+  STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
+  STATIC_SEMVER_TAGS,
+  STATIC_SPAN_TAGS,
+} from 'sentry/components/events/searchBarFieldConstants';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
