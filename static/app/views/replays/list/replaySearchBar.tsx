@@ -1,7 +1,8 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -9,6 +10,7 @@ import type {Organization, PageFilters, Tag, TagCollection, TagValue} from 'sent
 import {SavedSearchType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import type {FieldKey, ReplayClickFieldKey, ReplayFieldKey} from 'sentry/utils/fields';
 import {
   FieldKind,
   getFieldDefinition,
@@ -48,7 +50,10 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
 const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK_FIELDS);
 
-function getSupportedTags(supportedTags: TagCollection) {
+/**
+ * Merges organization tags and replay search fields into one collection.
+ */
+function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
   return {
     ...Object.fromEntries(
       Object.keys(supportedTags).map(key => [
@@ -64,23 +69,67 @@ function getSupportedTags(supportedTags: TagCollection) {
   };
 }
 
+function getFilterKeySections(
+  supportedTags: TagCollection,
+  organization: Organization
+): FilterKeySection[] {
+  if (!organization.features.includes('search-query-builder-replays')) {
+    return [];
+  }
+
+  const nonFieldTags: string[] = Object.values(supportedTags)
+    .map(tag => tag.key)
+    .filter(
+      key =>
+        !REPLAY_FIELDS.includes(key as ReplayFieldKey | FieldKey) &&
+        !REPLAY_CLICK_FIELDS.includes(key as ReplayClickFieldKey)
+    );
+  nonFieldTags.sort();
+
+  return [
+    {
+      value: 'replay_field',
+      label: t('Replay fields'),
+      children: REPLAY_FIELDS,
+    },
+    {
+      value: 'replay_click_field',
+      label: t('Replay Click Fields'),
+      children: REPLAY_CLICK_FIELDS,
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Tags'),
+      children: nonFieldTags,
+    },
+  ];
+}
+
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
   pageFilters: PageFilters;
-  placeholder?: string;
 };
 
 function ReplaySearchBar(props: Props) {
-  const {organization, pageFilters, placeholder} = props;
+  const {organization, pageFilters} = props;
   const api = useApi();
   const projectIds = pageFilters.projects;
-  const tags = useTags();
+  const organizationTags = useTags();
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, pageFilters);
   }, [api, organization.slug, pageFilters]);
 
+  const replayTags = useMemo(
+    () => getReplaySearchTags(organizationTags),
+    [organizationTags]
+  );
+  const filterKeySections = useMemo(
+    () => getFilterKeySections(organizationTags, organization),
+    [organizationTags, organization]
+  );
+
   const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string, _params: object): Promise<string[]> => {
+    (tag: Tag, searchQuery: string): Promise<string[]> => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
@@ -104,44 +153,58 @@ function ReplaySearchBar(props: Props) {
     [api, organization.slug, projectIds]
   );
 
-  return organization.features.includes('search-query-builder-replays') ? (
-    <SearchQueryBuilder
-      filterKeys={getSupportedTags(tags)}
-      getTagValues={(key, query) => getTagValues(key, query, {})}
-      initialQuery={props.query ?? props.defaultQuery ?? ''}
-      searchSource="replay_index"
-      className={props.className}
-      disabled={props.disabled}
-      disallowFreeText={props.disallowFreeText}
-      disallowUnsupportedFilters={props.highlightUnsupportedTags}
-      disallowWildcard={props.disallowWildcard}
-      fieldDefinitionGetter={getReplayFieldDefinition}
-      // TODO: filterKeySections
-      invalidMessages={props.invalidMessages}
-      onBlur={(query, _) => {
-        props.onBlur?.(query);
-      }}
-      onSearch={(query, _) => {
-        props.onSearch?.(query);
-      }}
-      placeholder={
-        placeholder ??
-        t('Search for users, duration, clicked elements, count_errors, and more')
+  const onSearch = props.onSearch;
+  const onSearchWithAnalytics = useCallback(
+    (query: string) => {
+      onSearch?.(query);
+      const conditions = new MutableSearch(query);
+      const searchKeys = conditions.tokens.map(({key}) => key).filter(Boolean);
+
+      if (searchKeys.length > 0) {
+        trackAnalytics('replay.search', {
+          search_keys: searchKeys.join(','),
+          organization,
+        });
       }
-      recentSearches={SavedSearchType.REPLAY}
-    />
-  ) : (
+    },
+    [onSearch, organization]
+  );
+
+  if (organization.features.includes('search-query-builder-replays')) {
+    return (
+      <SearchQueryBuilder
+        {...props}
+        onChange={undefined} // not implemented and different type from SmartSearchBar
+        disallowLogicalOperators={undefined} // ^
+        className={props.className}
+        fieldDefinitionGetter={getReplayFieldDefinition}
+        filterKeys={replayTags}
+        filterKeySections={filterKeySections}
+        getTagValues={getTagValues}
+        initialQuery={props.query ?? props.defaultQuery ?? ''}
+        onSearch={onSearchWithAnalytics}
+        searchSource={props.searchSource ?? 'replay_index'}
+        placeholder={
+          props.placeholder ??
+          t('Search for users, duration, clicked elements, count_errors, and more')
+        }
+        recentSearches={SavedSearchType.REPLAY}
+      />
+    );
+  }
+
+  return (
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={getSupportedTags(tags)}
+      supportedTags={replayTags}
       placeholder={
-        placeholder ??
+        props.placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')
       }
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
-      searchSource="replay_index"
+      searchSource={props.searchSource ?? 'replay_index'}
       savedSearchType={SavedSearchType.REPLAY}
       maxMenuHeight={500}
       hasRecentSearches
@@ -152,18 +215,7 @@ function ReplaySearchBar(props: Props) {
           documentation: t('Search by click selector. (Requires SDK version >= 7.44.0)'),
         },
       }}
-      onSearch={(query: string) => {
-        props.onSearch?.(query);
-        const conditions = new MutableSearch(query);
-        const searchKeys = conditions.tokens.map(({key}) => key).filter(Boolean);
-
-        if (searchKeys.length > 0) {
-          trackAnalytics('replay.search', {
-            search_keys: searchKeys.join(','),
-            organization,
-          });
-        }
-      }}
+      onSearch={onSearchWithAnalytics}
     />
   );
 }
