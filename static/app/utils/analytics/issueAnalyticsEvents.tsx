@@ -50,7 +50,6 @@ export type IssueEventParameters = {
   'autofix.setup_modal_viewed': {
     groupId: string;
     projectId: string;
-    setup_codebase_index: boolean;
     setup_gen_ai_consent: boolean;
     setup_integration: boolean;
     setup_write_integration: boolean;
