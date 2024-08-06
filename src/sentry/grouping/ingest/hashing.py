@@ -328,7 +328,6 @@ def get_hash_values(
     primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
 
     record_hash_calculation_metrics(
-        project,
         primary_grouping_config,
         primary_hashes,
         secondary_grouping_config,

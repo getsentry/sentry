@@ -22,7 +22,6 @@ Job = MutableMapping[str, Any]
 
 
 def record_hash_calculation_metrics(
-    project: Project,
     primary_config: GroupingConfig,
     primary_hashes: CalculatedHashes,
     secondary_config: GroupingConfig,
