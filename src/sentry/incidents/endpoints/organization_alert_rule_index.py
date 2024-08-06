@@ -9,6 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -123,26 +124,40 @@ class AlertRuleIndexMixin(Endpoint):
             find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
             return Response({"uuid": client.uuid}, status=202)
         else:
-            alert_rule = serializer.save()
-            referrer = request.query_params.get("referrer")
-            session_id = request.query_params.get("sessionId")
-            duplicate_rule = request.query_params.get("duplicateRule")
-            wizard_v3 = request.query_params.get("wizardV3")
-            subscriptions = alert_rule.snuba_query.subscriptions.all()
-            for sub in subscriptions:
-                alert_rule_created.send_robust(
-                    user=request.user,
-                    project=sub.project,
-                    rule_id=alert_rule.id,
-                    rule_type="metric",
-                    sender=self,
-                    referrer=referrer,
-                    session_id=session_id,
-                    is_api_token=request.auth is not None,
-                    duplicate_rule=duplicate_rule,
-                    wizard_v3=wizard_v3,
+            try:
+                alert_rule = serializer.save()
+                referrer = request.query_params.get("referrer")
+                session_id = request.query_params.get("sessionId")
+                duplicate_rule = request.query_params.get("duplicateRule")
+                wizard_v3 = request.query_params.get("wizardV3")
+                subscriptions = alert_rule.snuba_query.subscriptions.all()
+                for sub in subscriptions:
+                    alert_rule_created.send_robust(
+                        user=request.user,
+                        project=sub.project,
+                        rule_id=alert_rule.id,
+                        rule_type="metric",
+                        sender=self,
+                        referrer=referrer,
+                        session_id=session_id,
+                        is_api_token=request.auth is not None,
+                        duplicate_rule=duplicate_rule,
+                        wizard_v3=wizard_v3,
+                    )
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+            except (TimeoutError, MaxRetryError) as e:
+                return Response(
+                    data={"detail": str(e)}, status=status.HTTP_408_REQUEST_TIMEOUT, exception=True
                 )
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+            except (ValidationError) as e:
+                return Response(
+                    data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
+                )
+            except Exception as e:
+                # catch-all for other errors
+                return Response(
+                    data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
+                )
 
 
 @region_silo_endpoint
