@@ -25,10 +25,12 @@ export default function useDevToolbar({enabled}: {enabled: boolean}) {
         SentrySDK: Sentry,
         apiPrefix,
         environment: ['prod'],
-        organizationSlug: 'sentry',
-        projectId: 11276,
+        organizationSlug:
+          process.env.NODE_ENV !== 'development' ? 'sentry' : 'sentry-test',
+        projectId: process.env.NODE_ENV !== 'development' ? 11276 : 5270453,
         projectPlatform: 'javascript',
-        projectSlug: 'javascript',
+        projectSlug:
+          process.env.NODE_ENV !== 'development' ? 'javascript' : 'app-frontend',
         featureFlags: {
           getFeatureFlagMap: () =>
             FeatureFlagOverrides.singleton().getFeatureFlagMap(organization),

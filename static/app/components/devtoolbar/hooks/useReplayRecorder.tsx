@@ -3,6 +3,7 @@ import type {replayIntegration} from '@sentry/react';
 import type {ReplayRecordingMode} from '@sentry/types';
 
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type ReplayRecorderState = {
   disabledReason: string | undefined;
@@ -56,15 +57,15 @@ export default function useReplayRecorder(): ReplayRecorderState {
   const [isRecording, setIsRecording] = useState<boolean>(
     () => replayInternal?.isEnabled() ?? false
   );
-  const [lastReplayId, setLastReplayId] = useState<string | undefined>(
-    () => sessionStorage.getItem(LAST_REPLAY_STORAGE_KEY) || undefined
+  const [lastReplayId, setLastReplayId] = useSessionStorage<string | undefined>(
+    LAST_REPLAY_STORAGE_KEY,
+    undefined
   );
   useEffect(() => {
     if (isRecording && sessionId) {
       setLastReplayId(sessionId);
-      sessionStorage.setItem(LAST_REPLAY_STORAGE_KEY, sessionId);
     }
-  }, [isRecording, sessionId]);
+  }, [isRecording, sessionId, setLastReplayId]);
 
   const refreshState = useCallback(() => {
     setIsRecording(replayInternal?.isEnabled() ?? false);
