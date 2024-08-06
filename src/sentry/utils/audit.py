@@ -4,7 +4,6 @@ from logging import Logger
 from typing import Any
 
 from django.http.request import HttpRequest
-from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.audit_log.services.log import log_service
@@ -26,7 +25,7 @@ from sentry.users.services.user import RpcUser
 
 
 def create_audit_entry(
-    request: HttpRequest | Request,
+    request: HttpRequest,
     transaction_id: int | str | None = None,
     logger: Logger | None = None,
     **kwargs: Any,

@@ -79,7 +79,7 @@ class IntegrationMetadata(NamedTuple):
             return f"integrations-{f}"
         return None
 
-    def asdict(self) -> dict[str, Sequence[Any]]:
+    def asdict(self) -> dict[str, Any]:
         metadata = self._asdict()
         metadata["features"] = [
             {
