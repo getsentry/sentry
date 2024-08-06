@@ -106,6 +106,7 @@ type Props = {
   tags: TagCollection;
   thresholdChart: React.ReactNode;
   timeWindow: number;
+  // optional props
   activationCondition?: ActivationConditionType;
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
@@ -395,7 +396,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   renderProjectSelector() {
     const {
       project: _selectedProject,
-      projects,
+      projects, // note: org projects
       disabled,
       organization,
       disableProjectSelector,
@@ -725,7 +726,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     />
                   ) : (
                     <SearchContainer>
-                      {organization.features.includes('search-query-builder-releases') ? (
+                      {!organization.features.includes('search-query-builder-alerts') ? (
                         <SearchQueryBuilder
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
