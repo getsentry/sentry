@@ -89,7 +89,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
         value: (
           <MeasurementValue>
             {rendered}
-            <TraceDrawerComponents.DropdownMenu
+            <TraceDrawerComponents.DropdownMenuWithPortal
               items={[
                 {
                   key: 'includeEvents',

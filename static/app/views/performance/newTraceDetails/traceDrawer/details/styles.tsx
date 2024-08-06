@@ -350,6 +350,8 @@ function getThreadIdFromNode(
   return undefined;
 }
 
+// Renders the dropdown menu list at the root trace drawer content container level, to prevent
+// being stacked under other content.
 function DropdownMenuWithPortal(props: DropdownMenuProps) {
   const drawerContainerRef = useDrawerContainerRef();
 
@@ -693,7 +695,7 @@ const TraceDrawerComponents = {
   EventTags,
   TraceDataSection,
   SectionCardGroup,
-  DropdownMenu: DropdownMenuWithPortal,
+  DropdownMenuWithPortal,
 };
 
 export {TraceDrawerComponents};
