@@ -124,6 +124,22 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
         assert response.data["id"] == "default-overview"
 
+    def test_prebuilt_dashboard_with_discover_split_feature_flag(self):
+        with self.feature({"organizations:performance-discover-dataset-selector": True}):
+            response = self.do_request("get", self.url("default-overview"))
+        assert response.status_code == 200, response.data
+
+        for widget in response.data["widgets"]:
+            assert widget["widgetType"] in {"issue", "transaction-like", "error-events"}
+
+    def test_prebuilt_dashboard_without_discover_split_feature_flag(self):
+        with self.feature({"organizations:performance-discover-dataset-selector": False}):
+            response = self.do_request("get", self.url("default-overview"))
+        assert response.status_code == 200, response.data
+
+        for widget in response.data["widgets"]:
+            assert widget["widgetType"] in {"issue", "discover"}
+
     def test_get_prebuilt_dashboard_tombstoned(self):
         DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
         # Pre-built dashboards should be accessible even when tombstoned
