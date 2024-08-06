@@ -656,7 +656,7 @@ def create_alert_rule(
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError
-            except (ValidationError):
+            except ValidationError:
                 alert_rule.delete()
                 raise ValidationError
 
@@ -897,6 +897,32 @@ def update_alert_rule(
             # and doesn't persist other dirty attributes in the model
             updated_fields["user_id"] = alert_rule.user_id
             updated_fields["team_id"] = alert_rule.team_id
+
+        if detection_type == AlertRuleDetectionType.DYNAMIC:
+            if not features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
+                raise ResourceDoesNotExist(
+                    "Your organization does not have access to this feature."
+                )
+
+            if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
+                alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
+            ):
+                for k, v in updated_fields.items():
+                    setattr(alert_rule, k, v)
+
+                try:
+                    rule_status = send_historical_data_to_seer(
+                        alert_rule=alert_rule,
+                        project=projects[0] if projects else alert_rule.projects.get(),
+                    )
+                    if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
+                        # if we don't have at least seven days worth of data, then the dynamic alert won't fire
+                        alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+                except (TimeoutError, MaxRetryError):
+                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
+                except ValidationError:
+                    # If there's no historical data available—something went wrong when querying snuba
+                    raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
 
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(

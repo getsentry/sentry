@@ -8,7 +8,6 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
@@ -86,7 +85,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onExit?: () => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
-  onKeyDown?: (e: KeyboardEvent) => void;
+  onKeyDown?: (e: KeyboardEvent, extra: {state: ComboBoxState<T>}) => void;
+  onKeyDownCapture?: (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    extra: {state: ComboBoxState<T>}
+  ) => void;
   onKeyUp?: (e: KeyboardEvent) => void;
   onOpenChange?: (newOpenState: boolean) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
@@ -164,7 +167,7 @@ function menuIsOpen({
     return openState;
   }
 
-  // When the tabbed menu is not being displayed and we aren't loading anything,
+  // When a custom menu is not being displayed and we aren't loading anything,
   // only show when there is something to select from.
   return openState && totalOptions > hiddenOptions.size;
 }
@@ -249,8 +252,6 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   listBoxProps: AriaListBoxOptions<any>;
   listBoxRef: React.RefObject<HTMLUListElement>;
   popoverRef: React.RefObject<HTMLDivElement>;
-  selectedSection: Key | null;
-  setSelectedSection: (section: Key | null) => void;
   state: ComboBoxState<any>;
   totalOptions: number;
   customMenu?: CustomComboboxMenu<T>;
@@ -304,6 +305,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     inputLabel,
     onExit,
     onKeyDown,
+    onKeyDownCapture,
     onKeyUp,
     onInputChange,
     onOpenChange,
@@ -326,7 +328,6 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const [selectedSection, setSelectedSection] = useState<Key | null>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
@@ -362,7 +363,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     children,
     allowsEmptyCollection: true,
     // We handle closing on blur ourselves to prevent the combobox from closing
-    // when the user clicks inside the tabbed menu
+    // when the user clicks inside the custom menu
     shouldCloseOnBlur: false,
     ...comboBoxProps,
   });
@@ -388,7 +389,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         state.close();
       },
       onKeyDown: e => {
-        onKeyDown?.(e);
+        onKeyDown?.(e, {state});
         switch (e.key) {
           case 'Escape':
             state.close();
@@ -491,8 +492,8 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   });
 
   // useCombobox will hide outside elements with aria-hidden="true" when it is open [1].
-  // Because we switch elements when the custom or tabbed menu is displayed, we need to
-  // manually call this function an extra time to ensure the correct elements are hidden.
+  // Because we switch elements when a custom menu is displayed, we need to manually
+  // call this function an extra time to ensure the correct elements are hidden.
   //
   // [1]: https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/combobox/src/useComboBox.ts#L337C3-L341C44
   useEffect(() => {
@@ -519,6 +520,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={disabled}
+        onKeyDownCapture={e => onKeyDownCapture?.(e, {state})}
       />
       {description ? (
         <StyledPositionWrapper
@@ -541,8 +543,6 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
           listBoxProps={listBoxProps}
           listBoxRef={listBoxRef}
           popoverRef={popoverRef}
-          selectedSection={selectedSection}
-          setSelectedSection={setSelectedSection}
           state={state}
           totalOptions={totalOptions}
         />

@@ -9,7 +9,7 @@ import {
   type DropdownMenuProps,
   type MenuItemProps,
 } from 'sentry/components/dropdownMenu';
-import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import KeyValueData, {
@@ -539,7 +539,7 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
       <TagsWrapper>
-        <Tags event={event} projectSlug={projectSlug} />
+        <EventTagsDataSection event={event} projectSlug={projectSlug} />
       </TagsWrapper>
     </LazyRender>
   );
