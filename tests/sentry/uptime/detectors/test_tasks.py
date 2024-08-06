@@ -275,7 +275,7 @@ class ProcessCandidateUrlTest(TestCase):
     def test_failed_robots_txt_user_agent(self):
         url = "https://sentry.io"
         test_robot_parser = RobotFileParser()
-        robots_txt = ["User-agent: sentry.io_uptime_checker_v_1", "Disallow: /"]
+        robots_txt = ["User-agent: SentryUptimeBot", "Disallow: /"]
         test_robot_parser.parse(robots_txt)
         with mock.patch(
             "sentry.uptime.detectors.tasks.get_robots_txt_parser",
