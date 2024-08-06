@@ -210,6 +210,25 @@ describe('Modals -> WidgetViewerModal', function () {
         await renderModal({initialData, widget: mockWidget});
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
         expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeEnabled();
+      });
+
+      it('renders Open button disabled for discover widget if dataset selector flag enabled', async function () {
+        const initData = {
+          ...initialData,
+          organization: {
+            ...initialData.organization,
+            features: [
+              ...initialData.organization.features,
+              'performance-discover-dataset-selector',
+            ],
+          },
+        };
+        mockEvents();
+        await renderModal({initialData: initData, widget: mockWidget});
+        expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
+        expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
       });
 
       it('renders updated table columns and orderby', async function () {
