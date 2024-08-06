@@ -5,6 +5,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
+import {
+  STATIC_FIELD_TAGS,
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_FIELD_TAGS_WITHOUT_TRACING,
+  STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
+  STATIC_SEMVER_TAGS,
+  STATIC_SPAN_TAGS,
+} from 'static/app/components/events/searchBarFieldConstants';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -13,7 +21,7 @@ import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import SearchBar from 'sentry/components/events/searchBar';
+import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
@@ -30,16 +38,22 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
+import {
+  getMeasurements,
+  type MeasurementCollection,
+} from 'sentry/utils/measurements/measurements';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
+import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
   convertDatasetEventTypesToSource,
@@ -89,6 +103,7 @@ type Props = {
   project: Project;
   projects: Project[];
   router: InjectedRouter;
+  tags: TagCollection;
   thresholdChart: React.ReactNode;
   timeWindow: number;
   activationCondition?: ActivationConditionType;
@@ -105,15 +120,22 @@ type Props = {
 
 type State = {
   environments: Environment[] | null;
+  filterKeys: TagCollection;
+  measurements: MeasurementCollection;
 };
 
 class RuleConditionsForm extends PureComponent<Props, State> {
   state: State = {
     environments: null,
+    measurements: {},
+    filterKeys: {},
   };
 
   componentDidMount() {
     this.fetchData();
+    const measurements = getMeasurements();
+    const filterKeys = this.getFilterKeys();
+    this.setState({measurements, filterKeys});
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -123,6 +145,55 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     this.fetchData();
   }
+
+  getFilterKeys = () => {
+    const {organization, dataset, tags} = this.props;
+    const {measurements} = this.state;
+    const measurementsWithKind = Object.keys(measurements).reduce(
+      (measurement_tags, key) => {
+        measurement_tags[key] = {
+          ...measurements[key],
+          kind: FieldKind.MEASUREMENT,
+        };
+        return measurement_tags;
+      },
+      {}
+    );
+    const orgHasPerformanceView = organization.features.includes('performance-view');
+    const combinedTags: TagCollection =
+      dataset === Dataset.ERRORS
+        ? Object.assign({}, [], STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
+        : dataset === Dataset.TRANSACTIONS
+          ? Object.assign(
+              {},
+              measurementsWithKind,
+              [],
+              STATIC_SPAN_TAGS,
+              STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS
+            )
+          : orgHasPerformanceView
+            ? Object.assign(
+                {},
+                measurementsWithKind,
+                [],
+                STATIC_SPAN_TAGS,
+                STATIC_FIELD_TAGS
+              )
+            : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
+
+    const tagsWithKind = Object.keys(tags).reduce((acc, key) => {
+      acc[key] = {
+        ...tags[key],
+        kind: FieldKind.TAG,
+      };
+      return acc;
+    }, {});
+
+    Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS);
+    combinedTags.has = getHasTag(combinedTags);
+
+    return combinedTags;
+  };
 
   formElemBaseStyle = {
     padding: `${space(0.5)}`,
@@ -176,44 +247,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     return values.filter(({name}) => defined(name)).map(({name}) => name);
   };
-
-  // functionTags = useMemo(() => getFunctionTags(fields), [fields]);
-  // getTagList = () => {
-  //   // const measurements = {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
-  //   const {organization, dataset} = this.props;
-  //   const measurements = getMeasurements();
-  //   const measurementsWithKind = getMeasurementTags(measurements);
-  //   const orgHasPerformanceView = organization.features.includes('performance-view');
-
-  //   const combinedTags: TagCollection =
-  //     dataset === Dataset.ERRORS
-  //       ? Object.assign({}, functionTags, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
-  //       : dataset === Dataset.TRANSACTIONS || dataset === Dataset.METRICS_ENHANCED // TODO: capture this...
-  //         ? Object.assign(
-  //             {},
-  //             measurementsWithKind,
-  //             functionTags,
-  //             STATIC_SPAN_TAGS,
-  //             STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS
-  //           )
-  //         : orgHasPerformanceView
-  //           ? Object.assign(
-  //               {},
-  //               measurementsWithKind,
-  //               functionTags,
-  //               STATIC_SPAN_TAGS,
-  //               STATIC_FIELD_TAGS
-  //             )
-  //           : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
-
-  //   Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS);
-
-  //   combinedTags.has = getHasTag(combinedTags);
-
-  //   const list =
-  //     omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
-  //   return list;
-  // };
 
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
@@ -601,7 +634,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       project,
     } = this.props;
 
-    const {environments} = this.state;
+    const {environments, filterKeys} = this.state;
     const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -698,7 +731,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           getTagValues={this.getEventFieldValues}
                           placeholder={this.searchPlaceholder}
                           searchSource="alert_builder"
-                          filterKeys={getTagList(measurements)}
+                          filterKeys={filterKeys}
                         />
                       ) : (
                         <StyledSearchBar
@@ -925,4 +958,4 @@ const ActivatedAlertFields = styled('div')`
   justify-content: space-between;
 `;
 
-export default withApi(withProjects(RuleConditionsForm));
+export default withApi(withProjects(withTags(RuleConditionsForm)));
