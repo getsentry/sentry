@@ -25,11 +25,6 @@ from sentry.utils.json import JSONDecodeError, apply_key_filter
 
 logger = logging.getLogger(__name__)
 
-# TODO: Keeping this at a 100% sample rate for now in order to get good signal as we're rolling out
-# and calls are still comparatively rare. Once traffic gets heavy enough, we should probably ramp
-# this down.
-SIMILARITY_REQUEST_METRIC_SAMPLE_RATE = 1.0
-
 
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
@@ -93,7 +88,7 @@ def get_similarity_data_from_seer(
         )
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={
                 **metric_tags,
                 "outcome": "empty_stacktrace",
@@ -119,7 +114,7 @@ def get_similarity_data_from_seer(
         logger.warning("get_seer_similar_issues.request_error", extra=logger_extra)
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
         circuit_breaker.record_error()
@@ -141,7 +136,7 @@ def get_similarity_data_from_seer(
 
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={
                 **metric_tags,
                 "outcome": "error",
@@ -171,7 +166,7 @@ def get_similarity_data_from_seer(
         )
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
         )
         return []
@@ -179,7 +174,7 @@ def get_similarity_data_from_seer(
     if not response_data:
         metrics.incr(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "no_similar_groups"},
         )
         return []
@@ -241,7 +236,7 @@ def get_similarity_data_from_seer(
 
     metrics.incr(
         "seer.similar_issues_request",
-        sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags=metric_tags,
     )
     return sorted(

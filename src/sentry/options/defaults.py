@@ -918,6 +918,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TODO: Once Seer grouping is GA-ed, we probably either want to turn this down or get rid of it in
+# favor of the default 10% sample rate
+register(
+    "seer.similarity.metrics_sample_rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # seer nearest neighbour endpoint timeout
 register(
     "embeddings-grouping.seer.nearest-neighbour-timeout",

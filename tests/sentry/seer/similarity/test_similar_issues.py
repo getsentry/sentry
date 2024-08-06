@@ -5,9 +5,9 @@ from unittest.mock import MagicMock
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
+from sentry import options
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.seer.similarity.similar_issues import (
-    SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
     get_similarity_data_from_seer,
     seer_grouping_connection_pool,
 )
@@ -75,7 +75,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             ]
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
-                sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={
                     "response_status": 200,
                     "outcome": expected_outcome,
@@ -92,7 +92,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         assert get_similarity_data_from_seer(self.request_params) == []
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"response_status": 200, "outcome": "no_similar_groups"},
         )
 
@@ -142,7 +142,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             assert get_similarity_data_from_seer(self.request_params) == []
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
-                sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"response_status": 200, "outcome": "error", "error": expected_error},
             )
             assert mock_record_circuit_breaker_error.call_count == 0
@@ -170,7 +170,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         )
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
-            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"response_status": 308, "outcome": "error", "error": "Redirect"},
         )
         assert mock_record_circuit_breaker_error.call_count == 0
@@ -207,7 +207,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             )
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
-                sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"outcome": "error", "error": expected_error_tag},
             )
             assert mock_record_circuit_breaker_error.call_count == 1
@@ -240,7 +240,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             )
             mock_metrics_incr.assert_any_call(
                 "seer.similar_issues_request",
-                sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={"response_status": status, "outcome": "error", "error": "RequestError"},
             )
             assert mock_record_circuit_breaker_error.call_count == (

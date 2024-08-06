@@ -121,7 +121,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     metrics.incr(
         "seer.grouping.html_in_stacktrace",
-        sample_rate=1.0,
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags={
             "html_frames": (
                 "none"
@@ -173,7 +173,7 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "global-killswitch"},
         )
         return True
@@ -185,7 +185,7 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": False, "blocker": "similarity-killswitch"},
         )
         return True
