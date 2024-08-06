@@ -245,7 +245,7 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
 
         with metrics.timer(
             f"{BACKFILL_NAME}.bulk_snuba_queries",
-            sample_rate=1.0,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         ):
             snuba_results_chunk = _make_snuba_call(
                 project, snuba_requests, Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
@@ -387,7 +387,7 @@ def send_group_and_stacktrace_to_seer(
 ):
     with metrics.timer(
         f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
-        sample_rate=1.0,
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
     ):
         return _make_seer_call(
             CreateGroupingRecordsRequest(
@@ -419,7 +419,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
 
     with metrics.timer(
         f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
-        sample_rate=1.0,
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
     ):
         chunk_size = options.get("similarity.backfill_seer_chunk_size")
         chunks = [
