@@ -33,6 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
+  ALL_INSIGHTS_FILTER_KEY_SECTIONS,
   formatTagKey,
   isAggregateField,
   isMeasurement,
@@ -55,7 +56,6 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {ALL_INSIGHTS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -410,7 +410,11 @@ function SummaryContent({
           includeTransactions: true,
           includeSessions: true,
           sort: '-count',
-          endpointParams: {start: eventView.start, end: eventView.end},
+          endpointParams: {
+            start: eventView.start,
+            end: eventView.end,
+            statsPeriod: eventView.statsPeriod,
+          },
         });
 
         return results.filter(({name}) => defined(name)).map(({name}) => name);
@@ -418,7 +422,14 @@ function SummaryContent({
         throw new Error(`Unable to fetch event field values: ${e}`);
       }
     },
-    [organization, eventView.project, eventView.start, eventView.end, api]
+    [
+      organization,
+      eventView.project,
+      eventView.start,
+      eventView.end,
+      eventView.statsPeriod,
+      api,
+    ]
   );
 
   function renderSearchBar() {
