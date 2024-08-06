@@ -6,17 +6,6 @@ import RuleConditionsForm from 'sentry/views/alerts/rules/metric/ruleConditionsF
 import {AlertRuleComparisonType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
-jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/utils/analytics', () => ({
-  metric: {
-    startSpan: jest.fn(() => ({
-      setTag: jest.fn(),
-      setData: jest.fn(),
-    })),
-    endSpan: jest.fn(),
-  },
-}));
-
 describe('RuleConditionsForm', () => {
   it('searches with new searchbar (search-query-builder-alerts)', async () => {
     const {organization, projects, router} = initializeOrg({
@@ -43,6 +32,8 @@ describe('RuleConditionsForm', () => {
       body: [],
     });
 
+    const mockSearch = jest.fn();
+
     const props = {
       aggregate: 'foo',
       alertType: 'errors' as AlertType,
@@ -51,24 +42,12 @@ describe('RuleConditionsForm', () => {
       disabled: false,
       isEditing: true,
       onComparisonDeltaChange: _ => {},
-      onFilterSearch: (_a, _b) => {},
+      onFilterSearch: mockSearch,
       onMonitorTypeSelect: _ => {},
       onTimeWindowChange: _ => {},
       project: projects[0],
       thresholdChart: <div>chart</div>,
       timeWindow: 30,
-      // optional props
-
-      // activationCondition?: ActivationConditionType;
-      // allowChangeEventTypes?: boolean;
-      // comparisonDelta?: number;
-      // disableProjectSelector?: boolean;
-      // isErrorMigration?: boolean;
-      // isExtrapolatedChartData?: boolean;
-      // isForSpanMetric?: boolean;
-      // isTransactionMigration?: boolean;
-      // loadingProjects?: boolean;
-      // monitorType?: number;
     };
     render(
       <RuleConditionsForm {...props} organization={organization} router={router} />,
@@ -85,10 +64,7 @@ describe('RuleConditionsForm', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'a{enter}');
 
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'a'}),
-      })
-    );
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(mockSearch).toHaveBeenCalledWith('a', true);
   });
 });
