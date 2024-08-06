@@ -18,7 +18,12 @@ def should_comment_sync(
     return has_issue_sync and installation.should_sync("comment")
 
 
-__all__ = ("logger",)
+__all__ = (
+    "logger",
+    "migrate_opsgenie_plugin",
+    "migrate_issues",
+    "sync_metadata",
+)
 
 settings.CELERY_IMPORTS += (
     "sentry.tasks.integrations.create_comment",
@@ -36,3 +41,7 @@ settings.CELERY_IMPORTS += (
     "sentry.tasks.integrations.vsts.kickoff_subscription_check",
     "sentry.tasks.integrations.vsts.subscription_check",
 )
+
+from .migrate_issues import migrate_issues
+from .migrate_opsgenie_plugins import migrate_opsgenie_plugin
+from .sync_metadata import sync_metadata
