@@ -40,11 +40,13 @@ class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
             self.create_project(),
             self.create_project(),
         ]
-        response = self.do_request(
-            {
-                "projects": [p.id for p in projects],
-            }
-        )
+        # Need this feature so we don't get the multiple project without global view error
+        with self.feature("organizations:global-views"):
+            response = self.do_request(
+                {
+                    "projects": [p.id for p in projects],
+                }
+            )
         assert response.status_code == 400, response.data
         assert response.data == {
             "detail": ErrorDetail(
