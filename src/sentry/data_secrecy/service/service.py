@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import cast
 
 from sentry.data_secrecy.service.model import RpcDataSecrecyWaiver
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
@@ -28,4 +27,4 @@ class DataSecrecyService(RpcService):
         pass
 
 
-data_secrecy_service = cast(DataSecrecyService, DataSecrecyService.create_delegation())
+data_secrecy_service = DataSecrecyService.create_delegation()

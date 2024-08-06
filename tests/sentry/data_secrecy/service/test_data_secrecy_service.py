@@ -1,4 +1,4 @@
-from django.utils import timezone
+from datetime import datetime, timedelta, timezone
 
 from sentry.data_secrecy.models.datasecrecywaiver import DataSecrecyWaiver
 from sentry.data_secrecy.service.service import data_secrecy_service
@@ -12,8 +12,8 @@ class TestDataSecrecyService(TestCase):
     def setUp(self):
         self.organization = self.create_organization()
         self.organization_2 = self.create_organization()
-        self.access_start = timezone.now()
-        self.access_end = timezone.now() + timezone.timedelta(days=7)
+        self.access_start = datetime.now(tz=timezone.utc)
+        self.access_end = datetime.now(tz=timezone.utc) + timedelta(days=1)
         self.zendesk_tickets = ["https://example.com/ticket1", "https://example.com/ticket2"]
 
     def test_get_data_secrecy_waiver(self):
