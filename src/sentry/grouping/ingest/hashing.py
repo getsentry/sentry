@@ -19,7 +19,6 @@ from sentry.grouping.api import (
     apply_server_fingerprinting,
     detect_synthetic_exception,
     get_fingerprinting_config_for_project,
-    get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
@@ -29,7 +28,6 @@ from sentry.grouping.ingest.utils import extract_hashes
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.reprocessing2 import is_reprocessed_event
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -174,18 +172,8 @@ def run_primary_grouping(
     Get the primary grouping config and primary hashes for the event.
     """
     with metrics.timer("event_manager.load_grouping_config"):
-        if is_reprocessed_event(job["data"]):
-            # The customer might have changed grouping enhancements since
-            # the event was ingested -> make sure we get the fresh one for reprocessing.
-            grouping_config = get_grouping_config_dict_for_project(project)
-            # Write back grouping config because it might have changed since the
-            # event was ingested.
-            # NOTE: We could do this unconditionally (regardless of `is_processed`).
-            job["data"]["grouping_config"] = grouping_config
-        else:
-            grouping_config = get_grouping_config_dict_for_event_data(
-                job["event"].data.data, project
-            )
+        grouping_config = get_grouping_config_dict_for_project(project)
+        job["data"]["grouping_config"] = grouping_config
 
     with (
         sentry_sdk.start_span(
