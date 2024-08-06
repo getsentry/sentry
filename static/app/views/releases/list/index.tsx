@@ -4,6 +4,7 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
@@ -293,7 +294,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       tagKey: key,
       search,
       projectIds: projectId ? [projectId] : undefined,
-      endpointParams: location.query,
+      endpointParams: normalizeDateTimeParams(location.query),
     });
   };
 
