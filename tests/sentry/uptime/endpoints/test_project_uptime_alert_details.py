@@ -29,7 +29,7 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     method = "put"
 
-    def test_simple(self):
+    def test_user(self):
         uptime_subscription = self.create_project_uptime_subscription()
 
         resp = self.get_success_response(
@@ -45,6 +45,8 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_subscription.owner_user_id == self.user.id
         assert uptime_subscription.owner_team_id is None
 
+    def test_team(self):
+        uptime_subscription = self.create_project_uptime_subscription()
         resp = self.get_success_response(
             self.organization.slug,
             uptime_subscription.project.slug,

@@ -30,6 +30,7 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
     # TODO(davidenwang): Flip these to public after EA
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
     @extend_schema(
