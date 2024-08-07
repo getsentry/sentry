@@ -4,7 +4,7 @@ from django.apps import apps
 from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
-from sentry.db.models.outboxes import run_outbox_replications_for_self_hosted
+from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider

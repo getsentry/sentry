@@ -8,9 +8,10 @@ from django.db import models, router, transaction
 
 from sentry.db.models import FlexibleForeignKey, control_silo_model
 from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.outbox import ControlOutboxBase
+from sentry.types.region import find_regions_for_user
 
-from ...types.region import find_regions_for_user
-from ..outbox import ControlOutboxBase, OutboxCategory
 from . import ControlAvatarBase
 
 

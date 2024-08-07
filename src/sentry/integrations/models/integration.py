@@ -12,8 +12,9 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs

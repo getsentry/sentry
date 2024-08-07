@@ -4,9 +4,9 @@ import logging
 
 from django.http.response import HttpResponseBase
 
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.bitbucket_server.webhook import BitbucketServerWebhookEndpoint
 from sentry.middleware.integrations.parsers.bitbucket import BitbucketRequestParser
-from sentry.models.outbox import WebhookProviderIdentifier
 
 logger = logging.getLogger(__name__)
 

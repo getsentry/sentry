@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -18,7 +19,6 @@ from sentry.integrations.msteams.webhook import (
     MsTeamsWebhookMixin,
 )
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import control_silo_function
 from sentry.types.region import Region, RegionResolutionError
 

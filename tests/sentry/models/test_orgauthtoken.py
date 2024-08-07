@@ -1,9 +1,10 @@
 import pytest
 from django.core.exceptions import ValidationError
 
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken, update_org_auth_token_last_used
-from sentry.models.outbox import OutboxCategory, RegionOutbox
+from sentry.models.outbox import RegionOutbox
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode

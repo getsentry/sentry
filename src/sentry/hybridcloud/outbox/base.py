@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Generator, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 from django.db import connections, router, transaction
@@ -11,6 +11,7 @@ from sentry_sdk.api import capture_exception
 
 from sentry.db.models import Model
 from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
 from sentry.types.region import find_regions_for_orgs, find_regions_for_user
@@ -18,7 +19,8 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.snowflake import uses_snowflake_id
 
 if TYPE_CHECKING:
-    from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
+    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
+
 
 logger = logging.getLogger("sentry.outboxes")
 
@@ -41,7 +43,9 @@ class RegionOutboxProducingModel(Model):
     replication_version: int = 1
 
     @contextlib.contextmanager
-    def prepare_outboxes(self, *, outbox_before_super: bool, flush: bool | None = None):
+    def prepare_outboxes(
+        self, *, outbox_before_super: bool, flush: bool | None = None
+    ) -> Generator[None]:
         from sentry.models.outbox import outbox_context
 
         if flush is None:
@@ -227,7 +231,7 @@ class ControlOutboxProducingModel(Model):
         abstract = True
 
     @contextlib.contextmanager
-    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
+    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
         from sentry.models.outbox import outbox_context
 
         with outbox_context(
@@ -430,7 +434,7 @@ class HasControlReplicationHandlers(Protocol):
 
 
 @receiver(post_upgrade)
-def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any):
+def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any) -> None:
     from django.conf import settings
 
     from sentry.models.outbox import OutboxBase
