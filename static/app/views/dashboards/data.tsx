@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {uniqueId} from 'sentry/utils/guid';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import type {DashboardDetails} from './types';
 import {DisplayType, WidgetType} from './types';
@@ -34,9 +35,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Number of Errors'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -53,7 +52,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count()'],
               aggregates: ['count()'],
               columns: [],
-              conditions: '!event.type:transaction',
+              conditions: hasDatasetSelector(organization)
+                ? ''
+                : '!event.type:transaction',
               orderby: 'count()',
             },
           ],
@@ -62,9 +63,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Number of Issues'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -81,7 +80,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count_unique(issue)'],
               aggregates: ['count_unique(issue)'],
               columns: [],
-              conditions: '!event.type:transaction',
+              conditions: hasDatasetSelector(organization)
+                ? ''
+                : '!event.type:transaction',
               orderby: 'count_unique(issue)',
             },
           ],
@@ -90,9 +91,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Events'),
           displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -109,7 +108,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count()'],
               aggregates: ['count()'],
               columns: [],
-              conditions: '!event.type:transaction',
+              conditions: hasDatasetSelector(organization)
+                ? ''
+                : '!event.type:transaction',
               orderby: 'count()',
             },
           ],
@@ -118,9 +119,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Affected Users'),
           displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -137,7 +136,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count_unique(user)'],
               aggregates: ['count_unique(user)'],
               columns: [],
-              conditions: 'has:user.email !event.type:transaction',
+              conditions: hasDatasetSelector(organization)
+                ? 'has:user.email'
+                : 'has:user.email !event.type:transaction',
               orderby: 'count_unique(user)',
             },
             {
@@ -145,7 +146,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count_unique(user)'],
               aggregates: ['count_unique(user)'],
               columns: [],
-              conditions: '!has:user.email !event.type:transaction',
+              conditions: hasDatasetSelector(organization)
+                ? '!has:user.email'
+                : '!has:user.email !event.type:transaction',
               orderby: 'count_unique(user)',
             },
           ],
@@ -154,9 +157,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Handled vs. Unhandled'),
           displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -190,9 +191,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Errors by Country'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -209,7 +208,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['geo.country_code', 'geo.region', 'count()'],
               aggregates: ['count()'],
               columns: ['geo.country_code', 'geo.region'],
-              conditions: '!event.type:transaction has:geo.country_code',
+              conditions: hasDatasetSelector(organization)
+                ? 'has:geo.country_code'
+                : '!event.type:transaction has:geo.country_code',
               orderby: 'count()',
             },
           ],
@@ -218,9 +219,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('High Throughput Transactions'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -237,7 +236,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count()', 'transaction'],
               aggregates: ['count()'],
               columns: ['transaction'],
-              conditions: 'event.type:transaction',
+              conditions: hasDatasetSelector(organization)
+                ? ''
+                : 'event.type:transaction',
               orderby: '-count()',
             },
           ],
@@ -246,9 +247,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Errors by Browser'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -265,7 +264,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['browser.name', 'count()'],
               aggregates: ['count()'],
               columns: ['browser.name'],
-              conditions: '!event.type:transaction has:browser.name',
+              conditions: hasDatasetSelector(organization)
+                ? 'has:browser.name'
+                : '!event.type:transaction has:browser.name',
               orderby: '-count()',
             },
           ],
@@ -274,9 +275,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall User Misery'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -302,9 +301,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall Apdex'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -330,9 +327,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('High Throughput Transactions'),
           displayType: DisplayType.TOP_N,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -349,7 +344,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['transaction', 'count()'],
               aggregates: ['count()'],
               columns: ['transaction'],
-              conditions: 'event.type:transaction',
+              conditions: hasDatasetSelector(organization)
+                ? ''
+                : 'event.type:transaction',
               orderby: '-count()',
             },
           ],
@@ -382,9 +379,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Transactions Ordered by Misery'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -410,9 +405,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Errors by Browser Over Time'),
           displayType: DisplayType.TOP_N,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -429,7 +422,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['browser.name', 'count()'],
               aggregates: ['count()'],
               columns: ['browser.name'],
-              conditions: 'event.type:error has:browser.name',
+              conditions: hasDatasetSelector(organization)
+                ? 'has:browser.name'
+                : 'event.type:error has:browser.name',
               orderby: '-count()',
             },
           ],
@@ -449,9 +444,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Top 5 Issues by Unique Users Over Time'),
           displayType: DisplayType.TOP_N,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -477,9 +470,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Errors by Browser as Percentage'),
           displayType: DisplayType.AREA,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -537,9 +528,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Top 5 Issues by Unique Users'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -565,9 +554,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('URLs grouped by Issue'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -584,7 +571,7 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['http.url', 'issue', 'count_unique(user)'],
               aggregates: ['count_unique(user)'],
               columns: ['http.url', 'issue'],
-              conditions: 'event.type:error',
+              conditions: hasDatasetSelector(organization) ? '' : 'event.type:error',
               orderby: '-count_unique(user)',
             },
           ],
@@ -593,9 +580,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Transactions 404ing'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -621,9 +606,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Layout Shift Over Time'),
           displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -649,9 +632,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('LCP by Country'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -677,9 +658,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Page Load Over Time'),
           displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -705,9 +684,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Slowest Pageloads'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           layout: {
@@ -732,9 +709,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall LCP'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -760,9 +735,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Slow Page Navigations'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -788,9 +761,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall FCP'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -816,9 +787,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall CLS'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -844,9 +813,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall FID'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -883,9 +850,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Top 5 Issues by Unique Users Over Time'),
           displayType: DisplayType.TOP_N,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -911,9 +876,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Transactions Erroring Over Time'),
           displayType: DisplayType.TOP_N,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -939,9 +902,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Erroring Transactions by Percentage'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -976,9 +937,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Top 5 Issues by Unique Users'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1004,9 +963,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Transactions Erroring'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1056,9 +1013,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('p75 Over Time'),
           displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1084,9 +1039,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Throughput (Errors Per Minute)'),
           displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1103,7 +1056,7 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['epm()'],
               aggregates: ['epm()'],
               columns: [],
-              conditions: 'event.type:error',
+              conditions: hasDatasetSelector(organization) ? '' : 'event.type:error',
               orderby: '',
             },
           ],
@@ -1112,9 +1065,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Tasks Transactions with Poor Apdex'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1140,9 +1091,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('HTTP Transactions with Poor Apdex'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1169,9 +1118,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall Apdex'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1197,9 +1144,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall Duration'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1225,9 +1170,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall HTTP Spans'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1253,9 +1196,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall DB Spans'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1292,9 +1233,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Total Crashes'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1311,7 +1250,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count()'],
               aggregates: ['count()'],
               columns: [],
-              conditions: 'error.handled:false event.type:error',
+              conditions: hasDatasetSelector(organization)
+                ? 'error.handled:false'
+                : 'error.handled:false event.type:error',
               orderby: '',
             },
           ],
@@ -1320,9 +1261,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Unique Users Who Crashed'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1339,7 +1278,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count_unique(user)'],
               aggregates: ['count_unique(user)'],
               columns: [],
-              conditions: 'error.handled:false event.type:error',
+              conditions: hasDatasetSelector(organization)
+                ? 'error.handled:false'
+                : 'error.handled:false event.type:error',
               orderby: '',
             },
           ],
@@ -1348,9 +1289,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Unique Issues Causing Crashes'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1367,7 +1306,9 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count_unique(issue)'],
               aggregates: ['count_unique(issue)'],
               columns: [],
-              conditions: 'error.handled:false event.type:error',
+              conditions: hasDatasetSelector(organization)
+                ? 'error.handled:false'
+                : 'error.handled:false event.type:error',
               orderby: '',
             },
           ],
@@ -1376,9 +1317,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall Number of Errors'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1395,7 +1334,7 @@ export const getDashboardTemplates = (organization: Organization) => {
               fields: ['count()'],
               aggregates: ['count()'],
               columns: [],
-              conditions: 'event.type:error',
+              conditions: hasDatasetSelector(organization) ? '' : 'event.type:error',
               orderby: '',
             },
           ],
@@ -1404,9 +1343,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Issues Causing Crashes'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1432,9 +1369,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Crashes Over Time'),
           displayType: DisplayType.LINE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1460,9 +1395,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Crashes by OS'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1488,9 +1421,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall Warm Startup Time'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1516,9 +1447,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall Cold Startup Time'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1544,9 +1473,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Warm Startup Times'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1572,9 +1499,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Cold Startup Times'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1600,9 +1525,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Overall Frozen Frames'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1628,9 +1551,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Max Warm Startup Time'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1656,9 +1577,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Max Cold Startup Time'),
           displayType: DisplayType.BIG_NUMBER,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
@@ -1684,9 +1603,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           title: t('Frozen Frames Rate'),
           displayType: DisplayType.TABLE,
           interval: '5m',
-          widgetType: organization.features.includes(
-            'performance-discover-dataset-selector'
-          )
+          widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),

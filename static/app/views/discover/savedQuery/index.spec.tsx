@@ -7,7 +7,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {ALL_VIEWS} from 'sentry/views/discover/data';
+import {getAllViews} from 'sentry/views/discover/data';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import * as utils from 'sentry/views/discover/savedQuery/utils';
 
@@ -41,7 +41,12 @@ function mount(
 }
 
 describe('Discover > SaveQueryButtonGroup', function () {
-  let organization;
+  let organization,
+    errorsView,
+    savedQuery,
+    errorsViewSaved,
+    errorsViewModified,
+    errorsQuery;
   const location = {
     pathname: '/organization/eventsv2/',
     query: {},
@@ -51,32 +56,34 @@ describe('Discover > SaveQueryButtonGroup', function () {
   };
   const yAxis = ['count()', 'failure_count()'];
 
-  const errorsQuery = {
-    ...(ALL_VIEWS.find(view => view.name === 'Errors by Title') as NewQuery),
-    yAxis: ['count()'],
-    display: DisplayModes.DEFAULT,
-  };
-  const errorsView = EventView.fromSavedQuery(errorsQuery);
-
-  const errorsViewSaved = EventView.fromSavedQuery(errorsQuery);
-  errorsViewSaved.id = '1';
-
-  const errorsViewModified = EventView.fromSavedQuery(errorsQuery);
-  errorsViewModified.id = '1';
-  errorsViewModified.name = 'Modified Name';
-
-  const savedQuery = {
-    ...errorsViewSaved.toNewQuery(),
-    yAxis,
-    dateCreated: '',
-    dateUpdated: '',
-    id: '1',
-  };
-
   beforeEach(() => {
     organization = OrganizationFixture({
       features: ['discover-query', 'dashboards-edit'],
     });
+
+    errorsQuery = {
+      ...(getAllViews(organization).find(
+        view => view.name === 'Errors by Title'
+      ) as NewQuery),
+      yAxis: ['count()'],
+      display: DisplayModes.DEFAULT,
+    };
+    errorsView = EventView.fromSavedQuery(errorsQuery);
+
+    errorsViewSaved = EventView.fromSavedQuery(errorsQuery);
+    errorsViewSaved.id = '1';
+
+    errorsViewModified = EventView.fromSavedQuery(errorsQuery);
+    errorsViewModified.id = '1';
+    errorsViewModified.name = 'Modified Name';
+
+    savedQuery = {
+      ...errorsViewSaved.toNewQuery(),
+      yAxis,
+      dateCreated: '',
+      dateUpdated: '',
+      id: '1',
+    };
   });
 
   afterEach(() => {
