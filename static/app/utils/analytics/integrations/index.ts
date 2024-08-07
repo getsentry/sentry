@@ -13,7 +13,6 @@ export type IntegrationView = {
     | 'stacktrace_link'
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
-    | 'messaging_integration_onboarding'
     | 'onboarding'
     | 'project_creation'
     | 'developer_settings'

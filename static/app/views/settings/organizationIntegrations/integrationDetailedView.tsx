@@ -239,6 +239,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
+    const {organization} = this.props;
     const provider = this.provider;
 
     const buttonProps = {
@@ -261,6 +262,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         }}
       >
         <StyledIntegrationButton
+          organization={organization}
           userHasAccess={userHasAccess}
           onAddIntegration={this.onInstall}
           onExternalClick={this.handleExternalInstall}
