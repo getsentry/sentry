@@ -190,10 +190,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       return acc;
     }, {});
 
+    const {omitTags} = {
+      ...getSupportedAndOmittedTags(dataset, organization),
+    };
+
     Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS);
     combinedTags.has = getHasTag(combinedTags);
 
-    return combinedTags;
+    const list =
+      omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
+    return list;
   };
 
   formElemBaseStyle = {
@@ -751,6 +757,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                             onFilterSearch(query, parsedQuery);
                             onBlur(query);
                           }}
+                          // We only need strict validation for Transaction queries, everything else is fine
+                          disallowUnsupportedFilters={
+                            organization.features.includes('alert-allow-indexed') ||
+                            (hasOnDemandMetricAlertFeature(organization) &&
+                              isOnDemandQueryString(value))
+                              ? false
+                              : dataset === Dataset.GENERIC_METRICS
+                          }
                         />
                       ) : (
                         <StyledSearchBar
