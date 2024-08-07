@@ -8,6 +8,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -261,6 +262,9 @@ export default function GroupSidebar({
 
   return (
     <Container>
+      {hasStreamlinedUI && event && (
+        <StreamlinedExternalIssueList group={group} event={event} project={project} />
+      )}
       {!hasStreamlinedUI && (
         <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       )}

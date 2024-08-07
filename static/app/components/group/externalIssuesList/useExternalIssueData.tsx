@@ -59,6 +59,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
         key: provider,
         disabled: false,
         hasLinkedIssue: configurations.some(x => x.externalIssues.length > 0),
+        displayName: provider,
         props: {
           configurations,
           group,
@@ -87,6 +88,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
           key: sentryApp.slug,
           disabled,
           hasLinkedIssue: !!externalIssue,
+          displayName: sentryApp.name,
           props: {
             sentryApp,
             group,
@@ -108,6 +110,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
       key: `plugin-issue-${i}`,
       disabled: false,
       hasLinkedIssue: true,
+      displayName: plugin.shortName,
       props: {
         group,
         project,
@@ -121,6 +124,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
       group.pluginActions?.map((plugin, i) => ({
         type: 'plugin-action',
         key: `plugin-action-${i}`,
+        displayName: plugin.shortName,
         disabled: false,
         hasLinkedIssue: false,
         props: {plugin},
