@@ -139,7 +139,7 @@ export function getHiddenOptions<Value extends SelectKey>(
         return item;
       }
 
-      hiddenOptionsSet.add(item.value);
+      hiddenOptionsSet.add(item.key);
       return null;
     })
     .filter((item): item is SelectOptionOrSectionWithKey<Value> => !!item);
