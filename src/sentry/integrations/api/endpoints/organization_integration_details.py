@@ -14,9 +14,11 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.api.bases.organization_integrations import (
+    OrganizationIntegrationBaseEndpoint,
+)
 from sentry.integrations.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.scheduledeletion import ScheduledDeletion

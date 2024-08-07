@@ -8,10 +8,10 @@ from fixtures.gitlab import (
     WEBHOOK_TOKEN,
     GitLabTestCase,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of

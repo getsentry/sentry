@@ -7,10 +7,10 @@ from jwt import ExpiredSignatureError
 from sentry.integrations.jira import JIRA_KEY
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
