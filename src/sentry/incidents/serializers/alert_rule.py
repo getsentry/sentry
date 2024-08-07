@@ -268,7 +268,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         self._translate_thresholds(threshold_type, data.get("comparison_delta"), triggers, data)
 
         critical = triggers[0]
-
         self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
 
         if len(triggers) == 2:
@@ -413,6 +412,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 )
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
+        if trigger.get("alert_threshold") is None:
+            raise serializers.ValidationError("Trigger must have an alertThreshold")
+
         if resolve_threshold is None:
             return
         is_integer = (
