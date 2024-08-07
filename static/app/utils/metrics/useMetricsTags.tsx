@@ -18,10 +18,19 @@ const ALLOWED_SPAN_DURATION_TAGS = [
   'span.op',
 ];
 
-export function getMetricsTagsQueryKey(organization: Organization, mri: MRI | undefined) {
-  const queryParams = {
-    metric: mri,
-  };
+export function getMetricsTagsQueryKey(
+  organization: Organization,
+  mri: MRI | undefined,
+  pageFilters: Partial<PageFilters>
+) {
+  const queryParams = pageFilters.projects?.length
+    ? {
+        metric: mri,
+        project: pageFilters.projects,
+      }
+    : {
+        metric: mri,
+      };
 
   return [
     `/organizations/${organization.slug}/metrics/tags/`,
@@ -41,10 +50,13 @@ export function useMetricsTags(
   const parsedMRI = parseMRI(mri);
   const useCase = parsedMRI?.useCase ?? 'custom';
 
-  const tagsQuery = useApiQuery<MetricTag[]>(getMetricsTagsQueryKey(organization, mri), {
-    enabled: !!mri,
-    staleTime: Infinity,
-  });
+  const tagsQuery = useApiQuery<MetricTag[]>(
+    getMetricsTagsQueryKey(organization, mri, pageFilters),
+    {
+      enabled: !!mri,
+      staleTime: Infinity,
+    }
+  );
 
   const metricMeta = useMetricsMeta(pageFilters, [useCase], false, !blockedTags);
   const blockedTagsData =
