@@ -6,6 +6,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FEEDBACK_FIELDS,
@@ -70,7 +71,8 @@ interface Props {
 }
 
 export default function FeedbackSearch({className, style}: Props) {
-  const projectIds = usePageFilters().selection.projects;
+  const {selection: pageFilters} = usePageFilters();
+  const projectIds = pageFilters.projects;
   const {pathname, query} = useLocation();
   const organization = useOrganization();
   const tags = useTags();
@@ -84,12 +86,23 @@ export default function FeedbackSearch({className, style}: Props) {
         return Promise.resolve([]);
       }
 
+      const endpointParams = {
+        start: pageFilters.datetime.start
+          ? getUtcDateString(pageFilters.datetime.start)
+          : undefined,
+        end: pageFilters.datetime.end
+          ? getUtcDateString(pageFilters.datetime.end)
+          : undefined,
+        statsPeriod: pageFilters.datetime.period,
+      };
+
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
         projectIds: projectIds?.map(String),
+        endpointParams,
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
         () => {
@@ -97,7 +110,14 @@ export default function FeedbackSearch({className, style}: Props) {
         }
       );
     },
-    [api, organization.slug, projectIds]
+    [
+      api,
+      organization.slug,
+      projectIds,
+      pageFilters.datetime.start,
+      pageFilters.datetime.end,
+      pageFilters.datetime.period,
+    ]
   );
 
   const navigate = useNavigate();

@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {Organization, PageFilters, Tag, TagCollection, TagValue} from 'sentry/types';
 import {SavedSearchType} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FieldKind,
@@ -86,12 +87,23 @@ function ReplaySearchBar(props: Props) {
         return Promise.resolve([]);
       }
 
+      const endpointParams = {
+        start: pageFilters.datetime.start
+          ? getUtcDateString(pageFilters.datetime.start)
+          : undefined,
+        end: pageFilters.datetime.end
+          ? getUtcDateString(pageFilters.datetime.end)
+          : undefined,
+        statsPeriod: pageFilters.datetime.period,
+      };
+
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
         projectIds: projectIds?.map(String),
+        endpointParams,
         includeReplays: true,
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
@@ -100,7 +112,14 @@ function ReplaySearchBar(props: Props) {
         }
       );
     },
-    [api, organization.slug, projectIds]
+    [
+      api,
+      organization.slug,
+      projectIds,
+      pageFilters.datetime.end,
+      pageFilters.datetime.period,
+      pageFilters.datetime.start,
+    ]
   );
 
   return (
