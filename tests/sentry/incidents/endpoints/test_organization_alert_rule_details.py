@@ -356,6 +356,29 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 time_window=1,
             )
 
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_missing_threshold(self):
+        """Test that we throw a validation error when the trigger is missing alertThreshold"""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        data = deepcopy(self.dynamic_alert_rule_dict)
+        del data["triggers"][0]["alertThreshold"]
+
+        serializer = AlertRuleSerializer(
+            context={
+                "organization": self.organization,
+                "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
+                "user": self.user,
+                "installations": app_service.get_installed_for_organization(
+                    organization_id=self.organization.id
+                ),
+            },
+            data=data,
+        )
+        assert not serializer.is_valid(), serializer.errors
+        assert serializer.errors["nonFieldErrors"][0] == "Trigger must have an alertThreshold"
+
     @responses.activate
     def test_with_sentryapp_success(self):
         self.superuser = self.create_user("admin@localhost", is_superuser=True)

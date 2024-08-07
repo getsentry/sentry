@@ -12,6 +12,12 @@ MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
+BASE64_ENCODED_PREFIXES = [
+    "data:text/html;base64",
+    "data:text/javascript;base64",
+    "html;base64",
+    "javascript;base64",
+]
 
 
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
@@ -92,13 +98,16 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
                     # We want to skip frames with base64 encoded filenames since they can be large
                     # and not contain any usable information
-                    if frame_dict["filename"].startswith("data:text/html;base64") or frame_dict[
-                        "filename"
-                    ].startswith("data:text/javascript;base64"):
-                        metrics.incr(
-                            "seer.grouping.base64_encoded_filename",
-                            sample_rate=1.0,
-                        )
+                    base64_encoded = False
+                    for base64_prefix in BASE64_ENCODED_PREFIXES:
+                        if frame_dict["filename"].startswith(base64_prefix):
+                            metrics.incr(
+                                "seer.grouping.base64_encoded_filename",
+                                sample_rate=1.0,
+                            )
+                            base64_encoded = True
+                            break
+                    if base64_encoded:
                         continue
 
                     frame_strings.append(
