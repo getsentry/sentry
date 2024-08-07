@@ -34,7 +34,7 @@ type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps
 type DeprecatedReplayWebVitalFrameData = {
   nodeId?: number;
 };
-interface CompatibleReplaySpanFrame extends ReplayWebVitalFrameSdk {
+interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
   data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
 }
 
@@ -112,7 +112,9 @@ export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
 export type OptionFrameEvent = TOptionFrameEvent;
-export type RawSpanFrame = TRawSpanFrame | CompatibleReplaySpanFrame;
+export type RawSpanFrame =
+  | Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>
+  | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
 export function isRecordingFrame(
