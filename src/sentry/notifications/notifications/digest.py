@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 from sentry import analytics, features
 from sentry.db.models import Model
-from sentry.digests import Digest
+from sentry.digests.notifications import Digest
 from sentry.digests.utils import (
     get_digest_as_context,
     get_participants_by_event,
