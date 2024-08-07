@@ -12,7 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
@@ -119,7 +119,7 @@ class Integration(DefaultFieldsModel):
 
         Returns None if the OrganizationIntegration was not created
         """
-        from sentry.models.integrations.organization_integration import OrganizationIntegration
+        from sentry.integrations.models.organization_integration import OrganizationIntegration
 
         if not isinstance(organization_id, int):
             organization_id = organization_id.id
