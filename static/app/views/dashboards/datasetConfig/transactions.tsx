@@ -306,7 +306,7 @@ function getEventsSeriesRequest(
       ...requestData.queryExtras,
       ...{dataset: DiscoverDatasets.METRICS_ENHANCED},
     };
-    return doOnDemandMetricsRequest(api, requestData);
+    return doOnDemandMetricsRequest(api, requestData, widget.widgetType);
   }
 
   return doEventsRequest<true>(api, requestData);
