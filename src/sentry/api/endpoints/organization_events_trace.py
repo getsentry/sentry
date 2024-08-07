@@ -1699,5 +1699,5 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             "transactions": results.get("transactions") or 0,
             "errors": results.get("errors") or 0,
             "performance_issues": results.get("performance_issues") or 0,
-            "transaction_child_map": child_result,
+            "transaction_child_count_map": child_result,
         }
