@@ -7,7 +7,7 @@ from threading import Thread
 
 def run_command(command: list[str], log_file: str):
     with open(log_file, "wb") as f:
-        subprocess.run(command, stdout=f, stderr=f, check=True)
+        subprocess.run(command, stdout=f, stderr=f, shell=True, check=True)
 
 
 def run_command_in_thread(command: list[str], log_file: str) -> Thread:
