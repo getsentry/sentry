@@ -14,7 +14,9 @@ from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
+from sentry.middleware import is_frontend_request
 from sentry.snuba import spans_indexed, spans_metrics
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 
 
@@ -40,6 +42,10 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
+                # TODO: @athena - add query_source when all datasets support it
+                # query_source=(
+                #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+                # ),
             )
 
         return Response({"count": result["data"][0]["count"]})
@@ -121,6 +127,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
+        is_frontend = is_frontend_request(request)
         try:
             snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
@@ -152,6 +159,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 snuba_params=snuba_params,
                 query=request.query_params.get("query"),
                 referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
+                query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
             )
             if len(bound_results["data"]) != 1:
                 raise ParseError("Could not find bounds")
@@ -174,6 +182,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             snuba_params=snuba_params,
             query=request.query_params.get("query"),
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
+            query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
         )
         span_ids = []
         for row in result["data"]:
@@ -198,5 +207,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             query=query,
             limit=9,
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+            query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
         )
         return Response({"data": result["data"]})

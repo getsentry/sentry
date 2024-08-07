@@ -17,7 +17,7 @@ from .base import JiraWebhookBase
 class JiraSentryUninstalledWebhook(JiraWebhookBase):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """
     Webhook hit by Jira whenever someone uninstalls the Sentry integration from their Jira instance.

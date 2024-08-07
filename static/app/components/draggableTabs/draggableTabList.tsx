@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -6,33 +6,32 @@ import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
-import {Reorder} from 'framer-motion';
+import type {Node} from '@react-types/shared';
+import {motion, Reorder} from 'framer-motion';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/button';
 import {TabsContext} from 'sentry/components/tabs';
-import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
-import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
+import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type {Tab} from 'sentry/views/issueList/draggableTabBar';
 
-import {DraggableTab} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 
 interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
-  setTabs: (tabs: Tab[]) => void;
-  tabs: Tab[];
 }
 
 function BaseDraggableTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
-  tabs,
-  setTabs,
+  onReorder,
+  onAddView,
+  showTempTab = false,
+  tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -77,77 +76,81 @@ function BaseDraggableTabList({
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
-  const overflowTabs = useOverflowTabs({
-    tabListRef,
-    tabItemsRef,
-    tabItems: props.items,
-  });
 
-  const overflowMenuItems = useMemo(() => {
-    // Sort overflow items in the order that they appear in TabList
-    const sortedKeys = [...state.collection].map(item => item.key);
-    const sortedOverflowTabs = overflowTabs.sort(
-      (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
-    );
-
-    return sortedOverflowTabs.flatMap<SelectOption<string | number>>(key => {
-      const item = state.collection.getItem(key);
-
-      if (!item) {
-        return [];
-      }
-
-      return {
-        value: key,
-        label: item.props.children,
-        disabled: item.props.disabled,
-        textValue: item.textValue,
-      };
-    });
-  }, [state.collection, overflowTabs]);
+  const persistentTabs = [...state.collection].filter(
+    item => item.key !== 'temporary-tab'
+  );
+  const tempTab = [...state.collection].find(item => item.key === 'temporary-tab');
 
   return (
-    <TabListOuterWrap style={outerWrapStyles}>
-      <Reorder.Group axis="x" values={tabs} onReorder={setTabs} as="div">
-        <TabListWrap
-          {...tabListProps}
-          orientation={orientation}
-          hideBorder={hideBorder}
-          className={className}
-          ref={tabListRef}
-        >
-          {[...state.collection].map(item => (
-            <Reorder.Item
-              key={item.key}
-              value={tabs.find(tab => tab.key === item.key)}
-              style={{display: 'flex', flexDirection: 'row'}}
-            >
-              <DraggableTab
+    <TabListOuterWrap
+      style={outerWrapStyles}
+      hideBorder={hideBorder}
+      borderStyle={state.selectedKey === 'temporary-tab' ? 'dashed' : 'solid'}
+    >
+      <Reorder.Group
+        axis="x"
+        values={[...state.collection]}
+        onReorder={onReorder}
+        as="div"
+        style={{display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'min-content'}}
+        layoutRoot
+      >
+        <TabListWrap {...tabListProps} className={className} ref={tabListRef}>
+          {persistentTabs.map(item => (
+            <Fragment key={item.key}>
+              <Reorder.Item
                 key={item.key}
-                item={item}
-                state={state}
-                orientation={orientation}
-                overflowing={
-                  orientation === 'horizontal' && overflowTabs.includes(item.key)
-                }
-                ref={element => (tabItemsRef.current[item.key] = element)}
-              />
-              {state.selectedKey !== item.key &&
-                state.collection.getKeyAfter(item.key) !== state.selectedKey && (
-                  <TabDivider />
-                )}
-            </Reorder.Item>
+                value={item}
+                style={{display: 'flex', flexDirection: 'row'}}
+                as="div"
+                dragConstraints={tabListRef} // Sets the container that the tabs can be dragged within
+                dragElastic={0} // Prevents tabs from being dragged outside of the tab bar
+                dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic
+                layout
+              >
+                <Tab
+                  key={item.key}
+                  item={item}
+                  state={state}
+                  orientation={orientation}
+                  overflowing={false}
+                  ref={element => (tabItemsRef.current[item.key] = element)}
+                  variant={tabVariant}
+                />
+              </Reorder.Item>
+              {(state.selectedKey === 'temporary-tab' ||
+                (state.selectedKey !== item.key &&
+                  state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
+                <TabDivider layout />
+              )}
+            </Fragment>
           ))}
         </TabListWrap>
+        <AddViewTempTabWrap>
+          <MotionWrapper layout>
+            <AddViewButton borderless size="zero" onClick={onAddView}>
+              <StyledIconAdd size="xs" />
+              {t('Add View')}
+            </AddViewButton>
+          </MotionWrapper>
+          <TabDivider layout />
+          <MotionWrapper layout>
+            {showTempTab && tempTab && (
+              <Tab
+                key={tempTab.key}
+                item={tempTab}
+                state={state}
+                orientation={orientation}
+                overflowing={false}
+                ref={element => (tabItemsRef.current[tempTab.key] = element)}
+                variant={tabVariant}
+                borderStyle="dashed"
+              />
+            )}
+          </MotionWrapper>
+        </AddViewTempTabWrap>
       </Reorder.Group>
-
-      {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <OverflowMenu
-          state={state}
-          overflowMenuItems={overflowMenuItems}
-          disabled={disabled}
-        />
-      )}
     </TabListOuterWrap>
   );
 }
@@ -157,11 +160,13 @@ const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nod
 export interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
-  setTabs: (tabs: Tab[]) => void;
-  tabs: Tab[];
+  onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
   className?: string;
   hideBorder?: boolean;
+  onAddView?: React.MouseEventHandler;
   outerWrapStyles?: React.CSSProperties;
+  showTempTab?: boolean;
+  tabVariant?: BaseTabProps['variant'];
 }
 
 /**
@@ -170,8 +175,8 @@ export interface DraggableTabListProps
  */
 export function DraggableTabList({
   items,
-  tabs,
-  setTabs,
+  onAddView,
+  showTempTab,
   ...props
 }: DraggableTabListProps) {
   const collection = useCollection({items, ...props}, collectionFactory);
@@ -192,10 +197,10 @@ export function DraggableTabList({
 
   return (
     <BaseDraggableTabList
-      tabs={tabs}
       items={parsedItems}
+      onAddView={onAddView}
+      showTempTab={showTempTab}
       disabledKeys={disabledKeys}
-      setTabs={setTabs}
       {...props}
     >
       {item => <Item {...item} />}
@@ -205,47 +210,59 @@ export function DraggableTabList({
 
 DraggableTabList.Item = Item;
 
-const TabDivider = styled('div')`
+const TabDivider = styled(motion.div)`
   height: 50%;
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
-  margin: 9px auto;
 `;
 
-const TabListOuterWrap = styled('div')`
-  position: relative;
-`;
-
-const TabListWrap = styled('ul', {
-  shouldForwardProp: tabsShouldForwardProp,
-})<{
+const TabListOuterWrap = styled('div')<{
+  borderStyle: 'dashed' | 'solid';
   hideBorder: boolean;
-  orientation: Orientation;
 }>`
+  position: relative;
+  ${p => !p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+`;
+
+const AddViewTempTabWrap = styled('div')`
   position: relative;
   display: grid;
   padding: 0;
   margin: 0;
   list-style-type: none;
   flex-shrink: 0;
-  padding-left: 15px;
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+`;
 
-  ${p =>
-    p.orientation === 'horizontal'
-      ? `
-        grid-auto-flow: column;
-        justify-content: start;
-        gap: ${space(0.5)};
-        ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
-        stroke-dasharray: 4, 3;
-      `
-      : `
-        height: 100%;
-        grid-auto-flow: row;
-        align-content: start;
-        gap: 1px;
-        padding-right: ${space(2)};
-        ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
-      `};
+const TabListWrap = styled('ul')`
+  position: relative;
+  display: grid;
+  justify-content: start;
+  grid-auto-flow: column;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  flex-shrink: 0;
+  align-items: center;
+`;
+
+const AddViewButton = styled(Button)`
+  display: flex;
+  color: ${p => p.theme.gray300};
+  padding-right: ${space(0.5)};
+  margin: 4px 2px 2px 2px;
+  font-weight: normal;
+`;
+
+const StyledIconAdd = styled(IconAdd)`
+  margin-right: 4px;
+  margin-left: 2px;
+`;
+
+const MotionWrapper = styled(motion.div)`
+  display: flex;
+  position: relative;
 `;

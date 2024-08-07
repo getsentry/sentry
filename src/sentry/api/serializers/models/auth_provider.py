@@ -8,8 +8,8 @@ from sentry.auth.services.auth import RpcAuthProvider
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.absolute_url import organization_absolute_url
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
 @register(AuthProvider)
@@ -28,8 +28,8 @@ class AuthProviderSerializer(Serializer):
 
         login_url = Organization.get_url(organization.slug)
 
-        absolute_login_url = OrganizationAbsoluteUrlMixin.organization_absolute_url(
-            features.has("system:multi-region"),
+        absolute_login_url = organization_absolute_url(
+            has_customer_domain=features.has("system:multi-region"),
             slug=organization.slug,
             path=login_url,
         )

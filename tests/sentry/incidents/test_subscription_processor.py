@@ -26,6 +26,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
+    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -50,6 +51,8 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
@@ -57,6 +60,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -76,8 +80,7 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
-        self.old_handlers = AlertRuleTriggerAction._factory_registrations
-        AlertRuleTriggerAction._factory_registrations = {}
+        self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
         self.email_action_handler = Mock()
         AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
             self.email_action_handler
@@ -87,7 +90,7 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
 
     def tearDown(self):
         super().tearDown()
-        AlertRuleTriggerAction._factory_registrations = self.old_handlers
+        self.suspended_registry.restore()
         self._run_tasks.__exit__(None, None, None)
 
     def assert_trigger_exists_with_status(self, incident, trigger, status):
@@ -447,7 +450,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_1 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.7, "anomaly_type": "anomaly_low"},
+                    "anomaly": {
+                        "anomaly_score": 0.7,
+                        "anomaly_type": AnomalyType.LOW_CONFIDENCE.value,
+                    },
                     "timestamp": 1,
                     "value": 5,
                 }
@@ -465,7 +471,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 5
 
@@ -484,7 +490,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_2 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.9, "anomaly_type": "anomaly_high"},
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
                     "timestamp": 1,
                     "value": 10,
                 }
@@ -502,7 +511,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 10
 
@@ -521,7 +530,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value_3 = {
             "anomalies": [
                 {
-                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": "none"},
+                    "anomaly": {"anomaly_score": 0.5, "anomaly_type": AnomalyType.NONE.value},
                     "timestamp": 1,
                     "value": 1,
                 }
@@ -539,7 +548,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert deserialized_body["config"]["time_period"] == rule.snuba_query.time_window / 60
         assert deserialized_body["config"]["sensitivity"] == rule.sensitivity.value
         assert deserialized_body["config"]["seasonality"] == rule.seasonality.value
-        assert deserialized_body["config"]["direction"] == rule.threshold_type
+        assert deserialized_body["config"]["direction"] == translate_direction(rule.threshold_type)
         assert deserialized_body["context"]["id"] == rule.id
         assert deserialized_body["context"]["cur_window"]["value"] == 1
 
@@ -556,19 +565,19 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule = self.dynamic_rule
         # test alert ABOVE
         anomaly1 = {
-            "anomaly": {"anomaly_score": 0.9, "anomaly_type": "anomaly_high"},
+            "anomaly": {"anomaly_score": 0.9, "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
         anomaly2 = {
-            "anomaly": {"anomaly_score": 0.6, "anomaly_type": "anomaly_low"},
+            "anomaly": {"anomaly_score": 0.6, "anomaly_type": AnomalyType.LOW_CONFIDENCE.value},
             "timestamp": 1,
             "value": 10,
         }
 
         not_anomaly = {
-            "anomaly": {"anomaly_score": 0.2, "anomaly_type": "none"},
+            "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
             "timestamp": 1,
             "value": 10,
         }
@@ -611,6 +620,112 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
         assert result is None
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        rule.refresh_from_db()
+
+        # test that we don't activate if we get "no_data"
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.0,
+                        "anomaly_type": AnomalyType.NO_DATA.value,
+                    },
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 5)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_enable_dynamic_alert_rule(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        rule.refresh_from_db()
+
+        # test that we activate but don't fire an alert if we get "none"
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.2,
+                        "anomaly_type": AnomalyType.NONE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 5,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 5)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.PENDING.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
+        rule = self.dynamic_rule
+        rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+
+        rule.refresh_from_db()
+
+        # test that we can activate and fire an alert
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.7,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        processor = self.send_update(rule, 10)
+
+        rule.refresh_from_db()
+
+        assert mock_seer_request.call_count == 1
+        assert rule.status == AlertRuleStatus.PENDING.value
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [self.action],
+            [(10, IncidentStatus.CRITICAL, mock.ANY)],
+        )
 
     @with_feature("organizations:anomaly-detection-alerts")
     @mock.patch(

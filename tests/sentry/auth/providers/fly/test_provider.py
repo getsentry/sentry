@@ -70,3 +70,11 @@ class FlyOAuth2ProviderTest(TestCase):
             "data": provider.get_oauth_data(data),
             "email_verified": False,
         }
+
+
+@control_silo_test
+class NonPartnerFlyOAuth2ProviderTest(FlyOAuth2ProviderTest):
+    def setUp(self):
+        self.auth_provider: AuthProvider = AuthProvider.objects.create(
+            provider=ChannelName.FLY_NON_PARTNER.value, organization_id=self.organization.id
+        )

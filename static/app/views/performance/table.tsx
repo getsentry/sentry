@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -27,8 +27,11 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
 import {getMEPQueryParams} from './landing/widgets/utils';
 import type {TransactionThresholdMetric} from './transactionSummary/transactionThresholdModal';
@@ -78,6 +81,33 @@ function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
   }
   return '>30d';
 }
+
+function _TrackHasDataAnalytics({
+  children,
+  isLoading,
+  tableData,
+}: {
+  children: React.ReactNode;
+  isLoading: boolean;
+  tableData: TableData | null;
+}): React.ReactNode {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isLoading) {
+      trackAnalytics('performance_views.overview.has_data', {
+        table_data_state:
+          !!tableData?.data && tableData.data.length > 0 ? 'has_data' : 'no_data',
+        tab: getLandingDisplayFromParam(location)?.field,
+        organization,
+      });
+    }
+  }, [isLoading, organization, tableData?.data, location]);
+
+  return children;
+}
+
 class _Table extends Component<Props, State> {
   state: State = {
     widths: [],
@@ -519,7 +549,7 @@ class _Table extends Component<Props, State> {
                   queryExtras={getMEPQueryParams(value)}
                 >
                   {({pageLinks, isLoading, tableData}) => (
-                    <Fragment>
+                    <_TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
                       <VisuallyCompleteWithData
                         id="PerformanceTable"
                         hasData={
@@ -549,7 +579,7 @@ class _Table extends Component<Props, State> {
                         pageLinks={pageLinks}
                         paginationAnalyticsEvent={this.paginationAnalyticsEvent}
                       />
-                    </Fragment>
+                    </_TrackHasDataAnalytics>
                   )}
                 </DiscoverQuery>
               );

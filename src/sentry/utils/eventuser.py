@@ -25,7 +25,7 @@ from snuba_sdk import (
 )
 
 from sentry import analytics
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.avatar import get_gravatar_url
@@ -101,7 +101,7 @@ class EventUser:
         return hash(self.hash)
 
     @staticmethod
-    def from_event(event: Event) -> EventUser:
+    def from_event(event: Event | GroupEvent) -> EventUser:
         return EventUser(
             id=None,
             project_id=event.project_id if event else None,

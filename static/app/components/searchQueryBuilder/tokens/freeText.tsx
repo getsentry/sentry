@@ -11,9 +11,15 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import type {
+  KeyItem,
+  KeySectionItem,
+} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
+import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   getDefaultFilterValue,
+  itemIsSection,
   useShiftFocusToChild,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
@@ -32,6 +38,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
@@ -52,34 +59,12 @@ type SearchQueryBuilderInputInternalProps = {
   token: TokenResult<Token.FREE_TEXT>;
 };
 
-type KeyItem = {
-  description: string;
-  details: React.ReactNode;
-  hideCheck: boolean;
-  key: string;
-  label: string;
-  showDetailsInOverlay: boolean;
-  textValue: string;
-  value: string;
-};
-
-type KeySectionItem = {
-  key: string;
-  options: KeyItem[];
-  title: React.ReactNode;
-  value: string;
-};
-
 const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<KeyItem> = {
   keys: ['label', 'description'],
   threshold: 0.2,
   includeMatches: false,
   minMatchCharLength: 1,
 };
-
-function isSection(item: KeyItem | KeySectionItem): item is KeySectionItem {
-  return 'options' in item;
-}
 
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
   const words = value.split(' ');
@@ -95,18 +80,37 @@ function getWordAtCursorPosition(value: string, cursorPosition: number) {
   return value;
 }
 
+function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition | null) {
+  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
+    if (fieldDefinition.parameters) {
+      const parametersText = fieldDefinition.parameters
+        .filter(param => defined(param.defaultValue))
+        .map(param => param.defaultValue)
+        .join(',');
+
+      return `${key}(${parametersText})`;
+    }
+
+    return `${key}()`;
+  }
+
+  return key;
+}
+
 function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | null) {
   const defaultValue = getDefaultFilterValue({key, fieldDefinition});
+
+  const keyText = getInitialFilterKeyText(key, fieldDefinition);
 
   switch (fieldDefinition?.valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:
     case FieldValueType.PERCENTAGE:
-      return `${key}:>${defaultValue}`;
+      return `${keyText}:>${defaultValue}`;
     case FieldValueType.STRING:
     default:
-      return `${key}:${defaultValue}`;
+      return `${keyText}:${defaultValue}`;
   }
 }
 
@@ -139,18 +143,36 @@ function replaceFocusedWordWithFilter(
   return value;
 }
 
+function getKeyLabel(
+  tag: Tag,
+  fieldDefinition: FieldDefinition | null,
+  {includeAggregateArgs = false} = {}
+) {
+  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
+    if (fieldDefinition.parameters?.length) {
+      if (includeAggregateArgs) {
+        return `${tag.key}(${fieldDefinition.parameters.map(p => p.name).join(', ')})`;
+      }
+      return `${tag.key}(...)`;
+    }
+    return `${tag.key}()`;
+  }
+
+  return tag.key;
+}
+
 function createItem(tag: Tag, fieldDefinition: FieldDefinition | null): KeyItem {
   const description = fieldDefinition?.desc;
 
   return {
     key: getEscapedKey(tag.key),
-    label: tag.alias ?? tag.key,
+    label: getKeyLabel(tag, fieldDefinition),
     description: description ?? '',
     value: tag.key,
     textValue: tag.key,
     hideCheck: true,
     showDetailsInOverlay: true,
-    details: fieldDefinition?.desc ? <KeyDescription tag={tag} /> : null,
+    details: <KeyDescription tag={tag} />,
   };
 }
 
@@ -162,7 +184,7 @@ function createSection(
   return {
     key: section.value,
     value: section.value,
-    title: section.label,
+    label: section.label,
     options: section.children.map(key => createItem(keys[key], getFieldDefinition(key))),
   };
 }
@@ -238,27 +260,22 @@ function KeyDescription({tag}: {tag: Tag}) {
 
   const fieldDefinition = getFieldDefinition(tag.key);
 
-  if (!fieldDefinition || !fieldDefinition.desc) {
-    return null;
-  }
+  const description =
+    fieldDefinition?.desc ??
+    (tag.kind === FieldKind.TAG ? t('A tag sent with one or more events') : null);
 
   return (
     <DescriptionWrapper>
-      <div>{fieldDefinition.desc}</div>
+      <DescriptionKeyLabel>
+        {getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
+      </DescriptionKeyLabel>
+      {description ? <p>{description}</p> : null}
       <Separator />
       <DescriptionList>
-        {tag.alias ? (
-          <Fragment>
-            <Term>{t('Alias')}</Term>
-            <Details>{tag.key}</Details>
-          </Fragment>
-        ) : null}
-        {fieldDefinition.valueType ? (
-          <Fragment>
-            <Term>{t('Type')}</Term>
-            <Details>{toTitleCase(fieldDefinition.valueType)}</Details>
-          </Fragment>
-        ) : null}
+        <Term>{t('Type')}</Term>
+        <Details>
+          {toTitleCase(fieldDefinition?.valueType ?? FieldValueType.STRING)}
+        </Details>
       </DescriptionList>
     </DescriptionWrapper>
   );
@@ -332,8 +349,6 @@ function SearchQueryBuilderInputInternal({
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
-  const isFocused =
-    state.selectionManager.isFocused && item.key === state.selectionManager.focusedKey;
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -349,7 +364,6 @@ function SearchQueryBuilderInputInternal({
   const {
     query,
     filterKeys,
-    filterKeySections,
     dispatch,
     getFieldDefinition,
     handleSearch,
@@ -439,6 +453,11 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
+    items,
+    filterValue,
+  });
+
   return (
     <Fragment>
       <HiddenText
@@ -449,8 +468,9 @@ function SearchQueryBuilderInputInternal({
         isOpen={isOpen}
       />
       <SearchQueryBuilderCombobox
+        customMenu={customMenu}
         ref={inputRef}
-        items={items}
+        items={sectionItems}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={value => {
           dispatch({
@@ -557,11 +577,11 @@ function SearchQueryBuilderInputInternal({
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}
+        onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
-        tabIndex={isFocused ? 0 : -1}
-        maxOptions={50}
+        tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
+        maxOptions={maxOptions}
         onPaste={onPaste}
-        displayTabbedMenu={inputValue.length === 0 && filterKeySections.length > 0}
         shouldFilterResults={false}
         shouldCloseOnInteractOutside={el => {
           if (rowRef.current?.contains(el)) {
@@ -572,8 +592,8 @@ function SearchQueryBuilderInputInternal({
         onClick={onClick}
       >
         {keyItem =>
-          isSection(keyItem) ? (
-            <Section title={keyItem.title} key={keyItem.key}>
+          itemIsSection(keyItem) ? (
+            <Section title={keyItem.label} key={keyItem.key}>
               {keyItem.options.map(child => (
                 <Item {...child} key={child.key}>
                   {child.label}
@@ -582,7 +602,7 @@ function SearchQueryBuilderInputInternal({
             </Section>
           ) : (
             <Item {...keyItem} key={keyItem.key}>
-              {keyItem.label}
+              {keyItem.value}
             </Item>
           )
         }
@@ -677,8 +697,22 @@ const GridCell = styled('div')`
 `;
 
 const DescriptionWrapper = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(0.75)} ${space(1)};
   max-width: 220px;
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: ${space(0.5)};
+  }
+`;
+
+const DescriptionKeyLabel = styled('p')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  word-break: break-all;
 `;
 
 const Separator = styled('hr')`

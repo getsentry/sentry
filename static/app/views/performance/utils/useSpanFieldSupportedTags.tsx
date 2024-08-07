@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {PageFilters, TagCollection} from 'sentry/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -69,12 +71,13 @@ export function useSpanFieldSupportedTags(options?: {
     [
       SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
       SpanIndexedField.SPAN_CATEGORY,
+      SpanIndexedField.SPAN_GROUP,
       ...excludedTags,
     ],
     DiscoverDatasets.SPANS_INDEXED
   );
 
-  const dynamicTagQuery = useApiQuery<SpanFieldsResponse>(
+  const {data} = useApiQuery<SpanFieldsResponse>(
     getDynamicSpanFieldsEndpoint(
       organization.slug,
       projects ?? selection.projects,
@@ -86,15 +89,17 @@ export function useSpanFieldSupportedTags(options?: {
     }
   );
 
-  if (dynamicTagQuery.isSuccess) {
-    const dynamicTags: TagCollection = Object.fromEntries(
-      dynamicTagQuery.data.map(entry => [entry.key, entry])
-    );
+  const tags = useMemo(() => {
+    if (!data) {
+      return staticTags;
+    }
     return {
-      ...dynamicTags,
+      ...Object.fromEntries(
+        data.map(entry => [entry.key, {key: entry.key, name: entry.name}])
+      ),
       ...staticTags,
     };
-  }
+  }, [data, staticTags]);
 
-  return staticTags;
+  return tags;
 }

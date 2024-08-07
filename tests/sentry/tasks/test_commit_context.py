@@ -241,6 +241,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             organization_id=self.organization.id, email="admin2@localhost"
         )
         created_commit = Commit.objects.get(key="commit-id")
+        assert created_commit.author is not None
         assert created_commit.author.id == created_commit_author.id
 
         assert created_commit.organization_id == self.organization.id
@@ -799,7 +800,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
 @patch(
     "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames", return_value=[]
 )
-@patch("sentry.tasks.integrations.github.pr_comment.github_comment_workflow.delay")
+@patch("sentry.integrations.github.tasks.pr_comment.github_comment_workflow.delay")
 class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"

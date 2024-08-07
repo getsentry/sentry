@@ -5,6 +5,7 @@ import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ContinuousFlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {defined} from 'sentry/utils';
 import type {
@@ -234,6 +235,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
       flamegraphView={flamegraphView}
       setFlamegraphCanvasRef={setFlamegraphCanvasRef}
       setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+      contextMenu={ContinuousFlamegraphContextMenu}
     />
   );
 }
