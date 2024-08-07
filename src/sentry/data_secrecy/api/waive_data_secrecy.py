@@ -79,7 +79,7 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
             )
         except Http404:
             return Response(
-                {"detail": "No data secrecy waiver in place."}, status=status.HTTP_200_OK
+                {"detail": "No data secrecy waiver in place."}, status=status.HTTP_404_NOT_FOUND
             )
 
     def put(self, request: Request, organization: Organization):
