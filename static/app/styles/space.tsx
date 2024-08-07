@@ -11,8 +11,13 @@ const SPACES = {
 
 export type ValidSize = keyof typeof SPACES;
 
-function space<S extends ValidSize>(size: S): (typeof SPACES)[S] {
+/**
+ * @deprecated You can now access space directly inside styled template literals via p => p.theme.space(value) or inside your component body via useTheme().space
+ */
+export function space<S extends ValidSize>(size: S): (typeof SPACES)[S] {
   return SPACES[size];
 }
 
-export {space};
+export function themeSpace<S extends ValidSize>(size: S): (typeof SPACES)[S] {
+  return SPACES[size];
+}
