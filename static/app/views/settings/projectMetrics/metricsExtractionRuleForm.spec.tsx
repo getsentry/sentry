@@ -65,7 +65,7 @@ describe('Metrics Extraction Rule Form', function () {
     );
   });
 
-  it('by selecting a custom attribute the alert about delay in ingestion shall render different info', async function () {
+  it('When creating a new metric and selecting a custom attribute, an alert should prompt to remember to instrument it', async function () {
     const {project} = initializeOrg();
 
     renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
@@ -88,5 +88,23 @@ describe('Metrics Extraction Rule Form', function () {
     expect(
       screen.queryByText(/You want to track a custom attribute/)
     ).not.toBeInTheDocument();
+  });
+
+  it('When editing a metric and updating the form, an alert should prompt to remember it applies only for future data.', async function () {
+    const {project} = initializeOrg();
+
+    renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
+
+    render(
+      <MetricsExtractionRuleForm
+        initialData={INITIAL_DATA}
+        projectId={project.id}
+        isEdit
+      />
+    );
+
+    await selectEvent.select(screen.getByText('none'), 'days');
+
+    expect(screen.getByText(/ only be reflected on future data/)).toBeInTheDocument();
   });
 });
