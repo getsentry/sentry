@@ -82,20 +82,29 @@ function RuleListRow({
     ? userTeams.some(team => team.id === ownerActor.id)
     : true;
 
+  const activeActions = {
+    [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
+    [CombinedAlertType.METRIC]: ['edit', 'duplicate', 'delete'],
+    [CombinedAlertType.UPTIME]: ['edit', 'delete'],
+  };
+
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
       label: t('Edit'),
       to: editLink,
+      hidden: !activeActions[rule.type].includes('edit'),
     },
     {
       key: 'duplicate',
       label: t('Duplicate'),
       to: duplicateLink,
+      hidden: !activeActions[rule.type].includes('duplicate'),
     },
     {
       key: 'delete',
       label: t('Delete'),
+      hidden: !activeActions[rule.type].includes('delete'),
       priority: 'danger',
       onAction: () => {
         openConfirmModal({
