@@ -60,8 +60,8 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
           disabled={!showTooltip}
         >
           {/* TODO: Placing a DIV here is a hack, it allows the tooltip to close and the ProjectPageFilter to close at the same time,
-          otherwise two clicks are required */}
-          <div />
+          otherwise two clicks are required because of some rerendering/event propogation issues into the children */}
+          <div style={{width: '100px', position: 'absolute', height: '100%'}} />
         </Tooltip>
         <ProjectPageFilter onChange={onProjectChange} />
         <EnvironmentPageFilter />
