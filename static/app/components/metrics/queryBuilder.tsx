@@ -88,9 +88,10 @@ export const QueryBuilder = memo(function QueryBuilder({
 
     if (
       isVirtualMetric(metricsQuery) &&
+      metricsQuery.condition &&
       metricsQuery.condition !== BUILT_IN_CONDITION_ID
     ) {
-      const tagsFromExtractionRules = getTags(metricsQuery.mri);
+      const tagsFromExtractionRules = getTags(metricsQuery.mri, metricsQuery.condition);
       for (const tag of tagsFromExtractionRules) {
         if (!options.find(o => o.key === tag.key)) {
           // if the tag has not been seen in the selected time range

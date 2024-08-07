@@ -156,7 +156,10 @@ export function MetricQueryContextMenu({
               router
             );
           } else {
-            const extractionRule = getExtractionRule(metricsQuery.mri);
+            const extractionRule = getExtractionRule(
+              metricsQuery.mri,
+              metricsQuery.condition!
+            );
             if (extractionRule) {
               openExtractionRuleEditModal({
                 metricExtractionRule: extractionRule,
