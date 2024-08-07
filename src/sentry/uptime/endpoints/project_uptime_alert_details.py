@@ -8,8 +8,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, UptimeParams
+from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
-from sentry.uptime.endpoints.serializers import ProjectUptimeSubscriptionSerializer
+from sentry.uptime.endpoints.serializers import (
+    ProjectUptimeSubscriptionSerializer,
+    ProjectUptimeSubscriptionSerializerResponse,
+)
+from sentry.uptime.models import UptimeSubscription
 
 
 @region_silo_endpoint
@@ -35,8 +40,13 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, uptime_subscription) -> Response:
-        serialized_uptime_alert = serialize(
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        uptime_subscription: UptimeSubscription,
+    ) -> Response:
+        serialized_uptime_alert: ProjectUptimeSubscriptionSerializerResponse = serialize(
             uptime_subscription,
             request.user,
         )
