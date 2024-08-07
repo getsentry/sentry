@@ -242,8 +242,6 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
         sequence (`uploading_complete`) is scheduled.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.UPLOADING_START,
@@ -363,7 +361,7 @@ def fulfill_cross_region_export_request(
     path = f"runs/{uuid}/saas_to_saas_export/{org_slug}.tar"
     relocation_storage = get_relocation_storage()
     fp = BytesIO()
-    logger.error(
+    logger.info(
         "fulfill_cross_region_export_request: exporting",
         extra=logger_data,
     )
@@ -374,7 +372,7 @@ def fulfill_cross_region_export_request(
         org_filter={org_slug},
         printer=LoggingPrinter(uuid),
     )
-    logger.error(
+    logger.info(
         "fulfill_cross_region_export_request: exported",
         extra=logger_data,
     )
@@ -382,7 +380,7 @@ def fulfill_cross_region_export_request(
     fp.seek(0)
     relocation_storage.save(path, fp)
     logger_data["encrypted_contents_size"] = fp.tell()
-    logger.error(
+    logger.info(
         "fulfill_cross_region_export_request: saved",
         extra=logger_data,
     )
@@ -400,7 +398,7 @@ def fulfill_cross_region_export_request(
             org_slug=org_slug,
         ).dict(),
     ).save()
-    logger.error(
+    logger.info(
         "fulfill_cross_region_export_request: scheduled",
         extra=logger_data,
     )
@@ -425,14 +423,14 @@ def cross_region_export_timeout_check(
     """
 
     try:
-        relocation: Relocation = Relocation.objects.get(uuid=uuid)
+        relocation = Relocation.objects.get(uuid=uuid)
     except Relocation.DoesNotExist:
         logger.exception("Could not locate Relocation model by UUID: %s", uuid)
         return
 
     logger_data = {"uuid": str(relocation.uuid), "task": "cross_region_export_timeout_check"}
     logger.info(
-        "Cross region timeout check: started",
+        "cross_region_export_timeout_check: started",
         extra=logger_data,
     )
 
@@ -440,7 +438,7 @@ def cross_region_export_timeout_check(
     # way or another.
     if relocation.latest_task != OrderedTask.UPLOADING_START.name:
         logger.info(
-            "Cross region timeout check: no timeout detected",
+            "cross_region_export_timeout_check: no timeout detected",
             extra=logger_data,
         )
         return
@@ -449,7 +447,7 @@ def cross_region_export_timeout_check(
     # nothing.
     if relocation.status == Relocation.Status.FAILURE.value:
         logger.info(
-            "Cross region timeout check: task already failed",
+            "cross_region_export_timeout_check: task already failed",
             extra=logger_data,
         )
         return
@@ -457,7 +455,7 @@ def cross_region_export_timeout_check(
     reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(delta=CROSS_REGION_EXPORT_TIMEOUT)
     logger_data["reason"] = reason
     logger.error(
-        "Cross region timeout check: timeout detected",
+        "cross_region_export_timeout_check: timeout detected",
         extra=logger_data,
     )
 
@@ -479,8 +477,6 @@ def uploading_complete(uuid: UUID) -> None:
     before we try to do all sorts of fun stuff with it.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.UPLOADING_COMPLETE,
@@ -541,8 +537,6 @@ def preprocessing_scan(uuid: UUID) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_SCAN,
@@ -706,8 +700,6 @@ def preprocessing_transfer(uuid: UUID) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_TRANSFER,
@@ -795,8 +787,6 @@ def preprocessing_baseline_config(uuid: UUID) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_BASELINE_CONFIG,
@@ -849,8 +839,6 @@ def preprocessing_colliding_users(uuid: UUID) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_COLLIDING_USERS,
@@ -873,7 +861,7 @@ def preprocessing_colliding_users(uuid: UUID) -> None:
         export_in_user_scope(
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
-            user_filter=set(relocation.want_usernames),
+            user_filter=set(relocation.want_usernames or ()),
             printer=LoggingPrinter(uuid),
         )
         fp.seek(0)
@@ -902,8 +890,6 @@ def preprocessing_complete(uuid: UUID) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_COMPLETE,
@@ -1119,8 +1105,6 @@ def validating_start(uuid: UUID) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.VALIDATING_START,
@@ -1196,8 +1180,6 @@ def validating_poll(uuid: UUID, build_id: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.VALIDATING_POLL,
@@ -1298,8 +1280,6 @@ def validating_complete(uuid: UUID, build_id: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.VALIDATING_COMPLETE,
@@ -1387,8 +1367,6 @@ def importing(uuid: UUID) -> None:
     trying it again!
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.IMPORTING,
@@ -1423,7 +1401,7 @@ def importing(uuid: UUID) -> None:
                 flags=ImportFlags(
                     import_uuid=str(uuid),
                     hide_organizations=True,
-                    merge_users=False,
+                    merge_users=relocation.provenance == Relocation.Provenance.SAAS_TO_SAAS,
                     overwrite_configs=False,
                 ),
                 org_filter=set(relocation.want_org_slugs),
@@ -1448,8 +1426,6 @@ def postprocessing(uuid: UUID) -> None:
     Make the owner of this relocation an owner of all of the organizations we just imported.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.POSTPROCESSING,
@@ -1542,8 +1518,6 @@ def notifying_unhide(uuid: UUID) -> None:
     Un-hide the just-imported organizations, making them visible to users in the UI.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.NOTIFYING_UNHIDE,
@@ -1590,8 +1564,6 @@ def notifying_users(uuid: UUID) -> None:
     Send an email to all users that have been imported, telling them to claim their accounts.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.NOTIFYING_USERS,
@@ -1626,7 +1598,7 @@ def notifying_users(uuid: UUID) -> None:
         imported_users = user_service.get_many(filter={"user_ids": list(imported_user_ids)})
         for user in imported_users:
             matched_prefix = False
-            for username_prefix in relocation.want_usernames:
+            for username_prefix in relocation.want_usernames or ():
                 if user.username.startswith(username_prefix):
                     matched_prefix = True
                     break
@@ -1666,8 +1638,6 @@ def notifying_owner(uuid: UUID) -> None:
     Send an email to the creator and owner, telling them that their relocation was successful.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.NOTIFYING_OWNER,
@@ -1716,8 +1686,6 @@ def completed(uuid: UUID) -> None:
     Finish up a relocation by marking it a success.
     """
 
-    relocation: Relocation | None
-    attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.COMPLETED,

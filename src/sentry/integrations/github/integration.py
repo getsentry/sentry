@@ -6,14 +6,13 @@ from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 from urllib.parse import parse_qsl
 
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import features, options
-from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github import GitHubIdentityProvider, get_user_info
@@ -24,25 +23,26 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
+from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.repository import Repository
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.tasks.integrations import migrate_repo
-from sentry.tasks.integrations.github.constants import RATE_LIMITED_MESSAGE
-from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubAppsClient, GitHubClientMixin
+from .client import GitHubApiClient, GitHubBaseClient
 from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
 
@@ -159,10 +159,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
-    def get_client(self) -> GitHubClientMixin:
+    def get_client(self) -> GitHubBaseClient:
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
-        return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
+        return GitHubApiClient(integration=self.model, org_integration_id=self.org_integration.id)
 
     def is_rate_limited_error(self, exc: Exception) -> bool:
         if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
@@ -254,9 +254,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
 
-    def reinstall(self) -> None:
-        self.reinstall_repositories()
-
     def message_from_error(self, exc: Exception) -> str:
         if not isinstance(exc, ApiError):
             return ERR_INTERNAL
@@ -305,11 +302,11 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_client(self) -> GitHubClientMixin:
+    def get_client(self) -> GitHubBaseClient:
         # XXX: This is very awkward behaviour as we're not passing the client an Integration
         # object it expects. Instead we're passing the Installation object and hoping the client
         # doesn't try to invoke any bad fields/attributes on it.
-        return GitHubAppsClient(integration=self.integration_cls)
+        return GitHubApiClient(integration=self.integration_cls)
 
     def post_install(
         self,
@@ -387,7 +384,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         self.determine_active_organization(request)
 
         ghip = GitHubIdentityProvider()
@@ -444,7 +441,7 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         installation_id = request.GET.get(
             "installation_id", pipeline.fetch_state("installation_id")
         )

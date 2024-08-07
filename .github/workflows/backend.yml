@@ -46,7 +46,10 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
@@ -325,6 +328,7 @@ jobs:
 
       - run: |
           # mypy does not have granular codes so don't allow specific messages to regress
+          set -euo pipefail
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
           ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
@@ -332,6 +336,7 @@ jobs:
           ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
           ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
           ! grep 'Module "sentry.*has no attribute' .artifacts/mypy-all
+          ! grep 'Unpacking a string is disallowed' .artifacts/mypy-all
           ! grep 'base class .* defined the type as.*Permission' .artifacts/mypy-all
           ! grep 'does not explicitly export attribute' .artifacts/mypy-all
 

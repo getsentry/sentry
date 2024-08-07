@@ -35,12 +35,12 @@ export function useLoadGettingStarted({
   );
 
   const projectKeys = useProjectKeys({orgSlug, projSlug});
-
   const platformPath = getPlatformPath(platform);
 
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (
+        !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
         (productType === 'feedback' && !feedbackOnboardingPlatforms.includes(platform.id))
       ) {

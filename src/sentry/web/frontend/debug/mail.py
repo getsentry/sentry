@@ -146,7 +146,7 @@ def make_group_metadata(random: Random) -> dict[str, Any]:
     }
 
 
-def make_group_generator(random: Random, project: Project) -> Generator[Group, None, None]:
+def make_group_generator(random: Random, project: Project) -> Generator[Group]:
     epoch = int(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp())
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)

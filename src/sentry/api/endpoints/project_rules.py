@@ -25,6 +25,7 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -32,7 +33,6 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.signals import alert_rule_created
-from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
 
 
@@ -236,9 +236,12 @@ class DuplicateRuleEvaluator:
         """
         Determines whether specified rule already exists, and if it does, returns it.
         """
-        existing_rules = Rule.objects.exclude(id=self._rule_id).filter(
-            project__id=self._project_id, status=ObjectStatus.ACTIVE
-        )
+        if self._rule_id is None:
+            all_rules = Rule.objects.all()
+        else:
+            all_rules = Rule.objects.exclude(id=self._rule_id)
+
+        existing_rules = all_rules.filter(project__id=self._project_id, status=ObjectStatus.ACTIVE)
         for existing_rule in existing_rules:
             keys_checked = 0
             keys_matched = 0

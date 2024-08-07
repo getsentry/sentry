@@ -12,11 +12,15 @@ import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/u
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
+  type CallbackSearchState,
   type FieldDefinitionGetter,
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  parseQueryBuilderValue,
+  queryIsValid,
+} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -26,6 +30,7 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import usePrevious from 'sentry/utils/usePrevious';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -74,15 +79,15 @@ export interface SearchQueryBuilderProps {
    */
   invalidMessages?: SearchConfig['invalidMessages'];
   label?: string;
-  onBlur?: (query: string) => void;
+  onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
    * Called when the query value changes
    */
-  onChange?: (query: string) => void;
+  onChange?: (query: string, state: CallbackSearchState) => void;
   /**
    * Called when the user presses enter
    */
-  onSearch?: (query: string) => void;
+  onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   queryInterface?: QueryInterfaceType;
   /**
@@ -169,9 +174,12 @@ export function SearchQueryBuilder({
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
 
+  const previousQuery = usePrevious(state.query);
   useEffectAfterFirstRender(() => {
-    onChange?.(state.query);
-  }, [onChange, state.query]);
+    if (previousQuery !== state.query) {
+      onChange?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
+    }
+  }, [onChange, state.query, previousQuery, parsedQuery]);
 
   const handleSearch = useHandleSearch({
     parsedQuery,
@@ -222,7 +230,9 @@ export function SearchQueryBuilder({
       <PanelProvider>
         <Wrapper
           className={className}
-          onBlur={() => onBlur?.(state.query)}
+          onBlur={() =>
+            onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
+          }
           ref={wrapperRef}
           aria-disabled={disabled}
         >

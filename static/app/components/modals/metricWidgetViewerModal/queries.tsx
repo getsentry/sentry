@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -38,7 +38,12 @@ import type {
   DashboardMetricsExpression,
   DashboardMetricsQuery,
 } from 'sentry/views/dashboards/metrics/types';
-import {getMetricQueryName} from 'sentry/views/dashboards/metrics/utils';
+import {
+  formatAlias,
+  getMetricQueryName,
+  isVirtualAlias,
+  isVirtualExpression,
+} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 
@@ -167,6 +172,7 @@ export const Queries = memo(function Queries({
                   onChange={formula => onEquationChange({formula}, index)}
                   value={equation.formula}
                   availableVariables={availableVariables}
+                  metricsNewInputs={metricsNewInputs}
                 />
               </EquationInputWrapper>
               {equation.alias !== undefined && (
@@ -199,7 +205,7 @@ export const Queries = memo(function Queries({
 });
 
 /**
- * Wrapper for  the QueryBuilder to memoize the onChange handler
+ * Wrapper for the QueryBuilder to memoize the onChange handler
  */
 function WrappedQueryBuilder({
   index,
@@ -447,18 +453,27 @@ function ExpressionAliasForm({
   onChange: (alias: string | undefined) => void;
   hasContextMenu?: boolean;
 }) {
+  const organization = useOrganization();
+
   return (
     <ExpressionAliasWrapper hasOwnRow={hasContextMenu}>
-      {hasMetricsNewInputs(useOrganization()) ? (
+      {hasMetricsNewInputs(organization) ? (
         <QueryFieldGroup>
           <QueryFieldGroup.Label>As</QueryFieldGroup.Label>
           <QueryFieldGroup.DebouncedInput
             type="text"
-            value={expression.alias}
-            onChange={e => onChange(e.target.value)}
+            value={formatAlias(expression.alias)}
+            onChange={e => {
+              if (isVirtualAlias(expression.alias)) {
+                onChange(`v|${e.target.value}`);
+              } else {
+                onChange(e.target.value);
+              }
+            }}
             placeholder={t('Add alias')}
           />
           <QueryFieldGroup.DeleteButton
+            disabled={isVirtualExpression(expression)}
             title={t('Clear Alias')}
             onClick={() => onChange(undefined)}
           />
@@ -468,12 +483,13 @@ function ExpressionAliasForm({
           <StyledLabel>as</StyledLabel>
           <StyledDebouncedInput
             type="text"
-            value={expression.alias}
+            value={formatAlias(expression.alias)}
             onChange={e => onChange(e.target.value)}
             placeholder={t('Add alias')}
           />
           <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
             <StyledButton
+              disabled={isVirtualExpression(expression)}
               icon={<IconDelete size="xs" />}
               aria-label={t('Clear Alias')}
               onClick={() => onChange(undefined)}
@@ -494,6 +510,10 @@ export function DebouncedInput({
   const [value, setValue] = useState<string | number | readonly string[] | undefined>(
     inputProps.value
   );
+
+  useEffect(() => {
+    setValue(inputProps.value);
+  }, [inputProps.value]);
 
   const handleChange = useMemo(
     () =>

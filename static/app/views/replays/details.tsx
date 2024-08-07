@@ -20,6 +20,7 @@ import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataL
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -41,15 +42,6 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  useReplayPageview('replay.details-time-spent');
-  useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
-  useRouteAnalyticsParams({
-    organization,
-    referrer: decodeScalar(location.query.referrer),
-    user_email: user.email,
-    tab: location.query.t_main,
-  });
-
   const {slug: orgSlug} = organization;
 
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
@@ -69,6 +61,17 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   });
 
   const replayErrors = errors.filter(e => e.title !== 'User Feedback');
+  const isVideoReplay = replay?.isVideoReplay();
+
+  useReplayPageview('replay.details-time-spent');
+  useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
+  useRouteAnalyticsParams({
+    organization,
+    referrer: decodeScalar(location.query.referrer),
+    user_email: user.email,
+    tab: location.query.t_main,
+    mobile: isVideoReplay,
+  });
 
   useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
 
@@ -177,33 +180,32 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  const isVideoReplay = replay?.isVideoReplay();
-
   return (
-    <ReplayContextProvider
-      analyticsContext="replay_details"
-      initialTimeOffsetMs={initialTimeOffsetMs}
-      isFetching={fetching}
-      prefsStrategy={LocalStorageReplayPreferences}
-      replay={replay}
-    >
-      <ReplayTransactionContext replayRecord={replayRecord}>
-        <Page
-          isVideoReplay={isVideoReplay}
-          orgSlug={orgSlug}
-          replayRecord={replayRecord}
-          projectSlug={projectSlug}
-          replayErrors={replayErrors}
-          isLoading={isLoading}
-        >
-          <ReplaysLayout
+    <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
+      <ReplayContextProvider
+        analyticsContext="replay_details"
+        initialTimeOffsetMs={initialTimeOffsetMs}
+        isFetching={fetching}
+        replay={replay}
+      >
+        <ReplayTransactionContext replayRecord={replayRecord}>
+          <Page
             isVideoReplay={isVideoReplay}
+            orgSlug={orgSlug}
             replayRecord={replayRecord}
+            projectSlug={projectSlug}
+            replayErrors={replayErrors}
             isLoading={isLoading}
-          />
-        </Page>
-      </ReplayTransactionContext>
-    </ReplayContextProvider>
+          >
+            <ReplaysLayout
+              isVideoReplay={isVideoReplay}
+              replayRecord={replayRecord}
+              isLoading={isLoading}
+            />
+          </Page>
+        </ReplayTransactionContext>
+      </ReplayContextProvider>
+    </ReplayPreferencesContextProvider>
   );
 }
 

@@ -169,7 +169,10 @@ def build_metric_alert_chart(
     """
     Builds the dataset required for metric alert chart the same way the frontend would
     """
-    snuba_query: SnubaQuery = alert_rule.snuba_query
+    if alert_rule.snuba_query is None:
+        return None
+
+    snuba_query = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE

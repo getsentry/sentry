@@ -66,7 +66,7 @@ const AccordionHeader = styled('div')`
 `;
 
 const AccordionContent = styled('div')`
-  padding: ${space(0)} ${space(2)};
+  padding: 0 ${space(2)};
 `;
 
 export {Accordion};

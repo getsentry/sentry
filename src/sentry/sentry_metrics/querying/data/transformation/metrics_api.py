@@ -133,7 +133,7 @@ class MetricsAPIQueryResultsTransformer(QueryResultsTransformer[Mapping[str, Any
     Represents a transformer that converts the query results into a format which is known by the Metrics API.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._start: datetime | None = None
         self._end: datetime | None = None
         self._interval: int | None = None

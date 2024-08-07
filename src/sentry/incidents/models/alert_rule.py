@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Protocol, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
@@ -83,6 +83,7 @@ class AlertRuleStatus(Enum):
     PENDING = 0
     SNAPSHOT = 4
     DISABLED = 5
+    NOT_ENOUGH_DATA = 6
 
 
 class AlertRuleDetectionType(models.TextChoices):
@@ -222,6 +223,20 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 },
             )
         return []
+
+    def get_for_metrics(
+        self, organization: Organization, metric_mris: list[str]
+    ) -> BaseQuerySet[AlertRule]:
+        """
+        Fetches AlertRules associated with the metric MRIs
+        """
+
+        alert_query = Q()
+        for metric_mri in metric_mris:
+            alert_query |= Q(snuba_query__aggregate__contains=metric_mri)
+
+        queryset = self.filter(organization=organization).filter(alert_query)
+        return queryset
 
 
 @region_silo_model
@@ -550,6 +565,21 @@ class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
         return self.trigger_action_class(action, incident, project)
 
 
+class _FactoryRegistry:
+    def __init__(self) -> None:
+        # Two kinds of index. The value sets should be equal at all times.
+        self.by_action_service: dict[ActionService, ActionHandlerFactory] = {}
+        self.by_slug: dict[str, ActionHandlerFactory] = {}
+
+    def register(self, factory: ActionHandlerFactory) -> None:
+        if factory.service_type in self.by_action_service:
+            raise Exception(f"Handler already registered for type {factory.service_type}")
+        if factory.slug in self.by_slug:
+            raise Exception(f"Handler already registered with slug={factory.slug!r}")
+        self.by_action_service[factory.service_type] = factory
+        self.by_slug[factory.slug] = factory
+
+
 @region_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
@@ -564,7 +594,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     Type = ActionService
     TargetType = ActionTarget
 
-    _factory_registrations: dict[ActionService, ActionHandlerFactory] = {}
+    # As a test utility, TemporaryAlertRuleTriggerActionRegistry has privileged
+    # access to this otherwise private class variable
+    _factory_registrations = _FactoryRegistry()
 
     INTEGRATION_TYPES = frozenset(
         (
@@ -617,9 +649,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     def build_handler(
         self, action: AlertRuleTriggerAction, incident: Incident, project: Project
     ) -> ActionHandler | None:
-        type = AlertRuleTriggerAction.Type(self.type)
-        if type in self._factory_registrations:
-            factory = self._factory_registrations[type]
+        service_type = AlertRuleTriggerAction.Type(self.type)
+        factory = self._factory_registrations.by_action_service.get(service_type)
+        if factory is not None:
             return factory.build_handler(action, incident, project)
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
@@ -653,10 +685,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     @classmethod
     def register_factory(cls, factory: ActionHandlerFactory) -> None:
-        if factory.service_type not in cls._factory_registrations:
-            cls._factory_registrations[factory.service_type] = factory
-        else:
-            raise Exception(f"Handler already registered for type {factory.service_type}")
+        cls._factory_registrations.register(factory)
 
     @classmethod
     def register_type(
@@ -691,11 +720,19 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     @classmethod
     def get_registered_factory(cls, service_type: ActionService) -> ActionHandlerFactory:
-        return cls._factory_registrations[service_type]
+        return cls._factory_registrations.by_action_service[service_type]
 
     @classmethod
     def get_registered_factories(cls) -> list[ActionHandlerFactory]:
-        return list(cls._factory_registrations.values())
+        return list(cls._factory_registrations.by_action_service.values())
+
+    @classmethod
+    def look_up_factory_by_slug(cls, slug: str) -> ActionHandlerFactory | None:
+        return cls._factory_registrations.by_slug.get(slug)
+
+    @classmethod
+    def get_all_slugs(cls) -> list[str]:
+        return list(cls._factory_registrations.by_slug)
 
 
 class AlertRuleActivityType(Enum):
@@ -734,6 +771,9 @@ class AlertRuleActivity(Model):
 def update_alert_activations(
     subscription: QuerySubscription, alert_rule: AlertRule, value: float
 ) -> bool:
+    if subscription.snuba_query is None:
+        return False
+
     now = timezone.now()
     subscription_end = subscription.date_added + timedelta(
         seconds=subscription.snuba_query.time_window

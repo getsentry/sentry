@@ -71,7 +71,7 @@ class JSONEncoderForHTML(JSONEncoder):
         chunks = self.iterencode(o, True)
         return "".join(chunks)
 
-    def iterencode(self, o: object, _one_shot: bool = False) -> Generator[str, None, None]:
+    def iterencode(self, o: object, _one_shot: bool = False) -> Generator[str]:
         chunks = super().iterencode(o, _one_shot)
         for chunk in chunks:
             chunk = chunk.replace("&", "\\u0026")

@@ -1,18 +1,21 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventGroupVariantType, IssueCategory} from 'sentry/types';
 import type {Event, EventGroupVariant} from 'sentry/types/event';
+import {EventGroupVariantType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
@@ -118,6 +121,7 @@ export function EventGroupingInfo({
 }: GroupingInfoProps) {
   const organization = useOrganization();
   const [isOpen, setIsOpen] = useState(false);
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const [configOverride, setConfigOverride] = useState<string | null>(null);
 
   const hasPerformanceGrouping =
@@ -147,15 +151,22 @@ export function EventGroupingInfo({
       )
     : [];
 
+  const openState = hasStreamlinedUI ? true : isOpen;
+
   return (
-    <EventDataSection
-      type="grouping-info"
+    <InterimSection
       title={t('Event Grouping Information')}
-      actions={<SectionToggleButton isExpanded={isOpen} onExpandChange={setIsOpen} />}
+      actions={
+        hasStreamlinedUI ? null : (
+          <SectionToggleButton isExpanded={isOpen} onExpandChange={setIsOpen} />
+        )
+      }
+      type={FoldSectionKey.GROUPING_INFO}
     >
-      {!isOpen ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
-      {isOpen ? (
+      {!openState ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
+      {openState ? (
         <Fragment>
+          {hasStreamlinedUI ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
           <ConfigHeader>
             <div>
               {showGroupingConfig && (
@@ -190,7 +201,7 @@ export function EventGroupingInfo({
             : null}
         </Fragment>
       ) : null}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

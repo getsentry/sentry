@@ -3008,13 +3008,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
 
-        for release, environment, expected_groups in (
+        for release_s, environment, expected_groups in (
             (release.version, "development", [event.group.id]),
             (release.version, "production", []),
         ):
             response = self.get_success_response(
                 sort="new",
-                query=f"first_release:{release}",
+                query=f"first_release:{release_s}",
                 environment=environment,
             )
             assert len(response.data) == len(expected_groups)
@@ -3158,13 +3158,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         np1_group_id = group_info.group.id if group_info else None
 
         # create an error issue
-        self.store_event(
+        error_event = self.store_event(
             data={
                 "fingerprint": ["error-issue"],
                 "event_id": "e" * 32,
             },
             project_id=self.project.id,
         )
+        error_group_id = error_event.group.id
 
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
@@ -3199,6 +3200,44 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="issue.category:replay issue.type:performance_n_plus_one_db_queries",
         )
         assert len(response.data) == 0
+
+        response = self.get_success_response(
+            sort="new",
+            query="issue.category:error",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:performance",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:error",
+        )
+        assert len(response.data) == 2
+        assert {r["id"] for r in response.data} == {
+            str(blocking_asset_group_id),
+            str(np1_group_id),
+        }
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:performance",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:[performance,cron]",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
 
     def test_pagination_and_x_hits_header(self, _: MagicMock) -> None:
         # Create 30 issues

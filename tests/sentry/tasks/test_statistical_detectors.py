@@ -226,27 +226,36 @@ def test_detect_transaction_trends_options(
 
 
 @pytest.mark.parametrize(
-    ["enabled"],
+    ["task_enabled", "option_enabled"],
     [
-        pytest.param(False, id="disabled"),
-        pytest.param(True, id="enabled"),
+        pytest.param(True, True, id="both enabled"),
+        pytest.param(False, False, id="both disabled"),
+        pytest.param(True, False, id="option disabled"),
+        pytest.param(False, True, id="task disabled"),
     ],
 )
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @django_db_all
 def test_detect_function_trends_options(
     query_functions,
-    enabled,
+    task_enabled,
+    option_enabled,
     timestamp,
     project,
 ):
+    ProjectOption.objects.set_value(
+        project=project,
+        key="sentry:performance_issue_settings",
+        value={InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: option_enabled},
+    )
+
     options = {
-        "statistical_detectors.enable": enabled,
+        "statistical_detectors.enable": task_enabled,
     }
 
     with override_options(options):
         detect_function_trends([project.id], timestamp)
-    assert query_functions.called == enabled
+    assert query_functions.called == (task_enabled and option_enabled)
 
 
 @mock.patch("sentry.snuba.functions.query")

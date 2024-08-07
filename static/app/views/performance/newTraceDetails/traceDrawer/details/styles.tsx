@@ -4,8 +4,12 @@ import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from 'sentry/components/dropdownMenu';
+import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import KeyValueData, {
@@ -39,6 +43,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
@@ -345,6 +350,20 @@ function getThreadIdFromNode(
   return undefined;
 }
 
+// Renders the dropdown menu list at the root trace drawer content container level, to prevent
+// being stacked under other content.
+function DropdownMenuWithPortal(props: DropdownMenuProps) {
+  const drawerContainerRef = useDrawerContainerRef();
+
+  return (
+    <DropdownMenu
+      {...props}
+      usePortal={!!drawerContainerRef}
+      portalContainerRef={drawerContainerRef}
+    />
+  );
+}
+
 function NodeActions(props: {
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
@@ -468,7 +487,7 @@ function NodeActions(props: {
           </Button>
         ) : null}
       </Actions>
-      <DropdownMenu
+      <DropdownMenuWithPortal
         items={items}
         className="DropdownMenu"
         position="bottom-end"
@@ -520,7 +539,7 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
       <TagsWrapper>
-        <Tags event={event} projectSlug={projectSlug} />
+        <EventTagsDataSection event={event} projectSlug={projectSlug} />
       </TagsWrapper>
     </LazyRender>
   );
@@ -676,6 +695,7 @@ const TraceDrawerComponents = {
   EventTags,
   TraceDataSection,
   SectionCardGroup,
+  DropdownMenuWithPortal,
 };
 
 export {TraceDrawerComponents};

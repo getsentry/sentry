@@ -14,6 +14,7 @@ export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> 
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;
+  continuousProfilingCompat?: boolean;
   cursor?: string;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
@@ -29,6 +30,7 @@ export function useProfileEvents<F extends string>({
   referrer,
   query,
   sort,
+  continuousProfilingCompat,
   cursor,
   enabled = true,
   refetchOnMount = true,
@@ -38,7 +40,11 @@ export function useProfileEvents<F extends string>({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  query = `has:profile.id ${query ? `(${query})` : ''}`;
+  if (continuousProfilingCompat) {
+    query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
+  } else {
+    query = `has:profile.id ${query ? `(${query})` : ''}`;
+  }
 
   const path = `/organizations/${organization.slug}/events/`;
   const endpointOptions = {
@@ -84,13 +90,21 @@ export function formatError(error: any): string | null {
 }
 
 const ALL_FIELDS = [
+  'id',
+  'trace',
   'profile.id',
+  'profiler.id',
+  'thread.id',
+  'precise.start_ts',
+  'precise.finish_ts',
+  'project.name',
   'timestamp',
   'release',
   'device.model',
   'device.classification',
   'device.arch',
   'transaction.duration',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',

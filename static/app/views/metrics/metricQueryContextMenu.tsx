@@ -141,7 +141,7 @@ export function MetricQueryContextMenu({
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
-        label: t('Metric Settings'),
+        label: t('Configure Metric'),
         onAction: () => {
           trackAnalytics('ddm.widget.settings', {
             organization,
@@ -156,7 +156,10 @@ export function MetricQueryContextMenu({
               router
             );
           } else {
-            const extractionRule = getExtractionRule(metricsQuery.mri);
+            const extractionRule = getExtractionRule(
+              metricsQuery.mri,
+              metricsQuery.condition!
+            );
             if (extractionRule) {
               openExtractionRuleEditModal({
                 metricExtractionRule: extractionRule,

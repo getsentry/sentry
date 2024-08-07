@@ -15,6 +15,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -34,15 +35,15 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
-from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
-    find_channel_id_for_alert_rule,
-)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -288,7 +289,12 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
-    def test_dynamic_detection_type(self):
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_dynamic_detection_type(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         rule = self.create_alert_rule(
@@ -296,8 +302,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             sensitivity=AlertRuleSensitivity.HIGH,
             threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
             detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
         )
-        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        trigger = self.create_alert_rule_trigger(rule, "hi", 0)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.detection_type == resp.data.get("detection_type")
@@ -306,7 +313,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
         ):
             self.create_alert_rule(
-                seasonality=AlertRuleSeasonality.AUTO, detection_type=AlertRuleDetectionType.DYNAMIC
+                seasonality=AlertRuleSeasonality.AUTO,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
             )  # Require both seasonality and sensitivity
 
         with pytest.raises(
@@ -315,13 +324,15 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(
                 sensitivity=AlertRuleSensitivity.MEDIUM,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
             )  # Require both seasonality and sensitivity
 
         with pytest.raises(
             ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
         ):
             self.create_alert_rule(
-                detection_type=AlertRuleDetectionType.DYNAMIC
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
             )  # DYNAMIC detection type requires seasonality and sensitivity
 
         with pytest.raises(
@@ -333,6 +344,16 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 sensitivity=AlertRuleSensitivity.HIGH,
                 comparison_delta=60,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
+            )
+
+        with pytest.raises(ValidationError, match="Invalid time window for dynamic alert"):
+            rule = self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=1,
             )
 
     @responses.activate
@@ -639,7 +660,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(self.alert_rule)
         # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
-        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
+        updated_alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+        assert updated_alert_rule.snuba_query is not None
+        updated_sub = updated_alert_rule.snuba_query.subscriptions.get()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
     def test_update_trigger_label_to_unallowed_value(self):

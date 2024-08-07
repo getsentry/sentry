@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -19,16 +18,19 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.user import User
-from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.search.events.filter import (
+    FilterConvertParams,
+    convert_search_filter_to_snuba_query,
+    format_search_filter,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
-
-if TYPE_CHECKING:
-    from sentry.models.group import Group
 
 
 def issue_search_query_to_conditions(
@@ -52,7 +54,7 @@ def issue_search_query_to_conditions(
             from sentry.api.serializers import GroupSerializerSnuba
 
             if search_filter.key.name not in GroupSerializerSnuba.skip_snuba_fields:
-                filter_keys = {
+                filter_keys: FilterConvertParams = {
                     "organization_id": group.project.organization.id,
                     "project_id": [group.project.id],
                     "environment": [env.name for env in environments],
@@ -125,7 +127,9 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
         if event_id == "latest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "latest"}):
-                event = group.get_latest_event_for_environments(environment_names)
+                event: Event | GroupEvent | None = group.get_latest_event_for_environments(
+                    environment_names
+                )
         elif event_id == "oldest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
                 event = group.get_oldest_event_for_environments(environment_names)

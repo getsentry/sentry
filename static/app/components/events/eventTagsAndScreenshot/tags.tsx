@@ -1,8 +1,7 @@
-import {useCallback, useMemo, useState} from 'react';
+import {forwardRef, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   getSentryDefaultTags,
   TagFilter,
@@ -15,6 +14,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {EventTags} from '../eventTags';
 
@@ -23,70 +24,73 @@ type Props = {
   projectSlug: Project['slug'];
 };
 
-function Tags({event, projectSlug}: Props) {
-  const sentryTags = getSentryDefaultTags();
+export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
+  function EventTagsDataSection({event, projectSlug}: Props, ref) {
+    const sentryTags = getSentryDefaultTags();
 
-  const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
-  const handleTagFilterChange = useCallback((value: TagFilter) => {
-    setTagFilter(value);
-  }, []);
-  const tags = useMemo(() => {
-    switch (tagFilter) {
-      case TagFilter.ALL:
-        return event.tags;
-      case TagFilter.CUSTOM:
-        return event.tags.filter(tag => !sentryTags.has(tag.key));
-      default:
-        return event.tags.filter(tag => TagFilterData[tagFilter].has(tag.key));
-    }
-  }, [tagFilter, event.tags, sentryTags]);
+    const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
+    const handleTagFilterChange = useCallback((value: TagFilter) => {
+      setTagFilter(value);
+    }, []);
+    const tags = useMemo(() => {
+      switch (tagFilter) {
+        case TagFilter.ALL:
+          return event.tags;
+        case TagFilter.CUSTOM:
+          return event.tags.filter(tag => !sentryTags.has(tag.key));
+        default:
+          return event.tags.filter(tag => TagFilterData[tagFilter].has(tag.key));
+      }
+    }, [tagFilter, event.tags, sentryTags]);
 
-  const availableFilters = useMemo(() => {
-    return Object.keys(TagFilterData).filter(filter => {
-      return event.tags.some(tag => TagFilterData[filter].has(tag.key));
-    });
-  }, [event.tags]);
+    const availableFilters = useMemo(() => {
+      return Object.keys(TagFilterData).filter(filter => {
+        return event.tags.some(tag => TagFilterData[filter].has(tag.key));
+      });
+    }, [event.tags]);
 
-  const actions = (
-    <ButtonBar gap={1}>
-      <SegmentedControl
-        size="xs"
-        aria-label={t('Filter tags')}
-        value={tagFilter}
-        onChange={handleTagFilterChange}
+    const actions = (
+      <ButtonBar gap={1}>
+        <SegmentedControl
+          size="xs"
+          aria-label={t('Filter tags')}
+          value={tagFilter}
+          onChange={handleTagFilterChange}
+        >
+          {[TagFilter.ALL, TagFilter.CUSTOM, ...availableFilters].map(v => (
+            <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
+          ))}
+        </SegmentedControl>
+      </ButtonBar>
+    );
+
+    return (
+      <StyledEventDataSection
+        title={t('Tags')}
+        help={tct('The searchable tags associated with this event. [link:Learn more]', {
+          link: <ExternalLink openInNewTab href={TAGS_DOCS_LINK} />,
+        })}
+        isHelpHoverable
+        actions={actions}
+        data-test-id="event-tags"
+        guideTarget="tags"
+        type={FoldSectionKey.TAGS}
+        ref={ref}
       >
-        {[TagFilter.ALL, TagFilter.CUSTOM, ...availableFilters].map(v => (
-          <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
-        ))}
-      </SegmentedControl>
-    </ButtonBar>
-  );
+        <EventTags
+          event={event}
+          projectSlug={projectSlug}
+          tagFilter={tagFilter}
+          filteredTags={tags ?? []}
+        />
+      </StyledEventDataSection>
+    );
+  }
+);
 
-  return (
-    <StyledEventDataSection
-      title={t('Tags')}
-      help={tct('The searchable tags associated with this event. [link:Learn more]', {
-        link: <ExternalLink openInNewTab href={TAGS_DOCS_LINK} />,
-      })}
-      isHelpHoverable
-      actions={actions}
-      data-test-id="event-tags"
-      guideTarget="tags"
-      type="tags"
-    >
-      <EventTags
-        event={event}
-        projectSlug={projectSlug}
-        tagFilter={tagFilter}
-        filteredTags={tags ?? []}
-      />
-    </StyledEventDataSection>
-  );
-}
+export default EventTagsDataSection;
 
-export default Tags;
-
-const StyledEventDataSection = styled(EventDataSection)`
+const StyledEventDataSection = styled(InterimSection)`
   padding: ${space(0.5)} ${space(2)} ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {

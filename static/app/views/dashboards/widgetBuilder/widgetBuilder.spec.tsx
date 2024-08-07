@@ -3,6 +3,7 @@ import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {TagsFixture} from 'sentry-fixture/tags';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -19,7 +20,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {TOP_N} from 'sentry/utils/discover/types';
+import {DatasetSource, TOP_N} from 'sentry/utils/discover/types';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
@@ -55,12 +56,14 @@ function renderTestComponent({
   orgFeatures,
   onSave,
   params,
+  updateDashboardSplitDecision,
 }: {
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
   params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
+  updateDashboardSplitDecision?: WidgetBuilderProps['updateDashboardSplitDecision'];
 } = {}) {
   const {organization, projects, router} = initializeOrg({
     organization: {
@@ -101,6 +104,7 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      updateDashboardSplitDecision={updateDashboardSplitDecision}
     />,
     {
       router,
@@ -1688,7 +1692,29 @@ describe('WidgetBuilder', function () {
   });
 
   describe('discover dataset split', function () {
+    let widget, dashboard;
     describe('events', function () {
+      beforeEach(function () {
+        widget = {
+          displayType: DisplayType.TABLE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+        };
+
+        dashboard = mockDashboard({widgets: [widget]});
+      });
+
       it('selects the error discover split type as the dataset when the events request completes', async function () {
         eventsMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
@@ -1699,8 +1725,14 @@ describe('WidgetBuilder', function () {
             data: [],
           },
         });
+        const mockUpdateDashboardSplitDecision = jest.fn();
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
         });
 
         await waitFor(() => {
@@ -1708,6 +1740,15 @@ describe('WidgetBuilder', function () {
         });
 
         expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.ERRORS
+        );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
       });
 
       it('selects the transaction discover split type as the dataset when the events request completes', async function () {
@@ -1720,8 +1761,14 @@ describe('WidgetBuilder', function () {
             data: [],
           },
         });
+        const mockUpdateDashboardSplitDecision = jest.fn();
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
         });
 
         await waitFor(() => {
@@ -1729,10 +1776,40 @@ describe('WidgetBuilder', function () {
         });
 
         expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.TRANSACTIONS
+        );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Transactions. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
       });
     });
 
     describe('events-stats', function () {
+      beforeEach(function () {
+        widget = {
+          displayType: DisplayType.LINE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+        };
+
+        dashboard = mockDashboard({widgets: [widget]});
+      });
+
       it('selects the error discover split type as the dataset when the request completes', async function () {
         eventsStatsMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
@@ -1743,17 +1820,29 @@ describe('WidgetBuilder', function () {
             data: [],
           },
         });
+        const mockUpdateDashboardSplitDecision = jest.fn();
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
-          // Triggers an events-stats request because line charts are for timeseries
-          query: {displayType: 'line'},
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
         });
 
         await waitFor(() => {
           expect(eventsStatsMock).toHaveBeenCalled();
         });
-
         expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.ERRORS
+        );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
       });
 
       it('selects the transaction discover split type as the dataset when the request completes', async function () {
@@ -1766,10 +1855,14 @@ describe('WidgetBuilder', function () {
             data: [],
           },
         });
+        const mockUpdateDashboardSplitDecision = jest.fn();
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
-          // Triggers an events-stats request because line charts are for timeseries
-          query: {displayType: 'line'},
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
         });
 
         await waitFor(() => {
@@ -1777,6 +1870,121 @@ describe('WidgetBuilder', function () {
         });
 
         expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.TRANSACTIONS
+        );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Transactions. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+    });
+
+    describe('discover split warning', function () {
+      it('does not show the alert if the widget type is already split', async function () {
+        dashboard = mockDashboard({
+          widgets: [WidgetFixture({widgetType: WidgetType.TRANSACTIONS})],
+        });
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await waitFor(() => {
+          expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        });
+        expect(
+          screen.queryByText(/we're splitting our datasets/i)
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows the alert if the widget is split but the decision is forced', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              widgetType: WidgetType.ERRORS,
+              datasetSource: DatasetSource.FORCED,
+            }),
+          ],
+        });
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await waitFor(() => {
+          expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        });
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('is dismissable', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              widgetType: WidgetType.ERRORS,
+              datasetSource: DatasetSource.FORCED,
+            }),
+          ],
+        });
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+
+        expect(
+          screen.queryByText(/we're splitting our datasets/i)
+        ).not.toBeInTheDocument();
       });
     });
   });
