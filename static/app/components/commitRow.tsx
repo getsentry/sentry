@@ -21,9 +21,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types';
 import type {Commit} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {
