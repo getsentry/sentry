@@ -25,17 +25,17 @@ import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeIssues} from './uptimeIssues';
 
 interface UptimeAlertDetailsProps
-  extends RouteComponentProps<{projectId: string; uptimeAlertId: string}, {}> {}
+  extends RouteComponentProps<{projectId: string; uptimeRuleId: string}, {}> {}
 
 export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
   const organization = useOrganization();
-  const {projectId, uptimeAlertId} = params;
+  const {projectId, uptimeRuleId} = params;
 
   const {projects, fetching: loadingProject} = useProjects({slugs: [projectId]});
   const project = projects.find(({slug}) => slug === projectId);
 
   const queryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${projectId}/uptime/${uptimeAlertId}/`,
+    `/projects/${organization.slug}/${projectId}/uptime/${uptimeRuleId}/`,
   ];
   const {
     data: uptimeRule,
