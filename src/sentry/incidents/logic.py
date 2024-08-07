@@ -656,9 +656,9 @@ def create_alert_rule(
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError
-            except (ValidationError):
+            except ValidationError:
                 alert_rule.delete()
-                raise ValidationError
+                raise
 
         if user:
             create_audit_entry_from_user(
@@ -911,12 +911,18 @@ def update_alert_rule(
                     setattr(alert_rule, k, v)
 
                 try:
-                    send_historical_data_to_seer(
+                    rule_status = send_historical_data_to_seer(
                         alert_rule=alert_rule,
                         project=projects[0] if projects else alert_rule.projects.get(),
                     )
+                    if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
+                        # if we don't have at least seven days worth of data, then the dynamic alert won't fire
+                        alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
                 except (TimeoutError, MaxRetryError):
                     raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
+                except ValidationError:
+                    # If there's no historical data available—something went wrong when querying snuba
+                    raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
 
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(

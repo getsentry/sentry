@@ -39,6 +39,7 @@ const makeInitialAutofixData = (): AutofixResponse => ({
       },
     ],
     created_at: new Date().toISOString(),
+    repositories: [],
   },
 });
 

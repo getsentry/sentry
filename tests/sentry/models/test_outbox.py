@@ -10,18 +10,12 @@ from django.db import connections
 from django.test import RequestFactory
 from pytest import raises
 
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxFlushError,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.outbox import ControlOutbox, OutboxFlushError, RegionOutbox, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.cases import TestCase, TransactionTestCase

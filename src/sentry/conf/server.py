@@ -420,6 +420,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.feedback",
     "sentry.hybridcloud",
     "sentry.remote_subscriptions.apps.Config",
+    "sentry.data_secrecy",
 )
 
 # Silence internal hints from Django's system checks
@@ -739,6 +740,7 @@ CELERY_IMPORTS = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
     "sentry.integrations.github.tasks",
+    "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
     "sentry.snuba.tasks",
@@ -772,7 +774,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.email",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
-    "sentry.tasks.integrations",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -1221,7 +1222,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
-        "task": "sentry.tasks.integrations.github_comment_reactions",
+        "task": "sentry.integrations.github.tasks.github_comment_reactions",
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
     },
@@ -1419,25 +1420,28 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
-        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
-        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
-        "DISABLE_ERRORS_AND_WARNINGS": False,
-        "COMPONENT_SPLIT_REQUEST": False,
-        "COMPONENT_SPLIT_PATCH": False,
+        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
+        "COMPONENT_SPLIT_PATCH": False,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "CONTACT": {"email": "partners@sentry.io"},
+        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
+        "DESCRIPTION": "Sentry Public API",
+        "DISABLE_ERRORS_AND_WARNINGS": False,
+        # We override the default behavior to skip adding the choice name to the bullet point if
+        # it's identical to the choice value by monkey patching build_choice_description_list.
+        "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
+        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "SERVERS": [{"url": "https://sentry.io"}],
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
-        "DESCRIPTION": "Sentry Public API",
         "TOS": "http://sentry.io/terms/",
-        "CONTACT": {"email": "partners@sentry.io"},
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io"}],
-        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
-        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
-        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -1445,7 +1449,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 
 SENTRY_EARLY_FEATURES = {
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:anr-improvements": "Enable anr improvements ui",
     "organizations:device-classification": "Enable device.class as a selectable column",
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
@@ -3146,6 +3149,8 @@ SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_GROUPING_TIMEOUT = 1
+
+SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL

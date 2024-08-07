@@ -395,7 +395,7 @@ const StacktraceLinkWrapper = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
-  padding: ${space(0)} ${space(1)};
+  padding: 0 ${space(1)};
 `;
 
 const FixMappingButton = styled(Button)`

@@ -12,7 +12,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import QueryCount from 'sentry/components/queryCount';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
@@ -318,7 +317,7 @@ const TabContentWrap = styled('span')`
   display: flex;
   align-items: center;
   flex-direction: row;
-  padding: ${space(0)} ${space(0)};
+  padding: 0;
   gap: 6px;
 `;
 
@@ -331,5 +330,5 @@ const StyledBadge = styled(Badge)`
   background: transparent;
   border: 1px solid ${p => p.theme.gray200};
   color: ${p => p.theme.gray300};
-  margin-left: ${space(0)};
+  margin-left: 0;
 `;

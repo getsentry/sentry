@@ -1,3 +1,4 @@
+import type {MRI} from 'sentry/types/metrics';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {DashboardMetricsExpression} from 'sentry/views/dashboards/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -5,12 +6,16 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {expressionsToWidget, getMetricExpressions, toMetricDisplayType} from './utils';
 
-const mockGetVirtualMRIQuery = jest.fn(() => {
-  return {
-    mri: 'v:custom/span.duration@milisecond' as const,
-    conditionId: 1,
-    aggregation: 'sum' as const,
-  };
+const mockGetVirtualMRIQuery = jest.fn((mri: MRI) => {
+  if (mri === 'g:custom/span_attribute_123@milisecond') {
+    return {
+      mri: 'v:custom/span.duration@milisecond' as const,
+      conditionId: 1,
+      aggregation: 'sum' as const,
+    };
+  }
+
+  return null;
 });
 
 describe('getMetricExpressions function', () => {
@@ -40,7 +45,7 @@ describe('getMetricExpressions function', () => {
         isHidden: false,
       } satisfies DashboardMetricsExpression,
     ]);
-    expect(mockGetVirtualMRIQuery).not.toHaveBeenCalled();
+    expect(mockGetVirtualMRIQuery).toHaveBeenCalledTimes(1);
   });
 
   it('should return an equation', () => {

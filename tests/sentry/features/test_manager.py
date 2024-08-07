@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 
 from sentry import features
@@ -25,7 +26,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
     def has(
         self,
         feature: Feature,
-        actor: User | RpcUser,
+        actor: User | RpcUser | AnonymousUser | None,
         skip_entity: bool | None = False,
     ) -> bool:
         return True
@@ -270,6 +271,17 @@ class FeatureManagerTest(TestCase):
         ret = manager.batch_has(["projects:feature"], actor=self.user, projects=[self.project])
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
+
+    def test_batch_has_error(self):
+        manager = features.FeatureManager()
+        manager.add("organizations:feature", OrganizationFeature)
+        manager.add("projects:feature", ProjectFeature)
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.batch_has.side_effect = Exception("something bad")
+        manager.add_entity_handler(handler)
+
+        ret = manager.batch_has(["auth:register"], actor=self.user)
+        assert ret is None
 
     def test_batch_has_no_entity(self):
         manager = features.FeatureManager()

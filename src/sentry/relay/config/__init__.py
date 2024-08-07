@@ -53,6 +53,7 @@ EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:custom-metrics",
     "organizations:device-class-synthesis",
+    "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
