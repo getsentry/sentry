@@ -61,12 +61,12 @@ and a value, the type of which depends on the operator specified.
 """
 from __future__ import annotations
 
+import dataclasses
 from datetime import datetime
 from typing import Any
 
 import orjson
 import yaml
-from pydantic import BaseModel, Field, ValidationError, constr
 
 from flagpole.conditions import ConditionBase, Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
@@ -76,26 +76,21 @@ class InvalidFeatureFlagConfiguration(Exception):
     pass
 
 
-class Feature(BaseModel):
-    name: constr(min_length=1, to_lower=True) = Field(  # type:ignore[valid-type]
-        description="The feature name."
-    )
+@dataclasses.dataclass(frozen=True)
+class Feature:
+    name: str
     "The feature name."
 
-    owner: constr(min_length=1) = Field(  # type:ignore[valid-type]
-        description="The owner of this feature. Either an email address or team name, preferably."
-    )
+    owner: str
     "The owner of this feature. Either an email address or team name, preferably."
 
-    segments: list[Segment] = Field(
-        description="The list of segments to evaluate for the feature. An empty list will always evaluate to False."
-    )
-    "The list of segments to evaluate for the feature. An empty list will always evaluate to False."
-
-    enabled: bool = Field(default=True, description="Whether or not the feature is enabled.")
+    enabled: bool = dataclasses.field(default=False)
     "Whether or not the feature is enabled."
 
-    created_at: datetime = Field(description="The datetime when this feature was created.")
+    segments: list[Segment] = dataclasses.field(default_factory=list)
+    "The list of segments to evaluate for the feature. An empty list will always evaluate to False."
+
+    created_at: str | None = None
     "The datetime when this feature was created."
 
     def match(self, context: EvaluationContext) -> bool:
@@ -111,13 +106,19 @@ class Feature(BaseModel):
 
     @classmethod
     def dump_schema_to_file(cls, file_path: str) -> None:
-        with open(file_path, "w") as file:
-            file.write(cls.schema_json(indent=2))
+        raise NotImplementedError("nope")
 
     @classmethod
     def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
         try:
-            feature = cls(name=name, **config_dict)
+            segments = [Segment.from_dict(segment) for segment in config_dict.get("segments", [])]
+            feature = cls(
+                name=name,
+                owner=str(config_dict.get("owner", "")),
+                enabled=bool(config_dict.get("enabled", False)),
+                created_at=str(config_dict.get("created_at")),
+                segments=segments,
+            )
         except ValidationError as exc:
             raise InvalidFeatureFlagConfiguration("Provided JSON is not a valid feature") from exc
 
