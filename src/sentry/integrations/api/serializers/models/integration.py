@@ -200,7 +200,7 @@ class IntegrationProviderSerializer(Serializer):
     ) -> MutableMapping[str, Any]:
         org_slug = kwargs.pop("organization").slug
         metadata: Any = obj.metadata
-        metadata = metadata and metadata._asdict() or None
+        metadata = metadata and metadata.asdict() or None
 
         return {
             "key": obj.key,
