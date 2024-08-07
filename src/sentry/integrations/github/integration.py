@@ -295,10 +295,6 @@ class GitHubIntegration(IntegrationInstallation, RepositoryIntegration, CommitCo
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         return self.get_client().search_issues(query)
 
-    # TODO: this function is not used?
-    def reinstall(self) -> None:
-        self.reinstall_repositories()
-
 
 class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
