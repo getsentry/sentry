@@ -2086,6 +2086,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
         "function.duration": "metrics_distributions",
+        "measurements.inp": "metrics_distributions",
     }
     ON_DEMAND_KEY_MAP = {
         "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
