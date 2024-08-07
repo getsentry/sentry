@@ -115,7 +115,7 @@ export function MetricsExtractionRuleCreateModal({
       <Body>
         <p>
           {t(
-            "Set up the metric you'd like to track, and we'll collect it for you from future data."
+            "Set up the metric you'd like to track and we'll collect it for you from future data."
           )}
         </p>
         {initialProjectId === undefined ? (
