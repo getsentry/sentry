@@ -6,9 +6,14 @@ import urllib.request
 
 
 def download_file(url, filename):
+    chunk_size = 1024 * 1024  # 1 MB chunks
     with urllib.request.urlopen(url) as response:
         with open(filename, "wb") as out_file:
-            out_file.write(response.read())
+            while True:
+                chunk = response.read(chunk_size)
+                if not chunk:
+                    break
+                out_file.write(chunk)
 
 
 def run_command(command):

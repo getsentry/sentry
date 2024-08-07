@@ -3,19 +3,12 @@
 import glob
 import itertools
 import os
-import subprocess
-from threading import Thread
+from subprocess import Popen
 
 
 def run_command(command: list[str], log_file: str):
     with open(log_file, "wb") as f:
-        subprocess.run(command, stdout=f, stderr=f, check=True)
-
-
-def run_command_in_thread(command: list[str], log_file: str) -> Thread:
-    thread = Thread(target=run_command, args=(command, log_file))
-    thread.start()
-    return thread
+        return Popen(command, stdout=f, stderr=f)
 
 
 def main():
@@ -58,7 +51,6 @@ def main():
         upload_coverage_cmd += ["--file", file]
 
     upload_coverage_log_file = "coverage-upload.log"
-    upload_coverage_thread = run_command_in_thread(upload_coverage_cmd, upload_coverage_log_file)
 
     glob_expanded_test_result_files = [
         glob.glob(file, recursive=True) for file in input_test_result_files
@@ -76,18 +68,19 @@ def main():
         upload_test_results_cmd += ["--file", file]
 
     upload_test_results_log_file = "do-upload.log"
-    upload_test_results_thread = run_command_in_thread(
-        upload_test_results_cmd, upload_test_results_log_file
-    )
-
-    upload_coverage_thread.join()
-    upload_test_results_thread.join()
 
     # so that the logs are not interleaved when printed
-    with open(upload_coverage_log_file) as f:
-        print(f.read())
-    with open(upload_test_results_log_file) as f:
-        print(f.read())
+    jobs = [
+        run_command(upload_test_results_cmd, upload_test_results_log_file).pid,
+        run_command(upload_coverage_cmd, upload_coverage_log_file).pid,
+    ]
+    tail_args = ("tail", "-f")
+    for job in jobs:
+        tail_args += ("--pid", str(job))
+    tail_args += (upload_coverage_log_file, upload_test_results_log_file)
+
+    # wait, while showing un-interleaved logs
+    os.execvp(tail_args[0], tail_args)
 
 
 if __name__ == "__main__":
