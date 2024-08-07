@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import glob
+import itertools
 import os
 import subprocess
 from threading import Thread
@@ -7,7 +9,7 @@ from threading import Thread
 
 def run_command(command: list[str], log_file: str):
     with open(log_file, "wb") as f:
-        subprocess.run(command, stdout=f, stderr=f, shell=True, check=True)
+        subprocess.run(command, stdout=f, stderr=f, check=True)
 
 
 def run_command_in_thread(command: list[str], log_file: str) -> Thread:
@@ -35,6 +37,9 @@ def main():
     input_files = os.getenv("INPUT_FILES", "").split(",")
     input_test_result_files = os.getenv("INPUT_TEST_RESULT_FILES", "").split(",")
 
+    glob_expanded_coverage_files = [glob.glob(file, recursive=True) for file in input_files]
+    coverage_files = list(itertools.chain.from_iterable(glob_expanded_coverage_files))
+
     codecov_base_cmd = ["./codecov", "--verbose"]
 
     upload_flags = [
@@ -49,11 +54,16 @@ def main():
     ]
 
     upload_coverage_cmd = [*codecov_base_cmd, "upload-process", *upload_flags]
-    for file in input_files:
+    for file in coverage_files:
         upload_coverage_cmd += ["--file", file]
 
     upload_coverage_log_file = "coverage-upload.log"
     upload_coverage_thread = run_command_in_thread(upload_coverage_cmd, upload_coverage_log_file)
+
+    glob_expanded_test_result_files = [
+        glob.glob(file, recursive=True) for file in input_test_result_files
+    ]
+    test_result_files = list(itertools.chain.from_iterable(glob_expanded_test_result_files))
 
     upload_test_results_cmd = [
         *codecov_base_cmd,
@@ -62,7 +72,7 @@ def main():
         "test_results",
         *upload_flags,
     ]
-    for file in input_test_result_files:
+    for file in test_result_files:
         upload_test_results_cmd += ["--file", file]
 
     upload_test_results_log_file = "do-upload.log"
