@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -171,10 +170,7 @@ export function SourceMapsDebuggerModal({
   return (
     <Fragment>
       <Header closeButton>
-        <ModalHeadingContainer>
-          <h4>{t('Make Your Stack Traces Readable')}</h4>
-          <FeatureBadge type="beta" tooltipProps={{position: 'right'}} />
-        </ModalHeadingContainer>
+        <h4>{t('Make Your Stack Traces Readable')}</h4>
       </Header>
       <Body>
         <p>
@@ -391,6 +387,7 @@ export function SourceMapsDebuggerModal({
               <FeedbackModal
                 featureName="sourcemaps-debugger"
                 feedbackTypes={[t('This was helpful'), t('This was not helpful')]}
+                useNewUserFeedback
                 {...modalProps}
               />
             ));
@@ -1387,11 +1384,6 @@ const InstructionList = styled('ul')`
   li {
     margin-bottom: ${space(0.5)};
   }
-`;
-
-const ModalHeadingContainer = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const ScrapingSymbolificationErrorMessage = styled('p')`
