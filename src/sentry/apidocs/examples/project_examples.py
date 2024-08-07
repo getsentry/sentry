@@ -186,6 +186,7 @@ DETAILED_PROJECT = {
         "avatar": {"avatarType": "upload", "avatarUuid": "24f6f762f7a7473888b259c566da5adb"},
         "features": [
             "performance-uncompressed-assets-ingest",
+            "dashboards-rh-widget",
             "performance-db-main-thread-visible",
             "transaction-name-mark-scrubbed-as-sanitized",
             "sentry-pride-logo-footer",
