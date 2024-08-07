@@ -9,8 +9,12 @@ from celery.exceptions import Retry
 from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -36,7 +40,7 @@ from sentry.utils.committers import get_frame_paths
 pytestmark = [requires_snuba]
 
 
-class TestCommitContextMixin(TestCase):
+class TestCommitContextIntegration(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.repo = Repository.objects.create(
@@ -95,7 +99,7 @@ class TestCommitContextMixin(TestCase):
         )
 
 
-class TestCommitContextAllFrames(TestCommitContextMixin):
+class TestCommitContextAllFrames(TestCommitContextIntegration):
     def setUp(self):
         super().setUp()
         self.blame_recent = FileBlameInfo(
@@ -801,7 +805,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
     "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames", return_value=[]
 )
 @patch("sentry.integrations.github.tasks.pr_comment.github_comment_workflow.delay")
-class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
+class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
