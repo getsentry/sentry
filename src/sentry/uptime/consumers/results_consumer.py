@@ -216,6 +216,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
                 create_issue_platform_occurrence(result, project_subscription)
+                metrics.incr("uptime.result_processor.active.sent_occurrence", sample_rate=1.0)
+                logger.info(
+                    "uptime_active_sent_occurrence",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
             project_subscription.update(uptime_status=UptimeStatus.FAILED)
         elif (
             project_subscription.uptime_status == UptimeStatus.FAILED
@@ -225,6 +234,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
                 resolve_uptime_issue(project_subscription)
+                metrics.incr("uptime.result_processor.active.resolved", sample_rate=1.0)
+                logger.info(
+                    "uptime_active_resolved",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
             project_subscription.update(uptime_status=UptimeStatus.OK)
 
 
