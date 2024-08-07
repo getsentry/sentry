@@ -156,12 +156,14 @@ function DefaultGroupEventDetailsContent({
       )}
       <StyledDataSection>
         <TraceTimeLineOrRelatedIssue event={event} />
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
+        {!hasStreamlinedUI && (
+          <SuspectCommits
+            project={project}
+            eventId={event.id}
+            group={group}
+            commitRow={CommitRow}
+          />
+        )}
       </StyledDataSection>
       {event.userReport && (
         <InterimSection
@@ -492,6 +494,12 @@ export default function GroupEventDetailsContent({
     default: {
       return hasStreamlinedUI ? (
         <Fragment>
+          <SuspectCommits
+            project={project}
+            eventId={event.id}
+            group={group}
+            commitRow={CommitRow}
+          />
           <EventFilter />
           <GroupContent navHeight={navRef?.current?.offsetHeight}>
             <FloatingEventNavigation event={event} group={group} ref={navRef} />

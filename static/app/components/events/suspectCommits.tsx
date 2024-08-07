@@ -178,8 +178,10 @@ const Header = styled('div')`
 `;
 
 const StreamlinedPanel = styled(Panel)`
-  background: linear-gradient(269.35deg, #f5f3f7 0.32%, rgba(245, 243, 247, 0) 99.69%);
+  background: ${p => p.theme.background}
+    linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.surface100});
   overflow: hidden;
+  margin-bottom: 0;
 `;
 
 const IllustrationContainer = styled('div')`
