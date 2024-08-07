@@ -24,6 +24,7 @@ import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project, SavedQuery} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
@@ -390,12 +391,28 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   renderButtonCreateAlert() {
     const {eventView, organization, projects, location, savedQuery} = this.props;
-    const currentDataset =
-      getDatasetFromLocationOrSavedQueryDataset(location, savedQuery?.queryDataset) ===
-      DiscoverDatasets.TRANSACTIONS
-        ? 'throughput'
-        : 'num_errors';
-    const alertType = hasDatasetSelector(organization) ? currentDataset : undefined;
+    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQuery?.queryDataset
+    );
+
+    let alertType;
+    if (hasDatasetSelector(organization)) {
+      alertType = defined(currentDataset)
+        ? {
+            [DiscoverDatasets.TRANSACTIONS]: 'throughput',
+            [DiscoverDatasets.ERRORS]: 'num_errors',
+          }[currentDataset]
+        : undefined;
+
+      if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
+        // We need to inject the event.type:transaction filter for alerts
+        // to avoid triggering the event.type missing banner error
+        eventView.query = eventView.query
+          ? `(${eventView.query}) AND (event.type:transaction)`
+          : 'event.type:transaction';
+      }
+    }
 
     return (
       <GuideAnchor target="create_alert_from_discover">
