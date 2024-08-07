@@ -24,7 +24,7 @@ export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
   PERCENT = 'percent',
-  DYNAMIC = 'dynamic'
+  DYNAMIC = 'dynamic',
 }
 
 export enum Dataset {

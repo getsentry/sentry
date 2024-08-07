@@ -35,7 +35,9 @@ function ThresholdTypeForm({
     return null;
   }
 
-  const hasAnomalyDetection = organization.features.includes('organizations:anomaly-detection-alerts')
+  const hasAnomalyDetection = organization.features.includes(
+    'organizations:anomaly-detection-alerts'
+  );
 
   let thresholdTypeChoices = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
@@ -50,9 +52,7 @@ function ThresholdTypeForm({
           <SelectControl
             name="comparisonDelta"
             styles={{
-              container: (provided: {
-                [x: string]: string | number | boolean;
-              }) => ({
+              container: (provided: {[x: string]: string | number | boolean}) => ({
                 ...provided,
                 marginLeft: space(1),
               }),
@@ -62,15 +62,11 @@ function ThresholdTypeForm({
                 minWidth: 500,
                 maxWidth: 1000,
               }),
-              valueContainer: (provided: {
-                [x: string]: string | number | boolean;
-              }) => ({
+              valueContainer: (provided: {[x: string]: string | number | boolean}) => ({
                 ...provided,
                 padding: 0,
               }),
-              singleValue: (provided: {
-                [x: string]: string | number | boolean;
-              }) => ({
+              singleValue: (provided: {[x: string]: string | number | boolean}) => ({
                 ...provided,
               }),
             }}
@@ -82,8 +78,11 @@ function ThresholdTypeForm({
         </ComparisonContainer>
       ),
     ],
-    [AlertRuleComparisonType.DYNAMIC, 'Dynamic: when evaluated values are outside of expected bounds, as determined by AI']
-  ]
+    [
+      AlertRuleComparisonType.DYNAMIC,
+      'Dynamic: when evaluated values are outside of expected bounds, as determined by AI',
+    ],
+  ];
 
   return (
     <Feature features="organizations:change-alerts" organization={organization}>
