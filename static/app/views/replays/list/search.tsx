@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaySearchBar from 'sentry/views/replays/list/replaySearchBar';
@@ -12,6 +12,8 @@ export default function ReplaysSearch() {
   const {pathname, query} = useLocation();
   const organization = useOrganization();
 
+  const navigate = useNavigate();
+
   return (
     <SearchContainer>
       <ReplaySearchBar
@@ -20,7 +22,7 @@ export default function ReplaysSearch() {
         defaultQuery=""
         query={decodeScalar(query.query, '')}
         onSearch={searchQuery => {
-          browserHistory.push({
+          navigate({
             pathname,
             query: {
               ...query,
