@@ -8,7 +8,6 @@ export type IntegrationContextProps = {
     view:
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
-      | 'messaging_integration_onboarding'
       | 'onboarding'
       | 'project_creation';
   };
