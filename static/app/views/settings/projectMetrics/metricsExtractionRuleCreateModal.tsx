@@ -113,6 +113,11 @@ export function MetricsExtractionRuleCreateModal({
       </Header>
       <CloseButton />
       <Body>
+        <p>
+          {t(
+            "Set up the metric you'd like to track and we'll collect it for you from future data."
+          )}
+        </p>
         {initialProjectId === undefined ? (
           <ProjectSelectionWrapper>
             <label htmlFor="project-select">{t('Project')}</label>

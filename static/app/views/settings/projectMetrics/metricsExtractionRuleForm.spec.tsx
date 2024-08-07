@@ -65,7 +65,7 @@ describe('Metrics Extraction Rule Form', function () {
     );
   });
 
-  it('by selecting a custom attribute the alert about delay in ingestion shall render different info', async function () {
+  it('When creating a new metric and selecting a custom attribute, an alert should prompt to remember to instrument it', async function () {
     const {project} = initializeOrg();
 
     renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
@@ -81,25 +81,30 @@ describe('Metrics Extraction Rule Form', function () {
       screen.getAllByText(textWithMarkupMatcher('Create "new-metric"'))[1]
     );
 
-    await userEvent.click(screen.getByText(/we’ll need a moment/));
-
-    expect(
-      screen.getByText(
-        /collect data from spans sent after you created the metric and not before/
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByText(/instrument your custom attribute/)).toHaveAttribute(
-      'href',
-      'https://docs.sentry.io/product/explore/metrics/metrics-set-up/'
-    );
+    expect(screen.getByText(/You want to track a custom attribute/)).toBeInTheDocument();
 
     await selectEvent.select(screen.getByText('new-metric'), 'browser.name');
 
     expect(
-      screen.getByText(
-        /if you deleted an existing metric, then we’ll stop collecting data/
-      )
-    ).toBeInTheDocument();
+      screen.queryByText(/You want to track a custom attribute/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('When editing a metric and updating the form, an alert should prompt to remember it applies only for future data.', async function () {
+    const {project} = initializeOrg();
+
+    renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
+
+    render(
+      <MetricsExtractionRuleForm
+        initialData={INITIAL_DATA}
+        projectId={project.id}
+        isEdit
+      />
+    );
+
+    await selectEvent.select(screen.getByText('none'), 'days');
+
+    expect(screen.getByText(/ only be reflected on future data/)).toBeInTheDocument();
   });
 });
