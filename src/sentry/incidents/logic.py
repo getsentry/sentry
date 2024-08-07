@@ -658,7 +658,7 @@ def create_alert_rule(
                 raise TimeoutError
             except ValidationError:
                 alert_rule.delete()
-                raise ValidationError
+                raise
 
         if user:
             create_audit_entry_from_user(

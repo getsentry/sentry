@@ -339,3 +339,23 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         integration_name = audit_log_entry.data.get("name") or ""
         return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)
+
+
+class DataSecrecyWaivedAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=1141,
+            name="DATA_SECRECY_WAIVED",
+            api_name="data-secrecy.waived",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        entry_data = audit_log_entry.data
+        access_start = entry_data.get("access_start", None)
+        access_end = entry_data.get("access_end", None)
+
+        rendered_text = "waived data secrecy"
+        if access_start is not None and access_end is not None:
+            rendered_text += f" from {access_start} to {access_end}"
+
+        return rendered_text

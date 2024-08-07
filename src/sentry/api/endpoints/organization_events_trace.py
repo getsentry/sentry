@@ -22,7 +22,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -204,7 +204,7 @@ class TraceEvent:
         self.generation: int | None = generation
 
         # Added as required because getting the nodestore_event is expensive
-        self._nodestore_event: Event | None = None
+        self._nodestore_event: Event | GroupEvent | None = None
         self.fetched_nodestore: bool = span_serialized
         self.span_serialized = span_serialized
         if len(self.event["issue.ids"]) > 0:
@@ -214,7 +214,7 @@ class TraceEvent:
                 self.load_performance_issues(light, snuba_params)
 
     @property
-    def nodestore_event(self) -> Event | None:
+    def nodestore_event(self) -> Event | GroupEvent | None:
         if self._nodestore_event is None and not self.fetched_nodestore:
             with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
                 self.fetched_nodestore = True
@@ -1127,7 +1127,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
         event_id: str,
-    ) -> tuple[SnubaTransaction | None, Event | None]:
+    ) -> tuple[SnubaTransaction | None, Event | GroupEvent | None]:
         """Given an event_id return the related transaction event
 
         The event_id could be for an error, since we show the quick-trace
@@ -1165,6 +1165,8 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 nodestore_event = eventstore.backend.get_event_by_id(
                     transaction_event["project.id"], transaction_event["id"]
                 )
+                if nodestore_event is None:
+                    return None, None
                 transaction_spans: NodeSpans = nodestore_event.data.get("spans", [])
                 for span in transaction_spans:
                     if span["span_id"] == error_event["trace.span"]:
@@ -1227,7 +1229,10 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                         root_event = eventstore.backend.get_event_by_id(
                             root["project.id"], root["id"]
                         )
-                        root_spans: NodeSpans = root_event.data.get("spans", [])
+                        if root_event is None:
+                            root_spans: NodeSpans = []
+                        else:
+                            root_spans = root_event.data.get("spans", [])
                         root_span = find_event(
                             root_spans,
                             lambda item: item is not None
@@ -1318,7 +1323,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     # Concurrently fetches nodestore data to construct and return a dict mapping eventid of a txn
     # to the associated nodestore event.
     @staticmethod
-    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Event]:
+    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Event | GroupEvent]:
         event_map = {}
         with ThreadPoolExecutor(max_workers=20) as executor:
             future_to_event = {
@@ -1331,7 +1336,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             for future in as_completed(future_to_event):
                 event_id = future_to_event[future]["id"]
                 nodestore_event = future.result()
-                event_map[event_id] = nodestore_event
+                if nodestore_event is not None:
+                    event_map[event_id] = nodestore_event
 
         return event_map
 
