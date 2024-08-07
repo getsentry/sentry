@@ -7,7 +7,8 @@ from typing import Any
 
 from django.db.models import Q
 
-from sentry.digests import Digest, Record
+from sentry.digests.notifications import Digest
+from sentry.digests.types import Record
 from sentry.eventstore.models import Event
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group
