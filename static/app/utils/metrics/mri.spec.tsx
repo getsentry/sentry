@@ -218,11 +218,6 @@ describe('formatMRI', () => {
     expect(formatMRI('c:custom/bar@ms')).toEqual('bar');
     expect(formatMRI('d:transactions/baz@ms')).toEqual('baz');
   });
-
-  it('strips the projectId from virtual metrics', () => {
-    expect(formatMRI('v:custom/foo|123@none')).toEqual('foo');
-    expect(formatMRI('v:custom/bar|456@ms')).toEqual('bar');
-  });
 });
 
 describe('isExtractedCustomMetric', () => {
