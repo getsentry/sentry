@@ -250,7 +250,7 @@ class ConvertSubStatusValueTest(TestCase):
     def test_mixed_substatus(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
-            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["archived_until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
         assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
@@ -263,7 +263,7 @@ class ConvertSubStatusValueTest(TestCase):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
             SearchFilter(SearchKey("status"), "=", SearchValue(["unresolved"])),
-            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["archived_until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
         assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
@@ -275,7 +275,7 @@ class ConvertSubStatusValueTest(TestCase):
     def test_mixed_incl_excl_substatus(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
-            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["archived_until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
         assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
@@ -287,7 +287,7 @@ class ConvertSubStatusValueTest(TestCase):
     def test_mixed_incl_excl_substatus_with_status(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
-            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["archived_until_escalating"])),
             SearchFilter(SearchKey("status"), "=", SearchValue(["ignored"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
@@ -300,7 +300,7 @@ class ConvertSubStatusValueTest(TestCase):
     def test_mixed_excl_excl_substatus(self):
         filters = [
             SearchFilter(SearchKey("substatus"), "!=", SearchValue(["ongoing"])),
-            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["archived_until_escalating"])),
         ]
         result = convert_query_values(filters, [self.project], self.user, None)
         assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
