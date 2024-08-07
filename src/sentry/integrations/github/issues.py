@@ -232,7 +232,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             },
             {
                 "name": "externalIssue",
-                "label": "Issue Number",
+                "label": "Issue Number or Title",
                 "default": "",
                 "choices": [],
                 "type": "select",
