@@ -122,8 +122,8 @@ class DataSecrecyTest(APITestCase):
         with outbox_runner():
             self.get_success_response(self.org.slug, method="delete")
 
-        ds.refresh_from_db()
-        assert ds.access_end <= datetime.now(tz=timezone.utc)
+        ds = DataSecrecyWaiver.objects.filter(organization=self.org).first()
+        assert ds is None
 
         assert_org_audit_log_exists(
             organization=self.org,
