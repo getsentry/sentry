@@ -14,7 +14,7 @@ export function appendReleaseFilters(
   ) {
     queryString = query
       .copy()
-      .addStringFilter(`release:[${primaryRelease},${secondaryRelease}]`)
+      .addDisjunctionFilterValues('release', [primaryRelease, secondaryRelease])
       .formatString();
   } else if (defined(primaryRelease)) {
     queryString = query

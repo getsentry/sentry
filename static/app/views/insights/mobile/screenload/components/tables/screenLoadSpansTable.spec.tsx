@@ -88,7 +88,7 @@ describe('ScreenLoadSpansTable', function () {
           per_page: 25,
           project: [],
           query:
-            'transaction.op:ui.load transaction:MainActivity span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] has:span.description release:[io.sentry.samples.android@7.0.0+2,io.sentry.samples.android@6.27.0+2]',
+            'transaction.op:ui.load transaction:MainActivity span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] has:span.description ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
           referrer: 'api.starfish.get-span-operations',
           statsPeriod: '14d',
         }),
@@ -119,7 +119,7 @@ describe('ScreenLoadSpansTable', function () {
           per_page: 25,
           project: [],
           query:
-            'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] release:[io.sentry.samples.android@7.0.0+2,io.sentry.samples.android@6.27.0+2]',
+            'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
           referrer: 'api.starfish.mobile-span-table',
           sort: '-time_spent_percentage()',
           statsPeriod: '14d',
