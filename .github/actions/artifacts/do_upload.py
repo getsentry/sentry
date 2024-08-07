@@ -67,7 +67,7 @@ def main():
     for file in test_result_files:
         upload_test_results_cmd += ["--file", file]
 
-    upload_test_results_log_file = "do-upload.log"
+    upload_test_results_log_file = "upload-test-results.log"
 
     # so that the logs are not interleaved when printed
     jobs = [
