@@ -75,7 +75,12 @@ export function OnDemandControlProvider({
  *    can't be on-demand because they are part of errors. (eg. error.type, message, stack, etc.)
  */
 export function isOnDemandMetricWidget(widget: Widget): boolean {
-  if (widget.widgetType !== WidgetType.DISCOVER) {
+  if (
+    !(
+      widget.widgetType === WidgetType.DISCOVER ||
+      widget.widgetType === WidgetType.TRANSACTIONS
+    )
+  ) {
     return false;
   }
 
