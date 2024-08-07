@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -10,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
@@ -44,20 +44,17 @@ function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
     {staleTime: Infinity}
   );
 
-  useEffect(() => {
-    if (project && !project.hasAlertIntegrationInstalled) {
-      trackAnalytics('onboarding.messaging_integration_button_rendered', {
-        project_id: project.id,
-        organization,
-      });
-    }
-  }, [project, organization]);
+  const shouldRenderSetupButton = project && !project.hasAlertIntegrationInstalled;
+
+  useRouteAnalyticsParams({
+    setup_message_integration_button_shown: shouldRenderSetupButton,
+  });
 
   if (isLoading || isError) {
     return null;
   }
 
-  if (!project || project.hasAlertIntegrationInstalled) {
+  if (!shouldRenderSetupButton) {
     return null;
   }
 

@@ -13,11 +13,11 @@ import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {
-  headerContent: string;
+  headerContent: React.ReactNode;
   organization: Organization;
   project: Project;
   providerKeys: string[];
-  bodyContent?: string;
+  bodyContent?: React.ReactNode;
   onAddIntegration?: () => void;
 };
 
