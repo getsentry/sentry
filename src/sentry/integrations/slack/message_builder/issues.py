@@ -12,7 +12,7 @@ from sentry_relay.processing import parse_release
 from sentry import tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
@@ -147,7 +147,7 @@ def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | Non
     return f"*Issue {status} by <@{identity.external_id}>*"
 
 
-def format_release_tag(value: str, event: GroupEvent | None) -> str:
+def format_release_tag(value: str, event: Event | GroupEvent | None) -> str:
     """Format the release tag using the short version and make it a link"""
     if not event:
         return ""
@@ -159,7 +159,7 @@ def format_release_tag(value: str, event: GroupEvent | None) -> str:
 
 
 def get_tags(
-    event_for_tags: GroupEvent | None,
+    event_for_tags: Event | GroupEvent | None,
     tags: set[str] | list[tuple[str]] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
     """Get tag keys and values for block kit"""
@@ -251,7 +251,7 @@ def get_option_groups(group: Group) -> Sequence[OptionGroup]:
 
 
 def get_suggested_assignees(
-    project: Project, event: GroupEvent, current_assignee: RpcUser | Team | None
+    project: Project, event: Event | GroupEvent, current_assignee: RpcUser | Team | None
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
     suggested_assignees = []
@@ -412,7 +412,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: GroupEvent | None = None,
+        event: Event | GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction] | None = None,
@@ -449,7 +449,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
     def get_title_block(
         self,
-        event_or_group: GroupEvent | Group,
+        event_or_group: Event | GroupEvent | Group,
         has_action: bool,
         rule_id: int | None = None,
         notification_uuid: str | None = None,
@@ -486,7 +486,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_markdown_block(title_text)
 
-    def get_culprit_block(self, event_or_group: GroupEvent | Group) -> SlackBlock | None:
+    def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
@@ -552,7 +552,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
 
-        event_or_group: Group | GroupEvent = self.event if self.event is not None else self.group
+        event_or_group: Group | Event | GroupEvent = (
+            self.event if self.event is not None else self.group
+        )
 
         action_text = ""
 

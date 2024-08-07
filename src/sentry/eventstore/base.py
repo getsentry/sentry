@@ -3,12 +3,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime
+from typing import Literal, overload
 
 import sentry_sdk
 from snuba_sdk import Condition
 
 from sentry import nodestore
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
@@ -163,7 +164,7 @@ class EventStorage(Service):
         referrer="eventstore.get_events",
         dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         """
         Fetches a list of events given a set of criteria.
 
@@ -192,7 +193,7 @@ class EventStorage(Service):
         referrer="eventstore.get_events_snql",
         dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         raise NotImplementedError
 
     def get_unfetched_events(
@@ -204,7 +205,7 @@ class EventStorage(Service):
         referrer="eventstore.get_unfetched_events",
         dataset=Dataset.Events,
         tenant_ids=None,
-    ):
+    ) -> list[Event]:
         """
         Same as get_events but returns events without their node datas loaded.
         Only the event ID, projectID, groupID and timestamp field will be present without
@@ -223,15 +224,42 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
+    @overload
     def get_event_by_id(
         self,
         project_id: int,
         event_id: str,
         group_id: int | None = None,
-        skip_transaction_groupevent=False,
         tenant_ids=None,
         occurrence_id: str | None = None,
-    ):
+        *,
+        skip_transaction_groupevent: Literal[True],
+    ) -> Event | None:
+        ...
+
+    @overload
+    def get_event_by_id(
+        self,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
+        tenant_ids=None,
+        occurrence_id: str | None = None,
+        *,
+        skip_transaction_groupevent: bool = False,
+    ) -> Event | GroupEvent | None:
+        ...
+
+    def get_event_by_id(
+        self,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
+        tenant_ids=None,
+        occurrence_id: str | None = None,
+        *,
+        skip_transaction_groupevent: bool = False,
+    ) -> Event | GroupEvent | None:
         """
         Gets a single event of any event type given a project_id and event_id.
         Returns None if an event cannot be found.

@@ -7,7 +7,7 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry import eventstore, features, options
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     shim_to_feedback,
@@ -124,11 +124,10 @@ def save_userreport(
         return report_instance
 
 
-def find_event_user(event: Event):
+def find_event_user(event: Event | GroupEvent | None) -> EventUser | None:
     if not event:
         return None
-    eventuser = EventUser.from_event(event)
-    return eventuser
+    return EventUser.from_event(event)
 
 
 def should_filter_user_report(comments: str):

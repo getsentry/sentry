@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.variants import BaseVariant, PerformanceProblemVariant
 from sentry.models.project import Project
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_grouping_info(
-    config_name: str | None, project: Project, event: Event
+    config_name: str | None, project: Project, event: Event | GroupEvent
 ) -> dict[str, dict[str, Any]]:
     # We always fetch the stored hashes here.  The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
@@ -58,7 +58,7 @@ def get_grouping_info(
 
 
 def _check_for_mismatched_hashes(
-    event: Event,
+    event: Event | GroupEvent,
     project: Project,
     grouping_info: dict[str, dict[str, Any]],
     hashes: list[str],

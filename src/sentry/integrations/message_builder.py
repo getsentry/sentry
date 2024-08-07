@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
 from sentry import features
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.issues.grouptype import GroupCategory
@@ -52,7 +52,7 @@ def format_actor_option(actor: Team | RpcUser, is_slack: bool = False) -> Mappin
         return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
 
 
-def build_attachment_title(obj: Group | GroupEvent) -> str:
+def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
     title = obj.title
@@ -78,7 +78,7 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
 
 def get_title_link(
     group: Group,
-    event: GroupEvent | None,
+    event: Event | GroupEvent | None,
     link_to_event: bool,
     issue_details: bool,
     notification: BaseNotification | None,
@@ -134,7 +134,7 @@ def get_title_link(
     return url
 
 
-def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any | None:
+def build_attachment_text(group: Group, event: Event | GroupEvent | None = None) -> Any | None:
     # Group and Event both implement get_event_{type,metadata}
     obj = event if event is not None else group
     ev_metadata = obj.get_event_metadata()
@@ -154,7 +154,7 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
 
 
 def build_attachment_replay_link(
-    group: Group, event: GroupEvent | None = None, url_format: str = SLACK_URL_FORMAT
+    group: Group, event: Event | GroupEvent | None = None, url_format: str = SLACK_URL_FORMAT
 ) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
     has_slack_links = features.has(
