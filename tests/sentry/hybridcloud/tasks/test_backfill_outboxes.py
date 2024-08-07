@@ -5,6 +5,12 @@ from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
 from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
+from sentry.hybridcloud.tasks.backfill_outboxes import (
+    backfill_outboxes_for,
+    get_backfill_key,
+    get_processing_state,
+    process_outbox_backfill_batch,
+)
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
@@ -13,12 +19,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.silo.base import SiloMode
-from sentry.tasks.backfill_outboxes import (
-    backfill_outboxes_for,
-    get_backfill_key,
-    get_processing_state,
-    process_outbox_backfill_batch,
-)
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner

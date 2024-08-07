@@ -8,9 +8,9 @@ from celery import Task
 from django.conf import settings
 from django.db.models import Max, Min
 
+from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.models.outbox import ControlOutboxBase, OutboxBase, OutboxFlushError, RegionOutboxBase
 from sentry.silo.base import SiloMode
-from sentry.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment

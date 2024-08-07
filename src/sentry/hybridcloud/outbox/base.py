@@ -437,8 +437,8 @@ class HasControlReplicationHandlers(Protocol):
 def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any) -> None:
     from django.conf import settings
 
+    from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
     from sentry.models.outbox import OutboxBase
-    from sentry.tasks.backfill_outboxes import backfill_outboxes_for
 
     if not settings.SENTRY_SELF_HOSTED:
         return
