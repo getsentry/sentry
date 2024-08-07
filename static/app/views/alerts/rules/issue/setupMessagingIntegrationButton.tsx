@@ -41,6 +41,7 @@ function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
     {staleTime: Infinity}
   );
 
+  // Only need to fetch the first provider to check if the feature is enabled, as all providers will return the same response
   const integrationQuery = useApiQuery<{providers: IntegrationProvider[]}>(
     [
       `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKeys[0]}`,
