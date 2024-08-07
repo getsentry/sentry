@@ -182,7 +182,7 @@ sentry-cli==2.16.0
 sentry-devenv==1.8.0
 sentry-forked-django-stubs==5.0.4.post1
 sentry-forked-djangorestframework-stubs==3.15.0.post1
-sentry-kafka-schemas==0.1.102
+sentry-kafka-schemas==0.1.105
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.1
@@ -206,7 +206,7 @@ tldextract==5.1.2
 tokenize-rt==5.2.0
 tomli==2.0.1
 toronado==0.1.0
-tqdm==4.64.1
+tqdm==4.66.4
 trio==0.22.2
 trio-websocket==0.11.1
 types-beautifulsoup4==4.11.6
