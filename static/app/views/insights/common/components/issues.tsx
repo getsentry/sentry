@@ -11,7 +11,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -62,11 +62,19 @@ function Issue({data}: {data: Group}) {
   );
 }
 
-function IssueListHeader() {
+function IssueListHeader({issues}: {issues?: Group[]}) {
   return (
     <StyledPanelHeader>
       {/* todo: fix plurality */}
-      <IssueHeading>{t('2 Performance issues')}</IssueHeading>
+      {issues && (
+        <IssueHeading>
+          {tct(`[count] [text]`, {
+            count: issues.length,
+            text: tn('Performance Issue', 'Performance Issues', issues.length),
+          })}
+        </IssueHeading>
+      )}
+
       <GraphHeading>{t('Graph')}</GraphHeading>
       <EventsHeading>{t('Events')}</EventsHeading>
       <UsersHeading>{t('Users')}</UsersHeading>
@@ -74,6 +82,42 @@ function IssueListHeader() {
     </StyledPanelHeader>
   );
 }
+
+function EmptyListScreen() {
+  return (
+    <Wrapper>
+      <MessageContainer>
+        <h5>There were no open issues related to this query</h5>
+        <div>Have you considered dropping some indexes?</div>
+      </MessageContainer>
+    </Wrapper>
+  );
+}
+
+const MessageContainer = styled('div')`
+  align-self: center;
+  max-width: 800px;
+  margin-left: 40px;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    margin: 0;
+  }
+`;
+
+const Wrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  border-radius: 0 0 3px 3px;
+  padding: 40px ${space(3)};
+  min-height: 120px;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: column;
+    align-items: center;
+    padding: ${space(3)};
+    text-align: center;
+  }
+`;
 
 export default function InsightIssuesList({issueTypes}: {issueTypes: string[]}) {
   // fetch issue ids that have the current issue types, with the given pageFilter settings
@@ -122,7 +166,7 @@ export default function InsightIssuesList({issueTypes}: {issueTypes: string[]}) 
     }
   );
 
-  const enrichedIssues = fetchedIssues?.map(issue => ({
+  const issues = fetchedIssues?.map(issue => ({
     ...issue,
     ...issuesStats?.find(stats => stats.id === issue.id),
   }));
@@ -134,13 +178,13 @@ export default function InsightIssuesList({issueTypes}: {issueTypes: string[]}) 
 
   return (
     <StyledPanel>
-      <IssueListHeader />
+      <IssueListHeader issues={issues} />
       {isLoading ? (
         <LoadingIndicator />
-      ) : enrichedIssues && enrichedIssues?.length > 0 ? (
-        enrichedIssues?.map(issue => <Issue data={issue} key={issue.id} />)
+      ) : issues && issues?.length > 0 ? (
+        issues?.map(issue => <Issue data={issue} key={issue.id} />)
       ) : (
-        "We couldn't find any issues that matched your filters"
+        <EmptyListScreen />
       )}
     </StyledPanel>
   );
