@@ -61,56 +61,14 @@ export const enum SectionKey {
   RRWEB = 'rrweb', // Legacy integration prior to replays
 }
 
-const defaultConfig = {
-  isOpen: true,
-  isEmpty: true,
-};
-
-export const DEFAULT_SECTION_DATA: EventDetailsContextType['sectionData'] = {
-  [SectionKey.TRACE]: defaultConfig,
-  [SectionKey.USER_FEEDBACK]: defaultConfig,
-  [SectionKey.LLM_MONITORING]: defaultConfig,
-  [SectionKey.UPTIME]: defaultConfig,
-  [SectionKey.CRON]: defaultConfig,
-  [SectionKey.HIGHLIGHTS]: defaultConfig,
-  [SectionKey.RESOURCES]: defaultConfig,
-  [SectionKey.EXCEPTION]: defaultConfig,
-  [SectionKey.STACKTRACE]: defaultConfig,
-  [SectionKey.SPANS]: defaultConfig,
-  [SectionKey.EVIDENCE]: defaultConfig,
-  [SectionKey.MESSAGE]: defaultConfig,
-  [SectionKey.SPAN_EVIDENCE]: defaultConfig,
-  [SectionKey.HYDRATION_DIFF]: defaultConfig,
-  [SectionKey.REPLAY]: defaultConfig,
-  [SectionKey.HPKP]: defaultConfig,
-  [SectionKey.CSP]: defaultConfig,
-  [SectionKey.EXPECTCT]: defaultConfig,
-  [SectionKey.EXPECTSTAPLE]: defaultConfig,
-  [SectionKey.TEMPLATE]: defaultConfig,
-  [SectionKey.BREADCRUMBS]: defaultConfig,
-  [SectionKey.DEBUGMETA]: defaultConfig,
-  [SectionKey.REQUEST]: defaultConfig,
-  [SectionKey.TAGS]: defaultConfig,
-  [SectionKey.SCREENSHOT]: defaultConfig,
-  [SectionKey.CONTEXTS]: defaultConfig,
-  [SectionKey.EXTRA]: defaultConfig,
-  [SectionKey.PACKAGES]: defaultConfig,
-  [SectionKey.DEVICE]: defaultConfig,
-  [SectionKey.VIEW_HIERARCHY]: defaultConfig,
-  [SectionKey.ATTACHMENTS]: defaultConfig,
-  [SectionKey.SDK]: defaultConfig,
-  [SectionKey.GROUPING_INFO]: defaultConfig,
-  [SectionKey.RRWEB]: defaultConfig,
-};
-
 export interface EventDetailsContextType {
   searchQuery: string;
-  sectionData: Record<SectionKey, {isOpen: boolean}>;
+  sectionData: {[key in SectionKey]?: {isOpen: boolean; shouldDisplay: boolean}};
 }
 
 const EventDetailsContext = createContext<EventDetailsContextType>({
   searchQuery: '',
-  sectionData: DEFAULT_SECTION_DATA,
+  sectionData: {},
 });
 
 export function useEventDetailsContext() {
@@ -127,7 +85,7 @@ export function EventDetails({
   const {environments} = selection;
   const [eventDetails, setEventDetails] = useState<EventDetailsContextType>({
     searchQuery: '',
-    sectionData: DEFAULT_SECTION_DATA,
+    sectionData: {},
   });
 
   return (
