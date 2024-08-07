@@ -35,17 +35,17 @@ class IntegrationManager:
         return key in self.__values
 
     def register(self, cls: type[IntegrationProvider]) -> None:
-        self.__values[str(cls.key)] = cls
+        self.__values[cls.key] = cls
 
     def unregister(self, cls: type[IntegrationProvider]) -> None:
         try:
-            if self.__values[str(cls.key)] != cls:
+            if self.__values[cls.key] != cls:
                 # don't allow unregistering of arbitrary provider
                 raise NotRegistered(cls.key)
         except KeyError:
             # we gracefully handle a missing provider
             return
-        del self.__values[str(cls.key)]
+        del self.__values[cls.key]
 
 
 default_manager = IntegrationManager()
