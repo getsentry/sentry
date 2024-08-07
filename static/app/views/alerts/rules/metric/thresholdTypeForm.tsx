@@ -35,57 +35,62 @@ function ThresholdTypeForm({
     return null;
   }
 
+  const hasAnomalyDetection = organization.features.includes('organizations:anomaly-detection-alerts')
+
+  let thresholdTypeChoices = [
+    [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
+    [
+      AlertRuleComparisonType.CHANGE,
+      comparisonType === AlertRuleComparisonType.COUNT ? (
+        t('Percent Change: {x%} higher or lower compared to previous period')
+      ) : (
+        // Prevent default to avoid dropdown menu closing on click
+        <ComparisonContainer onClick={e => e.preventDefault()}>
+          {t('Percent Change: {x%} higher or lower compared to')}
+          <SelectControl
+            name="comparisonDelta"
+            styles={{
+              container: (provided: {
+                [x: string]: string | number | boolean;
+              }) => ({
+                ...provided,
+                marginLeft: space(1),
+              }),
+              control: (provided: {[x: string]: string | number | boolean}) => ({
+                ...provided,
+                minHeight: 30,
+                minWidth: 500,
+                maxWidth: 1000,
+              }),
+              valueContainer: (provided: {
+                [x: string]: string | number | boolean;
+              }) => ({
+                ...provided,
+                padding: 0,
+              }),
+              singleValue: (provided: {
+                [x: string]: string | number | boolean;
+              }) => ({
+                ...provided,
+              }),
+            }}
+            value={comparisonDelta}
+            onChange={({value}) => onComparisonDeltaChange(value)}
+            options={COMPARISON_DELTA_OPTIONS}
+            required={comparisonType === AlertRuleComparisonType.CHANGE}
+          />
+        </ComparisonContainer>
+      ),
+    ],
+    [AlertRuleComparisonType.DYNAMIC, 'Dynamic: when evaluated values are outside of expected bounds, as determined by AI']
+  ]
+
   return (
     <Feature features="organizations:change-alerts" organization={organization}>
       <FormRow>
         <StyledRadioGroup
           disabled={disabled}
-          choices={[
-            [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
-            [
-              AlertRuleComparisonType.CHANGE,
-              comparisonType === AlertRuleComparisonType.COUNT ? (
-                t('Percent Change: {x%} higher or lower compared to previous period')
-              ) : (
-                // Prevent default to avoid dropdown menu closing on click
-                <ComparisonContainer onClick={e => e.preventDefault()}>
-                  {t('Percent Change: {x%} higher or lower compared to')}
-                  <SelectControl
-                    name="comparisonDelta"
-                    styles={{
-                      container: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        marginLeft: space(1),
-                      }),
-                      control: (provided: {[x: string]: string | number | boolean}) => ({
-                        ...provided,
-                        minHeight: 30,
-                        minWidth: 500,
-                        maxWidth: 1000,
-                      }),
-                      valueContainer: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                        padding: 0,
-                      }),
-                      singleValue: (provided: {
-                        [x: string]: string | number | boolean;
-                      }) => ({
-                        ...provided,
-                      }),
-                    }}
-                    value={comparisonDelta}
-                    onChange={({value}) => onComparisonDeltaChange(value)}
-                    options={COMPARISON_DELTA_OPTIONS}
-                    required={comparisonType === AlertRuleComparisonType.CHANGE}
-                  />
-                </ComparisonContainer>
-              ),
-            ],
-          ]}
+          choices={thresholdTypeChoices}
           value={comparisonType}
           label={t('Threshold Type')}
           onChange={value => onComparisonTypeChange(value as AlertRuleComparisonType)}
