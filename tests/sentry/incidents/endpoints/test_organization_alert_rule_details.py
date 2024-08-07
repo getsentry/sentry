@@ -11,6 +11,7 @@ import responses
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.test import override_settings
+from httpx import HTTPError
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -874,6 +875,31 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             **data,
         )
         assert resp.data == "Timeout when sending data to Seer - cannot update alert rule."
+        assert mock_seer_request.call_count == 2
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_update_other_error(self, mock_seer_request):
+        """
+        Test the catch-all in case Seer returns something that we don't expect.
+        """
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.dynamic_alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        mock_seer_request.side_effect = HTTPError
+        data = self.get_serialized_alert_rule()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=400,
+            **data,
+        )
+        assert resp.data == "Something went wrong."
         assert mock_seer_request.call_count == 2
 
     @with_feature("organizations:anomaly-detection-alerts")

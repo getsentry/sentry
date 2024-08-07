@@ -7,6 +7,7 @@ import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
+from httpx import HTTPError
 from rest_framework import status
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
@@ -350,6 +351,27 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
         assert resp.data == "Timeout when sending data to Seer - cannot create alert rule."
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_other_error(self, mock_seer_request):
+        """
+        Test the catch-all in case Seer returns something that we don't expect.
+        """
+        data = self.dynamic_alert_rule_dict
+        mock_seer_request.side_effect = HTTPError
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
+        assert resp.data == "Something went wrong."
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
