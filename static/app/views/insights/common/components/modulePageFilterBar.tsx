@@ -59,6 +59,8 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
           position="bottom-start"
           disabled={!showTooltip}
         >
+          {/* TODO: Placing a DIV here is a hack, it allows the tooltip to close and the ProjectPageFilter to close at the same time,
+          otherwise two clicks are required */}
           <div />
         </Tooltip>
         <ProjectPageFilter onChange={onProjectChange} />
