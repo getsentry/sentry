@@ -15,6 +15,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import InsightIssuesList from 'sentry/views/insights/common/components/issues';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -198,6 +199,14 @@ export function DatabaseLandingPage() {
                 />
               </ModuleLayout.Half>
 
+              <ModuleLayout.Full>
+                <InsightIssuesList
+                  issueTypes={[
+                    'performance_slow_db_query',
+                    'performance_n_plus_one_db_queries',
+                  ]}
+                />
+              </ModuleLayout.Full>
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
