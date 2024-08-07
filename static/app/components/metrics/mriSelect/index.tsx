@@ -79,7 +79,7 @@ export function getMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
   for (const metric of metrics) {
     const parsedMri = parseMRI(metric.mri);
     // Include the use case to avoid warning of conflicts between different use cases
-    const metricName = `${parsedMri.useCase}_${parsedMri.name}`;
+    const metricName = `${parsedMri.type}_${parsedMri.useCase}_${parsedMri.name}`;
 
     if (metricNameMap.has(metricName)) {
       const mapEntry = metricNameMap.get(metricName);

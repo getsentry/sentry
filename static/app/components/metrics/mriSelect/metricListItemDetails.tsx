@@ -23,6 +23,7 @@ import {
   getMetricsTagsQueryKey,
   useMetricsTags,
 } from 'sentry/utils/metrics/useMetricsTags';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -51,6 +52,7 @@ export function MetricListItemDetails({
   const router = useRouter();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const {getExtractionRules} = useVirtualMetricsContext();
   const parsedMRI = parseMRI(metric.mri);
   const isCustomMetric = parsedMRI.useCase === 'custom';
   const isVirtualMetric = parsedMRI.type === 'v';
@@ -64,6 +66,9 @@ export function MetricListItemDetails({
   );
 
   const [isQueryEnabled, setIsQueryEnabled] = useState(() => {
+    if (isVirtualMetric) {
+      return false;
+    }
     // We only wnat to disable the query if there is no data in the cache
     const queryKey = getMetricsTagsQueryKey(organization, metric.mri);
     const data = queryClient.getQueryData(queryKey);
@@ -191,47 +196,55 @@ export function MetricListItemDetails({
           </Fragment>
         ) : null}
         <DetailsLabel>{t('Unit')}</DetailsLabel>
-        <DetailsValue>{metric.unit}</DetailsValue>
-        <DetailsLabel>{t('Tags')}</DetailsLabel>
         <DetailsValue>
-          {tagsIsLoading || !isQueryEnabled ? (
-            <StyledLoadingIndicator mini size={12} />
-          ) : truncatedTags.length === 0 ? (
-            t('(None)')
-          ) : (
-            <Fragment>
-              {truncatedTags.map((tag, index) => {
-                const shouldAddDelimiter = index < truncatedTags.length - 1;
-                return (
-                  <Fragment key={tag.key}>
-                    <TagWrapper>
-                      {/* Tags for virtual metrics are not clickable because there is no way of knowing which have been seen and won't cause query error */}
-                      {isVirtualMetric ? (
-                        tag.key
-                      ) : (
-                        <Button
-                          priority="link"
-                          onClick={() => onTagClick(metric.mri, tag.key)}
-                        >
-                          {tag.key}
-                        </Button>
-                      )}
-                      {/* Make the comma stick to the Button when the text wraps to the next line */}
-                      {shouldAddDelimiter ? ',' : null}
-                    </TagWrapper>
-                    {shouldAddDelimiter ? ' ' : null}
-                  </Fragment>
-                );
-              })}
-              <br />
-              {tagsData.length > MAX_TAGS_TO_SHOW && !showAllTags && (
-                <Button priority="link" onClick={() => setShowAllTags(true)}>
-                  {t('+%d more', tagsData.length - MAX_TAGS_TO_SHOW)}
-                </Button>
-              )}
-            </Fragment>
-          )}
+          {isVirtualMetric
+            ? [...new Set(getExtractionRules(metric.mri).map(r => r.unit))].join(', ')
+            : metric.unit}
         </DetailsValue>
+        {!isVirtualMetric ? (
+          <Fragment>
+            <DetailsLabel>{t('Tags')}</DetailsLabel>
+            <DetailsValue>
+              {tagsIsLoading || !isQueryEnabled ? (
+                <StyledLoadingIndicator mini size={12} />
+              ) : truncatedTags.length === 0 ? (
+                t('(None)')
+              ) : (
+                <Fragment>
+                  {truncatedTags.map((tag, index) => {
+                    const shouldAddDelimiter = index < truncatedTags.length - 1;
+                    return (
+                      <Fragment key={tag.key}>
+                        <TagWrapper>
+                          {/* Tags for virtual metrics are not clickable because there is no way of knowing which have been seen and won't cause query error */}
+                          {isVirtualMetric ? (
+                            tag.key
+                          ) : (
+                            <Button
+                              priority="link"
+                              onClick={() => onTagClick(metric.mri, tag.key)}
+                            >
+                              {tag.key}
+                            </Button>
+                          )}
+                          {/* Make the comma stick to the Button when the text wraps to the next line */}
+                          {shouldAddDelimiter ? ',' : null}
+                        </TagWrapper>
+                        {shouldAddDelimiter ? ' ' : null}
+                      </Fragment>
+                    );
+                  })}
+                  <br />
+                  {tagsData.length > MAX_TAGS_TO_SHOW && !showAllTags && (
+                    <Button priority="link" onClick={() => setShowAllTags(true)}>
+                      {t('+%d more', tagsData.length - MAX_TAGS_TO_SHOW)}
+                    </Button>
+                  )}
+                </Fragment>
+              )}
+            </DetailsValue>
+          </Fragment>
+        ) : null}
       </DetailsGrid>
     </DetailsWrapper>
   );
