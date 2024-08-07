@@ -81,25 +81,12 @@ describe('Metrics Extraction Rule Form', function () {
       screen.getAllByText(textWithMarkupMatcher('Create "new-metric"'))[1]
     );
 
-    await userEvent.click(screen.getByText(/we’ll need a moment/));
-
-    expect(
-      screen.getByText(
-        /collect data from spans sent after you created the metric and not before/
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByText(/instrument your custom attribute/)).toHaveAttribute(
-      'href',
-      'https://docs.sentry.io/product/explore/metrics/metrics-set-up/'
-    );
+    expect(screen.getByText(/You want to track a custom attribute/)).toBeInTheDocument();
 
     await selectEvent.select(screen.getByText('new-metric'), 'browser.name');
 
     expect(
-      screen.getByText(
-        /if you deleted an existing metric, then we’ll stop collecting data/
-      )
-    ).toBeInTheDocument();
+      screen.queryByText(/You want to track a custom attribute/)
+    ).not.toBeInTheDocument();
   });
 });
