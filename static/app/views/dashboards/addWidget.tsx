@@ -148,14 +148,12 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
       onAction: () => handleAction(DataSet.ISSUES),
     });
 
-    if (organization.features.includes('dashboards-rh-widget')) {
-      menuItems.push({
-        key: DataSet.RELEASES,
-        label: t('Releases'),
-        details: t('Sessions, Crash rates, etc.'),
-        onAction: () => handleAction(DataSet.RELEASES),
-      });
-    }
+    menuItems.push({
+      key: DataSet.RELEASES,
+      label: t('Releases'),
+      details: t('Sessions, Crash rates, etc.'),
+      onAction: () => handleAction(DataSet.RELEASES),
+    });
 
     if (hasCustomMetrics(organization)) {
       menuItems.push({

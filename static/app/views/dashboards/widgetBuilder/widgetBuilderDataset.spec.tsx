@@ -31,7 +31,6 @@ const defaultOrgFeatures = [
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
-  'dashboards-rh-widget',
 ];
 
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {

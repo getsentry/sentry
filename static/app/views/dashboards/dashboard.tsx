@@ -516,17 +516,7 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
       this.props;
-    let {widgets} = dashboard;
-    // Filter out any issue/release widgets if the user does not have the feature flag
-    widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.RELEASE) {
-        return organization.features.includes('dashboards-rh-widget');
-      }
-      if (widgetType === WidgetType.METRICS) {
-        return hasCustomMetrics(organization);
-      }
-      return true;
-    });
+    const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
 
