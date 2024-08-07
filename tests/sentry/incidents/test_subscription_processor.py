@@ -57,7 +57,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
@@ -376,12 +376,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_removed_alert_rule(self):
         message = self.build_subscription_update(self.sub)
         self.rule.delete()
+        subscription_id = self.sub.id
+        snuba_query = self.sub.snuba_query
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
         )
-        # TODO: Check subscription is deleted once we start doing that
+        assert not QuerySubscription.objects.filter(id=subscription_id).exists()
+        assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
 
     def test_removed_project(self):
         message = self.build_subscription_update(self.sub)
