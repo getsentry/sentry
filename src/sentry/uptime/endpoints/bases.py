@@ -10,13 +10,19 @@ class ProjectUptimeAlertEndpoint(ProjectEndpoint):
     owner = ApiOwner.CRONS
     permission_classes = (ProjectAlertRulePermission,)
 
-    def convert_args(self, request: Request, uptime_subscription_id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        uptime_project_subscription_id: str,
+        *args,
+        **kwargs,
+    ):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 
         try:
             kwargs["uptime_subscription"] = ProjectUptimeSubscription.objects.get(
-                project=project, id=uptime_subscription_id
+                project=project, id=uptime_project_subscription_id
             )
         except ProjectUptimeSubscription.DoesNotExist:
             raise ResourceDoesNotExist
