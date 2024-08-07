@@ -117,6 +117,7 @@ const SEARCH_OPTIONS: Fuse.IFuseOptions<any> = {
   ignoreLocation: true,
   includeScore: false,
   includeMatches: false,
+  minMatchCharLength: 1,
 };
 
 function useFilteredMRIs(
