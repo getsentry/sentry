@@ -103,9 +103,11 @@ def update_alert_rule(request: Request, organization, alert_rule):
             try:
                 alert_rule = serializer.save()
                 return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
-            except (TimeoutError, MaxRetryError) as e:
+            except (TimeoutError, MaxRetryError):
                 return Response(
-                    data={"detail": str(e)}, status=status.HTTP_408_REQUEST_TIMEOUT, exception=True
+                    data="Timeout when sending data to Seer - cannot update alert rule.",
+                    status=status.HTTP_408_REQUEST_TIMEOUT,
+                    exception=True,
                 )
             except ValidationError:
                 raise
@@ -113,9 +115,9 @@ def update_alert_rule(request: Request, organization, alert_rule):
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise ValidationError(e.error_list[0].message)
             # catch-all for other errors
-            except Exception as e:
+            except Exception:
                 return Response(
-                    data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
+                    data="Something went wrong.", status=status.HTTP_400_BAD_REQUEST, exception=True
                 )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

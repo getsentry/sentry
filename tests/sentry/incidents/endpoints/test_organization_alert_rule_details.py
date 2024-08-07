@@ -15,11 +15,13 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
+from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.auth.access import OrganizationGlobalAccess
+from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -41,6 +43,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
@@ -59,6 +62,39 @@ class AlertRuleDetailsBase(AlertRuleBase):
     __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
+
+    @cached_property
+    def dynamic_alert_rule_dict(self):
+        return {
+            "aggregate": "count()",
+            "query": "",
+            "time_window": 30,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+            "activations": [],
+        }
 
     def new_alert_rule(self, data=None):
         if data is None:
@@ -101,6 +137,10 @@ class AlertRuleDetailsBase(AlertRuleBase):
     @cached_property
     def alert_rule(self):
         return self.new_alert_rule(data=deepcopy(self.alert_rule_dict))
+
+    @cached_property
+    def dynamic_alert_rule(self):
+        return self.new_alert_rule(data=deepcopy(self.dynamic_alert_rule_dict))
 
     @cached_property
     def valid_params(self):
@@ -789,6 +829,78 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             self.organization.slug, alert_rule.id, **serialized_alert_rule
         )
         assert description == resp.data.get("description")
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_update_timeout(self, mock_seer_request):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.dynamic_alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        mock_seer_request.side_effect = TimeoutError
+        data = self.get_serialized_alert_rule()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=408,
+            **data,
+        )
+        assert resp.data == "Timeout when sending data to Seer - cannot update alert rule."
+        assert mock_seer_request.call_count == 2  # one for create, one for update
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_update_max_retry(self, mock_seer_request):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.dynamic_alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        mock_seer_request.side_effect = MaxRetryError(
+            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+        )
+        data = self.get_serialized_alert_rule()
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=408,
+            **data,
+        )
+        assert resp.data == "Timeout when sending data to Seer - cannot update alert rule."
+        assert mock_seer_request.call_count == 2
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_update_validation_error(self, mock_seer_request):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.dynamic_alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        data = self.get_serialized_alert_rule()
+        data["timeWindow"] = 10
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=400,
+            **data,
+        )
+        assert (
+            resp.data[0]
+            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
+        )
+        # We don't call send_historical_data_to_seer if we encounter a validation error.
+        assert mock_seer_request.call_count == 1
 
     def test_delete_action(self):
         self.create_member(

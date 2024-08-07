@@ -329,7 +329,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 **data,
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
-        assert resp.data["detail"] == "Failed to send data to Seer - cannot create alert rule."
+        assert resp.data == "Timeout when sending data to Seer - cannot create alert rule."
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
@@ -349,7 +349,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 **data,
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
-        assert resp.data["detail"] == "Failed to send data to Seer - cannot create alert rule."
+        assert resp.data == "Timeout when sending data to Seer - cannot create alert rule."
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")

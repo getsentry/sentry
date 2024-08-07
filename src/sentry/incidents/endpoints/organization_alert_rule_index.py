@@ -129,9 +129,11 @@ class AlertRuleIndexMixin(Endpoint):
         else:
             try:
                 alert_rule = serializer.save()
-            except (TimeoutError, MaxRetryError) as e:
+            except (TimeoutError, MaxRetryError):
                 return Response(
-                    data={"detail": str(e)}, status=status.HTTP_408_REQUEST_TIMEOUT, exception=True
+                    data="Timeout when sending data to Seer - cannot create alert rule.",
+                    status=status.HTTP_408_REQUEST_TIMEOUT,
+                    exception=True,
                 )
             except ValidationError:
                 raise
@@ -139,9 +141,9 @@ class AlertRuleIndexMixin(Endpoint):
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise ValidationError(e.error_list[0].message)
             # catch-all for other errors
-            except Exception as e:
+            except Exception:
                 return Response(
-                    data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
+                    data="Something went wrong.", status=status.HTTP_400_BAD_REQUEST, exception=True
                 )
 
             referrer = request.query_params.get("referrer")
