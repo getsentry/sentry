@@ -135,11 +135,13 @@ class FormModel {
       fieldState: observable,
       formState: observable,
 
+      isInvalid: computed,
       isError: computed,
       isSaving: computed,
       formData: computed,
       formChanged: computed,
 
+      isFormInvalid: action,
       resetForm: action,
       setFieldDescriptor: action,
       removeField: action,
@@ -201,6 +203,13 @@ class FormModel {
   }
 
   /**
+   * Is form invalid
+   */
+  get isInvalid() {
+    return this.formState === FormState.INVALID;
+  }
+
+  /**
    * Is form saving
    */
   get isSaving() {
@@ -240,7 +249,7 @@ class FormModel {
     // TODO(TS): add type to props
     this.fieldDescriptor.set(id, props);
 
-    // Set default value iff initialData for field is undefined
+    // Set default value if initialData for field is undefined
     // This must take place before checking for `props.setValue` so that it can
     // be applied to `defaultValue`
     if (
@@ -259,6 +268,8 @@ class FormModel {
       this.initialData[id] = props.setValue(this.initialData[id], props);
       this.fields.set(id, this.initialData[id]);
     }
+
+    this.formState = this.isFormInvalid() ? FormState.INVALID : FormState.READY;
   }
 
   /**
@@ -354,8 +365,18 @@ class FormModel {
   isValidRequiredField(id: string) {
     // Check field descriptor to see if field is required
     const isRequired = this.getDescriptor(id, 'required');
+
+    if (!isRequired) {
+      return true;
+    }
+
     const value = this.getValue(id);
-    return !isRequired || (value !== '' && defined(value));
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return value !== '' && defined(value);
   }
 
   isValidField(id: string) {
@@ -722,12 +743,21 @@ class FormModel {
       this.formState = FormState.ERROR;
       this.errors.set(id, error);
     } else {
-      this.formState = FormState.READY;
+      this.formState = this.isFormInvalid() ? FormState.INVALID : FormState.READY;
       this.errors.delete(id);
     }
 
     // Field should no longer to "saving", but is not necessarily "ready"
     this.setFieldState(id, FormState.SAVING, false);
+  }
+
+  /**
+   * Validates if the current state of all fields is valid
+   */
+  isFormInvalid() {
+    return !Array.from(this.fieldDescriptor.keys()).every(field =>
+      this.isValidRequiredField(field)
+    );
   }
 
   /**
