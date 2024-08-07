@@ -7,8 +7,8 @@ from typing import Any
 from rb.clients import LocalClient
 from redis.exceptions import ResponseError
 
-from sentry.digests import Record
 from sentry.digests.backends.base import Backend, InvalidState, ScheduleEntry
+from sentry.digests.types import Record
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.manager import LockManager

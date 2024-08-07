@@ -10,6 +10,7 @@ import {Chevron} from 'sentry/components/chevron';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,8 +27,10 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type EventNavigationProps = {
   event: Event;
@@ -46,18 +49,21 @@ enum EventNavOptions {
   RECOMMENDED = 'recommended',
   LATEST = 'latest',
   OLDEST = 'oldest',
+  CUSTOM = 'custom',
 }
 
 const EventNavLabels = {
   [EventNavOptions.RECOMMENDED]: t('Recommended Event'),
   [EventNavOptions.OLDEST]: t('First Event'),
   [EventNavOptions.LATEST]: t('Last Event'),
+  [EventNavOptions.CUSTOM]: t('Custom Event'),
 };
 
 const EventNavOrder = [
   EventNavOptions.RECOMMENDED,
   EventNavOptions.OLDEST,
   EventNavOptions.LATEST,
+  EventNavOptions.CUSTOM,
 ];
 
 const eventDataSections: SectionDefinition[] = [
@@ -109,6 +115,23 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     const location = useLocation();
     const organization = useOrganization();
     const theme = useTheme();
+    const params = useParams<{eventId?: string}>();
+    const defaultIssueEvent = useDefaultIssueEvent();
+
+    const getSelectedOption = () => {
+      switch (params.eventId) {
+        case EventNavOptions.RECOMMENDED:
+        case EventNavOptions.LATEST:
+        case EventNavOptions.OLDEST:
+          return params.eventId;
+        case undefined:
+          return defaultIssueEvent;
+        default:
+          return EventNavOptions.CUSTOM;
+      }
+    };
+
+    const selectedOption = getSelectedOption();
 
     const hasPreviousEvent = defined(event.previousEventID);
     const hasNextEvent = defined(event.nextEventID);
@@ -153,16 +176,24 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
     return (
       <div {...props} ref={ref}>
         <EventNavigationWrapper>
-          <Tabs>
+          <Tabs value={selectedOption}>
             <TabList hideBorder variant="floating">
               {EventNavOrder.map(label => {
+                const eventPath =
+                  label === selectedOption
+                    ? undefined
+                    : {
+                        pathname: normalizeUrl(baseEventsPath + label + '/'),
+                        query: {...location.query, referrer: `${label}-event`},
+                      };
                 return (
                   <TabList.Item
-                    to={{
-                      pathname: normalizeUrl(baseEventsPath + label + '/'),
-                      query: {...location.query, referrer: `${label}-event`},
-                    }}
+                    to={eventPath}
                     key={label}
+                    hidden={
+                      label === EventNavOptions.CUSTOM &&
+                      selectedOption !== EventNavOptions.CUSTOM
+                    }
                   >
                     {EventNavLabels[label]}
                   </TabList.Item>
@@ -172,32 +203,34 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </Tabs>
           <NavigationWrapper>
             <Navigation>
-              <LinkButton
-                title={'Previous Event'}
-                aria-label="Previous Event"
-                borderless
-                size="xs"
-                icon={<IconChevron direction="left" />}
-                disabled={!hasPreviousEvent}
-                to={{
-                  pathname: `${baseEventsPath}${event.previousEventID}/`,
-                  query: {...location.query, referrer: 'previous-event'},
-                }}
-                css={grayText}
-              />
-              <LinkButton
-                title={'Next Event'}
-                aria-label="Next Event"
-                borderless
-                size="xs"
-                icon={<IconChevron direction="right" />}
-                disabled={!hasNextEvent}
-                to={{
-                  pathname: `${baseEventsPath}${event.nextEventID}/`,
-                  query: {...location.query, referrer: 'next-event'},
-                }}
-                css={grayText}
-              />
+              <Tooltip title={t('Previous Event')}>
+                <LinkButton
+                  aria-label={t('Previous Event')}
+                  borderless
+                  size="xs"
+                  icon={<IconChevron direction="left" />}
+                  disabled={!hasPreviousEvent}
+                  to={{
+                    pathname: `${baseEventsPath}${event.previousEventID}/`,
+                    query: {...location.query, referrer: 'previous-event'},
+                  }}
+                  css={grayText}
+                />
+              </Tooltip>
+              <Tooltip title={t('Next Event')}>
+                <LinkButton
+                  aria-label={t('Next Event')}
+                  borderless
+                  size="xs"
+                  icon={<IconChevron direction="right" />}
+                  disabled={!hasNextEvent}
+                  to={{
+                    pathname: `${baseEventsPath}${event.nextEventID}/`,
+                    query: {...location.query, referrer: 'next-event'},
+                  }}
+                  css={grayText}
+                />
+              </Tooltip>
             </Navigation>
             <LinkButton
               to={{
