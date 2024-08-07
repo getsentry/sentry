@@ -111,6 +111,5 @@ export function shouldUseErrorsDiscoverDataset(
     return dataset === Dataset.ERRORS && query?.includes('is:unresolved');
   }
 
-  // Why do we need to check for is:unresolved above?
   return dataset === Dataset.ERRORS;
 }

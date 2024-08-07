@@ -406,8 +406,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         : undefined;
 
       if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
-        // We need to inject the event.type:transaction filter for alerts
-        // to avoid triggering the event.type missing banner error
+        // Inject the event.type:transaction filter for to avoid triggering
+        // the event.type missing banner error in the alerts form
         eventView.query = eventView.query
           ? `(${eventView.query}) AND (event.type:transaction)`
           : 'event.type:transaction';
