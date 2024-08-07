@@ -7,6 +7,7 @@ import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 export function getProjectOptions({
   organization,
@@ -101,6 +102,15 @@ export function getAlertRuleActionCategory(rule: MetricRule) {
   }
 }
 
-export function shouldUseErrorsDiscoverDataset(query: string, dataset: Dataset) {
-  return dataset === Dataset.ERRORS && query?.includes('is:unresolved');
+export function shouldUseErrorsDiscoverDataset(
+  query: string,
+  dataset: Dataset,
+  organization: Organization
+) {
+  if (!hasDatasetSelector(organization)) {
+    return dataset === Dataset.ERRORS && query?.includes('is:unresolved');
+  }
+
+  // Why do we need to check for is:unresolved above?
+  return dataset === Dataset.ERRORS;
 }

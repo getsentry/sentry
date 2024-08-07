@@ -27,16 +27,19 @@ import type {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 
 import {
+  getDatasetFromLocationOrSavedQueryDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleResetHomepageQuery,
@@ -386,7 +389,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects} = this.props;
+    const {eventView, organization, projects, location, savedQuery} = this.props;
+    const currentDataset =
+      getDatasetFromLocationOrSavedQueryDataset(location, savedQuery?.queryDataset) ===
+      DiscoverDatasets.TRANSACTIONS
+        ? 'throughput'
+        : 'num_errors';
+    const alertType = hasDatasetSelector(organization) ? currentDataset : undefined;
 
     return (
       <GuideAnchor target="create_alert_from_discover">
@@ -399,6 +408,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           size="sm"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
+          alertType={alertType}
         />
       </GuideAnchor>
     );

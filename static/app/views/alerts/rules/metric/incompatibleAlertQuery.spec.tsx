@@ -1,5 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
@@ -7,10 +5,7 @@ import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompati
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 
 function renderComponent(eventView: EventView) {
-  const organization = OrganizationFixture();
-  return render(
-    <IncompatibleAlertQuery orgSlug={organization.slug} eventView={eventView} />
-  );
+  return render(<IncompatibleAlertQuery eventView={eventView} />);
 }
 
 describe('IncompatibleAlertQuery', () => {
