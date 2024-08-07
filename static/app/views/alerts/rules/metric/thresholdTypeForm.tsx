@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -39,7 +39,7 @@ function ThresholdTypeForm({
     'organizations:anomaly-detection-alerts'
   );
 
-  let thresholdTypeChoices = [
+  const thresholdTypeChoices: RadioOption[] = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
     [
       AlertRuleComparisonType.CHANGE,
@@ -78,11 +78,14 @@ function ThresholdTypeForm({
         </ComparisonContainer>
       ),
     ],
-    [
+  ];
+
+  if (hasAnomalyDetection) {
+    thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
       'Dynamic: when evaluated values are outside of expected bounds, as determined by AI',
-    ],
-  ];
+    ] as RadioOption);
+  }
 
   return (
     <Feature features="organizations:change-alerts" organization={organization}>
