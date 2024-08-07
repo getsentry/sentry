@@ -2,9 +2,7 @@ import dataclasses
 from abc import abstractmethod
 from collections.abc import Mapping
 from enum import Enum
-from typing import Annotated, Any, Literal, Self, Type, TypeVar
-
-from pydantic import BaseModel, Field, StrictBool, StrictFloat, StrictInt, StrictStr, constr
+from typing import Any, Self, TypeVar
 
 from flagpole.evaluation_context import EvaluationContext
 
@@ -58,8 +56,11 @@ class ConditionBase:
     value: Any
     """The value to compare against the condition's evaluation context property."""
 
-    operator: ConditionOperatorKind | None = None
-    """The operator to use when comparing the evaluation context property to the condition's value."""
+    operator: str | None = None
+    """
+    The operator to use when comparing the evaluation context property to the condition's value.
+    Values must be a valid ConditionOperatorKind.
+    """
 
     def match(self, context: EvaluationContext, segment_name: str) -> bool:
         return self._operator_match(
@@ -98,12 +99,8 @@ class ConditionBase:
 
         return value in create_case_insensitive_set_from_list(condition_property)
 
-    def _evaluate_equals(
-        self, condition_property: Any, segment_name: str, strict_validation: bool = False
-    ) -> bool:
-        # Strict validation enforces that a property exists when used in an
-        # equals condition
-        if condition_property is None and not strict_validation:
+    def _evaluate_equals(self, condition_property: Any, segment_name: str) -> bool:
+        if condition_property is None:
             return False
 
         if not isinstance(condition_property, type(self.value)):
@@ -124,7 +121,6 @@ InOperatorValueTypes = list[int] | list[float] | list[str]
 
 
 class InCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.IN] = ConditionOperatorKind.IN
     value: InOperatorValueTypes
 
     def _operator_match(self, condition_property: Any, segment_name: str):
@@ -132,7 +128,6 @@ class InCondition(ConditionBase):
 
 
 class NotInCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.NOT_IN] = ConditionOperatorKind.NOT_IN
     value: InOperatorValueTypes
 
     def _operator_match(self, condition_property: Any, segment_name: str):
@@ -145,7 +140,6 @@ ContainsOperatorValueTypes = int | str | float
 
 
 class ContainsCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.CONTAINS] = ConditionOperatorKind.CONTAINS
     value: ContainsOperatorValueTypes
 
     def _operator_match(self, condition_property: Any, segment_name: str):
@@ -155,7 +149,6 @@ class ContainsCondition(ConditionBase):
 
 
 class NotContainsCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.NOT_CONTAINS] = ConditionOperatorKind.NOT_CONTAINS
     value: ContainsOperatorValueTypes
 
     def _operator_match(self, condition_property: Any, segment_name: str):
@@ -168,45 +161,23 @@ EqualsOperatorValueTypes = int | float | str | bool | list[int] | list[float] | 
 
 
 class EqualsCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.EQUALS] = ConditionOperatorKind.EQUALS
     value: EqualsOperatorValueTypes
-    strict_validation: bool = dataclasses.field(default=False)
-    """Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing"""
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_equals(
             condition_property=condition_property,
             segment_name=segment_name,
-            strict_validation=self.strict_validation,
         )
 
 
 class NotEqualsCondition(ConditionBase):
-    operator: Literal[ConditionOperatorKind.NOT_EQUALS] = ConditionOperatorKind.NOT_EQUALS
     value: EqualsOperatorValueTypes
-    strict_validation: bool = dataclasses.field(default=False)
-    """Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing"""
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_equals(
             condition_property=condition_property,
             segment_name=segment_name,
-            strict_validation=self.strict_validation,
         )
-
-
-# We have to group and annotate all the different subclasses of Operator
-# in order for Pydantic to be able to discern between the different types
-# when parsing a dict or JSON.
-AvailableConditions = Annotated[
-    InCondition
-    | NotInCondition
-    | ContainsCondition
-    | NotContainsCondition
-    | EqualsCondition
-    | NotEqualsCondition,
-    Field(discriminator="operator"),
-]
 
 
 OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
@@ -223,7 +194,7 @@ def _condition_from_dict(data: Mapping[str, Any]) -> ConditionBase:
     operator_kind = ConditionOperatorKind(data.get("operator", "invalid"))
     condition_cls = OPERATOR_LOOKUP[operator_kind]
     return condition_cls(
-        property=str(data.get("property")), operator=operator_kind, value=data.get("value")
+        property=str(data.get("property")), operator=operator_kind.value, value=data.get("value")
     )
 
 

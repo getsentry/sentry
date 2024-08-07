@@ -62,7 +62,6 @@ and a value, the type of which depends on the operator specified.
 from __future__ import annotations
 
 import dataclasses
-from datetime import datetime
 from typing import Any
 
 import orjson
@@ -84,7 +83,7 @@ class Feature:
     owner: str
     "The owner of this feature. Either an email address or team name, preferably."
 
-    enabled: bool = dataclasses.field(default=False)
+    enabled: bool = dataclasses.field(default=True)
     "Whether or not the feature is enabled."
 
     segments: list[Segment] = dataclasses.field(default_factory=list)
@@ -105,21 +104,20 @@ class Feature:
         return False
 
     @classmethod
-    def dump_schema_to_file(cls, file_path: str) -> None:
-        raise NotImplementedError("nope")
-
-    @classmethod
     def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
+        segment_data = config_dict.get("segments")
+        if not isinstance(segment_data, list):
+            raise InvalidFeatureFlagConfiguration("Feature has no segments defined")
         try:
-            segments = [Segment.from_dict(segment) for segment in config_dict.get("segments", [])]
+            segments = [Segment.from_dict(segment) for segment in segment_data]
             feature = cls(
                 name=name,
                 owner=str(config_dict.get("owner", "")),
-                enabled=bool(config_dict.get("enabled", False)),
+                enabled=bool(config_dict.get("enabled", True)),
                 created_at=str(config_dict.get("created_at")),
                 segments=segments,
             )
-        except ValidationError as exc:
+        except Exception as exc:
             raise InvalidFeatureFlagConfiguration("Provided JSON is not a valid feature") from exc
 
         return feature
@@ -135,6 +133,9 @@ class Feature:
 
         if not isinstance(config_data_dict, dict):
             raise InvalidFeatureFlagConfiguration("Feature JSON is not a valid feature")
+
+        if not name:
+            raise InvalidFeatureFlagConfiguration("Feature name is required")
 
         return cls.from_feature_dictionary(name=name, config_dict=config_data_dict)
 
@@ -158,9 +159,9 @@ class Feature:
         return features
 
     def to_dict(self) -> dict[str, Any]:
-        json_dict = dict(orjson.loads(self.json()))
-        json_dict.pop("name")
-        return {self.name: json_dict}
+        dict_data = dataclasses.asdict(self)
+        dict_data.pop("name")
+        return {self.name: dict_data}
 
     def to_yaml_str(self) -> str:
         return yaml.dump(self.to_dict())
