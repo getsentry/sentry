@@ -23,14 +23,10 @@ export function getMetricsTagsQueryKey(
   mri: MRI | undefined,
   pageFilters: Partial<PageFilters>
 ) {
-  const queryParams = pageFilters.projects?.length
-    ? {
-        metric: mri,
-        project: pageFilters.projects,
-      }
-    : {
-        metric: mri,
-      };
+  const queryParams = {
+    metric: mri,
+    project: pageFilters.projects,
+  };
 
   return [
     `/organizations/${organization.slug}/metrics/tags/`,
