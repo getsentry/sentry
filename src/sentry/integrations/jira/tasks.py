@@ -3,6 +3,7 @@ from django.db import IntegrityError, router, transaction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.tasks import logger
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.project import Project
@@ -10,7 +11,6 @@ from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.tasks.integrations import logger
 
 
 @instrumented_task(
