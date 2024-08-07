@@ -1,11 +1,13 @@
 import type {CSSProperties} from 'react';
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
-import type {Tag, TagCollection, TagValue} from 'sentry/types';
+import type {Organization, Tag, TagCollection, TagValue} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -49,7 +51,10 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
 
 const FEEDBACK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(FEEDBACK_FIELDS);
 
-function getSupportedTags(supportedTags: TagCollection) {
+/**
+ * Merges a list of supported tags and feedback search fields into one collection.
+ */
+function getFeedbackSearchTags(supportedTags: TagCollection) {
   return {
     ...Object.fromEntries(
       Object.keys(supportedTags).map(key => [
@@ -64,6 +69,36 @@ function getSupportedTags(supportedTags: TagCollection) {
   };
 }
 
+/**
+ * Returns 2 sections: feedback fields and (filtered, non-field) tags.
+ */
+function getFilterKeySections(
+  supportedTags: TagCollection,
+  organization: Organization
+): FilterKeySection[] {
+  if (!organization.features.includes('search-query-builder-user-feedback')) {
+    return [];
+  }
+
+  const nonFieldTags: string[] = Object.values(supportedTags)
+    .map(tag => tag.key)
+    .filter(key => !FEEDBACK_FIELDS.includes(key as FeedbackFieldKey | FieldKey));
+  nonFieldTags.sort();
+
+  return [
+    {
+      value: 'feedback_field',
+      label: t('Feedback fields'),
+      children: FEEDBACK_FIELDS,
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Tags'),
+      children: nonFieldTags,
+    },
+  ];
+}
+
 interface Props {
   className?: string;
   style?: CSSProperties;
@@ -73,11 +108,21 @@ export default function FeedbackSearch({className, style}: Props) {
   const projectIds = usePageFilters().selection.projects;
   const {pathname, query} = useLocation();
   const organization = useOrganization();
-  const tags = useTags();
+  const organizationTags = useTags();
   const api = useApi();
 
+  const feedbackTags = useMemo(
+    () => getFeedbackSearchTags(organizationTags),
+    [organizationTags]
+  );
+
+  const filterKeySections = useMemo(
+    () => getFilterKeySections(organizationTags, organization),
+    [organizationTags, organization]
+  );
+
   const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string, _params: object): Promise<string[]> => {
+    (tag: Tag, searchQuery: string): Promise<string[]> => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
@@ -100,6 +145,29 @@ export default function FeedbackSearch({className, style}: Props) {
     [api, organization.slug, projectIds]
   );
 
+  if (organization.features.includes('search-query-builder-user-feedback')) {
+    return (
+      <SearchQueryBuilder
+        initialQuery={decodeScalar(query.query, '')}
+        filterKeys={feedbackTags}
+        filterKeySections={filterKeySections}
+        getTagValues={getTagValues}
+        onSearch={searchQuery => {
+          browserHistory.push({
+            pathname,
+            query: {
+              ...query,
+              cursor: undefined,
+              query: searchQuery.trim(),
+            },
+          });
+        }}
+        searchSource={'feedback-list'}
+        placeholder={t('Search Feedback')}
+      />
+    );
+  }
+
   return (
     <SearchContainer className={className} style={style}>
       <SmartSearchBar
@@ -108,7 +176,7 @@ export default function FeedbackSearch({className, style}: Props) {
         placeholder={t('Search Feedback')}
         organization={organization}
         onGetTagValues={getTagValues}
-        supportedTags={getSupportedTags(tags)}
+        supportedTags={feedbackTags}
         excludedTags={EXCLUDED_TAGS}
         fieldDefinitionGetter={getFeedbackFieldDefinition}
         maxMenuHeight={500}
