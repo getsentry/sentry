@@ -35,15 +35,13 @@ function ThresholdTypeForm({
     return null;
   }
 
-  const hasAnomalyDetection = organization.features.includes(
-    'organizations:anomaly-detection-alerts'
-  );
+  const hasAnomalyDetection = organization.features.includes('anomaly-detection-alerts');
 
   const thresholdTypeChoices: RadioOption[] = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
     [
       AlertRuleComparisonType.CHANGE,
-      comparisonType === AlertRuleComparisonType.COUNT ? (
+      comparisonType !== AlertRuleComparisonType.CHANGE ? (
         t('Percent Change: {x%} higher or lower compared to previous period')
       ) : (
         // Prevent default to avoid dropdown menu closing on click
