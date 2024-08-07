@@ -244,6 +244,7 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+    body: [],
   });
 
   MockApiClient.addMockResponse({
@@ -633,11 +634,7 @@ describe('Platform Integrations', () => {
       MockApiClient.clearMockResponses();
     });
     it('shows anr root cause', async () => {
-      const {organization} = initializeOrg();
-      const props = makeDefaultMockData({
-        ...organization,
-        features: ['anr-improvements'],
-      });
+      const props = makeDefaultMockData();
       mockGroupApis(
         props.organization,
         props.project,
@@ -659,11 +656,7 @@ describe('Platform Integrations', () => {
     });
 
     it('does not render root issues section if related perf issues do not exist', async () => {
-      const {organization} = initializeOrg();
-      const props = makeDefaultMockData({
-        ...organization,
-        features: ['anr-improvements'],
-      });
+      const props = makeDefaultMockData();
       const trace = mockedTrace(props.project);
       mockGroupApis(props.organization, props.project, props.group, props.event, {
         ...trace,

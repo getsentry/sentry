@@ -53,6 +53,7 @@ EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:custom-metrics",
     "organizations:device-class-synthesis",
+    "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
@@ -1013,8 +1014,8 @@ def _get_project_config(
             "disabled": False,
             "slug": project.slug,
             "lastFetch": now,
-            "lastChange": project.get_option("sentry:relay-rev-lastchange", now),
-            "rev": project.get_option("sentry:relay-rev", uuid.uuid4().hex),
+            "lastChange": now,
+            "rev": uuid.uuid4().hex,
             "publicKeys": public_keys,
             "config": {
                 "allowedDomains": list(get_origins(project)),

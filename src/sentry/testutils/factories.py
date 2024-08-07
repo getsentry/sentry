@@ -34,6 +34,7 @@ from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -120,7 +121,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.models.outbox import RegionOutbox, outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -1944,6 +1945,7 @@ class Factories:
         url: str,
         interval_seconds: int,
         timeout_ms: int,
+        date_updated: datetime,
     ):
         return UptimeSubscription.objects.create(
             type=type,
@@ -1952,6 +1954,7 @@ class Factories:
             url=url,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
+            date_updated=date_updated,
         )
 
     @staticmethod

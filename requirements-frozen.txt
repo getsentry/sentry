@@ -7,7 +7,6 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 amqp==5.2.0
-annotated-types==0.7.0
 anyio==3.7.1
 asgiref==3.7.2
 attrs==23.1.0
@@ -97,8 +96,7 @@ pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycountry==17.5.14
 pycparser==2.21
-pydantic==2.7.4
-pydantic-core==2.18.4
+pydantic==1.10.17
 pyjwt==2.4.0
 pymemcache==4.0.0
 pyparsing==3.0.9
@@ -125,11 +123,11 @@ rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
 sentry-arroyo==2.16.5
-sentry-kafka-schemas==0.1.102
+sentry-kafka-schemas==0.1.105
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.1
-sentry-sdk==2.11.0
+sentry-sdk==2.12.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
@@ -145,7 +143,7 @@ symbolic==12.8.0
 tiktoken==0.6.0
 tldextract==5.1.2
 toronado==0.1.0
-tqdm==4.64.1
+tqdm==4.66.4
 typing-extensions==4.12.0
 tzdata==2023.3
 ua-parser==0.10.0

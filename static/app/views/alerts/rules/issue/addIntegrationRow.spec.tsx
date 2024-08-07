@@ -32,12 +32,12 @@ describe('AddIntegrationRow', function () {
         modalParams: {project: project.id},
       }}
     >
-      <AddIntegrationRow organization={org} onClick={jest.fn()} />
+      <AddIntegrationRow onClick={jest.fn()} />
     </IntegrationContext.Provider>
   );
 
   it('renders', async () => {
-    render(getComponent());
+    render(getComponent(), {organization: org});
 
     const button = await screen.findByRole('button', {name: /add integration/i});
     expect(button).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('AddIntegrationRow', function () {
     // any is needed here because getSentry has different types for global
     (global as any).open = open;
 
-    render(getComponent());
+    render(getComponent(), {organization: org});
 
     const button = await screen.findByRole('button', {name: /add integration/i});
     await userEvent.click(button);
@@ -63,7 +63,7 @@ describe('AddIntegrationRow', function () {
   it('renders request button when user does not have access', async () => {
     org.access = ['org:read'];
 
-    render(getComponent());
+    render(getComponent(), {organization: org});
 
     await screen.findByRole('button', {name: /request installation/i});
   });

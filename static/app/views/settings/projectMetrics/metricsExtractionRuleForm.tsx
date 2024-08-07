@@ -1,4 +1,6 @@
 import {Fragment, useCallback, useId, useMemo, useState} from 'react';
+import {components} from 'react-select';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -20,6 +22,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
@@ -268,17 +271,35 @@ export function MetricsExtractionRuleForm({
 
     return (
       allAttributeOptions
-        .map<SelectValue<string>>(key => ({
-          label: key,
-          value: key,
-          disabled: disabledKeys.has(key),
-          tooltip: disabledKeys.has(key)
-            ? t(
-                'This attribute is already in use. Please select another one or edit the existing metric.'
-              )
-            : undefined,
-          tooltipOptions: {position: 'left'},
-        }))
+        .map<SelectValue<string>>(key => {
+          const disabledRule = disabledKeys.has(key)
+            ? extractionRules?.find(rule => rule.spanAttribute === key)
+            : undefined;
+          return {
+            label: key,
+            value: key,
+            disabled: disabledKeys.has(key),
+            tooltip: disabledKeys.has(key)
+              ? tct(
+                  'This attribute is already in use. Please select another one or [link:edit the existing metric].',
+                  {
+                    link: disabledRule ? (
+                      <Button
+                        priority="link"
+                        aria-label={t('Edit %s metric', disabledRule.spanAttribute)}
+                        onClick={() => {
+                          openExtractionRuleEditModal({
+                            metricExtractionRule: disabledRule,
+                          });
+                        }}
+                      />
+                    ) : null,
+                  }
+                )
+              : undefined,
+            tooltipOptions: {position: 'left', isHoverable: true},
+          };
+        })
         // Sort disabled attributes to bottom
         .sort((a, b) => Number(a.disabled) - Number(b.disabled))
     );
@@ -292,6 +313,7 @@ export function MetricsExtractionRuleForm({
       tooltip: isHighCardinalityTag(option)
         ? t('This tag has high cardinality.')
         : undefined,
+      tooltipOptions: {position: 'left'},
     }));
   }, [allAttributeOptions]);
 
@@ -336,6 +358,25 @@ export function MetricsExtractionRuleForm({
     [onSubmit]
   );
 
+  const isNewCustomSpanAttribute = useCallback((value?: string) => {
+    if (!value) {
+      return false;
+    }
+    return !attributeOptions.some(option => option.value === value);
+    // attributeOptions is being mutated when a new custom attribute is created
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isCardinalityLimited = useMemo(() => {
+    if (!cardinality) {
+      return false;
+    }
+
+    const {conditions} = props.initialData;
+    return conditions.some(condition =>
+      condition.mris.some(conditionMri => cardinality[conditionMri] > 0)
+    );
+  }, [cardinality, props.initialData]);
+
   return (
     <Form onSubmit={onSubmit && handleSubmit} {...props}>
       {({model}) => (
@@ -349,6 +390,7 @@ export function MetricsExtractionRuleForm({
               disabled={isEdit}
               label={
                 <TooltipIconLabel
+                  isHoverable
                   label={t('Measure')}
                   help={tct(
                     'Define the span attribute you want to track. Learn how to instrument custom attributes in [link:our docs].',
@@ -361,13 +403,31 @@ export function MetricsExtractionRuleForm({
                   )}
                 />
               }
-              placeholder={t('Select span attribute')}
-              creatable
-              formatCreateLabel={value => `Custom: "${value}"`}
               onCreateOption={value => {
                 setCustomAttributes(curr => [...curr, value]);
                 model.setValue('spanAttribute', value);
               }}
+              components={{
+                MenuList: (
+                  menuListProps: React.ComponentProps<typeof components.MenuList>
+                ) => {
+                  return (
+                    <MenuList
+                      {...menuListProps}
+                      info={tct(
+                        'Select an attribute or create one. [link:See how to instrument a custom attribute.]',
+                        {
+                          link: (
+                            <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                          ),
+                        }
+                      )}
+                    />
+                  );
+                },
+              }}
+              placeholder={t('Select span attribute')}
+              creatable
               onChange={value => {
                 model.setValue('spanAttribute', value);
                 if (value in FIXED_UNITS_BY_ATTRIBUTE) {
@@ -387,18 +447,15 @@ export function MetricsExtractionRuleForm({
               name="unit"
               options={unitOptions}
               disabled={isUnitDisabled}
-              label={
-                <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">
-                  {t('Create Custom Attribute?')}
-                </ExternalLink>
-              }
               placeholder={t('Select unit')}
               creatable
-              formatCreateLabel={value => `Custom: "${value}"`}
               onCreateOption={value => {
                 setCustomUnit(value);
                 model.setValue('unit', value);
               }}
+              css={css`
+                min-width: 150px;
+              `}
             />
           </SpanAttributeUnitWrapper>
 
@@ -408,11 +465,13 @@ export function MetricsExtractionRuleForm({
             name="aggregates"
             required
             options={AGGREGATE_OPTIONS}
+            placeholder={t('Select aggregations')}
             label={
               <TooltipIconLabel
+                isHoverable
                 label={t('Aggregate')}
                 help={tct(
-                  'Select the aggregations you want to store. For more information, read [link:our docs]',
+                  'Select the aggregations you’d like to view. For more information, read [link:our docs]',
                   {
                     // TODO(telemetry-experience): add the correct link here once we have it!!!
                     link: (
@@ -428,23 +487,53 @@ export function MetricsExtractionRuleForm({
             inline={false}
             stacked
             name="tags"
+            aria-label={t('Select tags')}
             options={tagOptions}
             multiple
             placeholder={t('Select tags')}
             label={
-              <TooltipIconLabel
-                label={t('Group and filter by')}
-                help={t(
-                  'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+              <Fragment>
+                {isCardinalityLimited && (
+                  <Tooltip
+                    title={t(
+                      'One of the selected tags is exceeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
+                    )}
+                  >
+                    <StyledIconWarning size="xs" color="yellow300" />
+                  </Tooltip>
                 )}
-              />
+                <TooltipIconLabel
+                  label={t('Group by')}
+                  help={t(
+                    'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+                  )}
+                />
+              </Fragment>
             }
             creatable
-            formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
               setCustomAttributes(curr => [...curr, value]);
               const currentTags = model.getValue('tags') as string[];
               model.setValue('tags', [...currentTags, value]);
+            }}
+            components={{
+              MenuList: (
+                menuListProps: React.ComponentProps<typeof components.MenuList>
+              ) => {
+                return (
+                  <MenuList
+                    {...menuListProps}
+                    info={tct(
+                      'Select a tag or create one. [link:See how to instrument a custom tag.]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                        ),
+                      }
+                    )}
+                  />
+                );
+              },
             }}
           />
           <FormField
@@ -477,39 +566,17 @@ export function MetricsExtractionRuleForm({
                 );
               };
 
-              const isCardinalityLimited = (
-                condition: MetricsExtractionCondition
-              ): boolean => {
-                if (!cardinality) {
-                  return false;
-                }
-                return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
-              };
-
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => {
-                      const isExeedingCardinalityLimit = isCardinalityLimited(condition);
                       const hasSiblings = conditions.length > 1;
 
                       return (
                         <Fragment key={condition.id}>
-                          <SearchWrapper
-                            hasPrefix={hasSiblings || isExeedingCardinalityLimit}
-                          >
-                            {hasSiblings || isExeedingCardinalityLimit ? (
-                              isExeedingCardinalityLimit ? (
-                                <Tooltip
-                                  title={t(
-                                    'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
-                                  )}
-                                >
-                                  <StyledIconWarning size="xs" color="yellow300" />
-                                </Tooltip>
-                              ) : (
-                                <ConditionSymbol>{index + 1}</ConditionSymbol>
-                              )
+                          <SearchWrapper hasPrefix={hasSiblings}>
+                            {hasSiblings ? (
+                              <ConditionSymbol>{index + 1}</ConditionSymbol>
                             ) : null}
                             <SearchBarWithId
                               {...SPAN_SEARCH_CONFIG}
@@ -526,6 +593,7 @@ export function MetricsExtractionRuleForm({
                               placeholder={t('Add span attributes')}
                               organization={organization}
                               supportedTags={supportedTags}
+                              excludedTags={[]}
                               dataset={DiscoverDatasets.SPANS_INDEXED}
                               projectIds={[Number(projectId)]}
                               hasRecentSearches={false}
@@ -558,26 +626,32 @@ export function MetricsExtractionRuleForm({
             }}
           </FormField>
           <Observer>
-            {() =>
-              model.formChanged ? (
-                <Alert
-                  type="info"
-                  showIcon
-                  expand={
-                    <Fragment>
-                      <b>{t('Why that?')}</b>
-                      <p>
-                        {t(
-                          'Well, it’s because we’ll only collect data once you’ve created a metric and not before. Likewise, if you deleted an existing metric, then we’ll stop collecting data for that metric.'
-                        )}
-                      </p>
-                    </Fragment>
-                  }
-                >
-                  {t('Hey, we’ll need a moment to collect data that matches the above.')}
-                </Alert>
-              ) : null
-            }
+            {() => {
+              if (!isEdit && isNewCustomSpanAttribute(model.getValue('spanAttribute'))) {
+                return (
+                  <Alert type="info" showIcon>
+                    {tct(
+                      'You want to track a custom attribute, so if you haven’t already, please [link:add it to your span data].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                        ),
+                      }
+                    )}
+                  </Alert>
+                );
+              }
+
+              if (isEdit && model.formChanged) {
+                return (
+                  <Alert type="info" showIcon>
+                    {t('The changes you made will only be reflected on future data.')}
+                  </Alert>
+                );
+              }
+
+              return null;
+            }}
           </Observer>
         </Fragment>
       )}
@@ -585,11 +659,42 @@ export function MetricsExtractionRuleForm({
   );
 }
 
-function TooltipIconLabel({label, help}) {
+function MenuList({
+  children,
+  info,
+  ...props
+}: React.ComponentProps<typeof components.MenuList> & {info: React.ReactNode}) {
+  const theme = useTheme();
+  return (
+    <components.MenuList {...props}>
+      <div
+        css={css`
+          /* The padding must align with the values specified for the option in the forms/controls/selectOption component */
+          padding: ${space(1)};
+          padding-left: calc(${space(0.5)} + ${space(1.5)});
+          color: ${theme.gray300};
+        `}
+      >
+        {info}
+      </div>
+      {children}
+    </components.MenuList>
+  );
+}
+
+function TooltipIconLabel({
+  label,
+  help,
+  isHoverable,
+}: {
+  help: React.ReactNode;
+  label: React.ReactNode;
+  isHoverable?: boolean;
+}) {
   return (
     <TooltipIconLabelWrapper>
       {label}
-      <Tooltip title={help}>
+      <Tooltip title={help} isHoverable={isHoverable}>
         <IconQuestion size="sm" color="gray200" />
       </Tooltip>
     </TooltipIconLabelWrapper>

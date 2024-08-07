@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,9 +11,15 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalUserSerializer
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.integrations.api.bases.external_actor import (
+    ExternalActorEndpointMixin,
+    ExternalUserSerializer,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 
@@ -20,10 +27,11 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Organizations"])
 class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
 
@@ -41,21 +49,22 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         )
         return args, kwargs
 
+    @extend_schema(
+        operation_id="Update an External User",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.EXTERNAL_USER_ID],
+        request=ExternalUserSerializer,
+        responses={
+            200: ExternalUserSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=OrganizationExamples.EXTERNAL_USER_CREATE,
+    )
     def put(
         self, request: Request, organization: Organization, external_user: ExternalActor
     ) -> Response:
         """
-        Update an External User
-        `````````````
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          user belongs to.
-        :pparam int user_id: the User id.
-        :pparam string external_user_id: id of external_user object
-        :param string external_id: the associated user ID for this provider
-        :param string external_name: the Github/Gitlab user name.
-        :param string provider: enum("github","gitlab")
-        :auth: required
+        Update a user in an external provider that is currently linked to a Sentry user.
         """
         self.assert_has_feature(request, organization)
 
@@ -74,11 +83,22 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        operation_id="Delete an External User",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.EXTERNAL_USER_ID],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=OrganizationExamples.EXTERNAL_USER_CREATE,
+    )
     def delete(
         self, request: Request, organization: Organization, external_user: ExternalActor
     ) -> Response:
         """
-        Delete an External Team
+        Delete the link between a user from an external provider and a Sentry user.
         """
         external_user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

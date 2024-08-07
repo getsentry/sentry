@@ -14,6 +14,7 @@ import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerMo
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
@@ -110,8 +111,12 @@ function MetricWidgetViewerModal({
         const updated = [...curr];
         const currentQuery = updated[index];
         const updatedQuery = {...updated[index], ...data} as DashboardMetricsQuery;
-        const currentSpanAttribute = getExtractionRule(currentQuery.mri)?.spanAttribute;
-        const spanAttribute = getExtractionRule(updatedQuery.mri)?.spanAttribute;
+        const currentSpanAttribute =
+          defined(currentQuery.condition) &&
+          getExtractionRule(currentQuery.mri, currentQuery.condition)?.spanAttribute;
+        const spanAttribute =
+          defined(updatedQuery.condition) &&
+          getExtractionRule(updatedQuery.mri, updatedQuery.condition)?.spanAttribute;
 
         if (spanAttribute) {
           if (!updatedQuery.alias) {

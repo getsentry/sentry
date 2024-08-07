@@ -55,8 +55,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:anomaly-detection-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable anr frame analysis
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable anr improvements ui
-    manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable auth provider configuration through api
     manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=True)
@@ -74,8 +72,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:crons-write-user-feedback", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable daily summary
     manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable dashboard widget indicators.
-    manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enables import/export functionality for dashboards
     manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metrics enhanced performance in dashboards
@@ -94,8 +90,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:custom-metrics-extraction-rule-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables metrics extrapolation feature
     manager.add("organizations:metrics-extrapolation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the default alert at project creation to be the high priority alert
-    manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enables automatically deriving of code mappings
     manager.add("organizations:derive-code-mappings", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enables synthesis of device.class in ingest
@@ -182,8 +176,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metric alert charts in email/slack
     manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Enable load shedding for newly created metric alerts
-    manager.add("organizations:metric-alert-load-shedding", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable threshold period in metric alert rule builder
     manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the search bar for metrics samples list
@@ -271,6 +263,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-new-widget-designs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable performance on-boarding checklist
     manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable MongoDB support for the Queries module
+    manager.add("organizations:performance-queries-mongodb-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable removing the fallback for metrics compatibility
     manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable span search bar in Insights module sample panels
@@ -511,20 +505,17 @@ def register_temporary_features(manager: FeatureManager):
     # Enable calculating a severity score for events which create a new group
     manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable escalation detection for new issues
-    manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable severity alerts for new issues based on severity and escalation
-    manager.add("projects:high-priority-alerts", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Enable functionality for attaching  minidumps to events and displaying
-    # then in the group UI.
+    # them in the group UI.
     manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enable alternative version of group creation that is supposed to be less racy.
     manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Enable similarity embeddings API call
     manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=True)
-    # Enable similarity embeddings backfill
     manager.add("projects:similarity-embeddings-backfill", ProjectFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("projects:similarity-embeddings-delete-by-hash", ProjectFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
-    # Enable similarity embeddings grouping
+    # Enable using Seer to group events
     manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)

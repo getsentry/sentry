@@ -50,6 +50,7 @@ from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.issues.grouptype import (
     ErrorGroupType,
     GroupCategory,
@@ -67,7 +68,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.integrations import Integration
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -1232,6 +1232,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ) == {event.project.id: 1}
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert event.get_tag("sentry:user") == euser.tag_value
 
@@ -1249,6 +1250,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id_2)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert event.get_tag("sentry:user") == euser.tag_value
         assert euser.name == "jane"
@@ -1271,6 +1273,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert euser.ip_address is None
 
@@ -1282,6 +1285,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        assert saved_event is not None
         euser = EventUser.from_event(saved_event)
         assert euser.username == "foô"
 

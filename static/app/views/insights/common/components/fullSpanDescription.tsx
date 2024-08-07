@@ -55,5 +55,5 @@ interface Props {
 const LINE_LENGTH = 60;
 
 const PaddedSpinner = styled('div')`
-  padding: ${space(0)} ${space(0.5)};
+  padding: 0 ${space(0.5)};
 `;

@@ -23,6 +23,7 @@ import type {AvatarProject} from 'sentry/types';
 import type {Commit} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {
@@ -57,6 +58,11 @@ function CommitRow({
       return;
     }
 
+    trackAnalytics('issue_details.suspect_commits.missing_user', {
+      organization,
+      link: 'invite_user',
+    });
+
     openInviteMembersModal({
       initialData: [
         {
@@ -65,7 +71,7 @@ function CommitRow({
       ],
       source: 'suspect_commit',
     });
-  }, [commit.author]);
+  }, [commit.author, organization]);
 
   const user = ConfigStore.get('user');
   const isUser = user?.id === commit.author?.id;
@@ -141,7 +147,17 @@ function CommitRow({
                   'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
                   {
                     actorEmail: <strong>{commit.author.email}</strong>,
-                    accountSettings: <StyledLink to="/settings/account/emails/" />,
+                    accountSettings: (
+                      <StyledLink
+                        to="/settings/account/emails/"
+                        onClick={() =>
+                          trackAnalytics('issue_details.suspect_commits.missing_user', {
+                            organization,
+                            link: 'account_settings',
+                          })
+                        }
+                      />
+                    ),
                     inviteUser: <StyledLink to="" onClick={handleInviteClick} />,
                   }
                 )}

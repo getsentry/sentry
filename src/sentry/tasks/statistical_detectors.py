@@ -411,6 +411,7 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
 
     projects = get_detector_enabled_projects(
         project_ids,
+        project_option=InternalProjectOptions.FUNCTION_DURATION_REGRESSION,
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
@@ -925,10 +926,10 @@ def query_functions_timeseries(
 ) -> Generator[tuple[int, int | str, SnubaTSResult]]:
     projects = [project for project, _ in functions_list]
 
-    # take the last 14 days as our window
+    days_to_query = options.get("statistical_detectors.query.functions.timeseries_days")
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     params = SnubaParams(
-        start=end - timedelta(days=14),
+        start=end - timedelta(days=days_to_query),
         end=end,
         projects=projects,
     )
