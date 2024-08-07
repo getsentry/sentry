@@ -44,9 +44,9 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
   }, [hasDataWithAllProjects]);
 
   useEffect(() => {
-    document.body.addEventListener('click', handleClickAnywhereOnPage);
+    document.addEventListener('click', handleClickAnywhereOnPage, {capture: true});
     return () => {
-      document.body.removeEventListener('click', handleClickAnywhereOnPage);
+      document.removeEventListener('click', handleClickAnywhereOnPage);
     };
   }, []);
 
@@ -59,8 +59,9 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
           position="bottom-start"
           disabled={!showTooltip}
         >
-          <ProjectPageFilter onChange={onProjectChange} />
+          <div />
         </Tooltip>
+        <ProjectPageFilter onChange={onProjectChange} />
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
