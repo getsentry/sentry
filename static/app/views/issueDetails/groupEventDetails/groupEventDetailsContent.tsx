@@ -62,6 +62,7 @@ import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resources
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {TraceDataSection} from 'sentry/views/issueDetails/traceTimeline/traceDataSection';
 import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -153,8 +154,9 @@ export function DefaultGroupEventDetailsContent({
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
+      {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
-        <TraceTimeLineOrRelatedIssue event={event} />
+        {!hasStreamlinedUI && <TraceTimeLineOrRelatedIssue event={event} />}
         <SuspectCommits
           project={project}
           eventId={event.id}
@@ -256,7 +258,7 @@ export function DefaultGroupEventDetailsContent({
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={FoldSectionKey.THREADS}
+        sectionKey={FoldSectionKey.STACKTRACE}
         entryType={EntryType.THREADS}
         {...eventEntryProps}
       />

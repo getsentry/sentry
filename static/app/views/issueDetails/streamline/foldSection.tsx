@@ -13,8 +13,7 @@ import type {EventDetailsContextType} from 'sentry/views/issueDetails/streamline
 const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
 
 export const enum FoldSectionKey {
-  // View Full Trace
-  // Suspect Commits
+  TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',
   LLM_MONITORING = 'llm-monitoring',
@@ -62,6 +61,7 @@ export const enum FoldSectionKey {
 }
 
 export const DEFAULT_SECTION_DATA: EventDetailsContextType['sectionData'] = {
+  [FoldSectionKey.TRACE]: {isOpen: true},
   [FoldSectionKey.USER_FEEDBACK]: {isOpen: true},
   [FoldSectionKey.LLM_MONITORING]: {isOpen: true},
   [FoldSectionKey.UPTIME]: {isOpen: true},
