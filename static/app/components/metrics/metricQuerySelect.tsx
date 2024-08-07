@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -213,10 +213,32 @@ function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) 
   const selectedProjects = useSelectedProjects();
   const extractionRules = getExtractionRules(mri);
 
-  const handleEdit = (rule: MetricsExtractionRule) => {
-    closeOverlay();
-    openExtractionRuleEditModal({metricExtractionRule: rule});
-  };
+  const handleEdit = useCallback(
+    (rule: MetricsExtractionRule) => {
+      closeOverlay();
+      openExtractionRuleEditModal({metricExtractionRule: rule});
+    },
+    [closeOverlay]
+  );
+
+  const options = useMemo(
+    () =>
+      extractionRules
+        .map(rule => {
+          const project = selectedProjects.find(p => Number(p.id) === rule.projectId);
+          if (!project) {
+            return null;
+          }
+          return {
+            key: project.slug,
+            label: <ProjectBadge project={project} avatarSize={16} disableLink />,
+            onAction: () => handleEdit(rule),
+          };
+        })
+        .filter(item => item !== null)
+        .toSorted((a, b) => a.key.localeCompare(b.key)),
+    [extractionRules, handleEdit, selectedProjects]
+  );
 
   return (
     <QueryFooterWrapper>
@@ -227,20 +249,7 @@ function QueryFooter({mri, closeOverlay}: {closeOverlay: () => void; mri: MRI}) 
           triggerProps={{
             icon: <IconAdd isCircled />,
           }}
-          items={extractionRules
-            .map(rule => {
-              const project = selectedProjects.find(p => Number(p.id) === rule.projectId);
-              if (!project) {
-                return null;
-              }
-              return {
-                key: project.slug,
-                label: <ProjectBadge project={project} avatarSize={16} disableLink />,
-                onAction: () => handleEdit(rule),
-              };
-            })
-            .filter(item => item !== null)
-            .toSorted((a, b) => a.key.localeCompare(b.key))}
+          items={options}
         />
       ) : (
         <Button
