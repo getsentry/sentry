@@ -34,7 +34,7 @@ class CreateIssuePlatformOccurrenceTest(UptimeTestCase):
         assert call_kwargs == {
             "payload_type": PayloadType.OCCURRENCE,
             "occurrence": occurrence,
-            "event_data": build_event_data_for_occurrence(result, occurrence),
+            "event_data": build_event_data_for_occurrence(result, project_subscription, occurrence),
         }
 
 
@@ -94,7 +94,8 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             level="error",
             culprit="",
         )
-        event_data = build_event_data_for_occurrence(result, occurrence)
+        project_subscription = self.create_project_uptime_subscription()
+        event_data = build_event_data_for_occurrence(result, project_subscription, occurrence)
         assert event_data == {
             "environment": "prod",
             "event_id": event_id.hex,
@@ -103,7 +104,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             "project_id": 1,
             "received": datetime.datetime.now().replace(microsecond=0),
             "sdk": None,
-            "tags": {"subscription_id": result["subscription_id"]},
+            "tags": {"uptime_rule": project_subscription.id},
             "timestamp": occurrence.detection_time.isoformat(),
             "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": None}},
         }
