@@ -17,6 +17,7 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {
@@ -36,8 +37,8 @@ import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetric
 
 interface Props {
   addCustomMetric: () => void;
-  onAddMetric: (rule: any) => void;
   showAddMetricButton: boolean;
+  onAddMetric?: (rule: MetricsExtractionRule) => void;
 }
 
 export function PageHeaderActions({

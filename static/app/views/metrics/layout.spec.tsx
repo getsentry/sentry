@@ -7,6 +7,7 @@ import {MetricsLayout} from 'sentry/views/metrics/layout';
 
 const useMetricsContextReturnValueMock = {
   addWidget: () => {},
+  addAwaitingMetricWidget: () => {},
   duplicateWidget: () => {},
   focusArea: {},
   hasCustomMetrics: false,
