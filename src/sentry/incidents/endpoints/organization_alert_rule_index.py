@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import UTC, datetime
 
+from django import forms
 from django.conf import settings
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
@@ -128,38 +129,40 @@ class AlertRuleIndexMixin(Endpoint):
         else:
             try:
                 alert_rule = serializer.save()
-                referrer = request.query_params.get("referrer")
-                session_id = request.query_params.get("sessionId")
-                duplicate_rule = request.query_params.get("duplicateRule")
-                wizard_v3 = request.query_params.get("wizardV3")
-                subscriptions = alert_rule.snuba_query.subscriptions.all()
-                for sub in subscriptions:
-                    alert_rule_created.send_robust(
-                        user=request.user,
-                        project=sub.project,
-                        rule_id=alert_rule.id,
-                        rule_type="metric",
-                        sender=self,
-                        referrer=referrer,
-                        session_id=session_id,
-                        is_api_token=request.auth is not None,
-                        duplicate_rule=duplicate_rule,
-                        wizard_v3=wizard_v3,
-                    )
-                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
             except (TimeoutError, MaxRetryError) as e:
                 return Response(
                     data={"detail": str(e)}, status=status.HTTP_408_REQUEST_TIMEOUT, exception=True
                 )
-            except (ValidationError) as e:
-                return Response(
-                    data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
-                )
+            except ValidationError:
+                raise
+            except forms.ValidationError as e:
+                # if we fail in create_metric_alert, then only one message is ever returned
+                raise ValidationError(e.error_list[0].message)
+            # catch-all for other errors
             except Exception as e:
-                # catch-all for other errors
                 return Response(
                     data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
                 )
+
+            referrer = request.query_params.get("referrer")
+            session_id = request.query_params.get("sessionId")
+            duplicate_rule = request.query_params.get("duplicateRule")
+            wizard_v3 = request.query_params.get("wizardV3")
+            subscriptions = alert_rule.snuba_query.subscriptions.all()
+            for sub in subscriptions:
+                alert_rule_created.send_robust(
+                    user=request.user,
+                    project=sub.project,
+                    rule_id=alert_rule.id,
+                    rule_type="metric",
+                    sender=self,
+                    referrer=referrer,
+                    session_id=session_id,
+                    is_api_token=request.auth is not None,
+                    duplicate_rule=duplicate_rule,
+                    wizard_v3=wizard_v3,
+                )
+            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
 @region_silo_endpoint

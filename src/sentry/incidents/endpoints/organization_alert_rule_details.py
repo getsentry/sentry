@@ -1,3 +1,4 @@
+from django import forms
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
@@ -106,12 +107,13 @@ def update_alert_rule(request: Request, organization, alert_rule):
                 return Response(
                     data={"detail": str(e)}, status=status.HTTP_408_REQUEST_TIMEOUT, exception=True
                 )
-            except (ValidationError) as e:
-                return Response(
-                    data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
-                )
+            except ValidationError:
+                raise
+            except forms.ValidationError as e:
+                # if we fail in create_metric_alert, then only one message is ever returned
+                raise ValidationError(e.error_list[0].message)
+            # catch-all for other errors
             except Exception as e:
-                # catch-all for other errors
                 return Response(
                     data={"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST, exception=True
                 )
