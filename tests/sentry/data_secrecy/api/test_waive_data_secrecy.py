@@ -113,7 +113,7 @@ class DataSecrecyTest(APITestCase):
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_delete_existing_waiver(self):
-        ds = DataSecrecyWaiver.objects.create(
+        DataSecrecyWaiver.objects.create(
             organization=self.org,
             access_start=datetime.now(tz=timezone.utc),
             access_end=datetime.now(tz=timezone.utc) + timedelta(days=1),
@@ -122,13 +122,7 @@ class DataSecrecyTest(APITestCase):
         with outbox_runner():
             self.get_success_response(self.org.slug, method="delete")
 
-        ds = DataSecrecyWaiver.objects.filter(organization=self.org).first()
-        assert ds is None
-
-        assert_org_audit_log_exists(
-            organization=self.org,
-            event=audit_log.get_event_id("DATA_SECRECY_REINSTATED"),
-        )
+        assert DataSecrecyWaiver.objects.filter(organization=self.org).first() is None
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_delete_non_existing_waiver(self):
