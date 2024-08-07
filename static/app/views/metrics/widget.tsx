@@ -29,11 +29,7 @@ import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  MetricAggregation,
-  MetricsQueryApiResponse,
-  MetricsQueryApiResponseSeries,
-} from 'sentry/types/metrics';
+import type {MetricAggregation, MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {
   areResultsLimited,
@@ -64,6 +60,10 @@ import {
 } from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useRouter from 'sentry/utils/useRouter';
+import {
+  isEmptyQueryResponse,
+  isEmptyQuerySeries,
+} from 'sentry/views/dashboards/metrics/utils';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
@@ -360,8 +360,11 @@ const MetricWidgetBody = memo(
     }, [queries]);
 
     const isAwaitingIngestion = useMemo(
-      () => awaitingMetricIngestion?.some(Boolean),
-      [awaitingMetricIngestion]
+      () =>
+        queries.length > 1
+          ? awaitingMetricIngestion?.some(Boolean)
+          : awaitingMetricIngestion?.[widgetIndex],
+      [awaitingMetricIngestion, queries, widgetIndex]
     );
 
     // Pause refetching if focus area is drawn
@@ -399,22 +402,31 @@ const MetricWidgetBody = memo(
     }, [timeseriesData, queries, getChartPalette, focusedSeries]);
 
     useEffect(() => {
-      if (!isAwaitingIngestion) {
+      if (!isAwaitingIngestion || isEmptyQueryResponse(timeseriesData)) {
         return;
       }
-      if (isEmptyQueryResponse(timeseriesData!)) {
-        return;
+      if (queries.length > 1) {
+        awaitingMetricIngestion?.forEach((_, i) => {
+          if (
+            awaitingMetricIngestion[i] &&
+            !isEmptyQuerySeries(timeseriesData!.data[i])
+          ) {
+            endAwaitingMetricIngestion?.(i);
+          }
+        });
+      } else if (
+        awaitingMetricIngestion?.[widgetIndex] &&
+        !isEmptyQuerySeries(timeseriesData!.data[0])
+      ) {
+        endAwaitingMetricIngestion?.(widgetIndex);
       }
-      awaitingMetricIngestion?.forEach((_, i) => {
-        if (awaitingMetricIngestion[i] && isEmptyQuerySeries(timeseriesData!.data[i])) {
-          endAwaitingMetricIngestion?.(i);
-        }
-      });
     }, [
       isAwaitingIngestion,
       endAwaitingMetricIngestion,
       awaitingMetricIngestion,
       timeseriesData,
+      queries,
+      widgetIndex,
     ]);
 
     const chartSamples = useMetricChartSamples({
@@ -547,53 +559,63 @@ const MetricWidgetBody = memo(
       [onChange]
     );
 
+    function WidgetAlertPanel() {
+      if (isError) {
+        return (
+          <Alert type="error">
+            {(error?.responseJSON?.detail as string) ||
+              t('Error while fetching metrics data')}
+          </Alert>
+        );
+      }
+      if (limitedResults) {
+        return (
+          <LimitAlert type="warning" showIcon>
+            {tct(
+              'The queries in this chart generate a large number of result groups. Only the first [numOfGroups] groups are displayed.',
+              {numOfGroups: chartSeries.length}
+            )}
+          </LimitAlert>
+        );
+      }
+      if (isAwaitingIngestion && !isLoading) {
+        if (samples?.data?.length) {
+          return (
+            <LoadingAlert type="success">
+              <Flex justify="space-between" align="center">
+                {t('Great! We see some samples, metrics data will be here shortly...')}
+                <StyledLoadingIndicator mini />
+              </Flex>
+            </LoadingAlert>
+          );
+        }
+        return (
+          <LoadingAlert type="info">
+            <Flex justify="space-between" align="center">
+              {t(
+                'Now go ahead send some spans and hang tight, while we extract metrics...'
+              )}
+              <StyledLoadingIndicator mini />
+            </Flex>
+          </LoadingAlert>
+        );
+      }
+      return null;
+    }
+
     if (!chartSeries || !timeseriesData || isError) {
       return (
         <StyledMetricWidgetBody>
+          <WidgetAlertPanel />
           {isLoading && <LoadingIndicator />}
-          {isError && (
-            <Alert type="error">
-              {(error?.responseJSON?.detail as string) ||
-                t('Error while fetching metrics data')}
-            </Alert>
-          )}
         </StyledMetricWidgetBody>
       );
     }
 
     if (isEmptyQueryResponse(timeseriesData) || isAwaitingIngestion) {
-      if (samples?.data?.length) {
-        return (
-          <StyledMetricWidgetBody>
-            {isAwaitingIngestion && (
-              <Alert type="success" icon={<IconSearch size="sm" />}>
-                <Flex justify="space-between" align="center">
-                  {t('I see some samples, metrics will be here in a sec...')}
-                  <LoadingIndicator mini />
-                </Flex>
-              </Alert>
-            )}
-            <EmptyMessage
-              icon={<IconSearch size="xxl" />}
-              title={t('No results')}
-              description={t('No results found for the given query')}
-            />
-          </StyledMetricWidgetBody>
-        );
-      }
-
       return (
         <StyledMetricWidgetBody>
-          {isAwaitingIngestion && (
-            <Alert type="info" icon={<IconSearch size="sm" />}>
-              <Flex justify="space-between" align="center">
-                {t(
-                  'Ok, now go send some spans and hang tight, metrics will be here soon...'
-                )}
-                <LoadingIndicator mini />
-              </Flex>
-            </Alert>
-          )}
+          <WidgetAlertPanel />
           <EmptyMessage
             icon={<IconSearch size="xxl" />}
             title={t('No results')}
@@ -605,15 +627,7 @@ const MetricWidgetBody = memo(
 
     return (
       <StyledMetricWidgetBody>
-        {limitedResults && (
-          <LimitAlert type="warning" showIcon>
-            {tct(
-              'The queries in this chart generate a large number of result groups. Only the first [numOfGroups] groups are displayed.',
-              {numOfGroups: chartSeries.length}
-            )}
-          </LimitAlert>
-        )}
-
+        <WidgetAlertPanel />
         <TransparentLoadingMask visible={isLoading} />
         <GuideAnchor target="metrics_chart" disabled={widgetIndex !== 0}>
           <MetricChart
@@ -774,21 +788,14 @@ const LimitAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
+const LoadingAlert = styled(Alert)`
+  padding: ${space(1)} ${space(2)};
+`;
+
 const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const isEmptyQueryResponse = (data: MetricsQueryApiResponse) => {
-  if (!data) {
-    return true;
-  }
-  return data.data.every(isEmptyQuerySeries);
-};
-
-const isEmptyQuerySeries = (series: MetricsQueryApiResponseSeries) => {
-  if (!series) {
-    return true;
-  }
-
-  return series.every(s => s.series.every(value => value === null));
-};
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+`;

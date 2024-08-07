@@ -77,7 +77,7 @@ export const MetricsLayout = memo(() => {
     hasCustomMetrics: hasSentCustomMetrics,
     hasPerformanceMetrics,
     isHasMetricsLoading,
-    addWidget2,
+    addAwaitingMetricWidget,
   } = useMetricsContext();
   const virtualMetrics = useVirtualMetricsContext();
 
@@ -150,17 +150,12 @@ export const MetricsLayout = memo(() => {
           {!showOnboardingPanel ? (
             <PageHeaderActions
               onAddMetric={(rule: MetricsExtractionRule) => {
-                const mri = createVirtualMRI(rule);
-
-                addWidget2({
-                  // @ts-ignore
-                  mri,
+                addAwaitingMetricWidget({
+                  mri: createVirtualMRI(rule),
                   aggregation: rule.aggregates[0],
-                  groupBy: [],
-                  // @ts-ignore
-                  query: rule.conditions[0].query,
+                  query: rule.conditions[0].value,
                   condition: rule.conditions[0].id,
-                  awaitingMetricIngestion: true,
+                  groupBy: [],
                 });
               }}
               showAddMetricButton={

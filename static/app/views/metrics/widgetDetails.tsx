@@ -24,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {useMetricsContext} from 'sentry/views/metrics/context';
+import {useWaitingForIngestion} from 'sentry/views/metrics/useWaitingForIngestion';
 import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
 import {generateTracesRouteWithQuery} from 'sentry/views/traces/utils';
 
@@ -37,8 +38,9 @@ export function WidgetDetails() {
     hasPerformanceMetrics,
   } = useMetricsContext();
 
-  const awaitingMetricIngestion = widgets[selectedWidgetIndex].awaitingMetricIngestion;
-  const refetchInterval = awaitingMetricIngestion ? 10000 : false;
+  const {awaitingMetricIngestion} = useWaitingForIngestion();
+
+  const refetchInterval = awaitingMetricIngestion[selectedWidgetIndex] ? 10000 : false;
 
   const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
   const handleSampleRowHover = useCallback(

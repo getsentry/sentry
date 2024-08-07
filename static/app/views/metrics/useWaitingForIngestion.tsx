@@ -1,14 +1,16 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 
-import type {MetricsWidget} from 'sentry/utils/metrics/types';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 
 const WAIT_FOR_INGESTION_TIMEOUT = 5 * 60 * 1000;
 
-export const useWaitingForIngestion = (
-  widgets: MetricsWidget[],
-  updateWidget: (index: number, data: Partial<Omit<MetricsWidget, 'type'>>) => void
-) => {
-  const awaitingMetricIngestion = widgets.map(widget => !!widget.awaitingMetricIngestion);
+export const useWaitingForIngestion = () => {
+  const {widgets, updateWidget} = useMetricsContext();
+
+  const awaitingMetricIngestion = useMemo(() => {
+    return widgets.map(widget => !!widget.awaitingMetricIngestion && !widget.isHidden);
+  }, [widgets]);
+
   const timeoutsRef = useRef<(NodeJS.Timeout | undefined)[]>(
     awaitingMetricIngestion.map(() => undefined)
   );
