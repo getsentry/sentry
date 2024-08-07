@@ -5,7 +5,7 @@ from sentry.data_secrecy.service.service import DataSecrecyService
 
 
 class DatabaseBackedDataSecrecyService(DataSecrecyService):
-    def get_data_secrecy_waiver(self, organization_id: int) -> RpcDataSecrecyWaiver | None:
+    def get_data_secrecy_waiver(self, *, organization_id: int) -> RpcDataSecrecyWaiver | None:
         data_secrecy_waiver = DataSecrecyWaiver.objects.filter(
             organization_id=organization_id
         ).first()
