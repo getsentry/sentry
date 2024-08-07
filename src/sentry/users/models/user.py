@@ -15,6 +15,7 @@ from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.forms import model_to_dict
+from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -33,6 +34,7 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import unique_db_instance
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -45,6 +47,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import ControlOutboxBase, outbox_context
+from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.users.services.user import RpcUser
@@ -196,10 +199,10 @@ class User(Model, AbstractBaseUser):
 
     __repr__ = sane_repr("id")
 
-    def class_name(self):
+    def class_name(self) -> str:
         return "User"
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
@@ -210,13 +213,13 @@ class User(Model, AbstractBaseUser):
                 outbox.save()
             return super().delete(*args, **kwargs)
 
-    def update(self, *args, **kwds):
+    def update(self, *args: Any, **kwds: Any) -> int:
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
             if not self.username:
                 self.username = self.email
@@ -225,32 +228,32 @@ class User(Model, AbstractBaseUser):
                 outbox.save()
             return result
 
-    def has_perm(self, perm_name):
+    def has_perm(self, perm_name: str) -> bool:
         warnings.warn("User.has_perm is deprecated", DeprecationWarning)
         return self.is_superuser
 
-    def has_module_perms(self, app_label):
+    def has_module_perms(self, app_label: str) -> bool:
         warnings.warn("User.has_module_perms is deprecated", DeprecationWarning)
         return self.is_superuser
 
-    def has_2fa(self):
+    def has_2fa(self) -> bool:
         return Authenticator.objects.filter(
             user_id=self.id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
         ).exists()
 
-    def get_unverified_emails(self):
+    def get_unverified_emails(self) -> BaseQuerySet[UserEmail]:
         return self.emails.filter(is_verified=False)
 
-    def get_verified_emails(self):
+    def get_verified_emails(self) -> BaseQuerySet[UserEmail]:
         return self.emails.filter(is_verified=True)
 
-    def has_verified_emails(self):
+    def has_verified_emails(self) -> bool:
         return self.get_verified_emails().exists()
 
-    def has_unverified_emails(self):
+    def has_unverified_emails(self) -> bool:
         return self.get_unverified_emails().exists()
 
-    def has_usable_password(self):
+    def has_usable_password(self) -> bool:
         if self.password == "" or self.password is None:
             # This is the behavior we've been relying on from Django 1.6 - 2.0.
             # In 2.1, a "" or None password is considered usable.
@@ -259,13 +262,13 @@ class User(Model, AbstractBaseUser):
             return False
         return super().has_usable_password()
 
-    def get_label(self):
-        return self.email or self.username or self.id
+    def get_label(self) -> str:
+        return self.email or self.username or str(self.id)
 
-    def get_display_name(self):
+    def get_display_name(self) -> str:
         return self.name or self.email or self.username
 
-    def get_full_name(self):
+    def get_full_name(self) -> str:
         return self.name
 
     def get_salutation_name(self) -> str:
@@ -273,13 +276,13 @@ class User(Model, AbstractBaseUser):
         first_name = name.split(" ", 1)[0]
         return first_name.capitalize()
 
-    def get_avatar_type(self):
+    def get_avatar_type(self) -> str:
         return self.get_avatar_type_display()
 
-    def get_actor_identifier(self):
+    def get_actor_identifier(self) -> str:
         return f"user:{self.id}"
 
-    def send_confirm_email_singular(self, email, is_new_user=False):
+    def send_confirm_email_singular(self, email: UserEmail, is_new_user: bool = False) -> None:
         from sentry import options
         from sentry.utils.email import MessageBuilder
 
@@ -304,7 +307,7 @@ class User(Model, AbstractBaseUser):
         )
         msg.send_async([email.email])
 
-    def send_confirm_emails(self, is_new_user=False):
+    def send_confirm_emails(self, is_new_user: bool = False) -> None:
         email_list = self.get_unverified_emails()
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
@@ -412,12 +415,12 @@ class User(Model, AbstractBaseUser):
             for ai in AuthIdentity.objects.filter(user_id=from_user.id):
                 ai.update(user=to_user)
 
-    def set_password(self, raw_password):
+    def set_password(self, raw_password: str | None) -> None:
         super().set_password(raw_password)
         self.last_password_change = timezone.now()
         self.is_password_expired = False
 
-    def refresh_session_nonce(self, request=None):
+    def refresh_session_nonce(self, request: HttpRequest | None = None) -> None:
         from django.utils.crypto import get_random_string
 
         self.session_nonce = get_random_string(12)
@@ -437,7 +440,7 @@ class User(Model, AbstractBaseUser):
             ),
         ).exists()
 
-    def clear_lost_passwords(self):
+    def clear_lost_passwords(self) -> None:
         LostPasswordHash.objects.filter(user=self).delete()
 
     def normalize_before_relocation_import(
@@ -581,7 +584,9 @@ User._meta.get_field("last_login").null = True
 # When a user logs out, we want to always log them out of all
 # sessions and refresh their nonce.
 @receiver(user_logged_out, sender=User)
-def refresh_user_nonce(sender, request, user, **kwargs):
+def refresh_user_nonce(
+    sender: User | RpcUser, request: HttpRequest, user: User | None, **kwargs: Any
+) -> None:
     if user is None:
         return
     user.refresh_session_nonce()
@@ -589,7 +594,9 @@ def refresh_user_nonce(sender, request, user, **kwargs):
 
 
 @receiver(user_logged_out, sender=RpcUser)
-def refresh_api_user_nonce(sender, request, user, **kwargs):
+def refresh_api_user_nonce(
+    sender: RpcUser, request: HttpRequest, user: User | None, **kwargs: Any
+) -> None:
     if user is None:
         return
     user = User.objects.get(id=user.id)
