@@ -18,7 +18,6 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {
   hasCustomMetricsExtractionRules,
   hasMetricsNewInputs,
