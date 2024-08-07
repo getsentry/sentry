@@ -82,7 +82,7 @@ function CommitRow({
     <StreamlinedCommitRow data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
         <StyledExternalLink href={commit.pullRequest?.externalUrl}>
-          {formatCommitMessage(commit.message)}
+          <Message>{formatCommitMessage(commit.message)}</Message>
         </StyledExternalLink>
       ) : (
         <Message>{formatCommitMessage(commit.message)}</Message>
@@ -293,7 +293,13 @@ const MetaWrapper = styled('div')`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  ${Message}
+  color: ${p => p.theme.textColor};
+  text-decoration: underline;
+  text-decoration-color: ${p => p.theme.translucentGray200};
+
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 export {CommitRow};
