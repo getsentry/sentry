@@ -1124,9 +1124,11 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 ):
                     metrics.incr("snuba.client.query.throttle", tags={"referrer": referrer})
                     if random.random() < 0.01:
-                        logger.warning("Query is throttled", extra={"response.data": response.data})
+                        logger.warning(
+                            "Warning: Query is throttled", extra={"response.data": response.data}
+                        )
                         sentry_sdk.capture_message(
-                            f"Query from referrer {referrer} is throttled", level="warning"
+                            f"Warning: Query from referrer {referrer} is throttled", level="warning"
                         )
 
             if response.status != 200:
@@ -1819,6 +1821,7 @@ def is_duration_measurement(key):
         "measurements.app_start_warm",
         "measurements.time_to_full_display",
         "measurements.time_to_initial_display",
+        "measurements.inp",
     ]
 
 

@@ -31,7 +31,7 @@ interface Props {
   projectId?: string | number;
 }
 
-const INITIAL_DATA: FormData = {
+export const INITIAL_DATA: FormData = {
   spanAttribute: null,
   unit: 'none',
   aggregates: ['count'],
@@ -113,6 +113,11 @@ export function MetricsExtractionRuleCreateModal({
       </Header>
       <CloseButton />
       <Body>
+        <p>
+          {t(
+            "Set up the metric you'd like to track and we'll collect it for you from future data."
+          )}
+        </p>
         {initialProjectId === undefined ? (
           <ProjectSelectionWrapper>
             <label htmlFor="project-select">{t('Project')}</label>
@@ -199,6 +204,7 @@ function FormWrapper({
     },
     [closeModal, projectId, createExtractionRuleMutation]
   );
+
   return (
     <MetricsExtractionRuleForm
       initialData={initialData}

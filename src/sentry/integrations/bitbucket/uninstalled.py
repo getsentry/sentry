@@ -6,17 +6,17 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_jwt
-from sentry.models.integrations.integration import Integration
 
 
 @control_silo_endpoint
 class BitbucketUninstalledEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()

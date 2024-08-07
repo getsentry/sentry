@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Any
 
 from slack_sdk.errors import SlackApiError
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.metrics import (
     SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC,
     SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization
@@ -42,7 +42,7 @@ def format_slack_info_by_email(users: dict[str, Any]) -> dict[str, SlackUserData
 
 
 def format_slack_data_by_user(
-    emails_by_user: Mapping[User, Sequence[str]], users: dict[str, Any]
+    emails_by_user: Mapping[User, Iterable[str]], users: dict[str, Any]
 ) -> Mapping[User, SlackUserData]:
     slack_info_by_email = format_slack_info_by_email(users)
 
@@ -89,7 +89,7 @@ def get_slack_user_list(
 def get_slack_data_by_user(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization,
-    emails_by_user: Mapping[User, Sequence[str]],
+    emails_by_user: Mapping[User, Iterable[str]],
 ) -> Iterable[Mapping[User, SlackUserData]]:
     all_users = get_slack_user_list(integration, organization)
     yield from (format_slack_data_by_user(emails_by_user, users) for users in all_users)

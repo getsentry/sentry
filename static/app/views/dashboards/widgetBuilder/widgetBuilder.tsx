@@ -33,6 +33,7 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
 } from 'sentry/utils/discover/fields';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
@@ -137,6 +138,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;
+  updateDashboardSplitDecision?: (widgetId: string, splitDecision: WidgetType) => void;
 }
 
 interface State {
@@ -173,6 +175,7 @@ function WidgetBuilder({
   route,
   router,
   tags,
+  updateDashboardSplitDecision,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit, dataset} = location.query;
@@ -218,16 +221,14 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const defaultWidgetType = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? WidgetType.ERRORS
-    : WidgetType.DISCOVER;
-  const defaultDataset = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? DataSet.ERRORS
-    : DataSet.EVENTS;
+  const defaultWidgetType =
+    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
+      ? WidgetType.ERRORS
+      : WidgetType.DISCOVER;
+  const defaultDataset =
+    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
+      ? DataSet.ERRORS
+      : DataSet.EVENTS;
   const dataSet = dataset ? dataset : defaultDataset;
 
   const api = useApi();
@@ -296,6 +297,8 @@ function WidgetBuilder({
   const [latestLibrarySelectionTitle, setLatestLibrarySelectionTitle] = useState<
     string | null
   >(null);
+
+  const [splitDecision, setSplitDecision] = useState<WidgetType | undefined>(undefined);
 
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.opened', {
@@ -1011,10 +1014,17 @@ function WidgetBuilder({
     });
   }
 
-  function handleUpdateWidgetSplitDecision(splitDecision: WidgetType) {
+  function handleUpdateWidgetSplitDecision(decision: WidgetType) {
     setState(prevState => {
-      return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[splitDecision]};
+      return {...cloneDeep(prevState), dataSet: WIDGET_TYPE_TO_DATA_SET[decision]};
     });
+
+    if (currentWidget.id) {
+      // Update the dashboard state with the split decision, in case
+      // the user cancels editing the widget after the decision was made
+      updateDashboardSplitDecision?.(currentWidget.id, decision);
+    }
+    setSplitDecision(decision);
   }
 
   function isFormInvalid() {
@@ -1078,6 +1088,13 @@ function WidgetBuilder({
       </SentryDocumentTitle>
     );
   }
+
+  const widgetDiscoverSplitSource = isValidWidgetIndex
+    ? dashboard.widgets[widgetIndexNum].datasetSource
+    : undefined;
+  const originalWidgetType = isValidWidgetIndex
+    ? dashboard.widgets[widgetIndexNum].widgetType
+    : undefined;
 
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
@@ -1174,6 +1191,14 @@ function WidgetBuilder({
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}
+                                    splitDecision={
+                                      splitDecision ??
+                                      // The original widget type is used for a forced split decision
+                                      (widgetDiscoverSplitSource === DatasetSource.FORCED
+                                        ? originalWidgetType
+                                        : undefined)
+                                    }
+                                    source={widgetDiscoverSplitSource}
                                   />
                                   {isTabularChart && (
                                     <DashboardsMEPConsumer>
@@ -1257,10 +1282,7 @@ function WidgetBuilder({
                                     />
                                   )}
                                   {state.displayType === 'big_number' &&
-                                    state.dataType !== 'date' &&
-                                    organization.features.includes(
-                                      'dashboard-widget-indicators'
-                                    ) && (
+                                    state.dataType !== 'date' && (
                                       <ThresholdsStep
                                         onThresholdChange={handleThresholdChange}
                                         onUnitChange={handleThresholdUnitChange}

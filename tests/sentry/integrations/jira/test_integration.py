@@ -10,13 +10,14 @@ from django.urls import reverse
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.integration import JiraIntegrationProvider
+from sentry.integrations.jira.views import SALT
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
@@ -218,8 +219,9 @@ class RegionJiraIntegrationTest(APITestCase):
         group = event.group
 
         installation = self.integration.get_installation(self.organization.id)
-        with self.feature("system:multi-region"), mock.patch.object(
-            installation, "get_client", get_client
+        with (
+            self.feature("system:multi-region"),
+            mock.patch.object(installation, "get_client", get_client),
         ):
             issue_config = installation.get_create_issue_config(group, self.user)
             assert f"{self.organization.slug}.testserver" in issue_config[2]["default"]
@@ -1090,7 +1092,7 @@ class JiraInstallationTest(IntegrationTestCase):
     def assert_setup_flow(self):
         self.login_as(self.user)
         signed_data = {"external_id": "my-external-id", "metadata": json.dumps(self.metadata)}
-        params = {"signed_params": sign(**signed_data)}
+        params = {"signed_params": sign(salt=SALT, **signed_data)}
         resp = self.client.get(self.configure_path, params)
         assert resp.status_code == 302
         integration = Integration.objects.get(external_id="my-external-id")

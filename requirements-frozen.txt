@@ -123,11 +123,11 @@ rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
 sentry-arroyo==2.16.5
-sentry-kafka-schemas==0.1.101
+sentry-kafka-schemas==0.1.102
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
-sentry-relay==0.9.0
-sentry-sdk==2.11.0
+sentry-relay==0.9.1
+sentry-sdk==2.12.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0

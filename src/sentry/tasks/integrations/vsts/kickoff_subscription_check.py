@@ -1,8 +1,6 @@
-from datetime import timedelta
-from time import time
-
-from sentry.constants import ObjectStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.vsts.tasks.kickoff_subscription_check import (
+    kickoff_vsts_subscription_check as new_kickoff_vsts_subscription_check,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 
@@ -16,23 +14,4 @@ from sentry.tasks.base import instrumented_task, retry
 )
 @retry()
 def kickoff_vsts_subscription_check() -> None:
-    from sentry.tasks.integrations import vsts_subscription_check
-
-    organization_integrations = OrganizationIntegration.objects.filter(
-        integration__provider="vsts",
-        integration__status=ObjectStatus.ACTIVE,
-        status=ObjectStatus.ACTIVE,
-    ).select_related("integration")
-
-    six_hours_ago = time() - timedelta(hours=6).seconds
-    for org_integration in organization_integrations:
-        subscription = org_integration.integration.metadata.get("subscription")
-        if subscription:
-            check = subscription.get("check")
-            if not check or check <= six_hours_ago:
-                vsts_subscription_check.apply_async(
-                    kwargs={
-                        "integration_id": org_integration.integration_id,
-                        "organization_id": org_integration.organization_id,
-                    }
-                )
+    new_kickoff_vsts_subscription_check()

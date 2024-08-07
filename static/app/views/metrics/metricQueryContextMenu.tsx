@@ -59,10 +59,8 @@ export function MetricQueryContextMenu({
   const router = useRouter();
 
   const {removeWidget, duplicateWidget, widgets, updateWidget} = useMetricsContext();
-  const createAlert = useMemo(
-    () => getCreateAlert(organization, metricsQuery),
-    [metricsQuery, organization]
-  );
+  const createAlert = getCreateAlert(organization, metricsQuery);
+
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
@@ -91,10 +89,7 @@ export function MetricQueryContextMenu({
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
         label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
-        disabled:
-          !createAlert ||
-          !hasMetricAlertFeature(organization) ||
-          isVirtualMetric(metricsQuery),
+        disabled: !createAlert || !hasMetricAlertFeature(organization),
         onAction: () => {
           trackAnalytics('ddm.create-alert', {
             organization,
@@ -146,7 +141,7 @@ export function MetricQueryContextMenu({
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
-        label: t('Metric Settings'),
+        label: t('Configure Metric'),
         onAction: () => {
           trackAnalytics('ddm.widget.settings', {
             organization,
@@ -161,7 +156,10 @@ export function MetricQueryContextMenu({
               router
             );
           } else {
-            const extractionRule = getExtractionRule(metricsQuery.mri);
+            const extractionRule = getExtractionRule(
+              metricsQuery.mri,
+              metricsQuery.condition!
+            );
             if (extractionRule) {
               openExtractionRuleEditModal({
                 metricExtractionRule: extractionRule,
@@ -224,6 +222,20 @@ export function MetricQueryContextMenu({
 }
 
 export function getCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
+  const {resolveVirtualMRI} = useVirtualMetricsContext();
+
+  const queryCopy = {...metricsQuery};
+
+  if (isVirtualMetric(metricsQuery) && metricsQuery.condition) {
+    const {mri, aggregation} = resolveVirtualMRI(
+      metricsQuery.mri,
+      metricsQuery.condition,
+      metricsQuery.aggregation
+    );
+    queryCopy.mri = mri;
+    queryCopy.aggregation = aggregation;
+  }
+
   if (
     !metricsQuery.mri ||
     !metricsQuery.aggregation ||
@@ -235,7 +247,7 @@ export function getCreateAlert(organization: Organization, metricsQuery: Metrics
   return function () {
     return openModal(deps => (
       <OrganizationContext.Provider value={organization}>
-        <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
+        <CreateAlertModal metricsQuery={queryCopy} {...deps} />
       </OrganizationContext.Provider>
     ));
   };

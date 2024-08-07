@@ -20,6 +20,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
+from sentry.integrations.models.integration import Integration
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -42,7 +43,6 @@ from sentry.models.groupowner import (
     GroupOwnerType,
 )
 from sentry.models.groupsnooze import GroupSnooze
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
@@ -207,7 +207,9 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
             instance=mock.ANY,
             tags={"occurrence_type": mock.ANY},
         )
-        logger_mock.warning.assert_not_called()
+        assert "tasks.post_process.old_time_to_post_process" not in [
+            msg for (msg, _) in logger_mock.warning.call_args_list
+        ]
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
@@ -1752,9 +1754,11 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         """
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
-        group.status = GroupStatus.IGNORED
-        group.substatus = GroupSubStatus.UNTIL_ESCALATING
-        group.save()
+        group.update(
+            first_seen=timezone.now() - timedelta(days=1),
+            status=GroupStatus.IGNORED,
+            substatus=GroupSubStatus.UNTIL_ESCALATING,
+        )
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
@@ -1769,7 +1773,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             data={"event_id": event.event_id, "forecast": 0},
         ).exists()
 
-    @with_feature("projects:first-event-severity-new-escalation")
     @patch("sentry.issues.escalating.is_escalating")
     def test_skip_escalation_logic_for_new_groups(self, mock_is_escalating):
         """
@@ -2209,38 +2212,18 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         )
         event.group = Group.objects.get(id=group.id)
 
-        with self.feature("projects:first-event-severity-new-escalation"):
-            with patch("sentry.issues.issue_velocity.calculate_threshold", return_value=9):
-                self.call_post_process_group(
-                    is_new=True,
-                    is_regression=False,
-                    is_new_group_environment=True,
-                    event=event,
-                )
+        with patch("sentry.issues.issue_velocity.calculate_threshold", return_value=9):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
         job = mock_run_post_process_job.call_args[0][0]
         assert job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
         assert group.priority == PriorityLevel.MEDIUM
-
-    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
-    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
-        event = self.create_event(data={}, project_id=self.project.id)
-        group = event.group
-        group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=10000)
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        job = mock_run_post_process_job.call_args[0][0]
-        assert not job["has_escalated"]
-        group.refresh_from_db()
-        assert group.substatus == GroupSubStatus.NEW
-        assert group.priority == PriorityLevel.HIGH
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
@@ -2249,13 +2232,12 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group = event.group
         group.update(first_seen=timezone.now() - timedelta(days=2), times_seen=10000)
 
-        with self.feature("projects:first-event-severity-new-escalation"):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
         mock_threshold.assert_not_called()
         job = mock_run_post_process_job.call_args[0][0]
         assert not job["has_escalated"]
@@ -2274,13 +2256,12 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             priority=PriorityLevel.LOW,
         )
 
-        with self.feature("projects:first-event-severity-new-escalation"):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
         mock_threshold.assert_called()
         job = mock_run_post_process_job.call_args[0][0]
         assert not job["has_escalated"]
@@ -2295,7 +2276,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group = event.group
         group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=10000)
         lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
-        with self.feature("projects:first-event-severity-new-escalation"), lock.acquire():
+        with lock.acquire():
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -2325,13 +2306,12 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             substatus=GroupSubStatus.ESCALATING,
             priority=PriorityLevel.MEDIUM,
         )
-        with self.feature("projects:first-event-severity-new-escalation"):
-            self.call_post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
         mock_threshold.assert_not_called()
         job = mock_run_post_process_job.call_args[0][0]
         assert not job["has_escalated"]
@@ -2355,13 +2335,12 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             )
             group.save()
 
-            with self.feature("projects:first-event-severity-new-escalation"):
-                self.call_post_process_group(
-                    is_new=False,  # when true, post_process sets the substatus to NEW
-                    is_regression=False,
-                    is_new_group_environment=True,
-                    event=event,
-                )
+            self.call_post_process_group(
+                is_new=False,  # when true, post_process sets the substatus to NEW
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
             mock_threshold.assert_not_called()
             job = mock_run_post_process_job.call_args[0][0]
             assert not job["has_escalated"]
@@ -2376,13 +2355,12 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=9)
         event.group = Group.objects.get(id=group.id)
 
-        with self.feature("projects:first-event-severity-new-escalation"):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
         mock_threshold.assert_not_called()
         job = mock_run_post_process_job.call_args[0][0]
         assert not job["has_escalated"]
@@ -2398,13 +2376,12 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.update(first_seen=timezone.now() - timedelta(minutes=1), times_seen=10)
         event.group = Group.objects.get(id=group.id)
 
-        with self.feature("projects:first-event-severity-new-escalation"):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
         job = mock_run_post_process_job.call_args[0][0]
         assert not job["has_escalated"]
         group.refresh_from_db()
@@ -2416,13 +2393,12 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=10000)
-        with self.feature("projects:first-event-severity-new-escalation"):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
         mock_threshold.assert_called()
         job = mock_run_post_process_job.call_args[0][0]
         assert not job["has_escalated"]

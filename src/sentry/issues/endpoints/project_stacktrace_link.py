@@ -13,7 +13,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import IntegrationSerializer, serialize
+from sentry.api.serializers import serialize
+from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
@@ -61,9 +62,7 @@ def set_top_tags(
     try:
         scope.set_tag("project.slug", project.slug)
         scope.set_tag("organization.slug", project.organization.slug)
-        scope.set_tag(
-            "organization.early_adopter", bool(project.organization.flags.early_adopter.is_set)
-        )
+        scope.set_tag("organization.early_adopter", bool(project.organization.flags.early_adopter))
         scope.set_tag("stacktrace_link.platform", ctx["platform"])
         scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
         scope.set_tag("stacktrace_link.file", ctx["file"])

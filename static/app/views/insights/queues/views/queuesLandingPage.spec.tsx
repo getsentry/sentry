@@ -50,6 +50,7 @@ describe('queuesLandingPage', () => {
   jest.mocked(useProjects).mockReturnValue({
     projects: [project],
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,

@@ -23,6 +23,6 @@ export default function useToolbarRelease() {
       ],
       [organizationSlug, projectSlug]
     ),
-    cacheTime: Infinity,
+    cacheTime: 5000,
   });
 }

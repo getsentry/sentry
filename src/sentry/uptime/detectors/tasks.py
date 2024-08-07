@@ -34,7 +34,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
 
-UPTIME_USER_AGENT = "sentry.io_uptime_checker_v_1"
+UPTIME_USER_AGENT = "SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/)"
 LAST_PROCESSED_KEY = "uptime_detector_last_processed"
 SCHEDULER_LOCK_KEY = "uptime_detector_scheduler_lock"
 FAILED_URL_RETRY_FREQ = timedelta(days=7)
@@ -226,7 +226,7 @@ def process_candidate_url(
         # Disable auto-detection on this project now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
 
-    metrics.incr("uptime.detectors.candidate_url.succeeded")
+    metrics.incr("uptime.detectors.candidate_url.succeeded", sample_rate=1.0)
     return True
 
 
@@ -250,7 +250,7 @@ def monitor_url_for_project(project: Project, url: str):
     create_project_uptime_subscription(
         project, subscription, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
     )
-    metrics.incr("uptime.detectors.candidate_url.monitor_created")
+    metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
 
 
 def is_failed_url(url: str) -> bool:

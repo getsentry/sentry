@@ -207,6 +207,7 @@ def test_ingest_consumer_gets_event_unstuck(
             i += 1
 
     # check that we got the messages
+    assert message is not None
     assert message.data["event_id"] == event_id2
     assert message.data["extra"]["the_id"] == event_id2
 

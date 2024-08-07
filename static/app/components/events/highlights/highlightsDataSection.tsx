@@ -9,7 +9,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   TreeColumn,
   TreeContainer,
@@ -23,7 +22,6 @@ import {
   getHighlightTagData,
   HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconEdit, IconMegaphone} from 'sentry/icons';
@@ -34,8 +32,11 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface HighlightsDataSectionProps {
   event: Event;
@@ -216,37 +217,13 @@ function HighlightsData({
   );
 }
 
-function HighlightsFeedback() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const feedback = useFeedbackWidget({
-    buttonRef,
-    messagePlaceholder: t(
-      'How can we make tags, context or highlights more useful to you?'
-    ),
-  });
-
-  if (!feedback) {
-    return null;
-  }
-
-  return (
-    <Button
-      ref={buttonRef}
-      aria-label={t('Give Feedback')}
-      icon={<IconMegaphone />}
-      size={'xs'}
-    >
-      {t('Feedback')}
-    </Button>
-  );
-}
-
 export default function HighlightsDataSection({
   viewAllRef,
   event,
   project,
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
+  const openForm = useFeedbackForm();
 
   const viewAllButton = viewAllRef ? (
     <Button
@@ -261,9 +238,9 @@ export default function HighlightsDataSection({
   ) : null;
 
   return (
-    <EventDataSection
+    <InterimSection
       key="event-highlights"
-      type="event-highlights"
+      type={FoldSectionKey.HIGHLIGHTS}
       title={t('Event Highlights')}
       help={tct(
         'Promoted tags and context items saved for this project. [link:Learn more]',
@@ -276,7 +253,26 @@ export default function HighlightsDataSection({
       actions={
         <ErrorBoundary mini>
           <ButtonBar gap={1}>
-            <HighlightsFeedback />
+            {openForm && (
+              <Button
+                aria-label={t('Give Feedback')}
+                icon={<IconMegaphone />}
+                size={'xs'}
+                onClick={() =>
+                  openForm({
+                    messagePlaceholder: t(
+                      'How can we make tags, context or highlights more useful to you?'
+                    ),
+                    tags: {
+                      ['feedback.source']: 'issue_details_highlights',
+                      ['feedback.owner']: 'issues',
+                    },
+                  })
+                }
+              >
+                {t('Feedback')}
+              </Button>
+            )}
             {viewAllButton}
             <EditHighlightsButton project={project} event={event} />
           </ButtonBar>
@@ -286,7 +282,7 @@ export default function HighlightsDataSection({
       <ErrorBoundary mini message={t('There was an error loading event highlights')}>
         <HighlightsData event={event} project={project} />
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

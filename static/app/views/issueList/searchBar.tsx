@@ -71,7 +71,7 @@ const getFilterKeySections = (
   return [
     {
       value: FieldKind.ISSUE_FIELD,
-      label: t('Issue Filters'),
+      label: t('Issues'),
       children: issueFields,
     },
     {
@@ -124,28 +124,32 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
         statsPeriod: pageFilters.datetime.period,
       };
 
+      const fetchTagValuesPayload = {
+        api,
+        orgSlug,
+        tagKey: key,
+        search,
+        projectIds,
+        endpointParams,
+        sort: '-count' as const,
+      };
+
       const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
         fetchTagValues({
-          api,
-          orgSlug,
-          tagKey: key,
-          search,
-          projectIds,
-          endpointParams,
+          ...fetchTagValuesPayload,
           dataset: Dataset.ERRORS,
         }),
         fetchTagValues({
-          api,
-          orgSlug,
-          tagKey: key,
-          search,
-          projectIds,
-          endpointParams,
+          ...fetchTagValuesPayload,
           dataset: Dataset.ISSUE_PLATFORM,
         }),
       ]);
 
-      return mergeAndSortTagValues(eventsDatasetValues, issuePlatformDatasetValues);
+      return mergeAndSortTagValues(
+        eventsDatasetValues,
+        issuePlatformDatasetValues,
+        'count'
+      );
     },
     [
       api,

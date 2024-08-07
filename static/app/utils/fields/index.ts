@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -110,6 +111,7 @@ export enum FieldKey {
   TRACE = 'trace',
   TRACE_PARENT_SPAN = 'trace.parent_span',
   TRACE_SPAN = 'trace.span',
+  TRACE_CLIENT_SAMPLE_RATE = 'trace.client_sample_rate',
   TRANSACTION = 'transaction',
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
@@ -240,6 +242,32 @@ export enum IsFieldValues {
   UNLINKED = 'unlinked',
 }
 
+export type AggregateColumnParameter = {
+  /**
+   * The types of columns that are valid for this parameter.
+   * Can pass a list of FieldValueTypes or a predicate function.
+   */
+  columnTypes:
+    | FieldValueType[]
+    | ((field: {key: string; valueType: FieldValueType}) => boolean);
+  kind: 'column';
+  name: string;
+  required: boolean;
+  defaultValue?: string;
+};
+
+export type AggregateValueParameter = {
+  dataType: FieldValueType;
+  kind: 'value';
+  name: string;
+  required: boolean;
+  defaultValue?: string;
+  options?: Array<{value: string; label?: string}>;
+  placeholder?: string;
+};
+
+export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
@@ -265,6 +293,11 @@ export interface FieldDefinition {
    * Additional keywords used when filtering via autocomplete
    */
   keywords?: string[];
+  /**
+   * Only valid for aggregate fields.
+   * Defines the number and type of parameters that the function accepts.
+   */
+  parameters?: AggregateParameter[];
 }
 
 export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -530,16 +563,91 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   },
 };
 
+type TraceFields =
+  | SpanIndexedField.SPAN_ACTION
+  | SpanIndexedField.SPAN_DESCRIPTION
+  | SpanIndexedField.SPAN_DOMAIN
+  | SpanIndexedField.SPAN_DURATION
+  | SpanIndexedField.SPAN_GROUP
+  | SpanIndexedField.SPAN_MODULE
+  | SpanIndexedField.SPAN_OP
+  // TODO: Remove self time field when it is deprecated
+  | SpanIndexedField.SPAN_SELF_TIME
+  | SpanIndexedField.SPAN_STATUS
+  | SpanIndexedField.RESPONSE_CODE;
+
+const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+  /** Indexed Fields */
+  [SpanIndexedField.SPAN_ACTION]: {
+    desc: t(
+      'The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DESCRIPTION]: {
+    desc: t('Parameterized and scrubbed description of the span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DOMAIN]: {
+    desc: t(
+      'General scope of the span’s action, i.e. the tables involved in a `db` span or the host name in an `http` span'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_DURATION]: {
+    desc: t('The total time taken by the span'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_GROUP]: {
+    desc: t('Unique hash of the span’s description'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_MODULE]: {
+    desc: t(
+      'The Insights module that the span is associated with, e.g `cache`, `db`, `http`, etc.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_OP]: {
+    desc: t('The operation of the span, e.g `http.client`, `middleware`'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.SPAN_SELF_TIME]: {
+    desc: t('The duration of the span excluding the duration of its child spans'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [SpanIndexedField.SPAN_STATUS]: {
+    desc: t('Status of the operation the span represents'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.RESPONSE_CODE]: {
+    desc: t('The HTTP response status code'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 type AllEventFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
   | keyof typeof MEASUREMENT_FIELDS
   | keyof typeof SPAN_OP_FIELDS
+  | keyof typeof TRACE_FIELD_DEFINITIONS
   | FieldKey;
 
 const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
+  ...TRACE_FIELD_DEFINITIONS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
@@ -999,6 +1107,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.TRACE_CLIENT_SAMPLE_RATE]: {
+    desc: t('Sample rate of the trace in the SDK between 0 and 1'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.TRANSACTION]: {
     desc: t('Error or transaction name identifier'),
     kind: FieldKind.FIELD,
@@ -1010,7 +1123,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRANSACTION_DURATION]: {
-    desc: t('Duration, in milliseconds, of the transaction'),
+    desc: t('Duration of the transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
@@ -1241,6 +1354,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE,
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE_PARENT_SPAN,
+  FieldKey.TRACE_CLIENT_SAMPLE_RATE,
 
   FieldKey.PROFILE_ID,
 

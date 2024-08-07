@@ -45,6 +45,8 @@ def backfill_seer_grouping_records_for_project(
     last_processed_project_index_input: int | None = None,
     only_delete: bool = False,
     enable_ingestion: bool = False,
+    skip_processed_projects: bool = False,
+    skip_project_ids: list[int] | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -67,6 +69,8 @@ def backfill_seer_grouping_records_for_project(
             "cohort": cohort,
             "last_processed_project_index": last_processed_project_index_input,
             "only_delete": only_delete,
+            "skip_processed_projects": skip_processed_projects,
+            "skip_project_ids": skip_project_ids,
         },
     )
 
@@ -96,6 +100,34 @@ def backfill_seer_grouping_records_for_project(
             cohort=cohort,
             only_delete=only_delete,
             enable_ingestion=enable_ingestion,
+            skip_processed_projects=skip_processed_projects,
+            skip_project_ids=skip_project_ids,
+        )
+        return
+
+    is_project_processed = (
+        skip_processed_projects
+        and project.get_option("sentry:similarity_backfill_completed") is not None
+    )
+    is_project_skipped = skip_project_ids and project.id in skip_project_ids
+    if is_project_processed or is_project_skipped:
+        logger.info(
+            "backfill_seer_grouping_records.project_skipped",
+            extra={
+                "project_id": current_project_id,
+                "project_already_processed": is_project_processed,
+                "project_manually_skipped": is_project_skipped,
+            },
+        )
+        call_next_backfill(
+            last_processed_group_id=None,
+            project_id=current_project_id,
+            last_processed_project_index=last_processed_project_index,
+            cohort=cohort,
+            only_delete=only_delete,
+            enable_ingestion=enable_ingestion,
+            skip_processed_projects=skip_processed_projects,
+            skip_project_ids=skip_project_ids,
         )
         return
 
@@ -112,6 +144,8 @@ def backfill_seer_grouping_records_for_project(
             cohort=cohort,
             only_delete=only_delete,
             enable_ingestion=enable_ingestion,
+            skip_processed_projects=skip_processed_projects,
+            skip_project_ids=skip_project_ids,
         )
         return
 
@@ -128,6 +162,8 @@ def backfill_seer_grouping_records_for_project(
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
+            skip_processed_projects=skip_processed_projects,
+            skip_project_ids=skip_project_ids,
         )
         return
 
@@ -145,6 +181,8 @@ def backfill_seer_grouping_records_for_project(
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
+            skip_processed_projects=skip_processed_projects,
+            skip_project_ids=skip_project_ids,
         )
         return
 
@@ -158,6 +196,8 @@ def backfill_seer_grouping_records_for_project(
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             enable_ingestion=enable_ingestion,
+            skip_processed_projects=skip_processed_projects,
+            skip_project_ids=skip_project_ids,
         )
         return
 
@@ -211,6 +251,8 @@ def backfill_seer_grouping_records_for_project(
         last_processed_project_index=last_processed_project_index,
         cohort=cohort,
         enable_ingestion=enable_ingestion,
+        skip_processed_projects=skip_processed_projects,
+        skip_project_ids=skip_project_ids,
     )
 
 
@@ -222,6 +264,8 @@ def call_next_backfill(
     cohort: str | list[int] | None = None,
     only_delete: bool = False,
     enable_ingestion: bool = False,
+    skip_processed_projects: bool = False,
+    skip_project_ids: list[int] | None = None,
 ):
     if last_processed_group_id is not None:
         logger.info(
@@ -239,6 +283,8 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
                 enable_ingestion,
+                skip_processed_projects,
+                skip_project_ids,
             ],
             headers={"sentry-propagate-traces": False},
         )
@@ -279,6 +325,8 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
                 enable_ingestion,
+                skip_processed_projects,
+                skip_project_ids,
             ],
             headers={"sentry-propagate-traces": False},
         )

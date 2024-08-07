@@ -35,7 +35,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
 
         projectconfig_cache.backend.set_many(
             {
-                self.p1_pk.public_key: "proj1 config",
+                self.p1_pk.public_key: {"proj1": "config"},
             }
         )
 
@@ -74,7 +74,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        expected = {"configs": {self.p1_pk.public_key: "proj1 config"}}
+        expected = {"configs": {self.p1_pk.public_key: {"proj1": "config"}}}
         actual = response.json()
         assert actual == expected
 
@@ -89,7 +89,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        expected = {"configs": {self.p1_pk.public_key: "proj1 config"}}
+        expected = {"configs": {self.p1_pk.public_key: {"proj1": "config"}}}
         actual = response.json()
         assert actual == expected
 
