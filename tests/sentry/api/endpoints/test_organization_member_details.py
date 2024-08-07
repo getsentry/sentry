@@ -851,6 +851,34 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_success_response(self.organization.slug, member_om.id)
 
+    def test_related_invitations_are_deleted(self):
+        manager_user = self.create_user("manager@localhost")
+        self.manager = self.create_member(
+            user=manager_user, organization=self.organization, role="manager"
+        )
+        self.login_as(user=manager_user)
+
+        assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
+
+        # invite request
+        data = {"email": "foo@example.com", "role": "member", "teams": [self.team.slug]}
+        url = reverse(
+            "sentry-api-0-organization-invite-request-index", args=(self.organization.slug,)
+        )
+        self.client.post(url, data=data)
+
+        # pending invite
+        data = {"email": "bar@example.com", "role": "member", "teams": [self.team.slug]}
+        url = reverse("sentry-api-0-organization-member-index", args=(self.organization.slug,))
+        self.client.post(url, data=data)
+
+        assert OrganizationMember.objects.filter(inviter_id=manager_user.id).count() == 2
+
+        # manager leaves
+        self.get_success_response(self.organization.slug, self.manager.id)
+
+        assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
+
 
 class ResetOrganizationMember2faTest(APITestCase):
     def setUp(self):
