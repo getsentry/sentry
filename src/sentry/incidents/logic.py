@@ -491,18 +491,13 @@ query_datasets_to_type = {
 
 
 def get_alert_resolution(time_window: int, organization) -> int:
-    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
+    index = bisect.bisect_right(windows, time_window)
 
-    if features.has("organizations:metric-alert-load-shedding", organization=organization):
-        windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
-        index = bisect.bisect_right(windows, time_window)
+    if index == 0:
+        return DEFAULT_ALERT_RULE_RESOLUTION
 
-        if index == 0:
-            return DEFAULT_ALERT_RULE_RESOLUTION
-
-        resolution = DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
-
-    return resolution
+    return DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
 
 
 def create_alert_rule(
@@ -652,10 +647,18 @@ def create_alert_rule(
                 )
 
             try:
-                send_historical_data_to_seer(alert_rule=alert_rule, project=projects[0])
+                rule_status = send_historical_data_to_seer(
+                    alert_rule=alert_rule, project=projects[0]
+                )
+                if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
+                    # if we don't have at least seven days worth of data, then the dynamic alert won't fire
+                    alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError
+            except ValidationError:
+                alert_rule.delete()
+                raise
 
         if user:
             create_audit_entry_from_user(
@@ -873,6 +876,8 @@ def update_alert_rule(
             updated_fields["sensitivity"] = None
             updated_fields["seasonality"] = None
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            # TODO: if updating to a dynamic alert rule, check to see if there's enough data
+            # This must be done after backfill PR lands
             updated_fields["comparison_delta"] = None
             if (
                 time_window not in DYNAMIC_TIME_WINDOWS
@@ -892,6 +897,32 @@ def update_alert_rule(
             # and doesn't persist other dirty attributes in the model
             updated_fields["user_id"] = alert_rule.user_id
             updated_fields["team_id"] = alert_rule.team_id
+
+        if detection_type == AlertRuleDetectionType.DYNAMIC:
+            if not features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
+                raise ResourceDoesNotExist(
+                    "Your organization does not have access to this feature."
+                )
+
+            if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
+                alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
+            ):
+                for k, v in updated_fields.items():
+                    setattr(alert_rule, k, v)
+
+                try:
+                    rule_status = send_historical_data_to_seer(
+                        alert_rule=alert_rule,
+                        project=projects[0] if projects else alert_rule.projects.get(),
+                    )
+                    if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
+                        # if we don't have at least seven days worth of data, then the dynamic alert won't fire
+                        alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+                except (TimeoutError, MaxRetryError):
+                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
+                except ValidationError:
+                    # If there's no historical data available—something went wrong when querying snuba
+                    raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
 
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
@@ -1841,13 +1872,16 @@ def get_filtered_actions(
     alert_rule_data: Mapping[str, Any],
     action_type: ActionService,
 ):
-    from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
+    def is_included(action: Mapping[str, Any]) -> bool:
+        type_slug = action.get("type")
+        factory = AlertRuleTriggerAction.look_up_factory_by_slug(type_slug)
+        return factory is not None and factory.service_type == action_type
 
     return [
         rewrite_trigger_action_fields(action)
         for trigger in alert_rule_data.get("triggers", [])
         for action in trigger.get("actions", [])
-        if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
+        if is_included(action)
     ]
 
 

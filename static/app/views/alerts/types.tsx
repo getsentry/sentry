@@ -95,7 +95,7 @@ export enum CombinedAlertType {
   UPTIME = 'uptime',
 }
 
-interface IssueAlert extends IssueAlertRule {
+export interface IssueAlert extends IssueAlertRule {
   type: CombinedAlertType.ISSUE;
   latestIncident?: Incident | null;
 }

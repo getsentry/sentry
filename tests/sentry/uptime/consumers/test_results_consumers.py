@@ -12,6 +12,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
     CHECKSTATUS_SUCCESS,
+    CHECKSTATUSREASONTYPE_TIMEOUT,
     CheckResult,
 )
 
@@ -72,7 +73,12 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -91,8 +97,13 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
-                    ),
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    )
                 ]
             )
 
@@ -115,7 +126,12 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -140,8 +156,13 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_SUCCESS, "mode": "auto_detected_active"},
-                    ),
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "success",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
+                    )
                 ]
             )
         group.refresh_from_db()
@@ -174,7 +195,12 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "failure",
+                            "mode": "auto_detected_active",
+                        },
+                        sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.skipping_already_processed_update",
@@ -200,7 +226,12 @@ class ProcessResultTest(UptimeTestCase):
             self.send_result(result)
             metrics.incr.assert_called_once_with(
                 "uptime.result_processor.handle_result_for_project",
-                tags={"status": CHECKSTATUS_MISSED_WINDOW, "mode": "auto_detected_active"},
+                tags={
+                    "status": CHECKSTATUS_MISSED_WINDOW,
+                    "mode": "auto_detected_active",
+                    "status_reason": "timeout",
+                },
+                sample_rate=1.0,
             )
             logger.info.assert_any_call(
                 "handle_result_for_project.missed",
@@ -230,7 +261,12 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_onboarding"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_onboarding",
+                            "status_reason": "timeout",
+                        },
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -258,10 +294,17 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_onboarding"},
+                        tags={
+                            "status": CHECKSTATUS_FAILURE,
+                            "mode": "auto_detected_onboarding",
+                            "status_reason": "timeout",
+                        },
+                        sample_rate=1.0,
                     ),
                     call(
-                        "uptime.result_processor.autodetection.failed_onboarding", sample_rate=1.0
+                        "uptime.result_processor.autodetection.failed_onboarding",
+                        tags={"failure_reason": CHECKSTATUSREASONTYPE_TIMEOUT},
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -297,7 +340,12 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_SUCCESS, "mode": "auto_detected_onboarding"},
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "success",
+                            "mode": "auto_detected_onboarding",
+                        },
+                        sample_rate=1.0,
                     ),
                 ]
             )
@@ -330,7 +378,12 @@ class ProcessResultTest(UptimeTestCase):
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
-                        tags={"status": CHECKSTATUS_SUCCESS, "mode": "auto_detected_onboarding"},
+                        tags={
+                            "status_reason": "timeout",
+                            "status": "success",
+                            "mode": "auto_detected_onboarding",
+                        },
+                        sample_rate=1.0,
                     ),
                     call(
                         "uptime.result_processor.autodetection.graduated_onboarding",

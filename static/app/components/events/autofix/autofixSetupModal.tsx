@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
-import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAutofixCodebaseIndexing';
 import {
   type AutofixSetupRepoDefinition,
   type AutofixSetupResponse,
@@ -274,56 +272,7 @@ function AutofixGithubIntegrationStep({
   );
 }
 
-function AutofixCodebaseIndexingStep({
-  autofixSetup,
-  projectId,
-  groupId,
-  closeModal,
-}: {
-  autofixSetup: AutofixSetupResponse;
-  closeModal: () => void;
-  groupId: string;
-  projectId: string;
-}) {
-  const {startIndexing, status, reason} = useAutofixCodebaseIndexing({
-    projectId,
-    groupId,
-  });
-
-  const canIndex = autofixSetup.genAIConsent.ok && autofixSetup.integration.ok;
-
-  return (
-    <Fragment>
-      <p>
-        {t(
-          'Sentry will index your repositories to enable Autofix. This process may take a few minutes.'
-        )}
-      </p>
-      {status === AutofixCodebaseIndexingStatus.ERRORED && reason ? (
-        <LoadingError message={t('Failed to index repositories: %s', reason)} />
-      ) : null}
-      <GuidedSteps.StepButtons>
-        <Button
-          priority="primary"
-          size="sm"
-          disabled={!canIndex}
-          analyticsEventKey="autofix.index_repositories_clicked"
-          analyticsEventName="Autofix: Index Repositories Clicked"
-          onClick={() => {
-            startIndexing();
-            closeModal();
-          }}
-        >
-          {t('Index Repositories & Enable Autofix')}
-        </Button>
-      </GuidedSteps.StepButtons>
-    </Fragment>
-  );
-}
-
 function AutofixSetupSteps({
-  projectId,
-  groupId,
   autofixSetup,
   closeModal,
   canStartAutofix,
@@ -334,12 +283,6 @@ function AutofixSetupSteps({
   groupId: string;
   projectId: string;
 }) {
-  const organization = useOrganization();
-
-  const hideCodebaseIndexingStep = organization.features.includes(
-    'autofix-disable-codebase-indexing'
-  );
-
   return (
     <GuidedSteps>
       <ConsentStep hasConsented={autofixSetup.genAIConsent.ok} />
@@ -360,23 +303,9 @@ function AutofixSetupSteps({
           autofixSetup={autofixSetup}
           canStartAutofix={canStartAutofix}
           closeModal={closeModal}
-          isLastStep={hideCodebaseIndexingStep}
+          isLastStep
         />
       </GuidedSteps.Step>
-      {hideCodebaseIndexingStep ? null : (
-        <GuidedSteps.Step
-          stepKey="codebaseIndexing"
-          title={t('Enable Autofix')}
-          isCompleted={autofixSetup.codebaseIndexing.ok}
-        >
-          <AutofixCodebaseIndexingStep
-            groupId={groupId}
-            projectId={projectId}
-            autofixSetup={autofixSetup}
-            closeModal={closeModal}
-          />
-        </GuidedSteps.Step>
-      )}
     </GuidedSteps>
   );
 }
@@ -406,7 +335,6 @@ function AutofixSetupContent({
       groupId,
       projectId,
       organization,
-      setup_codebase_index: data.codebaseIndexing.ok,
       setup_gen_ai_consent: data.genAIConsent.ok,
       setup_integration: data.integration.ok,
       setup_write_integration: data.githubWriteIntegration.ok,

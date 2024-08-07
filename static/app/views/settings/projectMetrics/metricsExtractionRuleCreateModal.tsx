@@ -206,6 +206,7 @@ function FormWrapper({
     },
     [closeModal, projectId, onCreate, createExtractionRuleMutation]
   );
+
   return (
     <MetricsExtractionRuleForm
       initialData={initialData}

@@ -94,6 +94,8 @@ class AuditLogEventRegisterTest(TestCase):
             "project-team.remove",
             "project-team.add",
             "issue.delete",
+            "data-secrecy.waived",
+            "data-secrecy.reinstated",
         ]
 
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)
