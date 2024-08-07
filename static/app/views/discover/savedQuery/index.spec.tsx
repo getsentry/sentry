@@ -470,5 +470,56 @@ describe('Discover > SaveQueryButtonGroup', function () {
         screen.queryByRole('button', {name: /create alert/i})
       ).not.toBeInTheDocument();
     });
+    it('uses the throughput alert type for transaction queries', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents', 'performance-discover-dataset-selector'],
+      };
+      const transactionSavedQuery = {
+        ...savedQuery,
+        queryDataset: SavedQueryDatasets.TRANSACTIONS,
+        query: 'foo:bar',
+      };
+      const transactionView = EventView.fromSavedQuery(transactionSavedQuery);
+      mount(
+        location,
+        metricAlertOrg,
+        router,
+        transactionView,
+        transactionSavedQuery,
+        yAxis
+      );
+
+      const createAlertButton = screen.getByRole('button', {name: /create alert/i});
+      const href = createAlertButton.getAttribute('href')!;
+      const queryParameters = new URLSearchParams(href.split('?')[1]);
+
+      expect(queryParameters.get('query')).toEqual(
+        '(foo:bar) AND (event.type:transaction)'
+      );
+      expect(queryParameters.get('dataset')).toEqual('transactions');
+      expect(queryParameters.get('eventTypes')).toEqual('transaction');
+    });
+    it('uses the num errors alert type for error queries', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents', 'performance-discover-dataset-selector'],
+      };
+      const errorSavedQuery = {
+        ...savedQuery,
+        queryDataset: SavedQueryDatasets.ERRORS,
+        query: 'foo:bar',
+      };
+      const transactionView = EventView.fromSavedQuery(errorSavedQuery);
+      mount(location, metricAlertOrg, router, transactionView, errorSavedQuery, yAxis);
+
+      const createAlertButton = screen.getByRole('button', {name: /create alert/i});
+      const href = createAlertButton.getAttribute('href')!;
+      const queryParameters = new URLSearchParams(href.split('?')[1]);
+
+      expect(queryParameters.get('query')).toEqual('foo:bar');
+      expect(queryParameters.get('dataset')).toEqual('events');
+      expect(queryParameters.get('eventTypes')).toEqual('error');
+    });
   });
 });
