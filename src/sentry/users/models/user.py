@@ -15,7 +15,6 @@ from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.forms import model_to_dict
-from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -34,9 +33,9 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import unique_db_instance
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
@@ -45,8 +44,7 @@ from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
-from sentry.models.useremail import UserEmail
+from sentry.models.outbox import ControlOutboxBase, outbox_context
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.users.services.user import RpcUser
@@ -198,10 +196,10 @@ class User(Model, AbstractBaseUser):
 
     __repr__ = sane_repr("id")
 
-    def class_name(self) -> str:
+    def class_name(self):
         return "User"
 
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+    def delete(self, *args, **kwargs):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
@@ -212,13 +210,13 @@ class User(Model, AbstractBaseUser):
                 outbox.save()
             return super().delete(*args, **kwargs)
 
-    def update(self, *args: Any, **kwds: Any) -> int:
+    def update(self, *args, **kwds):
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
 
-    def save(self, *args: Any, **kwargs: Any) -> None:
+    def save(self, *args, **kwargs):
         with outbox_context(transaction.atomic(using=router.db_for_write(User))):
             if not self.username:
                 self.username = self.email
@@ -227,32 +225,32 @@ class User(Model, AbstractBaseUser):
                 outbox.save()
             return result
 
-    def has_perm(self, perm_name: str) -> bool:
+    def has_perm(self, perm_name):
         warnings.warn("User.has_perm is deprecated", DeprecationWarning)
         return self.is_superuser
 
-    def has_module_perms(self, app_label: str) -> bool:
+    def has_module_perms(self, app_label):
         warnings.warn("User.has_module_perms is deprecated", DeprecationWarning)
         return self.is_superuser
 
-    def has_2fa(self) -> bool:
+    def has_2fa(self):
         return Authenticator.objects.filter(
             user_id=self.id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
         ).exists()
 
-    def get_unverified_emails(self) -> BaseQuerySet[UserEmail]:
+    def get_unverified_emails(self):
         return self.emails.filter(is_verified=False)
 
-    def get_verified_emails(self) -> BaseQuerySet[UserEmail]:
+    def get_verified_emails(self):
         return self.emails.filter(is_verified=True)
 
-    def has_verified_emails(self) -> bool:
+    def has_verified_emails(self):
         return self.get_verified_emails().exists()
 
-    def has_unverified_emails(self) -> bool:
+    def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
 
-    def has_usable_password(self) -> bool:
+    def has_usable_password(self):
         if self.password == "" or self.password is None:
             # This is the behavior we've been relying on from Django 1.6 - 2.0.
             # In 2.1, a "" or None password is considered usable.
@@ -261,13 +259,13 @@ class User(Model, AbstractBaseUser):
             return False
         return super().has_usable_password()
 
-    def get_label(self) -> str:
-        return self.email or self.username or str(self.id)
+    def get_label(self):
+        return self.email or self.username or self.id
 
-    def get_display_name(self) -> str:
+    def get_display_name(self):
         return self.name or self.email or self.username
 
-    def get_full_name(self) -> str:
+    def get_full_name(self):
         return self.name
 
     def get_salutation_name(self) -> str:
@@ -275,13 +273,13 @@ class User(Model, AbstractBaseUser):
         first_name = name.split(" ", 1)[0]
         return first_name.capitalize()
 
-    def get_avatar_type(self) -> str:
+    def get_avatar_type(self):
         return self.get_avatar_type_display()
 
-    def get_actor_identifier(self) -> str:
+    def get_actor_identifier(self):
         return f"user:{self.id}"
 
-    def send_confirm_email_singular(self, email: UserEmail, is_new_user: bool = False) -> None:
+    def send_confirm_email_singular(self, email, is_new_user=False):
         from sentry import options
         from sentry.utils.email import MessageBuilder
 
@@ -306,7 +304,7 @@ class User(Model, AbstractBaseUser):
         )
         msg.send_async([email.email])
 
-    def send_confirm_emails(self, is_new_user: bool = False) -> None:
+    def send_confirm_emails(self, is_new_user=False):
         email_list = self.get_unverified_emails()
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
@@ -414,12 +412,12 @@ class User(Model, AbstractBaseUser):
             for ai in AuthIdentity.objects.filter(user_id=from_user.id):
                 ai.update(user=to_user)
 
-    def set_password(self, raw_password: str | None) -> None:
+    def set_password(self, raw_password):
         super().set_password(raw_password)
         self.last_password_change = timezone.now()
         self.is_password_expired = False
 
-    def refresh_session_nonce(self, request: HttpRequest | None = None) -> None:
+    def refresh_session_nonce(self, request=None):
         from django.utils.crypto import get_random_string
 
         self.session_nonce = get_random_string(12)
@@ -439,7 +437,7 @@ class User(Model, AbstractBaseUser):
             ),
         ).exists()
 
-    def clear_lost_passwords(self) -> None:
+    def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
 
     def normalize_before_relocation_import(
@@ -479,7 +477,7 @@ class User(Model, AbstractBaseUser):
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
         # Internal function that factors our some common logic.
-        def do_write() -> tuple[int, ImportKind]:
+        def do_write():
             from sentry.api.endpoints.user_details import (
                 BaseUserSerializer,
                 SuperuserUserSerializer,
@@ -583,9 +581,7 @@ User._meta.get_field("last_login").null = True
 # When a user logs out, we want to always log them out of all
 # sessions and refresh their nonce.
 @receiver(user_logged_out, sender=User)
-def refresh_user_nonce(
-    sender: User | RpcUser, request: HttpRequest, user: User | None, **kwargs: Any
-) -> None:
+def refresh_user_nonce(sender, request, user, **kwargs):
     if user is None:
         return
     user.refresh_session_nonce()
@@ -593,9 +589,7 @@ def refresh_user_nonce(
 
 
 @receiver(user_logged_out, sender=RpcUser)
-def refresh_api_user_nonce(
-    sender: RpcUser, request: HttpRequest, user: User | None, **kwargs: Any
-) -> None:
+def refresh_api_user_nonce(sender, request, user, **kwargs):
     if user is None:
         return
     user = User.objects.get(id=user.id)
