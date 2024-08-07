@@ -1,9 +1,18 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+
+from django.http import HttpRequest
+
 from sentry import options
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
+from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.plugins.base.response import DeferredResponse
 
 from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL, DATA_VERSION, SCOPE
-from .views import FetchUser, GoogleConfigureView
+from .views import FetchUser, google_configure_view
 
 
 class GoogleOAuth2Login(OAuth2Login):
@@ -51,8 +60,10 @@ class GoogleOAuth2Provider(OAuth2Provider):
     def get_client_secret(self):
         return options.get("auth-google.client-secret")
 
-    def get_configure_view(self):
-        return GoogleConfigureView.as_view()
+    def get_configure_view(
+        self,
+    ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse]:
+        return google_configure_view
 
     def get_auth_pipeline(self):
         return [

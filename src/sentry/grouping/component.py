@@ -154,7 +154,7 @@ class GroupingComponent:
         rv.values = list(self.values)
         return rv
 
-    def iter_values(self) -> Generator[str | GroupingComponent, None, None]:
+    def iter_values(self) -> Generator[str | GroupingComponent]:
         """Recursively walks the component and flattens it into a list of
         values.
         """

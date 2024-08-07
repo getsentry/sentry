@@ -538,22 +538,22 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## End of ML & AI
 
 ## Processing
-/src/sentry/processing/*                                             @getsentry/processing
-/src/sentry/api/endpoints/project_user_reports.py                    @getsentry/processing
-/src/sentry/api/endpoints/event_attachments.py                       @getsentry/processing
-/src/sentry/api/endpoints/event_reprocessable.py                     @getsentry/processing
-/src/sentry/api/endpoints/project_reprocessing.py                    @getsentry/processing
-/src/sentry/api/endpoints/chunk.py                                   @getsentry/processing
-/src/sentry/lang/native/                                             @getsentry/processing
-/src/sentry/processing/realtime_metrics/                             @getsentry/processing
-/src/sentry/tasks/assemble.py                                        @getsentry/processing
-/src/sentry/tasks/low_priority_symbolication.py                      @getsentry/processing
-/src/sentry/tasks/symbolication.py                                   @getsentry/processing
-/tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/processing
-/src/sentry/tasks/reprocessing.py                                    @getsentry/processing
-/src/sentry/tasks/reprocessing2.py                                   @getsentry/processing
-/src/sentry/reprocessing2.py                                         @getsentry/processing
-/src/sentry/tasks/store.py                                           @getsentry/processing
+/src/sentry/processing/*                                             @getsentry/ingest
+/src/sentry/api/endpoints/project_user_reports.py                    @getsentry/ingest
+/src/sentry/api/endpoints/event_attachments.py                       @getsentry/ingest
+/src/sentry/api/endpoints/event_reprocessable.py                     @getsentry/ingest
+/src/sentry/api/endpoints/project_reprocessing.py                    @getsentry/ingest
+/src/sentry/api/endpoints/chunk.py                                   @getsentry/ingest
+/src/sentry/lang/native/                                             @getsentry/ingest
+/src/sentry/processing/realtime_metrics/                             @getsentry/ingest
+/src/sentry/tasks/assemble.py                                        @getsentry/ingest
+/src/sentry/tasks/low_priority_symbolication.py                      @getsentry/ingest
+/src/sentry/tasks/symbolication.py                                   @getsentry/ingest
+/tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/ingest
+/src/sentry/tasks/reprocessing.py                                    @getsentry/ingest
+/src/sentry/tasks/reprocessing2.py                                   @getsentry/ingest
+/src/sentry/reprocessing2.py                                         @getsentry/ingest
+/src/sentry/tasks/store.py                                           @getsentry/ingest
 ## End of Processing
 
 ## Ecosystem

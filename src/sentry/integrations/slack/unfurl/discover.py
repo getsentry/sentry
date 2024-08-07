@@ -21,6 +21,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
+from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,
@@ -235,6 +236,7 @@ def unfurl_discover(
                 params.setlist("statsPeriod", [stats_period])
 
         endpoint = "events-stats/"
+        params["referrer"] = Referrer.DISCOVER_SLACK_UNFURL.value
 
         try:
             resp = client.get(

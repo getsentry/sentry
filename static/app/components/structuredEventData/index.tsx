@@ -20,6 +20,13 @@ export type StructedEventDataConfig = {
 
 interface BaseProps {
   /**
+   * Set the limit which when exceeded, causes child items to collapse into a button. Default: 5
+   *
+   * Only takes affect when `forceDefaultExpand` is `true` or `undefined`
+   */
+  autoCollapseLimit?: number;
+
+  /**
    * Allows customization of how values are rendered
    */
   config?: StructedEventDataConfig;
@@ -44,7 +51,7 @@ interface BaseProps {
   /**
    * Set the max depth to expand items. Default: 2
    *
-   * Only items with 5 or fewer children can be auto-expanded.
+   * Only items with fewer children than the `autoCollapseLimit` (Default: 5)  can be auto-expanded.
    *
    * Only takes affect when `forceDefaultExpand` is `true` or `undefined`
    */
@@ -67,6 +74,7 @@ interface BaseProps {
 interface StructuredDataProps extends BaseProps {
   maxDefaultDepth: NonNullable<BaseProps['maxDefaultDepth']>;
   withAnnotatedText: boolean;
+  autoCollapseLimit?: BaseProps['autoCollapseLimit'];
   objectKey?: string;
   // TODO(TS): What possible types can `value` be?
   value?: any;
@@ -78,6 +86,7 @@ export function StructuredData({
   forceDefaultExpand,
   initialExpandedPaths,
   maxDefaultDepth,
+  autoCollapseLimit,
   meta,
   objectKey,
   onToggleExpand,
@@ -91,7 +100,7 @@ export function StructuredData({
       (forceDefaultExpand === false ||
       (forceDefaultExpand === undefined && !maxDefaultDepth)
         ? []
-        : getDefaultExpanded(Math.max(1, maxDefaultDepth), value))
+        : getDefaultExpanded(Math.max(1, maxDefaultDepth), value, autoCollapseLimit))
     );
 
     // No need to update if expand/collapse props changes, we're not going to
@@ -134,6 +143,7 @@ export default function StructuredEventData({
   forceDefaultExpand,
   initialExpandedPaths,
   maxDefaultDepth = 2,
+  autoCollapseLimit,
   meta,
   onCopy,
   onToggleExpand,
@@ -148,6 +158,7 @@ export default function StructuredEventData({
         forceDefaultExpand={forceDefaultExpand}
         initialExpandedPaths={initialExpandedPaths}
         maxDefaultDepth={maxDefaultDepth}
+        autoCollapseLimit={autoCollapseLimit}
         meta={meta}
         onToggleExpand={onToggleExpand}
         value={data}

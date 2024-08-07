@@ -1192,6 +1192,7 @@ class Factories:
                 install.sentry_app.status != SentryAppStatus.INTERNAL
             ):
                 assert install.api_grant is not None
+                assert install.sentry_app.application is not None
                 GrantExchanger.run(
                     install=rpc_install,
                     code=install.api_grant.code,
@@ -1943,6 +1944,7 @@ class Factories:
         url: str,
         interval_seconds: int,
         timeout_ms: int,
+        date_updated: datetime,
     ):
         return UptimeSubscription.objects.create(
             type=type,
@@ -1951,6 +1953,7 @@ class Factories:
             url=url,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
+            date_updated=date_updated,
         )
 
     @staticmethod

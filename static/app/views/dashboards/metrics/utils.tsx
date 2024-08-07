@@ -3,14 +3,13 @@ import {useMemo} from 'react';
 import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
-import {getDefaultAggregation, unescapeMetricsFormula} from 'sentry/utils/metrics';
-import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {
-  formatMRIField,
-  isExtractedCustomMetric,
-  MRIToField,
-  parseField,
-} from 'sentry/utils/metrics/mri';
+  getDefaultAggregation,
+  isVirtualMetric,
+  unescapeMetricsFormula,
+} from 'sentry/utils/metrics';
+import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
+import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/useMetricsTags';
@@ -120,8 +119,8 @@ export function getMetricQueries(
     let mri = parsed.mri;
     let condition: number | undefined = undefined;
     let aggregation = parsed.aggregation;
-    if (isExtractedCustomMetric({mri})) {
-      const resolved = getVirtualMRIQuery(mri, aggregation);
+    const resolved = getVirtualMRIQuery(mri, aggregation);
+    if (resolved) {
       if (resolved) {
         aggregation = resolved.aggregation;
         mri = resolved.mri;
@@ -310,3 +309,30 @@ export function defaultMetricWidget(): Widget {
     DisplayType.LINE
   );
 }
+
+export const isVirtualExpression = (expression: DashboardMetricsExpression) => {
+  if ('mri' in expression) {
+    return isVirtualMetric(expression);
+  }
+  return false;
+};
+
+export const isVirtualAlias = (alias?: string) => {
+  return alias?.startsWith('v|');
+};
+
+export const formatAlias = (alias?: string) => {
+  if (!alias) {
+    return alias;
+  }
+
+  if (!isVirtualAlias(alias)) {
+    return alias;
+  }
+
+  return alias.replace('v|', '');
+};
+
+export const getVirtualAlias = (aggregation, spanAttribute) => {
+  return `v|${aggregation}(${spanAttribute})`;
+};

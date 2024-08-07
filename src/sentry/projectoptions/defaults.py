@@ -118,6 +118,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "slow_db_queries_detection_enabled": True,
     "http_overhead_detection_enabled": True,
     "transaction_duration_regression_detection_enabled": True,
+    "function_duration_regression_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {

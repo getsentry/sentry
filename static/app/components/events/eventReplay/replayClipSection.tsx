@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,6 +18,9 @@ import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForI
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface Props {
   event: Event;
@@ -35,6 +37,7 @@ const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 
 export function ReplayClipSection({event, group, replayId}: Props) {
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const router = useRouter();
   const {getReplayCountForIssue} = useReplayCountForIssues();
 
@@ -78,39 +81,47 @@ export function ReplayClipSection({event, group, replayId}: Props) {
       </Fragment>
     ) : undefined;
 
+  const lazyReplay = (
+    <LazyLoad
+      analyticsContext="issue_details"
+      replaySlug={replayId}
+      orgSlug={organization.slug}
+      eventTimestampMs={eventTimestampMs}
+      fullReplayButtonProps={{
+        analyticsEventKey: 'issue_details.open_replay_details_clicked',
+        analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+        analyticsParams: {
+          ...getAnalyticsDataForEvent(event),
+          ...getAnalyticsDataForGroup(group),
+          organization,
+        },
+      }}
+      loadingFallback={
+        <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
+          <LoadingIndicator />
+        </StyledNegativeSpaceContainer>
+      }
+      LazyComponent={ReplayClipPreview}
+      clipOffsets={REPLAY_CLIP_OFFSETS}
+      overlayContent={overlayContent}
+    />
+  );
+
   return (
     <ReplaySectionMinHeight
-      type="replay"
       title={t('Session Replay')}
       actions={seeAllReplaysButton}
+      type={FoldSectionKey.REPLAY}
     >
       <ErrorBoundary mini>
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
-          <ReactLazyLoad debounce={50} height={448} offset={0} once>
-            <LazyLoad
-              analyticsContext="issue_details"
-              replaySlug={replayId}
-              orgSlug={organization.slug}
-              eventTimestampMs={eventTimestampMs}
-              fullReplayButtonProps={{
-                analyticsEventKey: 'issue_details.open_replay_details_clicked',
-                analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-                analyticsParams: {
-                  ...getAnalyticsDataForEvent(event),
-                  ...getAnalyticsDataForGroup(group),
-                  organization,
-                },
-              }}
-              loadingFallback={
-                <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
-                  <LoadingIndicator />
-                </StyledNegativeSpaceContainer>
-              }
-              LazyComponent={ReplayClipPreview}
-              clipOffsets={REPLAY_CLIP_OFFSETS}
-              overlayContent={overlayContent}
-            />
-          </ReactLazyLoad>
+          {hasStreamlinedUI ? (
+            lazyReplay
+          ) : (
+            <ReactLazyLoad debounce={50} height={448} offset={0} once>
+              {lazyReplay}
+            </ReactLazyLoad>
+          )}
         </ReplayGroupContextProvider>
       </ErrorBoundary>
     </ReplaySectionMinHeight>
@@ -118,7 +129,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
 }
 
 // The min-height here is due to max-height that is set in replayPreview.tsx
-const ReplaySectionMinHeight = styled(EventDataSection)`
+const ReplaySectionMinHeight = styled(InterimSection)`
   min-height: 557px;
 `;
 

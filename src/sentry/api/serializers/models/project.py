@@ -69,7 +69,6 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
     "race-free-group-creation",
-    "first-event-severity-new-escalation",
     "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",

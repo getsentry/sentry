@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {type CSSProperties, forwardRef, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -9,53 +9,59 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const LOCAL_STORAGE_PREFIX = 'fold-section-collapse-';
+const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
+
 export const enum FoldSectionKey {
-  // Suspect Commits & Traces
-  USER_FEEDBACK = 'issue-details-user-feedback', // In development
-  LLM_MONITORING = 'issue-details-llm-monitoring',
+  // View Full Trace
+  // Suspect Commits
 
-  UPTIME = 'issue-details-uptime', // Only Uptime issues
-  CRON = 'issue-details-cron-timeline', // Only Cron issues
+  USER_FEEDBACK = 'user-feedback',
+  LLM_MONITORING = 'llm-monitoring',
 
-  HIGHLIGHTS = 'issue-details-highlights',
-  RESOURCES = 'issue-details-resources', // Position controlled by flag
+  UPTIME = 'uptime', // Only Uptime issues
+  CRON = 'cron-timeline', // Only Cron issues
 
-  EVIDENCE = 'issue-details-evidence',
-  MESSAGE = 'issue-details-message',
-  STACK_TRACE = 'issue-details-stack-trace',
+  HIGHLIGHTS = 'highlights',
+  RESOURCES = 'resources', // Position controlled by flag
 
-  THREADS = 'issue-details-threads',
-  THREAD_STATE = 'issue-details-thread-state',
-  THREAD_TAGS = 'issue-details-thread-tags',
+  EXCEPTION = 'exception',
+  STACKTRACE = 'stacktrace',
+  SPANS = 'spans',
+  EVIDENCE = 'evidence',
+  MESSAGE = 'message',
 
-  // QuickTraceQuery -> todo
+  THREADS = 'threads',
+  THREAD_STATE = 'thread-state',
+  THREAD_TAGS = 'thread-tags',
 
-  SPAN_EVIDENCE = 'issue-details-span-evidence',
-  HYDRATION_DIFF = 'issue-details-hydration-diff',
-  REPLAY = 'issue-details-replay',
+  // QuickTraceQuery?
 
-  HPKP = 'issue-details-hpkp',
-  CSP = 'issue-details-csp',
-  EXPECTCT = 'issue-details-expectct',
-  TEMPLATE = 'issue-details-template',
+  SPAN_EVIDENCE = 'span-evidence',
+  HYDRATION_DIFF = 'hydration-diff',
+  REPLAY = 'replay',
 
-  BREADCRUMBS = 'issue-details-breadcrumbs',
-  DEBUGMETA = 'issue-details-debugmeta',
-  REQUEST = 'issue-details-request',
+  HPKP = 'hpkp',
+  CSP = 'csp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  TEMPLATE = 'template',
 
-  TAGS = 'issue-details-tags',
-  SCREENSHOT = 'issue-details-screenshot',
+  BREADCRUMBS = 'breadcrumbs',
+  DEBUGMETA = 'debugmeta',
+  REQUEST = 'request',
 
-  CONTEXTS = 'issue-details-contexts',
-  EXTRA = 'issue-details-extra',
-  PACKAGE = 'issue-details-package',
-  DEVICE = 'issue-details-device',
-  VIEW_HIERARCHY = 'issue-details-view-hierarchy',
-  ATTACHMENTS = 'issue-details-attachments',
-  SDK = 'issue-details-sdk',
-  GROUPING_INFO = 'issue-details-grouping-info',
-  RRWEB = 'issue-details-rrweb',
+  TAGS = 'tags',
+  SCREENSHOT = 'screenshot',
+
+  CONTEXTS = 'contexts',
+  EXTRA = 'extra',
+  PACKAGES = 'packages',
+  DEVICE = 'device',
+  VIEW_HIERARCHY = 'view-hierarchy',
+  ATTACHMENTS = 'attachments',
+  SDK = 'sdk',
+  GROUPING_INFO = 'grouping-info',
+  RRWEB = 'rrweb', // Legacy integration prior to replays
 }
 
 interface FoldSectionProps {
@@ -72,6 +78,7 @@ interface FoldSectionProps {
    * Actions associated with the section, only visible when open
    */
   actions?: React.ReactNode;
+  className?: string;
   /**
    * Should this section be initially open, gets overridden by user preferences
    */
@@ -80,17 +87,21 @@ interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
+  style?: CSSProperties;
 }
 
-export function FoldSection({
-  children,
-  title,
-  actions,
-  sectionKey,
-  initialCollapse = false,
-  preventCollapse = false,
-  ...props
-}: FoldSectionProps) {
+export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
+  {
+    children,
+    title,
+    actions,
+    sectionKey,
+    initialCollapse = false,
+    preventCollapse = false,
+    ...props
+  },
+  ref
+) {
   const organization = useOrganization();
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     `${LOCAL_STORAGE_PREFIX}${sectionKey}`,
@@ -114,7 +125,7 @@ export function FoldSection({
   );
 
   return (
-    <section {...props}>
+    <Section {...props} ref={ref} id={sectionKey}>
       <details open={!isCollapsed || preventCollapse}>
         <Summary
           preventCollapse={preventCollapse}
@@ -143,9 +154,11 @@ export function FoldSection({
           <Content>{children}</Content>
         </ErrorBoundary>
       </details>
-    </section>
+    </Section>
   );
-}
+});
+
+export const Section = styled('section')``;
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};

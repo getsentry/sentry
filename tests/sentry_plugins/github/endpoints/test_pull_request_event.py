@@ -59,6 +59,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.key == "1"
         assert pr.message == "This is a pretty simple change that we need to pull into master."
         assert pr.title == "Update the README with new information"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.author.email == "alberto@sentry.io"
 
@@ -100,6 +101,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.key == "1"
         assert pr.message == "new edited body"
         assert pr.title == "new edited title"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.author.email == "baxterthehacker@localhost"
 
@@ -143,6 +145,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.key == "1"
         assert pr.message == "new closed body"
         assert pr.title == "new closed title"
+        assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.author.email == "baxterthehacker@localhost"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"

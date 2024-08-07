@@ -92,7 +92,7 @@ if settings.ADDITIONAL_SAMPLED_TASKS:
 UNSAFE_TAG = "_unsafe"
 
 
-def _current_stack_filenames() -> Generator[str, None, None]:
+def _current_stack_filenames() -> Generator[str]:
     f: FrameType | None = sys._getframe()
     while f is not None:
         yield f.f_code.co_filename

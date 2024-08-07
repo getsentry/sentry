@@ -31,6 +31,7 @@ from sentry.integrations.models.integration_external_project import IntegrationE
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
@@ -42,7 +43,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
 )
 from sentry.silo.base import SiloMode
-from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -128,15 +128,12 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: RpcIdentity | None = None
 
-    def reinstall(self) -> None:
-        self.reinstall_repositories()
-
     def all_repos_migrated(self) -> bool:
         return not self.get_unmigratable_repositories()
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
         try:
-            repos = self.get_client(base_url=self.instance).get_repos()
+            repos = self.get_client().get_repos()
         except (ApiError, IdentityNotValid) as e:
             raise IntegrationError(self.message_from_error(e))
         data = []
@@ -157,7 +154,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
-        client = self.get_client(base_url=self.instance)
+        client = self.get_client()
         try:
             # since we don't actually use webhooks for vsts commits,
             # just verify repo access
@@ -166,9 +163,8 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             return False
         return True
 
-    def get_client(self, base_url: str | None = None) -> VstsApiClient:
-        if base_url is None:
-            base_url = self.instance
+    def get_client(self) -> VstsApiClient:
+        base_url = self.instance
         if SiloMode.get_current_mode() != SiloMode.REGION:
             if self.default_identity is None:
                 self.default_identity = self.get_default_identity()
@@ -196,8 +192,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         self.model.save()
 
     def get_organization_config(self) -> Sequence[Mapping[str, Any]]:
-        instance = self.model.metadata["domain_name"]
-        client = self.get_client(base_url=instance)
+        client = self.get_client()
 
         project_selector = []
         all_states_set = set()

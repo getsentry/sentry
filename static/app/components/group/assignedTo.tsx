@@ -1,14 +1,10 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import AssigneeSelectorDropdown, {
-  type AssignableEntity,
-} from 'sentry/components/assigneeSelectorDropdown';
+import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
@@ -17,6 +13,7 @@ import type {
   OnAssignCallback,
   SuggestedAssignee,
 } from 'sentry/components/deprecatedAssigneeSelectorDropdown';
+import {useHandleAssigneeChange} from 'sentry/components/group/assigneeSelector';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconSettings, IconUser} from 'sentry/icons';
@@ -28,8 +25,6 @@ import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
@@ -191,35 +186,10 @@ function AssignedTo({
     }
   );
 
-  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
-    AssignableEntity | null,
-    RequestError,
-    AssignableEntity | null
-  >({
-    mutationFn: async (
-      newAssignee: AssignableEntity | null
-    ): Promise<AssignableEntity | null> => {
-      if (newAssignee) {
-        await assignToActor({
-          id: group.id,
-          orgSlug: organization.slug,
-          actor: {id: newAssignee.id, type: newAssignee.type},
-          assignedBy: 'assignee_selector',
-        });
-        return Promise.resolve(newAssignee);
-      }
-
-      await clearAssignment(group.id, organization.slug, 'assignee_selector');
-      return Promise.resolve(null);
-    },
-    onSuccess: (newAssignee: AssignableEntity | null) => {
-      if (onAssign && newAssignee) {
-        onAssign(newAssignee.type, newAssignee.assignee, newAssignee.suggestedAssignee);
-      }
-    },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    organization,
+    group,
+    onAssign,
   });
 
   useEffect(() => {

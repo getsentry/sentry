@@ -464,6 +464,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
     resolved_with: event?.resolvedWith ?? [],
+    mobile: isMobilePlatform(event?.platform),
     error_has_replay: Boolean(getReplayIdFromEvent(event)),
     error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,

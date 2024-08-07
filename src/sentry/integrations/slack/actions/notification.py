@@ -71,7 +71,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 

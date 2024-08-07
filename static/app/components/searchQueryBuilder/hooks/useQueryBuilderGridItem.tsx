@@ -35,6 +35,11 @@ export function useQueryBuilderGridItem(
   // Returns true if the default behavior should be used, false if not.
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>, input: HTMLInputElement): boolean => {
+      // If the focus is within a combobox menu, let the combobox handle the event
+      if (input.hasAttribute('aria-activedescendant')) {
+        return false;
+      }
+
       if (input.selectionStart === 0 && input.selectionEnd === 0) {
         // At start and going left, focus the previous grid cell (default behavior)
         if (e.key === 'ArrowLeft') {

@@ -47,6 +47,7 @@ export type BaseEventAnalyticsParams = {
   frames_without_source_maps_percent?: number;
   has_graphql_request?: boolean;
   has_otel?: boolean;
+  mobile?: boolean;
   release_user_agent?: string;
   sdk_name?: string;
   sdk_version?: string;
@@ -133,6 +134,7 @@ export type TeamInsightsEventParameters = {
     suspect_commit_calculation: string;
     suspect_commit_index: number;
   };
+  'issue_details.suspect_commits.missing_user': {link: string};
   'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert & {
     suspect_commit_calculation: string;
     suspect_commit_index: number;
@@ -206,6 +208,8 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',
+  'issue_details.suspect_commits.missing_user':
+    'Issue Details: Suspect Commits Missing User',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
   'issue_details.merged_tab.unmerge_clicked': 'Issue Details: Unmerge Clicked',
   'issue_stream.updated_empty_state_viewed': 'Issue Stream: Updated Empty State Viewed',

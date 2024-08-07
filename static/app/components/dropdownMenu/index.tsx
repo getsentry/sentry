@@ -48,7 +48,7 @@ function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
   }, []);
 }
 
-interface DropdownMenuProps
+export interface DropdownMenuProps
   extends Omit<
       DropdownMenuListProps,
       'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
@@ -85,6 +85,10 @@ interface DropdownMenuProps
    */
   menuTitle?: React.ReactChild;
   /**
+   * Reference to the container element that the portal should be rendered into.
+   */
+  portalContainerRef?: React.RefObject<HTMLElement>;
+  /**
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
@@ -113,6 +117,7 @@ interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
+
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
@@ -149,6 +154,7 @@ function DropdownMenu({
   onOpenChange,
   preventOverflowOptions,
   flipOptions,
+  portalContainerRef,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -248,7 +254,9 @@ function DropdownMenu({
       </DropdownMenuList>
     );
 
-    return usePortal ? createPortal(menu, document.body) : menu;
+    return usePortal
+      ? createPortal(menu, portalContainerRef?.current ?? document.body)
+      : menu;
   }
 
   return (

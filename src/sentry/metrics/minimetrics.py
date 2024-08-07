@@ -8,10 +8,10 @@ from sentry_sdk.tracing import Span
 from sentry.metrics.base import MetricsBackend, Tags
 
 
-def _set_tags(span: Span, tags: Tags | None) -> None:
+def _attach_tags(span: Span, tags: Tags | None) -> None:
     if tags:
         for tag_key, tag_value in tags.items():
-            span.set_tag(tag_key, tag_value)
+            span.set_data(tag_key, tag_value)
 
 
 @metrics_noop
@@ -21,7 +21,7 @@ def _set_metric_on_span(key: str, value: float | int, op: str, tags: Tags | None
         return
 
     span_or_tx.set_data(key, value)
-    _set_tags(span_or_tx, tags)
+    _attach_tags(span_or_tx, tags)
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
@@ -57,13 +57,13 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 return
 
             if span_or_tx.op == key:
-                _set_tags(span_or_tx, tags)
+                _attach_tags(span_or_tx, tags)
                 return
 
             timestamp = datetime.now(timezone.utc)
             start_timestamp = timestamp - timedelta(seconds=value)
             span = span_or_tx.start_child(op=key, start_timestamp=start_timestamp)
-            _set_tags(span, tags)
+            _attach_tags(span, tags)
             span.finish(end_timestamp=timestamp)
 
     def gauge(

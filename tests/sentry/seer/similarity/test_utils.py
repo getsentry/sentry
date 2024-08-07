@@ -8,7 +8,7 @@ from sentry.seer.similarity.utils import (
     SEER_ELIGIBLE_PLATFORMS,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
-    filter_null_from_event_title,
+    filter_null_from_string,
     get_stacktrace_string,
 )
 from sentry.testutils.cases import TestCase
@@ -581,7 +581,7 @@ class GetStacktraceStringTest(TestCase):
             ["OuterException: no way"]
             + [
                 f'\n  File "hello.py", function hello_there\n    {{snip}}outer line {i}{{snip}}'
-                for i in range(1, 16)  #
+                for i in range(1, 16)
             ]
             + ["\nMiddleException: un-uh"]
             + [
@@ -593,7 +593,7 @@ class GetStacktraceStringTest(TestCase):
         assert stacktrace_str == expected
 
     def test_chained_too_many_frames_minified_js_frame_limit(self):
-        """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 50 frames."""
+        """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 30 frames."""
         for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
             data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
             data_chained_exception["app"]["component"]["values"][0]["values"] = [
@@ -634,6 +634,22 @@ class GetStacktraceStringTest(TestCase):
                 == expected_frame_count
             )
 
+    def test_chained_too_many_exceptions(self):
+        """Test that we restrict number of chained exceptions to 30."""
+        data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
+        data_chained_exception["app"]["component"]["values"][0]["values"] = [
+            self.create_exception(
+                exception_type_str="Exception",
+                exception_value=f"exception {i} message!",
+                frames=self.create_frames(num_frames=1, context_line_factory=lambda i: f"line {i}"),
+            )
+            for i in range(1, 32)
+        ]
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        for i in range(2, 32):
+            assert f"exception {i} message!" in stacktrace_str
+        assert "exception 1 message!" not in stacktrace_str
+
     def test_thread(self):
         stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
         assert stacktrace_str == 'File "", function TestHandler'
@@ -660,7 +676,7 @@ class GetStacktraceStringTest(TestCase):
         assert stacktrace_str == ""
 
     def test_over_30_contributing_frames(self):
-        """Check that when there are over 50 contributing frames, the last 30 are included."""
+        """Check that when there are over 30 contributing frames, the last 30 are included."""
 
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
@@ -691,7 +707,7 @@ class GetStacktraceStringTest(TestCase):
         assert num_frames == 30
 
     def test_too_many_frames_minified_js_frame_limit(self):
-        """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 50 frames."""
+        """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 30 frames."""
         for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
             data_frames = copy.deepcopy(self.BASE_APP_DATA)
             data_frames["app"]["component"]["values"] = [
@@ -718,6 +734,24 @@ class GetStacktraceStringTest(TestCase):
         assert _is_snipped_context_line("dogs are great {snip}") is True
         assert _is_snipped_context_line("{snip} dogs are great {snip}") is True
         assert _is_snipped_context_line("dogs are great") is False
+
+    def test_only_frame_text_base64_encoded_filename(self):
+        base64_filename = "data:text/html;base64 extra content that could be long and useless"
+        data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
+        data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
+            "values"
+        ][1]["values"][0] = base64_filename
+        stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
+        assert stacktrace_str == "ZeroDivisionError: division by zero"
+
+    def test_only_frame_js_base64_encoded_filename(self):
+        base64_filename = "data:text/javascript;base64 extra content that could be long and useless"
+        data_base64_encoded_filename = copy.deepcopy(self.BASE_APP_DATA)
+        data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
+            "values"
+        ][1]["values"][0] = base64_filename
+        stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
+        assert stacktrace_str == "ZeroDivisionError: division by zero"
 
 
 class EventContentIsSeerEligibleTest(TestCase):
@@ -786,6 +820,6 @@ class EventContentIsSeerEligibleTest(TestCase):
 
 
 class SeerUtilsTest(TestCase):
-    def test_filter_null_from_event_title(self):
-        title_with_null = 'Title with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
-        assert filter_null_from_event_title(title_with_null) == 'Title with null , "" is null'
+    def test_filter_null_from_string(self):
+        string_with_null = 'String with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
+        assert filter_null_from_string(string_with_null) == 'String with null , "" is null'

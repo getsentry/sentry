@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
+from typing import NotRequired, TypedDict
 
 from django.utils import timezone
 
@@ -10,13 +13,23 @@ from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PER
 logger = logging.getLogger(__name__)
 
 
-def mark_ok(checkin: MonitorCheckIn, ts: datetime):
+class _Params(TypedDict):
+    last_checkin: datetime
+    next_checkin: datetime
+    next_checkin_latest: datetime
+    status: NotRequired[int]
+
+
+def mark_ok(checkin: MonitorCheckIn, ts: datetime) -> None:
     monitor_env = checkin.monitor_environment
+
+    if monitor_env is None:
+        return None
 
     next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)
 
-    params = {
+    params: _Params = {
         "last_checkin": checkin.date_added,
         "next_checkin": next_checkin,
         "next_checkin_latest": next_checkin_latest,
@@ -64,8 +77,10 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
                     },
                 )
                 # if incident was longer than the broken env time, check if there was a broken detection that is also now resolved
-                if incident.starting_timestamp <= timezone.now() - timedelta(
-                    days=NUM_DAYS_BROKEN_PERIOD
+                if (
+                    incident.starting_timestamp is not None
+                    and incident.starting_timestamp
+                    <= timezone.now() - timedelta(days=NUM_DAYS_BROKEN_PERIOD)
                 ):
                     if incident.monitorenvbrokendetection_set.exists():
                         analytics.record(

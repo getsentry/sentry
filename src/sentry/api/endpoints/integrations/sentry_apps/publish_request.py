@@ -17,7 +17,7 @@ from sentry.utils import email
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def has_ui_component(self, sentry_app):

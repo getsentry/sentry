@@ -14,7 +14,6 @@ from django.urls import reverse
 
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
-from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import (
     API_ERRORS,
@@ -29,12 +28,14 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.cache import cache
 
@@ -398,6 +399,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert b"Invalid installation request." in resp.content
 
     @responses.activate
+    @override_options({"github-app.webhook-secret": ""})
     def test_github_user_mismatch(self):
         self._stub_github()
 

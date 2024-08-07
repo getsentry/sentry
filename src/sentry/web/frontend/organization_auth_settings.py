@@ -17,7 +17,7 @@ from sentry.auth.services.auth import RpcAuthProvider, auth_service
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
-from sentry.plugins.base import Response
+from sentry.plugins.base.response import DeferredResponse
 from sentry.tasks.auth import email_missing_links_control
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
@@ -196,9 +196,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
         view = provider.get_configure_view()
         response = view(request, organization, auth_provider)
-        if isinstance(response, HttpResponse):
-            return response
-        elif isinstance(response, Response):
+        if isinstance(response, DeferredResponse):
             response = response.render(
                 request,
                 {

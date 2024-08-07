@@ -1,13 +1,16 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {useApiQueries} from 'sentry/utils/queryClient';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {
   headerContent: React.ReactElement<any, any>;
@@ -15,6 +18,7 @@ type Props = ModalRenderProps & {
   project: Project;
   providerKeys: string[];
   bodyContent?: React.ReactElement<any, any>;
+  onAddIntegration?: () => void;
 };
 
 function MessagingIntegrationModal({
@@ -26,15 +30,24 @@ function MessagingIntegrationModal({
   providerKeys,
   organization,
   project,
+  onAddIntegration,
 }: Props) {
-  const [hasError, setHasError] = useState(false);
+  const queryResults = useApiQueries<{providers: IntegrationProvider[]}>(
+    providerKeys.map((providerKey: string) => [
+      `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+    ]),
+    {staleTime: Infinity}
+  );
 
-  useEffect(() => {
-    if (hasError) {
-      closeModal();
-      addErrorMessage(t('Failed to load integration data'));
-    }
-  }, [hasError, closeModal]);
+  if (queryResults.some(({isLoading}) => isLoading)) {
+    return null;
+  }
+
+  if (queryResults.some(({isError}) => isError)) {
+    closeModal();
+    addErrorMessage(t('Failed to load integration data'));
+    return null;
+  }
 
   return (
     <Fragment>
@@ -42,16 +55,29 @@ function MessagingIntegrationModal({
       <Body>
         {bodyContent}
         <IntegrationsWrapper>
-          {providerKeys.map((value: string) => {
+          {queryResults.map(result => {
+            const provider = result.data?.providers[0];
+
+            if (!provider) {
+              return null;
+            }
             return (
-              <AddIntegrationRow
-                key={value}
-                providerKey={value}
-                organization={organization}
-                project={project}
-                onClickHandler={closeModal}
-                setHasError={setHasError}
-              />
+              <IntegrationContext.Provider
+                key={provider.key}
+                value={{
+                  provider: provider,
+                  type: 'first_party',
+                  installStatus: 'Not Installed',
+                  analyticsParams: {
+                    already_installed: false,
+                    view: 'onboarding',
+                  },
+                  onAddIntegration: onAddIntegration,
+                  modalParams: {projectId: project.id},
+                }}
+              >
+                <AddIntegrationRow organization={organization} onClick={closeModal} />
+              </IntegrationContext.Provider>
             );
           })}
         </IntegrationsWrapper>

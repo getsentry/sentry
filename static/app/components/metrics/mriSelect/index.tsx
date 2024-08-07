@@ -1,13 +1,15 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
-import {IconProject, IconWarning} from 'sentry/icons';
+import {IconAdd, IconInfo, IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
@@ -28,6 +30,7 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 import {MetricListItemDetails} from './metricListItemDetails';
 
@@ -76,7 +79,7 @@ export function getMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
   for (const metric of metrics) {
     const parsedMri = parseMRI(metric.mri);
     // Include the use case to avoid warning of conflicts between different use cases
-    const metricName = `${parsedMri.useCase}_${parsedMri.name}`;
+    const metricName = `${parsedMri.type}_${parsedMri.useCase}_${parsedMri.name}`;
 
     if (metricNameMap.has(metricName)) {
       const mapEntry = metricNameMap.get(metricName);
@@ -114,6 +117,7 @@ const SEARCH_OPTIONS: Fuse.IFuseOptions<any> = {
   ignoreLocation: true,
   includeScore: false,
   includeMatches: false,
+  minMatchCharLength: 1,
 };
 
 function useFilteredMRIs(
@@ -155,6 +159,7 @@ export const MRISelect = memo(function MRISelect({
   isLoading,
   value,
 }: MRISelectProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
   const mriMode = useMriMode();
@@ -261,14 +266,15 @@ export const MRISelect = memo(function MRISelect({
         if (isDuplicateWithDifferentUnit) {
           trailingItems.push(<IconWarning key="warning" size="xs" color="yellow400" />);
         }
-        if (parsedMRI.useCase === 'custom' && !mriMode) {
+        if (
+          parsedMRI.useCase === 'custom' &&
+          parsedMRI.type !== 'v' &&
+          !isUnresolvedExtractedMetric &&
+          !mriMode
+        ) {
           trailingItems.push(
             <CustomMetricInfoText key="text">
-              {parsedMRI.type === 'v' ||
-              !hasExtractionRules ||
-              isUnresolvedExtractedMetric
-                ? t('Custom')
-                : t('Deprecated')}
+              {hasExtractionRules ? t('Deprecated') : t('Custom')}
             </CustomMetricInfoText>
           );
         }
@@ -315,7 +321,7 @@ export const MRISelect = memo(function MRISelect({
         isLoading={isLoading}
         loadingMessage={t('Loading\u2026')}
         menuSize="sm"
-        menuWidth="450px"
+        menuWidth="450px" // TODO(priscilawebdev): update this value for small screens
         onChange={handleMRIChange}
         onInputChange={setInputValue}
         onOpenChange={onOpenMenu}
@@ -324,6 +330,35 @@ export const MRISelect = memo(function MRISelect({
         size="md"
         sizeLimit={100}
         value={value}
+        menuFooter={
+          isLoading
+            ? undefined
+            : ({closeOverlay}) => (
+                <FlexBlock>
+                  <Button
+                    icon={<IconAdd isCircled />}
+                    priority="primary"
+                    onClick={() => {
+                      closeOverlay();
+                      openExtractionRuleCreateModal({});
+                    }}
+                    size="xs"
+                  >
+                    {t('Create Metric')}
+                  </Button>
+                  <FlexBlock
+                    css={css`
+                      gap: ${space(0.75)};
+                      color: ${theme.subText};
+                      font-size: ${theme.fontSizeSmall};
+                    `}
+                  >
+                    <IconInfo size="xs" />
+                    {t('Don’t see your span attribute? Create Metric.')}
+                  </FlexBlock>
+                </FlexBlock>
+              )
+        }
       />
     );
   }
@@ -355,4 +390,10 @@ export const MRISelect = memo(function MRISelect({
 
 const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const FlexBlock = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
