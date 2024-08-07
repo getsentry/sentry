@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
-import type {Client} from 'sentry/api';
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {IntegrationLink} from 'sentry/components/issueSyncListElement';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
@@ -11,14 +10,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {
-  Group,
-  Organization,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
@@ -27,7 +26,6 @@ import useApi from 'sentry/utils/useApi';
 import SentryAppExternalIssueModal from './sentryAppExternalIssueModal';
 
 type Props = {
-  api: Client;
   event: Event;
   group: Group;
   organization: Organization;
@@ -47,7 +45,7 @@ function SentryAppExternalIssueActions({
   externalIssue,
 }: Props) {
   const api = useApi();
-  const {onDeleteIssue} = useExternalIssues({group, organization});
+  const {onDeleteExternalIssue} = useExternalIssues({group, organization});
 
   const doOpenModal = (e?: React.MouseEvent) => {
     // Only show the modal when we don't have a linked issue
@@ -88,7 +86,7 @@ function SentryAppExternalIssueActions({
 
     deleteExternalIssue(api, group.id, externalIssue.id)
       .then(_data => {
-        onDeleteIssue(externalIssue);
+        onDeleteExternalIssue(externalIssue);
         addSuccessMessage(t('Successfully unlinked issue.'));
       })
       .catch(_error => {

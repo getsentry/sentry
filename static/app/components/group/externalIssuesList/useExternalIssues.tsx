@@ -29,7 +29,7 @@ export function useExternalIssues({group, organization}: UseExternalIssuesOption
     {staleTime: 60_000}
   );
 
-  const onCreateIssue = useCallback(
+  const onCreateExternalIssue = useCallback(
     (issue: PlatformExternalIssue) => {
       setApiQueryData<PlatformExternalIssue[]>(
         queryClient,
@@ -40,7 +40,7 @@ export function useExternalIssues({group, organization}: UseExternalIssuesOption
     [queryClient, group, organization]
   );
 
-  const onDeleteIssue = useCallback(
+  const onDeleteExternalIssue = useCallback(
     (issue: PlatformExternalIssue) => {
       setApiQueryData<PlatformExternalIssue[]>(
         queryClient,
@@ -52,8 +52,8 @@ export function useExternalIssues({group, organization}: UseExternalIssuesOption
   );
 
   return {
-    onDeleteIssue,
-    onCreateIssue,
+    onDeleteExternalIssue,
+    onCreateExternalIssue,
     isLoading,
     data,
   };

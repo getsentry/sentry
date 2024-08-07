@@ -33,7 +33,7 @@ function SentryAppExternalIssueForm({
   sentryAppInstallation,
 }: Props) {
   const organization = useOrganization();
-  const {onCreateIssue} = useExternalIssues({group, organization});
+  const {onCreateExternalIssue} = useExternalIssues({group, organization});
   const contentArr = getStacktraceBody(event);
   const isFeedback = (group.issueCategory as string) === 'feedback';
 
@@ -50,7 +50,7 @@ function SentryAppExternalIssueForm({
       extraFields={{groupId: group.id}}
       extraRequestBody={{projectId: group.project.id}}
       onSubmitSuccess={(issue: PlatformExternalIssue) => {
-        onCreateIssue(issue);
+        onCreateExternalIssue(issue);
         onSubmitSuccess(issue);
       }}
       // Needs to bind to access this.props
