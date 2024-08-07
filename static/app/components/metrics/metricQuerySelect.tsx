@@ -11,6 +11,8 @@ import {
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
+import {type ParseResult, parseSearch} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconInfo, IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -36,6 +38,17 @@ interface Props {
   conditionId?: number;
 }
 
+function parseConditionValue(condition?: MetricsExtractionCondition) {
+  if (condition?.value) {
+    try {
+      return parseSearch(condition.value);
+    } catch {
+      // Ignore
+    }
+  }
+  return null;
+}
+
 export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -52,13 +65,13 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
   };
 
   const spanConditions = getConditions(mri);
+  const selectedCondition = spanConditions.find(c => c.id === conditionId);
+  const hasBuiltInCondition = spanConditions.some(c => c.id === BUILT_IN_CONDITION_ID);
 
   const hasMultipleProjects =
     pageFilters.selection.projects.length > 1 ||
     pageFilters.selection.projects[0] === -1 ||
     pageFilters.selection.projects.length === 0;
-
-  const hasBuiltInCondition = spanConditions.some(c => c.id === BUILT_IN_CONDITION_ID);
 
   const options: SelectOptionOrSection<number>[] = useMemo(() => {
     let builtInOption: SelectOption<number> | null = null;
@@ -76,9 +89,16 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
           return;
         }
         const section = sectionMap.get(projectId) ?? [];
+        const parsed = parseConditionValue(condition);
         section.push({
           label: condition.value ? (
-            <QueryLabel>{condition.value}</QueryLabel>
+            parsed ? (
+              <Highlight>
+                <HighlightQuery parsedQuery={parsed} />
+              </Highlight>
+            ) : (
+              condition.value
+            )
           ) : (
             t('All Spans')
           ),
@@ -150,10 +170,28 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
     leadingIcon = <CardinalityWarningIcon />;
   }
 
+  const parsedQuery = useMemo<ParseResult | null>(
+    () => parseConditionValue(selectedCondition),
+    [selectedCondition]
+  );
+
   if (hasMetricsNewInputs(organization)) {
     return (
       <QueryFieldGroup.CompactSelect
         size="md"
+        triggerLabel={
+          selectedCondition?.value ? (
+            parsedQuery ? (
+              <Highlight>
+                <HighlightQuery parsedQuery={parsedQuery} />
+              </Highlight>
+            ) : (
+              selectedCondition.value
+            )
+          ) : (
+            t('All Spans')
+          )
+        }
         triggerProps={{
           icon: leadingIcon,
         }}
@@ -290,8 +328,15 @@ const QueryFooterWrapper = styled('div')`
   min-width: 250px;
 `;
 
-const QueryLabel = styled('code')`
-  padding-left: 0;
+const Highlight = styled('span')`
+  padding: ${space(0.5)} ${space(0.25)};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: ${p => p.theme.fontSizeSmall};
+  gap: ${space(1)};
+  display: flex;
+  white-space: nowrap;
+  font-family: ${p => p.theme.text.familyMono};
+  font-weight: 400;
   max-width: 350px;
-  ${p => p.theme.overflowEllipsis}
 `;
