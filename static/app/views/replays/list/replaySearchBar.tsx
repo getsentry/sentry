@@ -92,7 +92,7 @@ function getFilterKeySections(
   return [
     {
       value: 'replay_field',
-      label: t('Replay fields'),
+      label: t('Replay Fields'),
       children: REPLAY_FIELDS,
     },
     {
