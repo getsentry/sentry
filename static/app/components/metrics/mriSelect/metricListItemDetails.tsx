@@ -70,7 +70,9 @@ export function MetricListItemDetails({
       return false;
     }
     // We only wnat to disable the query if there is no data in the cache
-    const queryKey = getMetricsTagsQueryKey(organization, metric.mri);
+    const queryKey = getMetricsTagsQueryKey(organization, metric.mri, {
+      projects: projectIds,
+    });
     const data = queryClient.getQueryData(queryKey);
     return !!data;
   });
