@@ -5,6 +5,7 @@ import {components as SelectComponents} from 'react-select';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
+import SelectOption from 'sentry/components/forms/controls/selectOption';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -114,70 +115,104 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
           disabledReason,
           model,
           name,
+          placeholder,
           ...props
-        }) => (
-          <Tooltip title={disabledReason} disabled={!disabled}>
-            <SelectControl
-              {...props}
-              disabled={disabled}
-              inputId={id}
-              clearable={allowClear}
-              multiple={multiple}
-              components={{
-                IndicatorsContainer: ({
-                  children,
-                  ...indicatorsProps
-                }: React.ComponentProps<typeof SelectComponents.IndicatorsContainer>) => (
-                  <SelectComponents.IndicatorsContainer {...indicatorsProps}>
-                    {!hideControlState && (
-                      <FormFieldControlState model={model} name={name} />
-                    )}
-                    {children}
-                  </SelectComponents.IndicatorsContainer>
-                ),
-                ...components,
-              }}
-              styles={{
-                control: provided => ({
-                  ...provided,
-                  height: 'auto',
-                }),
-                ...props.styles,
-              }}
-              onChange={val => {
-                try {
-                  if (!confirm) {
-                    this.handleChange(onBlur, onChange, val);
-                    return;
-                  }
+        }) => {
+          const showTempNoneOption = !multiple && !props.value;
 
-                  // Support 'confirming' selections. This only works with
-                  // `val` objects that use the new-style options format
-                  const previousValue = props.value?.toString();
-                  // `val` may be null if clearing the select for an optional field
-                  const newValue = val?.value?.toString();
-
-                  // Value not marked for confirmation, or hasn't changed
-                  if (!confirm[newValue] || previousValue === newValue) {
-                    this.handleChange(onBlur, onChange, val);
-                    return;
-                  }
-
-                  openConfirmModal({
-                    onConfirm: () => this.handleChange(onBlur, onChange, val),
-                    message: confirm[val?.value] ?? t('Continue with these changes?'),
-                  });
-                } catch (e) {
-                  // Swallow expected error to prevent bubbling up.
-                  if (e.message === 'Invalid selection. Field cannot be empty.') {
-                    return;
-                  }
-                  throw e;
+          return (
+            <Tooltip title={disabledReason} disabled={!disabled}>
+              <SelectControl
+                {...props}
+                value={showTempNoneOption ? undefined : props.value}
+                options={
+                  showTempNoneOption && Array.isArray(props.options)
+                    ? [{label: placeholder, value: props.value}, ...props.options]
+                    : props.options
                 }
-              }}
-            />
-          </Tooltip>
-        )}
+                choices={
+                  showTempNoneOption && Array.isArray(props.choices)
+                    ? [[placeholder, props.value], ...props.choices]
+                    : props.choices
+                }
+                placeholder={placeholder}
+                disabled={disabled}
+                inputId={id}
+                clearable={allowClear}
+                multiple={multiple}
+                controlShouldRenderValue={!showTempNoneOption}
+                components={{
+                  IndicatorsContainer: ({
+                    children,
+                    ...indicatorsProps
+                  }: React.ComponentProps<
+                    typeof SelectComponents.IndicatorsContainer
+                  >) => (
+                    <SelectComponents.IndicatorsContainer {...indicatorsProps}>
+                      {!hideControlState && (
+                        <FormFieldControlState model={model} name={name} />
+                      )}
+                      {children}
+                    </SelectComponents.IndicatorsContainer>
+                  ),
+                  Option: (
+                    optionProps: React.ComponentProps<typeof SelectComponents.Option>
+                  ) => {
+                    return (
+                      <SelectOption
+                        {...optionProps}
+                        isSelected={
+                          optionProps.label === placeholder
+                            ? true
+                            : optionProps.isSelected
+                        }
+                      />
+                    );
+                  },
+                  ...components,
+                }}
+                styles={{
+                  control: provided => ({
+                    ...provided,
+                    height: 'auto',
+                  }),
+                  ...props.styles,
+                }}
+                onChange={val => {
+                  try {
+                    if (!confirm) {
+                      this.handleChange(onBlur, onChange, val);
+                      return;
+                    }
+
+                    // Support 'confirming' selections. This only works with
+                    // `val` objects that use the new-style options format
+                    const previousValue = props.value?.toString();
+                    // `val` may be null if clearing the select for an optional field
+                    const newValue = val?.value?.toString();
+
+                    // Value not marked for confirmation, or hasn't changed
+                    if (!confirm[newValue] || previousValue === newValue) {
+                      this.handleChange(onBlur, onChange, val);
+                      return;
+                    }
+
+                    openConfirmModal({
+                      onConfirm: () => this.handleChange(onBlur, onChange, val),
+                      message: confirm[val?.value] ?? t('Continue with these changes?'),
+                    });
+                  } catch (e) {
+                    // Swallow expected error to prevent bubbling up.
+                    if (e.message === 'Invalid selection. Field cannot be empty.') {
+                      return;
+                    }
+                    throw e;
+                  }
+                }}
+              />
+            </Tooltip>
+          );
+        }}
       </FormField>
     );
   }
