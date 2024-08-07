@@ -645,7 +645,7 @@ function getEventsSeriesRequest(
   return doEventsRequest<true>(api, requestData);
 }
 
-export async function doOnDemandMetricsRequest(
+export function doOnDemandMetricsRequest(
   api,
   requestData
 ): Promise<
@@ -657,7 +657,7 @@ export async function doOnDemandMetricsRequest(
     const fetchEstimatedStats = () =>
       `/organizations/${requestData.organization.slug}/metrics-estimation-stats/`;
 
-    const response = await doEventsRequest<false>(api, {
+    return doEventsRequest<true>(api, {
       ...requestData,
       queryExtras: {
         ...requestData.queryExtras,
@@ -667,10 +667,6 @@ export async function doOnDemandMetricsRequest(
       dataset: 'metricsEnhanced',
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
     });
-
-    response[0] = {...response[0]};
-
-    return [response[0], response[1], response[2]];
   } catch (err) {
     Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});
     return doEventsRequest<true>(api, requestData);
