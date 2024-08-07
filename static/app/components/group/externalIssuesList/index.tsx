@@ -83,7 +83,6 @@ export default function ExternalIssueList({group, event, project}: Props) {
             {t('Track this issue in Jira, GitHub, etc.')}
           </AlertLink>
         )}
-        {}
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );

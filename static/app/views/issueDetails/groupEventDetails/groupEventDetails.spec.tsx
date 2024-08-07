@@ -244,6 +244,7 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+    body: [],
   });
 
   MockApiClient.addMockResponse({
