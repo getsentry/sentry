@@ -493,7 +493,7 @@ export function MetricsExtractionRuleForm({
                 {isCardinalityLimited && (
                   <Tooltip
                     title={t(
-                      'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
+                      'One of the selected tags is exceeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
                     )}
                   >
                     <StyledIconWarning size="xs" color="yellow300" />
