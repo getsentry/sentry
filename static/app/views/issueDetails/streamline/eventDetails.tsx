@@ -2,22 +2,29 @@ import {createContext, useContext, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {space} from 'sentry/styles/space';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   DefaultGroupEventDetailsContent,
   type GroupEventDetailsContentProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
-import {Section} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+import {
+  DEFAULT_SECTION_DATA,
+  type FoldSectionKey,
+  Section,
+} from 'sentry/views/issueDetails/streamline/foldSection';
 
-interface EventDetailsContextType {
+export interface EventDetailsContextType {
   searchQuery: string;
+  sectionData: Record<FoldSectionKey, {isOpen: boolean}>;
 }
 
 const EventDetailsContext = createContext<EventDetailsContextType>({
   searchQuery: '',
+  sectionData: DEFAULT_SECTION_DATA,
 });
 
 export function useEventDetailsContext() {
@@ -30,21 +37,26 @@ export function EventDetails({
   project,
 }: Required<GroupEventDetailsContentProps>) {
   const navRef = useRef<HTMLDivElement>(null);
+  const {selection} = usePageFilters();
+  const {environments} = selection;
   const [eventDetails, setEventDetails] = useState<EventDetailsContextType>({
     searchQuery: '',
+    sectionData: DEFAULT_SECTION_DATA,
   });
-  const environments = useEnvironmentsFromUrl();
 
   return (
     <EventDetailsContext.Provider value={eventDetails}>
       <FilterContainer>
-        <EventSearch
-          environments={environments}
+        <EnvironmentPageFilter />
+        <SearchFilter
           group={group}
-          handleSearch={searchQuery => setEventDetails({...eventDetails, searchQuery})}
-          query={''}
+          handleSearch={searchQuery => {
+            setEventDetails(details => ({...details, searchQuery}));
+          }}
+          environments={environments}
+          query={eventDetails.searchQuery}
         />
-        <DatePageFilter style={{flex: 1}} />
+        <DatePageFilter />
       </FilterContainer>
       <GroupContent navHeight={navRef?.current?.offsetHeight}>
         <FloatingEventNavigation event={event} group={group} ref={navRef} />
@@ -68,6 +80,10 @@ const FloatingEventNavigation = styled(EventNavigation)`
   border-radius: 6px 6px 0 0;
 `;
 
+const SearchFilter = styled(EventSearch)`
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
 const GroupContent = styled('div')<{navHeight?: number}>`
   border: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.background};
@@ -84,6 +100,6 @@ const GroupContentPadding = styled('div')`
 
 const FilterContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   gap: ${space(1)};
 `;

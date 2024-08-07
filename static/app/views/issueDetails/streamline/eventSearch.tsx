@@ -20,6 +20,7 @@ interface EventSearchProps {
   group: Group;
   handleSearch: (value: string) => void;
   query: string;
+  className?: string;
 }
 
 function getFilterKeySections(tags: TagCollection): FilterKeySection[] {
@@ -51,6 +52,7 @@ function getFilterKeySections(tags: TagCollection): FilterKeySection[] {
 }
 
 export function EventSearch({
+  className,
   query,
   group,
   environments,
@@ -126,6 +128,7 @@ export function EventSearch({
       getTagValues={getTagValues}
       placeholder={t('Search events...')}
       searchSource="issue_events_tab"
+      className={className}
     />
   );
 }
