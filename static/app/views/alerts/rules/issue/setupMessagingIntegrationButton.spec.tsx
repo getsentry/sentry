@@ -17,50 +17,43 @@ describe('SetupAlertIntegrationButton', function () {
   const getComponent = () => (
     <SetupMessagingIntegrationButton
       projectSlug={project.slug}
-      organization={organization}
       refetchConfigs={jest.fn()}
     />
   );
 
   it('renders when no integration is installed', async function () {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/?expand=hasAlertIntegration`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       body: {
         ...project,
         hasAlertIntegrationInstalled: false,
       },
     });
-    render(getComponent());
+    render(getComponent(), {organization: organization});
     await screen.findByRole('button', {name: /connect to messaging/i});
   });
 
   it('does not render button if alert integration installed when feature flag is on', function () {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/?expand=hasAlertIntegration`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       body: {
         ...project,
         hasAlertIntegrationInstalled: true,
       },
     });
-    const {container} = render(getComponent());
-    expect(container).not.toHaveTextContent('Connect to messaging');
+    render(getComponent(), {organization: organization});
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('opens modal when clicked', async function () {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/?expand=hasAlertIntegration`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       body: {
         ...project,
         hasAlertIntegrationInstalled: false,
       },
     });
-    render(
-      <SetupMessagingIntegrationButton
-        projectSlug={project.slug}
-        organization={organization}
-        refetchConfigs={jest.fn()}
-      />
-    );
+    render(getComponent(), {organization: organization});
     const button = await screen.findByRole('button', {name: /connect to messaging/i});
     await userEvent.click(button);
     expect(openModal).toHaveBeenCalled();

@@ -7,24 +7,24 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
+interface ProjectWithAlertIntegrationInfo extends Project {
+  hasAlertIntegrationInstalled: boolean;
+}
+
 type Props = {
-  organization: Organization;
   projectSlug: string;
   refetchConfigs: () => void;
 };
 
-function SetupMessagingIntegrationButton({
-  organization,
-  projectSlug,
-  refetchConfigs,
-}: Props) {
+function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
   const providerKeys = ['slack', 'discord', 'msteams'];
+  const organization = useOrganization();
 
   const onAddIntegration = () => {
     refetch();
@@ -36,29 +36,28 @@ function SetupMessagingIntegrationButton({
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<{}>(
-    [`/projects/${organization.slug}/${projectSlug}/?expand=hasAlertIntegration`],
+  } = useApiQuery<ProjectWithAlertIntegrationInfo>(
+    [
+      `/projects/${organization.slug}/${projectSlug}/`,
+      {query: {expand: 'hasAlertIntegration'}},
+    ],
     {staleTime: Infinity}
   );
 
-  const detailedProject = project as Project & {
-    hasAlertIntegrationInstalled: boolean;
-  };
-
   useEffect(() => {
-    if (detailedProject && !detailedProject.hasAlertIntegrationInstalled) {
+    if (project && !project.hasAlertIntegrationInstalled) {
       trackAnalytics('onboarding.messaging_integration_button_rendered', {
-        project_id: detailedProject.id,
+        project_id: project.id,
         organization,
       });
     }
-  }, [detailedProject, organization]);
+  }, [project, organization]);
 
   if (isLoading || isError) {
     return null;
   }
 
-  if (!detailedProject || detailedProject.hasAlertIntegrationInstalled) {
+  if (!project || project.hasAlertIntegrationInstalled) {
     return null;
   }
 
@@ -76,24 +75,28 @@ function SetupMessagingIntegrationButton({
             })}
           </IconWrapper>
         }
-        onClick={() =>
+        onClick={() => {
           openModal(
             deps => (
               <MessagingIntegrationModal
                 {...deps}
-                headerContent={<h1>Connect with a messaging tool</h1>}
-                bodyContent={<p>Receive alerts and digests right where you work.</p>}
+                headerContent={t('Connect with a messaging tool')}
+                bodyContent={t('Receive alerts and digests right where you work.')}
                 providerKeys={providerKeys}
                 organization={organization}
-                project={detailedProject}
+                project={project}
                 onAddIntegration={onAddIntegration}
               />
             ),
             {
               closeEvents: 'escape-key',
             }
-          )
-        }
+          );
+          trackAnalytics('onboarding.messaging_integration_modal_rendered', {
+            project_id: project.id,
+            organization,
+          });
+        }}
       >
         {t('Connect to messaging')}
       </Button>

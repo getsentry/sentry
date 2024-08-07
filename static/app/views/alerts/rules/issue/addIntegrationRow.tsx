@@ -4,17 +4,17 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = {
   onClick: () => void;
-  organization: Organization;
 };
 
-function AddIntegrationRow({organization, onClick}: Props) {
+function AddIntegrationRow({onClick}: Props) {
+  const organization = useOrganization();
   const integration = useContext(IntegrationContext);
   if (!integration) {
     return null;
@@ -48,7 +48,6 @@ function AddIntegrationRow({organization, onClick}: Props) {
         {({hasAccess}) => {
           return (
             <StyledButton
-              organization={organization}
               userHasAccess={hasAccess}
               onAddIntegration={onAddIntegration}
               onExternalClick={onExternalClick}

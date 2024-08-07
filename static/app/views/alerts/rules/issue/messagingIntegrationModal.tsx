@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -8,17 +8,16 @@ import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {
-  headerContent: React.ReactElement<any, any>;
+  headerContent: string;
   organization: Organization;
   project: Project;
   providerKeys: string[];
-  bodyContent?: React.ReactElement<any, any>;
+  bodyContent?: string;
   onAddIntegration?: () => void;
 };
 
@@ -33,13 +32,6 @@ function MessagingIntegrationModal({
   project,
   onAddIntegration,
 }: Props) {
-  useEffect(() => {
-    trackAnalytics('onboarding.messaging_integration_modal_rendered', {
-      project_id: project.id,
-      organization,
-    });
-  }, [project.id, organization]);
-
   const queryResults = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
       `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
@@ -59,9 +51,11 @@ function MessagingIntegrationModal({
 
   return (
     <Fragment>
-      <Header closeButton>{headerContent}</Header>
+      <Header closeButton>
+        <h1>{headerContent}</h1>
+      </Header>
       <Body>
-        {bodyContent}
+        <p>{bodyContent}</p>
         <IntegrationsWrapper>
           {queryResults.map(result => {
             const provider = result.data?.providers[0];
@@ -84,7 +78,7 @@ function MessagingIntegrationModal({
                   modalParams: {projectId: project.id},
                 }}
               >
-                <AddIntegrationRow organization={organization} onClick={closeModal} />
+                <AddIntegrationRow onClick={closeModal} />
               </IntegrationContext.Provider>
             );
           })}
