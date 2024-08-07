@@ -1,3 +1,4 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -13,6 +14,10 @@ describe('SetupAlertIntegrationButton', function () {
     features: ['messaging-integration-onboarding'],
   });
   const project = ProjectFixture();
+  const providers = (providerKey: string) => [
+    GitHubIntegrationProviderFixture({key: providerKey}),
+  ];
+  const providerKey = 'slack';
 
   const getComponent = () => (
     <SetupMessagingIntegrationButton
@@ -20,6 +25,15 @@ describe('SetupAlertIntegrationButton', function () {
       refetchConfigs={jest.fn()}
     />
   );
+
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+      body: {providers: providers(providerKey)},
+    });
+    jest.clearAllMocks();
+  });
 
   it('renders when no integration is installed', async function () {
     MockApiClient.addMockResponse({
@@ -33,7 +47,7 @@ describe('SetupAlertIntegrationButton', function () {
     await screen.findByRole('button', {name: /connect to messaging/i});
   });
 
-  it('does not render button if alert integration installed when feature flag is on', function () {
+  it('does not render button if alert integration installed', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: {
@@ -57,5 +71,15 @@ describe('SetupAlertIntegrationButton', function () {
     const button = await screen.findByRole('button', {name: /connect to messaging/i});
     await userEvent.click(button);
     expect(openModal).toHaveBeenCalled();
+  });
+
+  it('returns null if project is loading', function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      statusCode: 400,
+      body: {error: 'internal error'},
+    });
+    render(getComponent(), {organization: organization});
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
