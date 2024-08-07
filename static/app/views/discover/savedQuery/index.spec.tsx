@@ -54,12 +54,12 @@ describe('Discover > SaveQueryButtonGroup', function () {
   const router = {
     location: {query: {}},
   };
+  const yAxis = ['count()', 'failure_count()'];
 
   beforeEach(() => {
     organization = OrganizationFixture({
       features: ['discover-query', 'dashboards-edit'],
     });
-    const yAxis = ['count()', 'failure_count()'];
 
     errorsQuery = {
       ...(getAllViews(organization).find(
