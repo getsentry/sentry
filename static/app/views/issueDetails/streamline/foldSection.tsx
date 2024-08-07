@@ -8,101 +8,16 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {EventDetailsContextType} from 'sentry/views/issueDetails/streamline/eventDetails';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
 
 const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
-
-export const enum FoldSectionKey {
-  TRACE = 'trace',
-
-  USER_FEEDBACK = 'user-feedback',
-  LLM_MONITORING = 'llm-monitoring',
-
-  UPTIME = 'uptime', // Only Uptime issues
-  CRON = 'cron-timeline', // Only Cron issues
-
-  HIGHLIGHTS = 'highlights',
-  RESOURCES = 'resources', // Position controlled by flag
-
-  EXCEPTION = 'exception',
-  STACKTRACE = 'stacktrace',
-  SPANS = 'spans',
-  EVIDENCE = 'evidence',
-  MESSAGE = 'message',
-
-  // QuickTraceQuery?
-
-  SPAN_EVIDENCE = 'span-evidence',
-  HYDRATION_DIFF = 'hydration-diff',
-  REPLAY = 'replay',
-
-  HPKP = 'hpkp',
-  CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
-  TEMPLATE = 'template',
-
-  BREADCRUMBS = 'breadcrumbs',
-  DEBUGMETA = 'debugmeta',
-  REQUEST = 'request',
-
-  TAGS = 'tags',
-  SCREENSHOT = 'screenshot',
-
-  CONTEXTS = 'contexts',
-  EXTRA = 'extra',
-  PACKAGES = 'packages',
-  DEVICE = 'device',
-  VIEW_HIERARCHY = 'view-hierarchy',
-  ATTACHMENTS = 'attachments',
-  SDK = 'sdk',
-  GROUPING_INFO = 'grouping-info',
-  RRWEB = 'rrweb', // Legacy integration prior to replays
-}
-
-export const DEFAULT_SECTION_DATA: EventDetailsContextType['sectionData'] = {
-  [FoldSectionKey.TRACE]: {isOpen: true},
-  [FoldSectionKey.USER_FEEDBACK]: {isOpen: true},
-  [FoldSectionKey.LLM_MONITORING]: {isOpen: true},
-  [FoldSectionKey.UPTIME]: {isOpen: true},
-  [FoldSectionKey.CRON]: {isOpen: true},
-  [FoldSectionKey.HIGHLIGHTS]: {isOpen: true},
-  [FoldSectionKey.RESOURCES]: {isOpen: true},
-  [FoldSectionKey.EXCEPTION]: {isOpen: true},
-  [FoldSectionKey.STACKTRACE]: {isOpen: true},
-  [FoldSectionKey.SPANS]: {isOpen: true},
-  [FoldSectionKey.EVIDENCE]: {isOpen: true},
-  [FoldSectionKey.MESSAGE]: {isOpen: true},
-  [FoldSectionKey.SPAN_EVIDENCE]: {isOpen: true},
-  [FoldSectionKey.HYDRATION_DIFF]: {isOpen: true},
-  [FoldSectionKey.REPLAY]: {isOpen: true},
-  [FoldSectionKey.HPKP]: {isOpen: true},
-  [FoldSectionKey.CSP]: {isOpen: true},
-  [FoldSectionKey.EXPECTCT]: {isOpen: true},
-  [FoldSectionKey.EXPECTSTAPLE]: {isOpen: true},
-  [FoldSectionKey.TEMPLATE]: {isOpen: true},
-  [FoldSectionKey.BREADCRUMBS]: {isOpen: true},
-  [FoldSectionKey.DEBUGMETA]: {isOpen: true},
-  [FoldSectionKey.REQUEST]: {isOpen: true},
-  [FoldSectionKey.TAGS]: {isOpen: true},
-  [FoldSectionKey.SCREENSHOT]: {isOpen: true},
-  [FoldSectionKey.CONTEXTS]: {isOpen: true},
-  [FoldSectionKey.EXTRA]: {isOpen: true},
-  [FoldSectionKey.PACKAGES]: {isOpen: false},
-  [FoldSectionKey.DEVICE]: {isOpen: true},
-  [FoldSectionKey.VIEW_HIERARCHY]: {isOpen: true},
-  [FoldSectionKey.ATTACHMENTS]: {isOpen: true},
-  [FoldSectionKey.SDK]: {isOpen: false},
-  [FoldSectionKey.GROUPING_INFO]: {isOpen: false},
-  [FoldSectionKey.RRWEB]: {isOpen: true},
-};
 
 interface FoldSectionProps {
   children: React.ReactNode;
   /**
    * Unique key to persist user preferences for initalizing the section to open/closed
    */
-  sectionKey: FoldSectionKey;
+  sectionKey: SectionKey;
   /**
    * Title of the section, always visible
    */

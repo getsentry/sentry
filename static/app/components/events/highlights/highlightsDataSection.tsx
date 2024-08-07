@@ -35,7 +35,7 @@ import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface HighlightsDataSectionProps {
@@ -240,7 +240,7 @@ export default function HighlightsDataSection({
   return (
     <InterimSection
       key="event-highlights"
-      type={FoldSectionKey.HIGHLIGHTS}
+      type={SectionKey.HIGHLIGHTS}
       title={t('Event Highlights')}
       help={tct(
         'Promoted tags and context items saved for this project. [link:Learn more]',

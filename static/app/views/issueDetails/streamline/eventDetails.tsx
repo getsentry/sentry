@@ -11,15 +11,101 @@ import {
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
-import {
-  DEFAULT_SECTION_DATA,
-  type FoldSectionKey,
-  Section,
-} from 'sentry/views/issueDetails/streamline/foldSection';
+import {Section} from 'sentry/views/issueDetails/streamline/foldSection';
+
+export const enum SectionKey {
+  TRACE = 'trace',
+
+  USER_FEEDBACK = 'user-feedback',
+  LLM_MONITORING = 'llm-monitoring',
+
+  UPTIME = 'uptime', // Only Uptime issues
+  CRON = 'cron-timeline', // Only Cron issues
+
+  HIGHLIGHTS = 'highlights',
+  RESOURCES = 'resources', // Position controlled by flag
+
+  EXCEPTION = 'exception',
+  STACKTRACE = 'stacktrace',
+  SPANS = 'spans',
+  EVIDENCE = 'evidence',
+  MESSAGE = 'message',
+
+  // QuickTraceQuery?
+
+  SPAN_EVIDENCE = 'span-evidence',
+  HYDRATION_DIFF = 'hydration-diff',
+  REPLAY = 'replay',
+
+  HPKP = 'hpkp',
+  CSP = 'csp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  TEMPLATE = 'template',
+
+  BREADCRUMBS = 'breadcrumbs',
+  DEBUGMETA = 'debugmeta',
+  REQUEST = 'request',
+
+  TAGS = 'tags',
+  SCREENSHOT = 'screenshot',
+
+  CONTEXTS = 'contexts',
+  EXTRA = 'extra',
+  PACKAGES = 'packages',
+  DEVICE = 'device',
+  VIEW_HIERARCHY = 'view-hierarchy',
+  ATTACHMENTS = 'attachments',
+  SDK = 'sdk',
+  GROUPING_INFO = 'grouping-info',
+  RRWEB = 'rrweb', // Legacy integration prior to replays
+}
+
+const defaultConfig = {
+  isOpen: true,
+  isEmpty: true,
+};
+
+export const DEFAULT_SECTION_DATA: EventDetailsContextType['sectionData'] = {
+  [SectionKey.TRACE]: defaultConfig,
+  [SectionKey.USER_FEEDBACK]: defaultConfig,
+  [SectionKey.LLM_MONITORING]: defaultConfig,
+  [SectionKey.UPTIME]: defaultConfig,
+  [SectionKey.CRON]: defaultConfig,
+  [SectionKey.HIGHLIGHTS]: defaultConfig,
+  [SectionKey.RESOURCES]: defaultConfig,
+  [SectionKey.EXCEPTION]: defaultConfig,
+  [SectionKey.STACKTRACE]: defaultConfig,
+  [SectionKey.SPANS]: defaultConfig,
+  [SectionKey.EVIDENCE]: defaultConfig,
+  [SectionKey.MESSAGE]: defaultConfig,
+  [SectionKey.SPAN_EVIDENCE]: defaultConfig,
+  [SectionKey.HYDRATION_DIFF]: defaultConfig,
+  [SectionKey.REPLAY]: defaultConfig,
+  [SectionKey.HPKP]: defaultConfig,
+  [SectionKey.CSP]: defaultConfig,
+  [SectionKey.EXPECTCT]: defaultConfig,
+  [SectionKey.EXPECTSTAPLE]: defaultConfig,
+  [SectionKey.TEMPLATE]: defaultConfig,
+  [SectionKey.BREADCRUMBS]: defaultConfig,
+  [SectionKey.DEBUGMETA]: defaultConfig,
+  [SectionKey.REQUEST]: defaultConfig,
+  [SectionKey.TAGS]: defaultConfig,
+  [SectionKey.SCREENSHOT]: defaultConfig,
+  [SectionKey.CONTEXTS]: defaultConfig,
+  [SectionKey.EXTRA]: defaultConfig,
+  [SectionKey.PACKAGES]: defaultConfig,
+  [SectionKey.DEVICE]: defaultConfig,
+  [SectionKey.VIEW_HIERARCHY]: defaultConfig,
+  [SectionKey.ATTACHMENTS]: defaultConfig,
+  [SectionKey.SDK]: defaultConfig,
+  [SectionKey.GROUPING_INFO]: defaultConfig,
+  [SectionKey.RRWEB]: defaultConfig,
+};
 
 export interface EventDetailsContextType {
   searchQuery: string;
-  sectionData: Record<FoldSectionKey, {isOpen: boolean}>;
+  sectionData: Record<SectionKey, {isOpen: boolean}>;
 }
 
 const EventDetailsContext = createContext<EventDetailsContextType>({
