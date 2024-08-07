@@ -658,7 +658,7 @@ def create_alert_rule(
                 raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
             except (ValidationError):
                 alert_rule.delete()
-                raise ValidationError("Failed to send data to Seer - cannot create alert rule.")
+                raise
 
         if user:
             create_audit_entry_from_user(
