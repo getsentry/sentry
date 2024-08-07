@@ -11,7 +11,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.actor import Actor
-from sentry.uptime.models import UptimeStatus
+from sentry.uptime.models import ProjectUptimeSubscriptionMode, UptimeStatus
 from sentry.utils import json
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -955,6 +955,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         other_uptime_monitor = self.create_project_uptime_subscription(
             name="Other Uptime Monitor",
             uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+        )
+        # This should NOT be included in the results
+        self.create_project_uptime_subscription(
+            name="Onboarding Uptime monitor",
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            uptime_subscription=self.create_uptime_subscription(url="https://santry-iz-kool.io"),
         )
 
         request_data = {"name": "Uptime", "project": [self.project.id]}
