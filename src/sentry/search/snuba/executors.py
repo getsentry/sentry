@@ -1870,13 +1870,19 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
             data = [group for group in data if group["g.group_id"] in filtered_group_ids]
 
+        more_results = len(data) > limit
         paginator_results = SequencePaginator(
             [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
         ).get_result(limit, cursor, known_hits=count, max_hits=max_hits)
 
-        # TODO: do we need to set has_results for the next cursor?
+        if len(paginator_results.results) == limit and more_results:
+            # Because we are going back and forth between DBs there is a small
+            # chance that we will hand the SequencePaginator exactly `limit`
+            # items. In this case the paginator will assume there are no more
+            # results, so we need to override the `next` cursor's results.
+            paginator_results.next.has_results = True
 
         if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
             # If the user passed a cursor, and it isn't already a 0 result `is_prev`
