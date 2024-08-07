@@ -7,10 +7,12 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import organizationSecurityAndPrivacyGroups from 'sentry/data/forms/organizationSecurityAndPrivacyGroups';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DataScrubbing} from '../components/dataScrubbing';
@@ -47,6 +49,10 @@ export default function OrganizationSecurityAndPrivacyContent() {
     updateOrganization(data);
   }
 
+  const {isSelfHosted} = ConfigStore.getState();
+  const showDataSecrecySettings =
+    organization.features.includes('data-secrecy') && !isSelfHosted;
+
   return (
     <Fragment>
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
@@ -66,6 +72,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
           features={features}
           forms={organizationSecurityAndPrivacyGroups}
           disabled={!organization.access.includes('org:write')}
+          additionalFieldProps={{showDataSecrecySettings}}
         />
       </Form>
       <DataScrubbing
@@ -76,6 +83,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
         disabled={!organization.access.includes('org:write')}
         onSubmitSuccess={data => handleUpdateOrganization({...organization, ...data})}
       />
+      {showDataSecrecySettings && <DataSecrecy />}
     </Fragment>
   );
 }

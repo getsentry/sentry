@@ -111,6 +111,17 @@ const formGroups: JsonFormObject[] = [
         },
         visible: ({hasSsoEnabled}) => !hasSsoEnabled,
       },
+      {
+        name: 'allowSuperuserAccess',
+        type: 'boolean',
+        label: t('Allow Superuser Access'),
+        help: t('Allow Sentry staff to access your data in order to diagnose issues.'),
+        confirm: {
+          false: t('Are you sure you want to disable superuser access?'),
+          true: t('Are you sure you want to enable superuser access?'),
+        },
+        visible: ({showDataSecrecySettings}) => showDataSecrecySettings,
+      },
     ],
   },
   {
