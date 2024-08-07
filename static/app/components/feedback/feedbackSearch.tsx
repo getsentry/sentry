@@ -6,7 +6,6 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FEEDBACK_FIELDS,
@@ -18,6 +17,7 @@ import {
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
@@ -100,6 +100,22 @@ export default function FeedbackSearch({className, style}: Props) {
     [api, organization.slug, projectIds]
   );
 
+  const navigate = useNavigate();
+
+  const onSearch = useCallback(
+    searchQuery => {
+      navigate({
+        pathname,
+        query: {
+          ...query,
+          cursor: undefined,
+          query: searchQuery.trim(),
+        },
+      });
+    },
+    [navigate, pathname, query]
+  );
+
   return (
     <SearchContainer className={className} style={style}>
       <SmartSearchBar
@@ -114,16 +130,7 @@ export default function FeedbackSearch({className, style}: Props) {
         maxMenuHeight={500}
         defaultQuery=""
         query={decodeScalar(query.query, '')}
-        onSearch={searchQuery => {
-          browserHistory.push({
-            pathname,
-            query: {
-              ...query,
-              cursor: undefined,
-              query: searchQuery.trim(),
-            },
-          });
-        }}
+        onSearch={onSearch}
       />
     </SearchContainer>
   );
