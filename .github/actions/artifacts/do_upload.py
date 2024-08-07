@@ -71,16 +71,22 @@ def main():
 
     # so that the logs are not interleaved when printed
     jobs = [
-        run_command(upload_test_results_cmd, upload_test_results_log_file).pid,
-        run_command(upload_coverage_cmd, upload_coverage_log_file).pid,
+        run_command(upload_test_results_cmd, upload_test_results_log_file),
+        run_command(upload_coverage_cmd, upload_coverage_log_file),
     ]
-    tail_args = ("tail", "-f")
+    tail_args = ("tail", "-f", "--sleep-interval", "3")
     for job in jobs:
-        tail_args += ("--pid", str(job))
-    tail_args += (upload_coverage_log_file, upload_test_results_log_file)
+        tail_args += ("--pid", str(job.pid))
+    tail_args += (
+        upload_coverage_log_file,
+        upload_test_results_log_file,
+    )
 
     # wait, while showing un-interleaved logs
-    os.execvp(tail_args[0], tail_args)
+    jobs.append(Popen(tail_args))
+
+    for job in jobs:
+        job.wait()
 
 
 if __name__ == "__main__":
