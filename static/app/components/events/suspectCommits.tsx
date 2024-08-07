@@ -8,7 +8,6 @@ import {Button} from 'sentry/components/button';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';
@@ -20,6 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -40,6 +40,11 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const committers = data?.committers ?? [];
 
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  const [suspectCommitDismissed, setSuspectCommitDismissed] = useLocalStorageState(
+    `suspect-commit-dismissed-${eventId}`,
+    false
+  );
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
@@ -88,45 +93,29 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
-  return hasStreamlinedUI ? (
+  const firstCommit = commits[0];
+
+  return hasStreamlinedUI && !suspectCommitDismissed ? (
     <StreamlinedPanel>
       <Header>
         <Title>{t('Suspect Commit')}</Title>
         <DismissButton
           borderless
           icon={<IconClose />}
-          onClick={() => {}}
+          onClick={() => setSuspectCommitDismissed(true)}
           aria-label={t('Close Suspect Commit Banner')}
           size="zero"
         />
       </Header>
-      {commits.length > 1 && (
-        <ExpandButton
-          onClick={() => setIsExpanded(!isExpanded)}
-          data-test-id="expand-commit-list"
-        >
-          {isExpanded ? (
-            <Fragment>
-              {t('Show less')} <IconSubtract isCircled size="md" />
-            </Fragment>
-          ) : (
-            <Fragment>
-              {t('Show more')} <IconAdd isCircled size="md" />
-            </Fragment>
-          )}
-        </ExpandButton>
-      )}
-      <PanelBody>
-        {commits.slice(0, isExpanded ? 100 : 1).map((commit, commitIndex) => (
-          <CommitRow
-            key={commit.id}
-            commit={commit}
-            onCommitClick={() => handleCommitClick(commit, commitIndex)}
-            onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
-            project={project}
-          />
-        ))}
-      </PanelBody>
+      <div>
+        <CommitRow
+          key={firstCommit.id}
+          commit={firstCommit}
+          onCommitClick={() => handleCommitClick(firstCommit, 0)}
+          onPullRequestClick={() => handlePullRequestClick(firstCommit, 0)}
+          project={project}
+        />
+      </div>
       <IllustrationContainer>
         <Illustration src={bannerIllustration} />
       </IllustrationContainer>

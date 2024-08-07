@@ -287,24 +287,5 @@ describe('SuspectCommits', function () {
       expect(await screen.findByText(/Suspect Commit/i)).toBeInTheDocument();
       expect(screen.queryByText(/Suspect Commits/i)).not.toBeInTheDocument();
     });
-
-    it('expands', async function () {
-      render(
-        <SuspectCommits
-          project={project}
-          commitRow={CommitRow}
-          eventId={event.id}
-          group={group}
-        />,
-        {organization}
-      );
-
-      await userEvent.click(await screen.findByText('Show more'));
-      expect(screen.getAllByTestId('commit-row')).toHaveLength(2);
-
-      // and hides
-      await userEvent.click(screen.getByText('Show less'));
-      expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
-    });
   });
 });

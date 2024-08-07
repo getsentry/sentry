@@ -73,7 +73,7 @@ function CommitRow({
   const firstRelease = commit.releases?.[0];
 
   return hasStreamlinedUI ? (
-    <StreamlinedPanel data-test-id="commit-row">
+    <StreamlinedCommitRow data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
         <StyledExternalLink href={commit.pullRequest?.externalUrl}>
           {formatCommitMessage(commit.message)}
@@ -126,7 +126,7 @@ function CommitRow({
           </Fragment>
         )}
       </MetaWrapper>
-    </StreamlinedPanel>
+    </StreamlinedCommitRow>
   ) : (
     <StyledPanelItem key={commit.id} data-test-id="commit-row">
       {customAvatar ? (
@@ -262,7 +262,7 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
   }
 `;
 
-const StreamlinedPanel = styled(PanelItem)`
+const StreamlinedCommitRow = styled('div')`
   display: flex;
   flex-direction: column;
   padding: 12px;
