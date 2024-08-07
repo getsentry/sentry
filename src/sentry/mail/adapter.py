@@ -4,9 +4,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import digests
-from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
-from sentry.digests.notifications import event_to_record, unsplit_key
+from sentry.digests.notifications import Digest, event_to_record, unsplit_key
 from sentry.integrations.types import ExternalProviders
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project

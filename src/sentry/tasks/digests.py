@@ -2,9 +2,10 @@ import logging
 import time
 from datetime import datetime
 
-from sentry.digests import Record, get_option_key
+from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import build_digest, split_key
+from sentry.digests.types import Record
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode

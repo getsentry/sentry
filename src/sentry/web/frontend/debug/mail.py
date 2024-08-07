@@ -25,8 +25,8 @@ from django.views.generic import View
 
 from sentry import eventstore
 from sentry.constants import LOG_LEVELS
-from sentry.digests import Record
-from sentry.digests.notifications import Notification, build_digest
+from sentry.digests.notifications import build_digest
+from sentry.digests.types import Notification, Record
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname

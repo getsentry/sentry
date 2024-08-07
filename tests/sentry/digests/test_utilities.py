@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 
-from sentry.digests import Digest
-from sentry.digests.notifications import build_digest, event_to_record
+from sentry.digests.notifications import Digest, build_digest, event_to_record
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
     get_participants_by_event,

@@ -2,9 +2,9 @@ import time
 
 import pytest
 
-from sentry.digests import Record
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.backends.redis import RedisBackend
+from sentry.digests.types import Record
 from sentry.testutils.cases import TestCase
 
 

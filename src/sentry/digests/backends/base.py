@@ -4,11 +4,11 @@ import logging
 from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any, NamedTuple
 
+from sentry.digests.types import Record
 from sentry.utils.imports import import_string
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
-    from sentry.digests import Record
     from sentry.models.project import Project
 
 logger = logging.getLogger("sentry.digests")

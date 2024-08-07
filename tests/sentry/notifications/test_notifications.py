@@ -13,7 +13,7 @@ from django.utils import timezone
 from sentry_relay.processing import parse_release
 from slack_sdk.web import SlackResponse
 
-from sentry.digests.notifications import Notification
+from sentry.digests.types import Notification
 from sentry.event_manager import EventManager
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
