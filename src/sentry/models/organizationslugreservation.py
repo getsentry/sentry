@@ -11,9 +11,9 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import control_silo_model, sane_repr
 from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.hybridcloud.outbox.base import ReplicatedControlModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
-from sentry.models.outbox import OutboxCategory
 
 
 class OrganizationSlugReservationType(IntEnum):
