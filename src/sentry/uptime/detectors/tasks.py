@@ -34,7 +34,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
 
-UPTIME_USER_AGENT = "sentry.io_uptime_checker_v_1"
+UPTIME_USER_AGENT = "SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/)"
 LAST_PROCESSED_KEY = "uptime_detector_last_processed"
 SCHEDULER_LOCK_KEY = "uptime_detector_scheduler_lock"
 FAILED_URL_RETRY_FREQ = timedelta(days=7)
