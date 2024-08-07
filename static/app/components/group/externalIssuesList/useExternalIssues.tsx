@@ -1,0 +1,60 @@
+import {useCallback} from 'react';
+
+import type {Group} from 'sentry/types/group';
+import type {PlatformExternalIssue} from 'sentry/types/integrations';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+
+interface UseExternalIssuesOptions {
+  group: Group;
+  organization: OrganizationSummary;
+}
+
+function getExternalIssuesQueryKey({
+  group,
+  organization,
+}: UseExternalIssuesOptions): ApiQueryKey {
+  return [`/organizations/${organization.slug}/issues/${group.id}/external-issues/`];
+}
+
+export function useExternalIssues({group, organization}: UseExternalIssuesOptions) {
+  const queryClient = useQueryClient();
+  const {isLoading, data = []} = useApiQuery<PlatformExternalIssue[]>(
+    getExternalIssuesQueryKey({group, organization}),
+    {staleTime: 60_000}
+  );
+
+  const onCreateIssue = useCallback(
+    (issue: PlatformExternalIssue) => {
+      setApiQueryData<PlatformExternalIssue[]>(
+        queryClient,
+        getExternalIssuesQueryKey({group, organization}),
+        existingIssues => [...existingIssues, issue]
+      );
+    },
+    [queryClient, group, organization]
+  );
+
+  const onDeleteIssue = useCallback(
+    (issue: PlatformExternalIssue) => {
+      setApiQueryData<PlatformExternalIssue[]>(
+        queryClient,
+        getExternalIssuesQueryKey({group, organization}),
+        existingIssues => existingIssues.filter(({id}) => id !== issue.id)
+      );
+    },
+    [queryClient, group, organization]
+  );
+
+  return {
+    onDeleteIssue,
+    onCreateIssue,
+    isLoading,
+    data,
+  };
+}
