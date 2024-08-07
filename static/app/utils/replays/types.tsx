@@ -17,6 +17,27 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+// Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
+// the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
+// field.
+type ReplayWebVitalFrameOps =
+  | 'largest-contentful-paint'
+  | 'cumulative-layout-shift'
+  | 'first-input-delay'
+  | 'interaction-to-next-paint';
+type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>;
+/**
+ * These are deprecated SDK fields that the UI needs to be
+ * aware of to maintain backwards compatibility, i.e. for
+ * replay recordings for SDK version < 8.22.0
+ */
+type DeprecatedReplayWebVitalFrameData = {
+  nodeId?: number;
+};
+interface CompatibleReplaySpanFrame extends ReplayWebVitalFrameSdk {
+  data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
+}
+
 // These stub types should be coming from the sdk, but they're hard-coded until
 // the SDK updates to the latest version... once that happens delete this!
 // Needed for tests
@@ -91,7 +112,7 @@ export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
 export type OptionFrameEvent = TOptionFrameEvent;
-export type RawSpanFrame = TRawSpanFrame;
+export type RawSpanFrame = TRawSpanFrame | CompatibleReplaySpanFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
 export function isRecordingFrame(
