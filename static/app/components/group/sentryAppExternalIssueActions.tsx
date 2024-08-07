@@ -47,7 +47,7 @@ function SentryAppExternalIssueActions({
   externalIssue,
 }: Props) {
   const api = useApi();
-  const {onDeleteIssue, onCreateIssue} = useExternalIssues({group, organization});
+  const {onDeleteIssue} = useExternalIssues({group, organization});
 
   const doOpenModal = (e?: React.MouseEvent) => {
     // Only show the modal when we don't have a linked issue
@@ -75,7 +75,6 @@ function SentryAppExternalIssueActions({
         <SentryAppExternalIssueModal
           {...deps}
           {...{group, event, sentryAppComponent, sentryAppInstallation}}
-          onSubmitSuccess={onSubmitSuccess}
         />
       ),
       {closeEvents: 'escape-key'}
@@ -103,10 +102,6 @@ function SentryAppExternalIssueActions({
     } else {
       deleteIssue();
     }
-  };
-
-  const onSubmitSuccess = (newExternalIssue: PlatformExternalIssue) => {
-    onCreateIssue(newExternalIssue);
   };
 
   const name = sentryAppComponent.sentryApp.name;
