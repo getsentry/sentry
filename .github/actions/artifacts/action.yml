@@ -30,12 +30,13 @@ runs:
         ./.github/actions/artifacts/download_codecov_cli.py
     - name: Upload Coverage and Test Results
       continue-on-error: true
-      shell: bash
+      uses: gacts/run-and-post-run@v1
       env:
         INPUT_TOKEN: ${{ inputs.token }}
         INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
         INPUT_TYPE: ${{ inputs.type }}
         INPUT_FILES: ${{ inputs.files }}
         INPUT_TEST_RESULT_FILES: ${{ inputs.test_result_files }}
-      run: |
-        ./.github/actions/artifacts/do_upload.py
+      with:
+        run: './.github/actions/artifacts/do_upload.py'
+        post: 'ps -efly --forest'
