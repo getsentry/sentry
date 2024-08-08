@@ -850,7 +850,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             status_code=408,
             **data,
         )
-        assert resp.data == "Timeout when sending data to Seer - cannot update alert rule."
+        assert resp.data["detail"]["message"] == "Proxied request timed out"
         assert mock_seer_request.call_count == 2  # one for create, one for update
 
     @with_feature("organizations:anomaly-detection-alerts")
@@ -874,7 +874,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             status_code=408,
             **data,
         )
-        assert resp.data == "Timeout when sending data to Seer - cannot update alert rule."
+        assert resp.data["detail"]["message"] == "Proxied request timed out"
         assert mock_seer_request.call_count == 2
 
     @with_feature("organizations:anomaly-detection-alerts")
@@ -899,7 +899,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             status_code=400,
             **data,
         )
-        assert resp.data == "Something went wrong."
+        assert resp.data["detail"]["message"] == "Invalid request"
         assert mock_seer_request.call_count == 2
 
     @with_feature("organizations:anomaly-detection-alerts")

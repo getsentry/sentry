@@ -1,7 +1,6 @@
 from copy import deepcopy
 from datetime import UTC, datetime
 
-from django import forms
 from django.conf import settings
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
@@ -10,7 +9,6 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -127,25 +125,7 @@ class AlertRuleIndexMixin(Endpoint):
             find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
             return Response({"uuid": client.uuid}, status=202)
         else:
-            try:
-                alert_rule = serializer.save()
-            except (TimeoutError, MaxRetryError):
-                return Response(
-                    data="Timeout when sending data to Seer - cannot create alert rule.",
-                    status=status.HTTP_408_REQUEST_TIMEOUT,
-                    exception=True,
-                )
-            except ValidationError:
-                raise
-            except forms.ValidationError as e:
-                # if we fail in create_metric_alert, then only one message is ever returned
-                raise ValidationError(e.error_list[0].message)
-            # catch-all for other errors
-            except Exception:
-                return Response(
-                    data="Something went wrong.", status=status.HTTP_400_BAD_REQUEST, exception=True
-                )
-
+            alert_rule = serializer.save()
             referrer = request.query_params.get("referrer")
             session_id = request.query_params.get("sessionId")
             duplicate_rule = request.query_params.get("duplicateRule")
