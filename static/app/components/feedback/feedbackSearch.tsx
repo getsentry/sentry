@@ -55,7 +55,7 @@ const FEEDBACK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(FEEDBACK_FIELDS)
  * Merges a list of supported tags and feedback search fields into one collection.
  */
 function getFeedbackSearchTags(supportedTags: TagCollection) {
-  return {
+  const allTags = {
     ...Object.fromEntries(
       Object.keys(supportedTags).map(key => [
         key,
@@ -67,6 +67,13 @@ function getFeedbackSearchTags(supportedTags: TagCollection) {
     ),
     ...FEEDBACK_FIELDS_AS_TAGS,
   };
+
+  // A hack used to "sort" the dictionary for SearchQueryBuilder.
+  // Technically dicts are unordered but this works in dev.
+  // To guarantee ordering, we need to implement filterKeySections.
+  const keys = Object.keys(allTags);
+  keys.sort();
+  return Object.fromEntries(keys.map(key => [key, allTags[key]]));
 }
 
 interface Props {
@@ -150,18 +157,8 @@ export default function FeedbackSearch({className, style}: Props) {
       <SearchQueryBuilder
         initialQuery={decodeScalar(query.query, '')}
         filterKeys={feedbackTags}
-        // TODO: implement filterKeySections with a 'Popular Searches' section, once overlapping sections are supported
         getTagValues={getTagValues}
-        onSearch={searchQuery => {
-          browserHistory.push({
-            pathname,
-            query: {
-              ...query,
-              cursor: undefined,
-              query: searchQuery.trim(),
-            },
-          });
-        }}
+        onSearch={onSearch}
         searchSource={'feedback-list'}
         placeholder={t('Search Feedback')}
       />
