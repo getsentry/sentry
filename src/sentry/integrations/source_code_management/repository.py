@@ -20,7 +20,6 @@ REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{resul
 
 class RepositoryIntegration(ABC):
     @property
-    # @abstractmethod
     def codeowners_locations(self) -> list[str] | None:
         """
         A list of possible locations for the CODEOWNERS file.
@@ -43,23 +42,54 @@ class RepositoryIntegration(ABC):
 
     @abstractmethod
     def source_url_matches(self, url: str) -> bool:
-        """Checks if the url matches the integration's source url."""
+        """Checks if the url matches the integration's source url. Used for stacktrace linking."""
         raise NotImplementedError
 
     @abstractmethod
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
-        """Formats the source code url used for stack trace linking."""
+        """Formats the source code url used for stacktrace linking."""
         raise NotImplementedError
 
     @abstractmethod
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        """Extracts the branch from the source code url."""
+        """Extracts the branch from the source code url. Used for stacktrace linking."""
         raise NotImplementedError
 
     @abstractmethod
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        """Extracts the source path from the source code url."""
+        """Extracts the source path from the source code url. Used for stacktrace linking."""
         raise NotImplementedError
+
+    @abstractmethod
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        """Used for migrating repositories. Checks if the installation has access to the repository."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
+        """
+        Get a list of available repositories for an installation
+
+        >>> def get_repositories(self):
+        >>>     return self.get_client().get_repositories()
+
+        return [{
+            'name': display_name,
+            'identifier': external_repo_id,
+        }]
+
+        The shape of the `identifier` should match the data
+        returned by the integration's
+        IntegrationRepositoryProvider.repository_external_slug()
+        """
+        raise NotImplementedError
+
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+        """
+        Get all repositories which are in our database but no longer exist as far as
+        the external service is concerned.
+        """
+        return []
 
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
@@ -129,36 +159,6 @@ class RepositoryIntegration(ABC):
 
         return source_url
 
-    @abstractmethod
-    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
-        """
-        Get a list of available repositories for an installation
-
-        >>> def get_repositories(self):
-        >>>     return self.get_client().get_repositories()
-
-        return [{
-            'name': display_name,
-            'identifier': external_repo_id,
-        }]
-
-        The shape of the `identifier` should match the data
-        returned by the integration's
-        IntegrationRepositoryProvider.repository_external_slug()
-        """
-        raise NotImplementedError
-
-    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
-        """
-        Get all repositories which are in our database but no longer exist as far as
-        the external service is concerned.
-        """
-        return []
-
-    @abstractmethod
-    def has_repo_access(self, repo: RpcRepository) -> bool:
-        raise NotImplementedError
-
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None
     ) -> Mapping[str, str] | None:
@@ -201,10 +201,10 @@ class RepositoryClient(ABC):
     def check_file(
         self, repo: Repository, path: str, version: str | None
     ) -> BaseApiResponseX | None:
-        """Check if the file exists. Currently used for CODEOWNERS."""
+        """Check if the file exists. Currently used for stacktrace linking and CODEOWNERS."""
         raise NotImplementedError
 
-    # @abstractmethod (VSTS, Bitbucket missing)
+    @abstractmethod
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
