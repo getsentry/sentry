@@ -19,10 +19,12 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 const DEFAULT_STRUCTURED_DATA_PROPS = {
-  maxDefaultDepth: 2,
+  maxDefaultDepth: 1,
   withAnnotatedText: true,
   withOnlyFormattedText: true,
 };
+
+const MESSAGE_PREVIEW_CHAR_LIMIT = 200;
 
 interface BreadcrumbItemContentProps {
   breadcrumb: RawCrumb;
@@ -33,7 +35,7 @@ interface BreadcrumbItemContentProps {
 export default function BreadcrumbItemContent({
   breadcrumb: bc,
   meta,
-  fullyExpanded = false,
+  fullyExpanded = true,
 }: BreadcrumbItemContentProps) {
   const structuredDataProps = {
     ...DEFAULT_STRUCTURED_DATA_PROPS,
@@ -45,7 +47,24 @@ export default function BreadcrumbItemContent({
 
   const defaultMessage = defined(bc.message) ? (
     <BreadcrumbText>
-      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
+      {fullyExpanded ? (
+        <StructuredData
+          value={bc.message}
+          meta={meta?.message}
+          {...structuredDataProps}
+        />
+      ) : (
+        <StructuredData
+          value={
+            bc.message.length > MESSAGE_PREVIEW_CHAR_LIMIT
+              ? bc.message.substring(0, MESSAGE_PREVIEW_CHAR_LIMIT) + '...'
+              : bc.message
+          }
+          // Note: Annotations applying to trimmed content will not be applied.
+          meta={meta?.message}
+          {...structuredDataProps}
+        />
+      )}
     </BreadcrumbText>
   ) : null;
   const defaultData = defined(bc.data) ? (
