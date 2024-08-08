@@ -29,6 +29,8 @@ from ..tasks import assemble_download
 SUPPORTED_DATASETS = {
     "discover": Dataset.Discover,
     "issuePlatform": Dataset.IssuePlatform,
+    "transactions": Dataset.Transactions,
+    "errors": Dataset.Events,
 }
 
 
@@ -95,7 +97,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             query_info["end"] = end.isoformat()
             dataset = query_info.get("dataset", "discover")
             if dataset not in SUPPORTED_DATASETS:
-                raise serializers.ValidationError(f"{dataset} is not support for csv exports")
+                raise serializers.ValidationError(f"{dataset} is not supported for csv exports")
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
@@ -121,6 +123,7 @@ class DataExportQuerySerializer(serializers.Serializer):
         return data
 
 
+# Must allow the errors and transactions dataset
 @region_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {

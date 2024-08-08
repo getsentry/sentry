@@ -102,3 +102,47 @@ class DataExportDetailsTest(APITestCase):
         with self.feature("organizations:discover-query"):
             response = self.client.get(url)
             assert response.status_code == 404
+
+    def test_content_errors(self):
+        self.data_export = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.organization,
+            query_type=1,
+            query_info={"dataset": "errors"},
+        )
+
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        assert response.data["id"] == self.data_export.id
+        assert response.data["user"] == {
+            "id": str(self.user.id),
+            "email": self.user.email,
+            "username": self.user.username,
+        }
+        assert response.data["dateCreated"] == self.data_export.date_added
+        assert response.data["query"] == {
+            "type": ExportQueryType.as_str(self.data_export.query_type),
+            "info": self.data_export.query_info,
+        }
+
+    def test_content_transactions(self):
+        self.data_export = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.organization,
+            query_type=1,
+            query_info={"dataset": "potato"},
+        )
+
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.organization.slug, self.data_export.id)
+        assert response.data["id"] == self.data_export.id
+        assert response.data["user"] == {
+            "id": str(self.user.id),
+            "email": self.user.email,
+            "username": self.user.username,
+        }
+        assert response.data["dateCreated"] == self.data_export.date_added
+        assert response.data["query"] == {
+            "type": ExportQueryType.as_str(self.data_export.query_type),
+            "info": self.data_export.query_info,
+        }
