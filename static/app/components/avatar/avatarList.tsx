@@ -70,9 +70,8 @@ function AvatarList({
     } else if (visibleUserAvatars.length < users.length) {
       visibleUserAvatars.unshift(users[users.length - 1]);
     }
+    numCollapsedAvatars = 0;
   }
-
-  numCollapsedAvatars = 1;
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
