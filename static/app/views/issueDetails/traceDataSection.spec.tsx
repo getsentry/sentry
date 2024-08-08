@@ -14,7 +14,7 @@ import type {
   TimelineErrorEvent,
   TraceEventResponse,
 } from './traceTimeline/useTraceTimelineEvents';
-import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
+import {TraceTimeLineOrRelatedIssue} from './traceDataSection';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 jest.mock('sentry/utils/analytics');
