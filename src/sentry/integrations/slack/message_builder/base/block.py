@@ -67,7 +67,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
         if block_id:
             tags_block_id = block_id.copy()
-            tags_block_id["block"] = "text"
+            tags_block_id["block"] = "tags"
             block["block_id"] = orjson.dumps(tags_block_id).decode()
 
         return block

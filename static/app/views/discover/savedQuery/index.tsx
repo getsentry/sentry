@@ -24,19 +24,23 @@ import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project, SavedQuery} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 
 import {
+  getDatasetFromLocationOrSavedQueryDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleResetHomepageQuery,
@@ -386,12 +390,36 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects} = this.props;
+    const {eventView, organization, projects, location, savedQuery} = this.props;
+    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQuery?.queryDataset
+    );
+
+    let alertType;
+    let buttonEventView = eventView;
+    if (hasDatasetSelector(organization)) {
+      alertType = defined(currentDataset)
+        ? {
+            [DiscoverDatasets.TRANSACTIONS]: 'throughput',
+            [DiscoverDatasets.ERRORS]: 'num_errors',
+          }[currentDataset]
+        : undefined;
+
+      if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
+        // Inject the event.type:transaction filter for to avoid triggering
+        // the event.type missing banner error in the alerts form
+        buttonEventView = eventView.clone();
+        buttonEventView.query = eventView.query
+          ? `(${eventView.query}) AND (event.type:transaction)`
+          : 'event.type:transaction';
+      }
+    }
 
     return (
       <GuideAnchor target="create_alert_from_discover">
         <CreateAlertFromViewButton
-          eventView={eventView}
+          eventView={buttonEventView}
           organization={organization}
           projects={projects}
           onClick={this.handleCreateAlertSuccess}
@@ -399,6 +427,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           size="sm"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
+          alertType={alertType}
         />
       </GuideAnchor>
     );

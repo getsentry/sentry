@@ -24,7 +24,7 @@ export function useIssueDetailsHeader({
 }: IssueDetailsHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const {sort: _sort, ...query} = location.query;
+  const {sort: _sort, query: _query, ...query} = location.query;
 
   const disabledTabs = useMemo(() => {
     if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {

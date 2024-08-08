@@ -216,9 +216,10 @@ const Heading = styled('div')`
 `;
 
 const HeadingInfo = styled('div')`
-  display: grid;
-  grid-template-rows: max-content max-content;
+  display: flex;
+  flex-direction: column;
   align-items: start;
+  gap: ${space(0.75)};
 `;
 
 const Name = styled('div')`

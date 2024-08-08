@@ -1,13 +1,16 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Member, Organization, Project} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import Teams from 'sentry/utils/teams';
+import type {Member, Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueEditor from 'sentry/views/alerts/rules/issue';
 import {MetricRulesEdit} from 'sentry/views/alerts/rules/metric/edit';
@@ -25,95 +28,72 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-type State = {
-  ruleName: string;
-};
+function ProjectAlertsEditor(props: Props) {
+  const {hasMetricAlerts, members, organization, project} = props;
+  const location = useLocation();
 
-class ProjectAlertsEditor extends Component<Props, State> {
-  state: State = {
-    ruleName: '',
-  };
+  const [title, setTitle] = useState('');
 
-  componentDidMount() {
-    const {organization, project} = this.props;
-    trackAnalytics('edit_alert_rule.viewed', {
-      organization,
-      project_id: project.id,
-      alert_type: this.getAlertType(),
-    });
-  }
+  const alertType = location.pathname.includes('/alerts/metric-rules/')
+    ? AlertRuleType.METRIC
+    : AlertRuleType.ISSUE;
 
-  handleChangeTitle = (ruleName: string) => {
-    this.setState({ruleName});
-  };
+  useRouteAnalyticsEventNames('edit_alert_rule.viewed', 'Edit Alert Rule: Viewed');
+  useRouteAnalyticsParams({
+    organization,
+    project_id: project.id,
+    alert_type: alertType,
+  });
 
-  getTitle() {
-    const {ruleName} = this.state;
-    return `${ruleName}`;
-  }
+  // TODO(telemetry-experience): Remove once the migration is complete
+  const isMigration = location?.query?.migration === '1';
 
-  getAlertType(): AlertRuleType {
-    return location.pathname.includes('/alerts/metric-rules/')
-      ? AlertRuleType.METRIC
-      : AlertRuleType.ISSUE;
-  }
+  const {teams, isLoading: teamsLoading} = useUserTeams();
 
-  render() {
-    const {hasMetricAlerts, organization, project, members, location} = this.props;
-    const alertType = this.getAlertType();
-
-    // TODO(telemetry-experience): Remove once the migration is complete
-    const isMigration = location?.query?.migration === '1';
-
-    return (
-      <Fragment>
-        <SentryDocumentTitle
-          title={this.getTitle()}
-          orgSlug={organization.slug}
-          projectSlug={project.slug}
-        />
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <BuilderBreadCrumbs
-              organization={organization}
-              title={isMigration ? t('Review Thresholds') : t('Edit Alert Rule')}
-              projectSlug={project.slug}
-            />
-            <Layout.Title>{this.getTitle()}</Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
-        <Layout.Body>
-          <Teams provideUserTeams>
-            {({teams, initiallyLoaded}) =>
-              initiallyLoaded ? (
-                <Fragment>
-                  {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
-                    <IssueEditor
-                      {...this.props}
-                      project={project}
-                      onChangeTitle={this.handleChangeTitle}
-                      userTeamIds={teams.map(({id}) => id)}
-                      members={members}
-                    />
-                  )}
-                  {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
-                    <MetricRulesEdit
-                      {...this.props}
-                      project={project}
-                      onChangeTitle={this.handleChangeTitle}
-                      userTeamIds={teams.map(({id}) => id)}
-                    />
-                  )}
-                </Fragment>
-              ) : (
-                <LoadingIndicator />
-              )
-            }
-          </Teams>
-        </Layout.Body>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <SentryDocumentTitle
+        title={title}
+        orgSlug={organization.slug}
+        projectSlug={project.slug}
+      />
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <BuilderBreadCrumbs
+            organization={organization}
+            title={isMigration ? t('Review Thresholds') : t('Edit Alert Rule')}
+            projectSlug={project.slug}
+          />
+          <Layout.Title>{title}</Layout.Title>
+        </Layout.HeaderContent>
+      </Layout.Header>
+      <Layout.Body>
+        {!teamsLoading ? (
+          <Fragment>
+            {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+              <IssueEditor
+                {...props}
+                project={project}
+                onChangeTitle={setTitle}
+                userTeamIds={teams.map(({id}) => id)}
+                members={members}
+              />
+            )}
+            {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
+              <MetricRulesEdit
+                {...props}
+                project={project}
+                onChangeTitle={setTitle}
+                userTeamIds={teams.map(({id}) => id)}
+              />
+            )}
+          </Fragment>
+        ) : (
+          <LoadingIndicator />
+        )}
+      </Layout.Body>
+    </Fragment>
+  );
 }
 
 export default ProjectAlertsEditor;
