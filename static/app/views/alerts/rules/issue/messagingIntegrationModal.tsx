@@ -6,15 +6,14 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQueries} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {
   headerContent: React.ReactNode;
-  organization: Organization;
   project: Project;
   providerKeys: string[];
   bodyContent?: React.ReactNode;
@@ -28,10 +27,10 @@ function MessagingIntegrationModal({
   headerContent,
   bodyContent,
   providerKeys,
-  organization,
   project,
   onAddIntegration,
 }: Props) {
+  const organization = useOrganization();
   const queryResults = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
       `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,

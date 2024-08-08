@@ -32,15 +32,14 @@ describe('MessagingIntegrationModal', function () {
     jest.clearAllMocks();
   });
 
-  const getComponent = (closeModal?, props = {}) => (
+  const getComponent = (closeModal = jest.fn(), props = {}) => (
     <MessagingIntegrationModal
-      closeModal={closeModal ? closeModal : jest.fn()}
+      closeModal={closeModal}
       Header={makeClosableHeader(() => {})}
       Body={ModalBody}
       headerContent={t('Connect with a messaging tool')}
       bodyContent={t('Receive alerts and digests right where you work.')}
       providerKeys={providerKeys}
-      organization={org}
       project={project}
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}
@@ -58,7 +57,7 @@ describe('MessagingIntegrationModal', function () {
         })
       );
     });
-    render(getComponent());
+    render(getComponent(), {organization: org});
 
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
@@ -86,7 +85,7 @@ describe('MessagingIntegrationModal', function () {
       );
     });
 
-    render(getComponent(closeModal));
+    render(getComponent(closeModal), {organization: org});
 
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
