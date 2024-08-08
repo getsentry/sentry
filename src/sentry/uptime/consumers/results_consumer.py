@@ -120,6 +120,25 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     "handle_result_for_project.missed",
                     extra={"project_id": project_subscription.project_id, **result},
                 )
+            else:
+                # We log the result stats here after the duplicate check so that we know the "true" duration and delay
+                # of each check. Since during deploys we might have checks run from both the old/new checker
+                # deployments, there will be overlap of when things run. The new deployment will have artificially
+                # inflated delay stats, since it may duplicate checks that already ran on time on the old deployment,
+                # but will have run them later.
+                # Since we process all results for a given uptime monitor in order, we can guarantee that we get the
+                # earliest delay stat for each scheduled check for the monitor here, and so this stat will be a more
+                # accurate measurement of delay/duration.
+                metrics.gauge(
+                    "uptime.result_processor.check_result.duration",
+                    result["duration_ms"],
+                    sample_rate=1.0,
+                )
+                metrics.gauge(
+                    "uptime.result_processor.check_result.delay",
+                    result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
+                    sample_rate=1.0,
+                )
 
             if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
                 self.handle_result_for_project_auto_onboarding_mode(project_subscription, result)
