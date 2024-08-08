@@ -43,27 +43,27 @@ def test_convert_to_spec():
 
 
 def test_top_level_span_attribute():
-    top_level_attributes = {
-        "span.exclusive_time",
-        "span.description",
-        "span.op",
-        "span.span_id",
-        "span.parent_span_id",
-        "span.trace_id",
-        "span.status",
-        "span.origin",
-        "span.duration",
+    top_level_attribute_mapping = {
+        "span.self_time": "span.exclusive_time",
+        "span.description": "span.description",
+        "span.span.op": "span.op",
+        "span.span_id": "span.span_id",
+        "span.parent_span_id": "span.parent_span_id",
+        "span.trace_id": "span.trace_id",
+        "span.status": "span.status",
+        "span.origin": "span.origin",
+        "span.duration": "span.duration",
     }
 
     # Ensure that all top level attributes are covered
-    assert top_level_attributes == _TOP_LEVEL_SPAN_ATTRIBUTES
+    assert top_level_attribute_mapping == _TOP_LEVEL_SPAN_ATTRIBUTES
 
-    for attribute in top_level_attributes:
+    for key, value in top_level_attribute_mapping.items():
         rule = MetricsExtractionRule(
-            span_attribute=attribute, type="d", unit="none", tags=set(), condition="", id=1
+            span_attribute=key, type="d", unit="none", tags=set(), condition="", id=1
         )
         metric_spec = convert_to_metric_spec(rule)
-        assert metric_spec["field"] == attribute
+        assert metric_spec["field"] == value
 
 
 def test_sentry_tags():
@@ -168,6 +168,18 @@ def test_counter_extends_conditions():
             {"inner": {"name": "span.data.foobar", "op": "eq", "value": None}, "op": "not"},
         ],
     }
+
+
+def test_self_time_counter():
+    rule = MetricsExtractionRule(
+        span_attribute="span.self_time", type="c", unit="none", tags=set(), condition="", id=1
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert not metric_spec["field"]
+    assert metric_spec["mri"] == "c:custom/span_attribute_1@none"
+    assert not metric_spec["condition"]
 
 
 def test_span_duration_counter_not_extends_conditions():
