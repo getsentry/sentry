@@ -18,6 +18,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
@@ -95,6 +96,8 @@ metadata = IntegrationMetadata(
 class GitlabIntegration(
     IntegrationInstallation, GitlabIssueBasic, RepositoryIntegration, CommitContextMixin
 ):
+    codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_identity = None
@@ -102,10 +105,6 @@ class GitlabIntegration(
     @property
     def integration_name(self) -> str:
         return "gitlab"
-
-    @property
-    def codeowners_locations(self) -> list[str] | None:
-        return ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_group_id(self):
         return self.model.metadata["group_id"]
@@ -118,6 +117,10 @@ class GitlabIntegration(
                 raise IntegrationError("Identity not found.")
 
         return GitLabApiClient(self)
+
+    # TODO: confirm logic
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        return True
 
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
