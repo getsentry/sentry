@@ -22,7 +22,6 @@
         "useHookAtTopLevel": "error",
         "useIsNan": "error",
         "noUnusedPrivateClassMembers": "error",
-        "noUnusedImports": "error",
         "noInvalidUseBeforeDeclaration": "error",
         "noNodejsModules": "error"
       },
