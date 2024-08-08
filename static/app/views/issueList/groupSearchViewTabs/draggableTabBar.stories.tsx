@@ -27,8 +27,6 @@ const TABS: Tab[] = [
     query: '',
     querySort: IssueSortOptions.DATE,
     queryCount: 1001,
-    query: '',
-    querySort: IssueSortOptions.DATE,
   },
   {
     id: 'two',
@@ -38,8 +36,6 @@ const TABS: Tab[] = [
     query: '',
     querySort: IssueSortOptions.DATE,
     queryCount: 50,
-    query: '',
-    querySort: IssueSortOptions.DATE,
   },
   {
     id: 'three',
@@ -49,8 +45,6 @@ const TABS: Tab[] = [
     query: '',
     querySort: IssueSortOptions.DATE,
     queryCount: 100,
-    query: '',
-    querySort: IssueSortOptions.DATE,
   },
 ];
 
@@ -58,7 +52,6 @@ export default storyBook(DraggableTabBar, story => {
   story('Default', () => {
     const [showTempTab, setShowTempTab] = useState(false);
     const [tabs, setTabs] = useState(TABS);
-    const [selectedTabKey, setSelectedTabKey] = useState('one');
 
     return (
       <Fragment>
@@ -78,8 +71,6 @@ export default storyBook(DraggableTabBar, story => {
           </StyledButton>
           <TabBarContainer>
             <DraggableTabBar
-              selectedTabKey={selectedTabKey}
-              setSelectedTabKey={setSelectedTabKey}
               tabs={tabs}
               setTabs={setTabs}
               onDiscardTempView={() => {
