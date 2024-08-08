@@ -5,7 +5,7 @@ from typing import Any
 from django.http.request import HttpRequest
 
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.models.authenticator import Authenticator
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils import json
 from sentry.web.frontend.base import control_silo_view
 from sudo.views import SudoView as BaseSudoView
