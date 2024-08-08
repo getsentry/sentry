@@ -16,7 +16,7 @@ import {
 import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
-import {HighlightIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
+import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
@@ -242,7 +242,7 @@ export default function HighlightsDataSection({
 
   return (
     <Fragment>
-      {hasStreamlinedUI && <HighlightIconSummary event={event} />}
+      {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
       <InterimSection
         key="event-highlights"
         type={FoldSectionKey.HIGHLIGHTS}

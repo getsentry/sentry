@@ -7,11 +7,11 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/interimSection';
 
-interface HighlightIconSummaryProps {
+interface HighlightsIconSummaryProps {
   event: Event;
 }
 
-export function HighlightIconSummary({event}: HighlightIconSummaryProps) {
+export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
   // For now, highlight icons are only interpretted from context. We should extend this to tags
   // eventually, but for now, it'll match the previous expectations.
   const items = getOrderedContextItems(event)
@@ -28,7 +28,7 @@ export function HighlightIconSummary({event}: HighlightIconSummaryProps) {
     }))
     .filter(item => item.icon !== null);
 
-  return [].length ? (
+  return items.length ? (
     <Fragment>
       <IconBar>
         {items.map((item, index) => (

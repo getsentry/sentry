@@ -6,7 +6,8 @@ import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {DeviceName} from 'sentry/components/deviceName';
-import ContextIcon, {
+import {
+  ContextIcon,
   type ContextIconProps,
   getLogoImage,
 } from 'sentry/components/events/contexts/contextIcon';

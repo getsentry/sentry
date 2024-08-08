@@ -141,7 +141,7 @@ export interface ContextIconProps {
   size?: IconSize;
 }
 
-function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
+export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
   const theme = useTheme();
   const size = theme.iconSizes[providedSize];
 
