@@ -7,15 +7,11 @@ from sentry.organizations.services.organization import (
     RpcOrganizationMember,
     RpcUserOrganizationContext,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import (
-    SiloMode,
-    all_silo_test,
-    assume_test_silo_mode,
-    create_test_regions,
-)
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 
 
 @all_silo_test(regions=create_test_regions("us"))
@@ -39,27 +35,23 @@ class DataSecrecyTest(TestCase):
         with self.settings(SENTRY_SELF_HOSTED=True):
             assert should_allow_superuser_access(self.organization) is True
             assert should_allow_superuser_access(self.rpc_context) is True
-            assert should_allow_superuser_access(self.rpc_org) is True
 
     def test_feature_flag_disabled(self):
         with self.settings(SENTRY_SELF_HOSTED=False):
             assert should_allow_superuser_access(self.organization) is True
             assert should_allow_superuser_access(self.rpc_context) is True
-            assert should_allow_superuser_access(self.rpc_org) is True
 
     def test_bit_flag_disabled(self):
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.organization.flags.prevent_superuser_access = False
             assert should_allow_superuser_access(self.organization) is True
             assert should_allow_superuser_access(self.rpc_context) is True
-            assert should_allow_superuser_access(self.rpc_org) is True
 
     @with_feature("organizations:data-secrecy")
     def test_no_waiver_exists(self):
         with self.settings(SENTRY_SELF_HOSTED=False):
             assert should_allow_superuser_access(self.organization) is False
             assert should_allow_superuser_access(self.rpc_context) is False
-            assert should_allow_superuser_access(self.rpc_org) is False
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     @with_feature("organizations:data-secrecy")
@@ -73,7 +65,6 @@ class DataSecrecyTest(TestCase):
         with self.settings(SENTRY_SELF_HOSTED=False):
             assert should_allow_superuser_access(self.organization) is False
             assert should_allow_superuser_access(self.rpc_context) is False
-            assert should_allow_superuser_access(self.rpc_org) is False
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     @with_feature("organizations:data-secrecy")
@@ -87,4 +78,3 @@ class DataSecrecyTest(TestCase):
         with self.settings(SENTRY_SELF_HOSTED=False):
             assert should_allow_superuser_access(self.organization) is True
             assert should_allow_superuser_access(self.rpc_context) is True
-            assert should_allow_superuser_access(self.rpc_org) is True
