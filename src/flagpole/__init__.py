@@ -62,8 +62,11 @@ and a value, the type of which depends on the operator specified.
 from __future__ import annotations
 
 import dataclasses
+import functools
+import os
 from typing import Any
 
+import jsonschema
 import orjson
 import yaml
 
@@ -73,6 +76,14 @@ from flagpole.evaluation_context import ContextBuilder, EvaluationContext
 
 class InvalidFeatureFlagConfiguration(Exception):
     pass
+
+
+@functools.cache
+def load_json_schema() -> dict[str, Any]:
+    path = os.path.join(os.path.dirname(__file__), "flagpole-schema.json")
+    with open(path, "rb") as json_file:
+        data = orjson.loads(json_file.read())
+    return data
 
 
 @dataclasses.dataclass(frozen=True)
@@ -103,6 +114,17 @@ class Feature:
 
         return False
 
+    def validate(self) -> bool:
+        """
+        Validate a feature against the JSON schema.
+        Will raise if the the current dict form a feature does not match the schema.
+        """
+        dict_data = dataclasses.asdict(self)
+        spec = load_json_schema()
+        jsonschema.validate(dict_data, spec)
+
+        return True
+
     @classmethod
     def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
         segment_data = config_dict.get("segments")
@@ -123,9 +145,7 @@ class Feature:
         return feature
 
     @classmethod
-    def from_feature_config_json(
-        cls, name: str, config_json: str, context_builder: ContextBuilder | None = None
-    ) -> Feature:
+    def from_feature_config_json(cls, name: str, config_json: str) -> Feature:
         try:
             config_data_dict = orjson.loads(config_json)
         except orjson.JSONDecodeError as decode_error:
@@ -150,7 +170,7 @@ class Feature:
         return features
 
     @classmethod
-    def from_bulk_yaml(cls, yaml_str) -> list[Feature]:
+    def from_bulk_yaml(cls, yaml_str: str) -> list[Feature]:
         features: list[Feature] = []
         parsed_yaml = yaml.safe_load(yaml_str)
         for feature, yaml_dict in parsed_yaml.items():

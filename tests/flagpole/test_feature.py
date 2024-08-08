@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+import jsonschema
 import orjson
 import pytest
 import yaml
@@ -147,6 +148,63 @@ class TestParseFeatureConfig:
     def test_invalid_json(self):
         with pytest.raises(InvalidFeatureFlagConfiguration):
             Feature.from_feature_config_json("foobar", "{")
+
+    def test_validate_invalid_schema(self):
+        config = """
+        {
+            "owner": "sentry",
+            "segments": [
+                {
+                    "name": "",
+                    "rollout": 1,
+                    "conditions": []
+                }
+            ]
+        }
+        """
+        feature = Feature.from_feature_config_json("trash", config)
+        with pytest.raises(jsonschema.ValidationError) as err:
+            feature.validate()
+        assert "is too short" in str(err)
+
+        config = """
+        {
+            "owner": "sentry",
+            "segments": [
+                {
+                    "name": "allowed orgs",
+                    "rollout": 1,
+                    "conditions": [
+                        {
+                            "property": "organization_slug",
+                            "operator": "contains",
+                            "value": ["derp"]
+                        }
+                    ]
+                }
+            ]
+        }
+        """
+        feature = Feature.from_feature_config_json("trash", config)
+        with pytest.raises(jsonschema.ValidationError) as err:
+            feature.validate()
+        assert "'contains'} is not valid" in str(err)
+
+    def test_validate_valid(self):
+        config = """
+        {
+            "owner": "sentry",
+            "segments": [
+                {
+                    "name": "ga",
+                    "rollout": 100,
+                    "conditions": []
+                }
+            ]
+        }
+        """
+        feature = Feature.from_feature_config_json("redpaint", config)
+        assert feature.validate()
 
     def test_empty_string_name(self):
         with pytest.raises(InvalidFeatureFlagConfiguration) as exception:
