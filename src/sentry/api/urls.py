@@ -257,6 +257,7 @@ from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, Organiz
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
+from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -1188,7 +1189,7 @@ ORGANIZATION_URLS = [
     ),
     # Data Secrecy
     re_path(
-        r"^api/0/organizations/(?P<organization_id_or_slug>[^\/]+)/data-secrecy/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/data-secrecy/$",
         WaiveDataSecrecyEndpoint.as_view(),
         name="sentry-api-0-data-secrecy",
     ),
@@ -2818,6 +2819,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/(?P<uptime_project_subscription_id>[^\/]+)/$",
         ProjectUptimeAlertDetailsEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/$",
+        ProjectUptimeAlertIndexEndpoint.as_view(),
+        name="sentry-api-0-project-uptime-alert-index",
     ),
 ]
 
