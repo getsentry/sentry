@@ -1,6 +1,7 @@
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {MonitorType} from 'sentry/types/alerts';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {
   type CombinedAlerts,
@@ -19,8 +20,8 @@ interface Props {
  */
 function LastUptimeIncident({rule}: {rule: UptimeAlert}) {
   // TODO(davidenwang): Once we have a lastTriggered field returned from backend, display that info here
-  return tct('Actively monitoring every [seconds] seconds', {
-    seconds: rule.intervalSeconds,
+  return tct('Actively monitoring every [interval]', {
+    interval: getDuration(rule.intervalSeconds),
   });
 }
 

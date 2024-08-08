@@ -6,8 +6,9 @@ from django.db import IntegrityError, router, transaction
 
 from sentry.audit_log.services.log import AuditLogEvent, LogService, UserIpEvent
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import RegionOutbox
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.silo.safety import unguarded_write

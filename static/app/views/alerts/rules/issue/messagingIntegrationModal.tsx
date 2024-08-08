@@ -13,11 +13,11 @@ import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {
-  headerContent: React.ReactElement<any, any>;
+  headerContent: React.ReactNode;
   organization: Organization;
   project: Project;
   providerKeys: string[];
-  bodyContent?: React.ReactElement<any, any>;
+  bodyContent?: React.ReactNode;
   onAddIntegration?: () => void;
 };
 
@@ -51,9 +51,11 @@ function MessagingIntegrationModal({
 
   return (
     <Fragment>
-      <Header closeButton>{headerContent}</Header>
+      <Header closeButton>
+        <h1>{headerContent}</h1>
+      </Header>
       <Body>
-        {bodyContent}
+        <p>{bodyContent}</p>
         <IntegrationsWrapper>
           {queryResults.map(result => {
             const provider = result.data?.providers[0];
@@ -70,13 +72,13 @@ function MessagingIntegrationModal({
                   installStatus: 'Not Installed',
                   analyticsParams: {
                     already_installed: false,
-                    view: 'onboarding',
+                    view: 'messaging_integration_onboarding',
                   },
                   onAddIntegration: onAddIntegration,
                   modalParams: {projectId: project.id},
                 }}
               >
-                <AddIntegrationRow organization={organization} onClick={closeModal} />
+                <AddIntegrationRow onClick={closeModal} />
               </IntegrationContext.Provider>
             );
           })}

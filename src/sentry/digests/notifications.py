@@ -3,12 +3,12 @@ from __future__ import annotations
 import functools
 import itertools
 import logging
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
-from typing import Any
+from typing import Any, TypeAlias
 
 from sentry import tsdb
-from sentry.digests import Digest, Record
+from sentry.digests.types import Notification, Record
 from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -19,9 +19,7 @@ from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
 
-Notification = namedtuple(
-    "Notification", "event rules notification_uuid", defaults=(None, None, None)
-)
+Digest: TypeAlias = MutableMapping["Rule", MutableMapping["Group", list[Record]]]
 
 
 def split_key(

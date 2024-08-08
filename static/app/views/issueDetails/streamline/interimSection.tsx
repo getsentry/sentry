@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {forwardRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -17,28 +17,32 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
  * for issue details is being developed. Once GA'd, all occurances should be replaced
  * with just <FoldSection />
  */
-export function InterimSection({
-  children,
-  title,
-  type,
-  actions = null,
-  ...props
-}: EventDataSectionProps) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
+export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
+  function InterimSection(
+    {children, title, type, actions = null, ...props}: EventDataSectionProps,
+    ref
+  ) {
+    const hasStreamlinedUI = useHasStreamlinedUI();
 
-  return hasStreamlinedUI ? (
-    <Fragment>
-      <FoldSection sectionKey={type as FoldSectionKey} title={title} actions={actions}>
+    return hasStreamlinedUI ? (
+      <Fragment>
+        <FoldSection
+          sectionKey={type as FoldSectionKey}
+          title={title}
+          actions={actions}
+          ref={ref}
+        >
+          {children}
+        </FoldSection>
+        <Divider />
+      </Fragment>
+    ) : (
+      <EventDataSection title={title} actions={actions} type={type} {...props}>
         {children}
-      </FoldSection>
-      <Divider />
-    </Fragment>
-  ) : (
-    <EventDataSection title={title} actions={actions} type={type} {...props}>
-      {children}
-    </EventDataSection>
-  );
-}
+      </EventDataSection>
+    );
+  }
+);
 
 const Divider = styled('hr')`
   border-color: ${p => p.theme.border};

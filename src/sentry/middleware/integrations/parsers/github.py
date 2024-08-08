@@ -7,6 +7,7 @@ from typing import Any
 import orjson
 from django.http import HttpResponse
 
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
@@ -15,7 +16,6 @@ from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import control_silo_function
 
 logger = logging.getLogger(__name__)
