@@ -63,6 +63,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self,
         consumer_type: str,
         reprocess_only_stuck_events: bool,
+        stop_at_timestamp: int | None,
         num_processes: int,
         max_batch_size: int,
         max_batch_time: int,
@@ -72,6 +73,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.consumer_type = consumer_type
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
         self.reprocess_only_stuck_events = reprocess_only_stuck_events
+        self.stop_at_timestamp = stop_at_timestamp
 
         self.multi_process = None
         self._pool = MultiprocessingPool(num_processes)
@@ -129,7 +131,18 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # in the second step. We filter this here explicitly,
         # to avoid arroyo from needlessly dispatching `None` messages.
         # However its currently not possible to make that `| None` disappear in the type.
-        filter_step = FilterStep(function=lambda msg: bool(msg.payload), next_step=step_2)
+
+        def filter_fn(msg):
+            if not bool(msg.payload):
+                return False
+
+            if self.stop_at_timestamp and msg.timestamp is not None:
+                if msg.timestamp.timestamp() > self.stop_at_timestamp:
+                    return False
+
+            return True
+
+        filter_step = FilterStep(function=filter_fn, next_step=step_2)
         # As the steps are defined (and types inferred) in reverse order, we would get a type error here,
         # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its type,
         # as it is inferred from the `step_2` input type which does not mention `| None`.

@@ -71,6 +71,7 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
     factory = IngestStrategyFactory(
         consumer_type,
         reprocess_only_stuck_events=False,
+        stop_at_timestamp=False,
         num_processes=1,
         max_batch_size=1,
         max_batch_time=1,
