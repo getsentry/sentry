@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import commonTheme from 'sentry/utils/theme';
 
 import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
 import {
@@ -385,15 +386,6 @@ export function getContextMeta(event: Event, contextType: string): Record<string
   }
 }
 
-const iconSizesNumber = {
-  xs: 12,
-  sm: 14,
-  md: 18,
-  lg: 24,
-  xl: 32,
-  xxl: 72,
-};
-
 export function getContextIcon({
   alias,
   type,
@@ -426,7 +418,7 @@ export function getContextIcon({
       break;
     case 'user':
       const user = removeFilterMaskedEntries(value);
-      const iconSize = iconSizesNumber?.[contextIconProps?.size ?? 'xl'];
+      const iconSize = commonTheme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
       return <UserAvatar user={user as AvatarUser} size={iconSize} gravatar={false} />;
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
