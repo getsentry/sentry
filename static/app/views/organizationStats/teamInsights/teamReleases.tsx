@@ -15,7 +15,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
@@ -289,7 +288,7 @@ function TeamReleases({
 export default TeamReleases;
 
 const ChartWrapper = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -302,7 +301,7 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   box-shadow: unset;
 
   & > div {
-    padding: ${p => p.theme.space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 
   ${p =>

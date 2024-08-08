@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
-import {space} from 'sentry/styles/space';
 import type {
   Group,
   GroupActivityReprocess,
@@ -248,7 +247,7 @@ const GroupContent = styled(Layout.Main)`
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${p => p.theme.space(3)} ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding-right: ${p => p.theme.space(4)};

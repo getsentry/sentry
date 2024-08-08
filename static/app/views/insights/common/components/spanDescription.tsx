@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
@@ -111,7 +110,7 @@ export const Frame = styled('div')`
 
 const WithPadding = styled('div')`
   display: flex;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 `;
 
 const WordBreak = styled('div')`

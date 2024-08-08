@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
@@ -81,7 +80,7 @@ export default function EventCreatedTooltip({event}: Props) {
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space(0.75)} ${space(1)};
+  gap: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)};
   text-align: left;
   margin: 0;
 `;

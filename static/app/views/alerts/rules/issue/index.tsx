@@ -1599,7 +1599,7 @@ const StyledAlert = styled(Alert)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${p => p.theme.space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
@@ -1619,7 +1619,8 @@ const Step = styled('div')`
   position: relative;
   display: flex;
   align-items: flex-start;
-  margin: ${p => p.theme.space(4)} ${space(4)} ${space(3)} ${space(1)};
+  margin: ${p => p.theme.space(4)} ${p => p.theme.space(4)} ${p => p.theme.space(3)}
+    ${space(1)};
 `;
 
 const StepHeader = styled('h5')`
@@ -1659,7 +1660,7 @@ const TestButtonWrapper = styled('div')`
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${p => p.theme.space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1.5)};
 `;
 
 const Badge = styled('span')`

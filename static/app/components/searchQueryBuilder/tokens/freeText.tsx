@@ -36,7 +36,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -697,7 +696,7 @@ const GridCell = styled('div')`
 `;
 
 const DescriptionWrapper = styled('div')`
-  padding: ${p => p.theme.space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)};
   max-width: 220px;
   font-size: ${p => p.theme.fontSizeSmall};
 

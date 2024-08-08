@@ -56,7 +56,8 @@ export const BigNumber = styled('div')`
   min-height: 0;
   font-size: 32px;
   color: ${p => p.theme.headingColor};
-  padding: ${p => p.theme.space(1)} ${space(3)} ${space(3)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(3)} ${p => p.theme.space(3)}
+    ${space(3)};
 
   * {
     text-align: left !important;

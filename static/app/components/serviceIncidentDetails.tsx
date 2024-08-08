@@ -20,7 +20,6 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   StatuspageIncident,
   StatusPageIncidentUpdate,
@@ -157,7 +156,7 @@ const UpdatesList = styled(List)`
     position: absolute;
     height: 100%;
     width: 2px;
-    margin: ${p => p.theme.space(1)} 0 ${space(1)} -${space(1.5)};
+    margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(1)} -${p => p.theme.space(1.5)};
     background: ${p => p.theme.gray100};
   }
 

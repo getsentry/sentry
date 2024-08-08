@@ -11,7 +11,6 @@ import {
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -91,9 +90,9 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 export default EventTagsDataSection;
 
 const StyledEventDataSection = styled(InterimSection)`
-  padding: ${p => p.theme.space(0.5)} ${space(2)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(2)} ${p => p.theme.space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p => p.theme.space(1)} ${space(4)} ${space(1.5)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(4)} ${p => p.theme.space(1.5)};
   }
 `;

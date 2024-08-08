@@ -15,7 +15,6 @@ import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebar
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -164,7 +163,7 @@ function ReplayPreviewPlayer({
 }
 
 const PlayerPanel = styled(Panel)`
-  padding: ${p => p.theme.space(3)} ${space(3)} ${space(1.5)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(3)} ${p => p.theme.space(1.5)};
   margin: 0;
   display: flex;
   gap: ${p => p.theme.space(1)};

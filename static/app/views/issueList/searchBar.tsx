@@ -11,7 +11,6 @@ import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   type Organization,
   SavedSearchType,
@@ -274,7 +273,7 @@ const RecommendedWrapper = styled('div')`
     ${p => p.theme.overflowEllipsis}
     border-radius: ${p => p.theme.borderRadius};
     border: 1px solid ${p => p.theme.border};
-    padding: ${p => p.theme.space(1)} ${space(1.5)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
     margin: 0;
   }
 
@@ -285,7 +284,7 @@ const RecommendedWrapper = styled('div')`
     text-align: center;
 
     & > li {
-      padding: ${p => p.theme.space(1.5)} ${space(2)};
+      padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
     }
   }
 `;

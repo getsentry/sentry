@@ -32,7 +32,6 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -377,7 +376,7 @@ const TaskList = styled('div')`
   grid-auto-flow: row;
   grid-template-columns: 100%;
   gap: ${p => p.theme.space(1)};
-  margin: 50px ${p => p.theme.space(4)} ${space(4)} ${space(4)};
+  margin: 50px ${p => p.theme.space(4)} ${p => p.theme.space(4)} ${p => p.theme.space(4)};
 `;
 
 const Heading = styled('div')`

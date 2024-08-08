@@ -219,7 +219,8 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   align-items: center;
   flex-direction: column;
   flex: 1;
-  padding: ${p => p.theme.space(1)} ${space(2)} ${space(4)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)} ${p => p.theme.space(4)}
+    ${space(2)};
 
   svg {
     margin-bottom: ${p => p.theme.space(1)};
@@ -244,7 +245,7 @@ const SecondaryMessage = styled('p')`
 const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

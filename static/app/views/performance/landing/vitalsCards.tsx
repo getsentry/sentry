@@ -15,7 +15,6 @@ import {Sparklines} from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -324,7 +323,7 @@ const SparklineContainer = styled('div')<SparklineContainerProps>`
   flex-grow: 4;
   max-height: ${p => p.height}px;
   max-width: ${p => p.width}px;
-  margin: ${p => p.theme.space(1)} 0 ${space(0.5)} ${space(3)};
+  margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(0.5)} ${p => p.theme.space(3)};
 `;
 
 const VitalsContainer = styled('div')`
@@ -486,7 +485,7 @@ const CardContent = styled('div')<{horizontal?: boolean}>`
 
 const StyledCard = styled(Card)<{minHeight?: number}>`
   color: ${p => p.theme.textColor};
-  padding: ${p => p.theme.space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
   align-items: flex-start;
   margin-bottom: ${p => p.theme.space(2)};
   ${p => p.minHeight && `min-height: ${p.minHeight}px`};

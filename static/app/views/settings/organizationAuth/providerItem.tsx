@@ -9,7 +9,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AuthProvider} from 'sentry/types';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
@@ -170,7 +169,7 @@ const FeatureBadge = styled('div')`
 const ActiveIndicator = styled('div')`
   background: ${p => p.theme.green300};
   color: ${p => p.theme.white};
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   border-radius: 2px;
   font-size: 0.8em;
 `;

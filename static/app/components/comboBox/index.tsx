@@ -438,7 +438,7 @@ const StyledOverlay = styled(Overlay)<{width?: string}>`
 export const EmptyMessage = styled('p')`
   text-align: center;
   color: ${p => p.theme.subText};
-  padding: ${p => p.theme.space(1)} ${space(1.5)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)} ${p => p.theme.space(1)};
   margin: 0;
 
   /* Message should only be displayed when _all_ preceding lists are empty */
@@ -484,7 +484,7 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: 0 ${p => p.theme.space(0.5)} 0 ${space(1)};
+    margin: 0 ${p => p.theme.space(0.5)} 0 ${p => p.theme.space(1)};
     height: 12px;
     width: 12px;
   }
@@ -492,7 +492,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const MenuFooter = styled('div')`
   box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   z-index: 2;
 `;
 

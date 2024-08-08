@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -160,7 +159,7 @@ const StyledClose = styled(IconClose, {shouldForwardProp: isPropValid})<ColorPro
   stroke-width: 1.5;
   padding: ${p => p.theme.space(1)};
   box-sizing: content-box;
-  margin: -${p => p.theme.space(1)} 0px -${space(1)} -${space(1)};
+  margin: -${p => p.theme.space(1)} 0px -${p => p.theme.space(1)} -${p => p.theme.space(1)};
 `;
 
 const ChevronWrapper = styled('div')`

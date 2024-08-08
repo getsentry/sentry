@@ -13,7 +13,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -330,7 +329,7 @@ const EventNavigationWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
 `;
 
 const NavigationWrapper = styled('div')`
@@ -348,7 +347,7 @@ const EventInfoJumpToWrapper = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 `;
 
 const EventInfo = styled('div')`

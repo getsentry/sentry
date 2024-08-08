@@ -23,7 +23,6 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 interface SearchQueryTokenProps {
@@ -310,7 +309,7 @@ const ValueEditing = styled('div')`
 `;
 
 const DeleteButton = styled(UnstyledButton)`
-  padding: 0 ${p => p.theme.space(0.75)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.75)} 0 ${p => p.theme.space(0.5)};
   border-radius: 0 3px 3px 0;
   color: ${p => p.theme.subText};
   border-left: 1px solid transparent;

@@ -9,7 +9,6 @@ import Link from 'sentry/components/links/link';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {OnboardingRecentCreatedProject, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -100,7 +99,7 @@ export default function FirstEventFooter({
 }
 
 const OnboardingButtonBar = styled(ButtonBar)`
-  margin: ${p => p.theme.space(2)} ${space(4)};
+  margin: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
   justify-self: end;
   margin-left: auto;
 `;

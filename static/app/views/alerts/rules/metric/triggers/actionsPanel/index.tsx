@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project, SelectValue} from 'sentry/types';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
@@ -546,7 +545,7 @@ const RuleRowContainer = styled('div')`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${p => p.theme.space(2)} 0 ${space(3)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(3)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
@@ -560,7 +559,7 @@ const MarginlessAlert = styled(Alert)`
   border: 1px ${p => p.theme.border} solid;
   border-top-width: 0;
   margin: 0;
-  padding: ${p => p.theme.space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

@@ -258,7 +258,8 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   gap: ${p => p.theme.space(1)};
-  margin: ${p => p.theme.space(1)} ${space(4)} ${space(4)} ${space(4)};
+  margin: ${p => p.theme.space(1)} ${p => p.theme.space(4)} ${p => p.theme.space(4)}
+    ${space(4)};
 `;
 
 const CompleteList = styled('div')`

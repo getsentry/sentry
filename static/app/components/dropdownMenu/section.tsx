@@ -2,8 +2,6 @@ import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
-import {space} from 'sentry/styles/space';
-
 import type {MenuItemProps} from './item';
 
 type DropdownMenuSectionProps = {
@@ -42,7 +40,7 @@ const Heading = styled('span')`
   color: ${p => p.theme.subText};
   text-transform: uppercase;
   white-space: nowrap;
-  margin: ${p => p.theme.space(1)} ${space(1.5)} ${space(0.5)};
+  margin: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)} ${p => p.theme.space(0.5)};
   padding-right: ${p => p.theme.space(1)};
 
   ${DropdownMenuSectionWrap}:first-of-type & {

@@ -283,7 +283,8 @@ const StyledList = styled(List)`
 const Suggestions = styled('div')`
   background-color: ${p => p.theme.surface100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space(1)} ${space(1)} ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)} ${p => p.theme.space(1)}
+    ${space(2)};
 `;
 
 const SuggestionOverflow = styled('div')`

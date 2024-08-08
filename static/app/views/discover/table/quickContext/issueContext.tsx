@@ -13,7 +13,6 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Group} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -192,7 +191,7 @@ const SuspectCommitsContainer = styled(ContextContainer)`
   }
 
   ${SuspectCommitHeader} {
-    margin: ${p => p.theme.space(2)} 0 ${space(0.75)};
+    margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(0.75)};
   }
 `;
 

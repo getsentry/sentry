@@ -193,7 +193,8 @@ const DatePickerFooter = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${p => p.theme.space(1)} ${space(3)} ${space(3)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(3)} ${p => p.theme.space(3)}
+    ${space(3)};
 `;
 
 const UtcPickerLabel = styled('label')`

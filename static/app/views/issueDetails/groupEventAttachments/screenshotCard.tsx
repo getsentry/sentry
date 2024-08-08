@@ -17,7 +17,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAttachment, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -174,12 +173,12 @@ const Detail = styled('div')`
 
 const CardHeader = styled('div')`
   display: flex;
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
 `;
 
 const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   max-height: 250px;
   min-height: 250px;
   overflow: hidden;
@@ -190,7 +189,7 @@ const CardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   .dropdown {
     height: 24px;
   }

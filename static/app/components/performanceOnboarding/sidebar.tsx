@@ -20,7 +20,6 @@ import {t, tct} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
@@ -321,7 +320,7 @@ const TaskList = styled('div')`
   grid-auto-flow: row;
   grid-template-columns: 100%;
   gap: ${p => p.theme.space(1)};
-  margin: 50px ${p => p.theme.space(4)} ${space(4)} ${space(4)};
+  margin: 50px ${p => p.theme.space(4)} ${p => p.theme.space(4)} ${p => p.theme.space(4)};
 `;
 
 const Heading = styled('div')`

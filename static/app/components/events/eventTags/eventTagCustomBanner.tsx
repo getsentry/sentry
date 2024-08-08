@@ -7,7 +7,6 @@ import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export default function EventTagCustomBanner() {
   return (
@@ -43,7 +42,7 @@ const Wrapper = styled(Panel)`
 `;
 
 const Body = styled(PanelBody)`
-  padding: ${p => p.theme.space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
   flex: 1;
   max-width: 350px;
 `;

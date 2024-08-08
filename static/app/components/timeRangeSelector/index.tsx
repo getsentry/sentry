@@ -10,7 +10,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -502,7 +501,7 @@ const AbsoluteSelectorFooter = styled('div')`
 `;
 
 const FooterMessage = styled('p')`
-  padding: ${p => p.theme.space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)};
   margin: ${p => p.theme.space(0.5)} 0;
   border-radius: ${p => p.theme.borderRadius};
   border: solid 1px ${p => p.theme.alert.warning.border};

@@ -13,7 +13,6 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import {getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -183,7 +182,7 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
 export default TeamIssuesAge;
 
 const ChartWrapper = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -196,7 +195,7 @@ const StyledPanelTable = styled(PanelTable)`
   box-shadow: unset;
 
   > * {
-    padding: ${p => p.theme.space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 
   ${p =>

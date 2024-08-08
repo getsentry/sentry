@@ -10,7 +10,6 @@ import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedMQL, unescapeMetricsFormula} from 'sentry/utils/metrics';
@@ -261,7 +260,7 @@ const WidgetHeaderWrapper = styled('div')`
 `;
 
 const ContextMenuWrapper = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(1)} 0 ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(1)} 0 ${p => p.theme.space(3)};
 `;
 
 const WidgetHeaderDescription = styled('div')`

@@ -11,7 +11,6 @@ import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegrap
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
@@ -251,7 +250,7 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${p => p.theme.space(1)};
-  padding: ${p => p.theme.space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header

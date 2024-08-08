@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -60,7 +59,7 @@ const RowWrapper = styled('div')`
   border: 1px solid ${p => p.theme.gray200};
   justify-content: space-between;
   align-items: center;
-  padding: ${p => p.theme.space(3)} ${space(4)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(4)};
 `;
 
 const IconTextWrapper = styled('div')`

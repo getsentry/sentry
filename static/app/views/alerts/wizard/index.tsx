@@ -16,7 +16,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
@@ -286,7 +285,8 @@ const ExampleItem = styled(ListItem)`
 
 const WizardFooter = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)}
+    ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)};
 `;
 
 const WizardButtonContainer = styled('div')`

@@ -18,7 +18,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
@@ -236,7 +235,7 @@ function ReleaseCardProjectRow({
 export default ReleaseCardProjectRow;
 
 const ProjectRow = styled(PanelItem)`
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     font-size: ${p => p.theme.fontSizeMedium};
   }

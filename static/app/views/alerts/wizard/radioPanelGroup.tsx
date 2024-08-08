@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Radio from 'sentry/components/radio';
-import {space} from 'sentry/styles/space';
 
 type RadioPanelGroupProps<C extends string> = {
   /**
@@ -57,7 +56,7 @@ const RadioLineItem = styled('label')<{
   index: number;
 }>`
   display: grid;
-  gap: ${p => p.theme.space(0.25)} ${space(1)};
+  gap: ${p => p.theme.space(0.25)} ${p => p.theme.space(1)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
   cursor: pointer;

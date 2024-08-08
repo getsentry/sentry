@@ -7,7 +7,6 @@ import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,
   Organization,
@@ -235,7 +234,7 @@ const CategoryTag = styled(
   background: ${p => (p.priority ? p.theme.purple200 : p.theme.gray100)};
   border-radius: 20px;
   font-size: ${p => p.theme.space(1.5)};
-  margin: ${p => p.theme.space(0.25)} ${space(0.5)};
+  margin: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
   line-height: ${p => p.theme.space(3)};
   text-align: center;
   color: ${p => (p.priority ? p.theme.white : p.theme.gray500)};

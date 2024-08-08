@@ -5,7 +5,6 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function ContinuousProfileHeader() {
@@ -46,5 +45,5 @@ const SmallerProfilingBreadcrumbsWrapper = styled('div')`
 `;
 
 const SmallerLayoutHeader = styled(Layout.Header)`
-  padding: ${p => p.theme.space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)} !important;
 `;

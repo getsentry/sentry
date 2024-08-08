@@ -21,7 +21,6 @@ import PlatformPicker, {
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK, Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
@@ -259,7 +258,7 @@ const TeamInput = styled(TeamSelector)`
 `;
 
 const Subtitle = styled('p')`
-  margin: ${p => p.theme.space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
 `;

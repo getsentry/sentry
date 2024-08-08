@@ -18,7 +18,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {
   Actor,
   Group,
@@ -632,13 +631,13 @@ const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-size: 13px;
-  padding: ${p => p.theme.space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.5)};
 `;
 
 const MenuItemFooterWrapper = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${p => p.theme.space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: ${p => p.theme.tag.highlight.background};
   color: ${p => p.theme.activeText};

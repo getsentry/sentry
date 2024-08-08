@@ -486,7 +486,7 @@ const Footer = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   gap: ${p => p.theme.space(1.5)};
-  padding: ${p => p.theme.space(1)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(3)};
   border-top: 1px solid ${p => p.theme.border};
   > *:first-child {
     flex-grow: 1;

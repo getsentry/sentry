@@ -12,7 +12,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
-import {space} from 'sentry/styles/space';
 import type {
   AvatarUser,
   OnboardingTask,
@@ -183,7 +182,7 @@ function Task(props: Props) {
 
 const TaskCard = styled(Card)`
   position: relative;
-  padding: ${p => p.theme.space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 `;
 
 const IncompleteTitle = styled('div')`

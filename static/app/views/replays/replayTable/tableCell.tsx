@@ -23,7 +23,6 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -414,7 +413,7 @@ const Cols = styled('div')`
 
 const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
   display: flex;
-  gap: ${p => space(p.gap)};
+  gap: ${p => p.theme.space(p.gap)};
   align-items: center;
   ${p => (p.minWidth ? `min-width: ${p.minWidth}px;` : '')}
 `;
@@ -670,7 +669,7 @@ const Item = styled('div')<{
   gap: ${p => p.theme.space(1)};
   ${p =>
     p.isWidget
-      ? `padding: ${p.theme.space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};`
+      ? `padding: ${p.theme.space(0.75)} ${p.theme.space(1.5)} ${p.theme.space(1.5)} ${p.theme.space(1.5)};`
       : `padding: ${p.theme.space(1.5)};`};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
   ${p => (p.isReplayCell ? 'overflow: auto;' : '')};

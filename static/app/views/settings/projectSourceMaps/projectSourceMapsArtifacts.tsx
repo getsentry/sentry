@@ -15,7 +15,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -357,7 +356,7 @@ const SearchBarWithMarginBottom = styled(SearchBar)`
 `;
 
 const DetailsPanel = styled(Panel)`
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 `;
 
 const ArtifactColumn = styled('div')`

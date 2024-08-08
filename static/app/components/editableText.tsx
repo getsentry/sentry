@@ -5,7 +5,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Input from 'sentry/components/input';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import useKeypress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -199,8 +198,8 @@ const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
   background: ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
-  margin: -${p => p.theme.space(0.5)} -${space(1)};
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  margin: -${p => p.theme.space(0.5)} -${p => p.theme.space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   max-width: calc(100% + ${p => p.theme.space(2)});
 `;
 

@@ -10,7 +10,6 @@ import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, Project} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -141,7 +140,7 @@ const StyledPanelTable = styled(PanelTable)`
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${p.theme.space(1)} ${space(2)};
+        padding: ${p.theme.space(1)} ${p.theme.space(2)};
       }
     `}
 `;

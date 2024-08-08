@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
   content: React.ReactNode;
@@ -61,7 +60,7 @@ const AccordionContainer = styled('ul')`
 const AccordionHeader = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

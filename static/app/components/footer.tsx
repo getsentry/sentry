@@ -8,7 +8,6 @@ import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -118,7 +117,7 @@ const Footer = styled(BaseFooter)`
   font-size: ${p => p.theme.fontSizeMedium};
   border-top: 1px solid ${p => p.theme.border};
   align-content: center;
-  padding: ${p => p.theme.space(2)} ${space(4)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
   margin-top: auto; /* pushes footer to the bottom of the page when loading */
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {

@@ -496,7 +496,7 @@ const LoadingWrapper = styled('div')`
 
 const Info = styled('div')`
   display: flex;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
 
@@ -517,7 +517,7 @@ const SearchDropdownGroupTitle = styled('header')`
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 
   & > svg {
     margin-right: ${p => p.theme.space(1)};

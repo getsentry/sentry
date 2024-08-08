@@ -17,7 +17,6 @@ import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -297,7 +296,7 @@ const Description = styled(Tooltip)`
 const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
   position: relative;
-  padding: ${p => p.theme.space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.75)};
   margin: 0;
   &:hover {
     background: ${p => p.theme.translucentSurface200};

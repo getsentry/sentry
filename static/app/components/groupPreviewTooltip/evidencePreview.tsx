@@ -10,7 +10,6 @@ import {
 } from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type SpanEvidencePreviewProps = {
   children: ReactChild;
@@ -113,5 +112,6 @@ const EmptyWrapper = styled('div')`
 
 const SpanEvidencePreviewWrapper = styled('div')`
   width: 700px;
-  padding: ${p => p.theme.space(1.5)} ${space(1.5)} 0 ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)} 0
+    ${p => p.theme.space(1.5)};
 `;

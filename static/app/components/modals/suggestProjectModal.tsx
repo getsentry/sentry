@@ -19,7 +19,6 @@ import Form from 'sentry/components/forms/form';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
@@ -223,7 +222,7 @@ const SmallP = styled('p')`
 `;
 
 const PatternHeader = styled('div')`
-  margin: -${p => p.theme.space(4)} -${space(4)} 0 -${space(4)};
+  margin: -${p => p.theme.space(4)} -${p => p.theme.space(4)} 0 -${p => p.theme.space(4)};
   border-radius: 7px 7px 0 0;
   background-image: url(${bgPattern});
   background-size: 475px;

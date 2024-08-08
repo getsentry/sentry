@@ -208,7 +208,8 @@ const TourContent = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: ${p => p.theme.space(3)} ${space(4)} ${space(1)} ${space(4)};
+  margin: ${p => p.theme.space(3)} ${p => p.theme.space(4)} ${p => p.theme.space(1)}
+    ${space(4)};
 `;
 
 const TourHeader = styled('h4')`

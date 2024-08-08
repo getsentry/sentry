@@ -164,8 +164,9 @@ const Header = styled(Layout.Header)`
   gap: ${p => p.theme.space(1)};
   padding-bottom: ${p => p.theme.space(1.5)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    gap: ${p => p.theme.space(1)} ${space(3)};
-    padding: ${p => p.theme.space(2)} ${space(2)} ${space(1.5)} ${space(2)};
+    gap: ${p => p.theme.space(1)} ${p => p.theme.space(3)};
+    padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} ${p => p.theme.space(1.5)}
+      ${space(2)};
   }
 `;
 

@@ -335,7 +335,7 @@ const QueryFooterWrapper = styled('div')`
 `;
 
 const Highlight = styled('span')`
-  padding: ${p => p.theme.space(0.5)} ${space(0.25)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.25)};
   overflow: hidden;
   font-size: ${p => p.theme.fontSizeSmall};
   gap: ${p => p.theme.space(1)};

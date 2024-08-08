@@ -33,7 +33,8 @@ export const TaskSidebarList = styled('div')`
   grid-auto-flow: row;
   grid-template-columns: 100%;
   gap: ${p => p.theme.space(1)};
-  margin: ${p => p.theme.space(1)} ${space(4)} ${space(4)} ${space(4)};
+  margin: ${p => p.theme.space(1)} ${p => p.theme.space(4)} ${p => p.theme.space(4)}
+    ${space(4)};
 `;
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;

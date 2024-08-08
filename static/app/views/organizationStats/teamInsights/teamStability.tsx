@@ -12,7 +12,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project, SessionApiResponse} from 'sentry/types';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
@@ -259,7 +258,7 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   overflow: visible;
 
   & > div {
-    padding: ${p => p.theme.space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 
   ${p =>

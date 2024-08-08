@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 
 interface CollapsibleTimelineProps {
@@ -46,7 +45,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
 const StyledButton = styled(Button)`
   height: 12px;
   min-height: 12px;
-  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
   border-radius: 2px;
   background-color: ${p => p.theme.backgroundSecondary};
   border: none;

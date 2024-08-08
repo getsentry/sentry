@@ -59,7 +59,8 @@ const Wrapper = styled('div')`
 
 const Label = styled('div')<{coloredBg?: boolean}>`
   color: ${p => p.theme.textColor};
-  padding: ${p => p.theme.space(1)} ${space(1.5)} ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)} ${p => p.theme.space(1)}
+    ${space(1)};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
 `;
 

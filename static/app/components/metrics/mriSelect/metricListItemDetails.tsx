@@ -257,7 +257,8 @@ const Header = styled('div')`
   grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${p => p.theme.space(0.5)};
-  padding: ${p => p.theme.space(0.75)} ${space(0.25)} ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(0.25)}
+    ${p => p.theme.space(0.75)} ${space(1.5)};
 `;
 
 const MetricName = styled('div')`
@@ -284,14 +285,16 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const DetailsLabel = styled('div')`
   color: ${p => p.theme.subText};
-  padding: ${p => p.theme.space(0.75)} ${space(1)} ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)}
+    ${p => p.theme.space(0.75)} ${space(1.5)};
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
 `;
 
 const DetailsValue = styled('div')`
   white-space: pre-wrap;
-  padding: ${p => p.theme.space(0.75)} ${space(1.5)} ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1.5)}
+    ${p => p.theme.space(0.75)} ${space(1)};
   border-top-right-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   min-width: 0;

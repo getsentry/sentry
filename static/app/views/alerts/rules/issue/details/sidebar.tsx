@@ -228,7 +228,8 @@ const StepLead = styled('div')`
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${p => p.theme.space(0.5)} ${space(1)} ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)} ${p => p.theme.space(0.5)}
+    0;
 `;
 
 const Badge = styled('span')`

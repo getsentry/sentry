@@ -1,18 +1,16 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 export const DataSection = styled('div')`
   display: flex;
   flex-direction: column;
   margin: 0;
 
   /* Padding aligns with Layout.Body */
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p => p.theme.space(1.5)} ${space(4)};
+    padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(4)};
   }
 `;
 
@@ -55,10 +53,10 @@ export const BannerSummary = styled('p')`
   display: flex;
   align-items: flex-start;
   margin-bottom: 0;
-  padding: ${p => p.theme.space(2)} ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding: ${p => p.theme.space(2)} ${space(4)};
+    padding: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
   }
 
   /* Get icons in top right of content box */

@@ -3,7 +3,6 @@ import type {CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
-import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
@@ -125,7 +124,7 @@ const Wrapper = styled('div')<{
   grid-template-columns: 64px 140px 1fr 106px 100px;
 
   > * {
-    padding: ${p => p.theme.space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 
   @media (max-width: ${props => props.theme.breakpoints.small}) {
@@ -162,7 +161,7 @@ const Wrapper = styled('div')<{
 
       /* Time */
       :nth-child(5n) {
-        padding: ${p => p.theme.space(1)} ${space(2)};
+        padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
       }
     }
   }

@@ -88,7 +88,7 @@ const TitleWrapper = styled('div')`
 
 const Title = styled('div')<TitleProps>`
   ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeightBold};`};
-  margin: ${p => p.theme.space(4)} ${space(2)} ${space(3)} 0;
+  margin: ${p => p.theme.space(4)} ${p => p.theme.space(2)} ${p => p.theme.space(3)} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   color: ${p => (p.colorSubtitle ? p.theme.purple400 : p.theme.gray400)};

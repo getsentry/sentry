@@ -25,7 +25,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import {space} from 'sentry/styles/space';
 import type {
   EventsStats,
   MetricsExtractionRule,
@@ -1269,7 +1268,7 @@ const Main = styled(Layout.Main)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${p => p.theme.space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
@@ -1278,7 +1277,7 @@ const AlertListItem = styled(StyledListItem)`
 `;
 
 const ChartHeader = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(3)} 0 ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)} 0 ${p => p.theme.space(3)};
   margin-bottom: -${p => p.theme.space(1.5)};
 `;
 

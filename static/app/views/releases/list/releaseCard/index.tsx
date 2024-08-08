@@ -15,7 +15,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Release} from 'sentry/types';
 
 import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
@@ -233,7 +232,7 @@ const StyledPanel = styled(Panel)<{reloading: number}>`
 `;
 
 const ReleaseInfo = styled('div')`
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   flex-shrink: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
@@ -277,7 +276,7 @@ export const ReleaseInfoHeader = styled('div')`
 
 const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

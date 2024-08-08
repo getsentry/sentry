@@ -31,7 +31,6 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -173,7 +172,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
 }
 
 const ProfilingHeader = styled(Layout.Header)`
-  padding: ${p => p.theme.space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)} !important;
 `;
 
 const ProfilingHeaderContent = styled(Layout.HeaderContent)`
@@ -243,7 +242,7 @@ const ActionBar = styled('div')`
   display: grid;
   gap: ${p => p.theme.space(1)};
   grid-template-columns: min-content auto;
-  padding: ${p => p.theme.space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
   background-color: ${p => p.theme.background};
 `;
 
@@ -591,7 +590,7 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${p => p.theme.space(1)};
-  padding: ${p => p.theme.space(1)} ${space(0.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(0.5)};
   background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,

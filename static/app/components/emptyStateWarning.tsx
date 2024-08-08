@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   children?: React.ReactNode;
@@ -30,7 +29,7 @@ function EmptyStateWarning({small = false, withIcon = true, children, className}
 export const EmptyStreamWrapper = styled('div')`
   text-align: center;
   font-size: 22px;
-  padding: ${p => p.theme.space(4)} ${space(2)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(2)};
 
   p {
     line-height: 1.2;

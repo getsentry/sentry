@@ -12,7 +12,6 @@ import NumberInput from 'sentry/components/numberInput';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Choices, Organization, Project} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
@@ -627,5 +626,5 @@ const MarginlessAlert = styled(Alert)`
   border-width: 0;
   border-top: 1px ${p => p.theme.innerBorder} solid;
   margin: 0;
-  padding: ${p => p.theme.space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
 `;

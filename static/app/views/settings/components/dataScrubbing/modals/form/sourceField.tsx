@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import TextField from 'sentry/components/forms/fields/textField';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import type {SourceSuggestion} from '../../types';
@@ -471,7 +470,7 @@ const Suggestions = styled('ul')<{error?: string}>`
   margin-bottom: 0;
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
   border: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 ${p => p.theme.space(0.5)} ${space(0.5)};
+  border-radius: 0 0 ${p => p.theme.space(0.5)} ${p => p.theme.space(0.5)};
   background: ${p => p.theme.background};
   top: 63px;
   left: 0;
@@ -486,7 +485,7 @@ const Suggestion = styled('li')<{active: boolean}>`
   grid-template-columns: auto 1fr max-content;
   gap: ${p => p.theme.space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
   cursor: pointer;
   background: ${p => (p.active ? p.theme.backgroundSecondary : p.theme.background)};

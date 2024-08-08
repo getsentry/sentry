@@ -1,8 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {css, Global} from '@emotion/react';
 
-import {space} from 'sentry/styles/space';
-
 const prismStyles = (theme: Theme) => css`
   :root {
     ${theme.prismVariables};
@@ -16,7 +14,7 @@ const prismStyles = (theme: Theme) => css`
 
   pre[class*='language-'] {
     overflow-x: auto;
-    padding: ${p => p.theme.space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
     border-radius: ${theme.borderRadius};
     box-shadow: none;
 

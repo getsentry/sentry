@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import NotAvailable from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function Details() {
   return (
@@ -47,7 +46,7 @@ const Value = styled('div')`
   font-weight: ${p => p.theme.fontWeightNormal};
   white-space: pre-wrap;
   word-break: break-all;
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   font-family: ${p => p.theme.text.familyMono};
   background-color: ${p => p.theme.backgroundSecondary};
 

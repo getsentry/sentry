@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   children: React.ReactNode;
   description: React.ReactNode;
@@ -35,7 +33,7 @@ const Wrapper = styled('div')`
 `;
 
 const LeftPanel = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {

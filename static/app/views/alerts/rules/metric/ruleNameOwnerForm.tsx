@@ -67,7 +67,7 @@ export default function RuleNameOwnerForm({disabled, project}: Props) {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${p => p.theme.space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 

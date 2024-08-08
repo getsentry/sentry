@@ -11,7 +11,6 @@ import {AutofixSetupModal} from 'sentry/components/events/autofix/autofixSetupMo
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 type Props = {
@@ -152,7 +151,7 @@ const Body = styled(PanelBody)`
   display: flex;
   flex-direction: column;
   flex-grow: 2;
-  padding: ${p => p.theme.space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 `;
 
 const Title = styled('div')`

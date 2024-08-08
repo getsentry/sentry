@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   children?: React.ReactNode;
   type?: undefined | 'error' | 'warning';
@@ -18,7 +16,7 @@ export function ReleaseDetailsTableRow({type, children}: Props) {
 const Row = styled('div')<{type: Props['type']}>`
   ${p => p.theme.overflowEllipsis};
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: inherit;
 

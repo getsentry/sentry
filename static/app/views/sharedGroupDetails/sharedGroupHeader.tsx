@@ -71,7 +71,8 @@ function SharedGroupHeader({group}: Props) {
 export default SharedGroupHeader;
 
 const Wrapper = styled('div')`
-  padding: ${p => p.theme.space(3)} ${space(4)} ${space(3)} ${space(4)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(4)} ${p => p.theme.space(3)}
+    ${space(4)};
   border-bottom: 1px solid ${p => p.theme.border};
   position: relative;
 `;

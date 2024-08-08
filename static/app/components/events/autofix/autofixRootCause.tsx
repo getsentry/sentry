@@ -26,7 +26,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
@@ -611,7 +610,7 @@ const OptionFooter = styled('div')`
 `;
 
 const CustomRootCausePadding = styled('div')`
-  padding: 0 ${p => p.theme.space(2)} ${space(2)} ${space(2)};
+  padding: 0 ${p => p.theme.space(2)} ${p => p.theme.space(2)} ${p => p.theme.space(2)};
 `;
 
 const RootCauseOptionsRow = styled('div')`

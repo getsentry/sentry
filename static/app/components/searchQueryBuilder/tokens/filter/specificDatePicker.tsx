@@ -20,7 +20,6 @@ import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
@@ -272,7 +271,7 @@ const Input = styled('input')`
 `;
 
 const ControlsWrapper = styled('div')`
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 

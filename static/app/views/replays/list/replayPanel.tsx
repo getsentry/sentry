@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
 
 interface Props extends React.ComponentProps<typeof Panel> {
   children: React.ReactNode;
@@ -61,7 +60,8 @@ const IlloBox = styled(StyledBox)`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex: 1;
-    margin: 120px ${p => p.theme.space(3)} ${space(3)} ${space(3)};
+    margin: 120px ${p => p.theme.space(3)} ${p => p.theme.space(3)}
+      ${p => p.theme.space(3)};
     max-width: auto;
   }
 `;

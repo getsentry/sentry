@@ -3,7 +3,6 @@ import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
-import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import type {AvatarUser} from 'sentry/types/user';
 
@@ -135,7 +134,7 @@ const ActivityHeaderContent = styled('div')`
 `;
 
 const ActivityBody = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)};
   ${textStyles}
 `;
 

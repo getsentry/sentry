@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   culture?: string;
@@ -47,7 +46,7 @@ const AssemblyWrapper = styled('div')`
   color: ${p => p.theme.textColor};
   text-align: center;
   position: relative;
-  padding: ${p => p.theme.space(0.25)} ${space(3)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(3)};
 `;
 
 const AssemblyInfo = styled('div')`

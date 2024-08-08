@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 export const WidgetContainer = styled(Panel)<{height?: string}>`
@@ -63,6 +62,6 @@ export const AccordionItem = styled('li')`
   align-items: center;
   gap: ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

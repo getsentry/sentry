@@ -186,7 +186,7 @@ const FileHeader = styled('div')`
   grid-template-columns: minmax(60px, auto) 1fr auto;
   gap: ${p => p.theme.space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   cursor: pointer;
 `;
 
@@ -221,13 +221,14 @@ const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
-  padding: ${p => p.theme.space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)}
+    ${p => p.theme.space(0.75)} ${space(4)};
   white-space: pre-wrap;
 `;
 
 const LineNumber = styled('div')<{lineType: DiffLineType}>`
   display: flex;
-  padding: ${p => p.theme.space(0.25)} ${space(2)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(2)};
   user-select: none;
 
   background-color: ${p => p.theme.backgroundSecondary};

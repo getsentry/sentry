@@ -29,7 +29,6 @@ import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {space} from 'sentry/styles/space';
 import type {
   BaseGroup,
   Group,
@@ -1339,7 +1338,7 @@ const StyledMain = styled('section')`
   padding: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p => p.theme.space(3)} ${space(4)};
+    padding: ${p => p.theme.space(3)} ${p => p.theme.space(4)};
   }
 `;
 

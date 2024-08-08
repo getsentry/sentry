@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {space} from 'sentry/styles/space';
 
 type Props = {title?: string};
 
@@ -27,5 +26,5 @@ const Title = styled('div')`
 
 const TaskCard = styled(Card)`
   position: relative;
-  padding: ${p => p.theme.space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 `;

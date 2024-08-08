@@ -4,7 +4,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Frame} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -134,7 +133,7 @@ const Data = styled('div')`
 const HintStatus = styled('span')`
   position: relative;
   top: ${p => p.theme.space(0.25)};
-  margin: 0 ${p => p.theme.space(0.75)} 0 -${space(0.25)};
+  margin: 0 ${p => p.theme.space(0.75)} 0 -${p => p.theme.space(0.25)};
 `;
 
 const Filename = styled('span')`

@@ -13,7 +13,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {Project} from 'sentry/types/project';
 
@@ -145,7 +144,7 @@ function DebugFileRow({
 
 const DescriptionText = styled('span')`
   display: inline-flex;
-  margin: 0 ${p => p.theme.space(1)} ${space(1)} 0;
+  margin: 0 ${p => p.theme.space(1)} ${p => p.theme.space(1)} 0;
 `;
 
 const FeatureTags = styled('div')`

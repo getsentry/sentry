@@ -6,7 +6,6 @@ import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
@@ -190,7 +189,7 @@ const alertStyles = ({
 
 const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
   ${alertStyles}
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
 `;
 
 const IconWrapper = styled('div')`

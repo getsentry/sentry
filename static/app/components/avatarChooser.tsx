@@ -15,7 +15,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -281,8 +280,8 @@ const AvatarGroup = styled('div')<{inline: boolean}>`
 
 const AvatarForm = styled('div')`
   line-height: ${p => p.theme.space(3)};
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
-  margin: ${p => p.theme.space(1.5)} ${space(1)} ${space(0.5)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
+  margin: ${p => p.theme.space(1.5)} ${p => p.theme.space(1)} ${p => p.theme.space(0.5)};
 `;
 
 const AvatarSubmit = styled('fieldset')`

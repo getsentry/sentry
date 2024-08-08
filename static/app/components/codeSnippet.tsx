@@ -5,7 +5,6 @@ import Prism from 'prismjs';
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 interface CodeSnippetProps {
@@ -242,7 +241,7 @@ const Header = styled('div')<{isSolid: boolean}>`
 
 const FileName = styled('p')`
   ${p => p.theme.overflowEllipsis}
-  padding: ${p => p.theme.space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.5)};
   margin: 0;
   width: auto;
 `;
@@ -258,7 +257,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   margin: 0;
   border: none;
   background: none;
-  padding: ${p => p.theme.space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
   color: var(--prism-comment);
   ${p =>
     p.isSelected

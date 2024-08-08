@@ -26,7 +26,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconEdit, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -292,7 +291,7 @@ const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
 `;
 
 const EmptyHighlights = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(1)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(1)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px dashed ${p => p.theme.translucentBorder};
   background: ${p => p.theme.bodyBackground};

@@ -12,7 +12,6 @@ import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Organization, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
@@ -253,8 +252,9 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   background: ${p => tagColors[p.tagType.indexOf('tags') === -1 ? p.tagType : 'tag']};
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
-  margin: ${p => p.theme.space(0.25)} ${space(0.5)} ${space(0.25)} 0;
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
+  margin: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)}
+    ${p => p.theme.space(0.25)} 0;
   border-radius: 2px;
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;
@@ -264,8 +264,9 @@ const ViewMoreButton = styled(Button)`
   border: none;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
-  margin: ${p => p.theme.space(1)} ${space(0.25)} ${space(0.25)} 0;
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
+  margin: ${p => p.theme.space(1)} ${p => p.theme.space(0.25)} ${p => p.theme.space(0.25)}
+    0;
   width: 100%;
   min-width: 34px;
 `;

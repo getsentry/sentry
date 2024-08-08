@@ -113,7 +113,7 @@ const HeaderContent = styled('div')`
 
 const NavMenuToggle = styled(Button)`
   display: none;
-  margin: -${p => p.theme.space(1)} ${space(1)} -${space(1)} -${space(1)};
+  margin: -${p => p.theme.space(1)} ${p => p.theme.space(1)} -${p => p.theme.space(1)} -${space(1)};
   padding: ${p => p.theme.space(1)};
   color: ${p => p.theme.subText};
   &:hover,

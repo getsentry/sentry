@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import {getSortedRegisters} from './utils';
@@ -48,7 +47,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
 }
 
 const Wrapper = styled('div')`
-  padding: ${p => p.theme.space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding: 18px 36px;

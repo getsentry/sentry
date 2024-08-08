@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   speed: number;
@@ -38,7 +37,7 @@ const FastForwardTooltip = styled(Tooltip)`
 
   background: ${p => p.theme.gray300};
   color: ${p => p.theme.white};
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   border-top-right-radius: ${p => p.theme.borderRadius};
   z-index: ${p => p.theme.zIndex.initial};
 `;

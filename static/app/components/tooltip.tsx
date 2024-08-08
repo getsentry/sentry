@@ -7,7 +7,6 @@ import {AnimatePresence} from 'framer-motion';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
@@ -78,7 +77,7 @@ function Tooltip({
 }
 
 const TooltipContent = styled(Overlay)`
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   overflow-wrap: break-word;
   max-width: 225px;
   color: ${p => p.theme.textColor};

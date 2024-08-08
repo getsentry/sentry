@@ -619,7 +619,7 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: 0 ${p => p.theme.space(0.5)} 0 ${space(1)};
+    margin: 0 ${p => p.theme.space(0.5)} 0 ${p => p.theme.space(1)};
     height: 12px;
     width: 12px;
   }
@@ -630,7 +630,7 @@ const ClearButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   padding: 0 ${p => p.theme.space(0.5)};
-  margin: -${p => p.theme.space(0.25)} -${space(0.5)};
+  margin: -${p => p.theme.space(0.25)} -${p => p.theme.space(0.5)};
 `;
 
 const searchVerticalPadding: Record<FormSize, string> = {
@@ -650,7 +650,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   /* Subtract 1px to account for border width */
   padding: ${p => searchVerticalPadding[p.visualSize]}
     calc(${p => p.theme.space(1)} - 1px);
-  margin: ${p => p.theme.space(0.5)} ${space(0.5)};
+  margin: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.5)};
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
   header's shadow border */
@@ -708,6 +708,6 @@ const OptionsWrap = styled('div')`
 
 const MenuFooter = styled('div')`
   box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   z-index: 2;
 `;

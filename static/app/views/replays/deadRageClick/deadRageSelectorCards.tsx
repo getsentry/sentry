@@ -11,7 +11,6 @@ import Accordion from 'sentry/components/replays/accordion';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -322,7 +321,8 @@ const EmptySubtitle = styled('div')`
 
 const LoadingContainer = styled(ContentContainer)`
   gap: ${p => p.theme.space(0.25)};
-  padding: ${p => p.theme.space(1)} ${space(0.5)} 3px ${space(0.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(0.5)} 3px
+    ${p => p.theme.space(0.5)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

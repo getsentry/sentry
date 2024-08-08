@@ -33,7 +33,6 @@ import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -602,7 +601,7 @@ const ListBoxOverlay = styled(Overlay)`
 const DescriptionOverlay = styled(Overlay)`
   min-width: 200px;
   max-width: 400px;
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   line-height: 1.2;
 `;
 

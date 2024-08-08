@@ -590,7 +590,7 @@ const ColorSwatch = styled(
 
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
   vertical-align: sub;
 `;
 

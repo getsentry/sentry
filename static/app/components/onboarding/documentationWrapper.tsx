@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import type {AlertProps} from 'sentry/components/alert';
 import {alertStyles} from 'sentry/components/alert';
-import {space} from 'sentry/styles/space';
 
 type AlertType = AlertProps['type'];
 
@@ -45,7 +44,7 @@ export const DocumentationWrapper = styled('div')`
   }
 
   blockquote {
-    padding: ${p => p.theme.space(1.5)} ${space(2)};
+    padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
     ${p => alertStyles({theme: p.theme, type: 'info'})}
   }
 

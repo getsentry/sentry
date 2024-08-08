@@ -7,7 +7,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {
@@ -176,11 +175,11 @@ const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
   font-weight: ${p => p.theme.fontWeightNormal};
-  margin: -${p => p.theme.space(0.5)} -${space(1)} -${space(0.25)};
+  margin: -${p => p.theme.space(0.5)} -${p => p.theme.space(1)} -${p => p.theme.space(0.25)};
   min-width: 0;
 
   button {
-    padding: ${p => p.theme.space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;

@@ -10,7 +10,6 @@ import Confirm from 'sentry/components/confirm';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   Integration,
   IntegrationProvider,
@@ -258,5 +257,5 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
 `;
 
 const IntegrationStatusText = styled('div')`
-  margin: 0 ${p => p.theme.space(0.75)} 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.75)} 0 ${p => p.theme.space(0.5)};
 `;

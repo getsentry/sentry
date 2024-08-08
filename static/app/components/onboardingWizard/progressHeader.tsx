@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import ProgressRing from 'sentry/components/progressRing';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 
@@ -54,7 +53,7 @@ const Container = styled('div')`
   grid-template-columns: min-content 1fr;
   grid-template-rows: min-content 1fr;
   grid-column-gap: ${p => p.theme.space(2)};
-  margin: 90px ${p => p.theme.space(4)} 0 ${space(4)};
+  margin: 90px ${p => p.theme.space(4)} 0 ${p => p.theme.space(4)};
 `;
 
 const StyledProgressRing = styled(ProgressRing)`

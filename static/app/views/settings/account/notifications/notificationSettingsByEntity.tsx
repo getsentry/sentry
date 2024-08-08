@@ -305,7 +305,7 @@ const Item = styled('div')`
   grid-column-gap: ${p => p.theme.space(1)};
   grid-template-columns: 2.5fr 1fr min-content;
   align-items: center;
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
 `;
 
 const ControlItem = styled(Item)`

@@ -10,7 +10,6 @@ import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
-import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -261,11 +260,11 @@ const Modal = styled(motion.div)`
   width: 640px;
   pointer-events: auto;
   margin-top: 64px;
-  padding: ${p => p.theme.space(2)} ${space(1.5)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin-top: 50px;
-    padding: ${p => p.theme.space(4)} ${space(2)};
+    padding: ${p => p.theme.space(4)} ${p => p.theme.space(2)};
   }
 `;
 
@@ -286,7 +285,7 @@ const Content = styled('div')`
     0 0 0 1px ${p => p.theme.translucentBorder},
     ${p => p.theme.dropShadowHeavy};
   position: relative;
-  padding: ${p => p.theme.space(4)} ${space(3)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${p => p.theme.space(4)};

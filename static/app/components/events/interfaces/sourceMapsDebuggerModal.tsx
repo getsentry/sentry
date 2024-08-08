@@ -23,7 +23,6 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
@@ -1356,7 +1355,7 @@ const CheckListInstruction = styled(Alert)`
 `;
 
 const MonoBlock = styled('code')`
-  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
   color: ${p => p.theme.gray400};
   background: ${p => p.theme.gray100};
   border: 1px solid ${p => p.theme.gray200};
@@ -1375,7 +1374,7 @@ const WizardInstructionParagraph = styled('p')`
 `;
 
 const InstructionCodeSnippet = styled(CodeSnippet)`
-  margin: ${p => p.theme.space(1)} 0 ${space(2)};
+  margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(2)};
 `;
 
 const InstructionList = styled('ul')`

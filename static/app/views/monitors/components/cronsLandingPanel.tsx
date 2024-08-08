@@ -8,7 +8,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -227,7 +226,7 @@ export function CronsLandingPanel() {
 const BackButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
-  margin: ${p => p.theme.space(1)} 0 0 ${space(1)};
+  margin: ${p => p.theme.space(1)} 0 0 ${p => p.theme.space(1)};
   padding-left: ${p => p.theme.space(0.5)};
   padding-right: ${p => p.theme.space(0.5)};
 `;

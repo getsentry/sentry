@@ -14,7 +14,6 @@ import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedSearch} from 'sentry/types';
 import {SavedSearchVisibility} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -320,7 +319,7 @@ const StyledItemButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: ${p => p.theme.text.lineHeightBody};
 
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 
   ${ButtonLabel} {
     justify-content: start;
@@ -393,7 +392,7 @@ const SavedSearchItemQuery = styled('div')`
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
   font-weight: ${p => p.theme.fontWeightNormal};
-  padding: ${p => p.theme.space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(2)};
 
   &:hover {
     color: ${p => p.theme.linkHoverColor};

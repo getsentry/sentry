@@ -15,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose, IconQuestion, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -671,7 +670,7 @@ function MenuList({
         css={css`
           /* The padding must align with the values specified for the option in the forms/controls/selectOption component */
           padding: ${p => p.theme.space(1)};
-          padding-left: calc(${p => p.theme.space(0.5)} + ${space(1.5)});
+          padding-left: calc(${p => p.theme.space(0.5)} + ${p => p.theme.space(1.5)});
           color: ${theme.gray300};
         `}
       >

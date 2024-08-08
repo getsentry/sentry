@@ -17,7 +17,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -347,7 +346,7 @@ const MemberCard = styled(Card)`
   flex-direction: row;
   flex-wrap: wrap;
   min-width: 30%;
-  margin: ${p => p.theme.space(1)} ${space(0.5)} 0 0;
+  margin: ${p => p.theme.space(1)} ${p => p.theme.space(0.5)} 0 0;
   padding: ${p => p.theme.space(2)} 18px;
   justify-content: center;
   align-items: center;

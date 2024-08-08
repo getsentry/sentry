@@ -18,7 +18,6 @@ import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Group, Organization, Project} from 'sentry/types';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -333,7 +332,7 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
 
 const StatsWrapper = styled('div')`
   display: flex;
-  gap: calc(${p => p.theme.space(3)} + ${space(3)});
+  gap: calc(${p => p.theme.space(3)} + ${p => p.theme.space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;

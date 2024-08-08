@@ -5,7 +5,6 @@ import {PanelTable, PanelTableHeader} from 'sentry/components/panels/panelTable'
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {isNotQueryOnly, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
@@ -280,6 +279,6 @@ const HeaderCell = styled('div')<{disabled: boolean; type?: string}>`
 `;
 
 export const TableCell = styled(Cell)<{noValue?: boolean}>`
-  padding: ${p => p.theme.space(1)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(3)};
   ${p => p.noValue && `color: ${p.theme.gray300};`}
 `;

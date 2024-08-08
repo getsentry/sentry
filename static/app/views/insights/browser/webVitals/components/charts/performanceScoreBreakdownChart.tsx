@@ -134,7 +134,8 @@ export function PerformanceScoreBreakdownChart({transaction, browserTypes}: Prop
 }
 
 const ChartContainer = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(2)} ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} ${p => p.theme.space(1)}
+    ${space(2)};
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};

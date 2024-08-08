@@ -4,7 +4,6 @@ import {PlatformIcon} from 'platformicons';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -127,7 +126,7 @@ const ProfilesTable = styled('div')`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: ${p => p.theme.space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   }
 
   img {
@@ -143,10 +142,10 @@ const ProfilesTableRow = styled('div')`
   grid-template-columns: subgrid;
   width: 100%;
   padding: ${p => p.theme.space(0.5)};
-  padding: ${p => p.theme.space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(2)};
 
   & > div {
-    padding: ${p => p.theme.space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;

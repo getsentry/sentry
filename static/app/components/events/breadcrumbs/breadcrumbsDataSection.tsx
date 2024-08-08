@@ -29,7 +29,6 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -234,5 +233,5 @@ const VerticalEllipsis = styled(IconEllipsis)`
 `;
 
 const ViewAllButton = styled(Button)`
-  padding: ${p => p.theme.space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)};
 `;

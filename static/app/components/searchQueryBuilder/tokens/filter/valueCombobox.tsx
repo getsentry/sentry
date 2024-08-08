@@ -42,7 +42,6 @@ import {
   type SearchItem,
 } from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -778,5 +777,6 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   justify-content: center;
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
-  padding: ${p => p.theme.space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)} 0 ${p => p.theme.space(0.25)}
+    ${p => p.theme.space(0.25)};
 `;

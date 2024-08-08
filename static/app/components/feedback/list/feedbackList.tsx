@@ -18,7 +18,6 @@ import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKey
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
@@ -171,7 +170,7 @@ const FloatingContainer = styled('div')`
 
 const Wrapper = styled('div')`
   display: flex;
-  padding: ${p => p.theme.space(4)} ${space(4)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(4)};
   flex-direction: column;
   align-items: center;
   text-align: center;

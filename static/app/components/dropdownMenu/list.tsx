@@ -13,7 +13,6 @@ import type {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import type useOverlay from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';
@@ -289,7 +288,7 @@ const MenuTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
-  padding: ${p => p.theme.space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1.5)};
   box-shadow: 0 1px 0 0 ${p => p.theme.translucentInnerBorder};
   z-index: 2;
 `;
@@ -297,5 +296,5 @@ const MenuTitle = styled('div')`
 const Separator = styled('li')`
   list-style-type: none;
   border-top: solid 1px ${p => p.theme.innerBorder};
-  margin: ${p => p.theme.space(0.5)} ${space(1.5)};
+  margin: ${p => p.theme.space(0.5)} ${p => p.theme.space(1.5)};
 `;

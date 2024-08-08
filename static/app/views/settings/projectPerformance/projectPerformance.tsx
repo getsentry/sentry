@@ -20,7 +20,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project, Scope} from 'sentry/types';
 import {IssueTitle, IssueType} from 'sentry/types';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
@@ -1097,7 +1096,7 @@ const StyledJsonForm = styled(JsonForm)`
     text-transform: none;
     margin-bottom: 0;
     background: none;
-    padding: ${p => p.theme.space(3)} ${space(2)};
+    padding: ${p => p.theme.space(3)} ${p => p.theme.space(2)};
   }
 `;
 

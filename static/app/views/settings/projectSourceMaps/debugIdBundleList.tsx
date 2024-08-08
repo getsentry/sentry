@@ -5,7 +5,6 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {IconList} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {DebugIdBundle, Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
@@ -79,7 +78,7 @@ const ItemHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   border-bottom: 1px solid ${p => p.theme.border};
   line-height: 1;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 `;
 
 const ItemTitle = styled(Link)`
@@ -89,5 +88,5 @@ const ItemTitle = styled(Link)`
 `;
 
 const ItemContent = styled('div')`
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 `;

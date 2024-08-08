@@ -23,7 +23,6 @@ import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AvatarProject, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -666,7 +665,7 @@ const ChartContainer = styled('div')`
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   border-radius: ${p => p.theme.borderRadius};
-  margin: ${p => p.theme.space(2)} ${space(3)};
+  margin: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 `;
 
 const StyledButton = styled(Button)`
@@ -693,7 +692,7 @@ const ListItemContainer = styled('div')`
   grid-template-rows: repeat(2, auto);
   grid-column-gap: ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 `;
 
 const ItemRadioContainer = styled('div')`

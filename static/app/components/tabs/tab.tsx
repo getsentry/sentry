@@ -197,7 +197,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   }
   color: ${p => p.theme.gray300};
   border-radius: 6px;
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   transform: translateY(1px);
   cursor: pointer;
   &:focus {
@@ -232,7 +232,7 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     border-top: 1px solid transparent;
   }
 
-  padding: ${p => p.theme.space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1.5)};
 
   transform: translateY(1px);
 
@@ -302,11 +302,11 @@ const innerWrapStyles = ({
     orientation === 'horizontal'
       ? `
         /* Extra padding + negative margin trick, to expand click area */
-        padding: ${p => p.theme.space(0.75)} ${space(1)} ${space(1.5)};
+        padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
         margin-left: -${p => p.theme.space(1)};
         margin-right: -${p => p.theme.space(1)};
       `
-      : `padding: ${p => p.theme.space(0.75)} ${space(2)};`
+      : `padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(2)};`
   };
 `;
 

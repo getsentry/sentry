@@ -13,7 +13,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Release, ReleaseMeta} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -217,7 +216,7 @@ function ReleaseActions({
 }
 
 const ProjectsWrapper = styled('div')`
-  margin: ${p => p.theme.space(2)} 0 ${space(2)} ${space(2)};
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)} ${p => p.theme.space(2)};
   display: grid;
   gap: ${p => p.theme.space(0.5)};
   img {

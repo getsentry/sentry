@@ -327,7 +327,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         fontWeight: 600,
         color: theme.subText,
         marginBottom: 0,
-        padding: `${p => p.theme.space(0.5)} ${space(1.5)}`,
+        padding: `${p => p.theme.space(0.5)} ${p => p.theme.space(1.5)}`,
         ':empty': {
           display: 'none',
         },

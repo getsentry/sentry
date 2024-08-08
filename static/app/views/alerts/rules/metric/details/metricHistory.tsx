@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import CollapsePanel from 'sentry/components/collapsePanel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ActivationTriggerActivity, AlertRuleActivation} from 'sentry/types/alerts';
 // import {ActivationTrigger} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -106,7 +105,7 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
   grid-template-columns: max-content 1fr repeat(2, max-content);
 
   & > div {
-    padding: ${p => p.theme.space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 
   div:last-of-type {

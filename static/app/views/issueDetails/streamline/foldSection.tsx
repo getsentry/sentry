@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -161,7 +160,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 export const Section = styled('section')``;
 
 const Content = styled('div')`
-  padding: ${p => p.theme.space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.75)};
 `;
 
 const Summary = styled('summary')<{preventCollapse: boolean}>`
@@ -170,7 +169,7 @@ const Summary = styled('summary')<{preventCollapse: boolean}>`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding: ${p => p.theme.space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;

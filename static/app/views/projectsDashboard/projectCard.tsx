@@ -21,7 +21,6 @@ import ScoreCard, {
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -346,7 +345,7 @@ const FooterWrapper = styled('div')`
 `;
 
 const ScoreCardWrapper = styled('div')`
-  margin: ${p => p.theme.space(2)} 0 0 ${space(2)};
+  margin: ${p => p.theme.space(2)} 0 0 ${p => p.theme.space(2)};
   ${ScorePanel} {
     min-height: auto;
   }

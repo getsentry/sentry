@@ -657,7 +657,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 const CountTooltipContent = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${p => p.theme.space(1)} ${space(3)};
+  gap: ${p => p.theme.space(1)} ${p => p.theme.space(3)};
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
   align-items: center;

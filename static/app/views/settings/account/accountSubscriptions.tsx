@@ -14,7 +14,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import Switch from 'sentry/components/switchButton';
 import {IconToggle} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -206,7 +205,7 @@ const Heading = styled(PanelItem)`
   gap: ${p => p.theme.space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
 `;

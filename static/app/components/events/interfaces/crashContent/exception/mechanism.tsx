@@ -10,7 +10,6 @@ import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
@@ -106,7 +105,7 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
 }
 
 const Wrapper = styled('div')`
-  margin: ${p => p.theme.space(2)} 0 ${space(0.5)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(0.5)} 0;
 `;
 
 const iconStyle = (p: {theme: Theme}) => css`

@@ -5,7 +5,6 @@ import Card from 'sentry/components/card';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 
 interface Props {
@@ -90,7 +89,7 @@ const StyledDashboardCard = styled(Card)`
 
 const CardHeader = styled('div')`
   display: flex;
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
 `;
 
 const Title = styled('div')`
@@ -110,7 +109,7 @@ const Detail = styled('div')`
 
 const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   max-height: 150px;
   min-height: 150px;
   overflow: hidden;
@@ -121,7 +120,7 @@ const CardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 `;
 
 const DateSelected = styled('div')`

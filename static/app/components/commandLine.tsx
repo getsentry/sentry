@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   /**
    * The text interface
@@ -16,7 +14,7 @@ function CommandLine({children}: Props) {
 export default CommandLine;
 
 const Wrapper = styled('code')`
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   color: ${p => p.theme.pink400};
   background: ${p => p.theme.pink100};
   border: 1px solid ${p => p.theme.pink200};

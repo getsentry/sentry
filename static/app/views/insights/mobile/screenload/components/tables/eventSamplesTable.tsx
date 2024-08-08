@@ -11,7 +11,6 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -247,7 +246,7 @@ const GridContainer = styled('div')`
     padding-right: ${p => p.theme.space(2)};
   }
   td {
-    padding: ${p => p.theme.space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   }
   td:first-child {
     padding-right: ${p => p.theme.space(1)};

@@ -4,7 +4,6 @@ import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -56,7 +55,7 @@ const StyledButtonSmall = styled(Button)`
   box-shadow: none;
   transition: none !important;
   opacity: 0.5;
-  padding: ${p => p.theme.space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.5)};
 
   &:hover {
     border: none;

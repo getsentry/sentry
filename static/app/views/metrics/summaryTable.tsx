@@ -11,7 +11,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconFilter, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricAggregation} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -477,7 +476,7 @@ const SummaryTableWrapper = styled(`div`)<{
   display: grid;
   /* padding | color dot | name | avg | min | max | sum | total | actions | padding */
   grid-template-columns:
-    ${p => p.theme.space(0.75)} ${space(3)} 8fr repeat(
+    ${p => p.theme.space(0.75)} ${p => p.theme.space(3)} 8fr repeat(
       ${p => (p.hasActions ? p.totalColumnsCount + 1 : p.totalColumnsCount)},
       max-content
     )
@@ -504,7 +503,7 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
   align-items: center;
   gap: ${p => p.theme.space(0.5)};
-  padding: ${p => p.theme.space(0.25)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.75)};
   line-height: ${p => p.theme.text.lineHeightBody};
   font-weight: ${p => p.theme.fontWeightBold};
   font-family: ${p => p.theme.text.family};
@@ -526,7 +525,7 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
 
 const Cell = styled('div')<{right?: boolean}>`
   display: flex;
-  padding: ${p => p.theme.space(0.25)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.75)};
   align-items: center;
   justify-content: flex-start;
   white-space: nowrap;

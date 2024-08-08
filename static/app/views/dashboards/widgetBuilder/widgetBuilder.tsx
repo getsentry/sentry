@@ -19,7 +19,6 @@ import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -1370,7 +1369,7 @@ const Main = styled(Layout.Main)`
   max-width: 1000px;
   flex: 1;
 
-  padding: ${p => p.theme.space(4)} ${space(2)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${p => p.theme.space(4)};
@@ -1384,7 +1383,7 @@ const Main = styled(Layout.Main)`
 `;
 
 const Side = styled(Layout.Side)`
-  padding: ${p => p.theme.space(4)} ${space(2)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     border-top: 1px solid ${p => p.theme.gray200};

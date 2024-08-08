@@ -12,7 +12,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -265,13 +264,13 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
 
 const Header = styled(PanelHeader)`
   background: transparent;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   align-items: center;
   color: ${p => p.theme.gray300};
 `;
 
 const Feedback = styled('div')`
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   display: grid;
   grid-template-columns: 1fr;
   align-items: center;

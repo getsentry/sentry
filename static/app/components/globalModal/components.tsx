@@ -9,12 +9,12 @@ import {space} from 'sentry/styles/space';
 const ModalHeader = styled('header')`
   position: relative;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space(3)} ${space(3)};
-  margin: -${p => p.theme.space(4)} -${space(2)} ${space(3)} -${space(3)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(3)};
+  margin: -${p => p.theme.space(4)} -${p => p.theme.space(2)} ${p => p.theme.space(3)} -${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p => p.theme.space(3)} ${space(4)};
-    margin: -${p => p.theme.space(4)} -${space(4)} ${space(3)} -${space(4)};
+    padding: ${p => p.theme.space(3)} ${p => p.theme.space(4)};
+    margin: -${p => p.theme.space(4)} -${p => p.theme.space(4)} ${p => p.theme.space(3)} -${space(4)};
   }
 
   h1,
@@ -63,12 +63,12 @@ const ModalFooter = styled('footer')`
   border-top: 1px solid ${p => p.theme.border};
   display: flex;
   justify-content: flex-end;
-  padding: ${p => p.theme.space(3)} ${space(2)};
-  margin: ${p => p.theme.space(3)} -${space(3)} -${space(4)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(2)};
+  margin: ${p => p.theme.space(3)} -${p => p.theme.space(3)} -${p => p.theme.space(4)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p => p.theme.space(3)} ${space(4)};
-    margin: ${p => p.theme.space(3)} -${space(4)} -${space(4)};
+    padding: ${p => p.theme.space(3)} ${p => p.theme.space(4)};
+    margin: ${p => p.theme.space(3)} -${p => p.theme.space(4)} -${p => p.theme.space(4)};
   }
 `;
 

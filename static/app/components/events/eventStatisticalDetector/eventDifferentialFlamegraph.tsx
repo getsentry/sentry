@@ -15,7 +15,6 @@ import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegr
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -638,7 +637,7 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.border};
@@ -780,7 +779,7 @@ const ErrorMessageContainer = styled('div')`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.subText};
   text-align: center;
-  padding: ${p => p.theme.space(2)} ${space(4)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(4)};
 `;
 
 const LoadingIndicatorContainer = styled('div')`

@@ -170,7 +170,7 @@ const MeterBarBody = styled('div')`
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   border-bottom: none;
-  padding: ${p => p.theme.space(1)} 0 ${space(0.5)} 0;
+  padding: ${p => p.theme.space(1)} 0 ${p => p.theme.space(0.5)} 0;
 `;
 
 const MeterHeader = styled('div')`

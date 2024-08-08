@@ -28,7 +28,6 @@ import {
   IconSad,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -404,7 +403,7 @@ const StepHeaderLeft = styled('div')`
 const StepHeaderDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  padding: 0 ${p => p.theme.space(2)} 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)};
   margin-left: ${p => p.theme.space(1)};
   border-left: 1px solid ${p => p.theme.border};
   flex-grow: 1;
@@ -437,7 +436,7 @@ const StepTitle = styled('div')`
 `;
 
 const StepBody = styled('p')`
-  padding: 0 ${p => p.theme.space(2)} ${space(2)} ${space(2)};
+  padding: 0 ${p => p.theme.space(2)} ${p => p.theme.space(2)} ${p => p.theme.space(2)};
   margin: -${p => p.theme.space(1)} 0 0 0;
 `;
 
@@ -454,7 +453,7 @@ const ProgressContainer = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${p => p.theme.space(2)};
   display: grid;
-  gap: ${p => p.theme.space(1)} ${space(2)};
+  gap: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   grid-template-columns: auto 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};

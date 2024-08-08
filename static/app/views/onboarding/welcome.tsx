@@ -202,7 +202,7 @@ const TextWrapper = styled('div')`
   min-height: 70px;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     text-align: center;
-    margin: ${p => p.theme.space(1)} ${space(1)};
+    margin: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
     margin-top: ${p => p.theme.space(3)};
   }
 `;

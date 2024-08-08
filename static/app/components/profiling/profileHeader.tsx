@@ -7,7 +7,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -121,7 +120,7 @@ const SmallerProfilingBreadcrumbsWrapper = styled('div')`
 `;
 
 const SmallerLayoutHeader = styled(Layout.Header)`
-  padding: ${p => p.theme.space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)} !important;
 `;
 
 export {ProfileHeader};

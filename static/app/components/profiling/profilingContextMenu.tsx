@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 interface MenuProps
   extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
@@ -116,7 +115,7 @@ const MenuButton = styled('button')`
   display: flex;
   flex: 1;
   align-items: center;
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
   background: ${p => (p.tabIndex === 0 ? p.theme.hover : 'transparent')} !important;
@@ -258,7 +257,7 @@ const MenuHeading = styled((props: MenuHeadingProps) => {
   margin-bottom: 0;
   cursor: default;
   font-size: 75%;
-  padding: ${p => p.theme.space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1.5)};
 `;
 
 export {MenuHeading as ProfilingContextMenuHeading};

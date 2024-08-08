@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;
@@ -167,7 +166,7 @@ export const GridHeadCellStatic = styled('th')`
   overflow: hidden;
 
   &:first-child {
-    padding: ${p => p.theme.space(1)} 0 ${space(1)} ${space(3)};
+    padding: ${p => p.theme.space(1)} 0 ${p => p.theme.space(1)} ${p => p.theme.space(3)};
   }
 `;
 
@@ -209,7 +208,7 @@ export const GridBodyCell = styled('td')`
      min-height is used to allow a cell to expand and this is used to display
      feedback during empty/error state */
   min-height: ${GRID_BODY_ROW_HEIGHT}px;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 
   display: flex;
   flex-direction: column;
@@ -220,11 +219,11 @@ export const GridBodyCell = styled('td')`
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
-    padding: ${p => p.theme.space(1)} 0 ${space(1)} ${space(3)};
+    padding: ${p => p.theme.space(1)} 0 ${p => p.theme.space(1)} ${p => p.theme.space(3)};
   }
 
   &:last-child {
-    padding: ${p => p.theme.space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 `;
 

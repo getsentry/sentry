@@ -78,7 +78,7 @@ export default memo(Row);
 
 const getItemPaddingForSize = (itemSize?: ItemSize) => {
   if (itemSize === 'small') {
-    return `${p => p.theme.space(0.5)} ${space(1)}`;
+    return `${p => p.theme.space(0.5)} ${p => p.theme.space(1)}`;
   }
 
   if (itemSize === 'zero') {
@@ -106,7 +106,7 @@ const LabelWithBorder = styled('div')`
 `;
 
 const GroupLabel = styled('div')`
-  padding: ${p => p.theme.space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(1)};
 `;
 
 const AutoCompleteItem = styled('div')<{

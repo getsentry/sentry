@@ -15,7 +15,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import commonTheme from 'sentry/utils/theme';
@@ -237,7 +236,7 @@ const FieldContainer = styled('div')`
 `;
 
 const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
-  border-radius: 0 ${p => p.theme.space(0.75)} ${space(0.75)} 0;
+  border-radius: 0 ${p => p.theme.space(0.75)} ${p => p.theme.space(0.75)} 0;
 
   ${p =>
     p.highlighted
@@ -249,7 +248,7 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
         `};
 
   &:first-child {
-    border-radius: ${p => p.theme.space(0.75)} 0 0 ${space(0.75)};
+    border-radius: ${p => p.theme.space(0.75)} 0 0 ${p => p.theme.space(0.75)};
   }
 `;
 

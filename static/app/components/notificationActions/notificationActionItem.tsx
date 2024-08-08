@@ -19,7 +19,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
@@ -344,7 +343,7 @@ function NotificationActionItem({
 }
 
 const StyledCard = styled(Card)<{isEditing: boolean}>`
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   flex-direction: row;
   align-items: center;
   justify-content: space-between;

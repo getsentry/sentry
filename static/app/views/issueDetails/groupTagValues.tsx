@@ -20,7 +20,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, Project, SavedQueryVersions} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -337,7 +336,7 @@ const StyledPanelTable = styled(PanelTable)`
   }
 
   & > * {
-    padding: ${p => p.theme.space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 `;
 

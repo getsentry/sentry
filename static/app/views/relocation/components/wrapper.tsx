@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 const Wrapper = styled('div')`
   max-width: 769px;
   margin-left: auto;
@@ -15,7 +13,8 @@ const Wrapper = styled('div')`
   color: ${p => p.theme.gray300};
   mark {
     border-radius: 8px;
-    padding: ${p => p.theme.space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
+    padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)}
+      ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
     background: ${p => p.theme.gray100};
     margin-right: ${p => p.theme.space(0.5)};
   }
@@ -23,7 +22,7 @@ const Wrapper = styled('div')`
     color: ${p => p.theme.gray500};
   }
   p {
-    margin: ${p => p.theme.space(1)} ${space(0.5)};
+    margin: ${p => p.theme.space(1)} ${p => p.theme.space(0.5)};
   }
   svg {
     margin: ${p => p.theme.space(0.5)};

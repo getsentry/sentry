@@ -6,7 +6,6 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const Indent = styled('div')`
   padding-left: ${p => p.theme.space(4)};
@@ -104,7 +103,7 @@ const ToggleButton = styled('button')`
   justify-content: flex-start;
   gap: ${p => p.theme.space(1)};
 
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
 
   :hover {
     background: ${p => p.theme.backgroundSecondary};

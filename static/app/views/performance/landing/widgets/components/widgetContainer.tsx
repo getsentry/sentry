@@ -10,7 +10,6 @@ import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -265,11 +264,11 @@ const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
   font-weight: ${p => p.theme.fontWeightNormal};
-  margin: -${p => p.theme.space(0.5)} -${space(1)} -${space(0.25)};
+  margin: -${p => p.theme.space(0.5)} -${p => p.theme.space(1)} -${p => p.theme.space(0.25)};
   min-width: 0;
 
   button {
-    padding: ${p => p.theme.space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;

@@ -2,7 +2,6 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {space} from 'sentry/styles/space';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
@@ -58,7 +57,7 @@ export const Text = styled('div')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  padding: ${p => p.theme.space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1.5)};
   display: flex;
   gap: ${p => p.theme.space(0.5)};
 `;

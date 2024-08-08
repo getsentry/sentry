@@ -16,7 +16,6 @@ import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {CodeOwner, ParsedOwnershipRule} from 'sentry/types';
 import {useTeams} from 'sentry/utils/useTeams';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
@@ -252,7 +251,7 @@ const StyledPanelTable = styled(PanelTable)`
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${p.theme.space(1.5)} ${space(2)};
+        padding: ${p.theme.space(1.5)} ${p.theme.space(2)};
       }
     `}
 `;

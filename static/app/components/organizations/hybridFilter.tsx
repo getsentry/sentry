@@ -15,7 +15,6 @@ import type {
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
@@ -392,7 +391,7 @@ const ResetButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   padding: 0 ${p => p.theme.space(0.5)};
-  margin: -${p => p.theme.space(0.25)} -${space(0.5)};
+  margin: -${p => p.theme.space(0.25)} -${p => p.theme.space(0.5)};
 `;
 
 const TrailingWrap = styled('div')`
@@ -407,7 +406,8 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   justify-content: center;
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0.5)};
-  padding: ${p => p.theme.space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)} 0 ${p => p.theme.space(0.25)}
+    ${p => p.theme.space(0.25)};
 `;
 
 const FooterWrap = styled('div')`
@@ -422,7 +422,7 @@ const FooterWrap = styled('div')`
 `;
 
 const FooterMessage = styled('p')`
-  padding: ${p => p.theme.space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1)};
   margin: ${p => p.theme.space(0.5)} 0;
   border-radius: ${p => p.theme.borderRadius};
   border: solid 1px ${p => p.theme.alert.warning.border};

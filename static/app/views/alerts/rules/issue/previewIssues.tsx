@@ -9,7 +9,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import type {Member, Project} from 'sentry/types';
 import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
 import useApi from 'sentry/utils/useApi';
@@ -193,7 +192,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${p => p.theme.space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 

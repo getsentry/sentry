@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'replay-player-dom-alert-dismissed';
@@ -48,7 +47,7 @@ const DOMAlert = styled('div')`
   display: inline-flex;
   align-items: flex-start;
   justify-items: center;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   margin: 0 ${p => p.theme.space(1)};
   color: ${p => p.theme.white};
   background-color: ${p => p.theme.blue400};

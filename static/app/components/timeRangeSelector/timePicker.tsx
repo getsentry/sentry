@@ -2,8 +2,6 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -118,7 +116,7 @@ const Input = styled('input')`
     background: ${p => p.theme.backgroundSecondary};
     border: 1px solid ${p => p.theme.border};
     color: ${p => p.theme.gray300};
-    padding: ${p => p.theme.space(0.25)} ${space(0.5)};
+    padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
     box-shadow: none;
     font-variant-numeric: tabular-nums;
 

@@ -39,7 +39,8 @@ export const InlineContainer = styled('div')`
 `;
 
 export const ChartControls = styled('div')`
-  padding: ${p => p.theme.space(1)} ${space(1)} ${space(1)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)} ${p => p.theme.space(1)}
+    ${space(3)};
   border-top: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -82,5 +83,5 @@ export const HeaderValue = styled('div')`
 `;
 
 export const ChartContainer = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 `;

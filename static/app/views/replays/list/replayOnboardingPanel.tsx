@@ -16,7 +16,6 @@ import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -342,7 +341,7 @@ const ButtonList = styled(ButtonBar)`
 `;
 
 const StyledWidgetContainer = styled(WidgetContainer)`
-  margin: ${p => p.theme.space(4)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(4)} 0 ${p => p.theme.space(1)} 0;
 `;
 
 const CenteredContent = styled('div')`

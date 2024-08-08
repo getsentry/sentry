@@ -334,7 +334,7 @@ export const InnerWrap = styled('div', {
 }>`
   display: flex;
   position: relative;
-  padding: 0 ${p => p.theme.space(1)} 0 ${space(1.5)};
+  padding: 0 ${p => p.theme.space(1)} 0 ${p => p.theme.space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
 

@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {OnboardingCustomComponentProps} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -100,7 +99,7 @@ Heading.defaultProps = {
 
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin: ${p => p.theme.space(2)} ${space(3)} 0;
+  margin: ${p => p.theme.space(2)} ${p => p.theme.space(3)} 0;
 `;
 
 const TaskCard = styled(motion(Card))`

@@ -21,7 +21,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   NewInternalAppApiToken,
   Organization,
@@ -416,7 +415,7 @@ const MenuItemWrapper = styled('div')<{
 `;
 
 const MenuItemFooterWrapper = styled(MenuItemWrapper)`
-  padding: ${p => p.theme.space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: ${p => p.theme.tag.highlight.background};
   color: ${p => p.theme.active};

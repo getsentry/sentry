@@ -11,7 +11,6 @@ import Placeholder from 'sentry/components/placeholder';
 import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TimeseriesValue} from 'sentry/types';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -127,7 +126,7 @@ const StyledShortId = styled(ShortId)`
 const IssueCardFooter = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
 `;
 
 export default LinkedIssue;

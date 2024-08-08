@@ -6,7 +6,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -200,7 +199,7 @@ const StyledTextCopyInput = styled(TextCopyInput)`
 `;
 
 const NetworkUrlWrapper = styled('div')`
-  margin: ${p => p.theme.space(1)} 0 ${space(1.5)} 0;
+  margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(1.5)} 0;
 `;
 
 const NoMarginAlert = styled(Alert)`

@@ -11,7 +11,6 @@ import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils'
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AggregateEventTransaction,
   EntrySpans,
@@ -299,7 +298,7 @@ const StyledBreakdown = styled('div')`
 
 const StyledBreakdownNoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${p => p.theme.space(2)} ${space(3)};
+  margin: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 `;
 
 export const OpsLine = styled('div')`

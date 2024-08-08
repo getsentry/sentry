@@ -155,7 +155,8 @@ const LayoutGrid = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding: ${p => p.theme.space(2)} ${space(4)} ${space(2)} ${space(4)};
+    padding: ${p => p.theme.space(2)} ${p => p.theme.space(4)} ${p => p.theme.space(2)}
+      ${space(4)};
     grid-template-columns: 390px 1fr;
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {

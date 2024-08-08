@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import ListItem from 'sentry/components/list/listItem';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   children: React.ReactNode;
@@ -41,7 +40,7 @@ const Heading = styled('h5')`
 
 export const SubHeading = styled('small')`
   color: ${p => p.theme.gray400};
-  padding: ${p => p.theme.space(0.25)} ${space(2)} ${space(2)} 0;
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(2)} ${p => p.theme.space(2)} 0;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     padding-top: ${p => p.theme.space(1)};

@@ -61,7 +61,8 @@ const AutofixPanel = styled(Panel)`
   margin-bottom: 0;
   overflow: hidden;
   background: ${p => p.theme.backgroundSecondary};
-  padding: ${p => p.theme.space(2)} ${space(3)} ${space(3)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)} ${p => p.theme.space(3)}
+    ${space(3)};
 `;
 
 const AutofixHeader = styled('div')`

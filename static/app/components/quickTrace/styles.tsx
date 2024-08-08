@@ -7,7 +7,6 @@ import Tag, {Background} from 'sentry/components/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import MenuItem from 'sentry/components/menuItem';
 import Truncate from 'sentry/components/truncate';
-import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
@@ -76,7 +75,7 @@ export const DropdownContainer = styled('span')`
 export const DropdownMenuHeader = styled(MenuHeader)<{first?: boolean}>`
   background: ${p => p.theme.backgroundSecondary};
   ${p => p.first && 'border-radius: 2px'};
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
 `;
 
 const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`

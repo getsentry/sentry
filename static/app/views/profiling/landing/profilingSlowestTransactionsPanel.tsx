@@ -267,7 +267,7 @@ const PanelSubheading = styled('span')`
 `;
 
 const PanelItem = styled('div')`
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   border-top: 1px solid ${p => p.theme.border};
 `;
 const PanelItemBody = styled('div')`

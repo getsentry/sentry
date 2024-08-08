@@ -2,7 +2,6 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import {space} from 'sentry/styles/space';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
@@ -106,7 +105,7 @@ const Tooltip = styled('div')`
   pointer-events: none;
   user-select: none;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${p => p.theme.space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(1)};
   border: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 24px;

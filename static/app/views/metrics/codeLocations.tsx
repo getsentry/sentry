@@ -263,7 +263,8 @@ const DefaultLineTitleWrapper = styled('div')`
   line-height: ${p => p.theme.fontSizeLarge};
   font-style: normal;
 
-  padding: ${p => p.theme.space(0.75)} ${space(3)} ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(3)}
+    ${p => p.theme.space(0.75)} ${space(1.5)} ${space(1.5)};
   word-break: break-all;
   word-break: break-word;
 `;

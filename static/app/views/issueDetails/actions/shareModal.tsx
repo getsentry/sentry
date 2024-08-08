@@ -13,7 +13,6 @@ import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -209,7 +208,7 @@ const UrlContainer = styled('div')`
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)`
-  padding: ${p => p.theme.space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
   ${p => p.theme.overflowEllipsis}
 `;
 

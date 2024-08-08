@@ -5,7 +5,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,7 +74,7 @@ export const FrameContainer = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   gap: ${p => p.theme.space(0.5)};
-  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
 
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};

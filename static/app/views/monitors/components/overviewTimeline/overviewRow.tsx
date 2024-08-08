@@ -12,7 +12,6 @@ import Link from 'sentry/components/links/link';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -332,7 +331,7 @@ const DetailsActions = styled('div')`
 
 const MonitorEnvContainer = styled('div')`
   display: flex;
-  padding: ${p => p.theme.space(3)} ${space(2)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(2)};
   gap: ${p => p.theme.space(4)};
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.innerBorder};
@@ -348,7 +347,7 @@ const EnvRow = styled('div')`
 `;
 
 const EnvActionButton = styled(Button)`
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   display: none;
 
   ${EnvRow}:hover & {

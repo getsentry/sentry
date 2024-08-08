@@ -6,7 +6,6 @@ import Text from 'sentry/components/text';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
 
@@ -103,5 +102,5 @@ const StatusCount = styled('td')`
 `;
 
 const EnvLabel = styled('td')`
-  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
 `;

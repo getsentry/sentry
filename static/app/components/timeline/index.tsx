@@ -3,7 +3,6 @@ import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
 
 export interface ColorConfig {
@@ -122,9 +121,9 @@ export const Text = styled('div')`
 
 export const Data = styled('div')`
   border-radius: ${p => p.theme.space(0.5)};
-  padding: ${p => p.theme.space(0.25)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.75)};
   border: 1px solid ${p => p.theme.translucentInnerBorder};
-  margin: ${p => p.theme.space(0.75)} 0 0 -${space(0.75)};
+  margin: ${p => p.theme.space(0.75)} 0 0 -${p => p.theme.space(0.75)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   background: ${p => p.theme.backgroundSecondary};

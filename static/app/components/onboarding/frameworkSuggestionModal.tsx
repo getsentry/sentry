@@ -16,7 +16,6 @@ import Radio from 'sentry/components/radio';
 import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   OnboardingSelectedSDK,
   Organization,
@@ -341,9 +340,9 @@ const Header = styled('header')`
   position: relative;
   height: 30px;
 
-  margin: -${p => p.theme.space(4)} -${space(2)} 0 -${space(3)};
+  margin: -${p => p.theme.space(4)} -${p => p.theme.space(2)} 0 -${p => p.theme.space(3)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin: -${p => p.theme.space(4)} -${space(4)} 0 -${space(4)};
+    margin: -${p => p.theme.space(4)} -${p => p.theme.space(4)} 0 -${p => p.theme.space(4)};
   }
 `;
 
@@ -410,7 +409,7 @@ const RadioLabel = styled(RadioLineItem)`
   display: inline-grid;
   grid-template-columns: max-content max-content 1fr;
   align-items: center;
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   gap: ${p => p.theme.space(1.5)};
   input {
     cursor: pointer;

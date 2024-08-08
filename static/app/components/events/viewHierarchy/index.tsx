@@ -5,7 +5,6 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -280,7 +279,8 @@ const DetailsContainer = styled('div')`
 `;
 
 const ScrollContainer = styled('div')`
-  padding: 0 ${p => p.theme.space(1.5)} ${space(1.5)} ${space(1.5)};
+  padding: 0 ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)}
+    ${p => p.theme.space(1.5)};
 `;
 
 const RenderedItemsContainer = styled('div')`

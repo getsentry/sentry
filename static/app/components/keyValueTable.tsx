@@ -2,8 +2,6 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   keyName: React.ReactNode;
   value: React.ReactNode;
@@ -27,7 +25,7 @@ export function KeyValueTableRow({keyName, value, type}: Props) {
 
 const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => `
   font-size: ${theme.fontSizeMedium};
-  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: inherit;
   ${p => p.theme.overflowEllipsis};

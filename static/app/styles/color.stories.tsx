@@ -12,7 +12,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import ThemeToggle from 'sentry/components/stories/themeToggle';
 import {IconCheckmark, IconClose} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
 
@@ -360,7 +359,7 @@ const ExampleCardGrid = styled('figcaption')`
   grid-template-columns: 1fr 2fr;
   align-items: flex-start;
   color: ${p => p.theme.subText};
-  padding: ${p => p.theme.space(1)} ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)} 0;
 `;
 
 interface ExampleCardProps {

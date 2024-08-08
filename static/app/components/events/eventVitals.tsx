@@ -6,7 +6,6 @@ import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {formattedValue} from 'sentry/utils/measurements/index';
@@ -163,7 +162,7 @@ const Container = styled('div')`
 `;
 
 const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
-  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   margin-bottom: ${p => p.theme.space(1)};
   ${p => p.failedThreshold && `border: 1px solid ${p.theme.red300};`}
 `;

@@ -19,7 +19,6 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -263,7 +262,7 @@ const PreviewContent = styled('div')`
 const PrefixText = styled('span')``;
 
 const Content = styled('div')`
-  padding: 0 ${p => p.theme.space(1)} ${space(1)} ${space(1)};
+  padding: 0 ${p => p.theme.space(1)} ${p => p.theme.space(1)} ${p => p.theme.space(1)};
 `;
 
 const Title = styled('div')`
@@ -292,7 +291,7 @@ const Actions = styled('div')`
 const Separator = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: ${p => p.theme.space(2)} -${space(2)} 0 -${space(2)};
+  margin: ${p => p.theme.space(2)} -${p => p.theme.space(2)} 0 -${p => p.theme.space(2)};
 `;
 
 const ProcessingStatusIndicator = styled(LoadingIndicator)`

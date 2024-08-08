@@ -19,7 +19,6 @@ import StrictClick from 'sentry/components/strictClick';
 import {IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import {space} from 'sentry/styles/space';
 import type {
   Frame,
   Organization,
@@ -521,7 +520,7 @@ const DefaultLine = styled('div')<{
   background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
   min-height: 32px;
   word-break: break-word;
-  padding: ${p => p.theme.space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
@@ -565,7 +564,7 @@ const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeightNormal};
-  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
 
   &:hover {
     color: ${p => p.theme.subText};

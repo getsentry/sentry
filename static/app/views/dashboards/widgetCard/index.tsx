@@ -18,7 +18,6 @@ import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
@@ -554,7 +553,7 @@ const WidgetTitle = styled(HeaderTitle)`
 `;
 
 const WidgetHeaderWrapper = styled('div')`
-  padding: ${p => p.theme.space(2)} ${space(1)} 0 ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(1)} 0 ${p => p.theme.space(3)};
   min-height: 36px;
   width: 100%;
   display: flex;

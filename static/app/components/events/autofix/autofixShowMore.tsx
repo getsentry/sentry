@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type AutofixShowMore = {
   children: ReactNode;
@@ -46,7 +45,7 @@ const Header = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
-  padding: ${p => p.theme.space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   cursor: pointer;
   user-select: none;
 `;
