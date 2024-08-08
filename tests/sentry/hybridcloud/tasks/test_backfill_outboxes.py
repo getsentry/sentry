@@ -6,7 +6,7 @@ from django.apps import apps
 from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
-from sentry.hybirdcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
 from sentry.hybridcloud.tasks.backfill_outboxes import (
     backfill_outboxes_for,
