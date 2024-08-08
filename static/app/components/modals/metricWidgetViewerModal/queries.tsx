@@ -41,7 +41,6 @@ import type {
 import {
   formatAlias,
   getMetricQueryName,
-  isVirtualAlias,
   isVirtualExpression,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -463,13 +462,7 @@ function ExpressionAliasForm({
           <QueryFieldGroup.DebouncedInput
             type="text"
             value={formatAlias(expression.alias)}
-            onChange={e => {
-              if (isVirtualAlias(expression.alias)) {
-                onChange(`v|${e.target.value}`);
-              } else {
-                onChange(e.target.value);
-              }
-            }}
+            onChange={e => onChange(e.target.value)}
             placeholder={t('Add alias')}
           />
           <QueryFieldGroup.DeleteButton
