@@ -2303,3 +2303,75 @@ def test_get_metric_extraction_config_when_on_demand_metrics_specs_timeout_excep
             )
             config = get_metric_extraction_config(default_project)
             assert config is None
+
+
+@django_db_all
+def test_global_kill_switch_for_span_attribute_metrics(default_project: Project) -> None:
+    extraction_configs = [
+        {
+            "spanAttribute": "span.duration",
+            "aggregates": ["count", "p50", "p75", "p90", "p95", "p99"],
+            "unit": "millisecond",
+            "tags": ["foo"],
+            "conditions": [
+                {"id": 1, "value": "bar:baz"},
+                {"id": 2, "value": "abc:xyz"},
+            ],
+        },
+        {
+            "spanAttribute": "other_attribute",
+            "aggregates": ["count"],
+            "unit": "none",
+            "tags": ["mytag"],
+            "conditions": [{"id": 3, "value": ""}],
+        },
+    ]
+    for extraction_config in extraction_configs:
+        SpanAttributeExtractionRuleConfig.from_dict(extraction_config, 1, default_project)
+
+    with (
+        override_options(
+            {
+                "metric_extraction.span_attribute_killswitch.enabled": True,
+            }
+        ),
+        Feature("organizations:custom-metrics-extraction-rule"),
+    ):
+        config = get_metric_extraction_config(default_project)
+        assert config is None
+
+
+@django_db_all
+def test_project_denylist_for_span_attribute_metrics(default_project: Project) -> None:
+    extraction_configs = [
+        {
+            "spanAttribute": "span.duration",
+            "aggregates": ["count", "p50", "p75", "p90", "p95", "p99"],
+            "unit": "millisecond",
+            "tags": ["foo"],
+            "conditions": [
+                {"id": 1, "value": "bar:baz"},
+                {"id": 2, "value": "abc:xyz"},
+            ],
+        },
+        {
+            "spanAttribute": "other_attribute",
+            "aggregates": ["count"],
+            "unit": "none",
+            "tags": ["mytag"],
+            "conditions": [{"id": 3, "value": ""}],
+        },
+    ]
+    for extraction_config in extraction_configs:
+        SpanAttributeExtractionRuleConfig.from_dict(extraction_config, 1, default_project)
+
+    with (
+        override_options(
+            {
+                "metric_extraction.span_attribute_specs.projects_denylist": [default_project.id],
+            }
+        ),
+        Feature("organizations:custom-metrics-extraction-rule"),
+    ):
+        config = get_metric_extraction_config(default_project)
+        assert config is None

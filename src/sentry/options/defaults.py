@@ -2071,6 +2071,19 @@ register(
 )
 
 register("metric_extraction.max_span_attribute_specs", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Span attribute metrics global killswitch
+register(
+    "metric_extraction.span_attribute_killswitch.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Span attribute metrics killswitch per project id
+register(
+    "metric_extraction.span_attribute_specs.projects_denylist",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
