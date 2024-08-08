@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import useStreamLinedExternalIssueData from 'sentry/components/group/externalIssuesList/useStreamlinedExternalIssueData';
 import Placeholder from 'sentry/components/placeholder';
@@ -41,12 +41,16 @@ export function StreamlinedExternalIssueList({group, event, project}: Props) {
       <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
       <SidebarSection.Content>
         <IssueActionWrapper>
-          {linkedIssues.map(({key, displayName, displayIcon}) => (
-            <ErrorBoundary key={key} mini>
+          {linkedIssues.map(linkedIssue => (
+            <ErrorBoundary key={linkedIssue.key} mini>
               <Tooltip title={t('Unlink Issue')} isHoverable>
-                <LinkedIssue>
-                  {displayIcon && <IconWrapper>{displayIcon}</IconWrapper>}
-                  <IssueActionName>{displayName}</IssueActionName>
+                <LinkedIssue
+                  href={linkedIssue.url}
+                  external
+                  size="zero"
+                  icon={linkedIssue.displayIcon}
+                >
+                  <IssueActionName>{linkedIssue.displayName}</IssueActionName>
                 </LinkedIssue>
               </Tooltip>
             </ErrorBoundary>
@@ -72,14 +76,14 @@ const IssueActionWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const LinkedIssue = styled('div')`
+const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
   padding: ${space(0.5)} ${space(0.75)};
   line-height: 1.05;
   border: 1px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  font-weight: normal;
 `;
 
 const IssueActionButton = styled(Button)`

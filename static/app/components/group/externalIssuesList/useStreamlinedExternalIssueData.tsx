@@ -36,6 +36,7 @@ interface BaseIssueAction {
  */
 interface LinkedIssue extends BaseIssueAction {
   onUnlink: () => void;
+  url: string;
 }
 
 interface ExternalIssueAction {
@@ -130,6 +131,7 @@ export default function useStreamLinedExternalIssueData({
             key: config.externalIssues[0].id,
             displayName: config.externalIssues[0].key,
             displayIcon,
+            url: config.externalIssues[0].url,
             onUnlink: () => {},
           }))
       );
