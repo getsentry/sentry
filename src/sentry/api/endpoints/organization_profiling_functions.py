@@ -83,7 +83,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, _ = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response({})
 
@@ -103,7 +103,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "examples()",
                 ],
                 query=data.get("query"),
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
                 referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
@@ -194,7 +195,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
             additional_query_column="examples()",
-            params=params,
+            params={},
+            snuba_params=snuba_params,
             query=data.get("query"),
         )
 
