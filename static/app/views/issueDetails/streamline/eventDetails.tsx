@@ -3,10 +3,7 @@ import styled from '@emotion/styled';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   DefaultGroupEventDetailsContent,
@@ -14,7 +11,7 @@ import {
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
-import {FoldSectionKey, Section} from 'sentry/views/issueDetails/streamline/foldSection';
+import {Section} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export interface EventDetailsContextType {
   searchQuery: string;
@@ -67,56 +64,6 @@ export function EventDetails({
     </EventDetailsContext.Provider>
   );
 }
-
-interface SectionDefinition {
-  condition: (event: Event) => boolean;
-  label: string;
-  section: FoldSectionKey;
-}
-
-export const EVENT_SECTION_DEFINITIONS: SectionDefinition[] = [
-  {
-    section: FoldSectionKey.HIGHLIGHTS,
-    label: t('Event Highlights'),
-    condition: () => true,
-  },
-  {
-    section: FoldSectionKey.STACKTRACE,
-    label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
-  },
-  {
-    section: FoldSectionKey.EXCEPTION,
-    label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
-  },
-  {
-    section: FoldSectionKey.BREADCRUMBS,
-    label: t('Breadcrumbs'),
-    condition: (event: Event) =>
-      event.entries.some(entry => entry.type === 'breadcrumbs'),
-  },
-  {
-    section: FoldSectionKey.TAGS,
-    label: t('Tags'),
-    condition: (event: Event) => event.tags.length > 0,
-  },
-  {
-    section: FoldSectionKey.CONTEXTS,
-    label: t('Context'),
-    condition: (event: Event) => !!event.context,
-  },
-  {
-    section: FoldSectionKey.USER_FEEDBACK,
-    label: t('User Feedback'),
-    condition: (event: Event) => !!event.userReport,
-  },
-  {
-    section: FoldSectionKey.REPLAY,
-    label: t('Replay'),
-    condition: (event: Event) => !!getReplayIdFromEvent(event),
-  },
-];
 
 const FloatingEventNavigation = styled(EventNavigation)`
   position: sticky;
