@@ -7,6 +7,7 @@ import {
   IconClose,
   IconFlag,
   IconIssues,
+  IconLightning,
   IconMegaphone,
   IconReleases,
   IconSiren,
@@ -60,6 +61,7 @@ export default function Navigation({
       <NavButton panelName="releases" label="Releases" icon={<IconReleases />}>
         <SessionStatusBadge />
       </NavButton>
+      <NavButton panelName="performance" label="Performance" icon={<IconLightning />} />
     </dialog>
   );
 }
