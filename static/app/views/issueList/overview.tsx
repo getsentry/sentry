@@ -61,6 +61,7 @@ import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
+import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
@@ -1221,18 +1222,30 @@ class IssueListOverview extends Component<Props, State> {
 
     return (
       <Layout.Page>
-        <IssueListHeader
-          organization={organization}
-          query={query}
-          sort={this.getSort()}
-          queryCount={queryCount}
-          queryCounts={queryCounts}
-          realtimeActive={realtimeActive}
-          onRealtimeChange={this.onRealtimeChange}
-          router={router}
-          displayReprocessingTab={showReprocessingTab}
-          selectedProjectIds={selection.projects}
-        />
+        {organization.features.includes('issue-stream-custom-views') ? (
+          <CustomViewsIssueListHeader
+            organization={organization}
+            query={query}
+            queryCount={queryCount}
+            queryCounts={queryCounts}
+            router={router}
+            selectedProjectIds={selection.projects}
+          />
+        ) : (
+          <IssueListHeader
+            organization={organization}
+            query={query}
+            sort={this.getSort()}
+            queryCount={queryCount}
+            queryCounts={queryCounts}
+            realtimeActive={realtimeActive}
+            onRealtimeChange={this.onRealtimeChange}
+            router={router}
+            displayReprocessingTab={showReprocessingTab}
+            selectedProjectIds={selection.projects}
+          />
+        )}
+
         <StyledBody>
           <StyledMain>
             <DataConsentBanner source="issues" />

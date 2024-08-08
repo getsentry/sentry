@@ -215,7 +215,7 @@ const TabDivider = styled(motion.div)`
   width: 1px;
   border-radius: 6px;
   background-color: ${p => p.theme.gray200};
-  margin: 0px ${space(0.5)};
+  margin: 1px ${space(0.5)} 0px ${space(0.5)};
 `;
 
 const TabListOuterWrap = styled('div')<{
@@ -255,11 +255,11 @@ const AddViewButton = styled(Button)`
   color: ${p => p.theme.gray300};
   font-weight: normal;
   padding: ${space(0.5)};
+  transform: translateY(1px);
 `;
 
 const StyledIconAdd = styled(IconAdd)`
   margin-right: 4px;
-  margin-left: 2px;
 `;
 
 const MotionWrapper = styled(motion.div)`
