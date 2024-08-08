@@ -12,9 +12,11 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import IssueEditor from 'sentry/views/alerts/rules/issue';
-import {MetricRulesEdit} from 'sentry/views/alerts/rules/metric/edit';
-import {AlertRuleType} from 'sentry/views/alerts/types';
+
+import IssueEditor from './rules/issue';
+import {MetricRulesEdit} from './rules/metric/edit';
+import {UptimeRulesEdit} from './rules/uptime/edit';
+import {CombinedAlertType} from './types';
 
 type RouteParams = {
   projectId: string;
@@ -23,20 +25,27 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
+  hasUptimeAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;
   project: Project;
 };
 
 function ProjectAlertsEditor(props: Props) {
-  const {hasMetricAlerts, members, organization, project} = props;
+  const {hasMetricAlerts, hasUptimeAlerts, members, organization, project} = props;
   const location = useLocation();
 
   const [title, setTitle] = useState('');
 
-  const alertType = location.pathname.includes('/alerts/metric-rules/')
-    ? AlertRuleType.METRIC
-    : AlertRuleType.ISSUE;
+  const alertTypeUrls = [
+    {url: '/alerts/metric-rules/', type: CombinedAlertType.METRIC},
+    {url: '/alerts/uptime-rules/', type: CombinedAlertType.UPTIME},
+    {url: '/alerts/rules/', type: CombinedAlertType.ISSUE},
+  ] as const;
+
+  const alertType =
+    alertTypeUrls.find(({url}) => location.pathname.includes(url))?.type ??
+    CombinedAlertType.ISSUE;
 
   useRouteAnalyticsEventNames('edit_alert_rule.viewed', 'Edit Alert Rule: Viewed');
   useRouteAnalyticsParams({
@@ -71,7 +80,7 @@ function ProjectAlertsEditor(props: Props) {
       <Layout.Body>
         {!teamsLoading ? (
           <Fragment>
-            {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+            {(!hasMetricAlerts || alertType === CombinedAlertType.ISSUE) && (
               <IssueEditor
                 {...props}
                 project={project}
@@ -80,8 +89,16 @@ function ProjectAlertsEditor(props: Props) {
                 members={members}
               />
             )}
-            {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
+            {hasMetricAlerts && alertType === CombinedAlertType.METRIC && (
               <MetricRulesEdit
+                {...props}
+                project={project}
+                onChangeTitle={setTitle}
+                userTeamIds={teams.map(({id}) => id)}
+              />
+            )}
+            {hasUptimeAlerts && alertType === CombinedAlertType.UPTIME && (
+              <UptimeRulesEdit
                 {...props}
                 project={project}
                 onChangeTitle={setTitle}
