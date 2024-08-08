@@ -12,6 +12,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
+const NONE_SELECTED_LABEL = t('None selected');
+
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
 
@@ -127,12 +129,12 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 value={showTempNoneOption ? undefined : props.value}
                 options={
                   showTempNoneOption && Array.isArray(props.options)
-                    ? [{label: placeholder, value: props.value}, ...props.options]
+                    ? [{label: NONE_SELECTED_LABEL, value: props.value}, ...props.options]
                     : props.options
                 }
                 choices={
                   showTempNoneOption && Array.isArray(props.choices)
-                    ? [[placeholder, props.value], ...props.choices]
+                    ? [[NONE_SELECTED_LABEL, props.value], ...props.choices]
                     : props.choices
                 }
                 placeholder={placeholder}
@@ -141,6 +143,10 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 clearable={allowClear}
                 multiple={multiple}
                 controlShouldRenderValue={!showTempNoneOption}
+                isOptionDisabled={option => {
+                  // We need to notify react-select about the disabled options here as well; otherwise, they will remain clickable.
+                  return option.label === NONE_SELECTED_LABEL;
+                }}
                 components={{
                   IndicatorsContainer: ({
                     children,
@@ -158,16 +164,11 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                   Option: (
                     optionProps: React.ComponentProps<typeof SelectComponents.Option>
                   ) => {
-                    return (
-                      <SelectOption
-                        {...optionProps}
-                        isSelected={
-                          optionProps.label === placeholder
-                            ? true
-                            : optionProps.isSelected
-                        }
-                      />
-                    );
+                    if (optionProps.label === NONE_SELECTED_LABEL) {
+                      // The isDisabled prop is passed here to ensure the options are styled accordingly.
+                      return <SelectOption {...optionProps} isDisabled isSelected />;
+                    }
+                    return <SelectOption {...optionProps} />;
                   },
                   ...components,
                 }}
