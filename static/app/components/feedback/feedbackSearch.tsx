@@ -101,7 +101,7 @@ export default function FeedbackSearch({className, style}: Props) {
   });
   const api = useApi();
 
-  const feedbackTags = useMemo(
+  const allFeedbackSearchTags = useMemo(
     () => getFeedbackSearchTags(issuePlatformTags),
     [issuePlatformTags]
   );
@@ -168,7 +168,7 @@ export default function FeedbackSearch({className, style}: Props) {
     return (
       <SearchQueryBuilder
         initialQuery={decodeScalar(query.query, '')}
-        filterKeys={feedbackTags}
+        filterKeys={allFeedbackSearchTags}
         getTagValues={getTagValues}
         onSearch={onSearch}
         searchSource={'feedback-list'}
@@ -185,7 +185,7 @@ export default function FeedbackSearch({className, style}: Props) {
         placeholder={t('Search Feedback')}
         organization={organization}
         onGetTagValues={getTagValues}
-        supportedTags={feedbackTags}
+        supportedTags={allFeedbackSearchTags}
         excludedTags={EXCLUDED_TAGS}
         fieldDefinitionGetter={getFeedbackFieldDefinition}
         maxMenuHeight={500}

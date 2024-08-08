@@ -86,7 +86,7 @@ function ReplaySearchBar(props: Props) {
   const api = useApi();
   const projectIds = pageFilters.projects;
 
-  const {tags: issuePlatformTags} = useFetchDatasetTags({
+  const {tags: replayTags} = useFetchDatasetTags({
     org: organization,
     projectIds: projectIds.map(String),
     dataset: Dataset.REPLAYS,
@@ -99,9 +99,9 @@ function ReplaySearchBar(props: Props) {
     statsPeriod: pageFilters.datetime.period,
   });
 
-  const replayTags = useMemo(
-    () => getReplaySearchTags(issuePlatformTags),
-    [issuePlatformTags]
+  const allReplaySearchTags = useMemo(
+    () => getReplaySearchTags(replayTags),
+    [replayTags]
   );
 
   const getTagValues = useCallback(
@@ -172,7 +172,7 @@ function ReplaySearchBar(props: Props) {
         disallowLogicalOperators={undefined} // ^
         className={props.className}
         fieldDefinitionGetter={getReplayFieldDefinition}
-        filterKeys={replayTags}
+        filterKeys={allReplaySearchTags}
         filterKeySections={undefined}
         getTagValues={getTagValues}
         initialQuery={props.query ?? props.defaultQuery ?? ''}
@@ -191,7 +191,7 @@ function ReplaySearchBar(props: Props) {
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={replayTags}
+      supportedTags={allReplaySearchTags}
       placeholder={
         props.placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')
