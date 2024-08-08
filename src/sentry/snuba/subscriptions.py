@@ -1,7 +1,10 @@
 import logging
+from collections.abc import Collection
+from datetime import timedelta
 
 from django.db import router, transaction
 
+from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -14,7 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 def create_snuba_query(
-    query_type, dataset, query, aggregate, time_window, resolution, environment, event_types=None
+    query_type: SnubaQuery.Type,
+    dataset: Dataset,
+    query: str,
+    aggregate: str,
+    time_window: timedelta,
+    resolution: timedelta,
+    environment: Environment | None,
+    event_types: Collection[SnubaQueryEventType.EventType] = (),
 ):
     """
     Constructs a SnubaQuery which is the postgres representation of a query in snuba
