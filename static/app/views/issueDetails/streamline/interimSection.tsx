@@ -34,7 +34,7 @@ export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
         >
           {children}
         </FoldSection>
-        <Divider />
+        <SectionDivider />
       </Fragment>
     ) : (
       <EventDataSection title={title} actions={actions} type={type} {...props}>
@@ -44,7 +44,7 @@ export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
   }
 );
 
-const Divider = styled('hr')`
+export const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.border};
   margin: ${space(1)} 0;
   &:last-child {

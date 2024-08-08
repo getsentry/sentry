@@ -124,7 +124,7 @@ const darkCss = css`
   opacity: 0.8;
 `;
 
-function getLogoImage(name: string) {
+export function getLogoImage(name: string) {
   if (name.startsWith('amd-')) {
     return logoAmd;
   }
@@ -136,13 +136,12 @@ function getLogoImage(name: string) {
   return LOGO_MAPPING[name] ?? logoUnknown;
 }
 
-type Props = {
+export interface ContextIconProps {
   name: string;
-  hideUnknown?: boolean;
   size?: IconSize;
-};
+}
 
-function ContextIcon({name, size: providedSize = 'xl', hideUnknown = false}: Props) {
+export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
   const theme = useTheme();
   const size = theme.iconSizes[providedSize];
 
@@ -151,9 +150,6 @@ function ContextIcon({name, size: providedSize = 'xl', hideUnknown = false}: Pro
   const extraCass = isDarkmode && INVERT_IN_DARKMODE.includes(name) ? darkCss : null;
 
   const imageName = getLogoImage(name);
-  if (hideUnknown && imageName === logoUnknown) {
-    return null;
-  }
 
   return <img height={size} width={size} css={extraCass} src={imageName} />;
 }

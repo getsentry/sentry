@@ -655,14 +655,23 @@ const generatePrismVariables = (
     ...prismColors,
   });
 
+const iconNumberSizes = {
+  xs: 12,
+  sm: 14,
+  md: 18,
+  lg: 24,
+  xl: 32,
+  xxl: 72,
+} as const;
+
 const iconSizes = {
-  xs: '12px',
-  sm: '14px',
-  md: '18px',
-  lg: '24px',
-  xl: '32px',
-  xxl: '72px',
-};
+  xs: `${iconNumberSizes.xs}px`,
+  sm: `${iconNumberSizes.sm}px`,
+  md: `${iconNumberSizes.md}px`,
+  lg: `${iconNumberSizes.lg}px`,
+  xl: `${iconNumberSizes.xl}px`,
+  xxl: `${iconNumberSizes.xxl}px`,
+} as const;
 
 const commonTheme = {
   breakpoints: {
@@ -679,6 +688,7 @@ const commonTheme = {
   ...lightShadows,
 
   iconSizes,
+  iconNumberSizes,
 
   iconDirections: {
     up: '0',

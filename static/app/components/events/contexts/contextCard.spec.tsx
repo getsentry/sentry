@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
-import * as utils from 'sentry/components/events/contexts/utils';
+import * as iconTools from 'sentry/components/events/contexts/contextIcon';
 
 describe('ContextCard', function () {
   const group = GroupFixture();
@@ -57,7 +57,9 @@ describe('ContextCard', function () {
 
   it('renders with icons if able', function () {
     const event = EventFixture();
-    const iconSpy = jest.spyOn(utils, 'getContextIcon');
+    const iconSpy = jest
+      .spyOn(iconTools, 'getLogoImage')
+      .mockReturnValue('data:image/firefox');
 
     const browserContext = {
       type: 'browser',
@@ -74,7 +76,9 @@ describe('ContextCard', function () {
         project={project}
       />
     );
-    expect(iconSpy.mock.results[0].value.props.name).toBe('firefox');
+    expect(iconSpy.mock.calls[0][0]).toBe(browserContext.name);
+    expect(screen.getByRole('img')).toBeInTheDocument();
+
     iconSpy.mockReset();
     browserCard.unmount();
 
@@ -93,7 +97,8 @@ describe('ContextCard', function () {
         project={project}
       />
     );
-    expect(iconSpy.mock.results[0].value).toBeUndefined();
+    expect(iconSpy.mock.results).toHaveLength(0);
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
   it('renders the annotated text and errors', function () {
