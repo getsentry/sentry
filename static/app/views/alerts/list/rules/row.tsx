@@ -82,20 +82,29 @@ function RuleListRow({
     ? userTeams.some(team => team.id === ownerActor.id)
     : true;
 
+  const activeActions = {
+    [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
+    [CombinedAlertType.METRIC]: ['edit', 'duplicate', 'delete'],
+    [CombinedAlertType.UPTIME]: ['edit', 'delete'],
+  };
+
   const actions: MenuItemProps[] = [
     {
       key: 'edit',
       label: t('Edit'),
       to: editLink,
+      hidden: !activeActions[rule.type].includes('edit'),
     },
     {
       key: 'duplicate',
       label: t('Duplicate'),
       to: duplicateLink,
+      hidden: !activeActions[rule.type].includes('duplicate'),
     },
     {
       key: 'delete',
       label: t('Delete'),
+      hidden: !activeActions[rule.type].includes('delete'),
       priority: 'danger',
       onAction: () => {
         openConfirmModal({
@@ -180,9 +189,11 @@ function RuleListRow({
           <AlertName>
             <Link
               to={
-                isIssueAlert(rule)
+                rule.type === CombinedAlertType.ISSUE
                   ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
-                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+                  : rule.type === CombinedAlertType.METRIC
+                    ? `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+                    : `/organizations/${orgId}/alerts/rules/uptime/${rule.projectSlug}/${rule.id}/details/`
               }
             >
               {rule.name}

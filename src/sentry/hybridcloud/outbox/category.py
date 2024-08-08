@@ -186,8 +186,8 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None,
         shard_identifier: int | None,
     ) -> tuple[int, int]:
+        from sentry.integrations.models.integration import Integration
         from sentry.models.apiapplication import ApiApplication
-        from sentry.models.integrations import Integration
         from sentry.models.organization import Organization
         from sentry.models.user import User
 
