@@ -76,10 +76,12 @@ flag_management:
 # Read more here: https://docs.codecov.com/docs/pull-request-comments
 comment:
   #### FOR TESTING ####
-  # Uncomment this if you want to test commenting configurations changes
+  # If you want to test commenting configurations changes
+  # Comment out these lines and uncomment the next section
+  # You also need to make a change to a tsx or py file to trigger the comment
+  after_n_builds: 1
   require_changes: false
   require_bundle_changes: false
-  after_n_builds: 0
   ######################
   # This is the addition of carry forward builds and fresh builds, thus, it's the addition
   # of the FE and BE builds
