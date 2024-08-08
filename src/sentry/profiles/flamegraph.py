@@ -498,9 +498,7 @@ class FlamegraphExecutor:
 
                 key = (row["project_id"], row["profiler_id"])
                 for profiler_meta in profiler_metas_by_profiler[key]:
-                    interval_start = max(start, profiler_meta.start)
-                    interval_end = min(end, profiler_meta.end)
-                    if interval_start >= interval_end:
+                    if start > profiler_meta.end or end < profiler_meta.start:
                         continue
 
                     continuous_profile_candidates.append(
@@ -509,8 +507,8 @@ class FlamegraphExecutor:
                             "profiler_id": profiler_meta.profiler_id,
                             "chunk_id": row["chunk_id"],
                             "thread_id": profiler_meta.thread_id,
-                            "start": str(int(interval_start * 1.0e9)),
-                            "end": str(int(interval_end * 1.0e9)),
+                            "start": str(int(profiler_meta.start * 1.0e9)),
+                            "end": str(int(profiler_meta.end * 1.0e9)),
                             "transaction_id": profiler_meta.transaction_id,
                         }
                     )
