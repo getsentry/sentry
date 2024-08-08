@@ -52,7 +52,7 @@ export function ListBoxSection({
     item.value.showToggleAllButton;
 
   const childItems = useMemo(
-    () => [...item.childNodes].filter(child => !hiddenOptions.has(child.props.value)),
+    () => [...item.childNodes].filter(child => !hiddenOptions.has(child.key)),
     [item.childNodes, hiddenOptions]
   );
 
