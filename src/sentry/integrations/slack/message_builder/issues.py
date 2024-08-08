@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 
 import orjson
 from django.core.exceptions import ObjectDoesNotExist
@@ -11,8 +11,8 @@ from sentry_relay.processing import parse_release
 
 from sentry import tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
-from sentry.constants import LOG_LEVELS_MAP
-from sentry.eventstore.models import GroupEvent
+from sentry.constants import LOG_LEVELS
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
@@ -109,9 +109,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     except ObjectDoesNotExist:
         return None
 
-    if actor.is_team:
+    if isinstance(assigned_actor, Team):
         assignee_text = f"#{assigned_actor.slug}"
-    elif actor.is_user:
+    elif isinstance(assigned_actor, RpcUser):
         assignee_identity = identity_service.get_identity(
             filter={
                 "provider_id": identity.idp_id,
@@ -147,30 +147,11 @@ def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | Non
     return f"*Issue {status} by <@{identity.external_id}>*"
 
 
-def build_tag_fields(
-    event_for_tags: Any, tags: set[str] | None = None
-) -> Sequence[Mapping[str, str | bool]]:
-    fields = []
-    if tags:
-        event_tags = event_for_tags.tags if event_for_tags else []
-        for key, value in event_tags:
-            std_key = tagstore.backend.get_standardized_key(key)
-            if std_key not in tags:
-                continue
-
-            labeled_value = tagstore.backend.get_tag_value_label(key, value)
-            fields.append(
-                {
-                    "title": std_key.encode("utf-8"),
-                    "value": labeled_value.encode("utf-8"),
-                    "short": True,
-                }
-            )
-    return fields
-
-
-def format_release_tag(value: str, event: GroupEvent | Group):
+def format_release_tag(value: str, event: Event | GroupEvent | None) -> str:
     """Format the release tag using the short version and make it a link"""
+    if not event:
+        return ""
+
     path = f"/releases/{value}/"
     url = event.project.organization.absolute_url(path)
     release_description = parse_release(value, json_loads=orjson.loads).get("description")
@@ -178,9 +159,8 @@ def format_release_tag(value: str, event: GroupEvent | Group):
 
 
 def get_tags(
-    group: Group,
-    event_for_tags: Any,
-    tags: set[str] | None = None,
+    event_for_tags: Event | GroupEvent | None,
+    tags: set[str] | list[tuple[str]] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
     """Get tag keys and values for block kit"""
     fields = []
@@ -243,46 +223,35 @@ def get_context(group: Group) -> str:
     return context_text.rstrip()
 
 
-def get_option_groups_block_kit(group: Group) -> Sequence[Mapping[str, Any]]:
+class OptionGroup(TypedDict):
+    label: Mapping[str, str]
+    options: Sequence[Mapping[str, Any]]
+
+
+def get_option_groups(group: Group) -> Sequence[OptionGroup]:
     all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
 
     option_groups = []
     if teams:
-        team_options = format_actor_options(teams, True)
-        option_groups.append(
-            {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
-        )
+        team_option_group: OptionGroup = {
+            "label": {"type": "plain_text", "text": "Teams"},
+            "options": format_actor_options(teams, True),
+        }
+        option_groups.append(team_option_group)
 
     if members:
-        member_options = format_actor_options(members, True)
-        option_groups.append(
-            {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
-        )
-    return option_groups
-
-
-def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
-    """Get teams and users that can be issue assignees for block kit"""
-    all_members = group.project.get_members_as_rpc_users()
-    members = list({m.id: m for m in all_members}.values())
-    teams = group.project.teams.all()
-
-    option_groups = []
-    if teams:
-        for team in teams:
-            option_groups.append({"label": team.slug, "value": f"team:{team.id}"})
-
-    if members:
-        for member in members:
-            option_groups.append({"label": member.email, "value": f"user:{member.id}"})
-
+        member_option_group: OptionGroup = {
+            "label": {"type": "plain_text", "text": "People"},
+            "options": format_actor_options(members, True),
+        }
+        option_groups.append(member_option_group)
     return option_groups
 
 
 def get_suggested_assignees(
-    project: Project, event: GroupEvent, current_assignee: RpcUser | Team | None
+    project: Project, event: Event | GroupEvent, current_assignee: RpcUser | Team | None
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
     suggested_assignees = []
@@ -298,20 +267,23 @@ def get_suggested_assignees(
         logger.info("Skipping suspect committers because release does not exist.")
     except Exception:
         logger.exception("Could not get suspect committers. Continuing execution.")
+
     if suggested_assignees:
         suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
         assignee_texts = []
+
         for assignee in suggested_assignees:
             # skip over any suggested assignees that are the current assignee of the issue, if there is any
-            if assignee.is_user and not (
-                isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
-            ):
-                assignee_as_user = assignee.resolve()
-                assignee_texts.append(assignee_as_user.get_display_name())
-            elif assignee.is_team and not (
+            if assignee.is_team and not (
                 isinstance(current_assignee, Team) and assignee.id == current_assignee.id
             ):
                 assignee_texts.append(f"#{assignee.slug}")
+            elif assignee.is_user and not (
+                isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
+            ):
+                assignee_as_user = assignee.resolve()
+                if isinstance(assignee_as_user, RpcUser):
+                    assignee_texts.append(assignee_as_user.get_display_name())
         return assignee_texts
     return []
 
@@ -417,7 +389,7 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options([assignee], True) if assignee else [],
-            option_groups=get_option_groups_block_kit(group),
+            option_groups=get_option_groups(group),
         )
         return assign_button
 
@@ -440,7 +412,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: GroupEvent | None = None,
+        event: Event | GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction] | None = None,
@@ -477,10 +449,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
     def get_title_block(
         self,
-        rule_id: int,
-        notification_uuid: str,
-        event_or_group: GroupEvent | Group,
+        event_or_group: Event | GroupEvent | Group,
         has_action: bool,
+        rule_id: int | None = None,
+        notification_uuid: str | None = None,
     ) -> SlackBlock:
         title_link = get_title_link(
             self.group,
@@ -504,11 +476,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
             )
         elif is_error_issue:
-            level_text = None
-            for k, v in LOG_LEVELS_MAP.items():
-                if self.group.level == v:
-                    level_text = k
-
+            level_text = LOG_LEVELS[self.group.level]
             title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
             title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
@@ -518,7 +486,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_markdown_block(title_text)
 
-    def get_culprit_block(self, event_or_group: GroupEvent | Group) -> SlackBlock | None:
+    def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
@@ -584,7 +552,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
 
-        obj = self.event if self.event is not None else self.group
+        event_or_group: Group | Event | GroupEvent = (
+            self.event if self.event is not None else self.group
+        )
+
         action_text = ""
 
         if not self.issue_details or (self.recipient and self.recipient.is_team):
@@ -605,9 +576,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
 
-        blocks = [self.get_title_block(rule_id, notification_uuid, obj, has_action)]
+        blocks = [self.get_title_block(event_or_group, has_action, rule_id, notification_uuid)]
 
-        if culprit_block := self.get_culprit_block(obj):
+        if culprit_block := self.get_culprit_block(event_or_group):
             blocks.append(culprit_block)
 
         # build up text block
@@ -619,10 +590,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
+        # set up block id
+        block_id = {"issue": self.group.id}
+        if rule_id:
+            block_id["rule"] = rule_id
+
         # build tags block
-        tags = get_tags(self.group, event_for_tags, self.tags)
+        tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
         if tags:
-            blocks.append(self.get_tags_block(tags))
+            blocks.append(self.get_tags_block(tags, block_id))
 
         # add event count, user count, substate, first seen
         context = get_context(self.group)
@@ -677,17 +653,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         blocks.append(self.get_footer())
         blocks.append(self.get_divider())
 
-        block_id = {"issue": self.group.id}
-        if rule_id:
-            block_id["rule"] = rule_id
-
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
         if chart_block:
             blocks.append(chart_block)
 
         return self._build_blocks(
             *blocks,
-            fallback_text=self.build_fallback_text(obj, project.slug),
+            fallback_text=self.build_fallback_text(event_or_group, project.slug),
             block_id=orjson.dumps(block_id).decode(),
             skip_fallback=self.skip_fallback,
         )

@@ -5,9 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from functools import cached_property, reduce
 
-from sentry.digests import Record
 from sentry.digests.notifications import (
-    Notification,
     event_to_record,
     group_records,
     rewrite_record,
@@ -16,6 +14,7 @@ from sentry.digests.notifications import (
     split_key,
     unsplit_key,
 )
+from sentry.digests.types import Notification, Record
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.testutils.cases import TestCase

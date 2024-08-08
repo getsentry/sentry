@@ -125,16 +125,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     "organizations:global-views", organization, actor=request.user
                 )
                 fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-                if not any(
-                    [
-                        has_global_views,
-                        len(params.projects) <= 1,
-                        fetching_replay_data,
-                        # If a developer can view issues of a project they do not belong to
-                        # via open membership, we will also allow the endpoint to return events for it
-                        organization.flags.allow_joinleave,
-                    ]
-                ):
+                if not has_global_views and len(params.projects) > 1 and not fetching_replay_data:
                     raise ParseError(detail="You cannot view events from multiple projects.")
 
             # Return both for now

@@ -32,7 +32,6 @@ describe('Autofix', () => {
             },
           ],
         },
-        codebaseIndexing: {ok: true},
       },
     });
   });
@@ -54,9 +53,8 @@ describe('Autofix', () => {
       url: `/issues/${group.id}/autofix/setup/`,
       body: {
         genAIConsent: {ok: true},
-        integration: {ok: true},
+        integration: {ok: false},
         githubWriteIntegration: {ok: true},
-        codebaseIndexing: {ok: false},
       },
     });
     MockApiClient.addMockResponse({
@@ -79,7 +77,6 @@ describe('Autofix', () => {
         genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: false},
-        codebaseIndexing: {ok: true},
       },
     });
     MockApiClient.addMockResponse({
@@ -177,6 +174,7 @@ describe('Autofix', () => {
                       snippet: {
                         file_path: 'test/file/path.py',
                         snippet: 'two = 1 + 1',
+                        repo_name: 'owner/repo',
                       },
                     },
                   ],

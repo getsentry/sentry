@@ -2459,8 +2459,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="!is:regressed is:unresolved"
         )  # (status=unresolved, substatus=(!regressed))
         response6 = get_query_response(
-            query="!is:until_escalating"
-        )  # (status=(!unresolved), substatus=(!until_escalating))
+            query="!is:archived_until_escalating"
+        )  # (status=(!unresolved), substatus=(!archived_until_escalating))
 
         assert (
             response0.status_code
@@ -2498,9 +2498,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response1 = get_query_response(query="is:escalating")
         response2 = get_query_response(query="is:new")
         response3 = get_query_response(query="is:regressed")
-        response4 = get_query_response(query="is:forever")
-        response5 = get_query_response(query="is:until_condition_met")
-        response6 = get_query_response(query="is:until_escalating")
+        response4 = get_query_response(query="is:archived_forever")
+        response5 = get_query_response(query="is:archived_until_condition_met")
+        response6 = get_query_response(query="is:archived_until_escalating")
         response7 = get_query_response(query="is:resolved")
         response8 = get_query_response(query="is:ignored")
         response9 = get_query_response(query="is:muted")
@@ -3158,13 +3158,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         np1_group_id = group_info.group.id if group_info else None
 
         # create an error issue
-        self.store_event(
+        error_event = self.store_event(
             data={
                 "fingerprint": ["error-issue"],
                 "event_id": "e" * 32,
             },
             project_id=self.project.id,
         )
+        error_group_id = error_event.group.id
 
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
@@ -3199,6 +3200,44 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="issue.category:replay issue.type:performance_n_plus_one_db_queries",
         )
         assert len(response.data) == 0
+
+        response = self.get_success_response(
+            sort="new",
+            query="issue.category:error",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:performance",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:error",
+        )
+        assert len(response.data) == 2
+        assert {r["id"] for r in response.data} == {
+            str(blocking_asset_group_id),
+            str(np1_group_id),
+        }
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:performance",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
+
+        response = self.get_success_response(
+            sort="new",
+            query="!issue.category:[performance,cron]",
+        )
+        assert len(response.data) == 1
+        assert {r["id"] for r in response.data} == {str(error_group_id)}
 
     def test_pagination_and_x_hits_header(self, _: MagicMock) -> None:
         # Create 30 issues

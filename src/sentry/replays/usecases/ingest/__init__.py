@@ -133,6 +133,11 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
             len(message.replay_video),
             unit="byte",
         )
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_event_size",
+            len(message.replay_video) + len(recording_segment),
+            unit="byte",
+        )
         storage_kv.set(make_video_filename(segment_data), message.replay_video)
 
     recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)
