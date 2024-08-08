@@ -6,7 +6,7 @@ from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     RawSeerSimilarIssueData,
     SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
+    SimilarHashNotFoundError,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -102,7 +102,7 @@ class SeerSimilarIssueDataTest(TestCase):
             SeerSimilarIssueData.from_raw(self.project.id, raw_similar_issue_data)
 
     def test_from_raw_nonexistent_group(self):
-        with pytest.raises(SimilarGroupNotFoundError):
+        with pytest.raises(SimilarHashNotFoundError):
             raw_similar_issue_data = {
                 "parent_hash": "not a real hash",
                 "message_distance": 0.05,

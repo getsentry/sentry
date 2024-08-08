@@ -132,7 +132,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
                         }
                     ]
                 },
-                "SimilarGroupNotFoundError",
+                "SimilarHashNotFoundError",
             ),
         ]
 

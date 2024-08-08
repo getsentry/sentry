@@ -28,7 +28,7 @@ from sentry.seer.similarity.grouping_records import (
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
+    SimilarHashNotFoundError,
 )
 from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
@@ -496,7 +496,7 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
                 ]
             # TODO: if we reach this exception, we need to delete the record from seer or this will always happen
             # we should not update the similarity data for this group cause we'd want to try again once we delete it
-            except (IncompleteSeerDataError, SimilarGroupNotFoundError):
+            except (IncompleteSeerDataError, SimilarHashNotFoundError):
                 logger.exception(
                     "tasks.backfill_seer_grouping_records.invalid_parent_group",
                     extra={
