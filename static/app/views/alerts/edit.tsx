@@ -1,17 +1,22 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Member, Organization, Project} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import Teams from 'sentry/utils/teams';
+import type {Member, Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import IssueEditor from 'sentry/views/alerts/rules/issue';
-import {MetricRulesEdit} from 'sentry/views/alerts/rules/metric/edit';
-import {AlertRuleType} from 'sentry/views/alerts/types';
+
+import IssueEditor from './rules/issue';
+import {MetricRulesEdit} from './rules/metric/edit';
+import {UptimeRulesEdit} from './rules/uptime/edit';
+import {CombinedAlertType} from './types';
 
 type RouteParams = {
   projectId: string;
@@ -20,100 +25,93 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
+  hasUptimeAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;
   project: Project;
 };
 
-type State = {
-  ruleName: string;
-};
+function ProjectAlertsEditor(props: Props) {
+  const {hasMetricAlerts, hasUptimeAlerts, members, organization, project} = props;
+  const location = useLocation();
 
-class ProjectAlertsEditor extends Component<Props, State> {
-  state: State = {
-    ruleName: '',
-  };
+  const [title, setTitle] = useState('');
 
-  componentDidMount() {
-    const {organization, project} = this.props;
-    trackAnalytics('edit_alert_rule.viewed', {
-      organization,
-      project_id: project.id,
-      alert_type: this.getAlertType(),
-    });
-  }
+  const alertTypeUrls = [
+    {url: '/alerts/metric-rules/', type: CombinedAlertType.METRIC},
+    {url: '/alerts/uptime-rules/', type: CombinedAlertType.UPTIME},
+    {url: '/alerts/rules/', type: CombinedAlertType.ISSUE},
+  ] as const;
 
-  handleChangeTitle = (ruleName: string) => {
-    this.setState({ruleName});
-  };
+  const alertType =
+    alertTypeUrls.find(({url}) => location.pathname.includes(url))?.type ??
+    CombinedAlertType.ISSUE;
 
-  getTitle() {
-    const {ruleName} = this.state;
-    return `${ruleName}`;
-  }
+  useRouteAnalyticsEventNames('edit_alert_rule.viewed', 'Edit Alert Rule: Viewed');
+  useRouteAnalyticsParams({
+    organization,
+    project_id: project.id,
+    alert_type: alertType,
+  });
 
-  getAlertType(): AlertRuleType {
-    return location.pathname.includes('/alerts/metric-rules/')
-      ? AlertRuleType.METRIC
-      : AlertRuleType.ISSUE;
-  }
+  //  Used to hide specific fields like actions while migrating metric alert rules.
+  //  Currently used to help people add `is:unresolved` to their metric alert query.
+  const isMigration = location?.query?.migration === '1';
 
-  render() {
-    const {hasMetricAlerts, organization, project, members, location} = this.props;
-    const alertType = this.getAlertType();
+  const {teams, isLoading: teamsLoading} = useUserTeams();
 
-    // TODO(telemetry-experience): Remove once the migration is complete
-    const isMigration = location?.query?.migration === '1';
-
-    return (
-      <Fragment>
-        <SentryDocumentTitle
-          title={this.getTitle()}
-          orgSlug={organization.slug}
-          projectSlug={project.slug}
-        />
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <BuilderBreadCrumbs
-              organization={organization}
-              title={isMigration ? t('Review Thresholds') : t('Edit Alert Rule')}
-              projectSlug={project.slug}
-            />
-            <Layout.Title>{this.getTitle()}</Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
-        <Layout.Body>
-          <Teams provideUserTeams>
-            {({teams, initiallyLoaded}) =>
-              initiallyLoaded ? (
-                <Fragment>
-                  {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
-                    <IssueEditor
-                      {...this.props}
-                      project={project}
-                      onChangeTitle={this.handleChangeTitle}
-                      userTeamIds={teams.map(({id}) => id)}
-                      members={members}
-                    />
-                  )}
-                  {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
-                    <MetricRulesEdit
-                      {...this.props}
-                      project={project}
-                      onChangeTitle={this.handleChangeTitle}
-                      userTeamIds={teams.map(({id}) => id)}
-                    />
-                  )}
-                </Fragment>
-              ) : (
-                <LoadingIndicator />
-              )
-            }
-          </Teams>
-        </Layout.Body>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <SentryDocumentTitle
+        title={title}
+        orgSlug={organization.slug}
+        projectSlug={project.slug}
+      />
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <BuilderBreadCrumbs
+            organization={organization}
+            title={isMigration ? t('Review Thresholds') : t('Edit Alert Rule')}
+            projectSlug={project.slug}
+          />
+          <Layout.Title>{title}</Layout.Title>
+        </Layout.HeaderContent>
+      </Layout.Header>
+      <Layout.Body>
+        {!teamsLoading ? (
+          <Fragment>
+            {(!hasMetricAlerts || alertType === CombinedAlertType.ISSUE) && (
+              <IssueEditor
+                {...props}
+                project={project}
+                onChangeTitle={setTitle}
+                userTeamIds={teams.map(({id}) => id)}
+                members={members}
+              />
+            )}
+            {hasMetricAlerts && alertType === CombinedAlertType.METRIC && (
+              <MetricRulesEdit
+                {...props}
+                project={project}
+                onChangeTitle={setTitle}
+                userTeamIds={teams.map(({id}) => id)}
+              />
+            )}
+            {hasUptimeAlerts && alertType === CombinedAlertType.UPTIME && (
+              <UptimeRulesEdit
+                {...props}
+                project={project}
+                onChangeTitle={setTitle}
+                userTeamIds={teams.map(({id}) => id)}
+              />
+            )}
+          </Fragment>
+        ) : (
+          <LoadingIndicator />
+        )}
+      </Layout.Body>
+    </Fragment>
+  );
 }
 
 export default ProjectAlertsEditor;

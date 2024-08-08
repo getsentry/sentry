@@ -1107,7 +1107,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
-    // TODO(issues): Remove this and all connected logic once the migration is complete
+    //  Used to hide specific fields like actions while migrating metric alert rules.
+    //  Currently used to help people add `is:unresolved` to their metric alert query.
     const isMigration = location?.query?.migration === '1';
 
     const triggerForm = (disabled: boolean) => (
@@ -1266,12 +1267,9 @@ const Main = styled(Layout.Main)`
   max-width: 1000px;
 `;
 
-const StyledListItem = styled(ListItem)`
+const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const AlertListItem = styled(StyledListItem)`
   margin-top: 0;
 `;
 
