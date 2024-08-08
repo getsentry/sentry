@@ -5,18 +5,27 @@ import type {ApiEndpointQueryKey, ApiResult} from '../types';
 
 import useApiEndpoint from './useApiEndpoint';
 
-export default function useFetchInfiniteApiData<Data extends Array<unknown>>(
-  props: UseInfiniteQueryOptions<ApiEndpointQueryKey, Error, ApiResult<Data>, any>
+export default function useFetchInfiniteApiData<
+  QueryFnData,
+  SelectFnData = ApiResult<QueryFnData>,
+>(
+  props: UseInfiniteQueryOptions<
+    ApiResult<QueryFnData>,
+    Error,
+    SelectFnData,
+    ApiResult<QueryFnData>,
+    ApiEndpointQueryKey
+  >
 ) {
   const {fetchInfiniteFn, getNextPageParam, getPreviousPageParam} = useApiEndpoint();
 
   const infiniteQueryResult = useInfiniteQuery<
     ApiEndpointQueryKey,
     Error,
-    ApiResult<Data>,
+    SelectFnData,
     any
   >({
-    queryFn: fetchInfiniteFn<Data>,
+    queryFn: fetchInfiniteFn<QueryFnData>,
     getNextPageParam,
     getPreviousPageParam,
     ...props,

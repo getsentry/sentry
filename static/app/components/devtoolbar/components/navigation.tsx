@@ -5,6 +5,7 @@ import SessionStatusBadge from 'sentry/components/devtoolbar/components/releases
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {
   IconClose,
+  IconCursorArrow,
   IconFlag,
   IconIssues,
   IconMegaphone,
@@ -52,6 +53,7 @@ export default function Navigation({
       <hr style={{margin: 0, width: '100%'}} />
 
       <NavButton panelName="issues" label="Issues" icon={<IconIssues />} />
+      <NavButton panelName="deadClicks" label="Dead Clicks" icon={<IconCursorArrow />} />
       <NavButton panelName="feedback" label="User Feedback" icon={<IconMegaphone />} />
       <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />}>
         <AlertCountBadge />

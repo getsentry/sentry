@@ -181,7 +181,9 @@ export type DeadRageSelectorItem = {
   aria_label: string;
   dom_element: {
     fullSelector: string;
+    nativeSelector: string;
     projectId: number;
+    querySelector: string;
     selector: string;
   };
   element: string;
