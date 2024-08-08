@@ -153,7 +153,7 @@ def process_event(
         if reprocess_only_stuck_events and not event_processing_store.exists(data):
             return
 
-        # --- inc-847 starts: verify mitigation is working
+        # inc-847: verify mitigation is working
         is_reprocessed = event_processing_store.exists(data)
         if is_reprocessed:
             reprocessed_ids[project_id] + 1
