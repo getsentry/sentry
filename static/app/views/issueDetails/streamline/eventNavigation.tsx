@@ -23,13 +23,12 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {EVENT_SECTION_DEFINITIONS} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type EventNavigationProps = {
@@ -37,12 +36,6 @@ type EventNavigationProps = {
   group: Group;
   className?: string;
   style?: CSSProperties;
-};
-
-type SectionDefinition = {
-  condition: (event: Event) => boolean;
-  label: string;
-  section: SectionKey;
 };
 
 enum EventNavOptions {
@@ -64,50 +57,6 @@ const EventNavOrder = [
   EventNavOptions.OLDEST,
   EventNavOptions.LATEST,
   EventNavOptions.CUSTOM,
-];
-
-const eventDataSections: SectionDefinition[] = [
-  {
-    section: SectionKey.HIGHLIGHTS,
-    label: t('Event Highlights'),
-    condition: () => true,
-  },
-  {
-    section: SectionKey.STACKTRACE,
-    label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
-  },
-  {
-    section: SectionKey.EXCEPTION,
-    label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
-  },
-  {
-    section: SectionKey.BREADCRUMBS,
-    label: t('Breadcrumbs'),
-    condition: (event: Event) =>
-      event.entries.some(entry => entry.type === 'breadcrumbs'),
-  },
-  {
-    section: SectionKey.TAGS,
-    label: t('Tags'),
-    condition: (event: Event) => event.tags.length > 0,
-  },
-  {
-    section: SectionKey.CONTEXTS,
-    label: t('Context'),
-    condition: (event: Event) => !!event.context,
-  },
-  {
-    section: SectionKey.USER_FEEDBACK,
-    label: t('User Feedback'),
-    condition: (event: Event) => !!event.userReport,
-  },
-  {
-    section: SectionKey.REPLAY,
-    label: t('Replay'),
-    condition: (event: Event) => !!getReplayIdFromEvent(event),
-  },
 ];
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
@@ -138,7 +87,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
-    const jumpToSections = eventDataSections.filter(eventSection =>
+    const jumpToSections = EVENT_SECTION_DEFINITIONS.filter(eventSection =>
       eventSection.condition(event)
     );
 

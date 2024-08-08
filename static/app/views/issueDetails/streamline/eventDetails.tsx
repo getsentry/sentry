@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   DefaultGroupEventDetailsContent,
@@ -63,7 +66,7 @@ export const enum SectionKey {
 
 export interface EventDetailsContextType {
   searchQuery: string;
-  sectionData: {[key in SectionKey]?: {isOpen: boolean; shouldDisplay: boolean}};
+  sectionData: {[key in SectionKey]?: {isOpen: boolean; shouldDisplay: () => boolean}};
 }
 
 const EventDetailsContext = createContext<EventDetailsContextType>({
@@ -115,6 +118,56 @@ export function EventDetails({
     </EventDetailsContext.Provider>
   );
 }
+
+interface SectionDefinition {
+  condition: (event: Event) => boolean;
+  label: string;
+  section: SectionKey;
+}
+
+export const EVENT_SECTION_DEFINITIONS: SectionDefinition[] = [
+  {
+    section: SectionKey.HIGHLIGHTS,
+    label: t('Event Highlights'),
+    condition: () => true,
+  },
+  {
+    section: SectionKey.STACKTRACE,
+    label: t('Stack Trace'),
+    condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
+  },
+  {
+    section: SectionKey.EXCEPTION,
+    label: t('Stack Trace'),
+    condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
+  },
+  {
+    section: SectionKey.BREADCRUMBS,
+    label: t('Breadcrumbs'),
+    condition: (event: Event) =>
+      event.entries.some(entry => entry.type === 'breadcrumbs'),
+  },
+  {
+    section: SectionKey.TAGS,
+    label: t('Tags'),
+    condition: (event: Event) => event.tags.length > 0,
+  },
+  {
+    section: SectionKey.CONTEXTS,
+    label: t('Context'),
+    condition: (event: Event) => !!event.context,
+  },
+  {
+    section: SectionKey.USER_FEEDBACK,
+    label: t('User Feedback'),
+    condition: (event: Event) => !!event.userReport,
+  },
+  {
+    section: SectionKey.REPLAY,
+    label: t('Replay'),
+    condition: (event: Event) => !!getReplayIdFromEvent(event),
+  },
+];
 
 const FloatingEventNavigation = styled(EventNavigation)`
   position: sticky;
