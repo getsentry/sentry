@@ -83,13 +83,12 @@ comment:
   hide_project_coverage: true
   # Update, if exists. Otherwise post new. Skip if deleted.
   behavior: once
-  # Comments will only post when coverage changes. Furthermore, if a comment
-  # already exists, and a newer commit results in no coverage change for the
-  # entire pull, the comment will be deleted.
-  require_changes: true
+  # Only post if coverage drops OR there are uncovered lines of code
+  require_changes: 'coverage_drop OR uncovered_patch'
   require_base: true # must have a base report to post
   require_head: true # must have a head report to post
-  require_bundle_changes: True # only post a comment when there are bundle size changes
+  # Post comment if there are changes in bundle size increases greater than value specified
+  require_bundle_changes: 'bundle_increase'
   bundle_change_threshold: '10Kb'
 
 cli:
