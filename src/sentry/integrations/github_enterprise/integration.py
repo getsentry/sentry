@@ -128,13 +128,11 @@ API_ERRORS = {
 class GitHubEnterpriseIntegration(
     RepositoryIntegration, GitHubIssueBasic, CommitContextIntegration
 ):
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+
     @property
     def integration_name(self) -> str:
         return "github_enterprise"
-
-    @property
-    def codeowners_location(self) -> list[str] | None:
-        return ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self):
         if not self.org_integration:
@@ -172,6 +170,26 @@ class GitHubEnterpriseIntegration(
             for i in response.get("items", [])
         ]
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
+        return f"{repo.url}/blob/{branch}/{filepath}"
+
+    # URL methods copied from GitHubIntegration
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
+
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
@@ -183,11 +201,6 @@ class GitHubEnterpriseIntegration(
             return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
         else:
             return ERR_INTERNAL
-
-    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
-        # Must format the url ourselves since `check_file` is a head request
-        # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
-        return f"{repo.url}/blob/{branch}/{filepath}"
 
 
 class InstallationForm(forms.Form):

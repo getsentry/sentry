@@ -176,6 +176,15 @@ class ExampleIntegration(RepositoryIntegration, IssueSyncMixin):
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
 
+    def source_url_matches(self, url: str) -> bool:
+        return True
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        return ""
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        return ""
+
 
 class ExampleIntegrationProvider(IntegrationProvider):
     """
