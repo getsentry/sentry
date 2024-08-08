@@ -42,8 +42,6 @@ URL_MIN_TIMES_SEEN = 5
 URL_MIN_PERCENT = 0.05
 # Default value for how often we should run these subscriptions when onboarding them
 ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=60).total_seconds())
-# Default timeout for subscriptions when we're onboarding them
-ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 logger = logging.getLogger("sentry.uptime-url-autodetection")
 
@@ -244,9 +242,7 @@ def monitor_url_for_project(project: Project, url: str):
                 ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             ],
         )
-    subscription = create_uptime_subscription(
-        url, ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS, ONBOARDING_SUBSCRIPTION_TIMEOUT_MS
-    )
+    subscription = create_uptime_subscription(url, ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS)
     create_project_uptime_subscription(
         project, subscription, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
     )

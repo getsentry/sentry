@@ -1,6 +1,8 @@
 import logging
+from typing import Any
 
 from sentry.models.project import Project
+from sentry.types.actor import Actor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -15,10 +17,12 @@ logger = logging.getLogger(__name__)
 
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_SUBSCRIPTIONS_PER_ORG = 1
+# Default timeout for all subscriptions
+DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 
 def create_uptime_subscription(
-    url: str, interval_seconds: int, timeout_ms: int
+    url: str, interval_seconds: int, timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -57,14 +61,24 @@ def create_project_uptime_subscription(
     project: Project,
     uptime_subscription: UptimeSubscription,
     mode: ProjectUptimeSubscriptionMode,
+    name: str = "",
+    owner: Actor | None = None,
 ) -> ProjectUptimeSubscription:
     """
     Links a project to an uptime subscription so that it can process results.
     """
+    owner_kwargs: dict[str, Any] = {}
+    if owner:
+        if owner.is_user:
+            owner_kwargs["owner_user_id"] = owner.id
+        if owner.is_team:
+            owner_kwargs["owner_team_id"] = owner.id
     return ProjectUptimeSubscription.objects.get_or_create(
         project=project,
         uptime_subscription=uptime_subscription,
         mode=mode.value,
+        name=name,
+        **owner_kwargs,
     )[0]
 
 
