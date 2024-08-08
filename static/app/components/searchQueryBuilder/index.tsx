@@ -70,6 +70,12 @@ export interface SearchQueryBuilderProps {
    */
   fieldDefinitionGetter?: FieldDefinitionGetter;
   /**
+   * The width of the filter key menu.
+   * Defaults to 360px. May be increased if there are a large number of categories
+   * or long filter key names.
+   */
+  filterKeyMenuWidth?: number;
+  /**
    * When provided, displays a tabbed interface for discovering filter keys.
    * Sections and filter keys are displayed in the order they are provided.
    */
@@ -131,6 +137,7 @@ export function SearchQueryBuilder({
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys,
+  filterKeyMenuWidth = 360,
   filterKeySections,
   getTagValues,
   onChange,
@@ -196,6 +203,7 @@ export function SearchQueryBuilder({
       disabled,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
+      filterKeyMenuWidth,
       filterKeys,
       getTagValues,
       getFieldDefinition: fieldDefinitionGetter,
@@ -213,6 +221,7 @@ export function SearchQueryBuilder({
     disabled,
     parsedQuery,
     filterKeySections,
+    filterKeyMenuWidth,
     filterKeys,
     getTagValues,
     fieldDefinitionGetter,
