@@ -626,13 +626,13 @@ class EntitySubscriptionTestCase(TestCase):
                 ("count()", "span.category:http", False),
                 ("count()", "span.op:http.client", False),
                 ("count()", "span.description:abc", False),
+                ("performance_score(measurements.score.lcp)", "", False),
                 # TODO: The following functions are not supported in the discover metrics dataset yet.
                 # Uncomment these as we port them over.
                 # ("spm()", "", False),
                 # ("cache_miss_rate()", "", False),
                 # ("http_response_rate()", "", False),
                 # ("avg(span.self_time)", "", False),
-                # ("performance_score(measurements.score.lcp)", "", False),
             ]
             for aggregate, query, use_metrics_layer in cases:
                 entity_subscription = get_entity_subscription(
@@ -642,8 +642,8 @@ class EntitySubscriptionTestCase(TestCase):
                     time_window=3600,
                     extra_fields={"org_id": self.organization.id},
                 )
-            builder = entity_subscription.build_query_builder(query, [self.project.id], None)
-            assert builder.builder_config.use_metrics_layer is use_metrics_layer
+                builder = entity_subscription.build_query_builder(query, [self.project.id], None)
+                assert builder.use_metrics_layer is use_metrics_layer
 
 
 class GetEntitySubscriptionFromSnubaQueryTest(TestCase):

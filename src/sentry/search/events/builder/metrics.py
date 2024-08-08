@@ -151,7 +151,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return super().load_config()
 
         if self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            if self.builder_config.use_metrics_layer:
+            if self.use_metrics_layer:
                 return MetricsLayerDatasetConfig(self)
             else:
                 return MetricsDatasetConfig(self)
@@ -377,6 +377,23 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             super().validate_aggregate_arguments()
 
     @property
+    def is_insights_metric_query(self) -> bool:
+        for query in self.parse_query(self.query):
+            if query.key.name in constants.INSIGHTS_METRICS_TAGS:
+                return True
+        for column in self.selected_columns:
+            # Not using parse_function since it checks against function_converter
+            # which is not loaded yet and we also do not need it
+            match = fields.is_function(column)
+            func = match.group("function") if match else None
+            if func in constants.INSIGHTS_METRICS_FUNCTIONS:
+                return True
+            argument = match.group("columns") if match else None
+            if argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys():
+                return True
+        return False
+
+    @property
     def is_performance(self) -> bool:
         return self.dataset is Dataset.PerformanceMetrics
 
@@ -396,6 +413,11 @@ class MetricsQueryBuilder(BaseQueryBuilder):
     def use_metrics_layer(self) -> bool:
         # We want to use the metrics layer only for normal metrics, since span metrics are currently
         # NOT supported.
+        if (
+            self.builder_config.insights_metrics_override_metric_layer
+            and self.is_insights_metric_query
+        ):
+            return False
         return self.builder_config.use_metrics_layer and not self.spans_metrics_builder
 
     def resolve_query(

@@ -53,15 +53,6 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
 )
-INSIGHTS_AGGREGATE_RE_SET = {
-    r"^(spm|cache_miss_rate)\([ ]*\)",
-    r"^http_response_rate\([ ]*(3|4|5)[ ]*\)",
-    r"^(sum|avg)\([ ]*(span\.self_time|span\.duration|messaging\.message\.receive\.latency|measurements\.(time_to_initial_display|time_to_full_display|ai\.total_tokens\.used))[ ]*\)",
-    r"^((weighted_)?performance_score|count_scores)\([ ]*(measurements\.score\.(lcp|fcp|ttfb|cls|inp))[ ]*\)",
-}
-INSIGHTS_QUERY_RE_SET = {
-    r"span\.(category|module|op|description):",
-}
 ALERT_BLOCKED_FIELDS = {
     "start",
     "end",
@@ -292,15 +283,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         return resolve_tag_values(self._get_use_case_id(), self.org_id, strings)
 
-    def is_insights_query(self, query: str) -> bool:
-        for pattern in INSIGHTS_AGGREGATE_RE_SET:
-            if re.match(pattern, self.aggregate):
-                return True
-        for pattern in INSIGHTS_QUERY_RE_SET:
-            if re.match(pattern, query):
-                return True
-        return False
-
     def build_query_builder(
         self,
         query: str,
@@ -328,12 +310,11 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             granularity=self.get_granularity(),
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
-                use_metrics_layer=False
-                if self.is_insights_query(query)
-                else self.use_metrics_layer,
+                use_metrics_layer=self.use_metrics_layer,
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+                insights_metrics_override_metric_layer=True,
             ),
         )
 
