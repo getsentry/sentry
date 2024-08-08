@@ -96,6 +96,8 @@ class AuditLogEventRegisterTest(TestCase):
             "issue.delete",
             "data-secrecy.waived",
             "data-secrecy.reinstated",
+            "uptime_monitor.add",
+            "uptime_monitor.edit",
+            "uptime_monitor.remove",
         ]
-
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)
