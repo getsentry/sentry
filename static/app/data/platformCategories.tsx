@@ -255,8 +255,6 @@ export const platformsWithNestedInstrumentationGuides: PlatformKey[] = [
   'unity',
 ];
 
-export const integrations: PlatformKey[] = ['elixir'];
-
 // List of platforms that have performance onboarding checklist content
 export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
   'javascript',

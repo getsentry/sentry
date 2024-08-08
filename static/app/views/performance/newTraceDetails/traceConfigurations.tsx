@@ -67,6 +67,7 @@ type ResourceButtonsProps = {
   customInstrumentationLink: string;
 };
 
+// Note: Will be adding more resources in the future
 function ResourceButtons({customInstrumentationLink}: ResourceButtonsProps) {
   return (
     <ButtonContainer>
