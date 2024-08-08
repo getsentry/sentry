@@ -266,7 +266,6 @@ module = [
     "sentry.integrations.metric_alerts",
     "sentry.integrations.mixins.issues",
     "sentry.integrations.mixins.notifications",
-    "sentry.integrations.mixins.repositories",
     "sentry.integrations.msteams.actions.form",
     "sentry.integrations.msteams.client",
     "sentry.integrations.msteams.integration",
