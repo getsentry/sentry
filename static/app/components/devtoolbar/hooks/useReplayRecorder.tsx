@@ -75,10 +75,10 @@ export default function useReplayRecorder(): ReplayRecorderState {
 
   const start = useCallback(async () => {
     let success = false;
-    if (replay && !isRecording) {
-      try {
-        // SDK v8.19.0 and older will throw if a replay is already started.
-        // Details at https://github.com/getsentry/sentry-javascript/pull/13000
+    try {
+      // SDK v8.19.0 and older will throw if a replay is already started.
+      // Details at https://github.com/getsentry/sentry-javascript/pull/13000
+      if (replay && !isRecording) {
         if (recordingMode === 'session') {
           replay.start();
         } else {
@@ -86,24 +86,28 @@ export default function useReplayRecorder(): ReplayRecorderState {
           await replay.flush();
         }
         success = true;
-        // eslint-disable-next-line no-empty
-      } catch {}
+      }
+      // eslint-disable-next-line no-empty
+    } catch {
+    } finally {
+      refreshState();
+      return success;
     }
-    refreshState();
-    return success;
   }, [isRecording, recordingMode, replay, refreshState]);
 
   const stop = useCallback(async () => {
     let success = false;
-    if (replay && isRecording) {
-      try {
+    try {
+      if (replay && isRecording) {
         await replay.stop();
         success = true;
-        // eslint-disable-next-line no-empty
-      } catch {}
+      }
+      // eslint-disable-next-line no-empty
+    } catch {
+    } finally {
+      refreshState();
+      return success;
     }
-    refreshState();
-    return success;
   }, [isRecording, replay, refreshState]);
 
   return {
