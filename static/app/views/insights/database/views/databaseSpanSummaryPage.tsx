@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -251,17 +252,19 @@ export function DatabaseSpanSummaryPage({params}: Props) {
               </DescriptionContainer>
             )}
 
-            {!areIndexedSpansByGroupIdLoading && (
-              <ModuleLayout.Full>
-                <InsightIssuesList
-                  issueTypes={[
-                    'performance_slow_db_query',
-                    'performance_n_plus_one_db_queries',
-                  ]}
-                  message={indexedSpansByGroupId[0]['span.description']}
-                />
-              </ModuleLayout.Full>
-            )}
+            <Feature features="insights-related-issues-table">
+              {!areIndexedSpansByGroupIdLoading && (
+                <ModuleLayout.Full>
+                  <InsightIssuesList
+                    issueTypes={[
+                      'performance_slow_db_query',
+                      'performance_n_plus_one_db_queries',
+                    ]}
+                    message={indexedSpansByGroupId[0]['span.description']}
+                  />
+                </ModuleLayout.Full>
+              )}
+            </Feature>
 
             <ModuleLayout.Full>
               <ChartContainer>
