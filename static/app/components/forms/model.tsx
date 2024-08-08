@@ -10,6 +10,8 @@ import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
+export const fieldIsRequiredMessage = t('Field is required');
+
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
 
@@ -135,12 +137,13 @@ class FormModel {
       fieldState: observable,
       formState: observable,
 
-      isFormInvalid: computed,
+      isFormIncomplete: computed,
       isError: computed,
       isSaving: computed,
       formData: computed,
       formChanged: computed,
 
+      validateFormCompletion: action,
       resetForm: action,
       setFieldDescriptor: action,
       removeField: action,
@@ -202,12 +205,10 @@ class FormModel {
   }
 
   /**
-   * Is form invalid
+   * Are all required fields filled out
    */
-  get isFormInvalid() {
-    return !Array.from(this.fieldDescriptor.keys()).every(field =>
-      this.isValidRequiredField(field)
-    );
+  get isFormIncomplete() {
+    return this.formState === FormState.INCOMPLETE;
   }
 
   /**
@@ -269,6 +270,8 @@ class FormModel {
       this.initialData[id] = props.setValue(this.initialData[id], props);
       this.fields.set(id, this.initialData[id]);
     }
+
+    this.validateFormCompletion();
   }
 
   /**
@@ -358,6 +361,10 @@ class FormModel {
     return this.errors.has(id) && this.errors.get(id);
   }
 
+  getErrors() {
+    return this.errors;
+  }
+
   /**
    * Returns true if not required or is required and is not empty
    */
@@ -435,8 +442,6 @@ class FormModel {
       // Returns "tuples" of [id, error string]
       errors = validate({model: this, id, form: this.getData()}) || [];
     }
-
-    const fieldIsRequiredMessage = t('Field is required');
 
     if (!this.isValidRequiredField(id)) {
       errors.push([id, fieldIsRequiredMessage]);
@@ -742,7 +747,7 @@ class FormModel {
       this.formState = FormState.ERROR;
       this.errors.set(id, error);
     } else {
-      this.formState = FormState.READY;
+      this.validateFormCompletion();
       this.errors.delete(id);
     }
 
@@ -757,6 +762,17 @@ class FormModel {
     Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
 
     return !this.isError;
+  }
+
+  /**
+   * Validate if all required fields are filled out
+   */
+  validateFormCompletion() {
+    const formComplete = Array.from(this.fieldDescriptor.keys()).every(field =>
+      this.isValidRequiredField(field)
+    );
+
+    this.formState = !formComplete ? FormState.INCOMPLETE : FormState.READY;
   }
 
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {
