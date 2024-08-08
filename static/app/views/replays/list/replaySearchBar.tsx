@@ -52,7 +52,9 @@ const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK
  * Merges a list of supported tags and replay search fields into one collection.
  */
 function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
-  return {
+  const allTags = {
+    ...REPLAY_FIELDS_AS_TAGS,
+    ...REPLAY_CLICK_FIELDS_AS_TAGS,
     ...Object.fromEntries(
       Object.keys(supportedTags).map(key => [
         key,
@@ -62,9 +64,14 @@ function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
         },
       ])
     ),
-    ...REPLAY_CLICK_FIELDS_AS_TAGS,
-    ...REPLAY_FIELDS_AS_TAGS,
   };
+
+  // A hack used to "sort" the dictionary for SearchQueryBuilder.
+  // Technically dicts are unordered but this works in dev.
+  // To guarantee ordering, we need to implement filterKeySections.
+  const keys = Object.keys(allTags);
+  keys.sort();
+  return Object.fromEntries(keys.map(key => [key, allTags[key]]));
 }
 
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
