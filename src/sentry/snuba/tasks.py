@@ -184,7 +184,17 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         )
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
+        snuba_query_id = subscription.snuba_query.id
         subscription.delete()
+        # check that there are no subscriptions left related to the SnubaQuery before deleting
+        try:
+            snuba_query = SnubaQuery.objects.get(id=snuba_query_id)
+        except SnubaQuery.DoesNotExist:
+            return
+
+        if snuba_query:
+            if not QuerySubscription.objects.filter(snuba_query=snuba_query).count():
+                snuba_query.delete()
     else:
         subscription.update(subscription_id=None)
 

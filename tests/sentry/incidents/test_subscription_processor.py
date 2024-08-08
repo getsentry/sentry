@@ -51,6 +51,7 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.models.project import Project
 from sentry.seer.anomaly_detection.types import AnomalyType
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -214,10 +215,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def other_sub(self):
         return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
 
-    @cached_property
-    def rule(self):
+    def create_rule_trigger_and_action(self, projects: list[Project]):
         rule = self.create_alert_rule(
-            projects=[self.project, self.other_project],
+            projects=projects,
             name="some rule",
             query="",
             aggregate="count()",
@@ -240,6 +240,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             str(self.user.id),
         )
         return rule
+
+    @cached_property
+    def rule(self):
+        return self.create_rule_trigger_and_action(projects=[self.project, self.other_project])
 
     @cached_property
     def activated_rule(self):
@@ -374,12 +378,42 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.slack_client.reset_mock()
 
     def test_removed_alert_rule(self):
+        """
+        Test that when an alert rule has been removed
+        the related QuerySubscription is also removed
+        """
         message = self.build_subscription_update(self.sub)
         self.rule.delete()
         subscription_id = self.sub.id
         snuba_query = self.sub.snuba_query
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.tasks():
             SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.no_alert_rule_for_subscription"
+        )
+        assert not QuerySubscription.objects.filter(id=subscription_id).exists()
+        assert SnubaQuery.objects.filter(id=snuba_query.id).exists()
+        # we still have a subscription for self.other_project so we don't delete the snubaquery
+
+    def test_removed_alert_rule_one_project(self):
+        """
+        Test that if an alert rule that only has one project is removed
+        the related QuerySubscription and SnubaQuery rows are cleaned up
+        during processing when we detect that the rule is missing
+        """
+        project = self.create_project()
+        rule = self.create_rule_trigger_and_action(projects=[project])
+        subscription = rule.snuba_query.subscriptions.filter(project=project).get()
+        message = self.build_subscription_update(subscription)
+        rule.delete()
+        subscription_id = subscription.id
+        snuba_query = subscription.snuba_query
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.tasks():
+            SubscriptionProcessor(subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
         )

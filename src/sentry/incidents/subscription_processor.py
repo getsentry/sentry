@@ -58,7 +58,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import json, metrics, redis
 from sentry.utils.dates import to_datetime
@@ -487,9 +487,6 @@ class SubscriptionProcessor:
             # If the alert rule has been removed then clean up associated tables and return
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription")
             delete_snuba_subscription(self.subscription)
-            query_subscription = QuerySubscription.objects.get(id=self.subscription.id)
-            SnubaQuery.objects.filter(id=query_subscription.snuba_query.id).delete()
-            query_subscription.delete()
             return
 
         if subscription_update["timestamp"] <= self.last_update:
