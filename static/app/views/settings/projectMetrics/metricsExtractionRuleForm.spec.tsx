@@ -28,13 +28,31 @@ function renderMockRequests({orgSlug, projectId}: {orgSlug: string; projectId: s
       },
     ],
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/spans/fields/environment/values/`,
+    body: [
+      {
+        key: 'prod',
+        name: 'prod',
+      },
+      {
+        key: 'dev',
+        name: 'dev',
+      },
+    ],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/recent-searches/',
+    method: 'POST',
+    body: [],
+  });
 }
 
 describe('Metrics Extraction Rule Form', function () {
   it('by focusing on the "select span attribute" field, the UI shall display a hint about custom attribute', async function () {
-    const {project} = initializeOrg();
+    const {project, organization} = initializeOrg();
 
-    renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
+    renderMockRequests({orgSlug: organization.slug, projectId: project.id});
 
     render(
       <MetricsExtractionRuleForm initialData={INITIAL_DATA} projectId={project.id} />
@@ -49,9 +67,9 @@ describe('Metrics Extraction Rule Form', function () {
   });
 
   it('by focusing on the "group and filter by" field, the UI shall display a hint about custom attribute', async function () {
-    const {project} = initializeOrg();
+    const {project, organization} = initializeOrg();
 
-    renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
+    renderMockRequests({orgSlug: organization.slug, projectId: project.id});
 
     render(
       <MetricsExtractionRuleForm initialData={INITIAL_DATA} projectId={project.id} />
@@ -66,9 +84,9 @@ describe('Metrics Extraction Rule Form', function () {
   });
 
   it('When creating a new metric and selecting a custom attribute, an alert should prompt to remember to instrument it', async function () {
-    const {project} = initializeOrg();
+    const {project, organization} = initializeOrg();
 
-    renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
+    renderMockRequests({orgSlug: organization.slug, projectId: project.id});
 
     render(
       <MetricsExtractionRuleForm initialData={INITIAL_DATA} projectId={project.id} />
@@ -91,9 +109,9 @@ describe('Metrics Extraction Rule Form', function () {
   });
 
   it('When editing a metric and updating the form, an alert should prompt to remember it applies only for future data.', async function () {
-    const {project} = initializeOrg();
+    const {project, organization} = initializeOrg();
 
-    renderMockRequests({orgSlug: project.organization.slug, projectId: project.id});
+    renderMockRequests({orgSlug: organization.slug, projectId: project.id});
 
     render(
       <MetricsExtractionRuleForm
@@ -105,6 +123,43 @@ describe('Metrics Extraction Rule Form', function () {
 
     await selectEvent.select(screen.getByText('none'), 'days');
 
-    expect(screen.getByText(/ only be reflected on future data/)).toBeInTheDocument();
+    expect(screen.getByText(/only be reflected on future data/)).toBeInTheDocument();
+  });
+
+  it('Do not allow duplicated filters', async function () {
+    const {project, organization} = initializeOrg();
+
+    renderMockRequests({orgSlug: organization.slug, projectId: project.id});
+
+    render(
+      <MetricsExtractionRuleForm
+        initialData={INITIAL_DATA}
+        projectId={project.id}
+        onSubmit={jest.fn()}
+      />
+    );
+
+    await selectEvent.select(screen.getByText('Select span attribute'), 'user.id');
+
+    await userEvent.click(screen.getByText('Add Filter'));
+    await userEvent.click(screen.getByText('Save Changes'));
+    expect(screen.getByText(/duplicates are not allowed/)).toBeInTheDocument();
+
+    await userEvent.type(
+      screen.getAllByPlaceholderText('Add span attributes')[0],
+      'environment:prod{enter}'
+    );
+    await userEvent.type(
+      screen.getAllByPlaceholderText('Add span attributes')[1],
+      'environment:prod{enter}'
+    );
+    await userEvent.click(screen.getByText('Save Changes'));
+    expect(screen.getByText(/duplicates are not allowed/)).toBeInTheDocument();
+
+    await userEvent.type(
+      screen.getAllByPlaceholderText('Add span attributes')[1],
+      'environment:dev{enter}'
+    );
+    expect(screen.queryByText(/duplicates are not allowed/)).not.toBeInTheDocument();
   });
 });

@@ -106,6 +106,7 @@ export function MetricsExtractionRuleCreateModal({
       },
     ];
   }, [selection.projects, projects]);
+
   return (
     <Fragment>
       <Header>
