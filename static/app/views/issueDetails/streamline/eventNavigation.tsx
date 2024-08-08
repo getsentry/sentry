@@ -377,4 +377,13 @@ const EventTitle = styled('div')`
 
 const StyledButtonBar = styled(ButtonBar)`
   overflow-x: auto;
+  overflow-y: hidden;
+
+  &:after {
+    position: sticky;
+    padding: ${space(1)};
+    content: '';
+    inset: 0;
+    background: linear-gradient(90deg, transparent, ${p => p.theme.background});
+  }
 `;
