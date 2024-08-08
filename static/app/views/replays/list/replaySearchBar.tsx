@@ -70,7 +70,9 @@ function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
 }
 
 /**
- * Returns 3 sections: replay fields, replay click fields, and (filtered, non-field) tags.
+ * Returns replay fields & tags and replay click fields, sorted alphabetically.
+ * Many of the keys in REPLAY_FIELDS are actually tags, and not unique to
+ * replays. To avoid confusion, we'll keep fields and tags together for now.
  */
 function getFilterKeySections(
   supportedTags: TagCollection,
@@ -80,31 +82,29 @@ function getFilterKeySections(
     return [];
   }
 
-  const nonFieldTags: string[] = Object.values(supportedTags)
+  const nonReplayKeys: string[] = Object.values(supportedTags)
     .map(tag => tag.key)
     .filter(
       key =>
         !REPLAY_FIELDS.includes(key as ReplayFieldKey | FieldKey) &&
         !REPLAY_CLICK_FIELDS.includes(key as ReplayClickFieldKey)
     );
-  nonFieldTags.sort();
+
+  const nonClickKeys = nonReplayKeys.concat(REPLAY_FIELDS);
+  nonClickKeys.sort();
 
   return [
     {
-      value: 'replay_field',
-      label: t('Replay Fields'),
-      children: REPLAY_FIELDS,
+      value: 'replay_field_or_tag', // can't collide with FieldKind
+      label: t('Fields And Tags'),
+      children: nonClickKeys,
     },
     {
       value: 'replay_click_field',
-      label: t('Replay Click Fields'),
+      label: t('Click Fields'),
       children: REPLAY_CLICK_FIELDS,
     },
-    {
-      value: FieldKind.TAG,
-      label: t('Tags'),
-      children: nonFieldTags,
-    },
+    // TODO: add a popular searches section, once section overlaps are supported
   ];
 }
 
