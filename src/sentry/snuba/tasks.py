@@ -193,7 +193,7 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         if (
             snuba_query
             and not QuerySubscription.objects.filter(snuba_query=snuba_query.id).exists()
-            and not AlertRule.objects.filter(snuba_query=snuba_query.id).exists()
+            and not AlertRule.objects_with_snapshots.filter(snuba_query=snuba_query.id).exists()
         ):
             snuba_query.delete()
     else:
