@@ -7,9 +7,9 @@ from requests import PreparedRequest
 
 from sentry import options
 from sentry.integrations.client import ApiClient
+from sentry.integrations.models import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.models.integrations import Integration
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.silo.base import SiloMode, control_silo_function
 

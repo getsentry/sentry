@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -15,6 +16,7 @@ from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor
 from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import get_rollup_from_request
+from sentry.utils.snuba import SnubaError
 
 
 class MetricsSamplesSerializer(serializers.Serializer):
@@ -89,14 +91,18 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         with handle_query_errors():
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=executor.get_matching_spans),
-                on_results=lambda results: self.handle_results_with_meta(
-                    request,
-                    organization,
-                    snuba_params.project_ids,
-                    results,
-                    standard_meta=True,
-                ),
-            )
+            try:
+                return self.paginate(
+                    request=request,
+                    paginator=GenericOffsetPaginator(data_fn=executor.get_matching_spans),
+                    on_results=lambda results: self.handle_results_with_meta(
+                        request,
+                        organization,
+                        snuba_params.project_ids,
+                        results,
+                        standard_meta=True,
+                    ),
+                )
+            except SnubaError as exc:
+                sentry_sdk.capture_exception(exc)
+                raise
