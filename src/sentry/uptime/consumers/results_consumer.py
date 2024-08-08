@@ -27,7 +27,7 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     create_uptime_subscription,
-    delete_project_uptime_subscription,
+    delete_uptime_subscriptions_for_project,
     remove_uptime_subscription_if_unused,
 )
 from sentry.utils import metrics
@@ -150,7 +150,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             failure_count = pipeline.execute()[0]
             if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
                 # If we've hit too many failures during the onboarding period we stop monitoring
-                delete_project_uptime_subscription(
+                delete_uptime_subscriptions_for_project(
                     project_subscription.project,
                     project_subscription.uptime_subscription,
                     modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING],
