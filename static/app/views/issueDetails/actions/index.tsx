@@ -28,16 +28,11 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import type {
-  Group,
-  GroupStatusResolution,
-  MarkReviewed,
-  Organization,
-  Project,
-  SavedQueryVersions,
-} from 'sentry/types';
-import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types/group';
+import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -419,7 +414,9 @@ export function Actions(props: Props) {
               disabled={disabled}
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
-            <EnvironmentPageFilter position="bottom-end" size="sm" />
+            {!hasStreamlinedUI && (
+              <EnvironmentPageFilter position="bottom-end" size="sm" />
+            )}
             <SubscribeAction
               className="hidden-xs"
               disabled={disabled}

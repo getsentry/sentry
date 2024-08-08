@@ -12,8 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
 
 export const enum FoldSectionKey {
-  // View Full Trace
-  // Suspect Commits
+  TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',
   LLM_MONITORING = 'llm-monitoring',
@@ -29,10 +28,6 @@ export const enum FoldSectionKey {
   SPANS = 'spans',
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
-
-  THREADS = 'threads',
-  THREAD_STATE = 'thread-state',
-  THREAD_TAGS = 'thread-tags',
 
   // QuickTraceQuery?
 
@@ -174,6 +169,11 @@ const Summary = styled('summary')<{preventCollapse: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;
+  overflow: hidden;
+  &::marker,
+  &::-webkit-details-marker {
+    display: none;
+  }
 `;
 
 const IconWrapper = styled('div')<{preventCollapse: boolean}>`
