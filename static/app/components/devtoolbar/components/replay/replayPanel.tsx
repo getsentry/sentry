@@ -31,9 +31,8 @@ export default function ReplayPanel() {
     <PanelLayout title="Session Replay">
       <Button
         size="sm"
-        icon={isRecording ? <IconPause /> : <IconPlay />}
+        icon={isDisabled ? undefined : isRecording ? <IconPause /> : <IconPlay />}
         disabled={isDisabled || buttonLoading}
-        title={disabledReason}
         onClick={async () => {
           setButtonLoading(true);
           const success = isRecording ? await stop() : await start();
@@ -51,9 +50,11 @@ export default function ReplayPanel() {
           }
         }}
       >
-        {isRecording
-          ? 'Recording in progress, click to stop'
-          : 'Start recording the current session'}
+        {isDisabled
+          ? disabledReason
+          : isRecording
+            ? 'Recording in progress, click to stop'
+            : 'Start recording the current session'}
       </Button>
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         {lastReplayId ? (

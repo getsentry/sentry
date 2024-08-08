@@ -49,7 +49,7 @@ export default function useReplayRecorder(): ReplayRecorderState {
   const disabledReason = !SentrySDK
     ? 'Failed to load the Sentry SDK.'
     : !('getReplay' in SentrySDK)
-      ? 'Your SDK version is too outdated to use the Replay integration.'
+      ? 'Your SDK version is too old to support Replays.'
       : !replay
         ? "Failed to load your SDK's Replay integration."
         : undefined;
