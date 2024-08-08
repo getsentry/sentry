@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {cloneDeep} from 'lodash';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -51,7 +52,11 @@ export default function OrganizationSecurityAndPrivacyContent() {
 
   const {isSelfHosted} = ConfigStore.getState();
   const showDataSecrecySettings =
-    organization.features.includes('data-secrecy') && !isSelfHosted;
+    !organization.features.includes('data-secrecy') && !isSelfHosted;
+
+  const [securityFormConfig, dataScrubbingFormConfig] = cloneDeep(
+    organizationSecurityAndPrivacyGroups
+  );
 
   return (
     <Fragment>
@@ -70,7 +75,26 @@ export default function OrganizationSecurityAndPrivacyContent() {
       >
         <JsonForm
           features={features}
-          forms={organizationSecurityAndPrivacyGroups}
+          forms={[securityFormConfig]}
+          disabled={!organization.access.includes('org:write')}
+          additionalFieldProps={{showDataSecrecySettings}}
+        />
+      </Form>
+      {showDataSecrecySettings && <DataSecrecy />}
+      <Form
+        data-test-id="organization-settings-security-and-privacy"
+        apiMethod="PUT"
+        apiEndpoint={endpoint}
+        initialData={initialData}
+        additionalFieldProps={{hasSsoEnabled: !!authProvider}}
+        onSubmitSuccess={handleUpdateOrganization}
+        onSubmitError={() => addErrorMessage(t('Unable to save change'))}
+        saveOnBlur
+        allowUndo
+      >
+        <JsonForm
+          features={features}
+          forms={[dataScrubbingFormConfig]}
           disabled={!organization.access.includes('org:write')}
           additionalFieldProps={{showDataSecrecySettings}}
         />
