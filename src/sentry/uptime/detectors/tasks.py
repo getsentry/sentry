@@ -221,8 +221,9 @@ def process_candidate_url(
     if features.has("organizations:uptime-automatic-subscription-creation", project.organization):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
         monitor_url_for_project(project, url)
-        # Disable auto-detection on this project now that we've successfully found a hostname
+        # Disable auto-detection on this project and organization now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
+        project.organization.update_option("sentry:uptime_autodetection", False)
 
     metrics.incr("uptime.detectors.candidate_url.succeeded", sample_rate=1.0)
     return True
