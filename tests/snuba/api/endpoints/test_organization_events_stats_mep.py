@@ -78,6 +78,39 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
+    @pytest.mark.querybuilder
+    def test_throughput_spm_hour_rollup(self):
+        # Each of these denotes how many events to create in each hour
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_span_metric(
+                    1,
+                    timestamp=self.day_ago + timedelta(hours=hour, minutes=minute),
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": "spm()",
+                "project": self.project.id,
+                "dataset": "metrics",
+                **self.additional_params,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == "metrics"
+
+        rows = data[0:6]
+
+        for test in zip(event_counts, rows):
+            assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
+
     def test_throughput_epm_day_rollup(self):
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -1151,6 +1184,38 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
         count = data[f"count({mri})"]["data"]
         for (_, value), expected_value in zip(count, [40, 80, 120, 160, 200, 240]):
             assert value[0]["count"] == expected_value  # type: ignore[index]
+
+    @pytest.mark.querybuilder
+    def test_throughput_spm_hour_rollup(self):
+        # Each of these denotes how many events to create in each hour
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_span_metric(
+                    1,
+                    timestamp=self.day_ago + timedelta(hours=hour, minutes=minute),
+                )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": "spm()",
+                "project": self.project.id,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == "metrics"
+
+        rows = data[0:6]
+
+        for test in zip(event_counts, rows):
+            assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandWidgets(
