@@ -19,7 +19,7 @@ from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
-from sentry.seer.similarity.types import RawSeerSimilarIssueData
+from sentry.seer.similarity.types import RawSeerSimilarIssueData, SimilarHashNotFoundError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
@@ -1004,7 +1004,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                         "project_id": self.project.id,
                         "group_id": group.id,
                         "parent_hash": "00000000000000000000000000000000",
+                        "error": ANY,  # handled separately below
                     },
+                )
+                assert isinstance(
+                    mock_logger.exception.call_args.kwargs["extra"]["error"],
+                    SimilarHashNotFoundError,
                 )
 
     @with_feature("projects:similarity-embeddings-backfill")
