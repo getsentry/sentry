@@ -63,10 +63,7 @@ import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resources
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {
-  TraceDataSection,
-  TraceTimeLineOrRelatedIssue,
-} from 'sentry/views/issueDetails/traceDataSection';
+import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const LLMMonitoringSection = lazy(
@@ -161,7 +158,7 @@ export function DefaultGroupEventDetailsContent({
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
-        {!hasStreamlinedUI && <TraceTimeLineOrRelatedIssue event={event} />}
+        {!hasStreamlinedUI && <TraceDataSection event={event} />}
         <SuspectCommits
           project={project}
           eventId={event.id}
