@@ -10,13 +10,18 @@ from django.db import connections
 from django.test import RequestFactory
 from pytest import raises
 
+from sentry.hybridcloud.models.outbox import (
+    ControlOutbox,
+    OutboxFlushError,
+    RegionOutbox,
+    outbox_context,
+)
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.models.outbox import ControlOutbox, OutboxFlushError, RegionOutbox, outbox_context
 from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -317,7 +322,7 @@ class RegionOutboxTest(TestCase):
 
         assert not Organization(id=100).outbox_for_update().should_skip_shard()
 
-    @patch("sentry.models.outbox.metrics")
+    @patch("sentry.hybridcloud.models.outbox.metrics")
     def test_concurrent_coalesced_object_processing(self, mock_metrics):
         # Two objects coalesced
         outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
