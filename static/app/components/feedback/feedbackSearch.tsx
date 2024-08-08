@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
-import type {Organization, Tag, TagCollection, TagValue} from 'sentry/types';
+import type {Tag, TagCollection, TagValue} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -69,36 +68,6 @@ function getFeedbackSearchTags(supportedTags: TagCollection) {
   };
 }
 
-/**
- * Returns 2 sections: feedback fields and (filtered, non-field) tags.
- */
-function getFilterKeySections(
-  supportedTags: TagCollection,
-  organization: Organization
-): FilterKeySection[] {
-  if (!organization.features.includes('search-query-builder-user-feedback')) {
-    return [];
-  }
-
-  const nonFieldTags: string[] = Object.values(supportedTags)
-    .map(tag => tag.key)
-    .filter(key => !FEEDBACK_FIELDS.includes(key as FeedbackFieldKey | FieldKey));
-  nonFieldTags.sort();
-
-  return [
-    {
-      value: 'feedback_field',
-      label: t('Feedback fields'),
-      children: FEEDBACK_FIELDS,
-    },
-    {
-      value: FieldKind.TAG,
-      label: t('Tags'),
-      children: nonFieldTags,
-    },
-  ];
-}
-
 interface Props {
   className?: string;
   style?: CSSProperties;
@@ -114,11 +83,6 @@ export default function FeedbackSearch({className, style}: Props) {
   const feedbackTags = useMemo(
     () => getFeedbackSearchTags(organizationTags),
     [organizationTags]
-  );
-
-  const filterKeySections = useMemo(
-    () => getFilterKeySections(organizationTags, organization),
-    [organizationTags, organization]
   );
 
   const getTagValues = useCallback(
@@ -150,7 +114,7 @@ export default function FeedbackSearch({className, style}: Props) {
       <SearchQueryBuilder
         initialQuery={decodeScalar(query.query, '')}
         filterKeys={feedbackTags}
-        filterKeySections={filterKeySections}
+        // TODO: implement filterKeySections with a 'Popular Searches' section, once overlapping sections are supported
         getTagValues={getTagValues}
         onSearch={searchQuery => {
           browserHistory.push({
