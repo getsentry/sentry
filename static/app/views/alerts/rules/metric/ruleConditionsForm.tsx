@@ -38,7 +38,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
@@ -168,21 +168,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           ? Object.assign(
               {},
               measurementsWithKind,
-              [],
               STATIC_SPAN_TAGS,
               STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS
             )
           : orgHasPerformanceView
-            ? Object.assign(
-                {},
-                measurementsWithKind,
-                [],
-                STATIC_SPAN_TAGS,
-                STATIC_FIELD_TAGS
-              )
+            ? Object.assign({}, measurementsWithKind, STATIC_SPAN_TAGS, STATIC_FIELD_TAGS)
             : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    const tagsWithKind = Object.keys(tags).reduce((acc, key) => {
+    const tagsWithKind = Object.keys(tags).reduce<Record<string, Tag>>((acc, key) => {
       acc[key] = {
         ...tags[key],
         kind: FieldKind.TAG,
@@ -190,9 +183,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       return acc;
     }, {});
 
-    const {omitTags} = {
-      ...getSupportedAndOmittedTags(dataset, organization),
-    };
+    const {omitTags} = getSupportedAndOmittedTags(dataset, organization);
 
     Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS);
     combinedTags.has = getHasTag(combinedTags);
