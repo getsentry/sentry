@@ -445,6 +445,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_metrics_extraction_rules*                      @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_project_metrics_extraction_rules.py             @getsentry/telemetry-experience
+/src/sentry/api/serializers/models/metrics_extraction_rules.py                   @getsentry/telemetry-experience
+/src/sentry/sentry_metrics/models/spanattributeextractionrules.py                @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
@@ -454,6 +456,9 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/visibility/                                           @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/visibility/                                         @getsentry/telemetry-experience
+/src/sentry/sentry_metrics/span_attribute_extraction_rules.py                    @getsentry/telemetry-experience
+/src/sentry/sentry_metrics/extraction_rules.py                                   @getsentry/telemetry-experience
+/tests/sentry/sentry_metrics/test_extraction_rules.py                            @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
 /src/sentry/relay/config/metric_extraction.py                                    @getsentry/telemetry-experience
