@@ -3,6 +3,7 @@ import time
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from random import choice
+from sqlite3 import OperationalError
 from string import ascii_uppercase
 from typing import Any
 from unittest.mock import ANY, call, patch
@@ -1724,3 +1725,26 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils._make_postgres_call")
+    def test_backfill_seer_grouping_records_postgres_exception(
+        self, mock_make_postgres_call, mock_logger
+    ):
+        """
+        Test log after postgres query retries with decreased batch size
+        """
+        mock_make_postgres_call.side_effect = OperationalError
+        batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
+        with pytest.raises(Exception), TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        mock_logger.info.assert_called_with(
+            "tasks.backfill_seer_grouping_records.postgres_query_retry",
+            extra={"project_id": self.project.id, "batch_size": batch_size // 2},
+        )
+        mock_logger.exception.assert_called_with(
+            "tasks.backfill_seer_grouping_records.postgres_query_operational_error",
+            extra={"project_id": self.project.id, "batch_size": batch_size // 2},
+        )
