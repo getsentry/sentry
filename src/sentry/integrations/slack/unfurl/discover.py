@@ -43,6 +43,12 @@ display_modes: Mapping[str, ChartType] = {
     "bar": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
 }
 
+dataset_map: Mapping[str, str] = {
+    "discover": "discover",
+    "error-events": "errors",
+    "transaction-like": "transactions",
+}
+
 # All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
 line_plot_fields = {
     "count_unique",
@@ -155,6 +161,13 @@ def unfurl_discover(
             or (to_list(saved_query["orderby"]) if saved_query.get("orderby") else []),
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
+
+        saved_query_dataset = dataset_map.get(saved_query.get("queryDataset"))
+        params.setlist(
+            "dataset",
+            params.getlist("dataset")
+            or (to_list(saved_query_dataset) if saved_query_dataset else []),
+        )
 
         fields = params.getlist("field") or to_list(saved_query.get("fields"))
         # Mimic Discover to pick the first aggregate as the yAxis option if
