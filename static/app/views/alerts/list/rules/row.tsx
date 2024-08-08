@@ -65,14 +65,23 @@ function RuleListRow({
   const isUptime = rule.type === CombinedAlertType.UPTIME;
 
   const slug = isUptime ? rule.projectSlug : rule.projects[0];
-  const editLink = `/organizations/${orgId}/alerts/${
-    isIssueAlert(rule) ? 'rules' : 'metric-rules'
-  }/${slug}/${rule.id}/`;
+
+  const editKey = {
+    [CombinedAlertType.ISSUE]: 'rules',
+    [CombinedAlertType.METRIC]: 'metric-rules',
+    [CombinedAlertType.UPTIME]: 'uptime-rules',
+  } satisfies Record<CombinedAlertType, string>;
+
+  const editLink = `/organizations/${orgId}/alerts/${editKey[rule.type]}/${slug}/${rule.id}/`;
+
+  const mutateKey = {
+    [CombinedAlertType.ISSUE]: 'issue',
+    [CombinedAlertType.METRIC]: 'metric',
+    [CombinedAlertType.UPTIME]: 'uptime',
+  } satisfies Record<CombinedAlertType, string>;
 
   const duplicateLink = {
-    pathname: `/organizations/${orgId}/alerts/new/${
-      rule.type === CombinedAlertType.METRIC ? 'metric' : 'issue'
-    }/`,
+    pathname: `/organizations/${orgId}/alerts/new/${mutateKey[rule.type]}/`,
     query: {
       project: slug,
       duplicateRuleId: rule.id,
