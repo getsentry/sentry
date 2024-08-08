@@ -61,6 +61,8 @@ def process_event(
     """
     Perform some initial filtering and deserialize the message payload.
     """
+    # inc-847: verify mitigation is working
+    log_inc_847_counter = 0
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
@@ -146,6 +148,11 @@ def process_event(
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
         if reprocess_only_stuck_events and not event_processing_store.exists(data):
             return
+
+        # inc-847: verify mitigation is working
+        if log_inc_847_counter % 1000 == 0 and event_processing_store.exists(data):
+            log_inc_847_counter += 1
+            logger.info(f"inc-847: reprocessing {data}")
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = event_processing_store.store(data)
