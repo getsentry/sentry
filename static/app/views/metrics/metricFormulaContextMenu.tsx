@@ -118,7 +118,7 @@ export function MetricFormulaContextMenu({
   );
 }
 
-export function useCreateDashboardWidget(
+function useCreateDashboardWidget(
   formulaWidget: MetricsEquationWidget,
   formulaDependencies: ReturnType<typeof useFormulaDependencies>
 ) {
