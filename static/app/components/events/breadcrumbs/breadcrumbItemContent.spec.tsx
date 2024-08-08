@@ -134,7 +134,9 @@ describe('BreadcrumbItemContent', function () {
     const compactItem = render(
       <BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={false} />
     );
-    expect(screen.getByText(longMessage.substring(0, 200) + '...')).toBeInTheDocument();
+    expect(
+      screen.getByText(longMessage.substring(0, 200) + '\u2026')
+    ).toBeInTheDocument();
     expect(screen.getByText('6 items')).toBeInTheDocument();
     compactItem.unmount();
 
