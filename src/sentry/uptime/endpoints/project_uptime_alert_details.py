@@ -125,8 +125,8 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         audit_log_data = uptime_subscription.get_audit_log_data()
         delete_project_uptime_subscription(uptime_subscription)
         create_audit_entry(
-            request=self.context["request"],
-            organization=self.context["organization"],
+            request=request,
+            organization=project.organization,
             target_object=uptime_subscription_id,
             event=audit_log.get_event_id("UPTIME_MONITOR_REMOVE"),
             data=audit_log_data,
