@@ -160,7 +160,7 @@ def process_event(
 
                 now = int(time.time())
                 # TODO: make the 100 an option
-                if len(reprocessed_ids) > 100:
+                if len(reprocessed_ids) > 250:
                     logger.info("Reprocessed events")
                     logger.info(orjson.dumps(reprocessed_ids))
                     reprocessed_ids.clear()
