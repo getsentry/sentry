@@ -49,6 +49,7 @@ function IssueSyncListElement({
     }
   };
 
+  console.log(integrationType);
   const icon = getIntegrationIcon(integrationType);
 
   const prettyName = useMemo(() => {

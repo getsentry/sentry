@@ -1,22 +1,11 @@
-import type {ReactNode} from 'react';
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
-import type {
-  ExternalIssueType,
-  IntegrationComponent,
-  PluginActionComponent,
-  PluginIssueComponent,
-  SentryAppIssueComponent,
-} from 'sentry/components/group/externalIssuesList/types';
-import useExternalIssueData from 'sentry/components/group/externalIssuesList/useExternalIssueData';
-import PluginActions from 'sentry/components/group/pluginActions';
-import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
-import IssueSyncListElement from 'sentry/components/issueSyncListElement';
+import useStreamLinedExternalIssueData from 'sentry/components/group/externalIssuesList/useStreamlinedExternalIssueData';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -30,7 +19,7 @@ type Props = {
 };
 
 export function StreamlinedExternalIssueList({group, event, project}: Props) {
-  const {isLoading, actions} = useExternalIssueData({
+  const {isLoading, integrations, linkedIssues} = useStreamLinedExternalIssueData({
     group,
     event,
     project,
@@ -52,12 +41,22 @@ export function StreamlinedExternalIssueList({group, event, project}: Props) {
       <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
       <SidebarSection.Content>
         <IssueActionWrapper>
-          {actions.length
-            ? actions.map(({type, key, displayName, props}) => (
+          {linkedIssues.map(({key, displayName, displayIcon}) => (
+            <ErrorBoundary key={key} mini>
+              <Tooltip title={t('Unlink Issue')} isHoverable>
+                <LinkedIssue>
+                  {displayIcon && <IconWrapper>{displayIcon}</IconWrapper>}
+                  <IssueActionName>{displayName}</IssueActionName>
+                </LinkedIssue>
+              </Tooltip>
+            </ErrorBoundary>
+          ))}
+          {integrations.length
+            ? integrations.map(({key, displayName, displayIcon}) => (
                 <ErrorBoundary key={key} mini>
-                  <IssueAction>
+                  <IssueActionButton size="zero" icon={displayIcon}>
                     <IssueActionName>{displayName}</IssueActionName>
-                  </IssueAction>
+                  </IssueActionButton>
                 </ErrorBoundary>
               ))
             : null}
@@ -73,17 +72,31 @@ const IssueActionWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const IssueAction = styled('div')`
+const LinkedIssue = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  padding: ${space(0.5)};
+  gap: ${space(0.75)};
+  padding: ${space(0.5)} ${space(0.75)};
   line-height: 1.05;
   border: 1px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
+const IssueActionButton = styled(Button)`
+  display: flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(0.75)};
+  line-height: 1.05;
+  border: 1px dashed ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  font-weight: normal;
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+`;
+
 const IssueActionName = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  max-width: 100px;
+  max-width: 200px;
 `;

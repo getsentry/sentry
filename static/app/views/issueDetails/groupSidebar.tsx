@@ -263,7 +263,9 @@ export default function GroupSidebar({
   return (
     <Container>
       {hasStreamlinedUI && event && (
-        <StreamlinedExternalIssueList group={group} event={event} project={project} />
+        <ErrorBoundary mini>
+          <StreamlinedExternalIssueList group={group} event={event} project={project} />
+        </ErrorBoundary>
       )}
       {!hasStreamlinedUI && (
         <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
