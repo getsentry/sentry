@@ -1,7 +1,9 @@
+import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
 from sentry.testutils.cases import APITestCase
+from sentry.uptime.models import ProjectUptimeSubscription
 
 
 class ProjectUptimeAlertDetailsBaseEndpointTest(APITestCase):
@@ -89,6 +91,26 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
                 ErrorDetail(string="Team is not a member of this organization", code="invalid")
             ]
         }
+
+    def test_not_found(self):
+        resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
+        assert resp.status_code == 404
+
+
+class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
+    method = "delete"
+
+    def test_user(self):
+        uptime_subscription = self.create_project_uptime_subscription()
+
+        self.get_success_response(
+            self.organization.slug,
+            uptime_subscription.project.slug,
+            uptime_subscription.id,
+            status_code=202,
+        )
+        with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
+            uptime_subscription.refresh_from_db()
 
     def test_not_found(self):
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)

@@ -13,6 +13,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     create_uptime_subscription,
     delete_project_uptime_subscription,
     delete_uptime_subscription,
+    delete_uptime_subscriptions_for_project,
     get_auto_monitored_subscriptions_for_project,
     is_url_auto_monitored_for_project,
     remove_uptime_subscription_if_unused,
@@ -146,7 +147,7 @@ class CreateProjectUptimeSubscriptionTest(TestCase):
         )
 
 
-class DeleteProjectUptimeSubscriptionTest(TestCase):
+class DeleteUptimeSubscriptionsForProjectTest(TestCase):
     def test_other_subscriptions(self):
         other_project = self.create_project()
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
@@ -157,7 +158,7 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
             other_project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
         )
         with self.tasks():
-            delete_project_uptime_subscription(
+            delete_uptime_subscriptions_for_project(
                 self.project,
                 uptime_sub,
                 modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE],
@@ -174,7 +175,7 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
             self.project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
         )
         with self.tasks():
-            delete_project_uptime_subscription(
+            delete_uptime_subscriptions_for_project(
                 self.project,
                 uptime_sub,
                 modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE],
@@ -189,7 +190,7 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
     def test_does_not_exist(self):
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
         with self.tasks():
-            delete_project_uptime_subscription(
+            delete_uptime_subscriptions_for_project(
                 self.project, uptime_sub, modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE]
             )
 
@@ -203,7 +204,7 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
             other_project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
         )
         with self.tasks():
-            delete_project_uptime_subscription(
+            delete_uptime_subscriptions_for_project(
                 self.project, uptime_sub, modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE]
             )
 
@@ -222,7 +223,7 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
             ProjectUptimeSubscriptionMode.MANUAL,
         )
         with self.tasks():
-            delete_project_uptime_subscription(
+            delete_uptime_subscriptions_for_project(
                 self.project,
                 uptime_sub,
                 modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE],
@@ -235,7 +236,7 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
         assert UptimeSubscription.objects.filter(id=uptime_sub.id).exists()
 
         with self.tasks():
-            delete_project_uptime_subscription(
+            delete_uptime_subscriptions_for_project(
                 self.project,
                 uptime_sub,
                 modes=[ProjectUptimeSubscriptionMode.MANUAL],
@@ -243,6 +244,39 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
 
         with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
             proj_manual_sub.refresh_from_db()
+
+        with pytest.raises(UptimeSubscription.DoesNotExist):
+            uptime_sub.refresh_from_db()
+
+
+class DeleteProjectUptimeSubscriptionTest(TestCase):
+    def test_other_subscriptions(self):
+        other_project = self.create_project()
+        uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
+        proj_sub = create_project_uptime_subscription(
+            self.project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
+        create_project_uptime_subscription(
+            other_project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
+        with self.tasks():
+            delete_project_uptime_subscription(proj_sub)
+
+        with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
+            proj_sub.refresh_from_db()
+
+        assert UptimeSubscription.objects.filter(id=uptime_sub.id).exists()
+
+    def test_single_subscriptions(self):
+        uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
+        proj_sub = create_project_uptime_subscription(
+            self.project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
+        with self.tasks():
+            delete_project_uptime_subscription(proj_sub)
+
+        with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
+            proj_sub.refresh_from_db()
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
             uptime_sub.refresh_from_db()

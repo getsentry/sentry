@@ -82,7 +82,7 @@ def create_project_uptime_subscription(
     )[0]
 
 
-def delete_project_uptime_subscription(
+def delete_uptime_subscriptions_for_project(
     project: Project,
     uptime_subscription: UptimeSubscription,
     modes: list[ProjectUptimeSubscriptionMode],
@@ -98,6 +98,12 @@ def delete_project_uptime_subscription(
     ):
         uptime_project_subscription.delete()
 
+    remove_uptime_subscription_if_unused(uptime_subscription)
+
+
+def delete_project_uptime_subscription(subscription: ProjectUptimeSubscription):
+    uptime_subscription = subscription.uptime_subscription
+    subscription.delete()
     remove_uptime_subscription_if_unused(uptime_subscription)
 
 
