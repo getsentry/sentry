@@ -6,7 +6,7 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import type {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {Breadcrumbs} from './interfaces/breadcrumbs';
@@ -29,7 +29,7 @@ type Props = {
   projectSlug: Project['slug'];
   group?: Group;
   isShare?: boolean;
-  sectionKey?: SectionKey;
+  sectionKey?: FoldSectionKey;
 };
 
 function EventEntryContent({

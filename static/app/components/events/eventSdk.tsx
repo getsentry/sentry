@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import KeyValueList from './interfaces/keyValueList';
@@ -18,7 +18,7 @@ export function EventSdk({sdk, meta}: Props) {
   }
 
   return (
-    <InterimSection title={t('SDK')} type={SectionKey.SDK}>
+    <InterimSection title={t('SDK')} type={FoldSectionKey.SDK}>
       <KeyValueList
         data={[
           {

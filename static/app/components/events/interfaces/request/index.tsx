@@ -16,7 +16,7 @@ import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -111,7 +111,7 @@ export function Request({data, event}: RequestProps) {
 
   return (
     <InterimSection
-      type={SectionKey.REQUEST}
+      type={FoldSectionKey.REQUEST}
       title={hasStreamlinedUI ? t('HTTP Request') : title}
       actions={actions}
       className="request"

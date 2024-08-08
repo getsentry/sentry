@@ -8,16 +8,63 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
 
 const LOCAL_STORAGE_PREFIX = 'issue-details-fold-section-collapse:';
+
+export const enum FoldSectionKey {
+  TRACE = 'trace',
+
+  USER_FEEDBACK = 'user-feedback',
+  LLM_MONITORING = 'llm-monitoring',
+
+  UPTIME = 'uptime', // Only Uptime issues
+  CRON = 'cron-timeline', // Only Cron issues
+
+  HIGHLIGHTS = 'highlights',
+  RESOURCES = 'resources', // Position controlled by flag
+
+  EXCEPTION = 'exception',
+  STACKTRACE = 'stacktrace',
+  SPANS = 'spans',
+  EVIDENCE = 'evidence',
+  MESSAGE = 'message',
+
+  // QuickTraceQuery?
+
+  SPAN_EVIDENCE = 'span-evidence',
+  HYDRATION_DIFF = 'hydration-diff',
+  REPLAY = 'replay',
+
+  HPKP = 'hpkp',
+  CSP = 'csp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  TEMPLATE = 'template',
+
+  BREADCRUMBS = 'breadcrumbs',
+  DEBUGMETA = 'debugmeta',
+  REQUEST = 'request',
+
+  TAGS = 'tags',
+  SCREENSHOT = 'screenshot',
+
+  CONTEXTS = 'contexts',
+  EXTRA = 'extra',
+  PACKAGES = 'packages',
+  DEVICE = 'device',
+  VIEW_HIERARCHY = 'view-hierarchy',
+  ATTACHMENTS = 'attachments',
+  SDK = 'sdk',
+  GROUPING_INFO = 'grouping-info',
+  RRWEB = 'rrweb', // Legacy integration prior to replays
+}
 
 interface FoldSectionProps {
   children: React.ReactNode;
   /**
    * Unique key to persist user preferences for initalizing the section to open/closed
    */
-  sectionKey: SectionKey;
+  sectionKey: FoldSectionKey;
   /**
    * Title of the section, always visible
    */

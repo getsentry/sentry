@@ -61,7 +61,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
 import {
   EventDetails,
-  SectionKey,
+  FoldSectionKey,
 } from 'sentry/views/issueDetails/streamline/eventDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceTimeline/traceDataSection';
@@ -83,7 +83,7 @@ type GroupEventEntryProps = {
   event: Event;
   group: Group;
   project: Project;
-  sectionKey: SectionKey;
+  sectionKey: FoldSectionKey;
 };
 
 function GroupEventEntry({
@@ -169,7 +169,7 @@ export function DefaultGroupEventDetailsContent({
       {event.userReport && (
         <InterimSection
           title={t('User Feedback')}
-          type={SectionKey.USER_FEEDBACK}
+          type={FoldSectionKey.USER_FEEDBACK}
           actions={
             hasStreamlinedUI ? null : (
               <ErrorBoundary mini>
@@ -245,22 +245,22 @@ export function DefaultGroupEventDetailsContent({
       )}
       <EventEvidence event={event} group={group} project={project} />
       <GroupEventEntry
-        sectionKey={SectionKey.MESSAGE}
+        sectionKey={FoldSectionKey.MESSAGE}
         entryType={EntryType.MESSAGE}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={SectionKey.STACKTRACE}
+        sectionKey={FoldSectionKey.STACKTRACE}
         entryType={EntryType.EXCEPTION}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={SectionKey.STACKTRACE}
+        sectionKey={FoldSectionKey.STACKTRACE}
         entryType={EntryType.STACKTRACE}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={SectionKey.STACKTRACE}
+        sectionKey={FoldSectionKey.STACKTRACE}
         entryType={EntryType.THREADS}
         {...eventEntryProps}
       />
@@ -291,27 +291,27 @@ export function DefaultGroupEventDetailsContent({
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry
-        sectionKey={SectionKey.HPKP}
+        sectionKey={FoldSectionKey.HPKP}
         entryType={EntryType.HPKP}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={SectionKey.CSP}
+        sectionKey={FoldSectionKey.CSP}
         entryType={EntryType.CSP}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={SectionKey.EXPECTCT}
+        sectionKey={FoldSectionKey.EXPECTCT}
         entryType={EntryType.EXPECTCT}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={SectionKey.EXPECTCT}
+        sectionKey={FoldSectionKey.EXPECTCT}
         entryType={EntryType.EXPECTSTAPLE}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={SectionKey.TEMPLATE}
+        sectionKey={FoldSectionKey.TEMPLATE}
         entryType={EntryType.TEMPLATE}
         {...eventEntryProps}
       />
@@ -319,7 +319,7 @@ export function DefaultGroupEventDetailsContent({
         <BreadcrumbsDataSection event={event} group={group} project={project} />
       ) : (
         <GroupEventEntry
-          sectionKey={SectionKey.BREADCRUMBS}
+          sectionKey={FoldSectionKey.BREADCRUMBS}
           entryType={EntryType.BREADCRUMBS}
           {...eventEntryProps}
         />
@@ -332,12 +332,12 @@ export function DefaultGroupEventDetailsContent({
         />
       )}
       <GroupEventEntry
-        sectionKey={SectionKey.DEBUGMETA}
+        sectionKey={FoldSectionKey.DEBUGMETA}
         entryType={EntryType.DEBUGMETA}
         {...eventEntryProps}
       />
       <GroupEventEntry
-        sectionKey={SectionKey.REQUEST}
+        sectionKey={FoldSectionKey.REQUEST}
         entryType={EntryType.REQUEST}
         {...eventEntryProps}
       />

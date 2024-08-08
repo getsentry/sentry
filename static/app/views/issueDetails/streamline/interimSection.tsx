@@ -6,8 +6,10 @@ import {
   type EventDataSectionProps,
 } from 'sentry/components/events/eventDataSection';
 import {space} from 'sentry/styles/space';
-import type {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {
+  FoldSection,
+  type FoldSectionKey,
+} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 /**
@@ -25,7 +27,7 @@ export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
     return hasStreamlinedUI ? (
       <Fragment>
         <FoldSection
-          sectionKey={type as SectionKey}
+          sectionKey={type as FoldSectionKey}
           title={title}
           actions={actions}
           ref={ref}

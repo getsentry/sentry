@@ -13,7 +13,7 @@ import {IssueCategory} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -161,7 +161,7 @@ export function EventGroupingInfo({
           <SectionToggleButton isExpanded={isOpen} onExpandChange={setIsOpen} />
         )
       }
-      type={SectionKey.GROUPING_INFO}
+      type={FoldSectionKey.GROUPING_INFO}
     >
       {!openState ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
       {openState ? (

@@ -22,7 +22,7 @@ import type {Event, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -369,7 +369,7 @@ export function Threads({
   return hasStreamlinedUI ? (
     <InterimSection
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      type={SectionKey.STACKTRACE}
+      type={FoldSectionKey.STACKTRACE}
     >
       {threadComponent}
     </InterimSection>

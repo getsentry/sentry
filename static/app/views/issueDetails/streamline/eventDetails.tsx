@@ -14,64 +14,14 @@ import {
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
-import {Section} from 'sentry/views/issueDetails/streamline/foldSection';
-
-export const enum SectionKey {
-  TRACE = 'trace',
-
-  USER_FEEDBACK = 'user-feedback',
-  LLM_MONITORING = 'llm-monitoring',
-
-  UPTIME = 'uptime', // Only Uptime issues
-  CRON = 'cron-timeline', // Only Cron issues
-
-  HIGHLIGHTS = 'highlights',
-  RESOURCES = 'resources', // Position controlled by flag
-
-  EXCEPTION = 'exception',
-  STACKTRACE = 'stacktrace',
-  SPANS = 'spans',
-  EVIDENCE = 'evidence',
-  MESSAGE = 'message',
-
-  // QuickTraceQuery?
-
-  SPAN_EVIDENCE = 'span-evidence',
-  HYDRATION_DIFF = 'hydration-diff',
-  REPLAY = 'replay',
-
-  HPKP = 'hpkp',
-  CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
-  TEMPLATE = 'template',
-
-  BREADCRUMBS = 'breadcrumbs',
-  DEBUGMETA = 'debugmeta',
-  REQUEST = 'request',
-
-  TAGS = 'tags',
-  SCREENSHOT = 'screenshot',
-
-  CONTEXTS = 'contexts',
-  EXTRA = 'extra',
-  PACKAGES = 'packages',
-  DEVICE = 'device',
-  VIEW_HIERARCHY = 'view-hierarchy',
-  ATTACHMENTS = 'attachments',
-  SDK = 'sdk',
-  GROUPING_INFO = 'grouping-info',
-  RRWEB = 'rrweb', // Legacy integration prior to replays
-}
+import {FoldSectionKey, Section} from 'sentry/views/issueDetails/streamline/foldSection';
 
 export interface EventDetailsContextType {
   searchQuery: string;
-  sectionData: {[key in SectionKey]?: {isOpen: boolean; shouldDisplay: () => boolean}};
 }
 
 const EventDetailsContext = createContext<EventDetailsContextType>({
   searchQuery: '',
-  sectionData: {},
 });
 
 export function useEventDetailsContext() {
@@ -88,7 +38,6 @@ export function EventDetails({
   const {environments} = selection;
   const [eventDetails, setEventDetails] = useState<EventDetailsContextType>({
     searchQuery: '',
-    sectionData: {},
   });
 
   return (
@@ -122,48 +71,48 @@ export function EventDetails({
 interface SectionDefinition {
   condition: (event: Event) => boolean;
   label: string;
-  section: SectionKey;
+  section: FoldSectionKey;
 }
 
 export const EVENT_SECTION_DEFINITIONS: SectionDefinition[] = [
   {
-    section: SectionKey.HIGHLIGHTS,
+    section: FoldSectionKey.HIGHLIGHTS,
     label: t('Event Highlights'),
     condition: () => true,
   },
   {
-    section: SectionKey.STACKTRACE,
+    section: FoldSectionKey.STACKTRACE,
     label: t('Stack Trace'),
     condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
   },
   {
-    section: SectionKey.EXCEPTION,
+    section: FoldSectionKey.EXCEPTION,
     label: t('Stack Trace'),
     condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
   },
   {
-    section: SectionKey.BREADCRUMBS,
+    section: FoldSectionKey.BREADCRUMBS,
     label: t('Breadcrumbs'),
     condition: (event: Event) =>
       event.entries.some(entry => entry.type === 'breadcrumbs'),
   },
   {
-    section: SectionKey.TAGS,
+    section: FoldSectionKey.TAGS,
     label: t('Tags'),
     condition: (event: Event) => event.tags.length > 0,
   },
   {
-    section: SectionKey.CONTEXTS,
+    section: FoldSectionKey.CONTEXTS,
     label: t('Context'),
     condition: (event: Event) => !!event.context,
   },
   {
-    section: SectionKey.USER_FEEDBACK,
+    section: FoldSectionKey.USER_FEEDBACK,
     label: t('User Feedback'),
     condition: (event: Event) => !!event.userReport,
   },
   {
-    section: SectionKey.REPLAY,
+    section: FoldSectionKey.REPLAY,
     label: t('Replay'),
     condition: (event: Event) => !!getReplayIdFromEvent(event),
   },

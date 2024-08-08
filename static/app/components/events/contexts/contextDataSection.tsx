@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface ContextDataSectionProps {
@@ -39,7 +39,7 @@ export default function ContextDataSection({
   return (
     <InterimSection
       key={'context'}
-      type={SectionKey.CONTEXTS}
+      type={FoldSectionKey.CONTEXTS}
       title={t('Contexts')}
       help={tct(
         'The structured context items attached to this event. [link:Learn more]',

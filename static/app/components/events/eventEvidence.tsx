@@ -8,7 +8,7 @@ import {
   getConfigForIssueType,
   getIssueCategoryAndTypeFromOccurrenceType,
 } from 'sentry/utils/issueTypeConfig';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type EvidenceProps = {event: Event; project: Project; group?: Group};
@@ -37,7 +37,7 @@ export function EventEvidence({event, group, project}: EvidenceProps) {
 
   return (
     <InterimSection
-      type={SectionKey.EVIDENCE}
+      type={FoldSectionKey.EVIDENCE}
       title={config.title}
       help={config.helpText}
     >
