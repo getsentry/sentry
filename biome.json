@@ -23,8 +23,7 @@
         "useIsNan": "error",
         "noUnusedPrivateClassMembers": "error",
         "noInvalidUseBeforeDeclaration": "error",
-        "noNodejsModules": "error",
-        "noUnusedImports": "error"
+        "noNodejsModules": "error"
       },
       "complexity": {
         "useFlatMap": "error",
