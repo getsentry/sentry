@@ -156,7 +156,7 @@ def process_event(
             else:
                 # Reprocessing the event
                 # inc-847: verify mitigation is working
-                reprocessed_ids[int(project_id)] + 1
+                reprocessed_ids[str(project_id)] + 1
 
                 now = int(time.time())
                 # TODO: make the 100 an option
