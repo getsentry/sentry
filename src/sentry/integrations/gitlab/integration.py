@@ -117,9 +117,9 @@ class GitlabIntegration(RepositoryIntegration, CommitContextIntegration, GitlabI
 
         return GitLabApiClient(self)
 
-    # TODO: confirm logic
     def has_repo_access(self, repo: RpcRepository) -> bool:
-        return True
+        # TODO: define this, used to migrate repositories
+        return False
 
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else

@@ -16,6 +16,7 @@ from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.repository import Repository
@@ -184,6 +185,9 @@ class ExampleIntegration(RepositoryIntegration, IssueSyncMixin):
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
         return ""
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        return False
 
 
 class ExampleIntegrationProvider(IntegrationProvider):

@@ -16,6 +16,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider, bu
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
@@ -192,6 +193,10 @@ class GitHubEnterpriseIntegration(
 
     def search_issues(self, query):
         return self.get_client().search_issues(query)
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        # TODO: define this, used to migrate repositories
+        return False
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
