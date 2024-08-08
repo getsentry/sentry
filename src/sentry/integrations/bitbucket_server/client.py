@@ -30,6 +30,7 @@ class BitbucketServerAPIPath:
     commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
 
     source = "/rest/api/1.0/projects/{project}/repos/{repo}/browse/{path}"
+    source_raw = "/rest/api/1.0/projects/{project}/repos/{repo}/browse/{path}?raw"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -267,7 +268,7 @@ class BitbucketServerClient(ApiClient):
 
     def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
         contents = self.get(
-            path=BitbucketServerAPIPath.source.format(
+            path=BitbucketServerAPIPath.source_raw.format(
                 repo=repo.name,
                 project=repo.config["project"],
                 path=path,
