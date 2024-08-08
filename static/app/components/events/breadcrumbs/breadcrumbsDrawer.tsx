@@ -249,7 +249,6 @@ export function BreadcrumbsDrawer({
             <BreadcrumbsTimeline
               breadcrumbs={displayCrumbs}
               startTimeString={startTimeString}
-              fullyExpanded
             />
           )}
         </TimelineContainer>

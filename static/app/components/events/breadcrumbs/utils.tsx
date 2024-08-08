@@ -346,6 +346,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
 const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
+  font-size: ${p => p.theme.fontSizeSmall};
   border: 0;
   background: none;
   color: ${p => {

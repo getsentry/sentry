@@ -187,6 +187,7 @@ export default function BreadcrumbsDataSection({
           startTimeString={startTimeString}
           // We want the timeline to appear connected to the 'View All' button
           showLastLine={hasViewAll}
+          fullyExpanded={false}
         />
         {hasViewAll && (
           <ViewAllContainer>

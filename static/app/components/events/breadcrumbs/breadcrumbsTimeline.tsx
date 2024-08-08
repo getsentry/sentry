@@ -35,7 +35,7 @@ interface BreadcrumbsTimelineProps {
 export default function BreadcrumbsTimeline({
   breadcrumbs,
   startTimeString,
-  fullyExpanded = false,
+  fullyExpanded = true,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -87,7 +87,7 @@ export default function BreadcrumbsTimeline({
         title={
           <Header>
             <div>
-              {title}
+              <TextBreak>{title}</TextBreak>
               {isVirtualCrumb && <Subtitle> - {t('This event')}</Subtitle>}
             </div>
             {levelComponent}
@@ -126,8 +126,13 @@ export default function BreadcrumbsTimeline({
 }
 
 const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+`;
+
+const TextBreak = styled('span')`
+  word-wrap: break-word;
+  word-break: break-all;
 `;
 
 const Subtitle = styled('p')`
