@@ -18,6 +18,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -293,7 +294,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       tagKey: key,
       search,
       projectIds: projectId ? [projectId] : undefined,
-      endpointParams: location.query,
+      endpointParams: normalizeDateTimeParams(location.query),
     });
   };
 

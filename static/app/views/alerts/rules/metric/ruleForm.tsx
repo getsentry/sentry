@@ -1211,36 +1211,36 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         >
           <List symbol="colored-numeric">
             <RuleConditionsForm
-              project={project}
+              activationCondition={activationCondition}
               aggregate={aggregate}
-              organization={organization}
-              isTransactionMigration={isMigration && !showErrorMigrationWarning}
-              isErrorMigration={showErrorMigrationWarning}
-              isForSpanMetric={aggregate.includes(':spans/')}
-              router={router}
-              disabled={formDisabled}
-              thresholdChart={wizardBuilderChart}
-              onFilterSearch={this.handleFilterUpdate}
+              alertType={alertType}
               allowChangeEventTypes={
                 hasCustomMetrics(organization)
                   ? dataset === Dataset.ERRORS
                   : dataset === Dataset.ERRORS || alertType === 'custom_transactions'
               }
-              alertType={alertType}
-              dataset={dataset}
-              timeWindow={timeWindow}
-              comparisonType={comparisonType}
               comparisonDelta={comparisonDelta}
+              comparisonType={comparisonType}
+              dataset={dataset}
+              disableProjectSelector={disableProjectSelector}
+              disabled={formDisabled}
+              isEditing={Boolean(ruleId)}
+              isErrorMigration={showErrorMigrationWarning}
+              isExtrapolatedChartData={isExtrapolatedChartData}
+              isForSpanMetric={aggregate.includes(':spans/')}
+              isTransactionMigration={isMigration && !showErrorMigrationWarning}
+              monitorType={monitorType}
               onComparisonDeltaChange={value =>
                 this.handleFieldChange('comparisonDelta', value)
               }
-              onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
-              disableProjectSelector={disableProjectSelector}
-              isExtrapolatedChartData={isExtrapolatedChartData}
-              monitorType={monitorType}
-              activationCondition={activationCondition}
+              onFilterSearch={this.handleFilterUpdate}
               onMonitorTypeSelect={this.handleMonitorTypeSelect}
-              isEditing={Boolean(ruleId)}
+              onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
+              organization={organization}
+              project={project}
+              router={router}
+              thresholdChart={wizardBuilderChart}
+              timeWindow={timeWindow}
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
