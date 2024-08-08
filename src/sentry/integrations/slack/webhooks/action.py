@@ -534,7 +534,7 @@ class SlackActionEndpoint(Endpoint):
 
             view = View(**slack_request.data["view"])
             private_metadata = orjson.loads(view.private_metadata)
-            original_tags_from_request = set(private_metadata["tags"])
+            original_tags_from_request = set(private_metadata.get("tags", {}))
 
             blocks = SlackIssuesMessageBuilder(
                 group,
