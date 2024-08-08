@@ -9,6 +9,7 @@ from sentry.exceptions import (
     UnsupportedQuerySubscription,
 )
 from sentry.models.group import GroupStatus
+from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -643,6 +644,7 @@ class EntitySubscriptionTestCase(TestCase):
                     extra_fields={"org_id": self.organization.id},
                 )
                 builder = entity_subscription.build_query_builder(query, [self.project.id], None)
+                assert isinstance(builder, AlertMetricsQueryBuilder)
                 assert builder.use_metrics_layer is use_metrics_layer
 
 
