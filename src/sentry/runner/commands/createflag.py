@@ -3,16 +3,7 @@ from datetime import datetime
 import click
 
 from flagpole import Feature, Segment
-from flagpole.conditions import (
-    ConditionBase,
-    ConditionOperatorKind,
-    ContainsCondition,
-    EqualsCondition,
-    InCondition,
-    NotContainsCondition,
-    NotEqualsCondition,
-    NotInCondition,
-)
+from flagpole.conditions import ConditionBase, ConditionOperatorKind, condition_from_dict
 from sentry.runner.decorators import configuration
 
 valid_scopes = ["organizations", "projects"]
@@ -41,20 +32,15 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
     property_name = click.prompt("Context property name", type=str)
     operator_kind = click.prompt("Operator type", type=condition_type_choices, show_choices=True)
 
-    if operator_kind == ConditionOperatorKind.IN:
-        return InCondition(value=[], operator="in", property=property_name)
-    elif operator_kind == ConditionOperatorKind.NOT_IN:
-        return NotInCondition(value=[], operator="not_in", property=property_name)
-    elif operator_kind == ConditionOperatorKind.EQUALS:
-        return EqualsCondition(value="", operator="equals", property=property_name)
-    elif operator_kind == ConditionOperatorKind.NOT_EQUALS:
-        return NotEqualsCondition(value="", operator="not_equals", property=property_name)
-    elif operator_kind == ConditionOperatorKind.CONTAINS:
-        return ContainsCondition(value="", operator="contains", property=property_name)
-    elif operator_kind == ConditionOperatorKind.NOT_CONTAINS:
-        return NotContainsCondition(value="", operator="not_contains", property=property_name)
-
-    raise Exception("An unknown condition operator was provided")
+    value: str | list[str] = ""
+    if operator_kind in {ConditionOperatorKind.IN, ConditionOperatorKind.NOT_IN}:
+        value = []
+    condition = {
+        "property": property_name,
+        "operator": operator_kind,
+        "value": value,
+    }
+    return condition_from_dict(condition)
 
 
 def segment_wizard() -> list[Segment]:

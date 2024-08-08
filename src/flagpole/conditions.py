@@ -56,7 +56,7 @@ class ConditionBase:
     value: Any
     """The value to compare against the condition's evaluation context property."""
 
-    operator: str
+    operator: str = dataclasses.field(default="")
     """
     The name of the operator to use when comparing the evaluation context property to the condition's value.
     Values must be a valid ConditionOperatorKind.
@@ -122,6 +122,7 @@ InOperatorValueTypes = list[int] | list[float] | list[str]
 
 class InCondition(ConditionBase):
     value: InOperatorValueTypes
+    operator: str = dataclasses.field(default="in")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_in(condition_property=condition_property, segment_name=segment_name)
@@ -129,6 +130,7 @@ class InCondition(ConditionBase):
 
 class NotInCondition(ConditionBase):
     value: InOperatorValueTypes
+    operator: str = dataclasses.field(default="not_in")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_in(
@@ -141,6 +143,7 @@ ContainsOperatorValueTypes = int | str | float
 
 class ContainsCondition(ConditionBase):
     value: ContainsOperatorValueTypes
+    operator: str = dataclasses.field(default="contains")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_contains(
@@ -150,6 +153,7 @@ class ContainsCondition(ConditionBase):
 
 class NotContainsCondition(ConditionBase):
     value: ContainsOperatorValueTypes
+    operator: str = dataclasses.field(default="not_contains")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_contains(
@@ -162,6 +166,7 @@ EqualsOperatorValueTypes = int | float | str | bool | list[int] | list[float] | 
 
 class EqualsCondition(ConditionBase):
     value: EqualsOperatorValueTypes
+    operator: str = dataclasses.field(default="equals")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_equals(
@@ -172,6 +177,7 @@ class EqualsCondition(ConditionBase):
 
 class NotEqualsCondition(ConditionBase):
     value: EqualsOperatorValueTypes
+    operator: str = dataclasses.field(default="not_equals")
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_equals(
@@ -190,7 +196,7 @@ OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
 }
 
 
-def _condition_from_dict(data: Mapping[str, Any]) -> ConditionBase:
+def condition_from_dict(data: Mapping[str, Any]) -> ConditionBase:
     operator_kind = ConditionOperatorKind(data.get("operator", "invalid"))
     condition_cls = OPERATOR_LOOKUP[operator_kind]
     return condition_cls(
@@ -216,7 +222,7 @@ class Segment:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Self:
-        conditions = [_condition_from_dict(condition) for condition in data.get("conditions", [])]
+        conditions = [condition_from_dict(condition) for condition in data.get("conditions", [])]
         return cls(
             name=str(data.get("name", "")),
             rollout=int(data.get("rollout", 0)),
