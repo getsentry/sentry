@@ -189,7 +189,7 @@ const IllustrationContainer = styled('div')`
   top: 0px;
   right: 50px;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
     display: none;
     pointer-events: none;
   }
