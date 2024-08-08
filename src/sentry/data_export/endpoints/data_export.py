@@ -123,7 +123,6 @@ class DataExportQuerySerializer(serializers.Serializer):
         return data
 
 
-# Must allow the errors and transactions dataset
 @region_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {

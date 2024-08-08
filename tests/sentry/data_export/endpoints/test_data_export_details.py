@@ -130,7 +130,7 @@ class DataExportDetailsTest(APITestCase):
             user_id=self.user.id,
             organization=self.organization,
             query_type=1,
-            query_info={"dataset": "potato"},
+            query_info={"dataset": "transactions"},
         )
 
         with self.feature("organizations:discover-query"):
