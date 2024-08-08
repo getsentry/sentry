@@ -2,7 +2,6 @@ import {useCallback, useEffect, useMemo} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -10,7 +9,6 @@ import type {Organization, PageFilters, Tag, TagCollection, TagValue} from 'sent
 import {SavedSearchType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import type {FieldKey, ReplayClickFieldKey, ReplayFieldKey} from 'sentry/utils/fields';
 import {
   FieldKind,
   getFieldDefinition,
@@ -69,45 +67,6 @@ function getReplaySearchTags(supportedTags: TagCollection): TagCollection {
   };
 }
 
-/**
- * Returns replay fields & tags and replay click fields, sorted alphabetically.
- * Many of the keys in REPLAY_FIELDS are actually tags, and not unique to
- * replays. To avoid confusion, we'll keep fields and tags together for now.
- */
-function getFilterKeySections(
-  supportedTags: TagCollection,
-  organization: Organization
-): FilterKeySection[] {
-  if (!organization.features.includes('search-query-builder-replays')) {
-    return [];
-  }
-
-  const nonReplayKeys: string[] = Object.values(supportedTags)
-    .map(tag => tag.key)
-    .filter(
-      key =>
-        !REPLAY_FIELDS.includes(key as ReplayFieldKey | FieldKey) &&
-        !REPLAY_CLICK_FIELDS.includes(key as ReplayClickFieldKey)
-    );
-
-  const nonClickKeys = nonReplayKeys.concat(REPLAY_FIELDS);
-  nonClickKeys.sort();
-
-  return [
-    {
-      value: 'replay_field_or_tag', // can't collide with FieldKind
-      label: t('Fields And Tags'),
-      children: nonClickKeys,
-    },
-    {
-      value: 'replay_click_field',
-      label: t('Click Fields'),
-      children: REPLAY_CLICK_FIELDS,
-    },
-    // TODO: add a popular searches section, once section overlaps are supported
-  ];
-}
-
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
   pageFilters: PageFilters;
@@ -125,10 +84,6 @@ function ReplaySearchBar(props: Props) {
   const replayTags = useMemo(
     () => getReplaySearchTags(organizationTags),
     [organizationTags]
-  );
-  const filterKeySections = useMemo(
-    () => getFilterKeySections(organizationTags, organization),
-    [organizationTags, organization]
   );
 
   const getTagValues = useCallback(
@@ -182,7 +137,7 @@ function ReplaySearchBar(props: Props) {
         className={props.className}
         fieldDefinitionGetter={getReplayFieldDefinition}
         filterKeys={replayTags}
-        filterKeySections={filterKeySections}
+        filterKeySections={undefined}
         getTagValues={getTagValues}
         initialQuery={props.query ?? props.defaultQuery ?? ''}
         onSearch={onSearchWithAnalytics}
