@@ -22,8 +22,16 @@ const TRUNC_ID_LENGTH = 16;
 export default function ReplayPanel() {
   const {trackAnalytics} = useConfiguration();
 
-  const {disabledReason, isDisabled, isRecording, lastReplayId, start, stop} =
-    useReplayRecorder();
+  const {
+    disabledReason,
+    isDisabled,
+    isRecording,
+    lastReplayId,
+    recordingMode,
+    startRecordingSession,
+    stopRecording,
+  } = useReplayRecorder();
+  const isRecordingSession = isRecording && recordingMode === 'session';
 
   const {eventName, eventKey} = useContext(AnalyticsContext);
   const [buttonLoading, setButtonLoading] = useState(false);
@@ -31,30 +39,26 @@ export default function ReplayPanel() {
     <PanelLayout title="Session Replay">
       <Button
         size="sm"
-        icon={isDisabled ? undefined : isRecording ? <IconPause /> : <IconPlay />}
+        icon={isDisabled ? undefined : isRecordingSession ? <IconPause /> : <IconPlay />}
         disabled={isDisabled || buttonLoading}
         onClick={async () => {
           setButtonLoading(true);
-          const success = isRecording ? await stop() : await start();
+          isRecordingSession ? await stopRecording() : await startRecordingSession();
           setButtonLoading(false);
-          const type = isRecording ? 'stop' : 'start';
+          const type = isRecordingSession ? 'stop' : 'start';
           trackAnalytics?.({
             eventKey: eventKey + `.${type}-button-click`,
             eventName: eventName + `${type} button clicked`,
           });
-          if (!success) {
-            trackAnalytics?.({
-              eventKey: eventKey + `${type}-button-failed`,
-              eventName: eventName + `${type} button failed`,
-            });
-          }
         }}
       >
         {isDisabled
           ? disabledReason
-          : isRecording
+          : isRecordingSession
             ? 'Recording in progress, click to stop'
-            : 'Start recording the current session'}
+            : isRecording
+              ? 'Replay buffering, click to flush and record'
+              : 'Start recording the current session'}
       </Button>
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
         {lastReplayId ? (

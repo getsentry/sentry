@@ -10,8 +10,9 @@ type ReplayRecorderState = {
   isDisabled: boolean;
   isRecording: boolean;
   lastReplayId: string | undefined;
-  start(): Promise<boolean>;
-  stop(): Promise<boolean>;
+  recordingMode: ReplayRecordingMode | undefined;
+  startRecordingSession(): Promise<boolean>; // returns false if called in the wrong state
+  stopRecording(): Promise<boolean>; // returns false if called in the wrong state
 };
 
 interface ReplayInternalAPI {
@@ -62,10 +63,10 @@ export default function useReplayRecorder(): ReplayRecorderState {
     undefined
   );
   useEffect(() => {
-    if (isRecording && sessionId) {
+    if (isRecording && recordingMode === 'session' && sessionId) {
       setLastReplayId(sessionId);
     }
-  }, [isRecording, sessionId, setLastReplayId]);
+  }, [isRecording, recordingMode, sessionId, setLastReplayId]);
 
   const refreshState = useCallback(() => {
     setIsRecording(replayInternal?.isEnabled() ?? false);
@@ -73,41 +74,32 @@ export default function useReplayRecorder(): ReplayRecorderState {
     setRecordingMode(replayInternal?.recordingMode);
   }, [replayInternal]);
 
-  const start = useCallback(async () => {
+  const startRecordingSession = useCallback(async () => {
     let success = false;
-    try {
-      // SDK v8.19.0 and older will throw if a replay is already started.
+    if (replay) {
+      // Note SDK v8.19 and older will throw if a replay is already started.
       // Details at https://github.com/getsentry/sentry-javascript/pull/13000
-      if (replay && !isRecording) {
-        if (recordingMode === 'session') {
-          replay.start();
-        } else {
-          // For SDK v8.20.0 and up, flush() works for both cases.
-          await replay.flush();
-        }
+      if (!isRecording) {
+        replay.start();
+        success = true;
+      } else if (recordingMode === 'buffer') {
+        // For SDK v8.20+, flush() would work for both cases, but we're staying version-agnostic.
+        await replay.flush();
         success = true;
       }
-      // eslint-disable-next-line no-empty
-    } catch {
-    } finally {
       refreshState();
-      return success;
     }
-  }, [isRecording, recordingMode, replay, refreshState]);
+    return success;
+  }, [replay, isRecording, recordingMode, refreshState]);
 
-  const stop = useCallback(async () => {
+  const stopRecording = useCallback(async () => {
     let success = false;
-    try {
-      if (replay && isRecording) {
-        await replay.stop();
-        success = true;
-      }
-      // eslint-disable-next-line no-empty
-    } catch {
-    } finally {
+    if (replay && isRecording) {
+      await replay.stop();
+      success = true;
       refreshState();
-      return success;
     }
+    return success;
   }, [isRecording, replay, refreshState]);
 
   return {
@@ -115,7 +107,8 @@ export default function useReplayRecorder(): ReplayRecorderState {
     isDisabled,
     isRecording,
     lastReplayId,
-    start,
-    stop,
+    recordingMode,
+    startRecordingSession,
+    stopRecording,
   };
 }
