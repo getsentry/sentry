@@ -446,7 +446,7 @@ def dispatch_to_local_service(
 
     def result_to_dict(value: Any) -> Any:
         if isinstance(value, RpcModel):
-            return value.dict()
+            return value.model_dump()
 
         if isinstance(value, dict):
             return {key: result_to_dict(val) for key, val in value.items()}

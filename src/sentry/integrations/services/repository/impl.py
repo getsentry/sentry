@@ -67,7 +67,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         try:
             with enforce_constraints(transaction.atomic(router.db_for_write(Repository))):
                 repository = Repository.objects.create(
-                    organization_id=organization_id, **create.dict()
+                    organization_id=organization_id, **create.model_dump()
                 )
                 return serialize_repository(repository)
         except IntegrityError:
@@ -81,7 +81,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             if repository is None:
                 return
 
-            update_dict = update.dict()
+            update_dict = update.model_dump()
             del update_dict["id"]
 
             for field_name, field_value in update_dict.items():

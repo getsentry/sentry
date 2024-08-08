@@ -229,7 +229,7 @@ class TestParseFeatureConfig:
             """,
         )
 
-        parsed_json = orjson.loads(feature.json())
+        parsed_json = orjson.loads(feature.model_dump_json())
         parsed_yaml = dict(yaml.safe_load(feature.to_yaml_str()))
         assert "foo" in parsed_yaml
         parsed_json.pop("name")

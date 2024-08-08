@@ -21,7 +21,7 @@ class TestSocialAuthUtils(TestCase):
 
         rpc_user = serialize_rpc_user(user)
         val = model_to_ctype(rpc_user)
-        assert val == rpc_user.dict()
+        assert val == rpc_user.model_dump()
 
     def test_ctype_to_model(self):
         val = ctype_to_model(1)
@@ -35,4 +35,4 @@ class TestSocialAuthUtils(TestCase):
         assert ctype_to_model(ctype_val) == user
 
         rpc_user = serialize_rpc_user(user)
-        assert ctype_to_model(rpc_user.dict()) == rpc_user
+        assert ctype_to_model(rpc_user.model_dump()) == rpc_user

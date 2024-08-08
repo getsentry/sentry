@@ -51,7 +51,7 @@ class GroupNotesEndpoint(GroupEndpoint):
 
         data = dict(serializer.validated_data)
         if "mentions" in data:
-            data["mentions"] = [m.dict() for m in data["mentions"]]
+            data["mentions"] = [m.model_dump() for m in data["mentions"]]
 
         if Activity.objects.filter(
             group=group,

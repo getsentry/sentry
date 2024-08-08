@@ -157,7 +157,7 @@ class Feature(BaseModel):
         return features
 
     def to_dict(self) -> dict[str, Any]:
-        json_dict = dict(orjson.loads(self.json()))
+        json_dict = dict(orjson.loads(self.model_dump_json()))
         json_dict.pop("name")
         return {self.name: json_dict}
 
