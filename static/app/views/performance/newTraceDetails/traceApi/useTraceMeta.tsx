@@ -158,6 +158,15 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
     }
   );
 
+  const results = useMemo(() => {
+    return {
+      data: data?.metaResults,
+      errors: data?.apiErrors || [],
+      isLoading,
+      status,
+    };
+  }, [data, isLoading, status]);
+
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the
   // page loads, we cannot guarantee that querying the trace will succeed as it may not have been stored yet.
@@ -179,10 +188,5 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
     };
   }
 
-  return {
-    data: data?.metaResults,
-    isLoading,
-    errors: data?.apiErrors || [],
-    status,
-  };
+  return results;
 }

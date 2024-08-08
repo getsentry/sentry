@@ -30,6 +30,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [{'transaction.id': '1', count: 1}],
       },
     });
     MockApiClient.addMockResponse({
@@ -40,6 +41,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [{'transaction.id': '2', count: 2}],
       },
     });
     MockApiClient.addMockResponse({
@@ -50,6 +52,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [],
       },
     });
 
@@ -63,6 +66,7 @@ describe('useTraceMeta', () => {
       data: undefined,
       errors: [],
       isLoading: true,
+      status: 'loading',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -73,9 +77,14 @@ describe('useTraceMeta', () => {
         performance_issues: 3,
         projects: 1,
         transactions: 3,
+        transactiontoSpanChildrenCount: {
+          '1': 1,
+          '2': 2,
+        },
       },
       errors: [],
       isLoading: false,
+      status: 'success',
     });
   });
 
@@ -109,6 +118,7 @@ describe('useTraceMeta', () => {
       data: undefined,
       errors: [],
       isLoading: true,
+      status: 'loading',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -119,9 +129,11 @@ describe('useTraceMeta', () => {
         performance_issues: 0,
         projects: 0,
         transactions: 0,
+        transactiontoSpanChildrenCount: {},
       },
       errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
       isLoading: false,
+      status: 'success',
     });
 
     expect(mockRequest1).toHaveBeenCalledTimes(1);
@@ -146,6 +158,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [],
       },
     });
     const mockRequest3 = MockApiClient.addMockResponse({
@@ -156,6 +169,7 @@ describe('useTraceMeta', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
+        transaction_child_count_map: [],
       },
     });
 
@@ -169,6 +183,7 @@ describe('useTraceMeta', () => {
       data: undefined,
       errors: [],
       isLoading: true,
+      status: 'loading',
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -179,9 +194,11 @@ describe('useTraceMeta', () => {
         performance_issues: 2,
         projects: 1,
         transactions: 2,
+        transactiontoSpanChildrenCount: {},
       },
       errors: [expect.any(Error)],
       isLoading: false,
+      status: 'success',
     });
 
     expect(mockRequest1).toHaveBeenCalledTimes(1);
