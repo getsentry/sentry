@@ -112,6 +112,17 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
     def owner(self) -> Actor | None:
         return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
 
+    def get_audit_log_data(self):
+        return {
+            "project": self.project.id,
+            "name": self.name,
+            "owner_user_id": self.owner_user_id,
+            "owner_team_id": self.owner_team_id,
+            "url": self.uptime_subscription.url,
+            "interval_seconds": self.uptime_subscription.interval_seconds,
+            "timeout": self.uptime_subscription.timeout_ms,
+        }
+
 
 def get_org_from_uptime_monitor(uptime_monitor: ProjectUptimeSubscription) -> tuple[Organization]:
     return (uptime_monitor.project.organization,)
