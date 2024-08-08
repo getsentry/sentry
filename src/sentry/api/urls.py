@@ -1188,7 +1188,7 @@ ORGANIZATION_URLS = [
     ),
     # Data Secrecy
     re_path(
-        r"^api/0/organizations/(?P<organization_id_or_slug>[^\/]+)/data-secrecy/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/data-secrecy/$",
         WaiveDataSecrecyEndpoint.as_view(),
         name="sentry-api-0-data-secrecy",
     ),
