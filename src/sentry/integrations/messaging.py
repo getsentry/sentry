@@ -325,7 +325,7 @@ class LinkingView(BaseView, ABC):
             }
             return render_to_response(self.confirmation_template, request=request, context=context)
 
-        response = self.execute(idp, params, request)
+        response = self.execute(idp, params[self.user_parameter], request)
         if response is not None:
             return response
 
@@ -346,7 +346,7 @@ class LinkingView(BaseView, ABC):
 
     @abstractmethod
     def execute(
-        self, idp: IdentityProvider | None, params: Mapping[str, Any], request: HttpRequest
+        self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> HttpResponse | None:
         """Execute the operation on the Identity table.
 
@@ -362,7 +362,7 @@ class LinkIdentityView(LinkingView, ABC):
         return "sentry/auth-link-identity.html"
 
     def execute(
-        self, idp: IdentityProvider | None, params: Mapping[str, Any], request: HttpRequest
+        self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> HttpResponse | None:
         if idp is None:
             raise ValueError('idp is required for linking (params must include "integration_id")')
@@ -371,7 +371,7 @@ class LinkIdentityView(LinkingView, ABC):
         if isinstance(user, AnonymousUser):
             raise TypeError("Cannot link identity without a logged-in user")
 
-        Identity.objects.link_identity(user=user, idp=idp, external_id=params[self.user_parameter])
+        Identity.objects.link_identity(user=user, idp=idp, external_id=external_id)
 
         return None
 
@@ -392,10 +392,10 @@ class UnlinkIdentityView(LinkingView, ABC):
         return False
 
     def execute(
-        self, idp: IdentityProvider | None, params: Mapping[str, Any], request: HttpRequest
+        self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> HttpResponse | None:
         try:
-            identities = Identity.objects.filter(external_id=params[self.user_parameter])
+            identities = Identity.objects.filter(external_id=external_id)
             if idp is not None:
                 identities = identities.filter(idp=idp)
             if self.filter_by_user_id:
