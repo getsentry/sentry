@@ -17,13 +17,17 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import InsightIssuesList from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useSpanMetrics,
+  useSpansIndexed,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -38,7 +42,12 @@ import {isAValidSort} from 'sentry/views/insights/database/components/tables/que
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  ModuleName,
+  SpanFunction,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type Query = {
@@ -68,6 +77,20 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+
+  const {data: indexedSpansByGroupId, isFetching: areIndexedSpansByGroupIdLoading} =
+    useSpansIndexed(
+      {
+        search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
+        limit: 1,
+        fields: [
+          SpanIndexedField.PROJECT_ID,
+          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.SPAN_DESCRIPTION,
+        ],
+      },
+      'api.starfish.span-description'
+    );
 
   const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
     {
@@ -226,6 +249,18 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   preliminaryDescription={spanMetrics?.['span.description']}
                 />
               </DescriptionContainer>
+            )}
+
+            {!areIndexedSpansByGroupIdLoading && (
+              <ModuleLayout.Full>
+                <InsightIssuesList
+                  issueTypes={[
+                    'performance_slow_db_query',
+                    'performance_n_plus_one_db_queries',
+                  ]}
+                  message={indexedSpansByGroupId[0]['span.description']}
+                />
+              </ModuleLayout.Full>
             )}
 
             <ModuleLayout.Full>

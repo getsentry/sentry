@@ -1,9 +1,9 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -65,15 +65,12 @@ function Issue({data}: {data: Group}) {
 function IssueListHeader({issues}: {issues?: Group[]}) {
   return (
     <StyledPanelHeader>
-      {/* todo: fix plurality */}
-      {issues && (
-        <IssueHeading>
-          {tct(`[count] [text]`, {
-            count: issues.length,
-            text: tn('Performance Issue', 'Performance Issues', issues.length),
-          })}
-        </IssueHeading>
-      )}
+      <IssueHeading>
+        {tct(`[count] [text]`, {
+          count: issues?.length ?? 0,
+          text: tn('Related Issue', 'Related Issues', issues?.length ?? 0),
+        })}
+      </IssueHeading>
 
       <GraphHeading>{t('Graph')}</GraphHeading>
       <EventsHeading>{t('Events')}</EventsHeading>
@@ -83,62 +80,32 @@ function IssueListHeader({issues}: {issues?: Group[]}) {
   );
 }
 
-function EmptyListScreen() {
-  return (
-    <Wrapper>
-      <MessageContainer>
-        <h5>There were no open issues related to this query</h5>
-        <div>Have you considered dropping some indexes?</div>
-      </MessageContainer>
-    </Wrapper>
-  );
-}
-
-const MessageContainer = styled('div')`
-  align-self: center;
-  max-width: 800px;
-  margin-left: 40px;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin: 0;
-  }
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  border-radius: 0 0 3px 3px;
-  padding: 40px ${space(3)};
-  min-height: 120px;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    flex-direction: column;
-    align-items: center;
-    padding: ${space(3)};
-    text-align: center;
-  }
-`;
-
-export default function InsightIssuesList({issueTypes}: {issueTypes: string[]}) {
-  // fetch issue ids that have the current issue types, with the given pageFilter settings
+function fetchIssues(
+  issueTypes: string[],
+  message?: string
+): {isLoading: boolean; issues?: Group[]} {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const query = `issue.type:[${issueTypes.join(',')}]`;
-  const {
-    isLoading,
-    data: fetchedIssues,
-    // isError,
-  } = useApiQuery<Group[]>(
+  let query = `issue.type:[${issueTypes.join(',')}]`;
+  // note: backend supports a maximum number of characters for message (seems to vary).
+  // so, we query the first 200 characters of `message`, then filter for exact `message`
+  // matches in application code
+  if (message) {
+    query += ` message:"${message?.slice(0, 200).replaceAll('"', '\\"')}"`;
+  }
+
+  const {isLoading, data: maybeMatchingIssues} = useApiQuery<Group[]>(
     [
       `/organizations/${organization.slug}/issues/`,
       {
         query: {
-          collapse: ['stats', 'unhandled'],
           expand: ['inbox', 'owners'],
           query,
           shortIdLookup: 1,
-          limit: 5,
+          // hack: set an arbitrary large upper limit so that the api response likely contains the exact message,
+          // even though we only search for the first 200 characters of the message
+          limit: 100,
           project: selection.projects,
           ...normalizeDateTimeParams(selection.datetime),
         },
@@ -149,43 +116,30 @@ export default function InsightIssuesList({issueTypes}: {issueTypes: string[]}) 
     }
   );
 
-  const {data: issuesStats} = useApiQuery<Group[]>(
-    [
-      `/organizations/${organization.slug}/issues-stats/`,
-      {
-        query: {
-          query,
-          groups: fetchedIssues?.map(issue => issue.id),
-          project: selection.projects,
-          ...normalizeDateTimeParams(selection.datetime),
-        },
-      },
-    ],
-    {
-      staleTime: 2 * 60 * 1000,
-    }
-  );
+  // the api response contains issues that match the first 200 characters of the message. now,
+  // filter by the issues that match the exact message the user is searching for
+  const issues = maybeMatchingIssues?.filter(issue => issue.metadata.value === message);
 
-  const issues = fetchedIssues?.map(issue => ({
-    ...issue,
-    ...issuesStats?.find(stats => stats.id === issue.id),
-  }));
+  return {isLoading, issues};
+}
 
-  // console.log([fetchedIssues?.map(issue => issue.id)]);
-  // console.log('fetched stats data', fetchedIssuesStatsData);
-  // console.log('enriched', enrichedIssues);
-  // pass issue data into <Issue /> (do not refetch the data per issue)
+export default function InsightIssuesList({
+  issueTypes,
+  message,
+}: {
+  issueTypes: string[];
+  message?: string;
+}) {
+  const {isLoading, issues} = fetchIssues(issueTypes, message);
+
+  if (isLoading || issues?.length === 0) {
+    return <Fragment />;
+  }
 
   return (
     <StyledPanel>
       <IssueListHeader issues={issues} />
-      {isLoading ? (
-        <LoadingIndicator />
-      ) : issues && issues?.length > 0 ? (
-        issues?.map(issue => <Issue data={issue} key={issue.id} />)
-      ) : (
-        <EmptyListScreen />
-      )}
+      {issues?.map(issue => <Issue data={issue} key={issue.id} />)}
     </StyledPanel>
   );
 }
