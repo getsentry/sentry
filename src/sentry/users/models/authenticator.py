@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import copy
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.utils import timezone
@@ -16,7 +16,7 @@ from sentry.auth.authenticators import (
     AUTHENTICATOR_INTERFACES_BY_TYPE,
     available_authenticators,
 )
-from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.auth.authenticators.base import AuthenticatorInterface, EnrollmentStatus
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -33,15 +33,20 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.outbox import ControlOutboxBase
 from sentry.types.region import find_regions_for_user
 
+if TYPE_CHECKING:
+    from sentry.models.user import User
+
 
 class AuthenticatorManager(BaseManager["Authenticator"]):
-    def all_interfaces_for_user(self, user, return_missing=False, ignore_backup=False):
+    def all_interfaces_for_user(
+        self, user: User, return_missing: bool = False, ignore_backup: bool = False
+    ) -> list[AuthenticatorInterface]:
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.
         """
 
-        def _sort(x):
+        def _sort(x: list[AuthenticatorInterface]) -> list[AuthenticatorInterface]:
             return sorted(x, key=lambda x: (x.type == 0, x.type))
 
         # Collect interfaces user is enrolled in
@@ -65,7 +70,9 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
 
         return _sort(ifaces)
 
-    def auto_add_recovery_codes(self, user, force=False):
+    def auto_add_recovery_codes(
+        self, user: User, force: bool = False
+    ) -> AuthenticatorInterface | None:
         """This automatically adds the recovery code backup interface in
         case no backup interface is currently set for the user.  Returns
         the interface that was added.
@@ -82,15 +89,16 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
             ):
                 iface = authenticator.interface
                 if iface.is_backup_interface:
-                    return
+                    return None
                 has_authenticators = True
 
         if has_authenticators or force:
             interface = RecoveryCodeInterface()
             interface.enroll(user)
             return interface
+        return None
 
-    def get_interface(self, user, interface_id):
+    def get_interface(self, user: User, interface_id: int) -> AuthenticatorInterface:
         """Looks up an interface by interface ID for a user.  If the
         interface is not available but configured a
         `Authenticator.DoesNotExist` will be raised just as if the
@@ -104,7 +112,7 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
         except Authenticator.DoesNotExist:
             return interface.generate(EnrollmentStatus.NEW)
 
-    def bulk_users_have_2fa(self, user_ids):
+    def bulk_users_have_2fa(self, user_ids: list[int]) -> dict[int, bool]:
         """Checks if a list of user ids have 2FA configured.
         Returns a dict of {<id>: <has_2fa>}
         """
@@ -123,7 +131,7 @@ class AuthenticatorConfig(PickledObjectField):
     def _is_devices_config(self, value: Any) -> bool:
         return isinstance(value, dict) and "devices" in value
 
-    def get_db_prep_value(self, value, *args, **kwargs):
+    def get_db_prep_value(self, value: Any, *args: Any, **kwargs: Any) -> str | None:
         if self._is_devices_config(value):
             # avoid mutating the original object
             value = copy.deepcopy(value)
@@ -134,7 +142,7 @@ class AuthenticatorConfig(PickledObjectField):
 
         return super().get_db_prep_value(value, *args, **kwargs)
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> Any | None:
         ret = super().to_python(value)
         if self._is_devices_config(ret):
             for device in ret["devices"]:
@@ -178,15 +186,15 @@ class Authenticator(ControlOutboxProducingModel):
         )
 
     @cached_property
-    def interface(self):
+    def interface(self) -> AuthenticatorInterface:
         return AUTHENTICATOR_INTERFACES_BY_TYPE[self.type](self)
 
-    def mark_used(self, save=True):
+    def mark_used(self, save: bool = True) -> None:
         self.last_used_at = timezone.now()
         if save:
             self.save()
 
-    def reset_fields(self, save=True):
+    def reset_fields(self, save: bool = True) -> None:
         self.created_at = timezone.now()
         self.last_used_at = None
         if save:
