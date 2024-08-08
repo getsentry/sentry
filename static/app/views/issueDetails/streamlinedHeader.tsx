@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -10,6 +9,7 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
+import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -174,25 +174,13 @@ export default function StreamlinedGroupHeader({
             {group.participants.length > 0 && (
               <Wrapper>
                 {t('Participants')}
-                <div>
-                  <StyledAvatarList
-                    users={userParticipants}
-                    teams={teamParticipants}
-                    avatarSize={18}
-                    maxVisibleAvatars={2}
-                    typeAvatars="participants"
-                  />
-                </div>
+                <ParticipantList users={userParticipants} teams={teamParticipants} />
               </Wrapper>
             )}
             {displayUsers.length > 0 && (
               <Wrapper>
                 {t('Viewers')}
-                <StyledAvatarList
-                  users={displayUsers}
-                  avatarSize={18}
-                  maxVisibleAvatars={2}
-                />
+                <ParticipantList users={displayUsers} />
               </Wrapper>
             )}
           </PriorityWorkflowWrapper>
@@ -261,11 +249,6 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const StyledAvatarList = styled(AvatarList)`
-  justify-content: flex-end;
-  padding-left: ${space(0.75)};
 `;
 
 const ReleaseWrapper = styled('div')`

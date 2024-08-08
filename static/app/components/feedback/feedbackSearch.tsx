@@ -7,7 +7,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FEEDBACK_FIELDS,
@@ -19,6 +19,7 @@ import {
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
@@ -74,7 +75,8 @@ interface Props {
 }
 
 export default function FeedbackSearch({className, style}: Props) {
-  const projectIds = usePageFilters().selection.projects;
+  const {selection: pageFilters} = usePageFilters();
+  const projectIds = pageFilters.projects;
   const {pathname, query} = useLocation();
   const organization = useOrganization();
   const organizationTags = useTags();
@@ -93,12 +95,23 @@ export default function FeedbackSearch({className, style}: Props) {
         return Promise.resolve([]);
       }
 
+      const endpointParams = {
+        start: pageFilters.datetime.start
+          ? getUtcDateString(pageFilters.datetime.start)
+          : undefined,
+        end: pageFilters.datetime.end
+          ? getUtcDateString(pageFilters.datetime.end)
+          : undefined,
+        statsPeriod: pageFilters.datetime.period,
+      };
+
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
         projectIds: projectIds?.map(String),
+        endpointParams,
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
         () => {
@@ -106,7 +119,30 @@ export default function FeedbackSearch({className, style}: Props) {
         }
       );
     },
-    [api, organization.slug, projectIds]
+    [
+      api,
+      organization.slug,
+      projectIds,
+      pageFilters.datetime.start,
+      pageFilters.datetime.end,
+      pageFilters.datetime.period,
+    ]
+  );
+
+  const navigate = useNavigate();
+
+  const onSearch = useCallback(
+    searchQuery => {
+      navigate({
+        pathname,
+        query: {
+          ...query,
+          cursor: undefined,
+          query: searchQuery.trim(),
+        },
+      });
+    },
+    [navigate, pathname, query]
   );
 
   if (organization.features.includes('search-query-builder-user-feedback')) {
@@ -146,16 +182,7 @@ export default function FeedbackSearch({className, style}: Props) {
         maxMenuHeight={500}
         defaultQuery=""
         query={decodeScalar(query.query, '')}
-        onSearch={searchQuery => {
-          browserHistory.push({
-            pathname,
-            query: {
-              ...query,
-              cursor: undefined,
-              query: searchQuery.trim(),
-            },
-          });
-        }}
+        onSearch={onSearch}
       />
     </SearchContainer>
   );
