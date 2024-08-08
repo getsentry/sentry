@@ -1426,7 +1426,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "CONTACT": {"email": "partners@sentry.io"},
         "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io"}],
+        "SERVERS": [{"url": "https://us.sentry.io"}],
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
