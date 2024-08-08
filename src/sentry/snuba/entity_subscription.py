@@ -56,7 +56,7 @@ CRASH_RATE_ALERT_AGGREGATE_RE = (
 INSIGHTS_AGGREGATE_RE_SET = {
     r"^(spm|cache_miss_rate)\([ ]*\)",
     r"^http_response_rate\([ ]*(3|4|5)[ ]*\)",
-    r"^(sum|avg)\([ ]*(span\.self_time|span\.duration|messaging\.message\.receive\.latency|measurements\.(time_to_initial_display|time_to_full_display|ai\.total_tokens\.used))[ ]*\)"
+    r"^(sum|avg)\([ ]*(span\.self_time|span\.duration|messaging\.message\.receive\.latency|measurements\.(time_to_initial_display|time_to_full_display|ai\.total_tokens\.used))[ ]*\)",
     r"^((weighted_)?performance_score|count_scores)\([ ]*(measurements\.score\.(lcp|fcp|ttfb|cls|inp))[ ]*\)",
 }
 INSIGHTS_QUERY_RE_SET = {
