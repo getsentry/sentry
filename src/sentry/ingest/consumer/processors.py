@@ -1,5 +1,7 @@
 import functools
 import logging
+import time
+from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any
 
@@ -61,14 +63,16 @@ def process_event(
     """
     Perform some initial filtering and deserialize the message payload.
     """
-    # inc-847: verify mitigation is working
-    log_inc_847_counter = 0
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
     project_id = int(message["project_id"])
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
+
+    # inc-847: verify mitigation is working
+    reprocessed_last_logged_time: int | None = None
+    reprocessed_ids: Mapping[int, int] = defaultdict(int)  # projectid: count
 
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
@@ -149,10 +153,22 @@ def process_event(
         if reprocess_only_stuck_events and not event_processing_store.exists(data):
             return
 
+        is_reprocessed = event_processing_store.exists(data)
+        if is_reprocessed:
+            reprocessed_ids[project_id] + 1
+
+        now = time.time()
         # inc-847: verify mitigation is working
-        if log_inc_847_counter % 1000 == 0 and event_processing_store.exists(data):
-            log_inc_847_counter += 1
-            logger.info(f"inc-847: reprocessing {data}")
+        # TODO: make the 100 an option
+        if len(reprocessed_ids) > 100:
+            logger.info(reprocessed_ids)
+            reprocessed_ids.clear()
+            reprocessed_last_logged_time = now
+
+        if reprocessed_last_logged_time is None or now > reprocessed_last_logged_time + 10:
+            logger.info(reprocessed_ids)
+            reprocessed_ids.clear()
+            reprocessed_last_logged_time = now
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = event_processing_store.store(data)
