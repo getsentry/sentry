@@ -791,12 +791,18 @@ function RenderRow(props: {
               {props.node.children.length > 0 || props.node.canFetch ? (
                 <ChildrenButton
                   icon={
-                    props.node.canFetch && props.node.fetchStatus === 'idle' ? (
-                      '+'
-                    ) : props.node.canFetch && props.node.zoomedIn ? (
-                      <TraceIcons.Chevron direction="down" />
+                    props.node.canFetch ? (
+                      props.node.fetchStatus === 'idle' ? (
+                        '+'
+                      ) : props.node.zoomedIn ? (
+                        <TraceIcons.Chevron direction="down" />
+                      ) : (
+                        '+'
+                      )
                     ) : (
-                      '+'
+                      <TraceIcons.Chevron
+                        direction={props.node.expanded ? 'up' : 'down'}
+                      />
                     )
                   }
                   status={props.node.fetchStatus}

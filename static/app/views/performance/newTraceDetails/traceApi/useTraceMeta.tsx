@@ -9,6 +9,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {Organization} from 'sentry/types';
 import type {PageFilters} from 'sentry/types/core';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,6 +76,7 @@ async function fetchTraceMetaInBatches(
     performance_issues: 0,
     projects: 0,
     transactions: 0,
+    transactiontoSpanChildrenCount: {},
   };
 
   const apiErrors: Error[] = [];
@@ -90,11 +92,21 @@ async function fetchTraceMetaInBatches(
     const updatedData = results.reduce(
       (acc, result) => {
         if (result.status === 'fulfilled') {
-          const {errors, performance_issues, projects, transactions} = result.value;
+          const {
+            errors,
+            performance_issues,
+            projects,
+            transactions,
+            transaction_child_count_map,
+          } = result.value;
           acc.errors += errors;
           acc.performance_issues += performance_issues;
           acc.projects = Math.max(acc.projects, projects);
           acc.transactions += transactions;
+
+          transaction_child_count_map.forEach(({'transaction.id': id, count}) => {
+            acc.transactiontoSpanChildrenCount[id] = count;
+          });
         } else {
           apiErrors.push(new Error(result.reason));
         }
@@ -116,6 +128,7 @@ export type TraceMetaQueryResults = {
   data: TraceMeta | undefined;
   errors: Error[];
   isLoading: boolean;
+  status: QueryStatus;
 };
 
 export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
@@ -131,7 +144,7 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
 
   const mode = queryParams.demo ? 'demo' : undefined;
 
-  const {data, isLoading} = useQuery<
+  const {data, isLoading, status} = useQuery<
     {
       apiErrors: Error[];
       metaResults: TraceMeta;
@@ -158,9 +171,11 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
         performance_issues: 0,
         projects: 1,
         transactions: 1,
+        transactiontoSpanChildrenCount: {'1': 0},
       },
       isLoading: false,
       errors: [],
+      status: 'success',
     };
   }
 
@@ -168,5 +183,6 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
     data: data?.metaResults,
     isLoading,
     errors: data?.apiErrors || [],
+    status,
   };
 }
