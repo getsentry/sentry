@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import Tag from 'sentry/components/badge/tag';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
@@ -12,6 +13,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -27,7 +29,10 @@ import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/aler
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
-import {UptimeMonitorStatus} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeMonitorMode,
+  UptimeMonitorStatus,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import type {CombinedAlerts} from '../../types';
 import {CombinedAlertType} from '../../types';
@@ -182,6 +187,29 @@ function RuleListRow({
     </Tooltip>
   );
 
+  const hasUptimeAutoconfigureBadge =
+    rule.type === CombinedAlertType.UPTIME &&
+    [UptimeMonitorMode.AUTO_DETECTED_ACTIVE, UptimeMonitorMode.MANUAL].includes(
+      rule.mode
+    );
+
+  const titleBadge = hasUptimeAutoconfigureBadge ? (
+    <Tag
+      type="info"
+      tooltipProps={{isHoverable: true}}
+      tooltipText={tct(
+        'This Uptime Monitoring alert was auto-detected. [learnMore: Learn more].',
+        {
+          learnMore: (
+            <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/" />
+          ),
+        }
+      )}
+    >
+      {t('Auto Detected')}
+    </Tag>
+  ) : null;
+
   return (
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
@@ -196,7 +224,7 @@ function RuleListRow({
                     : `/organizations/${orgId}/alerts/rules/uptime/${rule.projectSlug}/${rule.id}/details/`
               }
             >
-              {rule.name}
+              {rule.name} {titleBadge}
             </Link>
           </AlertName>
           <AlertIncidentDate>
