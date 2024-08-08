@@ -62,7 +62,8 @@ class ProjectAlertsEditor extends Component<Props, State> {
     const {hasMetricAlerts, organization, project, members, location} = this.props;
     const alertType = this.getAlertType();
 
-    // TODO(telemetry-experience): Remove once the migration is complete
+    //  Used to hide specific fields like actions while migrating metric alert rules.
+    //  Currently used to help people add `is:unresolved` to their metric alert query.
     const isMigration = location?.query?.migration === '1';
 
     return (
