@@ -14,7 +14,6 @@
   if (window.opener) {
     window.opener.postMessage({{ payload|to_json }}, {{ document_origin|safe }});
   }
-  window.close();
 </script>
 {% endscript %}
 

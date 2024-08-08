@@ -1197,6 +1197,15 @@ function buildRoutes() {
               )}
             />
           </Route>
+          <Route
+            path="uptime/"
+            component={make(() => import('sentry/views/alerts/rules/uptime'))}
+          >
+            <Route
+              path=":projectId/:uptimeRuleId/details/"
+              component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
+            />
+          </Route>
         </Route>
         <Route path="metric-rules/">
           <IndexRedirect

@@ -8,9 +8,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission
 from sentry.api.serializers import serialize
+from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.integrations.models.integration_feature import Feature, IntegrationFeature
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class IntegrationFeaturesPermissions(SentryPermission):
 class IntegrationFeaturesEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (IntegrationFeaturesPermissions,)
 

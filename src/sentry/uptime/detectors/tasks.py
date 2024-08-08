@@ -34,7 +34,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
 
-UPTIME_USER_AGENT = "sentry.io_uptime_checker_v_1"
+UPTIME_USER_AGENT = "SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/)"
 LAST_PROCESSED_KEY = "uptime_detector_last_processed"
 SCHEDULER_LOCK_KEY = "uptime_detector_scheduler_lock"
 FAILED_URL_RETRY_FREQ = timedelta(days=7)
@@ -42,8 +42,6 @@ URL_MIN_TIMES_SEEN = 5
 URL_MIN_PERCENT = 0.05
 # Default value for how often we should run these subscriptions when onboarding them
 ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=60).total_seconds())
-# Default timeout for subscriptions when we're onboarding them
-ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 logger = logging.getLogger("sentry.uptime-url-autodetection")
 
@@ -226,7 +224,7 @@ def process_candidate_url(
         # Disable auto-detection on this project now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
 
-    metrics.incr("uptime.detectors.candidate_url.succeeded")
+    metrics.incr("uptime.detectors.candidate_url.succeeded", sample_rate=1.0)
     return True
 
 
@@ -244,13 +242,11 @@ def monitor_url_for_project(project: Project, url: str):
                 ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             ],
         )
-    subscription = create_uptime_subscription(
-        url, ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS, ONBOARDING_SUBSCRIPTION_TIMEOUT_MS
-    )
+    subscription = create_uptime_subscription(url, ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS)
     create_project_uptime_subscription(
         project, subscription, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
     )
-    metrics.incr("uptime.detectors.candidate_url.monitor_created")
+    metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
 
 
 def is_failed_url(url: str) -> bool:

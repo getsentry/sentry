@@ -40,11 +40,13 @@ class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
             self.create_project(),
             self.create_project(),
         ]
-        response = self.do_request(
-            {
-                "projects": [p.id for p in projects],
-            }
-        )
+        # Need this feature so we don't get the multiple project without global view error
+        with self.feature("organizations:global-views"):
+            response = self.do_request(
+                {
+                    "projects": [p.id for p in projects],
+                }
+            )
         assert response.status_code == 400, response.data
         assert response.data == {
             "detail": ErrorDetail(
@@ -139,6 +141,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
         profile_id=None,
         profiler_id=None,
         thread_id=None,
+        transaction_id=None,
         project=None,
     ):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -156,6 +159,9 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             data.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {})[
                 "thread.id"
             ] = thread_id
+
+        if transaction_id is not None:
+            data["event_id"] = transaction_id
 
         self.store_event(data, project_id=project.id if project else self.project.id)
 
@@ -378,7 +384,21 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
             assert transactions_snql_request.dataset == Dataset.Discover.value
             assert (
-                Condition(Column("profile_id"), Op.IS_NOT_NULL)
+                Or(
+                    conditions=[
+                        Condition(Column("profile_id"), Op.IS_NOT_NULL),
+                        And(
+                            conditions=[
+                                Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                                Condition(
+                                    Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                    Op.EQ,
+                                    1,
+                                ),
+                            ],
+                        ),
+                    ],
+                )
                 in transactions_snql_request.query.where
             )
 
@@ -467,19 +487,23 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
         # this transaction has transaction profile
         profile_id = uuid4().hex
+        profile_transaction_id = uuid4().hex
         self.store_transaction(
             transaction="foo",
             profile_id=profile_id,
+            transaction_id=profile_transaction_id,
             project=self.project,
         )
 
         # this transaction has continuous profile with a matching chunk (to be mocked below)
         profiler_id = uuid4().hex
         thread_id = "12345"
+        profiler_transaction_id = uuid4().hex
         profiler_transaction = self.store_transaction(
             transaction="foo",
             profiler_id=profiler_id,
             thread_id=thread_id,
+            transaction_id=profiler_transaction_id,
             project=self.project,
         )
         start_timestamp = datetime.fromtimestamp(profiler_transaction["start_timestamp"])
@@ -562,12 +586,15 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                         "thread_id": thread_id,
                         "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
                         "end": str(int(profiler_transaction["timestamp"] * 1e9)),
+                        "transaction_id": profiler_transaction_id,
                     },
                 ],
             },
         )
 
-    def test_queries_profile_candidates_from_profiles_with_data(self):
+    def test_queries_profile_candidates_from_profiles_with_continuous_profiles_without_transactions(
+        self,
+    ):
         # this transaction has transaction profile
         profile_id = uuid4().hex
         profile_transaction = self.store_transaction(
@@ -580,6 +607,14 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             "profile.id": profile_id,
             "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
             + "+00:00",
+            "profiler.id": None,
+            "thread.id": None,
+            "precise.start_ts": datetime.fromtimestamp(
+                profile_transaction["start_timestamp"]
+            ).timestamp(),
+            "precise.finish_ts": datetime.fromtimestamp(
+                profile_transaction["timestamp"]
+            ).timestamp(),
         }
 
         # this transaction has continuous profile with a matching chunk (to be mocked below)
@@ -635,7 +670,21 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
             assert transactions_snql_request.dataset == Dataset.Discover.value
             assert (
-                Condition(Column("profile_id"), Op.IS_NOT_NULL)
+                Or(
+                    conditions=[
+                        Condition(Column("profile_id"), Op.IS_NOT_NULL),
+                        And(
+                            conditions=[
+                                Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                                Condition(
+                                    Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                    Op.EQ,
+                                    1,
+                                ),
+                            ],
+                        ),
+                    ],
+                )
                 in transactions_snql_request.query.where
             )
 
@@ -656,6 +705,164 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                             "project_id": self.project.id,
                             "profiler_id": profiler_id,
                             "chunk_id": chunk["chunk_id"],
+                        },
+                    ],
+                },
+            )
+
+    def test_queries_profile_candidates_from_profiles_with_continuous_profiles_with_transactions(
+        self,
+    ):
+        # this transaction has transaction profile
+        profile_id = uuid4().hex
+        profile_transaction_id = uuid4().hex
+        profile_transaction = self.store_transaction(
+            transaction="foo",
+            profile_id=profile_id,
+            transaction_id=profile_transaction_id,
+            project=self.project,
+        )
+        transaction_1 = {
+            "id": profile_transaction_id,
+            "project.id": self.project.id,
+            "profile.id": profile_id,
+            "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
+            + "+00:00",
+            "profiler.id": None,
+            "thread.id": None,
+            "precise.start_ts": datetime.fromtimestamp(
+                profile_transaction["start_timestamp"]
+            ).timestamp(),
+            "precise.finish_ts": datetime.fromtimestamp(
+                profile_transaction["timestamp"]
+            ).timestamp(),
+        }
+
+        # this transaction has continuous profile with a matching chunk (to be mocked below)
+        profiler_id = uuid4().hex
+        thread_id = "12345"
+        profiler_transaction_id = uuid4().hex
+        profiler_transaction = self.store_transaction(
+            transaction="foo",
+            profile_id=profiler_id,
+            thread_id=thread_id,
+            transaction_id=profiler_transaction_id,
+            project=self.project,
+        )
+        transaction_2 = {
+            "id": profiler_transaction_id,
+            "project.id": self.project.id,
+            "profile.id": None,
+            "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
+            + "+00:00",
+            "profiler.id": profiler_id,
+            "thread.id": thread_id,
+            "precise.start_ts": datetime.fromtimestamp(
+                profile_transaction["start_timestamp"]
+            ).timestamp(),
+            "precise.finish_ts": datetime.fromtimestamp(
+                profile_transaction["timestamp"]
+            ).timestamp(),
+        }
+
+        start_timestamp = datetime.fromtimestamp(profile_transaction["start_timestamp"])
+        finish_timestamp = datetime.fromtimestamp(profile_transaction["timestamp"])
+        buffer = timedelta(seconds=3)
+        # not able to write profile chunks to the table yet so mock it's response here
+        # so that the profiler transaction 1 looks like it has a profile chunk within
+        # the specified time range
+        chunk_1 = {
+            "project_id": self.project.id,
+            "profiler_id": profiler_id,
+            "chunk_id": uuid4().hex,
+            "start_timestamp": (start_timestamp - buffer).isoformat(),
+            "end_timestamp": (finish_timestamp + buffer).isoformat(),
+        }
+
+        # a random chunk that could be chosen but will not because we have a chunk
+        # associated to a profile
+        chunk_2 = {
+            "project_id": self.project.id,
+            "profiler_id": uuid4().hex,
+            "chunk_id": uuid4().hex,
+            "start_timestamp": (start_timestamp - buffer).isoformat(),
+            "end_timestamp": (finish_timestamp + buffer).isoformat(),
+        }
+
+        with (
+            patch("sentry.profiles.flamegraph.bulk_snuba_queries") as mock_bulk_snuba_queries,
+            patch(
+                "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
+            ) as mock_proxy_profiling_service,
+        ):
+            mock_bulk_snuba_queries.side_effect = [
+                [
+                    {"data": [transaction_1, transaction_2]},
+                    {"data": [chunk_1, chunk_2]},
+                ],
+                [{"data": [chunk_1]}],
+            ]
+            mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "dataSource": "profiles",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+
+            assert mock_bulk_snuba_queries.call_count == 2
+
+            first_call_args = mock_bulk_snuba_queries.call_args_list[0][0]
+            [transactions_snql_request, profiles_snql_request] = first_call_args[0]
+
+            assert transactions_snql_request.dataset == Dataset.Discover.value
+            assert (
+                Or(
+                    conditions=[
+                        Condition(Column("profile_id"), Op.IS_NOT_NULL),
+                        And(
+                            conditions=[
+                                Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                                Condition(
+                                    Function("has", [Column("contexts.key"), "trace.thread_id"]),
+                                    Op.EQ,
+                                    1,
+                                ),
+                            ],
+                        ),
+                    ],
+                )
+                in transactions_snql_request.query.where
+            )
+
+            assert profiles_snql_request.dataset == Dataset.Profiles.value
+
+            second_call_args = mock_bulk_snuba_queries.call_args_list[1][0]
+            [profiles_snql_request] = second_call_args[0]
+            assert profiles_snql_request.dataset == Dataset.Profiles.value
+
+            mock_proxy_profiling_service.assert_called_once_with(
+                method="POST",
+                path=f"/organizations/{self.project.organization.id}/flamegraph",
+                json_data={
+                    "transaction": [
+                        {
+                            "project_id": self.project.id,
+                            "profile_id": profile_id,
+                        },
+                    ],
+                    "continuous": [
+                        {
+                            "project_id": self.project.id,
+                            "profiler_id": profiler_id,
+                            "chunk_id": chunk_1["chunk_id"],
+                            "thread_id": thread_id,
+                            "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
+                            "end": str(int(profiler_transaction["timestamp"] * 1e9)),
+                            "transaction_id": profiler_transaction_id,
                         },
                     ],
                 },

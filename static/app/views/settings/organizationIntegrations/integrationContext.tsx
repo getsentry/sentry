@@ -8,6 +8,7 @@ export type IntegrationContextProps = {
     view:
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
+      | 'messaging_integration_onboarding'
       | 'onboarding'
       | 'project_creation';
   };
@@ -15,6 +16,7 @@ export type IntegrationContextProps = {
   provider: IntegrationProvider;
   type: IntegrationType;
   modalParams?: {[key: string]: string};
+  onAddIntegration?: () => void;
 };
 
 export const IntegrationContext = createContext<IntegrationContextProps | undefined>(

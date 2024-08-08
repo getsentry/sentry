@@ -11,7 +11,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -177,6 +177,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
+                  <FeedbackWidgetButton />
                   <Button
                     size="sm"
                     to={
@@ -206,7 +207,6 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
             <Layout.Body noRowGap>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
-              <FloatingFeedbackWidget />
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters

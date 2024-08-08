@@ -332,7 +332,9 @@ class DefaultFieldsModel(Model):
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
     if not isinstance(instance, DefaultFieldsModel):
         return
-    instance.date_updated = timezone.now()
+    # Only update this field when we're updating the row, not on create.
+    if instance.pk is not None:
+        instance.date_updated = timezone.now()
 
 
 def __model_post_save(instance: models.Model, **kwargs: Any) -> None:
@@ -372,7 +374,7 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
         )
 
-    from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
 
     if issubclass(sender, ReplicatedControlModel):
         sender.category.connect_control_model_updates(sender)

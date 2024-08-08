@@ -15,6 +15,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
+from urllib3.response import HTTPResponse
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -34,15 +35,15 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
-from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
-    find_channel_id_for_alert_rule,
-)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -288,7 +289,12 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
-    def test_dynamic_detection_type(self):
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_dynamic_detection_type(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse(status=200)
+
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         rule = self.create_alert_rule(
@@ -349,6 +355,29 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 time_window=1,
             )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_missing_threshold(self):
+        """Test that we throw a validation error when the trigger is missing alertThreshold"""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        data = deepcopy(self.dynamic_alert_rule_dict)
+        del data["triggers"][0]["alertThreshold"]
+
+        serializer = AlertRuleSerializer(
+            context={
+                "organization": self.organization,
+                "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
+                "user": self.user,
+                "installations": app_service.get_installed_for_organization(
+                    organization_id=self.organization.id
+                ),
+            },
+            data=data,
+        )
+        assert not serializer.is_valid(), serializer.errors
+        assert serializer.errors["nonFieldErrors"][0] == "Trigger must have an alertThreshold"
 
     @responses.activate
     def test_with_sentryapp_success(self):

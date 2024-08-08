@@ -931,6 +931,35 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
         assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
+    def test_inp_percentile(self):
+        for hour in range(6):
+            timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
+            self.store_transaction_metric(
+                111,
+                metric="measurements.inp",
+                timestamp=timestamp,
+                use_case_id=UseCaseID.TRANSACTIONS,
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1h",
+                "yAxis": ["p75(measurements.inp)"],
+                "project": self.project.id,
+                "dataset": "metrics",
+                **self.additional_params,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data["data"]) == 6
+        assert data["isMetricsData"]
+        assert data["meta"]["fields"]["p75_measurements_inp"] == "duration"
+        for item in data["data"]:
+            assert item[1][0]["count"] == 111
+
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest

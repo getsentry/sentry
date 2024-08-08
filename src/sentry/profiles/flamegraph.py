@@ -280,6 +280,7 @@ class ContinuousProfileCandidate(TypedDict):
     thread_id: NotRequired[str]
     start: NotRequired[str]
     end: NotRequired[str]
+    transaction_id: NotRequired[str]
 
 
 class ProfileCandidates(TypedDict):
@@ -295,6 +296,7 @@ class ProfilerMeta:
     thread_id: str
     start: float
     end: float
+    transaction_id: str
 
     def as_condition(self) -> Condition:
         return And(
@@ -383,6 +385,45 @@ class FlamegraphExecutor:
         }
 
     def get_profile_candidates_from_transactions(self) -> ProfileCandidates:
+        builder = self.get_transactions_based_candidate_query(query=self.query)
+
+        results = builder.run_query(
+            Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES.value,
+        )
+        results = builder.process_results(results)
+
+        continuous_profile_candidates: list[
+            ContinuousProfileCandidate
+        ] = self.get_chunks_for_profilers(
+            [
+                ProfilerMeta(
+                    project_id=row["project.id"],
+                    profiler_id=row["profiler.id"],
+                    thread_id=row["thread.id"],
+                    start=row["precise.start_ts"],
+                    end=row["precise.finish_ts"],
+                    transaction_id=row["id"],
+                )
+                for row in results["data"]
+                if row["profiler.id"] is not None and row["thread.id"]
+            ]
+        )
+
+        transaction_profile_candidates: list[TransactionProfileCandidate] = [
+            {
+                "project_id": row["project.id"],
+                "profile_id": row["profile.id"],
+            }
+            for row in results["data"]
+            if row["profile.id"] is not None
+        ]
+
+        return {
+            "transaction": transaction_profile_candidates,
+            "continuous": continuous_profile_candidates,
+        }
+
+    def get_transactions_based_candidate_query(self, query: str | None) -> DiscoverQueryBuilder:
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
 
         builder = DiscoverQueryBuilder(
@@ -390,14 +431,17 @@ class FlamegraphExecutor:
             params={},
             snuba_params=self.snuba_params,
             selected_columns=[
+                "id",
                 "project.id",
                 "precise.start_ts",
                 "precise.finish_ts",
                 "profile.id",
                 "profiler.id",
                 "thread.id",
+                "timestamp",
             ],
-            query=self.query,
+            query=query,
+            orderby=["-timestamp"],
             limit=max_profiles,
             config=QueryBuilderConfig(
                 transform_alias_to_input_format=True,
@@ -424,40 +468,7 @@ class FlamegraphExecutor:
             ],
         )
 
-        results = builder.run_query(
-            Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES.value,
-        )
-        results = builder.process_results(results)
-
-        continuous_profile_candidates: list[
-            ContinuousProfileCandidate
-        ] = self.get_chunks_for_profilers(
-            [
-                ProfilerMeta(
-                    project_id=row["project.id"],
-                    profiler_id=row["profiler.id"],
-                    thread_id=row["thread.id"],
-                    start=row["precise.start_ts"],
-                    end=row["precise.finish_ts"],
-                )
-                for row in results["data"]
-                if row["profiler.id"] is not None and row["thread.id"]
-            ]
-        )
-
-        transaction_profile_candidates: list[TransactionProfileCandidate] = [
-            {
-                "project_id": row["project.id"],
-                "profile_id": row["profile.id"],
-            }
-            for row in results["data"]
-            if row["profile.id"] is not None
-        ]
-
-        return {
-            "transaction": transaction_profile_candidates,
-            "continuous": continuous_profile_candidates,
-        }
+        return builder
 
     def get_chunks_for_profilers(
         self, profiler_metas: list[ProfilerMeta]
@@ -473,33 +484,34 @@ class FlamegraphExecutor:
 
         results = self._query_chunks_for_profilers(queries)
 
-        profiler_metas_by_id = {
-            (profiler_meta.project_id, profiler_meta.profiler_id): profiler_meta
-            for profiler_meta in profiler_metas
-        }
+        profiler_metas_by_profiler = defaultdict(list)
+        for profiler_meta in profiler_metas:
+            key = (profiler_meta.project_id, profiler_meta.profiler_id)
+            profiler_metas_by_profiler[key].append(profiler_meta)
 
         continuous_profile_candidates: list[ContinuousProfileCandidate] = []
 
         for result in results:
             for row in result["data"]:
-                profiler_meta = profiler_metas_by_id[(row["project_id"], row["profiler_id"])]
                 start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
                 end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
 
-                continuous_profile_candidates.append(
-                    {
-                        "project_id": profiler_meta.project_id,
-                        "profiler_id": profiler_meta.profiler_id,
-                        "chunk_id": row["chunk_id"],
-                        "thread_id": profiler_meta.thread_id,
-                        "start": str(int(max(start, profiler_meta.start) * 1.0e9)),
-                        "end": str(int(min(end, profiler_meta.end) * 1.0e9)),
-                    }
-                )
+                key = (row["project_id"], row["profiler_id"])
+                for profiler_meta in profiler_metas_by_profiler[key]:
+                    if start > profiler_meta.end or end < profiler_meta.start:
+                        continue
 
-        # TODO: There is the possibility that different transactions use the same
-        # profiler, chunk and thread ids. So make sure to merge overlapping candidates
-        # to avoid using the same sample multiple times.
+                    continuous_profile_candidates.append(
+                        {
+                            "project_id": profiler_meta.project_id,
+                            "profiler_id": profiler_meta.profiler_id,
+                            "chunk_id": row["chunk_id"],
+                            "thread_id": profiler_meta.thread_id,
+                            "start": str(int(profiler_meta.start * 1.0e9)),
+                            "end": str(int(profiler_meta.end * 1.0e9)),
+                            "transaction_id": profiler_meta.transaction_id,
+                        }
+                    )
 
         return continuous_profile_candidates
 
@@ -584,21 +596,7 @@ class FlamegraphExecutor:
 
         referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES.value
 
-        transaction_profiles_builder = DiscoverQueryBuilder(
-            dataset=Dataset.Discover,
-            params={},
-            snuba_params=self.snuba_params,
-            selected_columns=["project.id", "profile.id", "timestamp"],
-            query=None,  # To match the profile chunks, we only fetch the latest profiles
-            orderby=["-timestamp"],
-            limit=max_profiles,
-            config=QueryBuilderConfig(
-                transform_alias_to_input_format=True,
-            ),
-        )
-        transaction_profiles_builder.add_conditions(
-            [Condition(transaction_profiles_builder.resolve_column("profile.id"), Op.IS_NOT_NULL)]
-        )
+        transaction_profiles_builder = self.get_transactions_based_candidate_query(query=None)
 
         project_condition = Condition(
             Column("project_id"),
@@ -651,20 +649,48 @@ class FlamegraphExecutor:
         transaction_profile_results = transaction_profiles_builder.process_results(all_results[0])
         continuous_profile_results = all_results[1]
 
-        return {
-            "transaction": [
-                {
-                    "project_id": row["project.id"],
-                    "profile_id": row["profile.id"],
-                }
-                for row in transaction_profile_results["data"]
-            ],
-            "continuous": [
+        transaction_profile_candidates: list[TransactionProfileCandidate] = [
+            {
+                "project_id": row["project.id"],
+                "profile_id": row["profile.id"],
+            }
+            for row in transaction_profile_results["data"]
+            if row["profile.id"] is not None
+        ]
+
+        profiler_metas = [
+            ProfilerMeta(
+                project_id=row["project.id"],
+                profiler_id=row["profiler.id"],
+                thread_id=row["thread.id"],
+                start=row["precise.start_ts"],
+                end=row["precise.finish_ts"],
+                transaction_id=row["id"],
+            )
+            for row in transaction_profile_results["data"]
+            if row["profiler.id"] is not None and row["thread.id"]
+        ]
+
+        continuous_profile_candidates: list[ContinuousProfileCandidate] = []
+
+        # If there are continuous profiles attached to transactions, we prefer those as
+        # the active thread id gives us more user friendly flamegraphs than without.
+        if profiler_metas:
+            continuous_profile_candidates = self.get_chunks_for_profilers(profiler_metas)
+
+        # If we still don't have any continuous profile candidates, we'll fall back to
+        # directly using the continuous profiling data
+        if not continuous_profile_candidates:
+            continuous_profile_candidates = [
                 {
                     "project_id": row["project_id"],
                     "profiler_id": row["profiler_id"],
                     "chunk_id": row["chunk_id"],
                 }
                 for row in continuous_profile_results["data"]
-            ],
+            ]
+
+        return {
+            "transaction": transaction_profile_candidates,
+            "continuous": continuous_profile_candidates,
         }

@@ -471,7 +471,7 @@ class BaseView(View, OrganizationMixin):
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def redirect(self, url: str, headers: Mapping[str, str] | None = None) -> HttpResponse:
+    def redirect(self, url: str, headers: Mapping[str, str] | None = None) -> HttpResponseRedirect:
         res = HttpResponseRedirect(url)
         if headers:
             for k, v in headers.items():
