@@ -383,6 +383,7 @@ class SlackActionEndpoint(Endpoint):
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
+            "tags": list(slack_request.get_tags()),
         }
         if slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
@@ -426,6 +427,7 @@ class SlackActionEndpoint(Endpoint):
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
             "rule": slack_request.callback_data.get("rule"),
+            "tags": list(slack_request.get_tags()),
         }
 
         if slack_request.data.get("channel"):
@@ -530,6 +532,10 @@ class SlackActionEndpoint(Endpoint):
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
+            view = View(**slack_request.data["view"])
+            private_metadata = orjson.loads(view.private_metadata)
+            original_tags_from_request = set(private_metadata["tags"])
+
             blocks = SlackIssuesMessageBuilder(
                 group,
                 identity=identity,
@@ -542,9 +548,7 @@ class SlackActionEndpoint(Endpoint):
 
             # use the original response_url to update the link attachment
             json_blocks = orjson.dumps(blocks.get("blocks")).decode()
-            view = View(**slack_request.data["view"])
             try:
-                private_metadata = orjson.loads(view.private_metadata)
                 webhook_client = WebhookClient(private_metadata["orig_response_url"])
                 webhook_client.send(
                     blocks=json_blocks, delete_original=False, replace_original=True
