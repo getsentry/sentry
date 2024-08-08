@@ -263,6 +263,7 @@ const Permission = styled('div')`
 
 const Footer = styled('div')`
   display: flex;
+  align-items: center;
   padding: 20px 30px;
   border-top: 1px solid #e2dee6;
   margin: 20px -30px -30px;
