@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -34,22 +35,14 @@ class FileBlameInfo(SourceLineInfo):
     commit: CommitInfo
 
 
-class GetBlameForFile(Protocol):
-    def get_blame_for_files(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
-    ) -> list[FileBlameInfo]:
-        ...
-
-
-class GetClient(Protocol):
-    def get_client(self) -> GetBlameForFile:
-        ...
-
-
-class CommitContextMixin(GetClient):
+class CommitContextIntegration(ABC):
     # whether or not integration has the ability to search through Repositories
     # dynamically given a search query
     repo_search = False
+
+    @abstractmethod
+    def get_client(self) -> CommitContextClient:
+        raise NotImplementedError
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
@@ -77,3 +70,11 @@ class CommitContextMixin(GetClient):
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
         """
         return self.get_blame_for_files(files, extra)
+
+
+class CommitContextClient(ABC):
+    @abstractmethod
+    def get_blame_for_files(
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    ) -> list[FileBlameInfo]:
+        raise NotImplementedError
