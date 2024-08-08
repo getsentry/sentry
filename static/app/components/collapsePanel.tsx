@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const COLLAPSE_COUNT = 5;
 
@@ -93,7 +92,7 @@ export default CollapsePanel;
 const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
   cursor: pointer;
@@ -107,12 +106,12 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
       border-bottom: 1px solid ${p.theme.border};
       border-bottom-left-radius: ${p.theme.borderRadius};
       border-bottom-right-radius: ${p.theme.borderRadius};
-      margin-bottom: ${space(2)};
+      margin-bottom: ${p.theme.space(2)};
     `}
 `;
 
 const StyledIconList = styled(IconList)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const ShowMoreText = styled('div')`

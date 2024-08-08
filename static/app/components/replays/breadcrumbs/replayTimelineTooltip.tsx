@@ -100,7 +100,7 @@ function TimelineTooltip({enabled = true, labelText}: Props) {
 const CursorLabel = styled(Overlay)`
   font-variant-numeric: tabular-nums;
   width: max-content;
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${space(1)};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;

@@ -174,12 +174,12 @@ const Detail = styled('div')`
 
 const CardHeader = styled('div')`
   display: flex;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
 `;
 
 const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
   max-height: 250px;
   min-height: 250px;
   overflow: hidden;
@@ -190,7 +190,7 @@ const CardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   .dropdown {
     height: 24px;
   }
@@ -199,7 +199,7 @@ const CardFooter = styled('div')`
 const CardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const StyledPanelBody = styled(PanelBody)`

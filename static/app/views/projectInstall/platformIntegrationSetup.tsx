@@ -7,7 +7,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IntegrationProvider, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -176,12 +175,12 @@ class PlatformIntegrationSetup extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const StyledButtonBar = styled(ButtonBar)`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
   width: max-content;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: auto;
-    grid-row-gap: ${space(1)};
+    grid-row-gap: ${p => p.theme.space(1)};
     grid-auto-flow: row;
   }
 `;
@@ -199,12 +198,12 @@ const OuterWrapper = styled('div')`
 
 const HeaderButtons = styled('div')`
   width: min-content;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const StyledTitle = styled('h2')`
   margin: 0;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export default withOrganization(PlatformIntegrationSetup);

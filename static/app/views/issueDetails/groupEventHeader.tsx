@@ -22,10 +22,10 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
 }
 
 const StyledDataSection = styled(DataSection)`
-  padding: ${space(1)} ${space(2)} 0;
+  padding: ${p => p.theme.space(1)} ${space(2)} 0;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(1.5)} ${space(4)} 0;
+    padding: ${p => p.theme.space(1.5)} ${space(4)} 0;
   }
 `;
 

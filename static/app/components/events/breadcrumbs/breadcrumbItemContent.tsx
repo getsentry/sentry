@@ -5,7 +5,6 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
-import {space} from 'sentry/styles/space';
 import {
   BreadcrumbMessageFormat,
   BreadcrumbType,
@@ -200,7 +199,7 @@ const LightenTextColor = styled('pre')`
   margin: 0;
   &.language-sql {
     color: ${p => p.theme.subText};
-    padding: ${space(0.25)} 0;
+    padding: ${p => p.theme.space(0.25)} 0;
     font-size: ${p => p.theme.fontSizeSmall};
   }
 `;

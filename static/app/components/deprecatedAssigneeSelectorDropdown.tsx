@@ -632,13 +632,13 @@ const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-size: 13px;
-  padding: ${space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${space(0.5)};
 `;
 
 const MenuItemFooterWrapper = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space(0.25)} ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: ${p => p.theme.tag.highlight.background};
   color: ${p => p.theme.activeText};
@@ -660,7 +660,7 @@ const Label = styled(TextOverflow)`
 
 const AssigneeLabel = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   max-width: 300px;
 `;
 
@@ -674,7 +674,7 @@ const GroupHeader = styled('div')`
   line-height: 1.5;
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
   color: ${p => p.theme.subText};
   text-align: left;
 `;

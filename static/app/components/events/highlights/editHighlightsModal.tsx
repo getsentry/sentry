@@ -458,8 +458,8 @@ function SectionFilterInput(props: InputProps) {
 }
 
 const modalBodyCss = css`
-  margin: 0 -${space(4)};
-  padding: 0 ${space(4)};
+  margin: 0 -${p => p.theme.space(4)};
+  padding: 0 ${p => p.theme.space(4)};
   /* Full height minus enough buffer for header, footer and margins */
   max-height: calc(100vh - 275px);
   overflow-y: auto;
@@ -471,8 +471,8 @@ const Title = styled('h3')`
 
 const Subtitle = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
-  margin-bottom: ${space(1.5)};
-  padding-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
+  padding-bottom: ${p => p.theme.space(0.5)};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -488,17 +488,17 @@ const FooterInfo = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.subText};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
   border: 1px dashed ${p => p.theme.border};
   border-radius: 4px;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
   align-items: start;
-  margin: 0 -${space(1.5)};
+  margin: 0 -${p => p.theme.space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -523,12 +523,12 @@ const EditHighlightColumn = styled('div')`
   grid-column: span 1;
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.innerBorder};
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.innerBorder};
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space(2)};
   }
 `;
 
@@ -537,7 +537,7 @@ const EditPreviewColumn = styled(EditHighlightColumn)`
   grid-template-columns: 22px minmax(auto, 175px) 1fr;
   column-gap: 0;
   button {
-    margin-right: ${space(0.25)};
+    margin-right: ${p => p.theme.space(0.25)};
   }
 `;
 
@@ -563,7 +563,7 @@ const EditTagContainer = styled('div')`
 `;
 
 const EditContextContainer = styled(EditTagContainer)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const EditButton = styled(Button)`
@@ -574,7 +574,7 @@ const EditButton = styled(Button)`
   height: 18px;
   min-height: 18px;
   border-radius: 4px;
-  margin: ${space(0.25)} 0;
+  margin: ${p => p.theme.space(0.25)} 0;
   align-self: start;
   svg {
     height: 10px;
@@ -599,5 +599,5 @@ const ContextType = styled('p')`
   grid-column: span 2;
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: capitalize;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space(0.25)};
 `;

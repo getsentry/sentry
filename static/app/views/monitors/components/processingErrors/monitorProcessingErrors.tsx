@@ -15,7 +15,6 @@ import ListItem from 'sentry/components/list/listItem';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
 import type {
   CheckInPayload,
@@ -168,27 +167,27 @@ export default function MonitorProcessingErrors({
 const ErrorsList = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ProjectGroupsList = styled(ErrorsList)`
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
 `;
 
 const ErrorGroup = styled('div')`
   display: Flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ErrorHeader = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ErrorHeaderActions = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const DismissButton = styled(Button)`

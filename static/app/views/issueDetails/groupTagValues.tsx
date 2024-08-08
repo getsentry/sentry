@@ -320,7 +320,7 @@ const TitleWrapper = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const Title = styled('h3')`
@@ -337,13 +337,13 @@ const StyledPanelTable = styled(PanelTable)`
   }
 
   & > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${space(2)};
   }
 `;
 
 const StyledLoadingError = styled(LoadingError)`
   grid-column: 1 / -1;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
   border-radius: 0;
   border-width: 1px 0;
 `;
@@ -362,7 +362,7 @@ const StyledSortLink = styled(Link)`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const Column = styled('div')`

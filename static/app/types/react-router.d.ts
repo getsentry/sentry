@@ -1,5 +1,5 @@
 import type {ComponentClass, ComponentType, FunctionComponent, ReactNode} from 'react';
-import type {InjectedRouter, PlainRoute, WithRouterProps} from 'react-router';
+import type {PlainRoute} from 'react-router';
 import type {Location} from 'history';
 
 declare module 'react-router' {

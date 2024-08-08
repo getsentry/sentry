@@ -7,7 +7,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
@@ -92,28 +91,28 @@ function ApiTokenRow({token, onRemove, tokenPrefix = '', canEdit = false}: Props
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const Controls = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const Details = styled('div')`
   display: flex;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const TokenWrapper = styled('div')`
   flex: 1;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const ScopesWrapper = styled('div')`
   flex: 2;
-  margin-right: ${space(4)};
+  margin-right: ${p => p.theme.space(4)};
 `;
 
 const ScopeList = styled('div')`
@@ -130,7 +129,7 @@ const Heading = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: uppercase;
   color: ${p => p.theme.subText};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const TokenPreview = styled('div')`
@@ -148,7 +147,7 @@ const ButtonWrapper = styled('div')`
   align-items: flex-end;
   justify-content: flex-end;
   font-size: ${p => p.theme.fontSizeSmall};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 export default ApiTokenRow;

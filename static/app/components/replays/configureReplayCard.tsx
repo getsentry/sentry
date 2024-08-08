@@ -6,7 +6,6 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -78,7 +77,7 @@ export default function ConfigureReplayCard() {
         <Hovercard
           body={<ResourceButtons />}
           bodyClassName={css`
-            padding: ${space(1)};
+            padding: ${p => p.theme.space(1)};
           `}
           position="top-end"
         >
@@ -98,7 +97,7 @@ export default function ConfigureReplayCard() {
 const ButtonContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: flex-start;
 `;
 
@@ -107,7 +106,7 @@ const ButtonContent = styled('div')`
   flex-direction: column;
   text-align: left;
   white-space: pre-line;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
 `;
 
 const ButtonTitle = styled('div')`
@@ -121,6 +120,6 @@ const ButtonSubtitle = styled('div')`
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   height: auto;
 `;

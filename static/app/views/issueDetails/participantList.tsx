@@ -100,7 +100,7 @@ const ParticipantWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 
   & > span {
     cursor: pointer;
@@ -131,7 +131,7 @@ const ParticipantListWrapper = styled('div')`
 const ListTitle = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
   text-transform: uppercase;
@@ -142,8 +142,8 @@ const ListTitle = styled('div')`
 const UserRow = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  gap: ${p => p.theme.space(1)};
   line-height: 1.2;
   font-size: ${p => p.theme.fontSizeSmall};
 `;

@@ -438,7 +438,7 @@ const StyledOverlay = styled(Overlay)<{width?: string}>`
 export const EmptyMessage = styled('p')`
   text-align: center;
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1.5)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)} ${space(1)};
   margin: 0;
 
   /* Message should only be displayed when _all_ preceding lists are empty */
@@ -458,7 +458,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
+  padding: ${p => headerVerticalPadding[p.size]} ${p => p.theme.space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
 
   line-height: ${p => p.theme.text.lineHeightBody};
@@ -472,19 +472,19 @@ const MenuHeader = styled('div')<{size: FormSize}>`
 const MenuHeaderTrailingItems = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: 0 ${space(0.5)} 0 ${space(1)};
+    margin: 0 ${p => p.theme.space(0.5)} 0 ${space(1)};
     height: 12px;
     width: 12px;
   }
@@ -492,7 +492,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const MenuFooter = styled('div')`
   box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
   z-index: 2;
 `;
 

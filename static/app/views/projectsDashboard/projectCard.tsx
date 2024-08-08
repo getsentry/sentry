@@ -304,13 +304,13 @@ const ChartContainer = styled('div')`
 `;
 
 const CardHeader = styled('div')`
-  margin: ${space(2)} 13px;
+  margin: ${p => p.theme.space(2)} 13px;
   height: 32px;
 `;
 
 const SettingsButton = styled(Button)`
   margin-left: auto;
-  margin-top: -${space(0.5)};
+  margin-top: -${p => p.theme.space(0.5)};
   padding: 3px;
   border-radius: 50%;
 `;
@@ -323,7 +323,7 @@ const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 0 ${space(0.5)};
+  gap: 0 ${p => p.theme.space(0.5)};
 
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
@@ -346,7 +346,7 @@ const FooterWrapper = styled('div')`
 `;
 
 const ScoreCardWrapper = styled('div')`
-  margin: ${space(2)} 0 0 ${space(2)};
+  margin: ${p => p.theme.space(2)} 0 0 ${space(2)};
   ${ScorePanel} {
     min-height: auto;
   }
@@ -362,12 +362,12 @@ const ScoreCardWrapper = styled('div')`
   }
   ${Trend} {
     margin-left: 0;
-    margin-top: ${space(0.5)};
+    margin-top: ${p => p.theme.space(0.5)};
   }
 `;
 
 const DeploysWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   ${GetStarted} {
     display: block;
     height: 100%;
@@ -375,7 +375,7 @@ const DeploysWrapper = styled('div')`
   ${TextOverflow} {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-column-gap: ${space(1)};
+    grid-column-gap: ${p => p.theme.space(1)};
     div {
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -387,7 +387,7 @@ const DeploysWrapper = styled('div')`
   }
   ${DeployRows} {
     grid-template-columns: 2fr auto;
-    margin-right: ${space(2)};
+    margin-right: ${p => p.theme.space(2)};
     height: auto;
     svg {
       display: none;
@@ -418,7 +418,7 @@ const StyledIdBadge = styled(IdBadge)`
 const SummaryLinks = styled('div')`
   display: flex;
   position: relative;
-  top: -${space(2)};
+  top: -${p => p.theme.space(2)};
   align-items: center;
   font-weight: ${p => p.theme.fontWeightNormal};
 
@@ -436,7 +436,7 @@ const SummaryLinks = styled('div')`
   }
   em {
     font-style: normal;
-    margin: 0 ${space(0.5)};
+    margin: 0 ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -446,21 +446,21 @@ const TransactionsLink = styled(Link)`
   justify-content: space-between;
 
   > span {
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space(0.5)};
   }
 `;
 
 const SummaryLinkPlaceholder = styled(Placeholder)`
   height: 15px;
   width: 180px;
-  margin-top: ${space(0.75)};
-  margin-bottom: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const FooterPlaceholder = styled(Placeholder)`
   height: 40px;
   width: auto;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
 `;
 
 export {ProjectCard};

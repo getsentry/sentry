@@ -107,21 +107,21 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
 const StyledHeaderActions = styled(Layout.HeaderActions)`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SmallerHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const SmallerProfilingBreadcrumbsWrapper = styled('div')`
   nav {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space(1)};
   }
 `;
 
 const SmallerLayoutHeader = styled(Layout.Header)`
-  padding: ${space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space(1)} ${space(2)} 0 ${space(2)} !important;
 `;
 
 export {ProfileHeader};

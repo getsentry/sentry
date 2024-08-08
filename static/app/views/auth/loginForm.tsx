@@ -10,7 +10,6 @@ import Link from 'sentry/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
@@ -132,7 +131,7 @@ const ProviderWrapper = styled('div')`
   position: relative;
   display: grid;
   grid-auto-rows: max-content;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
 
   &:before {
     position: absolute;

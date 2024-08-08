@@ -4,7 +4,6 @@ import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import {space} from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
 import type {
@@ -57,12 +56,12 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   position: relative;
   z-index: initial;
-  top: -${space(0.5)};
+  top: -${p => p.theme.space(0.5)};
 
   ${FeatureBadge} {
     position: relative;
-    top: -${space(0.25)};
-    margin-left: ${space(0.25)};
+    top: -${p => p.theme.space(0.25)};
+    margin-left: ${p => p.theme.space(0.25)};
   }
 `;
 
@@ -76,11 +75,11 @@ const WidgetHeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const HeaderActionsContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

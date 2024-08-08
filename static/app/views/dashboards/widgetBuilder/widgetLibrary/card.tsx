@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
@@ -29,7 +28,7 @@ export function Card({widget, iconColor}: CardProps) {
 const Container = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Information = styled('div')`
@@ -52,7 +51,7 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   min-width: 40px;
   height: 40px;
   border-radius: ${p => p.theme.borderRadius};

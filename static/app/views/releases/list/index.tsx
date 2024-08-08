@@ -31,7 +31,6 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {
   AvatarProject,
   Organization,
@@ -640,7 +639,7 @@ const AlertText = styled('div')`
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   > *:nth-child(1) {
     flex: 1;
@@ -652,14 +651,14 @@ const AlertText = styled('div')`
 `;
 
 const ReleasesPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const SortAndFilterWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr repeat(3, max-content);
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(3, 1fr);

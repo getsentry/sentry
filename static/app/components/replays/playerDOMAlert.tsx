@@ -36,7 +36,7 @@ export default PlayerDOMAlert;
 
 const DOMAlertContainer = styled('div')`
   position: absolute;
-  bottom: ${space(1)};
+  bottom: ${p => p.theme.space(1)};
   left: 0;
   width: 100%;
   text-align: center;
@@ -48,12 +48,12 @@ const DOMAlert = styled('div')`
   display: inline-flex;
   align-items: flex-start;
   justify-items: center;
-  padding: ${space(1)} ${space(2)};
-  margin: 0 ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
+  margin: 0 ${p => p.theme.space(1)};
   color: ${p => p.theme.white};
   background-color: ${p => p.theme.blue400};
   border-radius: ${p => p.theme.borderRadius};
-  gap: 0 ${space(1)};
+  gap: 0 ${p => p.theme.space(1)};
   line-height: 1em;
 `;
 

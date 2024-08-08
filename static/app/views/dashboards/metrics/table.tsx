@@ -252,7 +252,7 @@ const StyledPanelTable = styled(PanelTable)<{borderless?: boolean}>`
   display: grid;
   overflow: auto;
   margin: 0;
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
   box-shadow: none;
@@ -270,16 +270,16 @@ const StyledPanelTable = styled(PanelTable)<{borderless?: boolean}>`
 `;
 
 const HeaderCell = styled('div')<{disabled: boolean; type?: string}>`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   justify-content: ${p => (p.type === 'field' ? ' flex-end' : ' flex-start')};
 `;
 
 export const TableCell = styled(Cell)<{noValue?: boolean}>`
-  padding: ${space(1)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${space(3)};
   ${p => p.noValue && `color: ${p.theme.gray300};`}
 `;

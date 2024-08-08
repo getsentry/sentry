@@ -91,9 +91,9 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 export default EventTagsDataSection;
 
 const StyledEventDataSection = styled(InterimSection)`
-  padding: ${space(0.5)} ${space(2)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${space(2)} ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(1)} ${space(4)} ${space(1.5)};
+    padding: ${p => p.theme.space(1)} ${space(4)} ${space(1.5)};
   }
 `;

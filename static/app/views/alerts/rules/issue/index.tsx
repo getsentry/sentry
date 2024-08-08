@@ -1070,7 +1070,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               styles={{
                 container: (provided: {[x: string]: string | number | boolean}) => ({
                   ...provided,
-                  marginBottom: `${space(1)}`,
+                  marginBottom: `${p => p.theme.space(1)}`,
                 }),
               }}
               options={projectOptions}
@@ -1590,8 +1590,8 @@ const StyledForm = styled(Form)<FormProps>`
 `;
 
 const ConditionsPanel = styled(Panel)`
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(2)};
+  padding-top: ${p => p.theme.space(0.5)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledAlert = styled(Alert)`
@@ -1599,14 +1599,14 @@ const StyledAlert = styled(Alert)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-left: -${space(4)};
+    margin-left: -${p => p.theme.space(4)};
   }
 `;
 
@@ -1619,11 +1619,11 @@ const Step = styled('div')`
   position: relative;
   display: flex;
   align-items: flex-start;
-  margin: ${space(4)} ${space(4)} ${space(3)} ${space(1)};
+  margin: ${p => p.theme.space(4)} ${space(4)} ${space(3)} ${space(1)};
 `;
 
 const StepHeader = styled('h5')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StepContainer = styled('div')`
@@ -1646,26 +1646,26 @@ const StepConnector = styled('div')`
 `;
 
 const StepLead = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const TestButtonWrapper = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;
 
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.5)} ${space(1.5)};
 `;
 
 const Badge = styled('span')`
   min-width: 56px;
   background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.white};
   text-transform: uppercase;
@@ -1693,7 +1693,7 @@ const SemiTransparentLoadingMask = styled(LoadingMask)`
 const SettingsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledField = styled(FieldGroup)`
@@ -1704,27 +1704,27 @@ const StyledField = styled(FieldGroup)`
     padding: 0;
     width: 100%;
   }
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledFieldWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space(1)};
   }
 `;
 
 const ContentIndent = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    margin-left: ${space(4)};
+    margin-left: ${p => p.theme.space(4)};
   }
 `;
 
 const AcknowledgeLabel = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   line-height: 2;
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
@@ -1733,13 +1733,13 @@ const AcknowledgeField = styled(FieldGroup)`
   padding: 0;
   display: flex;
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 
   & > div {
     padding-left: 0;
     display: flex;
     align-items: baseline;
     flex: unset;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space(1)};
   }
 `;

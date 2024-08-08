@@ -56,7 +56,7 @@ const StyledButtonSmall = styled(Button)`
   box-shadow: none;
   transition: none !important;
   opacity: 0.5;
-  padding: ${space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${space(0.5)};
 
   &:hover {
     border: none;

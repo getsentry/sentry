@@ -48,7 +48,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
 }
 
 const Wrapper = styled('div')`
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.5)} ${space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding: 18px 36px;
@@ -57,19 +57,19 @@ const Wrapper = styled('div')`
 
 const RegistersTitle = styled('div')`
   width: 80px;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
 `;
 
 const Registers = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14.063rem, 1fr));
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-grow: 1;
 `;
 
 const Register = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   grid-template-columns: 3em 1fr;
   align-items: center;
   color: ${p => p.theme.gray300};

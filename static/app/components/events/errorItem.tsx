@@ -10,7 +10,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export type EventErrorData = {
   message: React.ReactNode;
@@ -137,7 +136,7 @@ export function ErrorItem({error, meta}: ErrorItemProps) {
 }
 
 const ToggleButton = styled(Button)`
-  margin-left: ${space(1.5)};
+  margin-left: ${p => p.theme.space(1.5)};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
   :hover,
@@ -147,7 +146,7 @@ const ToggleButton = styled(Button)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

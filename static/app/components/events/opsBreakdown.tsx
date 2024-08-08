@@ -294,21 +294,21 @@ function OpsBreakdown({
 
 const StyledBreakdown = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const StyledBreakdownNoHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(2)} ${space(3)};
+  margin: ${p => p.theme.space(2)} ${space(3)};
 `;
 
 export const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 
   * + * {
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -318,7 +318,7 @@ export const OpsDot = styled('div')`
   width: 8px;
   min-width: 8px;
   height: 8px;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   border-radius: 100%;
 `;
 

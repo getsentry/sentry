@@ -4,7 +4,6 @@ import {InputGroup} from 'sentry/components/inputGroup';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export function EventFilter() {
   return (
@@ -23,5 +22,5 @@ export function EventFilter() {
 const FilterContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

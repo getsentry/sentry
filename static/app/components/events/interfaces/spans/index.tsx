@@ -8,7 +8,6 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -176,20 +175,20 @@ const Container = styled('div')<{hasErrors: boolean}>`
   ${p =>
     p.hasErrors &&
     `
-  padding: ${space(2)} 0;
+  padding: ${p.theme.space(2)} 0;
 
   @media (min-width: ${p.theme.breakpoints.small}) {
-    padding: ${space(3)} 0 0 0;
+    padding: ${p.theme.space(3)} 0 0 0;
   }
   `}
 `;
 
 const Search = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   grid-template-columns: max-content 1fr;
   width: 100%;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -197,11 +196,11 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const AlertContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ErrorLabel = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 export const Spans = withOrganization(SpansInterface);

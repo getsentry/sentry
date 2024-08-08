@@ -60,13 +60,13 @@ const RowWrapper = styled('div')`
   border: 1px solid ${p => p.theme.gray200};
   justify-content: space-between;
   align-items: center;
-  padding: ${space(3)} ${space(4)};
+  padding: ${p => p.theme.space(3)} ${space(4)};
 `;
 
 const IconTextWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 const NameHeader = styled('h6')`

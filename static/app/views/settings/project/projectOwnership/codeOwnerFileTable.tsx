@@ -9,7 +9,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CodeOwner, CodeownersFile, Project} from 'sentry/types';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
@@ -172,11 +171,11 @@ const StyledPanelTable = styled(PanelTable)`
 const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

@@ -288,7 +288,7 @@ const MinHeight = styled('div')`
 
 const StyledPanelHeader = styled(PanelHeader)`
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   & > form:last-child {
     flex-grow: 1;
   }
@@ -302,10 +302,10 @@ const StyledPanelBody = styled(PanelBody)`
 
 const Item = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   grid-template-columns: 2.5fr 1fr min-content;
   align-items: center;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
 `;
 
 const ControlItem = styled(Item)`
@@ -313,5 +313,5 @@ const ControlItem = styled(Item)`
 `;
 
 const RemoveButtonWrapper = styled('div')`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
 `;

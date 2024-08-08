@@ -173,11 +173,11 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
 }
 
 const ProfilingHeader = styled(Layout.Header)`
-  padding: ${space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space(1)} ${space(2)} 0 ${space(2)} !important;
 `;
 
 const ProfilingHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 
   h1 {
     line-height: normal;
@@ -187,13 +187,13 @@ const ProfilingHeaderContent = styled(Layout.HeaderContent)`
 const StyledHeaderActions = styled(Layout.HeaderActions)`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
@@ -241,9 +241,9 @@ function ProfileFilters(props: ProfileFiltersProps) {
 
 const ActionBar = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: min-content auto;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1)};
   background-color: ${p => p.theme.background};
 `;
 
@@ -590,8 +590,8 @@ const ViewSelectContainer = styled('div')`
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(1)} ${space(0.5)};
+  gap: ${p => p.theme.space(1)};
+  padding: ${p => p.theme.space(1)} ${space(0.5)};
   background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,
@@ -776,7 +776,7 @@ const ProfileDigestHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   /* force height to be same as toolbar */
   height: 42px;

@@ -89,9 +89,9 @@ const List = styled('ul')<{
 const ListItem = styled('li')`
   display: grid;
   grid-template-columns: auto max-content max-content;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};

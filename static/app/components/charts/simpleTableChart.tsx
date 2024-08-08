@@ -157,11 +157,11 @@ type HeadCellProps = {
 };
 const HeadCell = styled('div')<HeadCellProps>`
   ${(p: HeadCellProps) => (p.align ? `text-align: ${p.align};` : '')}
-  padding: ${space(1)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${space(3)};
 `;
 
 export const TableCell = styled('div')`
-  padding: ${space(1)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${space(3)};
 `;
 
 export default SimpleTableChart;

@@ -8,7 +8,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -281,13 +280,13 @@ function GroupReplaysTable({
 const StyledLayoutPage = styled(Layout.Page)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.background};
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const ReplayCountHeader = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const OverlayText = styled('div')`

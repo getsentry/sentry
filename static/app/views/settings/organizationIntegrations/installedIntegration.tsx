@@ -252,11 +252,11 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
   &:before {
     content: '|';
     color: ${p => p.theme.gray200};
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
     font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;
 
 const IntegrationStatusText = styled('div')`
-  margin: 0 ${space(0.75)} 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.75)} 0 ${space(0.5)};
 `;

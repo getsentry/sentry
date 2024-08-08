@@ -49,22 +49,22 @@ const GroupingComponentList = styled('ul')<{isInline: boolean}>`
 
 export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>`
   padding: 0;
-  margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
+  margin: ${p => p.theme.space(0.25)} 0 ${space(0.25)} ${space(1.5)};
 
   ${p =>
     p.isCollapsible &&
     `
     border-left: 1px solid ${p.theme.innerBorder};
-    margin: 0 0 -${space(0.25)} ${space(1)};
-    padding-left: ${space(0.5)};
+    margin: 0 0 -${p.theme.space(0.25)} ${space(1)};
+    padding-left: ${p.theme.space(0.5)};
   `}
 `;
 
 export const GroupingValue = styled('code')<{valueType: string}>`
   display: inline-block;
-  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
+  margin: ${p => p.theme.space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space(0.25)};
   background: rgba(112, 163, 214, 0.1);
   color: ${p => p.theme.textColor};
 

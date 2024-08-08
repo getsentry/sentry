@@ -14,7 +14,6 @@ import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team} from 'sentry/types';
 import {useTeams} from 'sentry/utils/useTeams';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
@@ -180,7 +179,7 @@ function TeamRow({
 const GRID_TEMPLATE = `
   display: grid;
   grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px 95px;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   > div:last-child {
     margin-left: auto;
@@ -193,7 +192,7 @@ const TeamPanelHeader = styled(PanelHeader)`
 
 const TeamPanelItem = styled(PanelItem)`
   ${GRID_TEMPLATE}
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 export default TeamSelect;

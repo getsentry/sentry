@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface CarouselProps {
   children?: React.ReactNode;
@@ -120,7 +119,7 @@ const CarouselContainer = styled('div')`
   /* We provide some margin to make room for the scroll bar. It is applied on
    * the top and bottom for consistency.
    */
-  margin: ${space(0.25)};
+  margin: ${p => p.theme.space(0.25)};
 `;
 
 const CarouselItems = styled('div')`
@@ -130,7 +129,7 @@ const CarouselItems = styled('div')`
   /* We provide some margin to make room for the scroll bar. It is applied on
    * the top and bottom for consistency.
    */
-  padding: ${space(1.5)} 0;
+  padding: ${p => p.theme.space(1.5)} 0;
 `;
 
 const StyledArrowButton = styled(Button)<{direction: string}>`

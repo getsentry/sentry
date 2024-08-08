@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Highlight from 'sentry/components/highlight';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getFormattedTimestamp} from 'sentry/utils/date/getFormattedTimestamp';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -61,5 +60,5 @@ const Wrapper = styled('div')`
 
 const Title = styled('div')`
   display: grid;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;

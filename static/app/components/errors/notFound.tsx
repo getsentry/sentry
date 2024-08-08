@@ -4,7 +4,6 @@ import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function NotFound() {
   return (
@@ -45,7 +44,7 @@ function NotFound() {
 const Heading = styled('h1')`
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: 1.4;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 export default NotFound;

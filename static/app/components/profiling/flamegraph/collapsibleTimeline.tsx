@@ -46,7 +46,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
 const StyledButton = styled(Button)`
   height: 12px;
   min-height: 12px;
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
   border-radius: 2px;
   background-color: ${p => p.theme.backgroundSecondary};
   border: none;
@@ -107,7 +107,7 @@ const CollapsibleTimelineHeader = styled('div')<{
 `;
 
 export const CollapsibleTimelineLabel = styled('span')`
-  padding: 1px ${space(1)};
+  padding: 1px ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 

@@ -10,7 +10,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
@@ -120,7 +119,7 @@ const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
   margin: 0;
   > *:last-child {
-    padding-bottom: ${space(3)};
+    padding-bottom: ${p => p.theme.space(3)};
   }
 `;
 
@@ -131,13 +130,13 @@ const PanelHeaderLink = styled(Link)`
 const Title = styled('div')<{disabled: boolean}>`
   flex: 1;
   ${p => (p.disabled ? 'opacity: 0.5;' : '')};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const Controls = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-auto-flow: column;
 `;
 

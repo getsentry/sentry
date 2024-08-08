@@ -16,7 +16,6 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -346,7 +345,7 @@ const DocsWrapper = styled(motion.div)``;
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const OptionalConfigWrapper = styled('div')`

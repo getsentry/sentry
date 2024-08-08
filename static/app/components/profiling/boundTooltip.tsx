@@ -106,7 +106,7 @@ const Tooltip = styled('div')`
   pointer-events: none;
   user-select: none;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space(0.25)} ${space(1)};
   border: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 24px;

@@ -43,7 +43,7 @@ const Wrapper = styled(Panel)`
 `;
 
 const Body = styled(PanelBody)`
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${space(3)};
   flex: 1;
   max-width: 350px;
 `;
@@ -51,17 +51,17 @@ const Body = styled(PanelBody)`
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const SubTitle = styled('p')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
 `;
 
 const ContextArea = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const SentaurIllustration = styled('img')`

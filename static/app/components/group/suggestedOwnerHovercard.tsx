@@ -214,7 +214,7 @@ const StyledHovercard = styled(Hovercard)`
 `;
 
 const CommitIcon = styled(IconCommit)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
   flex-shrink: 0;
 `;
 
@@ -226,35 +226,35 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
 ))`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
   hyphens: auto;
 `;
 
 const CommitDate = styled(({date, ...props}) => (
   <div {...props}>{moment(date).fromNow()}</div>
 ))`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.gray300};
 `;
 
 const CommitReasonItem = styled('div')`
   display: flex;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const RuleReasonItem = styled('div')`
   display: flex;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</div>)`
   background: ${p => tagColors[p.tagType.indexOf('tags') === -1 ? p.tagType : 'tag']};
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: ${space(0.25)} ${space(0.5)};
-  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
+  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
+  margin: ${p => p.theme.space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   border-radius: 2px;
   font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;
@@ -264,8 +264,8 @@ const ViewMoreButton = styled(Button)`
   border: none;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: ${space(0.25)} ${space(0.5)};
-  margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;
+  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
+  margin: ${p => p.theme.space(1)} ${space(0.25)} ${space(0.25)} 0;
   width: 100%;
   min-width: 34px;
 `;
@@ -273,12 +273,12 @@ const ViewMoreButton = styled(Button)`
 const OwnershipValue = styled('code')`
   word-break: break-all;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 const ReleaseValue = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 
 const EmailAlert = styled(Alert)`
@@ -293,11 +293,11 @@ const EmailAlert = styled(Alert)`
 const HovercardHeader = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const HovercardBody = styled('div')`
-  margin-top: -${space(2)};
+  margin-top: -${p => p.theme.space(2)};
 `;
 
 export default SuggestedOwnerHovercard;

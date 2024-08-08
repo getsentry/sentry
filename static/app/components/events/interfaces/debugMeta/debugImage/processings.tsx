@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {ImageStatus} from 'sentry/types/debugImage';
 
 import ProcessingItem from '../processing/item';
@@ -44,12 +43,12 @@ export default Processings;
 const StyledProcessingList = styled(ProcessingList)`
   display: flex;
   flex-wrap: wrap;
-  margin-bottom: -${space(1)};
+  margin-bottom: -${p => p.theme.space(1)};
 `;
 
 const StyledProcessingItem = styled(ProcessingItem)`
   :not(:last-child) {
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space(2)};
   }
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;

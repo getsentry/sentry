@@ -12,7 +12,6 @@ import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils'
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MRI, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Column} from 'sentry/utils/discover/fields';
@@ -749,23 +748,25 @@ const RowContainer = styled('div')<{
   showAliasField?: boolean;
 }>`
   display: grid;
-  grid-template-columns: ${space(3)} 1fr 40px 40px;
+  grid-template-columns: ${p => p.theme.space(3)} 1fr 40px 40px;
   justify-content: center;
   align-items: center;
   width: 100%;
   touch-action: none;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 
   ${p =>
     p.showAliasField &&
     css`
       align-items: flex-start;
-      grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px 40px`};
+      grid-template-columns: ${p.singleColumn
+        ? `1fr`
+        : `${p.theme.space(3)} 1fr 40px 40px`};
 
       @media (min-width: ${p.theme.breakpoints.small}) {
         grid-template-columns: ${p.singleColumn
-          ? `1fr calc(200px + ${space(1)})`
-          : `${space(3)} 1fr calc(200px + ${space(1)}) 40px 40px`};
+          ? `1fr calc(200px + ${p.theme.space(1)})`
+          : `${p.theme.space(3)} 1fr calc(200px + ${p.theme.space(1)}) 40px 40px`};
       }
     `};
 `;
@@ -780,7 +781,7 @@ const Ghost = styled('div')`
   width: 710px;
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space(2)};
 
   & > ${RowContainer} {
     padding-bottom: 0;
@@ -799,7 +800,7 @@ const OnDemandContainer = styled('div')`
 `;
 
 const DragPlaceholder = styled('div')`
-  margin: 0 ${space(3)} ${space(1)} ${space(3)};
+  margin: 0 ${p => p.theme.space(3)} ${p => p.theme.space(1)} ${p => p.theme.space(3)};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   height: ${p => p.theme.form.md.height}px;
@@ -811,7 +812,7 @@ const Heading = styled('div')<{gridColumns: number}>`
   /* Emulate the grid used in the column editor rows */
   display: grid;
   grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
@@ -823,10 +824,10 @@ const AliasInput = styled(Input)`
 `;
 
 const AliasField = styled('div')<{singleColumn: boolean}>`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     margin-top: 0;
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space(1)};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
@@ -836,7 +837,7 @@ const AliasField = styled('div')<{singleColumn: boolean}>`
 `;
 
 const RemoveButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   height: ${p => p.theme.form.md.height}px;
 `;
 

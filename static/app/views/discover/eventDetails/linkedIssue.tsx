@@ -95,7 +95,7 @@ function LinkedIssue({eventId, groupId}: Props) {
 }
 
 const Section = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const StyledIssueCard = styled('div')`
@@ -107,7 +107,7 @@ const IssueCardHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const StyledLink = styled(Link)`
@@ -116,7 +116,7 @@ const StyledLink = styled(Link)`
 
 const IssueCardBody = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
 `;
 
 const StyledShortId = styled(ShortId)`
@@ -127,7 +127,7 @@ const StyledShortId = styled(ShortId)`
 const IssueCardFooter = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${space(1)};
 `;
 
 export default LinkedIssue;

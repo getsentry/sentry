@@ -98,7 +98,7 @@ function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleV
 const SingleValueWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
@@ -260,7 +260,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         paddingRight: space(0.5),
         // offset horizontal margin/padding from multiValue (space(0.25)) &
         // multiValueLabel (space(0.75))
-        ...(state.isMulti && {marginLeft: `-${space(1)}`}),
+        ...(state.isMulti && {marginLeft: `-${p => p.theme.space(1)}`}),
       }),
       input: provided => ({
         ...provided,
@@ -327,7 +327,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         fontWeight: 600,
         color: theme.subText,
         marginBottom: 0,
-        padding: `${space(0.5)} ${space(1.5)}`,
+        padding: `${p => p.theme.space(0.5)} ${space(1.5)}`,
         ':empty': {
           display: 'none',
         },

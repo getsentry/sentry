@@ -1336,10 +1336,10 @@ const StyledBody = styled('div')`
 
 const StyledMain = styled('section')`
   grid-area: content;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(3)} ${space(4)};
+    padding: ${p => p.theme.space(3)} ${space(4)};
   }
 `;
 

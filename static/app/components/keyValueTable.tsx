@@ -27,7 +27,7 @@ export function KeyValueTableRow({keyName, value, type}: Props) {
 
 const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => `
   font-size: ${theme.fontSizeMedium};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${space(1)};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: inherit;
   ${p => p.theme.overflowEllipsis};

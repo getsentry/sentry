@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 /**
  * Renders the first & last seen times for a group or event with
@@ -53,7 +52,7 @@ const FlexWrapper = styled('div')`
 const StyledIconClock = styled(IconClock)`
   /* this is solely for optics, since TimeSince always begins
   with a number, and numbers do not have descenders */
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 export default Times;

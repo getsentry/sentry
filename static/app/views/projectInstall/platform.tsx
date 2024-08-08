@@ -20,7 +20,6 @@ import type {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK, PlatformIntegration, PlatformKey} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -270,16 +269,16 @@ export function ProjectInstallPlatform({location, params}: Props) {
 }
 
 const StyledButtonBar = styled(ButtonBar)`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
   width: max-content;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: auto;
-    grid-row-gap: ${space(1)};
+    grid-row-gap: ${p => p.theme.space(1)};
     grid-auto-flow: row;
   }
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;

@@ -13,7 +13,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -143,7 +142,7 @@ function Device(props) {
 
 const DeviceNameInput = styled(Input)`
   width: 50%;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
 `;
 
 const DevicePanelItem = styled(PanelItem)`
@@ -157,7 +156,7 @@ const DeviceInformation = styled('div')`
   flex: 1 1;
   height: 72px;
 
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   padding-right: 0;
 `;
 
@@ -171,14 +170,14 @@ const Name = styled('div')`
 `;
 
 const Actions = styled('div')`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space(2)};
 `;
 
 const AddAnotherPanelItem = styled(PanelItem)`
   justify-content: flex-end;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 export default styled(U2fEnrolledDetails)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space(4)};
 `;

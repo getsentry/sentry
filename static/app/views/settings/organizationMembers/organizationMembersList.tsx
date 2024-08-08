@@ -16,7 +16,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {
   BaseRole,
   Member,
@@ -391,7 +390,7 @@ const SearchWrapperWithFilter = styled(SearchWrapper)`
 const StyledPanelItem = styled('div')`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   align-items: center;
   width: 100%;
 `;

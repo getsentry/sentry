@@ -6,7 +6,6 @@ import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconGithub} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type GithubFeedbackTooltipProps = TooltipProps & {
   href: string;
@@ -41,14 +40,14 @@ export function GithubFeedbackTooltip({
 }
 
 const FeedbackLine = styled('div')<{hasTitle: boolean}>`
-  ${p => p.hasTitle && `padding-top: ${space(1)};`}
+  ${p => p.hasTitle && `padding-top: ${p.theme.space(1)};`}
 `;
 
 const GithubLink = styled(ExternalLink)`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   line-height: 0px;
 
   & > svg {

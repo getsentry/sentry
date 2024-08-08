@@ -287,7 +287,7 @@ const MenuItemWrap = styled('li')`
   position: static;
   list-style-type: none;
   margin: 0;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
   cursor: pointer;
 
   &:focus {
@@ -334,7 +334,7 @@ export const InnerWrap = styled('div', {
 }>`
   display: flex;
   position: relative;
-  padding: 0 ${space(1)} 0 ${space(1.5)};
+  padding: 0 ${p => p.theme.space(1)} 0 ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
 
@@ -396,7 +396,7 @@ const ContentWrap = styled('div')<{
   width: 100%;
   min-width: 0;
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   justify-content: space-between;
   padding: ${p => getVerticalPadding(p.size)} 0;
 
@@ -424,9 +424,9 @@ const LeadingItems = styled('div')<{
   display: flex;
   align-items: center;
   height: 1.4em;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   margin-top: ${p => getVerticalPadding(p.size)};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   flex-shrink: 0;
 
   ${p => p.disabled && `opacity: 0.5;`}
@@ -434,7 +434,7 @@ const LeadingItems = styled('div')<{
 `;
 
 const LabelWrap = styled('div')`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
   width: 100%;
   min-width: 0;
 `;
@@ -460,8 +460,8 @@ const TrailingItems = styled('div')<{disabled: boolean; spanFullHeight: boolean}
   display: flex;
   align-items: center;
   height: 1.4em;
-  gap: ${space(1)};
-  margin-right: ${space(0.5)};
+  gap: ${p => p.theme.space(1)};
+  margin-right: ${p => p.theme.space(0.5)};
 
   ${p => p.disabled && `opacity: 0.5;`}
   ${p => p.spanFullHeight && `height: 100%;`}

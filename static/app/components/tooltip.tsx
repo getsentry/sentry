@@ -78,7 +78,7 @@ function Tooltip({
 }
 
 const TooltipContent = styled(Overlay)`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
   overflow-wrap: break-word;
   max-width: 225px;
   color: ${p => p.theme.textColor};

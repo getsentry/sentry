@@ -169,7 +169,7 @@ export default function FeedbackListItem({
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
-  padding: ${space(1)} ${space(3)} ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(3)} ${space(1)} ${space(1.5)};
   border: 1px solid transparent;
 
   color: ${p => p.theme.textColor};
@@ -179,7 +179,7 @@ const LinkedFeedbackCard = styled(Link)`
   &[data-selected='true'] {
     background: ${p => p.theme.purple100};
     border: 1px solid ${p => p.theme.purple200};
-    border-radius: ${space(0.75)};
+    border-radius: ${p => p.theme.space(0.75)};
     color: ${p => p.theme.purple300};
   }
 
@@ -190,7 +190,7 @@ const LinkedFeedbackCard = styled(Link)`
     'checkbox user time'
     'unread message message'
     '. bottom bottom';
-  gap: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space(0.5)} ${space(1)};
   place-items: stretch;
   align-items: center;
 `;
@@ -202,7 +202,7 @@ const Row = styled(Flex)`
 const BottomGrid = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   overflow: hidden;
 `;
@@ -216,7 +216,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const PreviewRow = styled(Row)`
   align-items: flex-start;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding-bottom: ${space(0.75)};
+  padding-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const DotRow = styled(Row)`
@@ -251,5 +251,5 @@ const StyledTimeSince = styled(TimeSince)`
 `;
 
 const CardSpacing = styled('div')`
-  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${space(0.5)} 0 ${space(0.5)};
 `;

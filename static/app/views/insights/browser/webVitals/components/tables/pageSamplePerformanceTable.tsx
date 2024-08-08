@@ -15,7 +15,6 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -523,9 +522,9 @@ const AlignCenter = styled('div')`
 `;
 
 const StyledProjectAvatar = styled(ProjectAvatar)`
-  top: ${space(0.25)};
+  top: ${p => p.theme.space(0.25)};
   position: relative;
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 const NoValue = styled('span')`
@@ -534,9 +533,9 @@ const NoValue = styled('span')`
 
 const SearchBarContainer = styled('div')`
   display: flex;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-top: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

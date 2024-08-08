@@ -7,7 +7,6 @@ import Placeholder from 'sentry/components/placeholder';
 import Radio from 'sentry/components/radio';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReleaseComparisonChartType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -134,15 +133,15 @@ const TitleWrapper = styled('div')`
   background: ${p => p.theme.background};
 
   input {
-    width: ${space(2)};
-    height: ${space(2)};
+    width: ${p => p.theme.space(2)};
+    height: ${p => p.theme.space(2)};
     flex-shrink: 0;
     background-color: ${p => p.theme.background};
-    margin-right: ${space(1)} !important;
+    margin-right: ${p => p.theme.space(1)} !important;
 
     &:checked:after {
-      width: ${space(1)};
-      height: ${space(1)};
+      width: ${p => p.theme.space(1)};
+      height: ${p => p.theme.space(1)};
     }
 
     &:hover {
@@ -162,7 +161,7 @@ const ChartTableRow = styled('label')<{
   margin-bottom: 0;
 
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 
   ${p =>
@@ -214,8 +213,8 @@ const ChartTableRow = styled('label')<{
     p.role === 'children' &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
-        padding-bottom: ${space(0.75)};
-        padding-top: ${space(0.75)};
+        padding-bottom: ${p.theme.space(0.75)};
+        padding-top: ${p.theme.space(0.75)};
         border-bottom: 0;
       }
     `}

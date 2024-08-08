@@ -6,7 +6,6 @@ import Duration from 'sentry/components/duration';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {type Group, GroupActivityType, GroupStatus} from 'sentry/types';
 
 interface Props {
@@ -72,7 +71,7 @@ export function UptimeDataSection({group}: Props) {
 
 const DowntimeTooltipTitle = styled('div')`
   display: grid;
-  column-gap: ${space(1)};
+  column-gap: ${p => p.theme.space(1)};
   grid-template-columns: max-content 1fr;
   justify-items: start;
 `;

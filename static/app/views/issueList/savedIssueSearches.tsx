@@ -271,11 +271,11 @@ function SavedIssueSearches({
 const StyledSidebar = styled('aside')`
   grid-area: saved-searches;
   width: 100%;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     border-bottom: 1px solid ${p => p.theme.gray200};
-    padding: ${space(2)} 0;
+    padding: ${p => p.theme.space(2)} 0;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -289,8 +289,8 @@ const HeadingContainer = styled('div')`
   justify-content: space-between;
   align-items: center;
   height: 38px;
-  padding-left: ${space(2)};
-  margin-top: ${space(3)};
+  padding-left: ${p => p.theme.space(2)};
+  margin-top: ${p => p.theme.space(3)};
 
   &:first-of-type {
     margin-top: 0;
@@ -303,13 +303,13 @@ const Heading = styled('h2')`
 `;
 
 const CreateSavedSearchWrapper = styled('div')`
-  padding: 0 ${space(2)};
-  margin-bottom: ${space(1)};
+  padding: 0 ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const SearchesContainer = styled('ul')`
   padding: 0;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledItemButton = styled(Button)`
@@ -320,7 +320,7 @@ const StyledItemButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: ${p => p.theme.text.lineHeightBody};
 
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 
   ${ButtonLabel} {
     justify-content: start;
@@ -331,7 +331,7 @@ const OverflowMenu = styled(DropdownMenu)`
   display: block;
   position: absolute;
   top: 12px;
-  right: ${space(1)};
+  right: ${p => p.theme.space(1)};
 `;
 
 const SearchListItem = styled('li')<{hasMenu?: boolean}>`
@@ -393,7 +393,7 @@ const SavedSearchItemQuery = styled('div')`
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
   font-weight: ${p => p.theme.fontWeightNormal};
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space(0.5)} ${space(2)};
 
   &:hover {
     color: ${p => p.theme.linkHoverColor};
@@ -401,8 +401,8 @@ const ShowAllButton = styled(Button)`
 `;
 
 const NoSavedSearchesText = styled('p')`
-  padding: 0 ${space(2)};
-  margin: ${space(0.5)} 0;
+  padding: 0 ${p => p.theme.space(2)};
+  margin: ${p => p.theme.space(0.5)} 0;
   color: ${p => p.theme.subText};
 `;
 

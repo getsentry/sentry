@@ -256,8 +256,8 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  gap: ${space(0.5)};
-  padding: ${space(0.75)} ${space(0.25)} ${space(0.75)} ${space(1.5)};
+  gap: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(0.75)} ${space(0.25)} ${space(0.75)} ${space(1.5)};
 `;
 
 const MetricName = styled('div')`
@@ -276,7 +276,7 @@ const DetailsGrid = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: ${space(0.75)} 0 0;
+    margin: ${p => p.theme.space(0.75)} 0 0;
     height: 12px;
     width: 12px;
   }
@@ -284,14 +284,14 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const DetailsLabel = styled('div')`
   color: ${p => p.theme.subText};
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${space(1)} ${space(0.75)} ${space(1.5)};
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
 `;
 
 const DetailsValue = styled('div')`
   white-space: pre-wrap;
-  padding: ${space(0.75)} ${space(1.5)} ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${space(1.5)} ${space(0.75)} ${space(1)};
   border-top-right-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   min-width: 0;
@@ -303,7 +303,7 @@ const TagWrapper = styled('span')`
 
 const Disclaimer = styled('div')<{textColor?: string}>`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   grid-template-columns: max-content 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => (p.textColor ? p.theme[p.textColor] ?? null : null)};

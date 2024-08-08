@@ -770,7 +770,7 @@ const TrailingWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const CheckWrap = styled('div')<{visible: boolean}>`
@@ -778,5 +778,5 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   justify-content: center;
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
-  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)} 0 ${space(0.25)} ${space(0.25)};
 `;

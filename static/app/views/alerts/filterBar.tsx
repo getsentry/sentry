@@ -6,7 +6,6 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import TeamFilter from './list/rules/teamFilter';
 import {getQueryStatus, getTeamParams} from './utils';
@@ -71,8 +70,8 @@ export default FilterBar;
 
 const Wrapper = styled('div')`
   display: grid;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(1.5)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: min-content 1fr;
@@ -84,7 +83,7 @@ const FilterButtons = styled(ButtonBar)`
     display: flex;
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space(1.5)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {

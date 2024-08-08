@@ -164,11 +164,11 @@ const EventLineTick = styled('div')<{left: number}>`
 
 const EventLineLabel = styled(Overlay)<{left: number; timelineWidth: number}>`
   width: max-content;
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${space(1)};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   position: absolute;
-  bottom: ${space(1)};
+  bottom: ${p => p.theme.space(1)};
   left: clamp(0px, ${p => p.left}px, calc(${p => p.timelineWidth}px - 50px));
   transform: translateX(-50%);
 `;

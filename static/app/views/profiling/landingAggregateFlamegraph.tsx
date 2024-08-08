@@ -250,8 +250,8 @@ const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(1)} ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1)};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header

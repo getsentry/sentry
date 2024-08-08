@@ -192,7 +192,7 @@ const SuspectCommitsContainer = styled(ContextContainer)`
   }
 
   ${SuspectCommitHeader} {
-    margin: ${space(2)} 0 ${space(0.75)};
+    margin: ${p => p.theme.space(2)} 0 ${space(0.75)};
   }
 `;
 
@@ -204,17 +204,17 @@ const IssueTitleBody = styled(ContextBody)`
 
 const IssueContextContainer = styled(ContextContainer)`
   & + & {
-    margin-top: ${space(2)};
+    margin-top: ${p => p.theme.space(2)};
   }
 `;
 
 const StatusText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
   text-transform: capitalize;
 `;
 
 const AssignedToBody = styled(ContextBody)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledIconWrapper = styled(IconWrapper)`

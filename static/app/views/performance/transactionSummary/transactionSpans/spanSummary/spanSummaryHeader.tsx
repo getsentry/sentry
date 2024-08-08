@@ -4,7 +4,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -69,8 +68,8 @@ export default function SpanSummaryHeader(props: Props) {
 const ContentHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(4)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(4)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 1fr repeat(3, max-content);
@@ -92,7 +91,7 @@ const NumericSectionWrapper = styled('div')`
 
 const SectionBody = styled('div')<{overflowEllipsis?: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
   max-height: 32px;
 `;
 

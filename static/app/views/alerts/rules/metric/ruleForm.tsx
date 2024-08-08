@@ -1269,7 +1269,7 @@ const Main = styled(Layout.Main)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
@@ -1278,8 +1278,8 @@ const AlertListItem = styled(StyledListItem)`
 `;
 
 const ChartHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
-  margin-bottom: -${space(1.5)};
+  padding: ${p => p.theme.space(2)} ${space(3)} 0 ${space(3)};
+  margin-bottom: -${p => p.theme.space(1.5)};
 `;
 
 const AlertName = styled(HeaderTitleLegend)`
@@ -1295,12 +1295,12 @@ const AlertInfo = styled('div')`
 
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.formText};
-  height: ${space(1)};
-  margin-right: ${space(0.5)};
+  height: ${p => p.theme.space(1)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 const Aggregate = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 export default withProjects(RuleFormContainer);

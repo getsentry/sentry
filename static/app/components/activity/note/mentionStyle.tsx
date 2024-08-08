@@ -14,7 +14,7 @@ type Options = {
 export function mentionStyle({theme, minHeight}: Options) {
   const inputProps = {
     fontSize: theme.fontSizeMedium,
-    padding: `${space(1.5)} ${space(2)}`,
+    padding: `${p => p.theme.space(1.5)} ${space(2)}`,
     outline: 0,
     border: 0,
     minHeight,

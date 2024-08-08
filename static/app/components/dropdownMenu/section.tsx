@@ -42,11 +42,11 @@ const Heading = styled('span')`
   color: ${p => p.theme.subText};
   text-transform: uppercase;
   white-space: nowrap;
-  margin: ${space(1)} ${space(1.5)} ${space(0.5)};
-  padding-right: ${space(1)};
+  margin: ${p => p.theme.space(1)} ${space(1.5)} ${space(0.5)};
+  padding-right: ${p => p.theme.space(1)};
 
   ${DropdownMenuSectionWrap}:first-of-type & {
-    margin-top: ${space(0.5)};
+    margin-top: ${p => p.theme.space(0.5)};
   }
 `;
 

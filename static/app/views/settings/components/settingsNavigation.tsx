@@ -2,7 +2,6 @@ import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {space} from 'sentry/styles/space';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
@@ -62,8 +61,8 @@ class SettingsNavigation extends Component<Props> {
 }
 
 const PositionStickyWrapper = styled('div')<{stickyTop: string}>`
-  padding: ${space(4)};
-  padding-right: ${space(2)};
+  padding: ${p => p.theme.space(4)};
+  padding-right: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     position: sticky;

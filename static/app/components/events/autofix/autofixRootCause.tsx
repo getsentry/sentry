@@ -516,17 +516,17 @@ export function AutofixRootCauseCodeContexts({
 }
 
 const NoCausesPadding = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space(2)};
 `;
 
 const CausesContainer = styled('div')``;
 
 const CausesHeader = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space(2)};
 `;
 
 const OptionsPadding = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 const OptionsWrapper = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};
@@ -537,7 +537,7 @@ const OptionsWrapper = styled('div')`
 
 const RootCauseOption = styled('div')<{selected: boolean}>`
   position: relative;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   background: ${p => (p.selected ? p.theme.background : p.theme.backgroundElevated)};
   cursor: ${p => (p.selected ? 'default' : 'pointer')};
 
@@ -550,7 +550,7 @@ const RootCauseOptionHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Title = styled('div')`
@@ -559,30 +559,30 @@ const Title = styled('div')`
 
 const CauseDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const SuggestedFixWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   border: 1px solid ${p => p.theme.alert.info.border};
   background-color: ${p => p.theme.alert.info.backgroundLight};
   border-radius: ${p => p.theme.borderRadius};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 
   p {
-    margin: ${space(1)} 0 0 0;
+    margin: ${p => p.theme.space(1)} 0 0 0;
   }
 `;
 
 const SuggestedFixHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledCodeSnippet = styled(CodeSnippet)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const ContentWrapper = styled(motion.div)<{selected: boolean}>`
@@ -601,17 +601,17 @@ const ContentWrapper = styled(motion.div)<{selected: boolean}>`
 const AnimationWrapper = styled(motion.div)``;
 
 const CustomTextArea = styled(TextArea)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const OptionFooter = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const CustomRootCausePadding = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: 0 ${p => p.theme.space(2)} ${space(2)} ${space(2)};
 `;
 
 const RootCauseOptionsRow = styled('div')`
@@ -631,7 +631,7 @@ const StyledIconWrapper = styled('span')`
 
 const LinkStyles = css`
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 const OpenInLink = styled(ExternalLink)`
@@ -644,10 +644,10 @@ const OpenInLink = styled(ExternalLink)`
 `;
 
 const CodeLinkWrapper = styled('div')`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
   position: absolute;
   top: 8px;
   right: 0;

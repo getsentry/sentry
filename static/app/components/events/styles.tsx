@@ -9,10 +9,10 @@ export const DataSection = styled('div')`
   margin: 0;
 
   /* Padding aligns with Layout.Body */
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(1.5)} ${space(4)};
+    padding: ${p => p.theme.space(1.5)} ${space(4)};
   }
 `;
 
@@ -55,10 +55,10 @@ export const BannerSummary = styled('p')`
   display: flex;
   align-items: flex-start;
   margin-bottom: 0;
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space(2)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding: ${space(2)} ${space(4)};
+    padding: ${p => p.theme.space(2)} ${space(4)};
   }
 
   /* Get icons in top right of content box */
@@ -66,7 +66,7 @@ export const BannerSummary = styled('p')`
   & > svg {
     flex-shrink: 0;
     flex-grow: 0;
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
     margin-top: 2px;
   }
 
@@ -83,7 +83,7 @@ export const SuspectCommitHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 
   & button,
   & h3 {

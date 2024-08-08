@@ -83,7 +83,7 @@ const AvatarWrapper = styled('span')`
 const QueryCardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const StyledQueryCard = styled(Card)`
@@ -97,7 +97,7 @@ const StyledQueryCard = styled(Card)`
 
 const QueryCardHeader = styled('div')`
   display: flex;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
 `;
 
 const QueryTitle = styled('div')`
@@ -126,20 +126,20 @@ const QueryCardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 `;
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.textColor};
 `;
 
 const DateStatus = styled('span')`
   color: ${p => p.theme.subText};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
 `;
 
 const StyledErrorBoundary = styled(ErrorBoundary)`

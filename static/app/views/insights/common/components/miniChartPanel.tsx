@@ -35,7 +35,7 @@ const ChartLabel = styled('p')`
 `;
 
 const HeaderContainer = styled('div')`
-  padding: 0 ${space(1)} 0 0;
+  padding: 0 ${p => p.theme.space(1)} 0 0;
 `;
 
 const Header = styled('div')`
@@ -47,7 +47,7 @@ const Header = styled('div')`
 `;
 
 const PanelBody = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
   ${textStyles};
 `;
 

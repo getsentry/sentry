@@ -265,8 +265,8 @@ const RecommendedWrapper = styled('div')`
   display: grid;
   grid-template-rows: 1fr 1fr 1fr;
   grid-auto-flow: column;
-  gap: ${space(1)};
-  padding: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  padding: ${p => p.theme.space(1)};
   text-align: left;
   line-height: 1.2;
 
@@ -274,18 +274,18 @@ const RecommendedWrapper = styled('div')`
     ${p => p.theme.overflowEllipsis}
     border-radius: ${p => p.theme.borderRadius};
     border: 1px solid ${p => p.theme.border};
-    padding: ${space(1)} ${space(1.5)};
+    padding: ${p => p.theme.space(1)} ${space(1.5)};
     margin: 0;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: 1fr 1fr;
-    gap: ${space(1.5)};
-    padding: ${space(1.5)};
+    gap: ${p => p.theme.space(1.5)};
+    padding: ${p => p.theme.space(1.5)};
     text-align: center;
 
     & > li {
-      padding: ${space(1.5)} ${space(2)};
+      padding: ${p => p.theme.space(1.5)} ${space(2)};
     }
   }
 `;

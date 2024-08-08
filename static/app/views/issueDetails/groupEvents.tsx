@@ -10,7 +10,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {FieldKind, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
@@ -210,7 +209,7 @@ function GroupEvents({params, location, group, environments}: Props) {
 }
 
 const AllEventsFilters = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export default GroupEvents;

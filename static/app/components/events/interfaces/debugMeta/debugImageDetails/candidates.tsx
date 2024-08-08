@@ -10,7 +10,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Image} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
@@ -386,9 +385,9 @@ const Header = styled('div')`
 `;
 
 const Title = styled('div')`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space(4)};
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   font-weight: ${p => p.theme.fontWeightBold};
@@ -397,7 +396,7 @@ const Title = styled('div')`
   flex: 1;
 
   @media (min-width: ${props => props.theme.breakpoints.small}) {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 `;
 
@@ -413,5 +412,5 @@ const StyledPanelTable = styled(PanelTable)`
 `;
 
 const StyledSearchBarAction = styled(SearchBarAction)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;

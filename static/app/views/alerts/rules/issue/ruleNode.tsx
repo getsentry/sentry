@@ -592,15 +592,15 @@ const InlineSelectControl = styled(SelectControl)`
 `;
 
 const Separator = styled('span')`
-  margin-right: ${space(1)};
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  margin-right: ${p => p.theme.space(1)};
+  padding-top: ${p => p.theme.space(0.5)};
+  padding-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const RuleRow = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
@@ -627,5 +627,5 @@ const MarginlessAlert = styled(Alert)`
   border-width: 0;
   border-top: 1px ${p => p.theme.innerBorder} solid;
   margin: 0;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1)};
 `;

@@ -12,7 +12,6 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -253,8 +252,8 @@ function Search(props: Props) {
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(4, min-content);

@@ -1060,7 +1060,7 @@ const ShowMoreWrapper = styled('div')`
     cursor: pointer;
   }
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${space(2)};
   }
 `;
 
@@ -1073,7 +1073,7 @@ const ShowMoreTitle = styled('div')`
   align-items: center;
   justify-content: flex-start;
   svg {
-    margin-left: ${space(0.25)};
+    margin-left: ${p => p.theme.space(0.25)};
   }
 `;
 

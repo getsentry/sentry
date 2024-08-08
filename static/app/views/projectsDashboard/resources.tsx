@@ -39,13 +39,13 @@ export default Resources;
 
 const ResourcesWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space(2)} ${space(4)};
 `;
 
 const ResourceCards = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));

@@ -268,11 +268,11 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
 }
 
 const HeadCellContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const BodyCellContainer = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   ${p => p.theme.overflowEllipsis};
 `;
 

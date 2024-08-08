@@ -9,7 +9,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {IconAdd, IconInfo, IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
@@ -348,7 +347,7 @@ export const MRISelect = memo(function MRISelect({
                   </Button>
                   <FlexBlock
                     css={css`
-                      gap: ${space(0.75)};
+                      gap: ${p => p.theme.space(0.75)};
                       color: ${theme.subText};
                       font-size: ${theme.fontSizeSmall};
                     `}

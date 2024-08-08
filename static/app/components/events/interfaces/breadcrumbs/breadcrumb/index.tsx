@@ -125,7 +125,7 @@ const Wrapper = styled('div')<{
   grid-template-columns: 64px 140px 1fr 106px 100px;
 
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${space(2)};
   }
 
   @media (max-width: ${props => props.theme.breakpoints.small}) {
@@ -133,15 +133,15 @@ const Wrapper = styled('div')<{
     grid-template-columns: max-content 1fr 74px 82px;
 
     > * {
-      padding: ${space(1)};
+      padding: ${p => p.theme.space(1)};
 
       /* Type */
       :nth-child(5n-4) {
         grid-row: 1/-1;
         padding-right: 0;
         padding-left: 0;
-        margin-left: ${space(2)};
-        margin-right: ${space(1)};
+        margin-left: ${p => p.theme.space(2)};
+        margin-right: ${p => p.theme.space(1)};
       }
 
       /* Data */
@@ -149,7 +149,7 @@ const Wrapper = styled('div')<{
         grid-row: 2/2;
         grid-column: 2/-1;
         padding-top: 0;
-        padding-right: ${space(2)};
+        padding-right: ${p => p.theme.space(2)};
       }
 
       /* Level */
@@ -162,7 +162,7 @@ const Wrapper = styled('div')<{
 
       /* Time */
       :nth-child(5n) {
-        padding: ${space(1)} ${space(2)};
+        padding: ${p => p.theme.space(1)} ${space(2)};
       }
     }
   }

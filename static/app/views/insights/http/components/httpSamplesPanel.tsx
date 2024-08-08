@@ -10,7 +10,6 @@ import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -564,7 +563,7 @@ const SPAN_SAMPLES_SORT = {
 };
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
@@ -612,5 +611,5 @@ const Title = styled('h4')`
 const PanelControls = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;

@@ -10,7 +10,6 @@ import DropdownLink from 'sentry/components/dropdownLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
@@ -138,12 +137,12 @@ const StyledActionButton = styled(ActionButton)`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   grid-column: 2/2;
   grid-row: 4/4;
   grid-auto-flow: row;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 3/3;

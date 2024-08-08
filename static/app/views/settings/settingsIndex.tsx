@@ -19,7 +19,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
@@ -264,7 +263,7 @@ export default withLatestContext(SettingsIndex);
 const GridLayout = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const GridPanel = styled(Panel)`
@@ -276,7 +275,7 @@ const HomePanelHeader = styled(PanelHeader)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   align-items: center;
   text-transform: unset;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
 `;
 
 const HomePanelBody = styled(PanelBody)`
@@ -320,7 +319,7 @@ const linkIconCss = css`
   width: 100%;
   display: grid;
   grid-template-rows: max-content max-content;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   align-items: center;
   justify-items: center;
   justify-content: center;

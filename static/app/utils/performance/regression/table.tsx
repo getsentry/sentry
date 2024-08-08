@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -92,7 +91,7 @@ const ChangeLabel = styled('div')<{isNeutral: boolean; isPositive: boolean}>`
 const Change = styled('span')`
   display: grid;
   grid-template-columns: 1fr 12px 1fr 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 

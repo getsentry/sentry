@@ -15,7 +15,6 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReleaseProject, ReleaseWithHealth, SessionApiResponse} from 'sentry/types';
 import {SessionFieldWithOperation} from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -198,7 +197,7 @@ function ReleaseAdoption({
           ? ''
           : `<span>${formatAbbreviatedNumber(absoluteCount)} <span style="color: ${
               theme.textColor
-            };margin-left: ${space(0.5)}">${value}%</span></span>`;
+            };margin-left: ${p => p.theme.space(0.5)}">${value}%</span></span>`;
       },
       filter: (_, seriesParam: any) => {
         const {seriesName, axisIndex} = seriesParam;
@@ -347,12 +346,12 @@ const ChartLabel = styled('div')<{top: string}>`
 `;
 
 const TooltipWrapper = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const AdoptionEnvironment = styled('span')`
   color: ${p => p.theme.textColor};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

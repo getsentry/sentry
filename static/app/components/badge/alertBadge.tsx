@@ -11,7 +11,6 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {ActivationStatus, IncidentStatus} from 'sentry/views/alerts/types';
 
@@ -94,5 +93,5 @@ const SizedIconIssue = styled(IconIssues)`
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

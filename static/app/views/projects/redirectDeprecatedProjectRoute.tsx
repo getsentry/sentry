@@ -8,7 +8,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -178,5 +177,5 @@ export default redirectDeprecatedProjectRoute;
 
 const Wrapper = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
 `;

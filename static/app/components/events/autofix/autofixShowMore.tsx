@@ -35,7 +35,7 @@ export function AutofixShowMore({children, title}: AutofixShowMore) {
 
 const Wrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;
 
 const Title = styled('div')`
@@ -46,11 +46,11 @@ const Header = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   cursor: pointer;
   user-select: none;
 `;
 
 const Content = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;

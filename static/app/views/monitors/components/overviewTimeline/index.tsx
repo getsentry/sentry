@@ -225,12 +225,12 @@ const HeaderControlsLeft = styled('div')`
   grid-column: 1/3;
   display: flex;
   justify-content: space-between;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
+  gap: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
 `;
 
 const HeaderControlsRight = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
 `;

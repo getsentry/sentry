@@ -414,7 +414,7 @@ const DropdownContainer = styled('div')<{isOpen: boolean}>`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   max-height: 300px;
   overflow-y: auto;
 `;
@@ -441,17 +441,17 @@ const DropdownTitle = styled('header')`
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 
   & > svg {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
 `;
 
 const DropdownListItem = styled(ListItem)`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   cursor: pointer;
 
   &:hover,
@@ -471,7 +471,7 @@ const DropdownItemTitleWrapper = styled('div')`
 
 const Info = styled('div')`
   display: flex;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
 

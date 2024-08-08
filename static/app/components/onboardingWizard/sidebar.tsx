@@ -50,7 +50,7 @@ const Heading = styled(motion.div)`
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 Heading.defaultProps = {
@@ -257,8 +257,8 @@ AnimatedTaskItem.defaultProps = {
 const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(1)};
-  margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space(1)};
+  margin: ${p => p.theme.space(1)} ${space(4)} ${space(4)} ${space(4)};
 `;
 
 const CompleteList = styled('div')`

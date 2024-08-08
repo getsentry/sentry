@@ -171,7 +171,7 @@ const FloatingContainer = styled('div')`
 
 const Wrapper = styled('div')`
   display: flex;
-  padding: ${space(4)} ${space(4)};
+  padding: ${p => p.theme.space(4)} ${space(4)};
   flex-direction: column;
   align-items: center;
   text-align: center;

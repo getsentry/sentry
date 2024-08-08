@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 
@@ -100,7 +99,7 @@ const StartupDot = styled('div')`
   width: 8px;
   min-width: 8px;
   height: 8px;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   border-radius: 100%;
 `;
 
@@ -116,7 +115,7 @@ const StartupNameContainer = styled(OpsContent)`
 const StartupType = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StartupCount = styled('div')`
@@ -132,5 +131,5 @@ const StartupName = styled('div')`
 const TooltipContentWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

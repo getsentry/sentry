@@ -14,7 +14,6 @@ import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -358,7 +357,7 @@ function SudoModal({
 export default SudoModal;
 
 const StyledTextBlock = styled(TextBlock)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledSecretField = styled(SecretField)`
@@ -371,5 +370,5 @@ const StyledAlert = styled(Alert)`
 
 const BackWrapper = styled('div')`
   width: 100%;
-  margin-left: ${space(4)};
+  margin-left: ${p => p.theme.space(4)};
 `;

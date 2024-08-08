@@ -47,7 +47,7 @@ export default RadioPanelGroup;
 
 const Container = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-auto-flow: row;
   grid-auto-rows: max-content;
   grid-auto-columns: auto;
@@ -57,7 +57,7 @@ const RadioLineItem = styled('label')<{
   index: number;
 }>`
   display: grid;
-  gap: ${space(0.25)} ${space(1)};
+  gap: ${p => p.theme.space(0.25)} ${space(1)};
   grid-template-columns: max-content auto max-content;
   align-items: center;
   cursor: pointer;

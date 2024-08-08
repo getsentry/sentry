@@ -6,7 +6,7 @@ const Wrapper = styled('div')`
   max-width: 769px;
   margin-left: auto;
   margin-right: auto;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
   background-color: ${p => p.theme.surface400};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
@@ -15,26 +15,26 @@ const Wrapper = styled('div')`
   color: ${p => p.theme.gray300};
   mark {
     border-radius: 8px;
-    padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
+    padding: ${p => p.theme.space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
     background: ${p => p.theme.gray100};
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
   }
   h2 {
     color: ${p => p.theme.gray500};
   }
   p {
-    margin: ${space(1)} ${space(0.5)};
+    margin: ${p => p.theme.space(1)} ${space(0.5)};
   }
   svg {
-    margin: ${space(0.5)};
+    margin: ${p => p.theme.space(0.5)};
   }
   .encrypt-help {
     color: ${p => p.theme.gray500};
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space(1)};
   }
   .encrypt-note {
     color: ${p => p.theme.gray300};
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space(1)};
   }
 `;
 

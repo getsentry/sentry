@@ -667,8 +667,8 @@ const Row = styled('div')`
     [data-hidden-text='true']::before {
       content: '';
       position: absolute;
-      left: ${space(0.5)};
-      right: ${space(0.5)};
+      left: ${p => p.theme.space(0.5)};
+      right: ${p => p.theme.space(0.5)};
       top: 0;
       bottom: 0;
       background-color: ${p => p.theme.gray100};
@@ -690,14 +690,14 @@ const GridCell = styled('div')`
   width: 100%;
 
   input {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space(0.5)};
     min-width: 9px;
     width: 100%;
   }
 `;
 
 const DescriptionWrapper = styled('div')`
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${space(1)};
   max-width: 220px;
   font-size: ${p => p.theme.fontSizeSmall};
 
@@ -706,7 +706,7 @@ const DescriptionWrapper = styled('div')`
   }
 
   p + p {
-    margin-top: ${space(0.5)};
+    margin-top: ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -717,13 +717,13 @@ const DescriptionKeyLabel = styled('p')`
 
 const Separator = styled('hr')`
   border-top: 1px solid ${p => p.theme.border};
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
 `;
 
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   margin: 0;
 `;
 
@@ -744,7 +744,7 @@ const PositionedTooltip = styled(InvalidTokenTooltip)`
 const InvisibleText = styled('div')`
   position: relative;
   color: transparent;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
   min-width: 9px;
   height: 100%;
 `;

@@ -106,7 +106,7 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
 }
 
 const Wrapper = styled('div')`
-  margin: ${space(2)} 0 ${space(0.5)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${space(0.5)} 0;
 `;
 
 const iconStyle = (p: {theme: Theme}) => css`
@@ -125,12 +125,12 @@ const StyledExternalLink = styled(ExternalLink)`
 const Name = styled('span')`
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 `;
 
 const Details = styled(Name)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledPills = styled(Pills)`

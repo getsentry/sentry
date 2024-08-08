@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import KeyValueList from '../interfaces/keyValueList';
@@ -31,11 +30,11 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
 export {DetailsPanel};
 
 const Title = styled('header')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Container = styled('div')`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
   padding-bottom: 0;
 `;

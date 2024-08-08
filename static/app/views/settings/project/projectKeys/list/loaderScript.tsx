@@ -8,7 +8,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ProjectKey} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -60,5 +59,5 @@ export function LoaderScript({projectKey, routes, params, location}: Props) {
 }
 
 const HelpFooter = styled(FieldHelp)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;

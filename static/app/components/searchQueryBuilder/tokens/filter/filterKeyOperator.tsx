@@ -399,7 +399,7 @@ const GridCell = styled('div')`
 `;
 
 const KeyOpButton = styled(UnstyledButton)<{middle?: boolean}>`
-  padding: 0 ${space(0.25)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.25)} 0 ${space(0.5)};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -416,7 +416,7 @@ const KeyOpButton = styled(UnstyledButton)<{middle?: boolean}>`
 const KeyOpLabelWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 const OpLabel = styled('span')`

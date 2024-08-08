@@ -204,7 +204,7 @@ function TeamAlertsTriggered({
 export default TeamAlertsTriggered;
 
 const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space(2)} ${space(2)} 0 ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -217,14 +217,14 @@ const StyledPanelTable = styled(PanelTable)`
   box-shadow: unset;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${space(2)};
   }
 
   ${p =>
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space(2)};
       }
     `}
 `;
@@ -239,7 +239,7 @@ const AlignRight = styled('div')`
 `;
 
 const PaddedIconArrow = styled(IconArrow)`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
 `;
 
 const SubText = styled('div')<{color: ColorOrAlias}>`
@@ -248,7 +248,7 @@ const SubText = styled('div')<{color: ColorOrAlias}>`
 
 const ButtonsContainer = styled('div')`
   & > a {
-    margin-right: ${space(0.5)};
-    margin-left: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
+    margin-left: ${p => p.theme.space(0.5)};
   }
 `;

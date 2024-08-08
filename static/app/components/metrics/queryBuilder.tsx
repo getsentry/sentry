@@ -15,7 +15,6 @@ import {MRISelect} from 'sentry/components/metrics/mriSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -446,13 +445,13 @@ function TagWarningIcon() {
 }
 
 const TooltipIconWrapper = styled('span')`
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 const QueryBuilderWrapper = styled('div')<{metricsNewInputs: boolean}>`
   display: flex;
   flex-grow: 1;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-wrap: wrap;
   ${p =>
     p.metricsNewInputs &&
@@ -467,7 +466,7 @@ const QueryBuilderWrapper = styled('div')<{metricsNewInputs: boolean}>`
 
 const FlexBlock = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-wrap: wrap;
 `;
 

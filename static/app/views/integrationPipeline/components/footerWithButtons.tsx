@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/actions/button';
 import type {ButtonProps} from 'sentry/components/button';
-import {space} from 'sentry/styles/space';
 
 interface FooterWithButtonsProps
   extends Partial<Pick<ButtonProps, 'disabled' | 'onClick' | 'href'>> {
@@ -44,5 +43,5 @@ const Footer = styled('form')`
   z-index: 100;
   background-color: ${p => p.theme.bodyBackground};
   border-top: 1px solid ${p => p.theme.innerBorder};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;

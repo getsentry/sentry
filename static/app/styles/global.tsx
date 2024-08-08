@@ -16,7 +16,7 @@ const prismStyles = (theme: Theme) => css`
 
   pre[class*='language-'] {
     overflow-x: auto;
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${space(2)};
     border-radius: ${theme.borderRadius};
     box-shadow: none;
 
@@ -107,7 +107,7 @@ const prismStyles = (theme: Theme) => css`
     }
     .line-highlight {
       position: absolute;
-      left: -${space(2)};
+      left: -${p => p.theme.space(2)};
       right: 0;
       background: var(--prism-highlight-background);
       box-shadow: inset 5px 0 0 var(--prism-highlight-accent);

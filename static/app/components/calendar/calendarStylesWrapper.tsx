@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 
 const CalendarStylesWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   .rdrCalendarWrapper:not(.rdrDateRangeWrapper) .rdrDayHovered .rdrDayNumber:after {
     border: 0;
@@ -169,7 +169,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrMonthAndYearWrapper {
     height: 32px;
     align-items: stretch;
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space(1)};
     padding-top: 0;
   }
 
@@ -183,7 +183,7 @@ const CalendarStylesWrapper = styled('div')`
     color: ${p => p.theme.textColor};
     font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeLarge};
-    padding: ${space(0.25)} ${space(1)};
+    padding: ${p => p.theme.space(0.25)} ${space(1)};
   }
 
   .rdrMonthsVertical {

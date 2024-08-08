@@ -353,11 +353,11 @@ const ActionsColumn = styled(Column)`
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const DetailsPanel = styled(Panel)`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 `;
 
 const ArtifactColumn = styled('div')`
@@ -394,13 +394,13 @@ const SizeColumn = styled('div')`
 const TimeAndDistWrapper = styled('div')`
   width: 100%;
   display: flex;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.fontSizeMedium};
   align-items: center;
@@ -408,7 +408,7 @@ const TimeWrapper = styled('div')`
 `;
 
 const StyledTag = styled(Tag)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const SubText = styled('span')`
@@ -418,6 +418,6 @@ const SubText = styled('span')`
 const VersionAndDetails = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   word-break: break-word;
 `;

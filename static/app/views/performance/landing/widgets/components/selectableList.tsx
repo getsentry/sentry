@@ -69,7 +69,7 @@ export const RightAlignedCell = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
 `;
 
 export const Subtitle = styled('span')`
@@ -219,10 +219,10 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   align-items: center;
   flex-direction: column;
   flex: 1;
-  padding: ${space(1)} ${space(2)} ${space(4)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)} ${space(4)} ${space(2)};
 
   svg {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
     height: 30px;
     width: 30px;
   }
@@ -232,7 +232,7 @@ const PrimaryMessage = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray300};
   font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0 auto ${space(1)};
+  margin: 0 auto ${p => p.theme.space(1)};
 `;
 
 const SecondaryMessage = styled('p')`
@@ -244,7 +244,7 @@ const SecondaryMessage = styled('p')`
 const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

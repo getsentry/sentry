@@ -6,7 +6,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -113,7 +112,7 @@ const RoleSelectWrapper = styled('div')`
 export const GRID_TEMPLATE = `
   display: grid;
   grid-template-columns: minmax(100px, 1fr) 200px 150px;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const TeamRolesPanelItem = styled(PanelItem)`

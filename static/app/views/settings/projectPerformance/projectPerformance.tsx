@@ -1097,7 +1097,7 @@ const StyledJsonForm = styled(JsonForm)`
     text-transform: none;
     margin-bottom: 0;
     background: none;
-    padding: ${space(3)} ${space(2)};
+    padding: ${p => p.theme.space(3)} ${space(2)};
   }
 `;
 
@@ -1108,7 +1108,7 @@ const StyledPanelFooter = styled(PanelFooter)`
     calc(${p => p.theme.panelBorderRadius} - 1px);
 
   ${Actions} {
-    padding: ${space(1.5)};
+    padding: ${p => p.theme.space(1.5)};
   }
 `;
 

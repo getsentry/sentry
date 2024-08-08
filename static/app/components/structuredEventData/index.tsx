@@ -5,7 +5,6 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {RecursiveStructuredData} from 'sentry/components/structuredEventData/recursiveStructuredData';
 import {ExpandedStateContextProvider} from 'sentry/components/structuredEventData/useExpandedState';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
-import {space} from 'sentry/styles/space';
 
 export type StructedEventDataConfig = {
   isBoolean?: (value: unknown) => boolean;
@@ -181,8 +180,8 @@ export default function StructuredEventData({
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
   position: absolute;
-  right: ${space(1.5)};
-  top: ${space(0.75)};
+  right: ${p => p.theme.space(1.5)};
+  top: ${p => p.theme.space(0.75)};
 `;
 
 const StructuredDataWrapper = styled('pre')`

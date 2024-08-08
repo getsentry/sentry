@@ -7,7 +7,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
@@ -135,5 +134,5 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
 
 const IconWrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

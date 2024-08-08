@@ -5,7 +5,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import HelpSearch from 'sentry/components/helpSearch';
 import Hook from 'sentry/components/hook';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -55,12 +54,12 @@ function HelpSearchModal({
 }
 
 const InputWrapper = styled('div')`
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)};
 `;
 
 const Input = styled('input')`
   width: 100%;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   border: none;
   border-radius: 8px;
   outline: none;

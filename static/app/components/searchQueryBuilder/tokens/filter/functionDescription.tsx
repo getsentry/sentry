@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import {space} from 'sentry/styles/space';
 import type {AggregateParameter} from 'sentry/utils/fields';
 
 type FunctionDescriptionProps = {
@@ -77,7 +76,7 @@ const Code = styled('div')`
 
 const Separator = styled('hr')`
   border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
 `;
 
 const FunctionName = styled('span')`

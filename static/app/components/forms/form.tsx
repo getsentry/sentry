@@ -10,7 +10,6 @@ import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderProps = {
@@ -275,7 +274,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
     `
   ${Panel} & {
     margin-top: 0;
-    padding-right: ${space(2)}
+    padding-right: ${p.theme.space(2)}
   }
 
   /* Better padding with form inside of a modal */
@@ -292,7 +291,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
 
 const DefaultButtons = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-auto-flow: column;
   justify-content: flex-end;
   flex: 1;

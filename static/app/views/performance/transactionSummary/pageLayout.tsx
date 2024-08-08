@@ -14,7 +14,6 @@ import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -327,12 +326,12 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
     `
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
+  gap: ${p.theme.space(3)};
 
   @media (min-width: ${p.theme.breakpoints.large}) {
     display: flex;
     flex-direction: column;
-    gap: ${space(3)};
+    gap: ${p.theme.space(3)};
   }
   `}
 `;

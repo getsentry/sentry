@@ -132,7 +132,7 @@ function RepositoryRow({
 
 const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   /* shorter top padding because of title lineheight */
-  padding: ${space(1)} ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)} ${space(2)};
   justify-content: space-between;
   align-items: center;
   flex: 1;
@@ -150,7 +150,7 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
 `;
 
 const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const RepositoryTitleAndUrl = styled('div')`

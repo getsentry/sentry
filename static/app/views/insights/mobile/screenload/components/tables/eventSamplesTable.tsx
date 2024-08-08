@@ -216,13 +216,13 @@ export function EventSamplesTable({
 }
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space(1)};
 `;
 
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   align-items: center;
   height: 26px;
 `;
@@ -236,21 +236,21 @@ const IconWrapper = styled('div')`
 // Not pretty but we need to override gridEditable styles since the original
 // styles have too much padding for small spaces
 const GridContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   th {
-    padding: 0 ${space(1)};
+    padding: 0 ${p => p.theme.space(1)};
   }
   th:first-child {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space(2)};
   }
   th:last-child {
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space(2)};
   }
   td {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${space(1)};
   }
   td:first-child {
-    padding-right: ${space(1)};
-    padding-left: ${space(2)};
+    padding-right: ${p => p.theme.space(1)};
+    padding-left: ${p => p.theme.space(2)};
   }
 `;

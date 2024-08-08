@@ -23,7 +23,6 @@ import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -494,7 +493,7 @@ const ArtifactsTotalColumn = styled('div')`
 const DateUploadedColumn = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const Column = styled('div')`
@@ -508,7 +507,7 @@ const IDColumn = styled(Column)`
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   word-break: break-word;
 `;
 
@@ -517,11 +516,11 @@ const ActionsColumn = styled(Column)`
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const NoArtifactsUploadedWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;

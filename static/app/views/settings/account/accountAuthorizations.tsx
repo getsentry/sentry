@@ -14,7 +14,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -117,7 +116,7 @@ export default AccountAuthorizations;
 
 const Description = styled('p')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const PanelItemCenter = styled(PanelItem)`
@@ -132,7 +131,7 @@ const ApplicationDetails = styled('div')`
 
 const ApplicationName = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 /**
@@ -140,7 +139,7 @@ const ApplicationName = styled('div')`
  * hit box issues
  */
 const Url = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 

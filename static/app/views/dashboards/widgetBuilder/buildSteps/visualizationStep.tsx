@@ -12,7 +12,6 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -108,7 +107,7 @@ export function VisualizationStep({
           styles={{
             singleValue: (provided: CSSProperties) => ({
               ...provided,
-              width: `calc(100% - ${space(1)})`,
+              width: `calc(100% - ${p => p.theme.space(1)})`,
             }),
           }}
         />
@@ -150,7 +149,7 @@ const StyledBuildStep = styled(BuildStep)`
 `;
 
 const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space(2)};
   ${WidgetCardPanel} {
     height: initial;
   }

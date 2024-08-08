@@ -7,7 +7,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 export default function JsonViewer(props: ViewerProps) {
@@ -57,7 +56,7 @@ export default function JsonViewer(props: ViewerProps) {
 const LoadingContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const StyledJsonData = styled(JsonEventData)`

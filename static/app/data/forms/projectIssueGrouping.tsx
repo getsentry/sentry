@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/issue-grouping/';
@@ -100,12 +99,12 @@ stack.function:mylibrary_* +app`}
 };
 
 const RuleDescription = styled('div')`
-  margin-bottom: ${space(1)};
-  margin-top: -${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
+  margin-top: -${p => p.theme.space(1)};
   margin-right: 36px;
 `;
 
 const RuleExample = styled('pre')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   margin-right: 36px;
 `;

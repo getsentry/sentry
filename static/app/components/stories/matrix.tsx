@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import type {SizingWindowProps} from 'sentry/components/stories/sizingWindow';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import {space} from 'sentry/styles/space';
 
 type RenderProps = {};
 
@@ -113,7 +112,7 @@ function item(Component, props, sizingWindowProps) {
 
 const Grid = styled('section')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   padding: var(--stories-grid-space);
 `;

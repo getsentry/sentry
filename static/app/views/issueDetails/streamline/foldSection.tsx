@@ -161,7 +161,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 export const Section = styled('section')``;
 
 const Content = styled('div')`
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.5)} ${space(0.75)};
 `;
 
 const Summary = styled('summary')<{preventCollapse: boolean}>`
@@ -170,7 +170,7 @@ const Summary = styled('summary')<{preventCollapse: boolean}>`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.5)} ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;

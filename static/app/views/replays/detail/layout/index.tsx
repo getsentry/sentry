@@ -5,7 +5,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
-import {space} from 'sentry/styles/space';
 import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
@@ -144,21 +143,21 @@ const BodyContent = styled('main')`
   height: 100%;
   display: grid;
   grid-template-rows: 1fr auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   overflow: hidden;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const SmallMarginFocusTabs = styled(FocusTabs)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const VideoSection = styled(FluidHeight)`
   background: ${p => p.theme.background};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   :fullscreen {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space(1)};
   }
 `;
 

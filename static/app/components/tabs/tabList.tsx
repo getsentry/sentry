@@ -297,7 +297,7 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
       ? `
         grid-auto-flow: column;
         justify-content: start;
-        gap: ${p.variant === 'filled' || p.variant === 'floating' ? 0 : space(2)};
+        gap: ${p.variant === 'filled' || p.variant === 'floating' ? 0 : p.theme.space(2)};
         ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
       `
       : `
@@ -305,7 +305,7 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
         grid-auto-flow: row;
         align-content: start;
         gap: 1px;
-        padding-right: ${space(2)};
+        padding-right: ${p.theme.space(2)};
         ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
       `};
 `;
@@ -313,9 +313,9 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
 const TabListOverflowWrap = styled('div')`
   position: absolute;
   right: 0;
-  bottom: ${space(0.75)};
+  bottom: ${p => p.theme.space(0.75)};
 `;
 const OverflowMenuTrigger = styled(DropdownButton)`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;

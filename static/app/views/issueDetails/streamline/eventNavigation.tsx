@@ -330,7 +330,7 @@ const EventNavigationWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
 `;
 
 const NavigationWrapper = styled('div')`
@@ -344,23 +344,23 @@ const Navigation = styled('div')`
 
 const EventInfoJumpToWrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 `;
 
 const EventInfo = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-direction: row;
   align-items: center;
 `;
 
 const JumpTo = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-direction: row;
   align-items: center;
   color: ${p => p.theme.subText};
@@ -375,7 +375,7 @@ const Divider = styled('hr')`
 const EventIdInfo = styled('span')`
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
 `;
 
 const EventId = styled('span')`
@@ -393,7 +393,7 @@ const EventId = styled('span')`
 const CopyIconContainer = styled('span')`
   display: none;
   align-items: center;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)};
   background: ${p => p.theme.background};
   position: absolute;
   right: 0;

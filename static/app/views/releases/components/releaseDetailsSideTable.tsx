@@ -18,7 +18,7 @@ export function ReleaseDetailsTableRow({type, children}: Props) {
 const Row = styled('div')<{type: Props['type']}>`
   ${p => p.theme.overflowEllipsis};
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${space(1)};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: inherit;
 

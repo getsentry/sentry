@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import type {ValidSize} from 'sentry/styles/space';
-import {space} from 'sentry/styles/space';
+import type {space, ValidSize} from 'sentry/styles/space';
 
 export interface PlaceholderProps {
   bottomGutter?: ValidSize;
@@ -46,7 +45,7 @@ const Placeholder = styled(
   ${p => (p.shape === 'circle' ? 'border-radius: 100%;' : '')}
   ${p =>
     typeof p.bottomGutter === 'number' && p.bottomGutter > 0
-      ? `margin-bottom: ${space(p.bottomGutter)};`
+      ? `margin-bottom: ${p.theme.space(p.bottomGutter)};`
       : ''}
 `;
 

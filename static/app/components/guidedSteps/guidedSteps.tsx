@@ -13,7 +13,6 @@ import orderBy from 'lodash/orderBy';
 import {type BaseButtonProps, Button} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
@@ -215,27 +214,27 @@ export function GuidedSteps({className, children, onStepChange}: GuidedStepsProp
 const StepButtonsWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;
 
 const StepsWrapper = styled('div')`
   background: ${p => p.theme.background};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StepWrapper = styled('div')`
   display: grid;
   grid-template-columns: 34px 1fr;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   position: relative;
 
   :not(:last-child)::before {
     content: '';
     position: absolute;
-    height: calc(100% + ${space(2)});
+    height: calc(100% + ${p => p.theme.space(2)});
     width: 1px;
     background: ${p => p.theme.border};
     left: 17px;
@@ -271,22 +270,22 @@ const StepDoneIcon = styled(IconCheckmark, {
   shouldForwardProp: prop => prop !== 'isActive',
 })<{isActive: boolean}>`
   color: ${p => (p.isActive ? p.theme.successText : p.theme.subText)};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   vertical-align: middle;
 `;
 
 const StepOptionalLabel = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-top: -${space(0.75)};
-  margin-bottom: ${space(1)};
+  margin-top: -${p => p.theme.space(0.75)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`
   color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
 
   p {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 `;
 

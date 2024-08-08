@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {useReducedMotion} from 'framer-motion';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 
 import type {ParseResult, TokenResult} from './parser';
 import {Token} from './parser';
@@ -300,7 +299,7 @@ const FreeTextTokenGroup = styled(TokenGroup)`
 const filterCss = css`
   background: var(--token-bg);
   border: 0.5px solid var(--token-border);
-  padding: ${space(0.25)} 0;
+  padding: ${p => p.theme.space(0.25)} 0;
 `;
 
 const Negation = styled('span')`

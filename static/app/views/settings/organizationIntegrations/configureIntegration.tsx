@@ -17,7 +17,6 @@ import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
   Organization,
@@ -503,7 +502,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
 export default ConfigureIntegration;
 
 const BackButtonWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   width: 100%;
 `;
 

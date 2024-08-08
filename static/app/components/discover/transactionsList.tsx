@@ -10,7 +10,6 @@ import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/inves
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -487,16 +486,16 @@ class _TransactionsList extends Component<Props> {
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space(1)};
 `;
 
 const InvestigationRuleWrapper = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 function TransactionsList(

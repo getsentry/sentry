@@ -661,12 +661,12 @@ const TrendsTransactionPanel = styled(Panel)`
 `;
 
 const ChartContainer = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
 `;
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   border-radius: ${p => p.theme.borderRadius};
-  margin: ${space(2)} ${space(3)};
+  margin: ${p => p.theme.space(2)} ${space(3)};
 `;
 
 const StyledButton = styled(Button)`
@@ -691,9 +691,9 @@ const ListItemContainer = styled('div')`
   display: grid;
   grid-template-columns: 24px auto 100px 30px;
   grid-template-rows: repeat(2, auto);
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 `;
 
 const ItemRadioContainer = styled('div')`
@@ -708,7 +708,7 @@ const ItemRadioContainer = styled('div')`
 
 const ItemTransactionName = styled(Link)`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   ${p => p.theme.overflowEllipsis};
 `;
 
@@ -720,7 +720,7 @@ const ItemTransactionDurationChange = styled('div')`
 
 const DurationChange = styled('span')`
   color: ${p => p.theme.gray300};
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space(1)};
 `;
 
 const ItemTransactionPercentage = styled('div')`
@@ -741,7 +741,7 @@ const TooltipContent = styled('div')`
 `;
 
 const StyledIconArrow = styled(IconArrow)`
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space(1)};
 `;
 
 export default withProjects(withOrganization(ChangedTransactions));

@@ -57,7 +57,7 @@ export const EventNode = styled(Tag)`
 `;
 
 export const TraceConnector = styled('div')<{dashed?: boolean}>`
-  width: ${space(1)};
+  width: ${p => p.theme.space(1)};
   border-top: 1px ${p => (p.dashed ? 'dashed' : 'solid')} ${p => p.theme.textColor};
 `;
 
@@ -76,7 +76,7 @@ export const DropdownContainer = styled('span')`
 export const DropdownMenuHeader = styled(MenuHeader)<{first?: boolean}>`
   background: ${p => p.theme.backgroundSecondary};
   ${p => p.first && 'border-radius: 2px'};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
 `;
 
 const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`
@@ -131,14 +131,14 @@ export const DropdownItemSubContainer = styled('div')`
 `;
 
 export const QuickTraceValue = styled(Truncate)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   white-space: nowrap;
 `;
 
 export const ErrorNodeContent = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
   align-items: center;
 `;
 

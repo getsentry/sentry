@@ -4,7 +4,6 @@ import omit from 'lodash/omit';
 
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
-import {space} from 'sentry/styles/space';
 
 type MenuItemProps = {
   /**
@@ -181,7 +180,7 @@ interface MenuListItemProps extends React.HTMLAttributes<HTMLLIElement> {
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   const common = `
     display: block;
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${props.theme.space(0.5)} ${props.theme.space(2)};
     &:focus {
       outline: none;
     }
@@ -252,14 +251,14 @@ const MenuListItem = styled('li')<MenuListItemProps>`
     p.divider &&
     `
     height: 1px;
-    margin: ${space(0.5)} 0;
+    margin: ${p.theme.space(0.5)} 0;
     overflow: hidden;
     background-color: ${p.theme.innerBorder};
   `}
   ${p =>
     p.header &&
     `
-    padding: ${space(0.25)} ${space(0.5)};
+    padding: ${p.theme.space(0.25)} ${p.theme.space(0.5)};
     font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
     color: ${p.theme.gray300};
@@ -277,7 +276,7 @@ const MenuTarget = styled('span')<MenuListItemProps>`
 const MenuIcon = styled('div')`
   display: flex;
   align-items: center;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const MenuLink = styled(Link, {shouldForwardProp})<MenuListItemProps>`

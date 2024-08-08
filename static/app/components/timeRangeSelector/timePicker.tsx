@@ -118,7 +118,7 @@ const Input = styled('input')`
     background: ${p => p.theme.backgroundSecondary};
     border: 1px solid ${p => p.theme.border};
     color: ${p => p.theme.gray300};
-    padding: ${space(0.25)} ${space(0.5)};
+    padding: ${p => p.theme.space(0.25)} ${space(0.5)};
     box-shadow: none;
     font-variant-numeric: tabular-nums;
 

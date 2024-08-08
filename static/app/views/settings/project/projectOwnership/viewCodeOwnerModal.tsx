@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CodeOwner} from 'sentry/types';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import theme from 'sentry/utils/theme';
@@ -51,13 +50,13 @@ function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModalProps) 
 const HeaderContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const BodyContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 export const modalCss = css`

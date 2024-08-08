@@ -15,7 +15,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -332,13 +331,13 @@ function AddToDashboardModal({
 export default AddToDashboardModal;
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
   @media (max-width: ${props => props.theme.breakpoints.small}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space(1.5)};
     width: 100%;
 
     > button {

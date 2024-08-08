@@ -26,7 +26,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {MetricAggregation, MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
@@ -671,8 +670,8 @@ const MetricWidgetPanel = styled(Panel)<{
 `;
 
 const StyledMetricWidgetBody = styled('div')`
-  padding: ${space(1)};
-  gap: ${space(3)};
+  padding: ${p => p.theme.space(1)};
+  gap: ${p => p.theme.space(3)};
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -680,17 +679,17 @@ const StyledMetricWidgetBody = styled('div')`
 `;
 
 const MetricWidgetBodyWrapper = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const MetricWidgetHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(0.5)};
-  padding-left: ${space(2)};
-  padding-top: ${space(1.5)};
-  padding-right: ${space(2)};
+  gap: ${p => p.theme.space(0.5)};
+  padding-left: ${p => p.theme.space(2)};
+  padding-top: ${p => p.theme.space(1.5)};
+  padding-right: ${p => p.theme.space(2)};
 `;
 
 const WidgetTitle = styled('div')`

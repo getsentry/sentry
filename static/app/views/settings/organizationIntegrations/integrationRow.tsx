@@ -152,7 +152,7 @@ function IntegrationRow(props: Props) {
 }
 
 const PluginDeprecationAlertWrapper = styled('div')`
-  padding: 0px ${space(3)} 0px 68px;
+  padding: 0px ${p => p.theme.space(3)} 0px 68px;
 `;
 
 const PanelRow = styled(PanelItem)`
@@ -162,7 +162,7 @@ const PanelRow = styled(PanelItem)`
 const FlexContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const TitleContainer = styled('div')`
@@ -174,7 +174,7 @@ const TitleContainer = styled('div')`
 const TagsContainer = styled('div')`
   flex: 3;
   text-align: right;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space(2)};
 `;
 
 const IntegrationName = styled(Link)`
@@ -192,7 +192,7 @@ const StyledLink = styled(Link)`
   &:before {
     content: '|';
     color: ${p => p.theme.gray200};
-    margin-right: ${space(0.75)};
+    margin-right: ${p => p.theme.space(0.75)};
   }
 `;
 
@@ -208,12 +208,12 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray300};
   font-weight: light;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
   text-transform: capitalize;
   &:before {
     content: '|';
     color: ${p => p.theme.gray200};
-    margin-right: ${space(0.75)};
+    margin-right: ${p => p.theme.space(0.75)};
     font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;
@@ -234,9 +234,9 @@ const CategoryTag = styled(
   padding: 1px 10px;
   background: ${p => (p.priority ? p.theme.purple200 : p.theme.gray100)};
   border-radius: 20px;
-  font-size: ${space(1.5)};
-  margin: ${space(0.25)} ${space(0.5)};
-  line-height: ${space(3)};
+  font-size: ${p => p.theme.space(1.5)};
+  margin: ${p => p.theme.space(0.25)} ${space(0.5)};
+  line-height: ${p => p.theme.space(3)};
   text-align: center;
   color: ${p => (p.priority ? p.theme.white : p.theme.gray500)};
 `;

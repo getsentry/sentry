@@ -206,7 +206,7 @@ class SuggestProjectModal extends Component<Props, State> {
 
 const ModalContainer = styled('div')`
   display: grid;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 
   code {
     word-break: break-word;
@@ -214,8 +214,8 @@ const ModalContainer = styled('div')`
 `;
 
 const Title = styled('h3')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const SmallP = styled('p')`
@@ -223,7 +223,7 @@ const SmallP = styled('p')`
 `;
 
 const PatternHeader = styled('div')`
-  margin: -${space(4)} -${space(4)} 0 -${space(4)};
+  margin: -${p => p.theme.space(4)} -${space(4)} 0 -${space(4)};
   border-radius: 7px 7px 0 0;
   background-image: url(${bgPattern});
   background-size: 475px;
@@ -236,13 +236,13 @@ const PatternHeader = styled('div')`
 
 const StyledList = styled(List)`
   li {
-    padding-left: ${space(3)};
+    padding-left: ${p => p.theme.space(3)};
   }
 `;
 
 const BackWrapper = styled('div')`
   width: 100%;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const StyledBackButton = styled(Button)`

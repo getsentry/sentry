@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
-import {space} from 'sentry/styles/space';
 import type {Organization, Team, TeamMember, TeamRole} from 'sentry/types/organization';
 import {
   hasOrgRoleOverwrite,
@@ -77,6 +76,6 @@ const RoleName = styled('div')`
   align-items: center;
 `;
 const IconWrapper = styled('div')`
-  height: ${space(2)};
-  margin-left: ${space(1)};
+  height: ${p => p.theme.space(2)};
+  margin-left: ${p => p.theme.space(1)};
 `;

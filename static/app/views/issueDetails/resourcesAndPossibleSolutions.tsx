@@ -6,7 +6,6 @@ import {Autofix} from 'sentry/components/events/autofix';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {EntryType, type Event, type Group, type Project} from 'sentry/types';
 import {
   getConfigForIssueType,
@@ -95,7 +94,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Wrapper = styled(InterimSection)<{configResources: boolean}>`
@@ -104,7 +103,7 @@ const Wrapper = styled(InterimSection)<{configResources: boolean}>`
       !p.configResources &&
       css`
         && {
-          padding-top: ${space(3)};
+          padding-top: ${p.theme.space(3)};
         }
       `}
   }

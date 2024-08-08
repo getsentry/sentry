@@ -5,7 +5,6 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventGroupVariant} from 'sentry/types/event';
 import {EventGroupVariantType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -209,8 +208,8 @@ const ConfigHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export const GroupingConfigItem = styled('span')<{
@@ -224,6 +223,6 @@ export const GroupingConfigItem = styled('span')<{
 `;
 
 const VariantDivider = styled('hr')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.border};
 `;

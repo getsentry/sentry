@@ -4,7 +4,6 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import PanelProvider from 'sentry/utils/panelProvider';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
@@ -87,7 +86,7 @@ const DropdownBubble = styled(
     p.detached
       ? `
     top: 100%;
-    margin-top: ${space(1)};
+    margin-top: ${p.theme.space(1)};
     box-shadow: ${p.theme.dropShadowHeavy};
   `
       : `

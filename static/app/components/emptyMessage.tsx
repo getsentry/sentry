@@ -1,7 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
@@ -40,12 +39,12 @@ const EmptyMessage = styled(
       ? css`
           max-width: 70%;
           align-items: flex-start;
-          padding: ${space(4)};
+          padding: ${p.theme.space(4)};
         `
       : css`
           text-align: center;
           align-items: center;
-          padding: ${space(4)} 15%;
+          padding: ${p.theme.space(4)} 15%;
         `};
   flex-direction: column;
   color: ${p => p.theme.textColor};
@@ -55,12 +54,12 @@ const EmptyMessage = styled(
 
 const IconWrapper = styled('div')`
   color: ${p => p.theme.gray200};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const Title = styled('strong')<{noMargin: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  ${p => !p.noMargin && `margin-bottom: ${space(1)};`}
+  ${p => !p.noMargin && `margin-bottom: ${p.theme.space(1)};`}
 `;
 
 const Description = styled(TextBlock)`
@@ -68,7 +67,7 @@ const Description = styled(TextBlock)`
 `;
 
 const Action = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 export default EmptyMessage;

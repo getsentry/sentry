@@ -570,7 +570,7 @@ function SpanRow({
 const LayoutMain = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StyledPanel = styled(Panel)`
@@ -597,7 +597,7 @@ const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
 const EmptyStateText = styled('div')<{size: 'fontSizeExtraLarge' | 'fontSizeMedium'}>`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme[p.size]};
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledPanelItem = styled(PanelItem)<{
@@ -606,7 +606,7 @@ const StyledPanelItem = styled(PanelItem)<{
   span?: number;
 }>`
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
   ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
   ${p => (p.overflow ? p.theme.overflowEllipsis : null)};

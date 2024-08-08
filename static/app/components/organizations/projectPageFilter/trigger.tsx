@@ -7,7 +7,6 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import PlatformList from 'sentry/components/platformList';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
@@ -114,8 +113,8 @@ const TriggerIconWrap = styled('div')`
 `;
 
 const StyledBadge = styled(Badge)`
-  margin-top: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
+  margin-top: -${p => p.theme.space(0.5)};
+  margin-bottom: -${p => p.theme.space(0.5)};
   flex-shrink: 0;
   top: auto;
 `;

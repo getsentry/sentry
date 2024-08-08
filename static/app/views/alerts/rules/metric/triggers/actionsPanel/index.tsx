@@ -508,30 +508,30 @@ class ActionsPanel extends PureComponent<Props> {
 }
 
 const ActionsPanelWithSpace = styled(ActionsPanel)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space(4)};
 `;
 
 const ActionSection = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const PanelItemGrid = styled(PanelItem)`
   display: flex;
   align-items: center;
   border-bottom: 0;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const PanelItemSelects = styled('div')`
   display: flex;
   width: 100%;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   > * {
     flex: 0 1 200px;
 
     &:not(:last-child) {
-      margin-right: ${space(1)};
+      margin-right: ${p => p.theme.space(1)};
     }
   }
 `;
@@ -546,7 +546,7 @@ const RuleRowContainer = styled('div')`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(3)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${space(3)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
@@ -560,7 +560,7 @@ const MarginlessAlert = styled(Alert)`
   border: 1px ${p => p.theme.border} solid;
   border-top-width: 0;
   margin: 0;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

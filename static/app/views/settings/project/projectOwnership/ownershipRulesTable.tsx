@@ -229,7 +229,7 @@ export function OwnershipRulesTable({
 const SearchAndSelectorWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -239,8 +239,8 @@ const StyledSearchBar = styled(SearchBar)`
 const RulesTableWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -252,7 +252,7 @@ const StyledPanelTable = styled(PanelTable)`
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1.5)} ${space(2)};
+        padding: ${p.theme.space(1.5)} ${space(2)};
       }
     `}
 `;
@@ -265,13 +265,13 @@ const PaginationWrapper = styled('div')`
 const RowItem = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const RowRule = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   word-break: break-word;

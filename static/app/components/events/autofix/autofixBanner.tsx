@@ -152,23 +152,23 @@ const Body = styled(PanelBody)`
   display: flex;
   flex-direction: column;
   flex-grow: 2;
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${space(3)};
 `;
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const SubTitle = styled('p')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
 `;
 
 const ButtonGroup = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const IllustrationContainer = styled('div')`
@@ -188,5 +188,5 @@ const Illustration = styled('img')`
 const PiiMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;

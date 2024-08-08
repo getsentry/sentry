@@ -8,7 +8,6 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
@@ -129,7 +128,7 @@ export function DataSetStep({
 const DataSetChoices = styled(RadioGroup)`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StyledCloseButton = styled(Button)`

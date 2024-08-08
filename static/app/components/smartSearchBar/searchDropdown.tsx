@@ -485,18 +485,18 @@ const SearchDropdownOverlay = styled(Overlay)`
   left: -1px;
   right: -1px;
   overflow: hidden;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const LoadingWrapper = styled('div')`
   display: flex;
   justify-content: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const Info = styled('div')`
   display: flex;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
 
@@ -517,10 +517,10 @@ const SearchDropdownGroupTitle = styled('header')`
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 
   & > svg {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
 `;
 
@@ -545,7 +545,7 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
 const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
-  padding: 4px ${space(2)};
+  padding: 4px ${p => p.theme.space(2)};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
   ${p => !p.isChild && `border-top: 1px solid ${p.theme.innerBorder};`}
@@ -611,7 +611,7 @@ const TagWrapper = styled('span')`
 const Documentation = styled('span')`
   display: flex;
   flex: 2;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
   min-width: 0;
 
   ${p => p.theme.overflowEllipsis}
@@ -630,14 +630,14 @@ const DropdownFooter = styled(`div`)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const HotkeyGlyphWrapper = styled('span')`
   color: ${p => p.theme.gray300};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
@@ -649,7 +649,7 @@ const IconWrapper = styled('span')`
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
     align-items: center;
     justify-content: center;
   }
@@ -658,7 +658,7 @@ const IconWrapper = styled('span')`
 const QueryItemWrapper = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   width: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   display: flex;
   white-space: nowrap;
   word-break: normal;
@@ -675,7 +675,7 @@ const Value = styled('span')<{hasDocs?: boolean}>`
 `;
 
 const IconOpenWithMargin = styled(IconOpen)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const RecommendedItem = styled('div')`

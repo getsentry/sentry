@@ -75,7 +75,7 @@ const SentryStyleAnsi = styled(Ansi)`
 `;
 
 const CodeWrapper = styled('pre')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   width: 100%;
   margin-bottom: 0;
   &:after {

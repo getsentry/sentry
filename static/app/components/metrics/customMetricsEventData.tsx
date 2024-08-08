@@ -15,7 +15,6 @@ import type {Series} from 'sentry/components/metrics/chart/types';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   MetricsQueryApiResponseLastMeta,
   MetricType,
@@ -437,7 +436,7 @@ const NoValue = styled('span')`
 const ValueWrapper = styled(ValueCell)`
   display: inline-grid;
   grid-template-columns: max-content max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
@@ -450,7 +449,7 @@ const DeviationValue = styled('span')<{
 
 const HoverCardHeading = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  padding-bottom: ${space(0.5)};
+  padding-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const HoverCardSubheading = styled('div')`
@@ -461,7 +460,7 @@ const HoverCardSubheading = styled('div')`
 const ValuesHovercard = styled(Hovercard)`
   width: 200px;
   & .hovercard-body {
-    padding: ${space(0.5)};
+    padding: ${p => p.theme.space(0.5)};
   }
 `;
 

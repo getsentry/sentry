@@ -61,11 +61,11 @@ const AutofixPanel = styled(Panel)`
   margin-bottom: 0;
   overflow: hidden;
   background: ${p => p.theme.backgroundSecondary};
-  padding: ${space(2)} ${space(3)} ${space(3)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const AutofixHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;

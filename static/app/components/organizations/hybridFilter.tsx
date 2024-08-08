@@ -391,15 +391,15 @@ const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(0.5)};
-  margin: -${space(0.25)} -${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
+  margin: -${p => p.theme.space(0.25)} -${space(0.5)};
 `;
 
 const TrailingWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const CheckWrap = styled('div')<{visible: boolean}>`
@@ -407,23 +407,23 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   justify-content: center;
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0.5)};
-  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)} 0 ${space(0.25)} ${space(0.25)};
 `;
 
 const FooterWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   /* If there's FooterMessage above */
   &:not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space(1)};
   }
 `;
 
 const FooterMessage = styled('p')`
-  padding: ${space(0.75)} ${space(1)};
-  margin: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.75)} ${space(1)};
+  margin: ${p => p.theme.space(0.5)} 0;
   border-radius: ${p => p.theme.borderRadius};
   border: solid 1px ${p => p.theme.alert.warning.border};
   background: ${p => p.theme.alert.warning.backgroundLight};
@@ -434,7 +434,7 @@ const FooterMessage = styled('p')`
 const FooterTip = styled('p')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
   justify-content: center;
   color: ${p => p.theme.subText};
@@ -455,7 +455,7 @@ const FooterInnerWrap = styled('div')`
   grid-row: -1;
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   &:empty {
     display: none;

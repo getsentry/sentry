@@ -6,7 +6,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import ResourceView from 'sentry/views/insights/browser/resources/components/resourceView';
@@ -99,11 +98,11 @@ function PageWithProviders() {
 }
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export default PageWithProviders;
 
 export const PaddedContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;

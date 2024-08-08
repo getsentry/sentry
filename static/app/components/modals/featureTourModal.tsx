@@ -200,23 +200,23 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
 
 const CloseButton = styled(Button)`
   position: absolute;
-  top: -${space(2)};
-  right: -${space(1)};
+  top: -${p => p.theme.space(2)};
+  right: -${p => p.theme.space(1)};
 `;
 
 const TourContent = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: ${space(3)} ${space(4)} ${space(1)} ${space(4)};
+  margin: ${p => p.theme.space(3)} ${space(4)} ${space(1)} ${space(4)};
 `;
 
 const TourHeader = styled('h4')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const TourButtonBar = styled(ButtonBar)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const StepCounter = styled('div')`
@@ -229,12 +229,12 @@ const StepCounter = styled('div')`
 // Styled components that can be used to build tour content.
 export const TourText = styled('p')`
   text-align: center;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 export const TourImage = styled('img')`
   height: 200px;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 
   /** override styles in less files */
   max-width: 380px !important;

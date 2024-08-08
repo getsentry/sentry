@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
@@ -46,7 +45,7 @@ const StyledTraceLink = styled('div')`
   display: flex;
   white-space: nowrap;
   overflow: hidden;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
 `;
 
 export default TraceTimeLineOrRelatedIssue;

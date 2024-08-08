@@ -570,7 +570,7 @@ const Wrapper = styled(PanelItem)<{
   useTintRow: boolean;
 }>`
   position: relative;
-  padding: ${space(1.5)} 0;
+  padding: ${p => p.theme.space(1.5)} 0;
   line-height: 1.1;
 
   ${p =>
@@ -612,7 +612,7 @@ const Wrapper = styled(PanelItem)<{
 const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   flex: 1;
   width: 66.66%;
 
@@ -622,7 +622,7 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
 `;
 
 const GroupCheckBoxWrapper = styled('div')`
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
   align-self: flex-start;
   height: 15px;
   display: flex;
@@ -644,7 +644,7 @@ const secondaryStatStyle = (theme: Theme) => css`
 
   :before {
     content: '/';
-    padding-left: ${space(0.25)};
+    padding-left: ${p => p.theme.space(0.25)};
     padding-right: 2px;
     color: ${theme.gray300};
   }
@@ -657,7 +657,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 const CountTooltipContent = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)} ${space(3)};
+  gap: ${p => p.theme.space(1)} ${space(3)};
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
   align-items: center;
@@ -667,7 +667,7 @@ const CountTooltipContent = styled('div')`
     font-size: ${p => p.theme.fontSizeExtraSmall};
     text-transform: uppercase;
     grid-column: 1 / -1;
-    margin-bottom: ${space(0.25)};
+    margin-bottom: ${p => p.theme.space(0.25)};
   }
 `;
 
@@ -687,7 +687,7 @@ const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   justify-content: flex-end;
   align-self: center;
   width: 60px;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   margin-left: ${p => p.leftMargin ?? space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
@@ -697,7 +697,7 @@ const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
 
 const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 70px;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   align-self: center;
   display: flex;
   justify-content: flex-end;
@@ -711,7 +711,7 @@ const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
 
 const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 60px;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   align-self: center;
 
   /* prettier-ignore */
@@ -724,7 +724,7 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
 // Reprocessing
 const StartedColumn = styled('div')`
   align-self: center;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   color: ${p => p.theme.gray500};
   ${p => p.theme.overflowEllipsis};
   width: 85px;
@@ -737,7 +737,7 @@ const StartedColumn = styled('div')`
 
 const EventsReprocessedColumn = styled('div')`
   align-self: center;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   color: ${p => p.theme.gray500};
   ${p => p.theme.overflowEllipsis};
   width: 75px;
@@ -748,7 +748,7 @@ const EventsReprocessedColumn = styled('div')`
 `;
 
 const ProgressColumn = styled('div')`
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   align-self: center;
   display: none;
 

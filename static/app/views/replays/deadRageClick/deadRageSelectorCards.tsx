@@ -243,7 +243,7 @@ const SplitCardContainer = styled('div')`
   grid-template-columns: 1fr 1fr;
   grid-template-rows: max-content;
   grid-auto-flow: column;
-  gap: 0 ${space(2)};
+  gap: 0 ${p => p.theme.space(2)};
   align-items: stretch;
 `;
 
@@ -251,7 +251,7 @@ const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.gray400};
   display: grid;
   grid-template-columns: auto auto;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
 `;
 
@@ -273,7 +273,7 @@ const CenteredContentContainer = styled(ContentContainer)`
 const StyledButton = styled(LinkButton)`
   width: 100%;
   border-radius: ${p => p.theme.borderRadiusBottom};
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
   border-bottom: none;
   border-left: none;
   border-right: none;
@@ -289,7 +289,7 @@ const StyledAccordionHeader = styled('div')`
 
 const TitleTooltipContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
@@ -301,7 +301,7 @@ const StyledWidgetHeader = styled(HeaderTitleLegend)`
 
 const StyledWidgetContainer = styled(WidgetContainer)`
   margin-bottom: 0;
-  padding-top: ${space(1.5)};
+  padding-top: ${p => p.theme.space(1.5)};
 `;
 
 export const RightAlignedCell = styled('div')`
@@ -309,20 +309,20 @@ export const RightAlignedCell = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: ${space(1)};
-  padding-left: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  padding-left: ${p => p.theme.space(1)};
 `;
 
 const EmptySubtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.6em;
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 const LoadingContainer = styled(ContentContainer)`
-  gap: ${space(0.25)};
-  padding: ${space(1)} ${space(0.5)} 3px ${space(0.5)};
+  gap: ${p => p.theme.space(0.25)};
+  padding: ${p => p.theme.space(1)} ${space(0.5)} 3px ${space(0.5)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
@@ -332,7 +332,7 @@ const StyledPlaceholder = styled(Placeholder)`
 const EmptyHeader = styled(Flex)`
   justify-content: center;
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   color: ${p => p.theme.gray300};
 `;
 

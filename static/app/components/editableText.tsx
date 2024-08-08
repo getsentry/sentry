@@ -185,7 +185,7 @@ export const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
@@ -199,9 +199,9 @@ const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
   background: ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
-  margin: -${space(0.5)} -${space(1)};
-  padding: ${space(0.5)} ${space(1)};
-  max-width: calc(100% + ${space(2)});
+  margin: -${p => p.theme.space(0.5)} -${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${space(1)};
+  max-width: calc(100% + ${p => p.theme.space(2)});
 `;
 
 const StyledInput = styled(Input)`
@@ -223,7 +223,7 @@ const InputLabel = styled('div')`
   height: 0;
   opacity: 0;
   white-space: pre;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
 `;
 
 const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`

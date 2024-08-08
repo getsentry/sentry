@@ -265,11 +265,11 @@ const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
   font-weight: ${p => p.theme.fontWeightNormal};
-  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
+  margin: -${p => p.theme.space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 
   button {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${space(1)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;

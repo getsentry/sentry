@@ -11,7 +11,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   Event,
   Frame,
@@ -391,11 +390,11 @@ const fadeIn = keyframes`
 
 const StacktraceLinkWrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
 `;
 
 const FixMappingButton = styled(Button)`
@@ -413,7 +412,7 @@ const StyledIconWrapper = styled('span')`
 const LinkStyles = css`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 const OpenInLink = styled(ExternalLink)`
@@ -428,6 +427,6 @@ const OpenInLink = styled(ExternalLink)`
 const CodecovWarning = styled('div')`
   display: flex;
   color: ${p => p.theme.errorText};
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
 `;

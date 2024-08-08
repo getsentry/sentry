@@ -10,7 +10,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import SimilarSpectrum from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -125,18 +124,18 @@ export default List;
 const Header = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const LegendSmall = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Footer = styled('div')`
   display: flex;
   justify-content: center;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;

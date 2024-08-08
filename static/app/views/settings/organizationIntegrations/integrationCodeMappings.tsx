@@ -305,7 +305,7 @@ export default withRouteAnalytics(
 
 const Layout = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   width: 100%;
   align-items: center;
   grid-template-columns: 4.5fr 2.5fr 2.5fr max-content;
@@ -314,7 +314,7 @@ const Layout = styled('div')`
 
 const HeaderLayout = styled(Layout)`
   align-items: center;
-  margin: 0 ${space(1)} 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(1)} 0 ${space(2)};
 `;
 
 const ConfigPanelItem = styled(PanelItem)``;

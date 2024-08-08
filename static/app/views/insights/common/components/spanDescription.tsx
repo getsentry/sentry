@@ -111,7 +111,7 @@ export const Frame = styled('div')`
 
 const WithPadding = styled('div')`
   display: flex;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 `;
 
 const WordBreak = styled('div')`

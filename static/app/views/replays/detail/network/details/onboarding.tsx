@@ -196,11 +196,11 @@ function SetupInstructions({
 }
 
 const StyledTextCopyInput = styled(TextCopyInput)`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 
 const NetworkUrlWrapper = styled('div')`
-  margin: ${space(1)} 0 ${space(1.5)} 0;
+  margin: ${p => p.theme.space(1)} 0 ${space(1.5)} 0;
 `;
 
 const NoMarginAlert = styled(Alert)`
@@ -211,9 +211,9 @@ const NoMarginAlert = styled(Alert)`
 const StyledInstructions = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   &:first-child {
     margin-top: 0;
     border-top: none;
@@ -221,11 +221,11 @@ const StyledInstructions = styled('div')`
 
   h1 {
     font-size: inherit;
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 
   p {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space(2)};
   }
   p:last-child {
     margin-bottom: 0;

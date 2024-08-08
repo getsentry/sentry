@@ -72,14 +72,14 @@ export const ScorePanel = styled(Panel)`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${space(3)};
   min-height: 96px;
 `;
 
 export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   width: fit-content;
 `;
@@ -117,7 +117,7 @@ type TrendProps = {trendStatus: ScoreCardProps['trendStatus']};
 
 export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   line-height: 1;
   overflow: hidden;
 `;

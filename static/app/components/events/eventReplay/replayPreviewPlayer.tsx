@@ -164,10 +164,10 @@ function ReplayPreviewPlayer({
 }
 
 const PlayerPanel = styled(Panel)`
-  padding: ${space(3)} ${space(3)} ${space(1.5)};
+  padding: ${p => p.theme.space(3)} ${space(3)} ${space(1.5)};
   margin: 0;
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-direction: column;
   flex-grow: 1;
   overflow: hidden;
@@ -179,17 +179,17 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
 `;
 
 const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   background: ${p => p.theme.background};
 
   :fullscreen {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space(1)};
 
     ${PlayerBreadcrumbContainer} {
       display: grid;
       grid-template-columns: ${p => (p.isSidebarOpen ? '1fr 25%' : '1fr')};
       height: 100%;
-      gap: ${space(1)};
+      gap: ${p => p.theme.space(1)};
     }
   }
 `;
@@ -197,7 +197,7 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
 const PlayerContextContainer = styled(FluidHeight)`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StaticPanel = styled(FluidHeight)`
@@ -207,7 +207,7 @@ const StaticPanel = styled(FluidHeight)`
 const ButtonGrid = styled('div')`
   display: flex;
   align-items: center;
-  gap: 0 ${space(1)};
+  gap: 0 ${p => p.theme.space(1)};
   flex-direction: row;
   justify-content: space-between;
 `;
@@ -224,18 +224,18 @@ const ContextContainer = styled('div')`
   grid-auto-flow: column;
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledReplayCell = styled(ReplayCell)`
-  padding: 0 0 ${space(1)};
+  padding: 0 0 ${p => p.theme.space(1)};
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 export default ReplayPreviewPlayer;

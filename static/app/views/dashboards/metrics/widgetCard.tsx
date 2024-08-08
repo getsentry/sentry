@@ -261,7 +261,7 @@ const WidgetHeaderWrapper = styled('div')`
 `;
 
 const ContextMenuWrapper = styled('div')`
-  padding: ${space(2)} ${space(1)} 0 ${space(3)};
+  padding: ${p => p.theme.space(2)} ${space(1)} 0 ${space(3)};
 `;
 
 const WidgetHeaderDescription = styled('div')`
@@ -270,13 +270,13 @@ const WidgetHeaderDescription = styled('div')`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  padding-left: ${space(3)};
-  padding-top: ${space(2)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space(3)};
+  padding-top: ${p => p.theme.space(2)};
+  padding-right: ${p => p.theme.space(1)};
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const ErrorWrapper = styled('div')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
 `;

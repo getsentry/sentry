@@ -9,7 +9,6 @@ import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/uti
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import {space} from 'sentry/styles/space';
 import type {
   AvatarUser,
   Event,
@@ -534,7 +533,7 @@ export function getFormattedContextData({
 
 const RelativeTime = styled('span')`
   color: ${p => p.theme.subText};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;

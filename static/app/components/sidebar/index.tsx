@@ -39,7 +39,6 @@ import HookStore from 'sentry/stores/hookStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
@@ -771,7 +770,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
     height: ${p => p.theme.sidebar.mobileHeight};
     bottom: auto;
     width: auto;
-    padding: 0 ${space(1)};
+    padding: 0 ${p => p.theme.space(1)};
     align-items: center;
     border-right: none;
     border-bottom: solid 1px ${p => p.theme.sidebarBorder};
@@ -806,7 +805,7 @@ const PrimaryItems = styled('div')`
   -ms-overflow-style: -ms-autohiding-scrollbar;
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.sidebarBorder};
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
@@ -815,8 +814,8 @@ const PrimaryItems = styled('div')`
     height: 100%;
     align-items: center;
     border-right: 1px solid ${p => p.theme.sidebarBorder};
-    padding-right: ${space(1)};
-    margin-right: ${space(0.5)};
+    padding-right: ${p => p.theme.space(1)};
+    margin-right: ${p => p.theme.space(0.5)};
     box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;
     ::-webkit-scrollbar {
       display: none;
@@ -840,8 +839,8 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   noMargin?: boolean;
   noPadding?: boolean;
 }>`
-  ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  ${p => !p.noPadding && `padding: 0 ${space(2)}`};
+  ${p => !p.noMargin && `margin: ${p.theme.space(1)} 0`};
+  ${p => !p.noPadding && `padding: 0 ${p.theme.space(2)}`};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
@@ -858,7 +857,7 @@ const DropdownSidebarSection = styled(SidebarSection)<{
 }>`
   position: relative;
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 
   ${p =>
     p.isSuperuser &&
@@ -866,7 +865,7 @@ const DropdownSidebarSection = styled(SidebarSection)<{
       &:before {
         content: '';
         position: absolute;
-        inset: 0 ${space(1)};
+        inset: 0 ${p.theme.space(1)};
         border-radius: ${p.theme.borderRadius};
         background: ${p.theme.superuserSidebar};
       }

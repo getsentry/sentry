@@ -110,5 +110,5 @@ function TeamResolutionTime({
 export default TeamResolutionTime;
 
 const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space(2)} ${space(2)} 0 ${space(2)};
 `;

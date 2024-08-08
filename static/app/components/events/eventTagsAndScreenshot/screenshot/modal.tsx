@@ -246,7 +246,7 @@ const StyledHeaderWrapper = styled('div')<{hasPagination: boolean}>`
 
   header:last-of-type {
     margin-top: 0;
-    margin-bottom: ${space(3)};
+    margin-bottom: ${p.theme.space(3)};
   }
   `}
 `;
@@ -254,12 +254,12 @@ const StyledHeaderWrapper = styled('div')<{hasPagination: boolean}>`
 const GeneralInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const Label = styled('div')<{coloredBg?: boolean}>`
   color: ${p => p.theme.textColor};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)} ${space(1)} ${space(1)};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
 `;
 
@@ -267,7 +267,7 @@ const Value = styled(Label)`
   white-space: pre-wrap;
   word-break: break-all;
   color: ${p => p.theme.subText};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   font-family: ${p => p.theme.text.familyMono};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
 `;

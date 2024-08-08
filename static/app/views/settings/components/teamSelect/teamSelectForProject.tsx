@@ -13,7 +13,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project, Team} from 'sentry/types';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -147,7 +146,7 @@ function TeamRow({
 }
 
 const TeamPanelItem = styled(PanelItem)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   align-items: center;
   justify-content: space-between;
 `;

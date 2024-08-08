@@ -670,8 +670,8 @@ function MenuList({
       <div
         css={css`
           /* The padding must align with the values specified for the option in the forms/controls/selectOption component */
-          padding: ${space(1)};
-          padding-left: calc(${space(0.5)} + ${space(1.5)});
+          padding: ${p => p.theme.space(1)};
+          padding-left: calc(${p => p.theme.space(0.5)} + ${space(1.5)});
           color: ${theme.gray300};
         `}
       >
@@ -705,7 +705,7 @@ const TooltipIconLabelWrapper = styled('span')`
   display: inline-flex;
   font-weight: bold;
   color: ${p => p.theme.gray300};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 
   & > span {
     margin-top: 1px;
@@ -718,15 +718,15 @@ const TooltipIconLabelWrapper = styled('span')`
 
 const StyledFieldConnector = styled('div')`
   color: ${p => p.theme.gray300};
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const SpanAttributeUnitWrapper = styled('div')`
   display: flex;
   align-items: flex-end;
 
-  gap: ${space(1)};
-  padding-bottom: ${space(2)};
+  gap: ${p => p.theme.space(1)};
+  padding-bottom: ${p => p.theme.space(2)};
 
   & > div:first-child {
     flex: 1;
@@ -742,7 +742,7 @@ function SearchBarWithId(props: React.ComponentProps<typeof SearchBar>) {
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   ${p =>
     p.hasDelete
       ? `
@@ -755,7 +755,7 @@ const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
 
 const SearchWrapper = styled('div')<{hasPrefix?: boolean}>`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   grid-template-columns: ${p => (p.hasPrefix ? 'max-content' : '')} 1fr;
 `;
@@ -765,15 +765,15 @@ const ConditionSymbol = styled('div')`
   color: ${p => p.theme.purple400};
   text-align: center;
   align-content: center;
-  height: ${space(3)};
-  width: ${space(3)};
+  height: ${p => p.theme.space(3)};
+  width: ${p => p.theme.space(3)};
   border-radius: 50%;
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
 `;
 
 const ConditionsButtonBar = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;

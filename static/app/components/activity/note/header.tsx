@@ -6,7 +6,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 
 type Props = {
@@ -67,7 +66,7 @@ function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
 const Container = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 export {NoteHeader};

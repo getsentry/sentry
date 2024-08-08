@@ -9,18 +9,18 @@ import {space} from 'sentry/styles/space';
 
 export const ListWrap = styled('ul')`
   margin: 0;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
   [data-menu-has-header='true'] > div > &:first-of-type {
-    padding-top: calc(${space(0.5)} + 1px);
+    padding-top: calc(${p => p.theme.space(0.5)} + 1px);
   }
 
   /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
   shadow border */
   [data-menu-has-footer='true'] > div > &:last-of-type {
-    padding-bottom: calc(${space(0.5)} + 1px);
+    padding-bottom: calc(${p => p.theme.space(0.5)} + 1px);
   }
 
   /* Remove top padding if preceded by search input, since search input already has
@@ -52,13 +52,13 @@ export const ListLabel = styled('p')`
   color: ${p => p.theme.subText};
   text-transform: uppercase;
   white-space: nowrap;
-  margin: ${space(0.5)} ${space(1.5)};
-  padding-right: ${space(1)};
+  margin: ${p => p.theme.space(0.5)} ${space(1.5)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 export const ListSeparator = styled('div')`
   border-top: solid 1px ${p => p.theme.innerBorder};
-  margin: ${space(0.5)} ${space(1.5)};
+  margin: ${p => p.theme.space(0.5)} ${space(1.5)};
 
   :first-child {
     display: none;
@@ -79,7 +79,7 @@ export const SectionHeader = styled('div')`
   align-items: center;
   box-sizing: content-box;
   height: 1.5em;
-  padding: ${space(0.25)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.25)} ${space(1.5)};
 
   /* Remove top padding if this is the first section in a headerless menu (selected
   with li:nth-of-type(2) because the first list item is a hidden separator) */
@@ -100,12 +100,12 @@ export const SectionTitle = styled('p')`
   white-space: nowrap;
 
   margin: 0;
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space(4)};
 `;
 
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
-  padding: 0 ${space(0.5)};
-  margin: 0 -${space(0.5)} 0 ${space(2)};
+  padding: 0 ${p => p.theme.space(0.5)};
+  margin: 0 -${p => p.theme.space(0.5)} 0 ${space(2)};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
@@ -137,7 +137,7 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
 export const SectionSeparator = styled('li')`
   list-style-type: none;
   border-top: solid 1px ${p => p.theme.innerBorder};
-  margin: ${space(0.5)} ${space(1.5)};
+  margin: ${p => p.theme.space(0.5)} ${space(1.5)};
 
   &:first-of-type {
     display: none;
@@ -162,7 +162,7 @@ export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>
 export const EmptyMessage = styled('p')`
   text-align: center;
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)} ${space(1.5)};
   margin: 0;
 
   /* Message should only be displayed when _all_ preceding lists are empty */
@@ -174,8 +174,8 @@ export const EmptyMessage = styled('p')`
 
 export const SizeLimitMessage = styled('li')`
   border-top: solid 1px ${p => p.theme.innerBorder};
-  margin: ${space(0.5)} ${space(1.5)} ${space(0.5)};
-  padding: ${space(0.75)} ${space(1)} 0;
+  margin: ${p => p.theme.space(0.5)} ${space(1.5)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.75)} ${space(1)} 0;
 
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};

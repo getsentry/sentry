@@ -10,7 +10,6 @@ import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {
   OnboardingSupplementComponentProps,
   OnboardingTask,
@@ -458,7 +457,7 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const EventWaitingIndicator = styled(

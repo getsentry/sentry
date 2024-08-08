@@ -7,7 +7,6 @@ import Input from 'sentry/components/input';
 import NumberDragControl from 'sentry/components/numberDragControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
@@ -219,7 +218,7 @@ class ThresholdControl extends Component<Props, State> {
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
@@ -228,7 +227,7 @@ const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
   align-items: center;
   flex-direction: ${p =>
     p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SelectContainer = styled('div')`
@@ -250,7 +249,7 @@ const ThresholdInput = styled('div')`
 `;
 
 const PercentWrapper = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const DragContainer = styled('div')`

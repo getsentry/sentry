@@ -255,9 +255,9 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 const TopMenuContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Flex = styled('div')`
@@ -265,13 +265,13 @@ const Flex = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const PageSamplePerformanceTableContainer = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin: ${space(2)} 0 ${space(4)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${space(4)} 0;
 `;

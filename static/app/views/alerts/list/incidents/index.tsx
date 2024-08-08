@@ -321,12 +321,12 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};
 
   & > div {
-    padding: ${space(1.5)} ${space(2)};
+    padding: ${p => p.theme.space(1.5)} ${space(2)};
   }
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const EmptyStateAction = styled('p')`

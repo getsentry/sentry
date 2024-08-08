@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
@@ -147,13 +146,13 @@ export function SpanDescription({
 const TitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   justify-content: space-between;
 `;
 
 const ButtonGroup = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   flex-wrap: wrap;
   justify-content: flex-end;
 `;

@@ -17,7 +17,7 @@ export function OpsBreakdown({breakdown}: {breakdown: OpBreakdownType}) {
           display: 'flex',
           flexDirection: 'column',
           gap: space(0.25),
-          paddingTop: `${space(0.5)} 0`,
+          paddingTop: `${p => p.theme.space(0.5)} 0`,
         }}
       >
         {breakdown.slice(0, showingAll ? breakdown.length : 5).map(currOp => {

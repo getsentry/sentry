@@ -93,8 +93,8 @@ const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(3)};
-  margin-bottom: ${space(2)};
+  padding: ${p => p.theme.space(2)} ${space(3)};
+  margin-bottom: ${p => p.theme.space(2)};
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,
@@ -111,24 +111,24 @@ const ActionsWrapper = styled('div')`
 const ButtonsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
   position: absolute;
   display: block;
-  top: ${space(1)};
-  right: ${space(1)};
+  top: ${p => p.theme.space(1)};
+  right: ${p => p.theme.space(1)};
   color: ${p => p.theme.white};
   cursor: pointer;
   z-index: 1;
@@ -154,7 +154,7 @@ const BannerBackground = styled('div')<{image: any}>`
 
 const ActionButton = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const TraceWarningComponents = {

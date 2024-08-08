@@ -12,7 +12,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
 import {
   createOnDemandFilterWarning,
@@ -269,12 +268,12 @@ const LegendAliasInput = styled(Input)`
 `;
 
 const QueryField = styled(FieldGroup)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-  margin-right: ${space(2)};
+  margin-bottom: ${p => p.theme.space(1)};
+  margin-right: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex-direction: column;
@@ -295,7 +294,7 @@ const SearchConditionsWrapper = styled('div')`
   align-items: center;
 
   > * + * {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space(1)};
   }
 `;
 

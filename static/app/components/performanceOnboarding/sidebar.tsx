@@ -320,8 +320,8 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space(1)};
+  margin: 50px ${p => p.theme.space(4)} ${space(4)} ${space(4)};
 `;
 
 const Heading = styled('div')`
@@ -331,7 +331,7 @@ const Heading = styled('div')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -342,7 +342,7 @@ const StyledIdBadge = styled(IdBadge)`
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (

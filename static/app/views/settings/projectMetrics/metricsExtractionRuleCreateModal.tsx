@@ -11,7 +11,6 @@ import {
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
@@ -220,7 +219,7 @@ function FormWrapper({
 }
 
 const ProjectSelectionWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 
   & > label {
     color: ${p => p.theme.gray300};

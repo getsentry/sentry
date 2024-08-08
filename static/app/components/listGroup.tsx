@@ -16,7 +16,7 @@ const ListGroupItem = styled('li')<ListGroupItemProps>`
   min-height: 36px;
   border: 1px solid ${p => p.theme.border};
 
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.5)} ${space(1.5)};
 
   margin-bottom: -1px;
   ${p => (p.centered ? 'text-align: center;' : '')}

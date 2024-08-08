@@ -8,7 +8,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFormattedDate} from 'sentry/utils/dates';
@@ -175,6 +174,6 @@ const DetailsContainer = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   min-width: 200px;
 `;

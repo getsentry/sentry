@@ -115,13 +115,13 @@ function ActivityItem({
 
 const ActivityItemWrapper = styled('div')`
   display: flex;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const ActivityHeader = styled('div')`
   display: flex;
   align-items: center;
-  padding: 6px ${space(2)};
+  padding: 6px ${p => p.theme.space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -135,12 +135,12 @@ const ActivityHeaderContent = styled('div')`
 `;
 
 const ActivityBody = styled('div')`
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space(2)} ${space(2)};
   ${textStyles}
 `;
 
 const StyledActivityAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const StyledTimeSince = styled(TimeSince)`

@@ -8,7 +8,6 @@ import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/ste
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function FeedbackOnboardingLayout({
@@ -135,5 +134,5 @@ const Wrapper = styled('div')`
 const Introduction = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;

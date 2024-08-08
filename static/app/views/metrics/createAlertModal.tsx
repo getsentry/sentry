@@ -16,7 +16,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -363,7 +362,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
 const ContentWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const ChartPanel = styled(Panel)<{isLoading: boolean}>`
@@ -371,13 +370,13 @@ const ChartPanel = styled(Panel)<{isLoading: boolean}>`
 `;
 
 const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.formText};
-  height: ${space(1)};
-  margin-right: ${space(0.5)};
+  height: ${p => p.theme.space(1)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 const ChartFilters = styled('div')`
@@ -390,7 +389,7 @@ const ChartFilters = styled('div')`
 `;
 
 const Filters = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const QueryFilters = styled('span')`

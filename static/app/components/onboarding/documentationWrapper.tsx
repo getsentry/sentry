@@ -11,7 +11,7 @@ const getAlertSelector = (type: AlertType) =>
 
 export const DocumentationWrapper = styled('div')`
   /* Size of the new footer + 16px */
-  padding-bottom: calc(72px + ${space(2)});
+  padding-bottom: calc(72px + ${p => p.theme.space(2)});
 
   h2 {
     font-size: 1.375rem;
@@ -45,7 +45,7 @@ export const DocumentationWrapper = styled('div')`
   }
 
   blockquote {
-    padding: ${space(1.5)} ${space(2)};
+    padding: ${p => p.theme.space(1.5)} ${space(2)};
     ${p => alertStyles({theme: p.theme, type: 'info'})}
   }
 

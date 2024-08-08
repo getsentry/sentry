@@ -195,10 +195,10 @@ const ReleasesTable = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   & > * {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${space(1)};
     height: 32px;
   }
 

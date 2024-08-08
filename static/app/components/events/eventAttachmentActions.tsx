@@ -5,7 +5,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   attachmentId: string;
@@ -80,7 +79,7 @@ function EventAttachmentActions({
 }
 
 const DownloadButton = styled(Button)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 export default EventAttachmentActions;

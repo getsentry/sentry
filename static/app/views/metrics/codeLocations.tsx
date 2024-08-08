@@ -203,7 +203,7 @@ const CodeLocationWrapper = styled('div')`
 
 const DefaultLineActionButtons = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const CodeLocationsWrapper = styled('div')`
@@ -218,7 +218,7 @@ const SourceContextWrapper = styled('div')<{isLast?: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 24px;
-  min-height: ${space(3)};
+  min-height: ${p => p.theme.space(3)};
   white-space: pre;
   white-space: pre-wrap;
 
@@ -263,7 +263,7 @@ const DefaultLineTitleWrapper = styled('div')`
   line-height: ${p => p.theme.fontSizeLarge};
   font-style: normal;
 
-  padding: ${space(0.75)} ${space(3)} ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${space(3)} ${space(0.75)} ${space(1.5)};
   word-break: break-all;
   word-break: break-word;
 `;

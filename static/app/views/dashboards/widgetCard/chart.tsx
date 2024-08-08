@@ -239,14 +239,16 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       // The font size is the container height, minus the top and bottom padding
       const fontSize = !expandNumbers
         ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
-        : `max(min(8vw, 90px), ${space(4)})`;
+        : `max(min(8vw, 90px), ${p => p.theme.space(4)})`;
 
       return (
         <BigNumber
           key={`big_number:${result.title}`}
           style={{
             fontSize,
-            ...(expandNumbers ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`} : {}),
+            ...(expandNumbers
+              ? {padding: `${p => p.theme.space(1)} ${space(3)} 0 ${space(3)}`}
+              : {}),
           }}
         >
           <Tooltip title={rendered} showOnlyOnOverflow>
@@ -592,7 +594,7 @@ const BigNumber = styled('div')`
   min-height: 0;
   font-size: 32px;
   color: ${p => p.theme.headingColor};
-  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(3)} ${space(3)} ${space(3)};
 
   * {
     text-align: left !important;
@@ -601,11 +603,11 @@ const BigNumber = styled('div')`
 
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
-  padding: ${p => (p.noPadding ? `0` : `0 ${space(3)} ${space(3)}`)};
+  padding: ${p => (p.noPadding ? `0` : `0 ${p.theme.space(3)} ${p.theme.space(3)}`)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -613,5 +615,5 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;

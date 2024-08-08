@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface AutofixContextModalProps extends ModalRenderProps {
   groupId: string;
@@ -93,7 +92,7 @@ const FullSizeFieldGroup = styled(FormField)`
 
 const FooterButtons = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-auto-flow: column;
   justify-content: flex-end;
   flex: 1;

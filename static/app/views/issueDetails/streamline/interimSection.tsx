@@ -5,7 +5,6 @@ import {
   EventDataSection,
   type EventDataSectionProps,
 } from 'sentry/components/events/eventDataSection';
-import {space} from 'sentry/styles/space';
 import {
   FoldSection,
   type FoldSectionKey,
@@ -46,7 +45,7 @@ export const InterimSection = forwardRef<HTMLElement, EventDataSectionProps>(
 
 const Divider = styled('hr')`
   border-color: ${p => p.theme.border};
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
   &:last-child {
     display: none;
   }

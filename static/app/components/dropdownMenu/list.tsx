@@ -271,12 +271,12 @@ const StyledOverlay = styled(Overlay)`
 
 const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeMedium};
   overflow-x: hidden;
   overflow-y: auto;
 
-  ${p => p.hasTitle && `padding-top: calc(${space(0.5)} + 1px);`}
+  ${p => p.hasTitle && `padding-top: calc(${p.theme.space(0.5)} + 1px);`}
 
   &:focus {
     outline: none;
@@ -289,7 +289,7 @@ const MenuTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${space(1.5)};
   box-shadow: 0 1px 0 0 ${p => p.theme.translucentInnerBorder};
   z-index: 2;
 `;
@@ -297,5 +297,5 @@ const MenuTitle = styled('div')`
 const Separator = styled('li')`
   list-style-type: none;
   border-top: solid 1px ${p => p.theme.innerBorder};
-  margin: ${space(0.5)} ${space(1.5)};
+  margin: ${p => p.theme.space(0.5)} ${space(1.5)};
 `;

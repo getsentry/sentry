@@ -5,7 +5,6 @@ import campingImg from 'sentry-images/spot/onboarding-preview.svg';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -61,13 +60,13 @@ const Wrapper = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.fontSizeLarge};
   border-radius: 0 0 3px 3px;
-  padding: 40px ${space(3)};
+  padding: 40px ${p => p.theme.space(3)};
   min-height: 260px;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex-direction: column;
     align-items: center;
-    padding: ${space(3)};
+    padding: ${p => p.theme.space(3)};
     text-align: center;
   }
 `;

@@ -4,7 +4,6 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -53,7 +52,7 @@ const ReplayCountLink = styled(Link)`
   display: inline-flex;
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
-  gap: 0 ${space(0.5)};
+  gap: 0 ${p => p.theme.space(0.5)};
 `;
 
 export default IssueReplayCount;

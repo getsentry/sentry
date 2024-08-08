@@ -28,7 +28,6 @@ import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -675,7 +674,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.subText};
     font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
-    padding: ${space(1)} ${space(2)};
+    padding: ${p.theme.space(1)} ${p.theme.space(2)};
     border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
   }
   .tooltip-series {
@@ -686,7 +685,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: ${p.theme.borderRadius};
   }
   .tooltip-label {
-    margin-right: ${space(1)};
+    margin-right: ${p.theme.space(1)};
     ${p.theme.overflowEllipsis};
   }
   .tooltip-label strong {
@@ -712,7 +711,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: ${p.theme.borderRadiusBottom};
     display: flex;
     justify-content: space-between;
-    gap: ${space(3)};
+    gap: ${p.theme.space(3)};
   }
 
   .tooltip-footer-centered {

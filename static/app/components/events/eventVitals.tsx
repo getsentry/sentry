@@ -154,17 +154,17 @@ function EventVital({event, name, vital}: EventVitalProps) {
 
 const Measurements = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
 `;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
-  padding: ${space(1)} ${space(1.5)};
-  margin-bottom: ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1)};
   ${p => p.failedThreshold && `border: 1px solid ${p.theme.red300};`}
 `;
 
@@ -179,7 +179,7 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.errorText};
 `;
 
@@ -187,7 +187,7 @@ const FireIconContainer = styled('span')<{size: IconSize | string}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
   color: ${p => p.theme.errorText};
 `;
 

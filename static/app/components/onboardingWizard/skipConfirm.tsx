@@ -6,7 +6,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   children: (opts: {skip: (e: React.MouseEvent) => void}) => React.ReactNode;
@@ -82,7 +81,7 @@ const Confirmation = styled(({onDismiss, onSkip, visible: _, ...props}: ConfirmP
   left: 0;
   bottom: 0;
   right: 0;
-  padding: 0 ${space(3)};
+  padding: 0 ${p => p.theme.space(3)};
   border-radius: ${p => p.theme.borderRadius};
   align-items: center;
   flex-direction: column;
@@ -92,6 +91,6 @@ const Confirmation = styled(({onDismiss, onSkip, visible: _, ...props}: ConfirmP
   font-size: ${p => p.theme.fontSizeMedium};
 
   p {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 `;

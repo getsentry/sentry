@@ -7,7 +7,6 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import ContinueButton from 'sentry/views/relocation/components/continueButton';
@@ -171,7 +170,7 @@ DocsWrapper.defaultProps = {
 const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
   background-color: ${p => p.theme.surface400};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
@@ -192,14 +191,14 @@ const Label = styled('label')`
   display: block;
   text-transform: uppercase;
   color: ${p => p.theme.gray500};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const RequiredLabel = styled('label')`
   display: block;
   text-transform: uppercase;
   color: ${p => p.theme.gray500};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   &:after {
     content: '•';
     width: 6px;
@@ -214,15 +213,15 @@ const RegionSelect = styled(SelectControl)`
 `;
 
 const PromoCodeInput = styled(Input)`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const TogglePromoCode = styled('a')`
   display: block;
   cursor: pointer;
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const DatacenterTextBlock = styled('p')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;

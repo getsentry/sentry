@@ -3,7 +3,6 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Input from 'sentry/components/input';
-import {space} from 'sentry/styles/space';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import EmptyStory from 'sentry/views/stories/emptyStory';
@@ -63,7 +62,7 @@ export default function Stories({location}: Props) {
 }
 
 const Layout = styled('div')`
-  --stories-grid-space: ${space(2)};
+  --stories-grid-space: ${p => p.theme.space(2)};
 
   display: grid;
   grid-template:
@@ -78,7 +77,7 @@ const Layout = styled('div')`
 
 const Sidebar = styled('aside')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   flex-direction: column;
   min-height: 0;
 `;

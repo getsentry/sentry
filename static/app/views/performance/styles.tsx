@@ -15,8 +15,8 @@ export const GridCellNumber = styled(GridCell)`
 export const DoubleHeaderContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: ${space(2)} ${space(3)} ${space(1)} ${space(3)};
-  gap: ${space(3)};
+  padding: ${p => p.theme.space(2)} ${space(3)} ${space(1)} ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 export const ErrorPanel = styled('div')`

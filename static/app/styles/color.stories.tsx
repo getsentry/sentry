@@ -268,7 +268,7 @@ const SideBySideList = styled('ul')`
   /* Side-by-side display */
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const PalettePanel = styled(Panel)`
@@ -280,7 +280,7 @@ const PalettePanelItem = styled(PanelItem)<{
   text: ColorOrAlias;
 }>`
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 
   &:first-child {
     border-radius: ${p => p.theme.borderRadiusTop};
@@ -339,7 +339,7 @@ const PositiveLabel = styled(({className}: {className?: string}) => (
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeightBold};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const NegativeLabel = styled(({className}: {className?: string}) => (
@@ -352,7 +352,7 @@ const NegativeLabel = styled(({className}: {className?: string}) => (
   align-items: center;
   display: flex;
   font-weight: ${p => p.theme.fontWeightBold};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ExampleCardGrid = styled('figcaption')`
@@ -360,7 +360,7 @@ const ExampleCardGrid = styled('figcaption')`
   grid-template-columns: 1fr 2fr;
   align-items: flex-start;
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} ${space(1)} 0;
 `;
 
 interface ExampleCardProps {

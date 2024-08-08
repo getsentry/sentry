@@ -110,13 +110,13 @@ const Flex = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(1)};
   flex-wrap: wrap;
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space(2)} ${space(2)} 0 ${space(2)};
   min-width: 320px;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
@@ -139,13 +139,13 @@ const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: relative;
-  margin-left: ${space(0.5)};
-  top: ${space(0.25)};
+  margin-left: ${p => p.theme.space(0.5)};
+  top: ${p => p.theme.space(0.25)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

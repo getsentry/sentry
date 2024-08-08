@@ -18,7 +18,6 @@ import type {
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member} from 'sentry/types/organization';
 
 interface Props {
@@ -188,17 +187,17 @@ const Heading = styled('h1')`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.headerFontSize};
   margin-top: 0;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const Subtext = styled('p')`
   color: ${p => p.theme.subText};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const inviteRowGrid = css`
   display: grid;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   grid-template-columns: 3fr 180px 2fr 0.5fr;
   align-items: start;
 `;
@@ -206,7 +205,7 @@ const inviteRowGrid = css`
 const InviteeHeadings = styled('div')`
   ${inviteRowGrid};
 
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -220,16 +219,16 @@ const Rows = styled('ul')`
 
 const StyledInviteRow = styled(InviteRowControl)`
   ${inviteRowGrid};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const AddButton = styled(Button)`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 const FooterContent = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   justify-content: space-between;
   flex: 1;

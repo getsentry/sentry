@@ -257,18 +257,18 @@ const PreviewContent = styled('div')`
   display: flex;
   flex-direction: column;
   color: ${p => p.theme.textColor};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const PrefixText = styled('span')``;
 
 const Content = styled('div')`
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
+  padding: 0 ${p => p.theme.space(1)} ${space(1)} ${space(1)};
 `;
 
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const PullRequestTitle = styled('div')`
@@ -276,7 +276,7 @@ const PullRequestTitle = styled('div')`
 `;
 
 const RepoChangesHeader = styled('div')`
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space(2)} 0;
   display: grid;
   align-items: center;
   grid-template-columns: 1fr auto;
@@ -286,13 +286,13 @@ const Actions = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const Separator = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: ${space(2)} -${space(2)} 0 -${space(2)};
+  margin: ${p => p.theme.space(2)} -${space(2)} 0 -${space(2)};
 `;
 
 const ProcessingStatusIndicator = styled(LoadingIndicator)`

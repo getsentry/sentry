@@ -512,14 +512,14 @@ export default function GroupEventDetailsContent({
 }
 
 const NotFoundMessage = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space(2)} ${space(4)};
 `;
 
 const StyledDataSection = styled(DataSection)`
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space(0.5)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(1)} ${space(4)};
+    padding: ${p => p.theme.space(1)} ${space(4)};
   }
 
   &:empty {
@@ -546,5 +546,5 @@ const GroupContent = styled('div')<{navHeight?: number}>`
 `;
 
 const GroupContentPadding = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
 `;

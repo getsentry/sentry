@@ -281,7 +281,7 @@ const FilterValueGridCell = styled(BaseGridCell)`
 `;
 
 const ValueButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space(0.25)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -296,7 +296,7 @@ const ValueButton = styled(UnstyledButton)`
 `;
 
 const ValueEditing = styled('div')`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space(0.25)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -310,7 +310,7 @@ const ValueEditing = styled('div')`
 `;
 
 const DeleteButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.75)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.75)} 0 ${space(0.5)};
   border-radius: 0 3px 3px 0;
   color: ${p => p.theme.subText};
   border-left: 1px solid transparent;
@@ -325,7 +325,7 @@ const FilterValueList = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   max-width: 400px;
 `;
 

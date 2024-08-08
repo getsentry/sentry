@@ -24,7 +24,6 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
@@ -602,18 +601,18 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
 
 const ChartPlaceholder = styled(Placeholder)`
   /* Height and margin should add up to graph size (200px) */
-  margin: 0 0 ${space(2)};
+  margin: 0 0 ${p => p.theme.space(2)};
   height: 184px;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
   /* Height and margin should with the alert should match up placeholder height of (184px) */
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   height: 119px;
 `;
 
 const ChartErrorWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {

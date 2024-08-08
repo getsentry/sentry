@@ -8,7 +8,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
@@ -66,7 +65,7 @@ function ReplaysListContainer() {
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 export default ReplaysListContainer;

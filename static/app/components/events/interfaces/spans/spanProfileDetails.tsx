@@ -373,10 +373,10 @@ const SpanContainer = styled('div')`
   }
 `;
 const SpanDetails = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${space(1)};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`

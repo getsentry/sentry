@@ -6,7 +6,6 @@ import ReplayIFrameRoot from 'sentry/components/replays/player/replayIFrameRoot'
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -129,7 +128,7 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
 }
 
 const WithPadding = styled(NegativeSpaceContainer)`
-  padding-block: ${space(1.5)};
+  padding-block: ${p => p.theme.space(1.5)};
   overflow: visible;
 `;
 
@@ -165,7 +164,7 @@ const Placement = styled('div')`
 `;
 
 const Divider = styled('div')`
-  --handle-size: ${space(1.5)};
+  --handle-size: ${p => p.theme.space(1.5)};
   --line-width: 1px;
 
   cursor: ew-resize;

@@ -4,7 +4,6 @@ import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
 import {ValueLink} from 'sentry/components/keyValueData';
-import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
@@ -137,11 +136,11 @@ const Tablevalue = styled('div')`
 const ValueWithButtonContainer = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
   background: ${p => p.theme.bodyBackground};
-  padding: ${space(1)} 10px;
-  margin: ${space(0.25)} 0;
+  padding: ${p => p.theme.space(1)} 10px;
+  margin: ${p => p.theme.space(0.25)} 0;
   border-radius: ${p => p.theme.borderRadius};
   pre {
     padding: 0 !important;

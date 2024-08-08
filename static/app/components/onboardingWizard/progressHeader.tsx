@@ -53,8 +53,8 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: min-content 1fr;
   grid-template-rows: min-content 1fr;
-  grid-column-gap: ${space(2)};
-  margin: 90px ${space(4)} 0 ${space(4)};
+  grid-column-gap: ${p => p.theme.space(2)};
+  margin: 90px ${p => p.theme.space(4)} 0 ${space(4)};
 `;
 
 const StyledProgressRing = styled(ProgressRing)`

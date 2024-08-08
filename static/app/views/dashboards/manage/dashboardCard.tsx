@@ -76,7 +76,7 @@ const AvatarWrapper = styled('span')`
 const CardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const StyledDashboardCard = styled(Card)`
@@ -90,7 +90,7 @@ const StyledDashboardCard = styled(Card)`
 
 const CardHeader = styled('div')`
   display: flex;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
 `;
 
 const Title = styled('div')`
@@ -110,7 +110,7 @@ const Detail = styled('div')`
 
 const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
   max-height: 150px;
   min-height: 150px;
   overflow: hidden;
@@ -121,20 +121,20 @@ const CardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 `;
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   color: ${p => p.theme.textColor};
   ${p => p.theme.overflowEllipsis};
 `;
 
 const DateStatus = styled('span')`
   color: ${p => p.theme.subText};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
 `;
 
 export default DashboardCard;

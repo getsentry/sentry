@@ -511,24 +511,24 @@ const RowHeader = styled('span')<{
 }>`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
+  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${p => p.theme.space(2)};
   grid-template-rows: repeat(2, auto);
   align-items: center;
   align-content: center;
-  column-gap: ${space(1)};
+  column-gap: ${p => p.theme.space(1)};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.surface100}`
       : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
   font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(2, auto) ${space(2)};
-    padding: ${space(0.5)} ${space(1.5)};
+    grid-template-columns: auto 150px 120px 4fr repeat(2, auto) ${p => p.theme.space(2)};
+    padding: ${p => p.theme.space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
 `;
@@ -549,7 +549,7 @@ const ShowHideButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeightNormal};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
   &:hover {
     color: ${p => p.theme.subText};
   }

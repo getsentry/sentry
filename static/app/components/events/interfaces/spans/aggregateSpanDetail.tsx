@@ -3,7 +3,6 @@ import type {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AggregateEventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -154,7 +153,7 @@ const Flex = styled('div')`
 const ValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   border-radius: 4px;
   background-color: ${p => p.theme.surface200};
@@ -171,7 +170,7 @@ const ButtonContainer = styled('div')`
 `;
 
 export const SpanDetails = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 
   table.table.key-value td.key {
     max-width: 280px;

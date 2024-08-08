@@ -425,7 +425,7 @@ const RegressedFunctionSparklineContainer = styled('div')``;
 
 const RegressedFunctionRow = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const RegressedFunctionMainRow = styled('div')`
@@ -446,12 +446,12 @@ const RegressedFunctionMetricsRow = styled('div')`
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 const RegressedFunctionsContainer = styled('div')`
   flex-basis: 80px;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -475,13 +475,13 @@ const RegressedFunctionsTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
-  margin-top: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 
 const RegressedFunctionsQueryState = styled('div')`
   text-align: center;
-  padding: ${space(2)} ${space(0.5)};
+  padding: ${p => p.theme.space(2)} ${space(0.5)};
   color: ${p => p.theme.subText};
 `;
 

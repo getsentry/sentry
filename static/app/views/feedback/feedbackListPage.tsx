@@ -114,7 +114,7 @@ const LayoutGrid = styled('div')`
   flex-grow: 1;
 
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   place-items: stretch;
 
   grid-template-rows: max-content 1fr;
@@ -131,7 +131,7 @@ const LayoutGrid = styled('div')`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
+    padding: ${p => p.theme.space(2)};
     grid-template-columns: 1fr;
     grid-template-areas:
       'filters'
@@ -150,12 +150,12 @@ const LayoutGrid = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
+    padding: ${p => p.theme.space(2)};
     grid-template-columns: minmax(1fr, 195px) 1fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
+    padding: ${p => p.theme.space(2)} ${space(4)} ${space(2)} ${space(4)};
     grid-template-columns: 390px 1fr;
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {

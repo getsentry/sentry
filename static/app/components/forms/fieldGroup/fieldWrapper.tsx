@@ -1,7 +1,5 @@
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-
-import {space} from 'sentry/styles/space';
 
 import type {FieldGroupProps} from './types';
 
@@ -20,17 +18,17 @@ const inlineStyle = (p: FieldWrapperProps) =>
         align-items: stretch;
       `;
 
-const getPadding = (p: FieldWrapperProps) =>
+const getPadding = (p: FieldWrapperProps, theme: Theme) =>
   p.stacked && !p.inline
     ? css`
-        padding: 0 ${space(2)} ${space(2)} 0;
+        padding: 0 ${theme.space(2)} ${theme.space(2)} 0;
       `
     : css`
-        padding: ${space(2)};
+        padding: ${theme.space(2)};
       `;
 
 const FieldWrapper = styled('div')<FieldWrapperProps>`
-  ${getPadding}
+  ${p => getPadding(p, p.theme)}
   ${inlineStyle}
   display: flex;
   transition: background 0.15s;

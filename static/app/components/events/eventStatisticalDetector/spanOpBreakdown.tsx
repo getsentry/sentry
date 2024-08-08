@@ -184,7 +184,7 @@ const EmptyStateWrapper = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${space(1.5)} ${space(4)};
+  margin: ${p => p.theme.space(1.5)} ${space(4)};
 `;
 
 export default EventSpanOpBreakdown;

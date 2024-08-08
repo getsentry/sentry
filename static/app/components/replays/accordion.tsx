@@ -58,7 +58,7 @@ const AccordionItem = styled('li')`
 `;
 
 const AccordionContainer = styled('ul')`
-  padding: ${space(1)} 0 0 0;
+  padding: ${p => p.theme.space(1)} 0 0 0;
   margin: 0;
   list-style-type: none;
 `;
@@ -66,13 +66,13 @@ const AccordionContainer = styled('ul')`
 const ItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space(1.5)};
 `;
 
 const ContentContainer = styled('div')`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space(0.25)};
 `;
 
 const LineItemWrapper = styled('div')`

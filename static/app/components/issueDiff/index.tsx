@@ -8,7 +8,6 @@ import type {Client} from 'sentry/api';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -180,7 +179,7 @@ const StyledIssueDiff = styled('div', {
 })<Pick<State, 'loading'>>`
   background-color: ${p => p.theme.backgroundSecondary};
   overflow: auto;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   flex: 1;
   display: flex;
   flex-direction: column;

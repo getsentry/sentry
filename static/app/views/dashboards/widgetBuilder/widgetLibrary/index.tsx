@@ -97,12 +97,12 @@ const WidgetLibraryWrapper = styled('div')`
 
 const Header = styled('h5')`
   /* to be aligned with the 30px of Layout.main padding */
-  padding-left: calc(${space(2)} - ${space(0.25)});
+  padding-left: calc(${p => p.theme.space(2)} - ${space(0.25)});
 `;
 
 const CardHoverWrapper = styled('div')<{selected: boolean}>`
   /* to be aligned with the 30px of Layout.main padding - 1px of the widget item border */
-  padding: calc(${space(2)} - 3px);
+  padding: calc(${p => p.theme.space(2)} - 3px);
   border: 1px solid transparent;
   border-radius: ${p => p.theme.borderRadius};
   transition: border-color 0.3s ease;

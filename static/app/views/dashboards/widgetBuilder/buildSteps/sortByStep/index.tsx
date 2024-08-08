@@ -6,7 +6,6 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SelectValue, TagCollection} from 'sentry/types';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
@@ -141,5 +140,5 @@ export function SortByStep({
 }
 
 const ResultsLimitSelector = styled(SelectControl)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

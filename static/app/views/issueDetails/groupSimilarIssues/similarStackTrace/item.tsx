@@ -16,7 +16,6 @@ import ScoreBar from 'sentry/components/scoreBar';
 import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -199,13 +198,13 @@ const Details = styled('div')`
 
   display: grid;
   align-items: start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: max-content auto max-content;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space(2)};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
 `;
 
 const Columns = styled('div')`
@@ -221,7 +220,7 @@ const columnStyle = css`
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
 `;
 
 const Column = styled('div')`
@@ -237,7 +236,7 @@ const Diff = styled('div')`
   height: 100%;
   display: flex;
   align-items: center;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space(0.25)};
 `;
 
 const EventDetails = styled('div')`

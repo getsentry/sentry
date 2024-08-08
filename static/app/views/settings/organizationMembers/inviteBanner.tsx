@@ -301,8 +301,8 @@ function MemberCards({
 
 const StyledCard = styled(Card)`
   display: flex;
-  padding: ${space(2)};
-  padding-bottom: ${space(1.5)};
+  padding: ${p => p.theme.space(2)};
+  padding-bottom: ${p => p.theme.space(1.5)};
   overflow: hidden;
 `;
 
@@ -329,7 +329,7 @@ const Subtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const MemberEmail = styled('div')`
@@ -347,8 +347,8 @@ const MemberCard = styled(Card)`
   flex-direction: row;
   flex-wrap: wrap;
   min-width: 30%;
-  margin: ${space(1)} ${space(0.5)} 0 0;
-  padding: ${space(2)} 18px;
+  margin: ${p => p.theme.space(1)} ${space(0.5)} 0 0;
+  padding: ${p => p.theme.space(2)} 18px;
   justify-content: center;
   align-items: center;
 `;
@@ -364,9 +364,9 @@ const MemberCardContent = styled('div')`
 const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
 `;
 
 export const StyledExternalLink = styled(ExternalLink)`

@@ -84,7 +84,7 @@ const Heading = styled(motion.div)`
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 Heading.defaultProps = {
   exit: 'exit',
@@ -100,7 +100,7 @@ Heading.defaultProps = {
 
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin: ${space(2)} ${space(3)} 0;
+  margin: ${p => p.theme.space(2)} ${space(3)} 0;
 `;
 
 const TaskCard = styled(motion(Card))`
@@ -108,7 +108,7 @@ const TaskCard = styled(motion(Card))`
   overflow: visible;
   display: flex;
   flex-direction: column;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 TaskCard.defaultProps = {
   exit: 'exit',
@@ -127,7 +127,7 @@ const OnboardingTaskProjectList = styled('div')`
 `;
 
 const OnboardingTaskProjectListItemInner = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
 
   display: flex;
   align-items: center;
@@ -137,7 +137,7 @@ const OnboardingTaskProjectListItem = styled(Link)`
     background-color: ${p => p.theme.hover};
   }
   border-radius: 0;
-  padding: 0 ${space(3)};
+  padding: 0 ${p => p.theme.space(3)};
   color: ${p => p.theme.textColor};
 
   :not(:last-child) {
@@ -154,15 +154,15 @@ const PulsingIndicator = styled('div')`
 const PulsingIndicatorText = styled('span')`
   color: ${p => p.theme.pink400};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space(1)};
 `;
 const CloseButton = styled(Button)`
   position: absolute;
-  right: ${space(1.5)};
-  top: ${space(1.5)};
+  right: ${p => p.theme.space(1.5)};
+  top: ${p => p.theme.space(1.5)};
   color: ${p => p.theme.gray300};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;

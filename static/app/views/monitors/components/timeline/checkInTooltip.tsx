@@ -82,7 +82,7 @@ const StatusCountContainer = styled('table')`
 
 const TooltipTimeLabel = styled('div')`
   display: flex;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   justify-content: center;
 `;
 
@@ -103,5 +103,5 @@ const StatusCount = styled('td')`
 `;
 
 const EnvLabel = styled('td')`
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${space(0.5)};
 `;

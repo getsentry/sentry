@@ -315,14 +315,14 @@ sentry-cli releases finalize "$VERSION"`,
 }
 
 const Container = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
 `;
 
 const ContainerHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
   min-height: 32px;
 
   h3 {
@@ -334,7 +334,7 @@ const ContainerHeader = styled('div')`
     align-items: flex-start;
 
     h3 {
-      margin-bottom: ${space(2)};
+      margin-bottom: ${p => p.theme.space(2)};
     }
   }
 `;
@@ -389,7 +389,7 @@ const GroupHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeightBold};
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space(1)} 0;
   color: ${p => p.theme.subText};
   line-height: ${p => p.theme.fontSizeSmall};
   text-align: left;
@@ -416,7 +416,7 @@ const MenuItemWrapper = styled('div')<{
 `;
 
 const MenuItemFooterWrapper = styled(MenuItemWrapper)`
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space(0.25)} ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: ${p => p.theme.tag.highlight.background};
   color: ${p => p.theme.active};

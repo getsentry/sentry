@@ -5,7 +5,6 @@ import keyBy from 'lodash/keyBy';
 import ClippedBox from 'sentry/components/clippedBox';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   Frame,
   LineCoverage,
@@ -215,7 +214,7 @@ const StyledClippedBox = styled(ClippedBox)`
 `;
 
 const StyledIconFlag = styled(IconFlag)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const Wrapper = styled('ol')<{startLineNo: number}>`
@@ -245,7 +244,7 @@ const CodeWrapper = styled('div')`
 const EmptyContext = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   padding: 20px;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -254,10 +253,10 @@ const EmptyContext = styled('div')`
 const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   display: grid;
   grid-template-columns: 58px 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   background: ${p =>
     p.isActive ? 'var(--prism-highlight-background)' : p.theme.background};
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space(2)};
 `;
 
 const ContextLineCode = styled('div')`

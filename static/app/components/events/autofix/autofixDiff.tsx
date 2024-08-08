@@ -166,7 +166,7 @@ export function AutofixDiff({diff}: AutofixDiffProps) {
 const DiffsColumn = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const FileDiffWrapper = styled('div')`
@@ -184,15 +184,15 @@ const FileHeader = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
   cursor: pointer;
 `;
 
 const FileAddedRemoved = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
@@ -221,13 +221,13 @@ const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
+  padding: ${p => p.theme.space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
   white-space: pre-wrap;
 `;
 
 const LineNumber = styled('div')<{lineType: DiffLineType}>`
   display: flex;
-  padding: ${space(0.25)} ${space(2)};
+  padding: ${p => p.theme.space(0.25)} ${space(2)};
   user-select: none;
 
   background-color: ${p => p.theme.backgroundSecondary};
@@ -247,7 +247,7 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
 const DiffContent = styled('div')<{lineType: DiffLineType}>`
   position: relative;
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space(4)};
   white-space: pre-wrap;
 
   ${p =>
@@ -266,7 +266,7 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
           : "''"};
     position: absolute;
     top: 1px;
-    left: ${space(1)};
+    left: ${p => p.theme.space(1)};
   }
 `;
 

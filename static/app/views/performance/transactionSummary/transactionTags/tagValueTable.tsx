@@ -11,7 +11,6 @@ import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -343,7 +342,7 @@ const AlignRight = styled('div')`
 const LinkContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   justify-content: flex-end;
   align-items: center;
 `;

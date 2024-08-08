@@ -28,7 +28,6 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fSign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
@@ -489,7 +488,7 @@ const Actions = styled(PanelItem)`
 
 const StyledQRCode = styled(QRCodeCanvas)`
   background: white;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 export default withSentryRouter(AccountSecurityEnroll);

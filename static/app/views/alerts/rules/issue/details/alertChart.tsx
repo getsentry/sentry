@@ -127,13 +127,13 @@ export function IssueAlertDetailsChart({
 }
 
 const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const ChartFooter = styled(PanelFooter)`
   display: flex;
   align-items: center;
-  padding: ${space(1)} 20px;
+  padding: ${p => p.theme.space(1)} 20px;
 `;
 
 const FooterHeader = styled(SectionHeading)`
@@ -148,7 +148,7 @@ const FooterHeader = styled(SectionHeading)`
 const FooterValue = styled('div')`
   display: flex;
   align-items: center;
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space(1)};
 `;
 
 /* Override padding to make chart appear centered */

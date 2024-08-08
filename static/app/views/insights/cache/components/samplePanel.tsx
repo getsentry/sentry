@@ -10,7 +10,6 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -473,7 +472,7 @@ const CACHE_STATUS_OPTIONS = [
 ];
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 // TODO - copy of static/app/views/starfish/views/spanSummaryPage/sampleList/index.tsx

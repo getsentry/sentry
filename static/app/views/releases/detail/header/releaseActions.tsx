@@ -217,9 +217,9 @@ function ReleaseActions({
 }
 
 const ProjectsWrapper = styled('div')`
-  margin: ${space(2)} 0 ${space(2)} ${space(2)};
+  margin: ${p => p.theme.space(2)} 0 ${space(2)} ${space(2)};
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   img {
     border: none !important;
     box-shadow: none !important;

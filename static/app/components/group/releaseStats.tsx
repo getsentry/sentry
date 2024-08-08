@@ -8,7 +8,6 @@ import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -181,9 +180,9 @@ function GroupReleaseStats({
 export default memo(GroupReleaseStats);
 
 const GraphContainer = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const StyledSidebarSectionContent = styled(SidebarSection.Content)`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;

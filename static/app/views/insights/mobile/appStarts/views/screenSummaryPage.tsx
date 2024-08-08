@@ -9,7 +9,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -218,5 +217,5 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 const SamplesContainer = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;

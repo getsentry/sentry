@@ -214,14 +214,14 @@ const ViewAllContainer = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   &::after {
     content: '';
     position: absolute;
     left: 10.5px;
     width: 1px;
-    top: -${space(1)};
-    height: ${space(1)};
+    top: -${p => p.theme.space(1)};
+    height: ${p => p.theme.space(1)};
     background: ${p => p.theme.border};
   }
 `;
@@ -229,10 +229,10 @@ const ViewAllContainer = styled('div')`
 const VerticalEllipsis = styled(IconEllipsis)`
   height: 22px;
   color: ${p => p.theme.subText};
-  margin: ${space(0.5)};
+  margin: ${p => p.theme.space(0.5)};
   transform: rotate(90deg);
 `;
 
 const ViewAllButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space(0.75)} ${space(1)};
 `;

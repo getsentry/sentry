@@ -24,7 +24,6 @@ import {
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
@@ -271,7 +270,7 @@ const ButtonsWrapper = styled('div')`
   top: 9px;
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ActionButton = styled(Button)`
@@ -281,7 +280,7 @@ const ActionButton = styled(Button)`
 const PositionedSearchIcon = styled(IconSearch)`
   color: ${p => p.theme.subText};
   position: absolute;
-  left: ${space(1.5)};
-  top: ${space(0.75)};
+  left: ${p => p.theme.space(1.5)};
+  top: ${p => p.theme.space(0.75)};
   height: 22px;
 `;

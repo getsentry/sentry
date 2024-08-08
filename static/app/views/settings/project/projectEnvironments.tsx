@@ -17,7 +17,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Environment, Organization, Project} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -270,7 +269,7 @@ const Name = styled('div')`
 `;
 
 const EnvironmentButton = styled(Button)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 export {ProjectEnvironments};

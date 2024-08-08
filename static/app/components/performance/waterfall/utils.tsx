@@ -3,7 +3,6 @@ import Color from 'color';
 
 import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {space} from 'sentry/styles/space';
 
 import type {SpanBarType} from './constants';
 import {getSpanBarColours} from './constants';
@@ -66,12 +65,12 @@ export const getDurationPillAlignment = ({
 }) => {
   switch (durationDisplay) {
     case 'left':
-      return `right: calc(100% + ${space(0.5)});`;
+      return `right: calc(100% + ${p => p.theme.space(0.5)});`;
     case 'right':
-      return `left: calc(100% + ${space(0.75)});`;
+      return `left: calc(100% + ${p => p.theme.space(0.75)});`;
     default:
       return `
-        right: ${space(0.75)};
+        right: ${p => p.theme.space(0.75)};
       `;
   }
 };

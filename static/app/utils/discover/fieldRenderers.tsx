@@ -21,7 +21,6 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -359,7 +358,7 @@ type SpecialFields = {
 };
 
 const DownloadCount = styled('span')`
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space(0.75)};
 `;
 
 const RightAlignedContainer = styled('span')`

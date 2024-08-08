@@ -65,7 +65,7 @@ export function DebugIdBundleList({
 const List = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Item = styled(Panel)`
@@ -79,15 +79,15 @@ const ItemHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   border-bottom: 1px solid ${p => p.theme.border};
   line-height: 1;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 `;
 
 const ItemTitle = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ItemContent = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(2)};
 `;

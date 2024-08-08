@@ -224,14 +224,14 @@ export function Entries({
 }
 
 const LatestEventNotAvailable = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space(2)} ${space(4)};
 `;
 
 const BorderlessEventEntries = styled(EventEntries)`
   & ${DataSection} {
     margin-left: 0 !important;
     margin-right: 0 !important;
-    padding: ${space(3)} 0 0 0;
+    padding: ${p => p.theme.space(3)} 0 0 0;
   }
   & ${DataSection}:first-child {
     padding-top: 0;

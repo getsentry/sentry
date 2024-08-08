@@ -9,7 +9,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -147,7 +146,7 @@ class Login extends Component<Props, State> {
 }
 
 const StyledLoadingError = styled(LoadingError)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space(2)};
 `;
 
 const Header = styled('div')`

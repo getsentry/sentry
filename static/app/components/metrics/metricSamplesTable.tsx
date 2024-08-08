@@ -783,7 +783,7 @@ function ProfileId({
 }
 
 const SearchBar = styled(SmartSearchBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledHovercard = styled(Hovercard)`
@@ -805,8 +805,8 @@ const TextOverflow = styled('span')`
 
 const LegendDot = styled('div')<{color: string}>`
   display: block;
-  width: ${space(1)};
-  height: ${space(1)};
+  width: ${p => p.theme.space(1)};
+  height: ${p => p.theme.space(1)};
   border-radius: 100%;
   background-color: ${p => p.theme[p.color] ?? p.color};
 `;

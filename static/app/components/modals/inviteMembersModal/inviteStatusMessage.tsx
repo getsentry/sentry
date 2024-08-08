@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {InviteStatus} from './types';
 
@@ -90,7 +89,7 @@ export default function InviteStatusMessage({
 
 export const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => (p.status === 'error' ? p.theme.errorText : p.theme.textColor)};

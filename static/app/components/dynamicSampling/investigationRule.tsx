@@ -9,7 +9,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -177,7 +176,7 @@ const InvestigationInProgressNotification = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
   display: inline-flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 function InvestigationRuleCreationInternal(props: PropsInternal) {

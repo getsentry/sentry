@@ -74,8 +74,8 @@ export const FrameContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(0.5)};
-  padding: ${space(1.5)} ${space(2)};
+  gap: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
 
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -86,7 +86,7 @@ export const FrameContainer = styled('div')`
 `;
 
 const ProjectAvatarContainer = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const Emphasize = styled('span')`
@@ -144,7 +144,7 @@ function SourceCodeIntegrationLink({
 const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   color: ${p => p.theme.gray300};
 `;
 

@@ -135,13 +135,13 @@ export default AlertRuleIssuesList;
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 
   ${p =>
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1)} ${space(2)};
+        padding: ${p.theme.space(1)} ${space(2)};
       }
     `}
 `;
@@ -159,7 +159,7 @@ const StyledDateTime = styled(DateTime)`
 const TitleWrapper = styled('div')`
   ${p => p.theme.overflowEllipsis};
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   min-width: 200px;
 `;
 
@@ -172,7 +172,7 @@ const PaginationWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledPagination = styled(Pagination)`

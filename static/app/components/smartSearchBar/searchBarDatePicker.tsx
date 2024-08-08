@@ -177,12 +177,12 @@ const SearchBarDatePickerOverlay = styled(Overlay)`
   top: 100%;
   left: -1px;
   overflow: hidden;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const Input = styled('input')`
   border-radius: 4px;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
   color: ${p => p.theme.gray300};
@@ -193,7 +193,7 @@ const DatePickerFooter = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+  padding: ${p => p.theme.space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const UtcPickerLabel = styled('label')`
@@ -206,7 +206,7 @@ const UtcPickerLabel = styled('label')`
   font-weight: ${p => p.theme.fontWeightNormal};
   user-select: none;
   cursor: pointer;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 export default SearchBarDatePicker;

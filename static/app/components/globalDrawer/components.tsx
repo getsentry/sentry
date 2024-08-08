@@ -6,7 +6,6 @@ import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface DrawerContentContextType {
   ariaLabel: string;
@@ -102,7 +101,7 @@ const CloseButton = styled(Button)`
 `;
 
 const HeaderBar = styled('div')`
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   border-right: 1px solid ${p => p.theme.border};
 `;
 
@@ -113,13 +112,13 @@ const Header = styled('header')`
   background: ${p => p.theme.background};
   justify-content: flex-start;
   display: flex;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
   padding-left: 24px;
 `;
 
 export const DrawerBody = styled('aside')`
-  padding: ${space(2)} 24px;
+  padding: ${p => p.theme.space(2)} 24px;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFile} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useResourcesQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
@@ -127,24 +126,24 @@ const getFormattedDuration = (value: number | null) => {
 };
 
 const StyledIconFile = styled(IconFile)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 const RecommendationSubHeader = styled('li')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const RecommendationsHeaderContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const ResourceList = styled('ul')`
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
 `;
 
 const ResourceListItem = styled('li')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   list-style: none;
   white-space: nowrap;
 `;
@@ -158,11 +157,11 @@ const ResourceDescription = styled('span')`
 const Flex = styled('span')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const RecommendationsContainer = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const StyledTooltip = styled(Tooltip)`

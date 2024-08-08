@@ -180,7 +180,7 @@ export function RelatedExceptions({
 const Heading = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0 ${space(0.5)} 0;
+  margin: ${p => p.theme.space(1)} 0 ${space(0.5)} 0;
   color: ${p => p.theme.subText};
 `;
 
@@ -200,7 +200,7 @@ const TreeItem = styled('div')<{level: number}>`
   display: grid;
   align-items: center;
   grid-template-columns: auto auto 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   padding-left: ${p => (p.level > 0 ? 20 : 0)}px;
   margin-left: ${p => Math.max((p.level - 1) * 20, 0)}px;
   height: 24px;

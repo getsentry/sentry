@@ -276,5 +276,5 @@ export default withApi(withOrganization(withProjects(ProjectContextProvider)));
 
 const ErrorWrapper = styled('div')`
   width: 100%;
-  margin: ${space(2)} ${space(4)};
+  margin: ${p => p.theme.space(2)} ${space(4)};
 `;

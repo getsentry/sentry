@@ -362,22 +362,22 @@ const StepHeader = styled('div')<{canToggle: boolean; isChild?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(2)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space(2)};
+  gap: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   font-family: ${p => p.theme.text.family};
   cursor: ${p => (p.canToggle ? 'pointer' : 'default')};
 
   &:last-child {
-    padding-bottom: ${space(2)};
+    padding-bottom: ${p => p.theme.space(2)};
   }
 `;
 
 const UserStepContent = styled('div')`
   display: flex;
   align-items: flex-start;
-  gap: ${space(1)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space(1)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const UserStepName = styled('div')`
@@ -391,7 +391,7 @@ const UserStepText = styled('p')`
 const UserTextContentContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const StepHeaderLeft = styled('div')`
@@ -404,8 +404,8 @@ const StepHeaderLeft = styled('div')`
 const StepHeaderDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(2)} 0 ${space(1)};
-  margin-left: ${space(1)};
+  padding: 0 ${p => p.theme.space(2)} 0 ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   border-left: 1px solid ${p => p.theme.border};
   flex-grow: 1;
   ${p => p.theme.overflowEllipsis};
@@ -414,13 +414,13 @@ const StepHeaderDescription = styled('div')`
 const StepIconContainer = styled('div')`
   display: flex;
   align-items: center;
-  margin-right: ${space(1.5)};
+  margin-right: ${p => p.theme.space(1.5)};
 `;
 
 const StepHeaderRight = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StepTitle = styled('div')`
@@ -432,13 +432,13 @@ const StepTitle = styled('div')`
   flex-grow: 0;
 
   span {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
 `;
 
 const StepBody = styled('p')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
-  margin: -${space(1)} 0 0 0;
+  padding: 0 ${p => p.theme.space(2)} ${space(2)} ${space(2)};
+  margin: -${p => p.theme.space(1)} 0 0 0;
 `;
 
 const ProcessingStatusIndicator = styled(LoadingIndicator)`
@@ -452,9 +452,9 @@ const ProcessingStatusIndicator = styled(LoadingIndicator)`
 const ProgressContainer = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   display: grid;
-  gap: ${space(1)} ${space(2)};
+  gap: ${p => p.theme.space(1)} ${space(2)};
   grid-template-columns: auto 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};

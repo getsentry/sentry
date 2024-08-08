@@ -602,7 +602,7 @@ const ListBoxOverlay = styled(Overlay)`
 const DescriptionOverlay = styled(Overlay)`
   min-width: 200px;
   max-width: 400px;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
   line-height: 1.2;
 `;
 

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 
 type Props = {
@@ -49,7 +48,7 @@ const StyledButton = styled('button')`
   display: flex;
   align-items: flex-start;
   align-self: baseline;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
   padding: 0;
   height: 100%;
 `;

@@ -9,7 +9,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {extraQueryParameter, urlAttachQueryParams} from 'sentry/utils/demoMode';
 
@@ -81,7 +80,7 @@ function DemoSignUpModal({closeModal}: Props) {
 }
 
 const TrialCheckInfo = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space(3)} 0;
   p {
     font-size: ${p => p.theme.fontSizeLarge};
     margin: 0;
@@ -104,7 +103,7 @@ export const modalCss = css`
 `;
 
 const Subheader = styled('h4')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.activeText};
@@ -112,7 +111,7 @@ const Subheader = styled('h4')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   max-width: 250px;
 `;
 

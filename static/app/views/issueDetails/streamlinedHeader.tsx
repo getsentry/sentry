@@ -15,7 +15,6 @@ import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {
   Event,
   Group,
@@ -213,11 +212,11 @@ const TitleWrapper = styled('h3')`
 const TitleHeading = styled('div')`
   display: flex;
   line-height: 2;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
   margin-bottom: 0;
   border-color: ${p => p.theme.border};
 `;
@@ -225,14 +224,14 @@ const StyledBreak = styled('hr')`
 const MessageWrapper = styled('div')`
   display: flex;
   color: ${p => p.theme.gray300};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const InfoWrapper = styled('div')<{isResolved: boolean}>`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space(1)} 0;
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   background-color: ${p =>
     p.isResolved
       ? 'linear-gradient(to right, rgba(235, 250, 246, 0.2) , rgb(235, 250, 246))0'
@@ -242,19 +241,19 @@ const InfoWrapper = styled('div')<{isResolved: boolean}>`
 
 const PriorityWorkflowWrapper = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ReleaseWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
   a {
     color: ${p => p.theme.gray300};
     text-decoration: underline;

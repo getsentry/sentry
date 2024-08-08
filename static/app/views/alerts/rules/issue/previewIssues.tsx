@@ -193,23 +193,23 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const StepHeader = styled('h5')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-left: -${space(4)};
+    margin-left: -${p => p.theme.space(4)};
   }
 `;
 
 const ContentIndent = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    margin-left: ${space(4)};
+    margin-left: ${p => p.theme.space(4)};
   }
 `;

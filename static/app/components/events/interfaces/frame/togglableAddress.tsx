@@ -5,7 +5,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {formatAddress, parseAddress} from '../utils';
 
@@ -101,7 +100,7 @@ function TogglableAddress({
 
 const AddressIconTooltip = styled(Tooltip)`
   align-items: center;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
 `;
 
 const AddressToggleIcon = styled(IconFilter)`
@@ -146,11 +145,11 @@ const Wrapper = styled('span')`
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  padding: 0 ${space(0.5)} 0 0;
+  padding: 0 ${p => p.theme.space(0.5)} 0 0;
   order: 1;
 
   @media (min-width: ${props => props.theme.breakpoints.small}) {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space(0.5)};
     order: 0;
   }
 `;

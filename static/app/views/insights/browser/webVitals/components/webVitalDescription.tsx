@@ -7,7 +7,6 @@ import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
@@ -169,31 +168,31 @@ export function WebVitalDescription({score, value, webVital}: Props) {
 
 const SupportedBrowsers = styled('div')`
   display: inline-flex;
-  gap: ${space(2)};
-  margin-bottom: ${space(3)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const BrowserItem = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Header = styled('span')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const Value = styled('h2')`
   display: flex;
   align-items: center;
   font-weight: ${p => p.theme.fontWeightNormal};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const WebVitalName = styled('h4')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   margin-top: 40px;
   max-width: 400px;
   ${p => p.theme.overflowEllipsis}
@@ -205,7 +204,7 @@ const TitleWrapper = styled('div')`
 `;
 
 const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space(0.5)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -220,7 +219,7 @@ const ScoreBadge = styled('div')<{status: string}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   text-align: center;
   height: 60px;
   width: 60px;
@@ -228,7 +227,7 @@ const ScoreBadge = styled('div')<{status: string}>`
 `;
 
 const StatusText = styled('span')`
-  padding-top: ${space(0.5)};
+  padding-top: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

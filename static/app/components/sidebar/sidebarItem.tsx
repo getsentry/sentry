@@ -13,7 +13,6 @@ import Link from 'sentry/components/links/link';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
@@ -374,7 +373,7 @@ const StyledSidebarItem = styled(Link, {
     content: '';
     position: absolute;
     top: 4px;
-    left: calc(-${space(2)} - 1px);
+    left: calc(-${p => p.theme.space(2)} - 1px);
     bottom: 6px;
     width: 5px;
     border-radius: 0 3px 3px 0;
@@ -427,7 +426,7 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
   justify-content: center;
   width: 100%;
 
-  ${p => !p.collapsed && `padding-right: ${space(1)};`}
+  ${p => !p.collapsed && `padding-right: ${p.theme.space(1)};`}
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding-right: 0;
   }
@@ -452,7 +451,8 @@ const SidebarItemLabel = styled('span')<{
   isInFloatingAccordion?: boolean;
   isNested?: boolean;
 }>`
-  margin-left: ${p => (p.isNested && p.isInFloatingAccordion ? space(4) : '10px')};
+  margin-left: ${p =>
+    p.isNested && p.isInFloatingAccordion ? p.theme.space(4) : '10px'};
   white-space: nowrap;
   opacity: 1;
   flex: 1;

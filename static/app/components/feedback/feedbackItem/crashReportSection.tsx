@@ -58,6 +58,6 @@ const IssueDetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
   overflow: auto;
 `;

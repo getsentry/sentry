@@ -14,7 +14,6 @@ import {IconWrapper} from 'sentry/components/sidebarSection';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import type {
   TraceError,
@@ -266,13 +265,13 @@ function IssueListHeader({
 }
 
 const StyledIssuesLink = styled(TraceDrawerComponents.IssuesLink)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const Heading = styled('div')`
   display: flex;
   align-self: center;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   width: 60px;
   color: ${p => p.theme.subText};
 `;
@@ -322,15 +321,15 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledLoadingIndicatorWrapper = styled('div')`
   display: flex;
   justify-content: center;
   width: 100%;
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space(2)} 0;
   height: 84px;
 
   /* Add a border between two rows of loading issue states */
@@ -358,7 +357,7 @@ const ColumnWrapper = styled('div')`
   justify-content: flex-end;
   align-self: center;
   width: 60px;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
 `;
 
 const EventsWrapper = styled(ColumnWrapper)`
@@ -394,7 +393,7 @@ const PrimaryCount = styled(Count)`
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
   height: 84px;
 `;

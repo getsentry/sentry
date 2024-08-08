@@ -203,17 +203,17 @@ class AccountSubscriptions extends DeprecatedAsyncView<
 const Heading = styled(PanelItem)`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
 `;
 
 const SubscriptionDetails = styled('label')`
   font-weight: initial;
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space(2)};
   width: 85%;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -230,7 +230,7 @@ const SubscriptionName = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 
 const SubscribedDescription = styled(Description)`

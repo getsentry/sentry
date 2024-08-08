@@ -7,7 +7,6 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
 
@@ -196,14 +195,14 @@ function ThresholdsStep({
 const ThresholdRowWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const ThresholdsContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space(2)};
+  margin-top: ${p => p.theme.space(1)};
 
   ${FieldWrapper} {
     padding: 0;

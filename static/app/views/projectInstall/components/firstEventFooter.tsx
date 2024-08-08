@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
@@ -67,8 +66,8 @@ export default function FirstEventFooter({
 const CTAFooter = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin: ${space(2)} 0;
-  margin-top: ${space(4)};
+  margin: ${p => p.theme.space(2)} 0;
+  margin-top: ${p => p.theme.space(4)};
 `;
 
 const CTASecondary = styled('p')`

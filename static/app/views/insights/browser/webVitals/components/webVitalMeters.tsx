@@ -145,7 +145,7 @@ export const getFormattedDuration = (value: number) => {
 };
 
 const Container = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const Flex = styled('div')<{gap?: number}>`
@@ -170,7 +170,7 @@ const MeterBarBody = styled('div')`
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   border-bottom: none;
-  padding: ${space(1)} 0 ${space(0.5)} 0;
+  padding: ${p => p.theme.space(1)} 0 ${space(0.5)} 0;
 `;
 
 const MeterHeader = styled('div')`
@@ -211,7 +211,7 @@ const MeterBarFooterContainer = styled('div')<{status: string}>`
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   text-align: center;
 `;
 
@@ -231,14 +231,14 @@ const StyledTooltip = styled(Tooltip)`
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space(1)};
 `;
 
 export const Dot = styled('span')<{color: string}>`
   display: inline-block;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   border-radius: ${p => p.theme.borderRadius};
-  width: ${space(1)};
-  height: ${space(1)};
+  width: ${p => p.theme.space(1)};
+  height: ${p => p.theme.space(1)};
   background-color: ${p => p.color};
 `;

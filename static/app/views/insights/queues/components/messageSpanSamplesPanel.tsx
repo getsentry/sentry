@@ -9,7 +9,6 @@ import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect'
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -512,7 +511,7 @@ const RETRY_COUNT_SELECT_OPTIONS = [
 ];
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 const HeaderContainer = styled('div')`
@@ -540,10 +539,10 @@ const Title = styled('h4')`
 const MetricsRibbonContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space(4)};
 `;
 
 const PanelControls = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;

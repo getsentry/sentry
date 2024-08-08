@@ -15,7 +15,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {StackType, StackView} from 'sentry/types';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -365,7 +364,7 @@ const ThreadStateWrapper = styled('div')`
   position: relative;
   flex-direction: row;
   align-items: flex-start;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const ThreadState = styled(TextOverflow)`

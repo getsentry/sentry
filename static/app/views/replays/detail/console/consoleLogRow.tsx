@@ -89,9 +89,9 @@ const ConsoleLog = styled('div')<{
 }>`
   display: grid;
   grid-template-columns: 12px 1fr max-content;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: baseline;
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 
   background-color: ${p =>

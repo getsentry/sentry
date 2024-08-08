@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventWaiterProps} from 'sentry/utils/eventWaiter';
@@ -77,7 +76,7 @@ const Container = styled('div')`
 const StatusWrapper = styled(motion.div)`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   /* Keep the wrapper in the parent grids first cell for transitions */
@@ -146,7 +145,7 @@ const ReceivedIndicator = styled(IconCheckmark)`
   background: ${p => p.theme.green300};
   border-radius: 50%;
   padding: 3px;
-  margin: 0 ${space(0.25)};
+  margin: 0 ${p => p.theme.space(0.25)};
 `;
 
 ReceivedIndicator.defaultProps = {

@@ -266,12 +266,12 @@ function StacktraceLinkModal({
 }
 
 const StyledList = styled(List)`
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   & > li {
     display: flex;
     padding-left: 0;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space(1)};
   }
 
   & > li:before {
@@ -283,7 +283,7 @@ const StyledList = styled(List)`
 const Suggestions = styled('div')`
   background-color: ${p => p.theme.surface100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${space(1)} ${space(1)} ${space(2)};
 `;
 
 const SuggestionOverflow = styled('div')`
@@ -293,9 +293,9 @@ const SuggestionOverflow = styled('div')`
 
 const ItemContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-direction: column;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
   flex: 1;
   max-width: calc(100% - 25px - 8px);
 `;
@@ -303,7 +303,7 @@ const ItemContainer = styled('div')`
 const ModalContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StyledAlert = styled(Alert)`

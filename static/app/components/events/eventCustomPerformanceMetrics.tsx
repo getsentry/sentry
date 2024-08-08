@@ -295,12 +295,12 @@ export function TraceEventCustomPerformanceMetric({
 
 const Measurements = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
 `;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const TraceStyledPanel = styled(Panel)`
@@ -309,10 +309,10 @@ const TraceStyledPanel = styled(Panel)`
   align-items: center;
   max-width: fit-content;
   font-size: ${p => p.theme.fontSizeSmall};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 
   > :not(:last-child) {
-    padding: 0 ${space(1)};
+    padding: 0 ${p => p.theme.space(1)};
   }
 `;
 
@@ -326,8 +326,8 @@ const Value = styled('span')`
 `;
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(1)} ${space(1.5)};
-  margin-bottom: ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1)};
   display: flex;
 `;
 

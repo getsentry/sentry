@@ -143,7 +143,7 @@ const ProviderInfo = styled('div')`
   flex: 1;
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const ProviderLogo = styled('div')`
@@ -170,7 +170,7 @@ const FeatureBadge = styled('div')`
 const ActiveIndicator = styled('div')`
   background: ${p => p.theme.green300};
   color: ${p => p.theme.white};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
   border-radius: 2px;
   font-size: 0.8em;
 `;

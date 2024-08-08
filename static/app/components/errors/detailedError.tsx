@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -73,25 +72,25 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
 }
 
 const Wrapper = styled('div')`
-  margin: ${space(2)} auto 0 auto;
-  padding: ${space(2)};
+  margin: ${p => p.theme.space(2)} auto 0 auto;
+  padding: ${p => p.theme.space(2)};
   width: max-content;
 `;
 
 const ErrorHeading = styled('h4')`
   display: flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   align-items: center;
-  margin-left: calc(-1 * (${p => p.theme.iconSizes.md} + ${space(1.5)}));
+  margin-left: calc(-1 * (${p => p.theme.iconSizes.md} + ${p => p.theme.space(1.5)}));
 `;
 
 const ErrorFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   border-top: 1px solid ${p => p.theme.innerBorder};
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space(2)};
 `;
 
 export default DetailedError;

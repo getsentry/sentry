@@ -26,7 +26,6 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
 import {hasMetricAlertFeature, hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
@@ -536,13 +535,13 @@ export function DebouncedInput({
 }
 
 const ExpressionsWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const ExpressionWrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  padding-bottom: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const ExpressionFormWrapper = styled('div')`
@@ -550,12 +549,12 @@ const ExpressionFormWrapper = styled('div')`
   flex-grow: 1;
   flex-direction: column;
 
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ExpressionFormRowWrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
@@ -568,12 +567,12 @@ const StyledEquationSymbol = styled(EquationSymbol)<{isClickable: boolean}>`
 const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
   align-items: center;
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   ${p =>
     p.addQuerySymbolSpacing &&
     `
-    padding-left: ${space(1)};
+    padding-left: ${p.theme.space(1)};
     margin-left: 38px;
   `}
 `;
@@ -582,7 +581,7 @@ const ExpressionAliasWrapper = styled('div')<{hasOwnRow?: boolean}>`
   display: flex;
   flex-basis: 50%;
   align-items: center;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 
   /* Add padding for the context menu */
   ${p => p.hasOwnRow && `padding-right: 56px;`}
@@ -592,7 +591,7 @@ const ExpressionAliasWrapper = styled('div')<{hasOwnRow?: boolean}>`
 const StyledLabel = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
 
   color: ${p => p.theme.subText};
 

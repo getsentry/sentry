@@ -344,16 +344,16 @@ function NotificationActionItem({
 }
 
 const StyledCard = styled(Card)<{isEditing: boolean}>`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${space(1.5)};
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   background-color: ${props => (props.isEditing ? props.theme.surface200 : 'inherit')};
 `;
 
 const IconContainer = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   display: flex;
   align-items: center;
 `;
@@ -368,7 +368,7 @@ export const NotificationActionCell = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 export const NotificationActionFormContainer = styled('div')`

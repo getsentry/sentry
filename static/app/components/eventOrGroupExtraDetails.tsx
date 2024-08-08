@@ -12,7 +12,6 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -111,7 +110,7 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
 const GroupExtra = styled('div')`
   display: inline-grid;
   grid-auto-flow: column dense;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.textColor};
@@ -138,7 +137,7 @@ const ShadowlessProjectBadge = styled(ProjectBadge)`
 
 const CommentsLink = styled(Link)`
   display: inline-grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
   grid-auto-flow: column;
   color: ${p => p.theme.textColor};

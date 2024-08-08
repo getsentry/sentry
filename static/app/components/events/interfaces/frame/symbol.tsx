@@ -110,7 +110,7 @@ const Wrapper = styled('div')`
   code {
     background: transparent;
     color: ${p => p.theme.textColor};
-    padding-right: ${space(0.5)};
+    padding-right: ${p => p.theme.space(0.5)};
   }
 
   @media (min-width: ${props => props.theme.breakpoints.small}) {
@@ -121,7 +121,7 @@ const Wrapper = styled('div')`
 `;
 
 const StyledFunctionName = styled(FunctionName)`
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
 `;
 
 const Data = styled('div')`
@@ -133,8 +133,8 @@ const Data = styled('div')`
 
 const HintStatus = styled('span')`
   position: relative;
-  top: ${space(0.25)};
-  margin: 0 ${space(0.75)} 0 -${space(0.25)};
+  top: ${p => p.theme.space(0.25)};
+  margin: 0 ${p => p.theme.space(0.75)} 0 -${space(0.25)};
 `;
 
 const Filename = styled('span')`
@@ -158,7 +158,7 @@ export const FunctionNameToggleIcon = styled(IconFilter, {
 const FunctionNameToggleTooltip = styled(Tooltip)`
   height: 16px;
   align-items: center;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }

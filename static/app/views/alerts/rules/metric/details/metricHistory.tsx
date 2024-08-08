@@ -106,11 +106,11 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
   grid-template-columns: max-content 1fr repeat(2, max-content);
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${space(2)};
   }
 
   div:last-of-type {
-    padding: ${p => p.isEmpty && `48px ${space(1)}`};
+    padding: ${p => p.isEmpty && `48px ${p.theme.space(1)}`};
   }
 
   ${p =>

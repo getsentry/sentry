@@ -225,7 +225,7 @@ const Header = styled('div')<{isSolid: boolean}>`
   ${p =>
     p.isSolid
       ? `
-      margin: 0 ${space(0.5)};
+      margin: 0 ${p.theme.space(0.5)};
       border-bottom: solid 1px var(--prism-highlight-accent);
     `
       : `
@@ -236,13 +236,13 @@ const Header = styled('div')<{isSolid: boolean}>`
       width: max-content;
       height: max-content;
       max-height: 100%;
-      padding: ${space(0.5)};
+      padding: ${p.theme.space(0.5)};
     `}
 `;
 
 const FileName = styled('p')`
   ${p => p.theme.overflowEllipsis}
-  padding: ${space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${space(0.5)};
   margin: 0;
   width: auto;
 `;
@@ -258,7 +258,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   margin: 0;
   border: none;
   background: none;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${space(1)};
   color: var(--prism-comment);
   ${p =>
     p.isSelected

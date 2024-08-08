@@ -8,7 +8,6 @@ import {useSpanWaterfallModelFromTransaction} from 'sentry/components/events/int
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -83,5 +82,5 @@ const BreakdownContainer = styled('div')`
   > div {
     margin: 0;
   }
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space(2)} 0;
 `;

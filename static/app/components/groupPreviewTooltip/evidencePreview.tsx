@@ -103,7 +103,7 @@ export function EvidencePreview({children, groupId, query}: SpanEvidencePreviewP
 
 const EmptyWrapper = styled('div')`
   color: ${p => p.theme.subText};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
   font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   align-items: center;
@@ -113,5 +113,5 @@ const EmptyWrapper = styled('div')`
 
 const SpanEvidencePreviewWrapper = styled('div')`
   width: 700px;
-  padding: ${space(1.5)} ${space(1.5)} 0 ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)} ${space(1.5)} 0 ${space(1.5)};
 `;

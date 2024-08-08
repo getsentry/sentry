@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 
 type BaseProps = {
@@ -8,7 +7,7 @@ type BaseProps = {
 };
 
 const PanelBody = styled('div')<BaseProps>`
-  ${p => p.withPadding && `padding: ${space(2)}`};
+  ${p => p.withPadding && `padding: ${p.theme.space(2)}`};
   ${textStyles};
 `;
 

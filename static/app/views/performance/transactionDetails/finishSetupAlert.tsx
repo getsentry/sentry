@@ -4,7 +4,6 @@ import {Button} from 'sentry/components/button';
 import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -42,5 +41,5 @@ export default function FinishSetupAlert({
 }
 
 const TextWrapper = styled('span')`
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space(1)};
 `;

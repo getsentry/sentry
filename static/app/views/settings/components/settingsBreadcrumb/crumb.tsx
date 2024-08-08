@@ -1,10 +1,8 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 const Crumb = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
   position: relative;
   color: ${p => p.theme.subText};

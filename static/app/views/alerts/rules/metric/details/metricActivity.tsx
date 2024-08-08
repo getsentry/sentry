@@ -7,7 +7,6 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {ActivationConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -170,6 +169,6 @@ const Cell = styled('div')`
   align-items: center;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   overflow-x: hidden;
 `;

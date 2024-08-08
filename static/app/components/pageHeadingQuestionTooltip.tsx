@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import ExternalLink from './links/externalLink';
 
@@ -37,5 +36,5 @@ const Container = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

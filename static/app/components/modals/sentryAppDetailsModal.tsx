@@ -210,9 +210,9 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
 const Heading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const HeadingInfo = styled('div')`
@@ -227,7 +227,7 @@ const Name = styled('div')`
 `;
 
 const Description = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   li {
     margin-bottom: 6px;
@@ -269,7 +269,7 @@ const Footer = styled('div')`
 `;
 
 const Title = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
@@ -279,9 +279,9 @@ const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
 `;
 
 const Features = styled('div')`
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space(0.5)};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
 `;

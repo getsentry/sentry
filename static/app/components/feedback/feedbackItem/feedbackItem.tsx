@@ -128,6 +128,6 @@ const OverflowPanelItem = styled(PanelItem)`
 
   flex-direction: column;
   flex-grow: 1;
-  gap: ${space(2)};
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  padding: ${p => p.theme.space(2)} ${space(2)} 0 ${space(2)};
 `;

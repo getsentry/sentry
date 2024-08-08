@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {GroupListColumn} from './groupList';
 
@@ -45,7 +44,7 @@ export default GroupListHeader;
 const Heading = styled('div')`
   display: flex;
   align-self: center;
-  margin: 0 ${space(2)};
+  margin: 0 ${p => p.theme.space(2)};
   color: ${p => p.theme.subText};
 `;
 

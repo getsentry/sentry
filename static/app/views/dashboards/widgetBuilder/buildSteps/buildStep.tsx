@@ -41,18 +41,18 @@ const Heading = styled('h5')`
 
 export const SubHeading = styled('small')`
   color: ${p => p.theme.gray400};
-  padding: ${space(0.25)} ${space(2)} ${space(2)} 0;
+  padding: ${p => p.theme.space(0.25)} ${space(2)} ${space(2)} 0;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    padding-top: ${space(1)};
-    margin-left: -${space(4)};
+    padding-top: ${p => p.theme.space(1)};
+    margin-left: -${p => p.theme.space(4)};
   }
 `;
 
 const Content = styled('div')`
   display: grid;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-left: -${space(4)};
+    margin-left: -${p => p.theme.space(4)};
   }
 `;
 
@@ -62,7 +62,7 @@ const RequiredBadge = styled('div')`
   width: 5px;
   height: 5px;
   border-radius: 5px;
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
   display: inline-block;
   vertical-align: super;
 `;

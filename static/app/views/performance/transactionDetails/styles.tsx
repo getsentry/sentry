@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {space} from 'sentry/styles/space';
 
 type MetaDataProps = {
   bodyText: React.ReactNode;
@@ -51,7 +50,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 
 const SectionBody = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.5)} 0;
   max-height: 32px;
 `;
 

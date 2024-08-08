@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import PanelItem from 'sentry/components/panels/panelItem';
-import {space} from 'sentry/styles/space';
 import type {CustomRepo} from 'sentry/types/debugFiles';
 
 import CustomRepositoryActions from './actions';
@@ -38,7 +37,7 @@ export default Repository;
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   grid-template-columns: max-content 1fr;
 
@@ -64,11 +63,11 @@ const TypeAndStatus = styled('div')`
   align-items: center;
 
   grid-column: 2/2;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/3;
     grid-row: 2/2;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space(1)};
   }
 `;

@@ -216,7 +216,7 @@ function TeamIssuesBreakdown({
 export default TeamIssuesBreakdown;
 
 const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space(2)} ${space(2)} 0 ${space(2)};
 `;
 
 const IssuesChartWrapper = styled(ChartWrapper)`
@@ -232,7 +232,7 @@ const StyledPanelTable = styled(PanelTable)<{numActions: number}>`
   box-shadow: unset;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${space(2)};
   }
 `;
 

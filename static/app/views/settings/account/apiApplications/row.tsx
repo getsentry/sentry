@@ -11,7 +11,6 @@ import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
@@ -70,7 +69,7 @@ function Row({app, onRemove}: Props) {
 }
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   align-items: center;
 `;
 
@@ -78,11 +77,11 @@ const ApplicationNameWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const ApplicationName = styled(Link)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const ClientId = styled('div')`

@@ -497,13 +497,13 @@ const StyledDateRangeHook = styled(DateRangeHook)`
 
 const AbsoluteSelectorFooter = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   justify-content: flex-end;
 `;
 
 const FooterMessage = styled('p')`
-  padding: ${space(0.75)} ${space(1)};
-  margin: ${space(0.5)} 0;
+  padding: ${p => p.theme.space(0.75)} ${space(1)};
+  margin: ${p => p.theme.space(0.5)} 0;
   border-radius: ${p => p.theme.borderRadius};
   border: solid 1px ${p => p.theme.alert.warning.border};
   background: ${p => p.theme.alert.warning.backgroundLight};
@@ -514,11 +514,11 @@ const FooterMessage = styled('p')`
 const FooterWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   /* If there's FooterMessage above */
   &:not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space(1)};
   }
 `;
 
@@ -526,7 +526,7 @@ const FooterInnerWrap = styled('div')`
   grid-row: -1;
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   &:empty {
     display: none;

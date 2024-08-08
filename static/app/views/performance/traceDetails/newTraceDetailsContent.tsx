@@ -17,7 +17,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -477,7 +476,7 @@ const LoadingContainer = styled('div')`
 const ReplayLinkBody = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space(0.25)};
 `;
 
 const TraceHeaderContainer = styled('div')`
@@ -489,15 +488,15 @@ const TraceHeaderContainer = styled('div')`
 const TraceHeaderRow = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Margin = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const TraceHeaderWrapper = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 export default NewTraceDetailsContent;

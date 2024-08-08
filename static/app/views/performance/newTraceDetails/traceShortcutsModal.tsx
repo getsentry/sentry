@@ -7,7 +7,6 @@ import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {IconKeyDown} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 
@@ -73,7 +72,7 @@ function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
 const ShortcutsLayout = styled('div')`
   display: grid;
   grid-template-columns: 1fr 38%;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   img {
     width: 100%;
@@ -89,7 +88,7 @@ const Shortcuts = styled('ul')`
   font-size: ${p => p.theme.fontSizeSmall};
 
   &:not(:last-child) {
-    margin: 0 0 ${space(3)} 0;
+    margin: 0 0 ${p => p.theme.space(3)} 0;
   }
 `;
 

@@ -288,11 +288,11 @@ export default function HighlightsDataSection({
 
 const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
   margin-top: 0;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const EmptyHighlights = styled('div')`
-  padding: ${space(2)} ${space(1)};
+  padding: ${p => p.theme.space(2)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px dashed ${p => p.theme.translucentBorder};
   background: ${p => p.theme.bodyBackground};
@@ -314,7 +314,7 @@ const HighlightsLoadingIndicator = styled(LoadingIndicator)`
 
 const AddHighlightsButton = styled(Button)`
   display: block;
-  margin: ${space(1)} auto 0;
+  margin: ${p => p.theme.space(1)} auto 0;
 `;
 
 const HighlightColumn = styled(TreeColumn)`
@@ -327,11 +327,11 @@ const HighlightContextContent = styled(ContextCardContent)`
 
 export const highlightModalCss = css`
   width: 850px;
-  padding: 0 ${space(2)};
-  margin: ${space(2)} 0;
+  padding: 0 ${p => p.theme.space(2)};
+  margin: ${p => p.theme.space(2)} 0;
   /* Disable overriding margins with breakpoint on default modal */
   @media (min-width: ${theme.breakpoints.medium}) {
-    margin: ${space(2)} 0;
-    padding: 0 ${space(2)};
+    margin: ${p => p.theme.space(2)} 0;
+    padding: 0 ${p => p.theme.space(2)};
   }
 `;

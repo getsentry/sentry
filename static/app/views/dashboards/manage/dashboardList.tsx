@@ -18,7 +18,6 @@ import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -191,7 +190,7 @@ const DashboardGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
   grid-template-rows: repeat(3, max-content);
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
@@ -203,11 +202,11 @@ const DashboardGrid = styled('div')`
 `;
 
 const PaginationRow = styled(Pagination)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const DropdownTrigger = styled(Button)`
-  transform: translateX(${space(1)});
+  transform: translateX(${p => p.theme.space(1)});
 `;
 
 export default withApi(DashboardList);

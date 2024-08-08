@@ -11,7 +11,6 @@ import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {Organization, Team} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -264,8 +263,8 @@ const TeamLink = styled(Link)`
   display: inline-block;
 
   &:focus-visible {
-    margin: -${space(1)};
-    padding: ${space(1)};
+    margin: -${p => p.theme.space(1)};
+    padding: ${p => p.theme.space(1)};
     background: #f2eff5;
     border-radius: 3px;
     outline: none;
@@ -278,7 +277,7 @@ export default withApi(AllTeamsRow);
 export const GRID_TEMPLATE = `
   display: grid;
   grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px minmax(150px, 1fr);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const TeamPanelItem = styled(PanelItem)`

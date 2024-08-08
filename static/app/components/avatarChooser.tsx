@@ -280,20 +280,20 @@ const AvatarGroup = styled('div')<{inline: boolean}>`
 `;
 
 const AvatarForm = styled('div')`
-  line-height: ${space(3)};
-  padding: ${space(1.5)} ${space(2)};
-  margin: ${space(1.5)} ${space(1)} ${space(0.5)};
+  line-height: ${p => p.theme.space(3)};
+  padding: ${p => p.theme.space(1.5)} ${space(2)};
+  margin: ${p => p.theme.space(1.5)} ${space(1)} ${space(0.5)};
 `;
 
 const AvatarSubmit = styled('fieldset')`
   display: flex;
   align-items: center;
-  margin-top: ${space(4)};
-  padding-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(4)};
+  padding-top: ${p => p.theme.space(1.5)};
 `;
 
 const AvatarUploadSection = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;
 
 export default withApi(AvatarChooser);
