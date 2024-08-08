@@ -78,6 +78,48 @@ function CommitRow({
 
   const firstRelease = commit.releases?.[0];
 
+  const tctArgs = {
+    author: <span>{isUser ? t('You') : commit.author?.name ?? t('Unknown author')}</span>,
+    unknownLabel: (
+      <Hovercard
+        body={
+          <EmailWarning>
+            {tct(
+              'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
+              {
+                actorEmail: <strong>{commit.author?.email}</strong>,
+                accountSettings: (
+                  <StyledLink
+                    to="/settings/account/emails/"
+                    onClick={() =>
+                      trackAnalytics('issue_details.suspect_commits.missing_user', {
+                        organization,
+                        link: 'account_settings',
+                      })
+                    }
+                  />
+                ),
+                inviteUser: <StyledLink to="" onClick={handleInviteClick} />,
+              }
+            )}
+          </EmailWarning>
+        }
+      >
+        <UnknownAuthorWrapper>{t('(not a member)')}</UnknownAuthorWrapper>
+      </Hovercard>
+    ),
+    commitLink: (
+      <CommitLink
+        inline
+        showIcon={false}
+        commitId={commit.id}
+        repository={commit.repository}
+        onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
+      />
+    ),
+    date: <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />,
+  };
+
   return hasStreamlinedUI ? (
     <StreamlinedCommitRow data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
@@ -91,24 +133,10 @@ function CommitRow({
         <span>
           {customAvatar ? customAvatar : <UserAvatar size={16} user={commit.author} />}
         </span>
-        <Meta hasStreamlinedUI={hasStreamlinedUI}>
-          {tct('[author] committed [commitLink] [date]', {
-            author: (
-              <span>
-                {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
-              </span>
-            ),
-            commitLink: (
-              <CommitLink
-                inline
-                showIcon={false}
-                commitId={commit.id}
-                repository={commit.repository}
-                onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
-              />
-            ),
-            date: <TimeSince date={commit.dateCreated} disabledAbsoluteTooltip />,
-          })}
+        <Meta>
+          {commit.author && commit.author.id === undefined
+            ? tct('[author] [unknownLabel] committed [commitLink] [date]', tctArgs)
+            : tct('[author] committed [commitLink] [date]', tctArgs)}
         </Meta>
         {project && firstRelease && (
           <Fragment>
@@ -300,6 +328,12 @@ const StyledExternalLink = styled(ExternalLink)`
   :hover {
     color: ${p => p.theme.textColor};
   }
+`;
+
+const UnknownAuthorWrapper = styled('div')`
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+  text-decoration-style: dotted;
 `;
 
 export {CommitRow};
