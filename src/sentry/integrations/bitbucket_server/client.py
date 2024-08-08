@@ -8,6 +8,8 @@ from requests_oauthlib import OAuth1
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.models.repository import Repository
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -26,6 +28,8 @@ class BitbucketServerAPIPath:
     repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
     repository_commit_details = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}"
     commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
+
+    source = "/rest/api/1.0/projects/{project}/repos/{repo}/browse/{path}"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -251,3 +255,24 @@ class BitbucketServerClient(ApiClient):
             },
         )
         return values
+
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX | None:
+        return self.head_cached(
+            path=BitbucketServerAPIPath.source.format(
+                repo=repo.name,
+                project=repo.config["project"],
+                path=path,
+            ),
+        )
+
+    def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
+        contents = self.get(
+            path=BitbucketServerAPIPath.source.format(
+                repo=repo.name,
+                project=repo.config["project"],
+                path=path,
+            ),
+            raw_response=True,
+        )
+        result = contents.content.decode("utf-8")
+        return result

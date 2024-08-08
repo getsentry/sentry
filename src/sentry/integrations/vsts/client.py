@@ -278,9 +278,9 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
                         # TODO(dcramer): this is problematic when the link already exists
                         "op": "replace" if f_name != "link" else "add",
                         "path": FIELD_MAP[f_name],
-                        "value": {"rel": "Hyperlink", "url": f_value}
-                        if f_name == "link"
-                        else f_value,
+                        "value": (
+                            {"rel": "Hyperlink", "url": f_value} if f_name == "link" else f_value
+                        ),
                     }
                 )
 
@@ -432,3 +432,20 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
                 "versionDescriptor.version": version,
             },
         )
+
+    def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
+        contents = self.get(
+            path=VstsApiPath.items.format(
+                instance=repo.config["instance"],
+                project=quote(repo.config["project"]),
+                repo_id=quote(repo.config["name"]),
+            ),
+            params={
+                "path": path,
+                "api-version": "7.0",
+                "versionDescriptor.version": version,
+            },
+            raw_response=True,
+        )
+        result = contents.content.decode("utf-8")
+        return result

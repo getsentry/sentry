@@ -178,3 +178,15 @@ class BitbucketApiClient(ApiClient):
                 path=path,
             ),
         )
+
+    def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
+        contents = self.get(
+            path=BitbucketAPIPath.source.format(
+                repo=repo.name,
+                sha=version,
+                path=path,
+            ),
+            raw_response=True,
+        )
+        result = contents.content.decode("utf-8")
+        return result
