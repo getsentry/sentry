@@ -5,9 +5,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import EventNavigation from 'sentry/views/issueDetails/eventNavigation';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type GroupEventHeaderProps = {
   event: Event;
@@ -16,14 +14,9 @@ type GroupEventHeaderProps = {
 };
 
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
-  const hasUpdatedEventNavigation = useHasStreamlinedUI();
   return (
     <StyledDataSection>
-      {hasUpdatedEventNavigation ? (
-        <EventNavigation event={event} group={group} />
-      ) : (
-        <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      )}
+      <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
     </StyledDataSection>
   );
 }

@@ -61,7 +61,7 @@ import {transactionSummaryRouteWithQuery} from '../performance/transactionSummar
 import {displayModeToDisplayType, getSavedQueryDataset} from './savedQuery/utils';
 import type {FieldValue, TableColumn} from './table/types';
 import {FieldValueKind} from './table/types';
-import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
+import {getAllViews, getTransactionViews, getWebVitalsViews} from './data';
 
 export type QueryWithColumnState =
   | Query
@@ -169,11 +169,11 @@ export function generateTitle({
 }
 
 export function getPrebuiltQueries(organization: Organization) {
-  const views = [...ALL_VIEWS];
+  const views = [...getAllViews(organization)];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
-    views.splice(2, 0, ...TRANSACTION_VIEWS);
-    views.push(...WEB_VITALS_VIEWS);
+    views.splice(2, 0, ...getTransactionViews(organization));
+    views.push(...getWebVitalsViews(organization));
   }
 
   return views;

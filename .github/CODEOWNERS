@@ -445,6 +445,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_metrics_extraction_rules*                      @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_project_metrics_extraction_rules.py             @getsentry/telemetry-experience
+/src/sentry/api/serializers/models/metrics_extraction_rules.py                   @getsentry/telemetry-experience
+/src/sentry/sentry_metrics/models/spanattributeextractionrules.py                @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
@@ -454,6 +456,9 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/visibility/                                           @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/visibility/                                         @getsentry/telemetry-experience
+/src/sentry/sentry_metrics/span_attribute_extraction_rules.py                    @getsentry/telemetry-experience
+/src/sentry/sentry_metrics/extraction_rules.py                                   @getsentry/telemetry-experience
+/tests/sentry/sentry_metrics/test_extraction_rules.py                            @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
 /src/sentry/relay/config/metric_extraction.py                                    @getsentry/telemetry-experience
@@ -538,22 +543,22 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## End of ML & AI
 
 ## Processing
-/src/sentry/processing/*                                             @getsentry/processing
-/src/sentry/api/endpoints/project_user_reports.py                    @getsentry/processing
-/src/sentry/api/endpoints/event_attachments.py                       @getsentry/processing
-/src/sentry/api/endpoints/event_reprocessable.py                     @getsentry/processing
-/src/sentry/api/endpoints/project_reprocessing.py                    @getsentry/processing
-/src/sentry/api/endpoints/chunk.py                                   @getsentry/processing
-/src/sentry/lang/native/                                             @getsentry/processing
-/src/sentry/processing/realtime_metrics/                             @getsentry/processing
-/src/sentry/tasks/assemble.py                                        @getsentry/processing
-/src/sentry/tasks/low_priority_symbolication.py                      @getsentry/processing
-/src/sentry/tasks/symbolication.py                                   @getsentry/processing
-/tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/processing
-/src/sentry/tasks/reprocessing.py                                    @getsentry/processing
-/src/sentry/tasks/reprocessing2.py                                   @getsentry/processing
-/src/sentry/reprocessing2.py                                         @getsentry/processing
-/src/sentry/tasks/store.py                                           @getsentry/processing
+/src/sentry/processing/*                                             @getsentry/ingest
+/src/sentry/api/endpoints/project_user_reports.py                    @getsentry/ingest
+/src/sentry/api/endpoints/event_attachments.py                       @getsentry/ingest
+/src/sentry/api/endpoints/event_reprocessable.py                     @getsentry/ingest
+/src/sentry/api/endpoints/project_reprocessing.py                    @getsentry/ingest
+/src/sentry/api/endpoints/chunk.py                                   @getsentry/ingest
+/src/sentry/lang/native/                                             @getsentry/ingest
+/src/sentry/processing/realtime_metrics/                             @getsentry/ingest
+/src/sentry/tasks/assemble.py                                        @getsentry/ingest
+/src/sentry/tasks/low_priority_symbolication.py                      @getsentry/ingest
+/src/sentry/tasks/symbolication.py                                   @getsentry/ingest
+/tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/ingest
+/src/sentry/tasks/reprocessing.py                                    @getsentry/ingest
+/src/sentry/tasks/reprocessing2.py                                   @getsentry/ingest
+/src/sentry/reprocessing2.py                                         @getsentry/ingest
+/src/sentry/tasks/store.py                                           @getsentry/ingest
 ## End of Processing
 
 ## Ecosystem

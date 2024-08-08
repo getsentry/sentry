@@ -24,13 +24,17 @@ describe('SentryAppExternalIssueForm', () => {
   const sentryApp = SentryAppFixture();
   const sentryAppInstallation = SentryAppInstallationFixture();
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
-  let externalIssueRequest;
+  let externalIssueRequest!: jest.Mock<any, any>;
 
   beforeEach(() => {
     externalIssueRequest = MockApiClient.addMockResponse({
       url: submitUrl,
       method: 'POST',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/external-issues/`,
+      body: [],
     });
   });
 
@@ -163,8 +167,12 @@ describe('SentryAppExternalIssueForm Async Field', () => {
   const sentryApp = SentryAppFixture();
   const sentryAppInstallation = SentryAppInstallationFixture();
 
-  afterEach(() => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/external-issues/`,
+      body: [],
+    });
   });
 
   it('renders each required_fields field', async function () {
@@ -210,8 +218,12 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
   const sentryAppInstallation = SentryAppInstallationFixture();
   const component = SentryAppComponentDependentFixture();
 
-  afterEach(() => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/external-issues/`,
+      body: [],
+    });
   });
 
   it('load options for field that has dependencies when the dependent option is selected', async () => {
