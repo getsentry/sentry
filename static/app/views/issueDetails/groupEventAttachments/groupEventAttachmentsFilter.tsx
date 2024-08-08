@@ -4,7 +4,6 @@ import xor from 'lodash/xor';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -84,7 +83,7 @@ function GroupEventAttachmentsFilter(props: Props) {
 const FilterWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 export {crashReportTypes, SCREENSHOT_TYPE};

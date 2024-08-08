@@ -15,7 +15,6 @@ import {Sparklines} from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -125,7 +124,7 @@ export function FrontendCards(props: FrontendCardsProps) {
 }
 
 const VitalBarContainer = styled('div')`
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;
 
 type BaseCardsProps = {
@@ -324,13 +323,13 @@ const SparklineContainer = styled('div')<SparklineContainerProps>`
   flex-grow: 4;
   max-height: ${p => p.height}px;
   max-width: ${p => p.width}px;
-  margin: ${space(1)} 0 ${space(0.5)} ${space(3)};
+  margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(0.5)} ${p => p.theme.space(3)};
 `;
 
 const VitalsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, 1fr);
@@ -448,7 +447,7 @@ export function VitalBar(props: VitalBarProps) {
 
 const EmptyVitalBar = styled(EmptyStateWarning)`
   height: 48px;
-  padding: ${space(1.5)} 15%;
+  padding: ${p => p.theme.space(1.5)} 15%;
 `;
 
 type VitalCardProps = {
@@ -486,9 +485,9 @@ const CardContent = styled('div')<{horizontal?: boolean}>`
 
 const StyledCard = styled(Card)<{minHeight?: number}>`
   color: ${p => p.theme.textColor};
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
   align-items: flex-start;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   ${p => p.minHeight && `min-height: ${p.minHeight}px`};
 `;
 
@@ -550,7 +549,7 @@ const BarDetail = styled('div')`
 
 const CardValue = styled('div')`
   font-size: 32px;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const OverflowEllipsis = styled('div')`

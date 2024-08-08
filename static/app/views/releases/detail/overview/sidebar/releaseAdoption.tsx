@@ -347,12 +347,12 @@ const ChartLabel = styled('div')<{top: string}>`
 `;
 
 const TooltipWrapper = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const AdoptionEnvironment = styled('span')`
   color: ${p => p.theme.textColor};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

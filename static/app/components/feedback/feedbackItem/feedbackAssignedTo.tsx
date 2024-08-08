@@ -10,7 +10,6 @@ import type {EventOwners} from 'sentry/components/group/assignedTo';
 import {getAssignedToDisplayName, getOwnerList} from 'sentry/components/group/assignedTo';
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -102,7 +101,7 @@ export default function FeedbackAssignedTo({
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   max-width: 150px;
   line-height: 1;
 `;

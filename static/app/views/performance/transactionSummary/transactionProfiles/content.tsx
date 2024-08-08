@@ -18,7 +18,6 @@ import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegrap
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconProfiling, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -537,8 +536,8 @@ const RequestStateMessageContainer = styled('div')`
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  padding: ${p => p.theme.space(1)};
   background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,
@@ -569,19 +568,19 @@ const ProfileSidebarContainer = styled('div')`
 const ProfileDigestContainer = styled('div')`
   display: grid;
   grid-template-columns: min-content 1fr;
-  padding: ${space(2)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space(2)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ProfileListContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   border-top: 1px solid ${p => p.theme.border};
 `;
 
 const ProfileListControls = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledPagination = styled(Pagination)`
@@ -591,7 +590,7 @@ const StyledPagination = styled(Pagination)`
 const ProfileListResultsContainer = styled('div')`
   display: grid;
   grid-template-columns: min-content 1fr min-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ProfileDigestLabel = styled(SectionHeading)<{align?: 'left' | 'right'}>`

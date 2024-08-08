@@ -22,7 +22,6 @@ import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project, SavedQuery} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -625,7 +624,7 @@ const ResponsiveButtonBar = styled(ButtonBar)`
 `;
 
 const StyledOverlay = styled(Overlay)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const SaveAsButton = styled(Button)`
@@ -633,7 +632,7 @@ const SaveAsButton = styled(Button)`
 `;
 
 const SaveAsInput = styled(InputControl)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const IconUpdate = styled('div')`
@@ -641,7 +640,7 @@ const IconUpdate = styled('div')`
   width: 10px;
   height: 10px;
 
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space(0.75)};
   border-radius: 5px;
   background-color: ${p => p.theme.yellow300};
 `;

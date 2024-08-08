@@ -30,7 +30,6 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -644,7 +643,7 @@ const LandingAggregateFlamegraphContainer = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledLayoutHeader = styled(Layout.Header)`
@@ -660,16 +659,16 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 
 const ActionBar = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   grid-template-columns: min-content auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 // TODO: another simple primitive that can easily be <Grid columns={2} />
 const PanelsGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, 1fr) 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -678,7 +677,7 @@ const PanelsGrid = styled('div')`
 const WidgetsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr;
   }

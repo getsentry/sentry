@@ -5,8 +5,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
-
 const PANEL_WIDTH = '50vw';
 const PANEL_HEIGHT = '50vh';
 
@@ -76,10 +74,10 @@ const _SlideOverPanel = styled(motion.div, {
 }>`
   position: fixed;
 
-  top: ${space(2)};
+  top: ${p => p.theme.space(2)};
   right: 0;
-  bottom: ${space(2)};
-  left: ${space(2)};
+  bottom: ${p => p.theme.space(2)};
+  left: ${p => p.theme.space(2)};
 
   overflow: auto;
   pointer-events: auto;

@@ -17,7 +17,6 @@ import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -254,7 +253,7 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
 const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
 `;
@@ -267,13 +266,13 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const TitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -297,7 +296,7 @@ const Description = styled(Tooltip)`
 const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
   position: relative;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.75)};
   margin: 0;
   &:hover {
     background: ${p => p.theme.translucentSurface200};
@@ -332,7 +331,7 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   display: grid;
   grid-template-columns: max-content auto;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   width: 100%;
 
   font-size: ${p => p.theme.fontSizeMedium};
@@ -340,7 +339,7 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   [data-is-error-frame='true'] {
     background: ${p => p.theme.red100};
   }
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   text-align: left;
   border: none;
   position: relative;
@@ -361,13 +360,13 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   }
 
   &:first-of-type::after {
-    top: ${space(1)};
+    top: ${p => p.theme.space(1)};
     bottom: -1px;
   }
 
   &:last-of-type::after {
     top: -1px;
-    bottom: calc(100% - ${space(1)});
+    bottom: calc(100% - ${p => p.theme.space(1)});
   }
 
   &:only-of-type::after {

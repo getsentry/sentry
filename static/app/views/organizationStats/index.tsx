@@ -22,7 +22,6 @@ import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -388,14 +387,14 @@ const Body = styled(Layout.Body)`
 `;
 
 const HeadingSubtitle = styled('p')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
   margin-bottom: 0;
 `;
 
 const PageControl = styled('div')`
   display: grid;
   width: 100%;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   grid-template-columns: minmax(0, max-content);
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);

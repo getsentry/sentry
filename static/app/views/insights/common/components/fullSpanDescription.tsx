@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 
@@ -55,5 +54,5 @@ interface Props {
 const LINE_LENGTH = 60;
 
 const PaddedSpinner = styled('div')`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
 `;

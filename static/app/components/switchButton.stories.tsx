@@ -8,7 +8,6 @@ import type {PropMatrix} from 'sentry/components/stories/matrix';
 import Matrix from 'sentry/components/stories/matrix';
 import Switch from 'sentry/components/switchButton';
 import storyBook from 'sentry/stories/storyBook';
-import {space} from 'sentry/styles/space';
 
 export default storyBook('Switch', story => {
   story('Basics', () => {
@@ -116,5 +115,5 @@ export default storyBook('Switch', story => {
 const SwitchItem = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

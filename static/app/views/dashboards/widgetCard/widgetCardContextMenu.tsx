@@ -11,7 +11,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -316,9 +315,9 @@ export default WidgetCardContextMenu;
 const ContextWrapper = styled('div')`
   display: flex;
   align-items: center;
-  height: ${space(3)};
-  margin-left: ${space(1)};
-  gap: ${space(0.25)};
+  height: ${p => p.theme.space(3)};
+  margin-left: ${p => p.theme.space(1)};
+  gap: ${p => p.theme.space(0.25)};
 `;
 
 const StyledDropdownMenuControl = styled(DropdownMenu)`
@@ -329,5 +328,5 @@ const StyledDropdownMenuControl = styled(DropdownMenu)`
 `;
 
 const SampledTag = styled(Tag)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;

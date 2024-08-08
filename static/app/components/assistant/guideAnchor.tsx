@@ -17,7 +17,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 type Props = {
@@ -272,7 +271,7 @@ export default GuideAnchor;
 const GuideContainer = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   text-align: center;
   line-height: 1.5;
   background-color: ${p => p.theme.purple300};
@@ -289,7 +288,7 @@ const GuideContainer = styled('div')`
 const GuideContent = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   a {
     color: ${p => p.theme.white};
@@ -309,7 +308,7 @@ const GuideDescription = styled('div')`
 const GuideAction = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledButton = styled(Button)`
@@ -318,7 +317,7 @@ const StyledButton = styled(Button)`
 `;
 
 const DismissButton = styled(StyledButton)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 
   &:hover,
   &:focus,

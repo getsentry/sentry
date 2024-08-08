@@ -11,7 +11,6 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
-import {space} from 'sentry/styles/space';
 
 export default storyBook(Confirm, story => {
   story('Triggers', () => {
@@ -201,5 +200,5 @@ export default storyBook(Confirm, story => {
 
 const ModalTrigger = styled('span')`
   background: ${p => p.theme.green200};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;

@@ -7,7 +7,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn, slideInLeft} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
@@ -113,8 +112,8 @@ const HeaderContent = styled('div')`
 
 const NavMenuToggle = styled(Button)`
   display: none;
-  margin: -${space(1)} ${space(1)} -${space(1)} -${space(1)};
-  padding: ${space(1)};
+  margin: -${p => p.theme.space(1)} ${p => p.theme.space(1)} -${p => p.theme.space(1)} -${p => p.theme.space(1)};
+  padding: ${p => p.theme.space(1)};
   color: ${p => p.theme.subText};
   &:hover,
   &:focus,
@@ -173,11 +172,11 @@ const NavMask = styled('div')<{isVisible: boolean}>`
  */
 const Content = styled('div')`
   flex: 1;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
   min-width: 0; /* keep children from stretching container */
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
+    padding: ${p => p.theme.space(2)};
   }
 
   /**

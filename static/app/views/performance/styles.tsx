@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 export const GridCell = styled('div')`
   font-size: 14px;
 `;
@@ -15,8 +13,9 @@ export const GridCellNumber = styled(GridCell)`
 export const DoubleHeaderContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: ${space(2)} ${space(3)} ${space(1)} ${space(3)};
-  gap: ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)} ${p => p.theme.space(1)}
+    ${p => p.theme.space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 export const ErrorPanel = styled('div')`

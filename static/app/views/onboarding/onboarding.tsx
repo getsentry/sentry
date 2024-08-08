@@ -20,7 +20,6 @@ import categoryList from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -442,7 +441,7 @@ const Container = styled('div')<{hasFooter: boolean}>`
   flex-direction: column;
   position: relative;
   background: ${p => p.theme.background};
-  padding: 120px ${space(3)};
+  padding: 120px ${p => p.theme.space(3)};
   width: 100%;
   margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && '72px'};
@@ -451,8 +450,8 @@ const Container = styled('div')<{hasFooter: boolean}>`
 
 const Header = styled('header')`
   background: ${p => p.theme.background};
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
+  padding-left: ${p => p.theme.space(4)};
+  padding-right: ${p => p.theme.space(4)};
   position: sticky;
   height: 80px;
   align-items: center;
@@ -557,7 +556,7 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
 `;
 
 const SkipOnboardingLink = styled(Link)`
-  margin: auto ${space(4)};
+  margin: auto ${p => p.theme.space(4)};
 `;
 
 const UpsellWrapper = styled('div')`

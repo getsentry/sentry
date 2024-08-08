@@ -10,7 +10,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 
 export type ReprocessEventModalOptions = {
@@ -117,7 +116,7 @@ const Introduction = styled('p')`
 `;
 
 const StyledList = styled(List)`
-  gap: ${space(1)};
-  margin-bottom: ${space(4)};
+  gap: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(4)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

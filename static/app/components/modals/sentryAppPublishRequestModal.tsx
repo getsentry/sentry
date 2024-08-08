@@ -10,7 +10,6 @@ import FormModel from 'sentry/components/forms/model';
 import type {PermissionChoice} from 'sentry/constants';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Scope, SentryApp} from 'sentry/types';
 
 /**
@@ -185,7 +184,7 @@ export default class SentryAppPublishRequestModal extends Component<Props> {
 }
 
 const Explanation = styled('div')`
-  margin: ${space(1.5)} 0px;
+  margin: ${p => p.theme.space(1.5)} 0px;
   font-size: 18px;
 `;
 

@@ -98,7 +98,7 @@ function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleV
 const SingleValueWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {space} from 'sentry/styles/space';
 
 import {CreateProject} from './createProject';
 
@@ -25,7 +24,7 @@ const Container = styled('div')`
 `;
 
 const Content = styled('div')`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 export default NewProject;

@@ -11,7 +11,6 @@ import Panel from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withApi from 'sentry/utils/withApi';
@@ -180,13 +179,13 @@ class MissingProjectMembership extends Component<Props, State> {
 }
 
 const StyledPanel = styled(Panel)`
-  margin: ${space(2)} 0;
+  margin: ${p => p.theme.space(2)} 0;
 `;
 
 const Field = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   text-align: left;
 `;
 

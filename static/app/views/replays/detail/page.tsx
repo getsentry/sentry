@@ -16,7 +16,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete, IconEllipsis, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import useDeleteReplay from 'sentry/utils/replays/hooks/useDeleteReplay';
 import useShareReplayAtTimestamp from 'sentry/utils/replays/hooks/useShareReplayAtTimestamp';
@@ -161,11 +160,12 @@ export default function Page({
 }
 
 const Header = styled(Layout.Header)`
-  gap: ${space(1)};
-  padding-bottom: ${space(1.5)};
+  gap: ${p => p.theme.space(1)};
+  padding-bottom: ${p => p.theme.space(1.5)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    gap: ${space(1)} ${space(3)};
-    padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
+    gap: ${p => p.theme.space(1)} ${p => p.theme.space(3)};
+    padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} ${p => p.theme.space(1.5)}
+      ${p => p.theme.space(2)};
   }
 `;
 
@@ -173,7 +173,7 @@ const Header = styled(Layout.Header)`
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   flex-direction: row;
   justify-content: flex-end;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
   }
@@ -181,7 +181,7 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
 
 const ItemSpacer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
@@ -196,7 +196,7 @@ const Title = styled('h1')`
 
 const TimeContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};

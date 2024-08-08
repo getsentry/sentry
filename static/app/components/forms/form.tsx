@@ -10,7 +10,6 @@ import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderProps = {
@@ -273,26 +272,26 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   ${p =>
     !p.saveOnBlur &&
     `
-  ${Panel} & {
-    margin-top: 0;
-    padding-right: ${space(2)}
-  }
+${Panel} & {
+margin-top: 0;
+padding-right: ${p.theme.space(2)}
+}
 
-  /* Better padding with form inside of a modal */
-  [role='document'] & {
-    padding-right: 30px;
-    margin-left: -30px;
-    margin-right: -30px;
-    margin-bottom: -30px;
-    margin-top: 16px;
-    padding-bottom: 16px;
-  }
-  `};
+/* Better padding with form inside of a modal */
+[role='document'] & {
+padding-right: 30px;
+margin-left: -30px;
+margin-right: -30px;
+margin-bottom: -30px;
+margin-top: 16px;
+padding-bottom: 16px;
+}
+`};
 `;
 
 const DefaultButtons = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-auto-flow: column;
   justify-content: flex-end;
   flex: 1;

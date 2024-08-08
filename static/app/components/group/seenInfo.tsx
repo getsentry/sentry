@@ -8,7 +8,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -128,20 +127,20 @@ const NoEnvironment = styled('div')`
 `;
 
 const NoDateTime = styled('span')`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 const TooltipWrapper = styled('span')`
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space(0.25)};
   svg {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
     position: relative;
     top: 1px;
   }
 `;
 
 const TimeSinceWrapper = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   display: flex;
   justify-content: space-between;
 `;
@@ -158,7 +157,7 @@ const StyledHovercard = styled(Hovercard)`
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
   ${Body} {
-    padding: ${space(1.5)};
+    padding: ${p => p.theme.space(1.5)};
   }
 `;
 

@@ -8,7 +8,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventAttachment, Organization, Project} from 'sentry/types';
 
 type Props = {
@@ -112,7 +111,7 @@ const StyledImageVisualization = styled(ImageVisualization)`
 `;
 const FileDownload = styled('a')`
   cursor: pointer;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   text-decoration: underline;
   color: inherit;
   :hover {
@@ -123,7 +122,7 @@ const FileDownload = styled('a')`
 
 const File = styled(StyledPanel)`
   background: ${p => p.theme.purple100};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   max-width: 300px;
 `;
 
@@ -132,7 +131,7 @@ const NoPreviewFound = styled('p')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   justify-content: center;
   margin: 0;
 `;

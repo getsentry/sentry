@@ -12,7 +12,6 @@ import Input from 'sentry/components/input';
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
@@ -129,7 +128,7 @@ const NotificationActionCell = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const NotificationActionFormContainer = styled('div')`

@@ -20,7 +20,6 @@ import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -300,7 +299,7 @@ const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
 const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   justify-content: space-between;
   width: 100%;
   cursor: pointer;
@@ -309,14 +308,14 @@ const DropdownButton = styled('div')`
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   max-width: 100%;
   line-height: 1;
 `;
 
 const IconWrapper = styled('div')`
   display: flex;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)};
 `;
 
 const ActorName = styled('div')`
@@ -326,7 +325,7 @@ const ActorName = styled('div')`
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`
   justify-content: space-between;
-  margin-right: -${space(1)};
+  margin-right: -${p => p.theme.space(1)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

@@ -567,7 +567,7 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 
   ${DataSection} {
     padding: 0;
@@ -593,7 +593,7 @@ const Actions = styled('div')`
 `;
 
 const Title = styled(FlexBox)`
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const TransactionOp = styled('div')`
@@ -614,14 +614,14 @@ const TransactionIdTitle = styled('a')`
 const Measurements = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   padding-top: 10px;
 `;
 
 const StyledButton = styled(Button)`
   position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
+  top: ${p => p.theme.space(0.75)};
+  right: ${p => p.theme.space(0.5)};
 `;
 
 const StyledTable = styled('table')`

@@ -23,7 +23,6 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -303,29 +302,29 @@ export default withProjects(VitalDetailContent);
 
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const StyledVitalInfo = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const SupportedBrowsers = styled('div')`
   display: inline-flex;
-  gap: ${space(2)};
-  margin-bottom: ${space(3)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const BrowserItem = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr;

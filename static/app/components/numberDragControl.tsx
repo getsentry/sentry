@@ -2,7 +2,6 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type NumberDragControlProps = {
@@ -77,7 +76,7 @@ class NumberDragControl extends Component<Props, State> {
 
 const Wrapper = styled('div')<{isActive: boolean; isX: boolean}>`
   display: grid;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   ${p =>
     p.isX
       ? 'grid-template-columns: max-content max-content'

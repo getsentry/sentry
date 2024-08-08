@@ -3,7 +3,6 @@ import type {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {HealthStatsPeriodOption} from 'sentry/types';
 import type {PageFilters} from 'sentry/types/core';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -51,11 +50,11 @@ function ReleaseCardStatsPeriod({location, selection}: Props) {
 const Wrapper = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-column-gap: ${space(0.75)};
+  grid-column-gap: ${p => p.theme.space(0.75)};
   flex: 1;
   justify-content: flex-end;
   text-align: right;
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const Period = styled(Link)<{selected: boolean}>`

@@ -14,7 +14,6 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
@@ -200,7 +199,7 @@ class AccountSecurityDetails extends DeprecatedAsyncView<Props, State> {
 export default AccountSecurityDetails;
 
 const AuthenticatorStatus = styled(CircleIndicator)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const AuthenticatorActions = styled('div')`
@@ -209,13 +208,13 @@ const AuthenticatorActions = styled('div')`
   align-items: center;
 
   > * {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space(1)};
   }
 `;
 
 const AuthenticatorDates = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   grid-template-columns: max-content auto;
 `;
 
@@ -224,10 +223,10 @@ const DateLabel = styled('span')`
 `;
 
 const PhoneWrapper = styled('div')`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space(4)};
 `;
 
 const Phone = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;

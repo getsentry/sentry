@@ -156,7 +156,7 @@ function DurationChart({
 }
 
 const ChartContainer = styled('div')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
 `;
 const MaskContainer = styled('div')`
   position: relative;

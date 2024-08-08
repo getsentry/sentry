@@ -183,7 +183,7 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
 export default TeamIssuesAge;
 
 const ChartWrapper = styled('div')`
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -196,7 +196,7 @@ const StyledPanelTable = styled(PanelTable)`
   box-shadow: unset;
 
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 
   ${p =>
@@ -227,7 +227,7 @@ const TitleOverflow = styled('div')`
 const ShadowlessProjectBadge = styled(ProjectBadge)`
   display: inline-flex;
   align-items: center;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 
   * > img {
     box-shadow: none;

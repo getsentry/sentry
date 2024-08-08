@@ -87,9 +87,9 @@ function BaseFeatureBadge({
 
 const StyledBadge = styled(Badge)`
   margin: 0;
-  padding: 0 ${space(0.75)};
-  line-height: ${space(2)};
-  height: ${space(2)};
+  padding: 0 ${p => p.theme.space(0.75)};
+  line-height: ${p => p.theme.space(2)};
+  height: ${p => p.theme.space(2)};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   vertical-align: middle;

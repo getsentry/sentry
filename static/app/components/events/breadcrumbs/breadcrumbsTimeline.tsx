@@ -10,7 +10,6 @@ import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import Timeline from 'sentry/components/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import {shouldUse24Hours} from 'sentry/utils/dates';
@@ -143,7 +142,7 @@ const Subtitle = styled('p')`
 `;
 
 const Timestamp = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   span {
@@ -152,7 +151,7 @@ const Timestamp = styled('div')`
 `;
 
 const ContentWrapper = styled('div')`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space(1)};
 `;
 
 const BreadcrumbItem = styled(Timeline.Item)`

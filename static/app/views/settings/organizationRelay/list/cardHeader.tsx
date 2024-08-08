@@ -7,7 +7,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Relay} from 'sentry/types/relay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
@@ -82,7 +81,7 @@ const KeyName = styled('div')`
   grid-row: 1/2;
   grid-template-columns: repeat(2, max-content);
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 
@@ -100,8 +99,8 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const Header = styled('div')`
   display: grid;
-  grid-row-gap: ${space(0.25)};
-  margin-bottom: ${space(1)};
+  grid-row-gap: ${p => p.theme.space(0.25)};
+  margin-bottom: ${p => p.theme.space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 1fr max-content;

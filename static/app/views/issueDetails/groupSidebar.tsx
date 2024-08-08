@@ -22,7 +22,6 @@ import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import {space} from 'sentry/styles/space';
 import type {
   AvatarUser,
   CurrentRelease,
@@ -318,12 +317,12 @@ const Container = styled('div')`
 const ExternalIssues = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space(0.75)};
 `;
 
 const TitleNumber = styled('span')`

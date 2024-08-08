@@ -14,7 +14,6 @@ import {Chevron} from 'sentry/components/chevron';
 import {Overlay} from 'sentry/components/overlay';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -230,13 +229,13 @@ const StyledOverlay = styled(Overlay)<{
 }>`
   position: absolute;
   width: ${p => (p.horizontal ? '100%' : '200px')};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   top: ${p =>
     p.horizontal
       ? p.theme.sidebar.mobileHeight
       : p.accordionRef.current?.getBoundingClientRect().top};
   left: ${p =>
-    p.horizontal ? 0 : `calc(${p.theme.sidebar.collapsedWidth} + ${space(1)})`};
+    p.horizontal ? 0 : `calc(${p.theme.sidebar.collapsedWidth} + ${p.theme.space(1)})`};
 `;
 
 const SidebarAccordionWrapper = styled('div')`
@@ -259,9 +258,9 @@ const SidebarAccordionHeaderWrap = styled('div')`
 `;
 
 const SidebarAccordionExpandButton = styled(Button)<{sidebarCollapsed?: boolean}>`
-  height: calc(100% - ${space(1)});
-  margin: 0 -${space(0.5)};
-  padding: 0 ${space(0.75)};
+  height: calc(100% - ${p => p.theme.space(1)});
+  margin: 0 -${p => p.theme.space(0.5)};
+  padding: 0 ${p => p.theme.space(0.75)};
   border-radius: calc(${p => p.theme.borderRadius} - 2px);
   color: ${p => p.theme.subText};
 

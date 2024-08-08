@@ -6,7 +6,6 @@ import {Alert} from 'sentry/components/alert';
 import Tag from 'sentry/components/badge/tag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ProjectSdkUpdates, SDKUpdatesSuggestion} from 'sentry/types';
 import getSdkUpdateSuggestion from 'sentry/utils/getSdkUpdateSuggestion';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -145,23 +144,23 @@ function BroadcastSdkUpdates({sdkUpdates}: Props) {
 export default withSdkUpdates(BroadcastSdkUpdates);
 
 const UpdatesList = styled('div')`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: ${space(0.5)};
-  margin-bottom: ${space(0.25)};
+  gap: ${p => p.theme.space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.25)};
   align-items: center;
 `;
 
 const SdkOutdatedVersion = styled('div')`
   /* 24px + 8px to be aligned with the SdkProjectBadge data */
-  padding-left: calc(24px + ${space(1)});
+  padding-left: calc(24px + ${p => p.theme.space(1)});
 `;
 
 const OutdatedVersion = styled('span')`
@@ -174,11 +173,11 @@ const SdkProjectBadge = styled(ProjectBadge)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const UpdateSuggestions = styled(List)`
   /* 24px + 8px to be aligned with the project name
   * displayed by the SdkProjectBadge component */
-  padding-left: calc(24px + ${space(1)});
+  padding-left: calc(24px + ${p => p.theme.space(1)});
 `;

@@ -6,7 +6,6 @@ import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/s
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
@@ -156,7 +155,7 @@ DocsWrapper.defaultProps = {
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  margin: ${space(2)};
+  margin: ${p => p.theme.space(2)};
   justify-content: center;
 `;
 

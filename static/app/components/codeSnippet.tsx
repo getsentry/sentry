@@ -5,7 +5,6 @@ import Prism from 'prismjs';
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 interface CodeSnippetProps {
@@ -225,24 +224,24 @@ const Header = styled('div')<{isSolid: boolean}>`
   ${p =>
     p.isSolid
       ? `
-      margin: 0 ${space(0.5)};
-      border-bottom: solid 1px var(--prism-highlight-accent);
-    `
+  margin: 0 ${p.theme.space(0.5)};
+  border-bottom: solid 1px var(--prism-highlight-accent);
+`
       : `
-      justify-content: flex-end;
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: max-content;
-      height: max-content;
-      max-height: 100%;
-      padding: ${space(0.5)};
-    `}
+  justify-content: flex-end;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: max-content;
+  height: max-content;
+  max-height: 100%;
+  padding: ${p.theme.space(0.5)};
+`}
 `;
 
 const FileName = styled('p')`
   ${p => p.theme.overflowEllipsis}
-  padding: ${space(0.5)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.5)};
   margin: 0;
   width: auto;
 `;
@@ -258,7 +257,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   margin: 0;
   border: none;
   background: none;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
   color: var(--prism-comment);
   ${p =>
     p.isSelected

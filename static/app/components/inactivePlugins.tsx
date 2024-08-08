@@ -7,7 +7,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 
 type Props = {
@@ -51,13 +50,13 @@ function InactivePlugins({disabled, plugins, onEnablePlugin}: Props) {
 
 const Plugins = styled('div')`
   display: flex;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   flex: 1;
   flex-wrap: wrap;
 `;
 
 const IntegrationButton = styled(Button)`
-  margin: ${space(1)};
+  margin: ${p => p.theme.space(1)};
   width: 175px;
   text-align: center;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -82,7 +81,7 @@ const Label = styled('div')`
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 export default InactivePlugins;

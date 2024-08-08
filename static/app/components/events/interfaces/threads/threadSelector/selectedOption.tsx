@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   details: ThreadInfo;
@@ -41,7 +40,7 @@ const Wrapper = styled('div')`
 `;
 
 const ThreadId = styled(TextOverflow)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
   max-width: 100%;
   text-align: left;
 `;

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
@@ -134,7 +133,8 @@ export function PerformanceScoreBreakdownChart({transaction, browserTypes}: Prop
 }
 
 const ChartContainer = styled('div')`
-  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} ${p => p.theme.space(1)}
+    ${p => p.theme.space(2)};
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
@@ -153,5 +153,5 @@ const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

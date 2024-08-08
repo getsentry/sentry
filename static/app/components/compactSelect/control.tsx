@@ -588,7 +588,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
+  padding: ${p => headerVerticalPadding[p.size]} ${p => p.theme.space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
 
   [data-menu-has-search='true'] > & {
@@ -607,19 +607,19 @@ const MenuHeader = styled('div')<{size: FormSize}>`
 const MenuHeaderTrailingItems = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space(2)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: 0 ${space(0.5)} 0 ${space(1)};
+    margin: 0 ${p => p.theme.space(0.5)} 0 ${p => p.theme.space(1)};
     height: 12px;
     width: 12px;
   }
@@ -629,8 +629,8 @@ const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(0.5)};
-  margin: -${space(0.25)} -${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
+  margin: -${p => p.theme.space(0.25)} -${p => p.theme.space(0.5)};
 `;
 
 const searchVerticalPadding: Record<FormSize, string> = {
@@ -640,7 +640,7 @@ const searchVerticalPadding: Record<FormSize, string> = {
 };
 const SearchInput = styled('input')<{visualSize: FormSize}>`
   appearance: none;
-  width: calc(100% - ${space(0.5)} * 2);
+  width: calc(100% - ${p => p.theme.space(0.5)} * 2);
   border: solid 1px ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundSecondary};
@@ -648,13 +648,14 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
     p.visualSize !== 'xs' ? p.theme.fontSizeMedium : p.theme.fontSizeSmall};
 
   /* Subtract 1px to account for border width */
-  padding: ${p => searchVerticalPadding[p.visualSize]} calc(${space(1)} - 1px);
-  margin: ${space(0.5)} ${space(0.5)};
+  padding: ${p => searchVerticalPadding[p.visualSize]}
+    calc(${p => p.theme.space(1)} - 1px);
+  margin: ${p => p.theme.space(0.5)} ${p => p.theme.space(0.5)};
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
   header's shadow border */
   [data-menu-has-header='true'] > & {
-    margin-top: calc(${space(0.5)} + 1px);
+    margin-top: calc(${p => p.theme.space(0.5)} + 1px);
   }
 
   &:focus,
@@ -707,6 +708,6 @@ const OptionsWrap = styled('div')`
 
 const MenuFooter = styled('div')`
   box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   z-index: 2;
 `;

@@ -12,7 +12,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
-import {space} from 'sentry/styles/space';
 import type {
   AvatarUser,
   OnboardingTask,
@@ -183,13 +182,13 @@ function Task(props: Props) {
 
 const TaskCard = styled(Card)`
   position: relative;
-  padding: ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)};
 `;
 
 const IncompleteTitle = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   font-weight: ${p => p.theme.fontWeightBold};
 `;
@@ -201,14 +200,14 @@ const CompleteTitle = styled(IncompleteTitle)`
 const Description = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin: ${space(0.5)} 0 0 0;
+  margin: ${p => p.theme.space(0.5)} 0 0 0;
 `;
 
 const ActionBar = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
-  margin-top: ${space(1.5)};
+  margin-top: ${p => p.theme.space(1.5)};
 `;
 
 type InProgressIndicatorProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -235,13 +234,13 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const CloseButton = styled(Button)`
   position: absolute;
-  right: ${space(1.5)};
-  top: ${space(1.5)};
+  right: ${p => p.theme.space(1.5)};
+  top: ${p => p.theme.space(1.5)};
   color: ${p => p.theme.gray300};
 `;
 

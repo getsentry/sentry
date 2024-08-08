@@ -6,7 +6,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ProjectKey} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -210,7 +209,7 @@ function ProjectKeyCredentials({
 }
 
 const StyledField = styled(FieldGroup)`
-  padding: ${space(0.5)} 0 0 0;
+  padding: ${p => p.theme.space(0.5)} 0 0 0;
 `;
 
 export default ProjectKeyCredentials;

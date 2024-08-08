@@ -8,7 +8,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -114,7 +113,7 @@ const ControlsWrapper = styled('div')`
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   flex-wrap: wrap;
 `;
 

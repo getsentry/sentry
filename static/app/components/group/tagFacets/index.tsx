@@ -12,7 +12,6 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -321,21 +320,21 @@ function TagFacetsDistributionMeterWrapper({
 
 const TagPlaceholders = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-auto-flow: row;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const Content = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const NoTagsFoundContainer = styled('p')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 
 export const TagFacetsList = styled('ol')`
   list-style: none;
   padding: 0;
-  margin: 0 0 ${space(2)};
+  margin: 0 0 ${p => p.theme.space(2)};
 `;

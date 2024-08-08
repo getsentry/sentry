@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Frame} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -100,14 +99,14 @@ const Title = styled('div')`
 
 const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
   border-radius: 50px;
   padding: 1px 3px;
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
   border-width: thin;
   border-style: solid;
   border-color: ${p => p.theme.pink200};
@@ -117,5 +116,5 @@ const RepeatedFrames = styled('div')`
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space(0.25)};
 `;

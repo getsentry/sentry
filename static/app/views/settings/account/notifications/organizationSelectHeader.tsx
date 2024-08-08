@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 type OrganizationSelectHeaderProps = {
@@ -57,6 +56,6 @@ const StyledSelectControl = styled(SelectControl)`
 const OrgControlWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   flex-grow: 1;
 `;

@@ -69,7 +69,7 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
 const VerticalSpacing = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  padding: ${space(1)} ${space(2)};
+  gap: ${p => p.theme.space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;

@@ -4,7 +4,6 @@ import {PlatformIcon} from 'platformicons';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -114,7 +113,7 @@ export function TraceProfiles({
 }
 
 const ProfilesTable = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   display: grid !important;
   grid-template-columns: 1fr min-content;
   grid-template-rows: auto;
@@ -127,13 +126,13 @@ const ProfilesTable = styled('div')`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   }
 
   img {
     width: 16px;
     height: 16px;
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space(0.5)};
   }
 `;
 
@@ -142,11 +141,11 @@ const ProfilesTableRow = styled('div')`
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   width: 100%;
-  padding: ${space(0.5)};
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space(0.5)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(2)};
 
   & > div {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -165,6 +164,6 @@ const ProfilesTableTitle = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space(0.5)};
   background-color: ${p => p.theme.backgroundSecondary};
 `;

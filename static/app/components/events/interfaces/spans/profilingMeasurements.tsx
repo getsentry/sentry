@@ -15,7 +15,6 @@ import {OpsLine} from 'sentry/components/events/opsBreakdown';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import toPercent from 'sentry/utils/number/toPercent';
 
@@ -253,7 +252,7 @@ const ChartOpsLabel = styled('div')<{dividerPosition: number}>`
   align-items: center;
   width: calc(${p => toPercent(p.dividerPosition)} - 0.5px);
   height: ${PROFILE_MEASUREMENTS_CHART_HEIGHT + TIME_AXIS_HEIGHT}px;
-  padding-left: ${space(3)};
+  padding-left: ${p => p.theme.space(3)};
 `;
 
 const MeasurementContainer = styled('div')`

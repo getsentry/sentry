@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
 type Props = {
@@ -62,7 +61,7 @@ const TextTitleContainer = styled('div')`
 `;
 
 const SubtitleContainer = styled('div')`
-  padding-top: ${space(0.5)};
+  padding-top: ${p => p.theme.space(0.5)};
 `;
 
 const ChartLabel = styled('div')`
@@ -70,7 +69,7 @@ const ChartLabel = styled('div')`
 `;
 
 const PanelBody = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const Header = styled('div')`

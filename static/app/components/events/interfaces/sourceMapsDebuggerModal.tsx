@@ -23,7 +23,6 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
@@ -1269,12 +1268,12 @@ function SourceMapStepNotRequiredNote() {
 }
 
 const StyledTabPanels = styled(TabPanels)`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space(2)};
 `;
 
 const CheckList = styled('ul')`
   margin: 0;
-  padding: 0 ${space(1.5)};
+  padding: 0 ${p => p.theme.space(1.5)};
   list-style-type: none;
 `;
 
@@ -1300,26 +1299,26 @@ const CheckMarkContainer = styled('div')`
 `;
 
 const Line = styled('div')`
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space(0.5)} 0;
   flex-grow: 1;
-  width: ${space(0.25)};
+  width: ${p => p.theme.space(0.25)};
   background-color: ${p => p.theme.gray200};
-  border-radius: ${space(0.25)};
+  border-radius: ${p => p.theme.space(0.25)};
 `;
 
 const ListItemContentContainer = styled('div')`
   flex-grow: 1;
-  margin-left: ${space(1.5)};
-  padding-bottom: ${space(2)};
+  margin-left: ${p => p.theme.space(1.5)};
+  padding-bottom: ${p => p.theme.space(2)};
 `;
 
 const CompletionNoteContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(0.5)};
-  padding: 0 ${space(2)} 0 0;
+  gap: ${p => p.theme.space(2)};
+  margin-top: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(0.5)};
+  padding: 0 ${p => p.theme.space(2)} 0 0;
 `;
 
 const ListItemTitleWrapper = styled('div')`
@@ -1341,22 +1340,22 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
 
 const CheckListInstruction = styled(Alert)`
   width: 100%;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   margin-bottom: 0;
   overflow-x: auto;
 
   h6 {
     font-size: 1rem;
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 
   p {
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space(1.5)};
   }
 `;
 
 const MonoBlock = styled('code')`
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
   color: ${p => p.theme.gray400};
   background: ${p => p.theme.gray100};
   border: 1px solid ${p => p.theme.gray200};
@@ -1367,28 +1366,28 @@ const MonoBlock = styled('code')`
 `;
 
 const StyledProgressRing = styled(ProgressRing)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;
 
 const WizardInstructionParagraph = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const InstructionCodeSnippet = styled(CodeSnippet)`
-  margin: ${space(1)} 0 ${space(2)};
+  margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(2)};
 `;
 
 const InstructionList = styled('ul')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 
   li {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space(0.5)};
   }
 `;
 
 const ScrapingSymbolificationErrorMessage = styled('p')`
   color: ${p => p.theme.gray300};
   border-left: 2px solid ${p => p.theme.gray200};
-  padding-left: ${space(1)};
-  margin-top: -${space(1)};
+  padding-left: ${p => p.theme.space(1)};
+  margin-top: -${p => p.theme.space(1)};
 `;

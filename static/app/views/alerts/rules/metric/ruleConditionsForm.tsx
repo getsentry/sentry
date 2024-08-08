@@ -861,7 +861,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 const StyledListTitle = styled('div')`
   display: flex;
   span {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space(1)};
   }
 `;
 
@@ -876,24 +876,24 @@ const HiddenListItem = styled(ListItem)`
 `;
 
 const Spacer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const ChartPanel = styled(Panel)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
   ol,
   h4 {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 `;
 
 const SearchContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -909,7 +909,7 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1.3;
 `;
@@ -947,7 +947,7 @@ type MonitorCardProps = {
 };
 
 const MonitorCard = styled('div')<MonitorCardProps>`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   display: flex;
   flex-grow: 1;
   flex-direction: column;

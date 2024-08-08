@@ -18,7 +18,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
@@ -236,7 +235,7 @@ function ReleaseCardProjectRow({
 export default ReleaseCardProjectRow;
 
 const ProjectRow = styled(PanelItem)`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     font-size: ${p => p.theme.fontSizeMedium};
   }
@@ -246,14 +245,14 @@ const StyledPlaceholder = styled(Placeholder)`
   height: 15px;
   display: inline-block;
   position: relative;
-  top: ${space(0.25)};
+  top: ${p => p.theme.space(0.25)};
 `;
 
 const AdoptionWrapper = styled('span')`
   flex: 1;
   display: inline-grid;
   grid-template-columns: 30px 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 
   /* Chart tooltips need overflow */
@@ -263,7 +262,7 @@ const AdoptionWrapper = styled('span')`
 const CrashFreeWrapper = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space(1)};
   align-items: center;
   vertical-align: middle;
 `;

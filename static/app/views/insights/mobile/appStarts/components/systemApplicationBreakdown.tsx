@@ -6,7 +6,6 @@ import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -186,23 +185,23 @@ export default SystemApplicationBreakdown;
 const ReleaseAppStartBreakdown = styled('div')`
   display: grid;
   grid-template-columns: 20% auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   color: ${p => p.theme.subText};
 `;
 
 const AppStartBreakdownContent = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space(1)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const Legend = styled('div')`
   display: flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   position: absolute;
-  top: ${space(1.5)};
-  right: ${space(2)};
+  top: ${p => p.theme.space(1.5)};
+  right: ${p => p.theme.space(2)};
 `;
 
 const LegendEntry = styled('div')`

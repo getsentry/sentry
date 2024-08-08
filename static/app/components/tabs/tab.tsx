@@ -197,7 +197,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   }
   color: ${p => p.theme.gray300};
   border-radius: 6px;
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   transform: translateY(1px);
   cursor: pointer;
   &:focus {
@@ -232,7 +232,7 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     border-top: 1px solid transparent;
   }
 
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1.5)};
 
   transform: translateY(1px);
 
@@ -402,13 +402,13 @@ const TabSelectionIndicator = styled('div')<{
   ${p =>
     p.orientation === 'horizontal'
       ? `
-        width: calc(100% - ${space(2)});
-        height: 3px;
+    width: calc(100% - ${p.theme.space(2)});
+    height: 3px;
 
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-      `
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  `
       : `
         width: 3px;
         height: 50%;

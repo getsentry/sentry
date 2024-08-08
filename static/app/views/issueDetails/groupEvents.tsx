@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -87,7 +86,7 @@ function GroupEvents({params, location, group, environments}: Props) {
 }
 
 const AllEventsFilters = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 export default GroupEvents;

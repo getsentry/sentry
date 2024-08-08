@@ -7,7 +7,6 @@ import type {
 } from 'sentry/components/events/interfaces/spans/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 export const FREQUENCY_BOX_WIDTH = 40;
@@ -91,7 +90,7 @@ const StyledBox = styled('div')<{frequency?: number}>`
 
   border-left: 1px solid ${p => p.theme.gray200};
   border-right: 1px solid ${p => p.theme.gray200};
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 
   font-size: ${p => p.theme.fontSizeExtraSmall};
   ${p => getBoxColors(p.theme, p.frequency)}

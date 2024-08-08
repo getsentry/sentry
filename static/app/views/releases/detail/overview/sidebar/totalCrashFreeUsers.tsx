@@ -10,7 +10,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CrashFreeTimeBreakdown, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -121,9 +120,9 @@ const Timeline = styled('div')`
 const DOT_SIZE = 10;
 const Row = styled('div')`
   border-left: 1px solid ${p => p.theme.border};
-  padding-left: ${space(2)};
-  padding-bottom: ${space(1)};
-  margin-left: ${space(1)};
+  padding-left: ${p => p.theme.space(2)};
+  padding-bottom: ${p => p.theme.space(1)};
+  margin-left: ${p => p.theme.space(1)};
   position: relative;
 
   &:before {
@@ -143,17 +142,17 @@ const Row = styled('div')`
 `;
 const InnerRow = styled('div')`
   display: grid;
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${p => p.theme.space(2)};
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
 
-  padding-bottom: ${space(0.5)};
+  padding-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   text-align: ${p => (p.right ? 'right' : 'left')};
   color: ${p => (p.bold ? p.theme.textColor : p.theme.gray300)};
-  padding-bottom: ${space(0.25)};
+  padding-bottom: ${p => p.theme.space(0.25)};
   ${p => p.theme.overflowEllipsis};
 `;
 

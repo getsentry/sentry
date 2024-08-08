@@ -18,7 +18,6 @@ import {LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -162,18 +161,18 @@ const Container = styled('div')`
   position: relative;
   overflow: hidden;
   min-height: 160px;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space(4)};
 `;
 
 const SplitMainContent = styled('div')`
   display: flex;
   align-items: stretch;
   flex-wrap: wrap-reverse;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space(4)};
 `;
 
 const Header = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const SplitContainer = styled(Panel)`
@@ -190,21 +189,21 @@ const ModulePreviewImage = styled('img')`
   max-width: 100%;
   display: block;
   margin: auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
   object-fit: contain;
 `;
 
 const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
   background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 const SupportedSdkContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   color: ${p => p.theme.gray300};
 `;
@@ -212,7 +211,7 @@ const SupportedSdkContainer = styled('div')`
 const SupportedSdkList = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   justify-content: center;
 `;
 
@@ -231,9 +230,9 @@ const SupportedSdkIconContainer = styled('div')`
 
 const ValueProp = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
   ul {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space(1)};
   }
 `;
 

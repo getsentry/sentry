@@ -14,7 +14,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -348,7 +347,7 @@ const Container = styled('div')`
   flex-direction: column;
   position: relative;
   background: #faf9fb;
-  padding: 120px ${space(3)};
+  padding: 120px ${p => p.theme.space(3)};
   width: 100%;
   margin: 0 auto;
 
@@ -360,8 +359,8 @@ const Container = styled('div')`
 
 const Header = styled('header')`
   background: ${p => p.theme.background};
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
+  padding-left: ${p => p.theme.space(4)};
+  padding-right: ${p => p.theme.space(4)};
   position: sticky;
   height: 80px;
   align-items: center;

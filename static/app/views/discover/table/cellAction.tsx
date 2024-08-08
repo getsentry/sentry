@@ -6,7 +6,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -307,7 +306,7 @@ const ActionMenuTrigger = styled(Button)`
   top: 50%;
   right: -1px;
   transform: translateY(-50%);
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
 
   display: flex;
   align-items: center;

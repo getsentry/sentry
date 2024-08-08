@@ -20,7 +20,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor, Project} from 'sentry/types';
 import {MonitorType} from 'sentry/types/alerts';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -334,8 +333,10 @@ const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
   ${p => p.theme.overflowEllipsis}
   display: flex;
   align-items: center;
-  gap: ${space(2)};
-  ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
+  gap: ${p => p.theme.space(2)};
+  ${p =>
+    p.isIssueAlert &&
+    `padding: ${p.theme.space(3)} ${p.theme.space(2)}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`
@@ -364,7 +365,7 @@ const ActionsColumn = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
 `;
 
 const AssigneeWrapper = styled('div')`
@@ -384,11 +385,11 @@ const DropdownButton = styled('div')`
 `;
 
 const StyledChevron = styled(IconChevron)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const PaddedIconUser = styled(IconUser)`
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)};
 `;
 
 const IconContainer = styled('div')`
@@ -407,17 +408,17 @@ const MenuItemWrapper = styled('div')`
 `;
 
 const Label = styled(TextOverflow)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space(0.75)};
 `;
 
 const MarginLeft = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   height: 24px;
   margin: 0;
-  margin-right: ${space(1.5)};
+  margin-right: ${p => p.theme.space(1.5)};
 `;
 
 export default RuleListRow;

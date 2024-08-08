@@ -12,7 +12,6 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
@@ -243,8 +242,8 @@ function Profiles({organization, transaction}: ProfilesProps) {
 }
 
 const FilterActions = styled('div')`
-  margin-bottom: ${space(2)};
-  gap: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
+  gap: ${p => p.theme.space(2)};
   display: grid;
   grid-template-columns: min-content 1fr;
 `;

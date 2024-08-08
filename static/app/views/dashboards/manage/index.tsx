@@ -22,7 +22,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -369,8 +368,8 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
 const StyledActions = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;
@@ -382,15 +381,15 @@ const TemplateSwitch = styled('label')`
   font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   width: max-content;
   margin: 0;
 `;
 
 const TemplateContainer = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space(2)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));

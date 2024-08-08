@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   onSubmit: () => void;
@@ -27,7 +26,7 @@ const SubmitButtonContainer = styled('div')`
 
 const SubmitButton = styled(Button)`
   animation: 0.1s ${growIn} ease-in;
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space(0.5)} 0;
 `;
 
 export default MultipleSelectorSubmitRow;

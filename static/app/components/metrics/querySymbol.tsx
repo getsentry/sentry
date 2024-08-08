@@ -1,7 +1,6 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -24,7 +23,7 @@ export const DeprecatedSymbol = styled('span')<{
   width: 38px;
   height: 38px;
   line-height: 16px;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   justify-content: center;
   align-items: center;
   flex-shrink: 0;

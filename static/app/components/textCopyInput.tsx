@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import type {InputProps} from 'sentry/components/inputGroup';
 import {InputGroup} from 'sentry/components/inputGroup';
-import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
 interface Props extends Omit<InputProps, 'onCopy'> {
@@ -97,7 +96,7 @@ const StyledInput = styled(InputGroup.Input)<{rtl?: boolean}>`
 `;
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space(0.5)};
   min-height: 0;
   height: auto;
 `;

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -88,5 +87,5 @@ export function EventRRWebIntegration(props: Props) {
 
 const StyledReplayEventDataSection = styled(InterimSection)`
   overflow: hidden;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;

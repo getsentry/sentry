@@ -137,7 +137,13 @@ function ReplaysContent({
   organization: Organization;
   pageLinks: string | null;
 }) {
-  const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
+  const location = useMemo(
+    () =>
+      ({
+        query: {},
+      }) as Location<ReplayListLocationQuery>,
+    []
+  );
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
 

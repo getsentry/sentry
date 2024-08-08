@@ -11,7 +11,6 @@ import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/c
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -345,9 +344,9 @@ const EmptySpanDurationBar = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
-  top: ${space(0.5)};
+  top: ${p => p.theme.space(0.5)};
   background-color: ${p => p.theme.gray100};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
 
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
@@ -356,5 +355,5 @@ const EmptySpanDurationBar = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;

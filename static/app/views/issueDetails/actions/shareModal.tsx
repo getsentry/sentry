@@ -13,7 +13,6 @@ import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -173,7 +172,7 @@ export default ShareIssueModal;
  */
 const ModalContent = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   flex-direction: column;
   min-height: 100px;
 `;
@@ -182,11 +181,11 @@ const SwitchWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Title = styled('div')`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space(4)};
   white-space: nowrap;
 `;
 
@@ -205,11 +204,11 @@ const UrlContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space(0.5)};
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)`
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)};
   ${p => p.theme.overflowEllipsis}
 `;
 

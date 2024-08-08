@@ -147,10 +147,12 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
 
 const SearchQueryGridWrapper = styled('div')<{size: 'small' | 'normal'}>`
   padding: ${p =>
-    p.size === 'small' ? space(0.75) : `${space(0.75)} 34px ${space(0.75)} 32px`};
+    p.size === 'small'
+      ? space(0.75)
+      : `${p.theme.space(0.75)} 34px ${p.theme.space(0.75)} 32px`};
   display: flex;
   align-items: stretch;
-  row-gap: ${space(0.5)};
+  row-gap: ${p => p.theme.space(0.5)};
   flex-wrap: wrap;
 
   &:focus {

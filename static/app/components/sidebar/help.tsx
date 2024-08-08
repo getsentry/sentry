@@ -6,7 +6,6 @@ import Hook from 'sentry/components/hook';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
@@ -72,5 +71,6 @@ const HelpMenu = styled('div', {shouldForwardProp: p => p !== 'orientation'})<{
   orientation: Props['orientation'];
 }>`
   ${SidebarDropdownMenu};
-  ${p => (p.orientation === 'left' ? 'bottom: 100%' : `top: ${space(4)}; right: 0px;`)}
+  ${p =>
+    p.orientation === 'left' ? 'bottom: 100%' : `top: ${p.theme.space(4)}; right: 0px;`}
 `;

@@ -5,7 +5,6 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -171,12 +170,12 @@ class ProjectOwnershipModal extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const Description = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const StyledPre = styled('pre')`
   word-break: break-word;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   line-height: 1.6;
   color: ${p => p.theme.subText};
 `;

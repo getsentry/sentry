@@ -6,7 +6,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Card} from 'sentry/views/dashboards/widgetBuilder/widgetLibrary/card';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
 
@@ -68,5 +67,5 @@ export const modalCss = css`
 `;
 
 const CardWrapper = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space(3)} 0;
 `;

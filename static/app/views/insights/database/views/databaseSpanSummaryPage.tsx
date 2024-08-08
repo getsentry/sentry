@@ -10,7 +10,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -290,7 +289,7 @@ const ChartContainer = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr 1fr;
-    gap: ${space(2)};
+    gap: ${p => p.theme.space(2)};
   }
 `;
 

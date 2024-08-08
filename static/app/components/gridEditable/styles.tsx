@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;
@@ -23,7 +22,7 @@ export const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 export const HeaderTitle = styled('h4')`
@@ -34,7 +33,7 @@ export const HeaderTitle = styled('h4')`
 
 export const HeaderButtonContainer = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-auto-flow: column;
   grid-auto-columns: auto;
   justify-items: end;
@@ -126,7 +125,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
   display: flex;
   align-items: center;
   min-width: 24px;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space(2)};
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
@@ -161,13 +160,13 @@ export const GridHeadCellStatic = styled('th')`
   height: ${GRID_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space(2)};
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
 
   &:first-child {
-    padding: ${space(1)} 0 ${space(1)} ${space(3)};
+    padding: ${p => p.theme.space(1)} 0 ${p => p.theme.space(1)} ${p => p.theme.space(3)};
   }
 `;
 
@@ -209,7 +208,7 @@ export const GridBodyCell = styled('td')`
      min-height is used to allow a cell to expand and this is used to display
      feedback during empty/error state */
   min-height: ${GRID_BODY_ROW_HEIGHT}px;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 
   display: flex;
   flex-direction: column;
@@ -220,11 +219,11 @@ export const GridBodyCell = styled('td')`
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
-    padding: ${space(1)} 0 ${space(1)} ${space(3)};
+    padding: ${p => p.theme.space(1)} 0 ${p => p.theme.space(1)} ${p => p.theme.space(3)};
   }
 
   &:last-child {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   }
 `;
 

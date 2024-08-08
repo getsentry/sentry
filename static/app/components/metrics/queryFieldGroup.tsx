@@ -16,7 +16,6 @@ import _SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconDelete} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 export function QueryFieldGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
   return <FieldGroup>{children}</FieldGroup>;
@@ -138,7 +137,7 @@ const FieldGroup = styled('div')`
 
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-row-gap: ${space(1)};
+  grid-row-gap: ${p => p.theme.space(1)};
 
   > *:nth-child(even) {
     margin-left: -1px;
@@ -157,8 +156,8 @@ const Label = styled('span')`
   background: ${p => p.theme.purple100};
   border: 1px solid ${p => p.theme.purple200};
   font-weight: 600;
-  padding: 0 ${space(2)};
-  gap: ${space(1)};
+  padding: 0 ${p => p.theme.space(2)};
+  gap: ${p => p.theme.space(1)};
   display: inline-flex;
   align-items: center;
   z-index: 3;

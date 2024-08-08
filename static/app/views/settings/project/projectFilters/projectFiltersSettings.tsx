@@ -36,7 +36,6 @@ import filterGroups, {
 } from 'sentry/data/forms/inboundFilters';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -630,18 +629,18 @@ const NestedForm = styled(Form)<FormProps>`
 const FilterGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space(1.5)};
+  margin-top: ${p => p.theme.space(2)};
 `;
 
 const FilterGridItem = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;
 
 const FilterGridIcon = styled('img')`
@@ -664,5 +663,5 @@ const FilterDescription = styled('div')`
 const BulkFilter = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;

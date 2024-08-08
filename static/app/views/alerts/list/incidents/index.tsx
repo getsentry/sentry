@@ -15,7 +15,6 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -321,12 +320,12 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};
 
   & > div {
-    padding: ${space(1.5)} ${space(2)};
+    padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   }
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const EmptyStateAction = styled('p')`

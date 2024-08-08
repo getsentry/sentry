@@ -193,7 +193,7 @@ const TeamPanelHeader = styled(PanelHeader)`
 
 const TeamPanelItem = styled(PanelItem)`
   ${GRID_TEMPLATE}
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 export default TeamSelect;

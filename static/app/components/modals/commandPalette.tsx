@@ -6,7 +6,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Input from 'sentry/components/input';
 import {Search} from 'sentry/components/search';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 function CommandPalette({Body}: ModalRenderProps) {
@@ -64,12 +63,12 @@ export const modalCss = css`
 `;
 
 const InputWrapper = styled('div')`
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)};
 `;
 
 const StyledInput = styled(Input)`
   width: 100%;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space(1)};
   border-radius: ${p => p.theme.modalBorderRadius};
 
   outline: none;

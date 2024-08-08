@@ -13,7 +13,6 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, ProjectKey} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
@@ -222,7 +221,7 @@ const RateLimitRow = styled('div')`
   display: grid;
   grid-template-columns: 2fr 1fr 2fr;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const EventsIn = styled('small')`

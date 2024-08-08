@@ -19,7 +19,6 @@ import StrictClick from 'sentry/components/strictClick';
 import {IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import {space} from 'sentry/styles/space';
 import type {
   Frame,
   Organization,
@@ -521,7 +520,7 @@ const DefaultLine = styled('div')<{
   background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
   min-height: 32px;
   word-break: break-word;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space(0.75)} ${p => p.theme.space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
@@ -531,13 +530,13 @@ const DefaultLine = styled('div')<{
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space(0.25)};
 `;
 
 const DefaultLineTagWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ToggleContextButton = styled(Button)`
@@ -565,7 +564,7 @@ const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeightNormal};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.5)};
 
   &:hover {
     color: ${p => p.theme.subText};
@@ -573,11 +572,11 @@ const ToggleButton = styled(Button)`
 `;
 
 const SourceMapDebuggerButtonText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;
 
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space(0.75)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

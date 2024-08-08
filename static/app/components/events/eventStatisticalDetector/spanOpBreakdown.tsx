@@ -9,7 +9,6 @@ import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -184,7 +183,7 @@ const EmptyStateWrapper = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${space(1.5)} ${space(4)};
+  margin: ${p => p.theme.space(1.5)} ${p => p.theme.space(4)};
 `;
 
 export default EventSpanOpBreakdown;

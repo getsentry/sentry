@@ -281,14 +281,14 @@ function getTransactionSummaryLink(
 }
 
 const PanelBodyWrapper = styled('div')`
-  padding: 0 ${space(2)};
-  margin-top: ${space(1)};
+  padding: 0 ${p => p.theme.space(2)};
+  margin-top: ${p => p.theme.space(1)};
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   flex-wrap: nowrap;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 const HeaderTextWrapper = styled('div')`
   ${p => p.theme.overflowEllipsis};
@@ -301,16 +301,16 @@ const ChangeType = styled('p')<ChangeTypeProps>`
 `;
 
 const FireIcon = styled('div')<ChangeTypeProps>`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
   background-color: ${p => (p.regression ? p.theme.danger : p.theme.success)};
-  border-radius: ${space(0.5)};
-  margin-right: ${space(2)};
+  border-radius: ${p => p.theme.space(0.5)};
+  margin-right: ${p => p.theme.space(2)};
   float: left;
   height: 40px;
 `;
 
 const TransactionName = styled('h4')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
   margin-bottom: 0;
   ${p => p.theme.overflowEllipsis};
 `;
@@ -318,7 +318,7 @@ const TransactionName = styled('h4')`
 const TransactionNameWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
   max-width: fit-content;
 `;
 
@@ -337,8 +337,8 @@ const InfoText = styled('h3')`
 const GraphPanel = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.panelBorderRadius};
-  margin-bottom: ${space(2)};
-  padding: ${space(3)};
+  margin-bottom: ${p => p.theme.space(2)};
+  padding: ${p => p.theme.space(3)};
   display: block;
 `;
 

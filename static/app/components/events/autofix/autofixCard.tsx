@@ -9,7 +9,6 @@ import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidg
 import Panel from 'sentry/components/panels/panel';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type AutofixCardProps = {
   data: AutofixData;
@@ -61,11 +60,12 @@ const AutofixPanel = styled(Panel)`
   margin-bottom: 0;
   overflow: hidden;
   background: ${p => p.theme.backgroundSecondary};
-  padding: ${space(2)} ${space(3)} ${space(3)} ${space(3)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(3)} ${p => p.theme.space(3)}
+    ${p => p.theme.space(3)};
 `;
 
 const AutofixHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;

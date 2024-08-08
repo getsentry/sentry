@@ -9,7 +9,6 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface AutofixSetupWriteAccessModalProps extends ModalRenderProps {
   groupId: string;
@@ -132,12 +131,12 @@ const DoneWrapper = styled('div')`
 `;
 
 const DoneIcon = styled(IconCheckmark)`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space(4)};
 `;
 
 const RepoLinkUl = styled('ul')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   padding: 0;
 `;

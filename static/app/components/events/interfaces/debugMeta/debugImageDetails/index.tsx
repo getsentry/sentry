@@ -10,7 +10,6 @@ import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature} from 'sentry/types/debugFiles';
 import type {Image, ImageCandidate, ImageStatus} from 'sentry/types/debugImage';
@@ -343,14 +342,14 @@ export function DebugImageDetails({
 
 const Content = styled('div')`
   display: grid;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   max-width: calc(100% - 40px);

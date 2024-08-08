@@ -26,7 +26,6 @@ import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {RuleActionsCategories} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
@@ -495,11 +494,11 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
 export default AlertRuleDetails;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const StyledLoadingError = styled(LoadingError)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space(2)};
 `;
 
 const BoldButton = styled(Button)`

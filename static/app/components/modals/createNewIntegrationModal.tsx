@@ -133,7 +133,7 @@ function CreateNewIntegrationModal({
 const StyledRadioGroup = styled(RadioGroup)`
   grid-auto-columns: auto;
   & > label:not(:last-child) > div:last-child > * {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space(1)};
   }
 `;
 const RadioChoiceHeader = styled('h6')`

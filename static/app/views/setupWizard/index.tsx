@@ -5,7 +5,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
@@ -103,7 +102,7 @@ const SuccessHeading = styled('h5')`
 const SuccessWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 export default SetupWizard;

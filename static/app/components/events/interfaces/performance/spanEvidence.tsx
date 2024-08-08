@@ -4,7 +4,6 @@ import {LinkButton} from 'sentry/components/button';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {
   getIssueTypeFromOccurrenceType,
@@ -128,5 +127,5 @@ const TraceViewWrapper = styled('div')`
 `;
 
 const StyledSettingsIcon = styled(IconSettings)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space(0.5)};
 `;

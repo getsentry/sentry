@@ -9,7 +9,6 @@ import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashC
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
 import {EntryType} from 'sentry/types/event';
 import {StackView} from 'sentry/types/stacktrace';
@@ -373,10 +372,10 @@ const SpanContainer = styled('div')`
   }
 `;
 const SpanDetails = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`

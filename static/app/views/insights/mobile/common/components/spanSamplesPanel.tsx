@@ -6,7 +6,6 @@ import * as qs from 'query-string';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -148,13 +147,13 @@ export function SpanSamplesPanel({
 }
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space(1)};
 `;
 
 const HeaderContainer = styled('div')`
   width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
+  padding-bottom: ${p => p.theme.space(2)};
+  padding-top: ${p => p.theme.space(1)};
 
   display: grid;
   grid-template-rows: auto auto auto;
@@ -188,7 +187,7 @@ const SpanDescription = styled('div')`
 const ChartsContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
   align-items: top;
 `;
 

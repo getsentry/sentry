@@ -20,7 +20,6 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -454,15 +453,15 @@ const CarouselAndButtonsWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: ${space(1)};
-  margin-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const EventHeading = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
 
   @media (max-width: 600px) {
@@ -473,7 +472,7 @@ const EventHeading = styled('div')`
 const ActionsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const StyledNavButton = styled(Button)`
@@ -507,7 +506,7 @@ const NavButtons = styled('div')`
 const EventIdAndTimeContainer = styled('div')`
   display: flex;
   align-items: center;
-  column-gap: ${space(0.75)};
+  column-gap: ${p => p.theme.space(0.75)};
   row-gap: 0;
   flex-wrap: wrap;
 `;
@@ -515,7 +514,7 @@ const EventIdAndTimeContainer = styled('div')`
 const EventIdContainer = styled('div')`
   display: flex;
   align-items: center;
-  column-gap: ${space(0.25)};
+  column-gap: ${p => p.theme.space(0.25)};
 `;
 
 const EventTimeLabel = styled('span')`
@@ -523,7 +522,7 @@ const EventTimeLabel = styled('span')`
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space(0.25)};
   position: relative;
   top: 1px;
 `;
@@ -545,7 +544,7 @@ const EventId = styled('span')`
 const CopyIconContainer = styled('span')`
   display: none;
   align-items: center;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)};
   background: ${p => p.theme.background};
   position: absolute;
   right: 0;

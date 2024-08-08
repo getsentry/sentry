@@ -5,7 +5,6 @@ import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -157,7 +156,7 @@ const FlexBox = styled('div')`
 
 const BreakDownWrapper = styled(FlexBox)`
   flex-direction: column;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
 `;
 
 const BreakDownRow = styled(FlexBox)`

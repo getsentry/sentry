@@ -7,7 +7,6 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -454,8 +453,8 @@ function getVitalDataForListItem(
 
 export const VitalBarCell = styled(RightAlignedCell)`
   width: 120px;
-  margin-left: ${space(1)};
-  margin-right: ${space(1)};
+  margin-left: ${p => p.theme.space(1)};
+  margin-right: ${p => p.theme.space(1)};
   display: flex;
   align-items: center;
   justify-content: center;

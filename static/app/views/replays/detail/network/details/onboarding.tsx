@@ -6,7 +6,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -196,11 +195,11 @@ function SetupInstructions({
 }
 
 const StyledTextCopyInput = styled(TextCopyInput)`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 
 const NetworkUrlWrapper = styled('div')`
-  margin: ${space(1)} 0 ${space(1.5)} 0;
+  margin: ${p => p.theme.space(1)} 0 ${p => p.theme.space(1.5)} 0;
 `;
 
 const NoMarginAlert = styled(Alert)`
@@ -211,9 +210,9 @@ const NoMarginAlert = styled(Alert)`
 const StyledInstructions = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space(1)};
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   &:first-child {
     margin-top: 0;
     border-top: none;
@@ -221,11 +220,11 @@ const StyledInstructions = styled('div')`
 
   h1 {
     font-size: inherit;
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 
   p {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space(2)};
   }
   p:last-child {
     margin-bottom: 0;

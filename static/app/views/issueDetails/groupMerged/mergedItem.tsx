@@ -9,7 +9,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 type Props = {
@@ -169,7 +168,7 @@ const Controls = styled('div')<{expanded: boolean}>`
   justify-content: space-between;
   background-color: ${p => p.theme.backgroundSecondary};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
 
   ${MergedGroup}:not(:first-child) & {
     border-top: 1px solid ${p => p.theme.innerBorder};
@@ -186,7 +185,7 @@ const Controls = styled('div')<{expanded: boolean}>`
 const FingerprintLabel = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   font-family: ${p => p.theme.text.familyMono};
   line-height: 1;
   font-weight: ${p => p.theme.fontWeightNormal};
@@ -204,7 +203,7 @@ const EventDetails = styled('div')`
   justify-content: space-between;
 
   .event-list & {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space(1)};
   }
 `;
 

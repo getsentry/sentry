@@ -6,7 +6,6 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -80,6 +79,6 @@ const ModalHeader = styled('div')`
 `;
 
 const StyledParagraph = styled('p')`
-  padding-top: ${space(0.5)};
-  margin-bottom: ${space(1)};
+  padding-top: ${p => p.theme.space(0.5)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

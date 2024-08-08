@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
@@ -407,7 +406,7 @@ const ChartsContainer = styled('div')`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const ChartsContainerItem = styled('div')`

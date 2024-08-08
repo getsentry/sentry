@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function ReplayConfigToggle({
   maskToggle,
@@ -32,14 +31,14 @@ function ReplayConfigToggle({
 const SwitchItem = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const SwitchWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
-  padding-top: ${space(0.5)};
+  gap: ${p => p.theme.space(2)};
+  padding-top: ${p => p.theme.space(0.5)};
 `;
 
 export default ReplayConfigToggle;

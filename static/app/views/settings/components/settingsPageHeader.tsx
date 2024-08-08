@@ -88,17 +88,17 @@ const TitleWrapper = styled('div')`
 
 const Title = styled('div')<TitleProps>`
   ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeightBold};`};
-  margin: ${space(4)} ${space(2)} ${space(3)} 0;
+  margin: ${p => p.theme.space(4)} ${p => p.theme.space(2)} ${p => p.theme.space(3)} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   color: ${p => (p.colorSubtitle ? p.theme.purple400 : p.theme.gray400)};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeLarge};
-  padding: ${space(1.5)} 0 0;
+  padding: ${p => p.theme.space(1.5)} 0 0;
 `;
 
 const Icon = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const Action = styled('div')<{isNarrow?: boolean}>`
@@ -109,12 +109,12 @@ const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
   Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
-  margin-top: -${space(4)};
+  margin-top: -${p => p.theme.space(4)};
 `;
 
 const BodyWrapper = styled('div')`
   flex: 1;
-  margin: 0 0 ${space(3)};
+  margin: 0 0 ${p => p.theme.space(3)};
 `;
 const TabsWrapper = styled('div')`
   flex: 1;

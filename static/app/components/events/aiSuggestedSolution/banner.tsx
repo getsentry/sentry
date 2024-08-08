@@ -10,7 +10,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
@@ -68,7 +67,7 @@ const Body = styled(PanelBody)`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 
   > *:first-child {
     flex: 1;
@@ -87,13 +86,13 @@ const Title = styled('div')`
   display: flex;
   align-items: center;
   /* to be consistent with the feature badge size */
-  height: ${space(2)};
-  line-height: ${space(2)};
+  height: ${p => p.theme.space(2)};
+  line-height: ${p => p.theme.space(2)};
   white-space: nowrap;
 `;
 
 const Description = styled(TextBlock)`
-  margin: ${space(1)} 0 0 0;
+  margin: ${p => p.theme.space(1)} 0 0 0;
 `;
 
 const Action = styled('div')`
@@ -153,5 +152,5 @@ const ViewSuggestionButton = styled(Button)`
 `;
 
 const MoreInfoTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space(0.5)};
 `;

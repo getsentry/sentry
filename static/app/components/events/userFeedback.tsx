@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -84,7 +83,7 @@ const StyledActivityItem = styled(ActivityItem)`
 const Items = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const CopyButton = styled(Button)`

@@ -188,12 +188,12 @@ const Heading = styled('h1')`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.headerFontSize};
   margin-top: 0;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const Subtext = styled('p')`
   color: ${p => p.theme.subText};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 
 const inviteRowGrid = css`
@@ -206,7 +206,7 @@ const inviteRowGrid = css`
 const InviteeHeadings = styled('div')`
   ${inviteRowGrid};
 
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -220,16 +220,16 @@ const Rows = styled('ul')`
 
 const StyledInviteRow = styled(InviteRowControl)`
   ${inviteRowGrid};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space(1.5)};
 `;
 
 const AddButton = styled(Button)`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 const FooterContent = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   justify-content: space-between;
   flex: 1;

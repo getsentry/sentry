@@ -9,7 +9,6 @@ import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCo
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -113,7 +112,7 @@ const ColumnTooltipContent = styled(CountTooltipContent)`
 const StyledLink = styled(Link)`
   display: flex;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
   & * {
     cursor: pointer !important;
@@ -134,6 +133,6 @@ const StackedProjectBadges = styled('div')`
   }
 
   & > :not(:first-child) {
-    margin-left: -${space(0.5)};
+    margin-left: -${p => p.theme.space(0.5)};
   }
 `;

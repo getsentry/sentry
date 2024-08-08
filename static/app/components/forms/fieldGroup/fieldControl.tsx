@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 import FieldControlState from './fieldControlState';
 import type {FieldGroupProps} from './types';
 
@@ -42,7 +40,7 @@ export default FieldControl;
 const FieldControlWrapper = styled('div')<{inline?: boolean}>`
   display: flex;
   flex: 1;
-  ${p => p.inline && `padding-left: ${space(2)}`};
+  ${p => p.inline && `padding-left: ${p.theme.space(2)}`};
 `;
 
 const FieldControlStyled = styled('div')<{alignRight?: boolean}>`

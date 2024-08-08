@@ -128,11 +128,12 @@ const UnstyledUnorderedList = styled('div')`
 const EventItemsWrapper = styled('div')<{hasTitle: boolean}>`
   display: flex;
   flex-direction: column;
-  padding: ${p => space(p.hasTitle ? 1 : 0.5)} ${space(0.5)} ${space(0.5)} ${space(0.5)};
+  padding: ${p => space(p.hasTitle ? 1 : 0.5)} ${p => p.theme.space(0.5)}
+    ${p => p.theme.space(0.5)} ${p => p.theme.space(0.5)};
 `;
 
 const EventItemsTitle = styled('div')`
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space(1)};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: ${p => p.theme.fontWeightBold};
@@ -140,13 +141,13 @@ const EventItemsTitle = styled('div')`
 `;
 
 const YouAreHere = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const YouAreHereItem = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
   text-align: center;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -156,9 +157,10 @@ const EventItemRoot = styled(Link)`
   display: grid;
   grid-template-columns: max-content auto;
   color: ${p => p.theme.textColor};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   width: 100%;
-  padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1)} ${p => p.theme.space(0.5)}
+    ${p => p.theme.space(1)};
   border-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeSmall};
 
@@ -185,7 +187,7 @@ const EventDescription = styled('div')`
 `;
 
 const TraceItem = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;

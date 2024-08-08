@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -209,11 +208,11 @@ export function UIScreens() {
 const Layout = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const ChartContainer = styled('div')`
   display: grid;
   grid-template-columns: 33% 33% 33%;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;

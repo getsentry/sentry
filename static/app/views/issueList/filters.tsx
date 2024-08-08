@@ -4,7 +4,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {space} from 'sentry/styles/space';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 
 interface Props {
@@ -29,10 +28,10 @@ function IssueListFilters({query, onSearch}: Props) {
 const SearchContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  column-gap: ${space(2)};
-  row-gap: ${space(1)};
+  column-gap: ${p => p.theme.space(2)};
+  row-gap: ${p => p.theme.space(1)};
   width: 100%;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex-direction: column;

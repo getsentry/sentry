@@ -14,7 +14,6 @@ import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project, Release} from 'sentry/types';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
@@ -195,10 +194,10 @@ const ReleasesTable = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   & > * {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
     height: 32px;
   }
 

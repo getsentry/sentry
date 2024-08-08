@@ -10,7 +10,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IntegrationProvider, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -210,12 +209,12 @@ DocsWrapper.defaultProps = {
 };
 
 const StyledButtonBar = styled(ButtonBar)`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
   width: max-content;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: auto;
-    grid-row-gap: ${space(1)};
+    grid-row-gap: ${p => p.theme.space(1)};
     grid-auto-flow: row;
   }
 `;

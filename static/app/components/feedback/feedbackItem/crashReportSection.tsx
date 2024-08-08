@@ -6,7 +6,6 @@ import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
 import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 interface Props {
@@ -58,6 +57,7 @@ const IssueDetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)}
+    ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   overflow: auto;
 `;

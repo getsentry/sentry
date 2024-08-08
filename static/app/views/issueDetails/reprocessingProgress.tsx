@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import ProgressBar from 'sentry/components/progressBar';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
 type Props = {
@@ -41,7 +40,7 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
 export default ReprocessingProgress;
 
 const Wrapper = styled('div')`
-  margin: ${space(4)} 40px;
+  margin: ${p => p.theme.space(4)} 40px;
   flex: 1;
   text-align: center;
 
@@ -54,7 +53,7 @@ const Content = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space(1.5)};
   justify-items: center;
   max-width: 402px;
   width: 100%;
@@ -62,13 +61,13 @@ const Content = styled('div')`
 
 const Inner = styled('div')`
   display: grid;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
   justify-items: center;
 `;
 
 const Header = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   color: ${p => p.theme.textColor};
   max-width: 557px;
 `;

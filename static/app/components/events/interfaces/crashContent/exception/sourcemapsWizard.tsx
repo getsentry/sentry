@@ -10,7 +10,6 @@ import {IconClose, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
@@ -111,7 +110,7 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
 }
 
 const StyledCodeSnippet = styled(CodeSnippet)<{isDarkMode: boolean}>`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   width: 500px;
   border: ${p => (p.isDarkMode ? `1px solid ${p.theme.border}` : 'none')};
 
@@ -126,8 +125,8 @@ const StyledPanel = styled(Panel)`
 
 const CloseButton = styled(Button)`
   position: absolute;
-  top: -${space(1.5)};
-  right: -${space(1.5)};
+  top: -${p => p.theme.space(1.5)};
+  right: -${p => p.theme.space(1.5)};
   border-radius: 50%;
   height: ${p => p.theme.iconSizes.lg};
   width: ${p => p.theme.iconSizes.lg};

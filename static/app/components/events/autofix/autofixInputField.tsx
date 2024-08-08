@@ -11,7 +11,6 @@ import TextArea from 'sentry/components/forms/controls/textarea';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -114,11 +113,11 @@ export function AutofixInputField({groupId, runId}: {groupId: string; runId: str
 }
 
 const Card = styled(Panel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   margin-bottom: 0;
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const Title = styled('div')`
@@ -130,7 +129,7 @@ const FormRow = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   width: 100%;
 `;
 

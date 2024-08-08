@@ -10,7 +10,6 @@ import Link from 'sentry/components/links/link';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -316,11 +315,11 @@ const Actions = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space(3)};
 `;
 const ActionsLeft = styled('span')`
   > a {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
 `;
 

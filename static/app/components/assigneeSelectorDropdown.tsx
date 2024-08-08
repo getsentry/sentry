@@ -23,7 +23,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
@@ -587,8 +586,8 @@ const AssigneeWrapper = styled('div')`
 
 const AssigneeDropdownButton = styled(DropdownButton)`
   z-index: 0;
-  padding-left: ${space(0.5)};
-  padding-right: ${space(0.5)};
+  padding-left: ${p => p.theme.space(0.5)};
+  padding-right: ${p => p.theme.space(0.5)};
 `;
 
 const StyledIconUser = styled(IconUser)`

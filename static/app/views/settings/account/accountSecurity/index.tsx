@@ -17,7 +17,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Authenticator, OrganizationSummary} from 'sentry/types';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -241,15 +240,15 @@ const AuthenticatorTitle = styled('div')`
 const Actions = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
 `;
 
 const AuthenticatorStatus = styled(CircleIndicator)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const Description = styled(TextBlock)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space(2)};
   margin-bottom: 0;
 `;
 

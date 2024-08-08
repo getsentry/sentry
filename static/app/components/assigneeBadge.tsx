@@ -146,12 +146,12 @@ const StyledTag = styled(Tag)`
   span {
     display: flex;
     align-items: center;
-    gap: ${space(0.5)};
+    gap: ${p => p.theme.space(0.5)};
   }
   & > div {
     height: 24px;
-    padding: ${space(0.5)};
-    padding-right: ${space(0.25)};
+    padding: ${p => p.theme.space(0.5)};
+    padding-right: ${p => p.theme.space(0.25)};
   }
   color: ${p => p.theme.subText};
 `;

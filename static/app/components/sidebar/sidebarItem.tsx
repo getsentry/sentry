@@ -374,7 +374,7 @@ const StyledSidebarItem = styled(Link, {
     content: '';
     position: absolute;
     top: 4px;
-    left: calc(-${space(2)} - 1px);
+    left: calc(-${p => p.theme.space(2)} - 1px);
     bottom: 6px;
     width: 5px;
     border-radius: 0 3px 3px 0;
@@ -427,7 +427,7 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
   justify-content: center;
   width: 100%;
 
-  ${p => !p.collapsed && `padding-right: ${space(1)};`}
+  ${p => !p.collapsed && `padding-right: ${p.theme.space(1)};`}
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding-right: 0;
   }

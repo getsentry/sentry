@@ -7,7 +7,6 @@ import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import ReplayViewers from 'sentry/components/replays/header/replayViewers';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -108,7 +107,7 @@ const KeyMetrics = styled('dl')`
   grid-template-rows: max-content 1fr;
   grid-template-columns: repeat(4, max-content);
   grid-auto-flow: column;
-  gap: 0 ${space(3)};
+  gap: 0 ${p => p.theme.space(3)};
   align-items: center;
   align-self: end;
   color: ${p => p.theme.gray300};
@@ -128,7 +127,7 @@ const KeyMetricData = styled('dd')`
   font-weight: ${p => p.theme.fontWeightNormal};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
@@ -139,7 +138,7 @@ const Count = styled('span')`
 const ClickCount = styled(Count)`
   color: ${p => p.theme.gray300};
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
 `;
 

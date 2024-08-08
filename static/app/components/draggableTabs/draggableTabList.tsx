@@ -14,7 +14,6 @@ import {TabsContext} from 'sentry/components/tabs';
 import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
 import type {DraggableTabListItemProps} from './item';
@@ -252,7 +251,7 @@ const TabListWrap = styled('ul')`
 const AddViewButton = styled(Button)`
   display: flex;
   color: ${p => p.theme.gray300};
-  padding-right: ${space(0.5)};
+  padding-right: ${p => p.theme.space(0.5)};
   margin: 4px 2px 2px 2px;
   font-weight: normal;
 `;

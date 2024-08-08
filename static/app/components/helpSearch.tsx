@@ -7,7 +7,6 @@ import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
 import HelpSource from 'sentry/components/search/sources/helpSource';
 import {IconWindow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type ItemRenderer = React.ComponentProps<typeof Search>['renderItem'];
 
@@ -61,10 +60,10 @@ function HelpSearch(props: Props) {
 const SectionHeading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space(1)} ${p => p.theme.space(2)};
 
   &:not(:first-of-type) {
     border-top: 1px solid ${p => p.theme.innerBorder};
@@ -79,7 +78,7 @@ const Count = styled('div')`
 const Empty = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   border-top: 1px solid ${p => p.theme.innerBorder};

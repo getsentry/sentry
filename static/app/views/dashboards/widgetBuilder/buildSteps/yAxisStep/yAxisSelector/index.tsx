@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import ButtonBar from 'sentry/components/buttonBar';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
@@ -131,11 +130,11 @@ const QueryFieldWrapper = styled('div')`
   justify-content: space-between;
 
   :not(:last-child) {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space(1)};
   }
 
   > * + * {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space(1)};
   }
 `;
 

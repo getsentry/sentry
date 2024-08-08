@@ -12,7 +12,6 @@ import Link from 'sentry/components/links/link';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -216,7 +215,7 @@ export function OverviewRow({
 
 const DetailsLink = styled(Link)`
   display: block;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space(3)};
   color: ${p => p.theme.textColor};
 
   &:focus-visible {
@@ -232,19 +231,19 @@ const DetailsArea = styled('div')`
 
 const DetailsHeadline = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
 const DetailsContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const OwnershipDetails = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space(0.75)};
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -252,24 +251,24 @@ const OwnershipDetails = styled('div')`
 
 const UnassignedLabel = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 `;
 
 const MonitorStatuses = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
 `;
 
 const Name = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   word-break: break-word;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space(0.5)};
 `;
 
 const ScheduleDetails = styled('small')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -319,7 +318,7 @@ const DetailsActions = styled('div')`
 
   /* Align to the center of the heading text */
   height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
-  margin: ${space(3)};
+  margin: ${p => p.theme.space(3)};
 
   /* Show when timeline is hovered / focused */
   ${TimelineRow}:hover &,
@@ -332,8 +331,8 @@ const DetailsActions = styled('div')`
 
 const MonitorEnvContainer = styled('div')`
   display: flex;
-  padding: ${space(3)} ${space(2)};
-  gap: ${space(4)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(2)};
+  gap: ${p => p.theme.space(4)};
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: right;
@@ -341,14 +340,14 @@ const MonitorEnvContainer = styled('div')`
 
 const EnvRow = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   justify-content: space-between;
   align-items: center;
   height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
 `;
 
 const EnvActionButton = styled(Button)`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space(0.5)} ${p => p.theme.space(1)};
   display: none;
 
   ${EnvRow}:hover & {
@@ -358,9 +357,9 @@ const EnvActionButton = styled(Button)`
 
 const TimelineContainer = styled('div')`
   display: flex;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space(3)} 0;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space(4)};
   contain: content;
   grid-column: 3/-1;
 `;

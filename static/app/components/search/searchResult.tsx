@@ -6,7 +6,6 @@ import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import IdBadge from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -108,7 +107,7 @@ const SearchDetail = styled('div')`
 const ExtraDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
 `;
 
 const BadgeDetail = styled('div')<{highlighted: boolean}>`

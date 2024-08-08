@@ -257,19 +257,19 @@ const Row = styled('div')`
 `;
 
 const StatsSection = styled('div')`
-  margin-right: ${space(4)};
+  margin-right: ${p => p.theme.space(4)};
 `;
 const StatsHeader = styled('h6')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
   font-size: 12px;
   text-transform: uppercase;
   color: ${p => p.theme.subText};
 `;
 
 const StyledFooter = styled('div')`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)};
 `;
 
 const ChartWrapper = styled('div')`
-  padding-top: ${space(3)};
+  padding-top: ${p => p.theme.space(3)};
 `;

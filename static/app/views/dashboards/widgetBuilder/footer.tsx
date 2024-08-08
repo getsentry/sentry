@@ -5,7 +5,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface Props {
   goBackLocation: LinkProps['to'];
@@ -55,16 +54,16 @@ export function Footer({
 const Actions = styled(ButtonBar)`
   justify-content: flex-end;
   max-width: 1000px;
-  padding: ${space(4)} ${space(2)};
+  padding: ${p => p.theme.space(4)} ${p => p.theme.space(2)};
 
   /* to match Layout.Main padding + Field padding-right */
-  padding-right: calc(${space(2)} + ${space(2)});
+  padding-right: calc(${p => p.theme.space(2)} + ${p => p.theme.space(2)});
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(4)};
+    padding: ${p => p.theme.space(4)};
 
     /* to match Layout.Main padding + Field padding-right */
-    padding-right: calc(${space(4)} + ${space(2)});
+    padding-right: calc(${p => p.theme.space(4)} + ${p => p.theme.space(2)});
   }
 `;
 

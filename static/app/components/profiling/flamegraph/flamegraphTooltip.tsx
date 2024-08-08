@@ -5,7 +5,6 @@ import type {vec2} from 'gl-matrix';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
@@ -235,9 +234,9 @@ const FlamegraphInlineIndicator = styled('span')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: ${space(0.25)} ${space(0.25)};
+  padding: ${p => p.theme.space(0.25)} ${p => p.theme.space(0.25)};
   line-height: 12px;
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space(0.5)};
   align-self: flex-end;
 
   svg {
@@ -269,5 +268,5 @@ export const FlamegraphTooltipColorIndicator = styled('div')<{
   background-image: ${p => p.backgroundImage};
   background-size: 16px 16px;
   background-color: ${p => p.backgroundColor};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;

@@ -456,7 +456,7 @@ const DropdownItemContainer = styled('div')`
 `;
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  padding: ${p => p.theme.space(3)} ${p => p.theme.space(3)} 0 ${p => p.theme.space(3)};
   margin-bottom: 0;
   border-bottom: 0;
   border-bottom-left-radius: 0;

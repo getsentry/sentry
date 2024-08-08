@@ -2,8 +2,6 @@ import styled from '@emotion/styled';
 
 import sentryLoader from 'sentry-images/sentry-loader.svg';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   children?: React.ReactNode;
 };
@@ -28,7 +26,7 @@ const LoadingTriangleWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 `;
 
 const CircleBackground = styled('div')`

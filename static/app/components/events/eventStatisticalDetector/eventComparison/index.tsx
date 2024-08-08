@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
 
 const COMPARISON_DESCRIPTION = t(
@@ -57,7 +56,7 @@ export default EventComparison;
 const StyledGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const StyledGridItem = styled('div')<{position: 'left' | 'right'}>`

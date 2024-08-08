@@ -16,7 +16,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
@@ -216,21 +215,21 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 const CategoryTitle = styled('h2')`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)} !important;
+  margin-bottom: ${p => p.theme.space(1)} !important;
 `;
 
 const WizardBody = styled('div')`
   display: flex;
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space(1)};
 `;
 
 const WizardOptions = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space(4)};
   flex: 3;
-  margin-right: ${space(3)};
-  padding-right: ${space(3)};
+  margin-right: ${p => p.theme.space(3)};
+  padding-right: ${p => p.theme.space(3)};
   max-width: 300px;
 `;
 
@@ -263,7 +262,7 @@ const WizardPanel = styled(Panel)<{visible?: boolean}>`
 `;
 
 const ExampleList = styled(List)`
-  margin-bottom: ${space(2)} !important;
+  margin-bottom: ${p => p.theme.space(2)} !important;
 `;
 
 const WizardPanelBody = styled(PanelBody)`
@@ -272,11 +271,11 @@ const WizardPanelBody = styled(PanelBody)`
 `;
 
 const PanelDescription = styled('p')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const ExampleHeader = styled('div')`
-  margin: 0 0 ${space(1)} 0;
+  margin: 0 0 ${p => p.theme.space(1)} 0;
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
@@ -286,14 +285,15 @@ const ExampleItem = styled(ListItem)`
 
 const WizardFooter = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)}
+    ${p => p.theme.space(1.5)} ${p => p.theme.space(1.5)};
 `;
 
 const WizardButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   a:not(:last-child) {
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space(1)};
   }
 `;
 

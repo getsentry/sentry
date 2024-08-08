@@ -14,7 +14,6 @@ import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/u
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import {space} from 'sentry/styles/space';
 import type {Image} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
@@ -461,5 +460,5 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
 
 const StyledSearchBarAction = styled(SearchBarAction)`
   z-index: 1;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;

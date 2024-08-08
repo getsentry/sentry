@@ -12,7 +12,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -303,7 +302,7 @@ export const StyledBreadcrumbPanelTable = styled(PanelTable)`
 const Time = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   cursor: pointer;
 `;
 

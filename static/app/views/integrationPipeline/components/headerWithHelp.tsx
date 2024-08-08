@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/actions/button';
 import LogoSentry from 'sentry/components/logoSentry';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export default function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
   return (
@@ -23,7 +22,7 @@ const Header = styled('div')`
   justify-content: space-between;
   top: 0;
   z-index: 100;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space(2)};
   background: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;

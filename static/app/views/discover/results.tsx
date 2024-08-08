@@ -34,7 +34,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery, Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -846,8 +845,8 @@ export class Results extends Component<Props, State> {
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space(1)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
@@ -856,7 +855,7 @@ const Wrapper = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 `;
 
 const Top = styled(Layout.Main)`

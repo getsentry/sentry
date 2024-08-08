@@ -16,7 +16,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -128,6 +127,6 @@ const OverflowPanelItem = styled(PanelItem)`
 
   flex-direction: column;
   flex-grow: 1;
-  gap: ${space(2)};
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  gap: ${p => p.theme.space(2)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(2)} 0 ${p => p.theme.space(2)};
 `;

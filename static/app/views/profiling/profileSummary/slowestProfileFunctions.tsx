@@ -10,7 +10,6 @@ import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -226,11 +225,11 @@ const SlowestFunctionsList = styled('div')`
 `;
 
 const SlowestFunctionsContainer = styled('div')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space(0.5)};
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -254,7 +253,7 @@ const SlowestFunctionsTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const SlowestFunctionsTypeSelect = styled(CompactSelect)`
@@ -266,12 +265,12 @@ const SlowestFunctionsTypeSelect = styled(CompactSelect)`
 
 const SlowestFunctionsQueryState = styled('div')`
   text-align: center;
-  padding: ${space(2)} ${space(0.5)};
+  padding: ${p => p.theme.space(2)} ${p => p.theme.space(0.5)};
   color: ${p => p.theme.subText};
 `;
 
 const SlowestFunctionRow = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
 
 const SlowestFunctionMainRow = styled('div')`
@@ -293,7 +292,7 @@ const SlowestFunctionMetricsRow = styled('div')`
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space(0.25)};
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};

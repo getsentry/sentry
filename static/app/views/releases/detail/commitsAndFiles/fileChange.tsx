@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {ListGroupItem} from 'sentry/components/listGroup';
 import TextOverflow from 'sentry/components/textOverflow';
-import {space} from 'sentry/styles/space';
 import type {AvatarUser, CommitAuthor} from 'sentry/types';
 
 import FileIcon from './fileIcon';
@@ -31,7 +30,7 @@ const FileItem = styled(ListGroupItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space(3)};
 
   border-radius: 0;
   border-left: none;
@@ -47,7 +46,7 @@ const Filename = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space(1)};
   align-items: center;
 `;
 

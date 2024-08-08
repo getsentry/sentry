@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   speed: number;
@@ -33,12 +32,12 @@ const Badge = styled('div')`
 const FastForwardTooltip = styled(Tooltip)`
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space(0.5)};
   align-items: center;
 
   background: ${p => p.theme.gray300};
   color: ${p => p.theme.white};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space(1.5)} ${p => p.theme.space(2)};
   border-top-right-radius: ${p => p.theme.borderRadius};
   z-index: ${p => p.theme.zIndex.initial};
 `;

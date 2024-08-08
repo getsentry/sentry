@@ -20,7 +20,6 @@ import {t, tct} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
@@ -320,8 +319,8 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space(1)};
+  margin: 50px ${p => p.theme.space(4)} ${p => p.theme.space(4)} ${p => p.theme.space(4)};
 `;
 
 const Heading = styled('div')`
@@ -331,7 +330,7 @@ const Heading = styled('div')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -342,7 +341,7 @@ const StyledIdBadge = styled(IdBadge)`
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space(1)};
 `;
 
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (

@@ -95,7 +95,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space(2)};
 `;
 
 const Wrapper = styled(InterimSection)<{configResources: boolean}>`

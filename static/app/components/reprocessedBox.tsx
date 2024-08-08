@@ -5,7 +5,6 @@ import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupActivityReprocess, Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
@@ -97,7 +96,7 @@ export default ReprocessedBox;
 const StyledBannerSummary = styled(BannerSummary)`
   & > svg:last-child {
     margin-right: 0;
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space(1)};
   }
 `;
 

@@ -3,12 +3,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Alert from 'sentry/components/alert';
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
@@ -383,7 +381,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
 const StyledRow = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${p => p.theme.space(2)};
 `;
 
 const ChartsContainerItem = styled('div')`
@@ -391,11 +389,11 @@ const ChartsContainerItem = styled('div')`
 `;
 
 export const Spacer = styled('div')`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space(3)};
 `;
 
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 2fr 1fr;
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${p => p.theme.space(2)};
 `;

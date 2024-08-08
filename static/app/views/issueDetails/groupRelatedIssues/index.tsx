@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -152,11 +151,11 @@ function RelatedIssuesSection({
 export {GroupRelatedIssues};
 
 const Title = styled('h4')`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space(0.75)};
 `;
 
 const HeaderWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space(2)};
 
   small {
     color: ${p => p.theme.subText};
@@ -166,5 +165,5 @@ const HeaderWrapper = styled('div')`
 const TextButtonWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space(1)};
 `;
