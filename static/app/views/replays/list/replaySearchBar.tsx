@@ -16,9 +16,10 @@ import {
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
 } from 'sentry/utils/fields';
-import useFetchIssuePlatformTags from 'sentry/utils/replays/hooks/useFetchIssuePlatformTags';
+import useFetchDatasetTags from 'sentry/utils/replays/hooks/useFetchDatasetTags';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -85,9 +86,10 @@ function ReplaySearchBar(props: Props) {
   const api = useApi();
   const projectIds = pageFilters.projects;
 
-  const {tags: issuePlatformTags} = useFetchIssuePlatformTags({
+  const {tags: issuePlatformTags} = useFetchDatasetTags({
     org: organization,
     projectIds: projectIds.map(String),
+    dataset: Dataset.REPLAYS,
     start: pageFilters.datetime.start
       ? getUtcDateString(pageFilters.datetime.start)
       : undefined,

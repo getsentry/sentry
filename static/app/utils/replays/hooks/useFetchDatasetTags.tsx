@@ -3,9 +3,10 @@ import {useMemo} from 'react';
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Organization, TagCollection} from 'sentry/types';
 import {FieldKind} from 'sentry/utils/fields';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-type UseFetchIssuePlatformTagsParams = {
+type UseFetchDatasetTagsParams = {
+  dataset: Dataset;
   org: Organization;
   projectIds: string[];
   enabled?: boolean;
@@ -16,15 +17,18 @@ type UseFetchIssuePlatformTagsParams = {
   useCache?: boolean;
 };
 
-// Fetches tags exclusively from the IssuePlatform (search_issues) dataset. Based on useFetchIssueTags.
-export default function useFetchIssuePlatformTags({
+/**
+ * Fetches tags from exclusively one dataset. Based on useFetchIssueTags.
+ */
+export default function useFetchDatasetTags({
   org,
   projectIds,
+  dataset,
   keepPreviousData = false,
   useCache = true,
   enabled = true,
   ...statsPeriodParams
-}: UseFetchIssuePlatformTagsParams): {
+}: UseFetchDatasetTagsParams): {
   isError: boolean;
   isLoading: boolean;
   tags: TagCollection;
@@ -33,7 +37,7 @@ export default function useFetchIssuePlatformTags({
     {
       orgSlug: org.slug,
       projectIds: projectIds.map(String),
-      dataset: Dataset.ISSUE_PLATFORM,
+      dataset,
       useCache,
       enabled,
       keepPreviousData,

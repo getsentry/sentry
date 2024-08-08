@@ -17,12 +17,13 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useFetchIssuePlatformTags from 'sentry/utils/replays/hooks/useFetchIssuePlatformTags';
+import useFetchDatasetTags from 'sentry/utils/replays/hooks/useFetchDatasetTags';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const EXCLUDED_TAGS = [
   FeedbackFieldKey.BROWSER_VERSION,
@@ -86,9 +87,10 @@ export default function FeedbackSearch({className, style}: Props) {
   const projectIds = pageFilters.projects;
   const {pathname, query} = useLocation();
   const organization = useOrganization();
-  const {tags: issuePlatformTags} = useFetchIssuePlatformTags({
+  const {tags: issuePlatformTags} = useFetchDatasetTags({
     org: organization,
     projectIds: projectIds.map(String),
+    dataset: Dataset.ISSUE_PLATFORM,
     start: pageFilters.datetime.start
       ? getUtcDateString(pageFilters.datetime.start)
       : undefined,
