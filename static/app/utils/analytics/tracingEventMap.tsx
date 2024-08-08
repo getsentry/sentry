@@ -1,4 +1,7 @@
 export type TracingEventParameters = {
+  'trace.configurations_docs_link_clicked': {
+    title: string;
+  };
   'trace.metadata': {
     num_nodes: number;
     num_root_children: number;
@@ -103,6 +106,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
     'Clicked Increase Budget in Quota Exceeded Banner',
   'trace.quality.quota_exceeded.learn_more_clicked':
     'Clicked Learn More in Quota Exceeded Banner',
+  'trace.configurations_docs_link_clicked': 'Clicked Traces Configurations Docs Link',
   'trace.quality.quota_exceeded.banner_loaded':
     'Performance Quota Exceeded Banner Loaded',
   'trace.trace_layout.view_shortcuts': 'Viewed Trace Shortcuts',

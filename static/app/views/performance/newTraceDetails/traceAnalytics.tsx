@@ -133,6 +133,12 @@ const trackTraceWarningType = (type: TraceType, organization: Organization) =>
     type,
   });
 
+const trackTraceConfigurationsDocsClicked = (organization: Organization, title: string) =>
+  trackAnalytics('trace.configurations_docs_link_clicked', {
+    organization,
+    title,
+  });
+
 const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
@@ -158,6 +164,7 @@ const traceAnalytics = {
   trackQuotaExceededIncreaseBudgetClicked,
   trackQuotaExceededLearnMoreClicked,
   trackQuotaExceededBannerLoaded,
+  trackTraceConfigurationsDocsClicked,
 };
 
 export {traceAnalytics};
