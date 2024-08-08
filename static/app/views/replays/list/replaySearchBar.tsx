@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
-import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
@@ -16,9 +16,9 @@ import {
   REPLAY_CLICK_FIELDS,
   REPLAY_FIELDS,
 } from 'sentry/utils/fields';
+import useFetchIssuePlatformTags from 'sentry/utils/replays/hooks/useFetchIssuePlatformTags';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import useTags from 'sentry/utils/useTags';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -84,14 +84,22 @@ function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIds = pageFilters.projects;
-  const organizationTags = useTags();
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, pageFilters);
-  }, [api, organization.slug, pageFilters]);
+
+  const {tags: issuePlatformTags} = useFetchIssuePlatformTags({
+    org: organization,
+    projectIds: projectIds.map(String),
+    start: pageFilters.datetime.start
+      ? getUtcDateString(pageFilters.datetime.start)
+      : undefined,
+    end: pageFilters.datetime.end
+      ? getUtcDateString(pageFilters.datetime.end)
+      : undefined,
+    statsPeriod: pageFilters.datetime.period,
+  });
 
   const replayTags = useMemo(
-    () => getReplaySearchTags(organizationTags),
-    [organizationTags]
+    () => getReplaySearchTags(issuePlatformTags),
+    [issuePlatformTags]
   );
 
   const getTagValues = useCallback(
@@ -117,7 +125,7 @@ function ReplaySearchBar(props: Props) {
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
-        projectIds: projectIds?.map(String),
+        projectIds: projectIds.map(String),
         endpointParams,
         includeReplays: true,
       }).then(

@@ -17,12 +17,12 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useFetchIssuePlatformTags from 'sentry/utils/replays/hooks/useFetchIssuePlatformTags';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useTags from 'sentry/utils/useTags';
 
 const EXCLUDED_TAGS = [
   FeedbackFieldKey.BROWSER_VERSION,
@@ -86,12 +86,22 @@ export default function FeedbackSearch({className, style}: Props) {
   const projectIds = pageFilters.projects;
   const {pathname, query} = useLocation();
   const organization = useOrganization();
-  const organizationTags = useTags();
+  const {tags: issuePlatformTags} = useFetchIssuePlatformTags({
+    org: organization,
+    projectIds: projectIds.map(String),
+    start: pageFilters.datetime.start
+      ? getUtcDateString(pageFilters.datetime.start)
+      : undefined,
+    end: pageFilters.datetime.end
+      ? getUtcDateString(pageFilters.datetime.end)
+      : undefined,
+    statsPeriod: pageFilters.datetime.period,
+  });
   const api = useApi();
 
   const feedbackTags = useMemo(
-    () => getFeedbackSearchTags(organizationTags),
-    [organizationTags]
+    () => getFeedbackSearchTags(issuePlatformTags),
+    [issuePlatformTags]
   );
 
   const getTagValues = useCallback(
