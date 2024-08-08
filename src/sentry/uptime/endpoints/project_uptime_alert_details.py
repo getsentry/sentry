@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
+    RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
@@ -21,6 +22,7 @@ from sentry.uptime.endpoints.serializers import (
 )
 from sentry.uptime.endpoints.validators import UptimeMonitorValidator
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.subscriptions.subscriptions import delete_project_uptime_subscription
 
 
 @region_silo_endpoint
@@ -95,3 +97,27 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
             return self.respond(validator.errors, status=400)
 
         return self.respond(serialize(validator.save(), request.user))
+
+    @extend_schema(
+        operation_id="Update an Uptime Monitor for a Project",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            UptimeParams.UPTIME_ALERT_ID,
+        ],
+        request=UptimeMonitorValidator,
+        responses={
+            202: RESPONSE_ACCEPTED,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(
+        self, request: Request, project: Project, uptime_subscription: ProjectUptimeSubscription
+    ) -> Response:
+        """
+        Delete an uptime monitor.
+        """
+        delete_project_uptime_subscription(uptime_subscription)
+        return self.respond(status=202)
