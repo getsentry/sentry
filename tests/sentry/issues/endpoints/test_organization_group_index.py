@@ -2400,7 +2400,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date",
             limit=10,
             collapse=["unhandled"],
-            searchId=view.id,
+            viewId=view.id,
             savedSearch=0,
         )
         assert response.status_code == 200

@@ -95,7 +95,7 @@ def build_query_params_from_request(
         if features.has(
             "organizations:issue-stream-custom-views", organization, actor=request.user
         ):
-            selected_view_id = request.GET.get("searchId")
+            selected_view_id = request.GET.get("viewId")
             if selected_view_id:
                 default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
             else:
