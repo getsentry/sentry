@@ -202,19 +202,6 @@ const StyledPanelHeader = styled(PanelHeader)`
   padding-bottom: ${space(1)};
 `;
 
-// const StyledLoadingIndicatorWrapper = styled('div')`
-//   display: flex;
-//   justify-content: center;
-//   width: 100%;
-//   padding: ${space(2)} 0;
-//   height: 84px;
-
-//   /* Add a border between two rows of loading issue states */
-//   & + & {
-//     border-top: 1px solid ${p => p.theme.border};
-//   }
-// `;
-
 const StyledIconWrapper = styled(IconWrapper)`
   margin: 0;
 `;
