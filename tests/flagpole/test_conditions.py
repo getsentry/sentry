@@ -30,16 +30,16 @@ class TestCreateCaseInsensitiveSetFromList:
 class TestInConditions:
     def test_is_in(self):
         values = ["bar", "baz"]
-        condition = InCondition(property="foo", value=values)
+        condition = InCondition(property="foo", value=values, operator="in")
         assert condition.match(context=EvaluationContext({"foo": "bar"}), segment_name="test")
 
-        not_condition = NotInCondition(property="foo", value=values)
+        not_condition = NotInCondition(property="foo", value=values, operator="not_in")
         assert not not_condition.match(
             context=EvaluationContext({"foo": "bar"}), segment_name="test"
         )
 
         int_values = [1, 2]
-        condition = InCondition(property="foo", value=int_values)
+        condition = InCondition(property="foo", value=int_values, operator="in")
         # Validation check to ensure no type coercion occurs
         assert condition.value == int_values
         assert condition.match(context=EvaluationContext({"foo": 2}), segment_name="test")
@@ -47,39 +47,39 @@ class TestInConditions:
 
     def test_is_in_numeric_string(self):
         values = ["123", "456"]
-        condition = InCondition(property="foo", value=values)
+        condition = InCondition(property="foo", value=values, operator="in")
         assert condition.value == values
         assert not condition.match(context=EvaluationContext({"foo": 123}), segment_name="test")
         assert condition.match(context=EvaluationContext({"foo": "123"}), segment_name="test")
 
     def test_is_not_in(self):
         values = ["bar", "baz"]
-        condition = InCondition(property="foo", value=values)
+        condition = InCondition(property="foo", value=values, operator="in")
         assert not condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-        not_condition = NotInCondition(property="foo", value=values)
+        not_condition = NotInCondition(property="foo", value=values, operator="not_in")
         assert not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
     def test_is_in_case_insensitivity(self):
         values = ["bAr", "baz"]
-        condition = InCondition(property="foo", value=values)
+        condition = InCondition(property="foo", value=values, operator="in")
         assert condition.match(context=EvaluationContext({"foo": "BaR"}), segment_name="test")
 
-        not_condition = NotInCondition(property="foo", value=values)
+        not_condition = NotInCondition(property="foo", value=values, operator="not_in")
         assert not not_condition.match(
             context=EvaluationContext({"foo": "BaR"}), segment_name="test"
         )
 
     def test_invalid_property_value(self):
         values = ["bar", "baz"]
-        condition = InCondition(property="foo", value=values)
+        condition = InCondition(property="foo", value=values, operator="in")
 
         bad_context = ([1], {"k": "v"})
         for attr_val in bad_context:
             with pytest.raises(ConditionTypeMismatchException):
                 condition.match(context=EvaluationContext({"foo": attr_val}), segment_name="test")
 
-        not_condition = NotInCondition(property="foo", value=values)
+        not_condition = NotInCondition(property="foo", value=values, operator="not_in")
         for attr_val in bad_context:
             with pytest.raises(ConditionTypeMismatchException):
                 not_condition.match(
@@ -88,12 +88,12 @@ class TestInConditions:
 
     def test_missing_context_property(self):
         values = ["bar", "baz"]
-        in_condition = InCondition(property="foo", value=values)
+        in_condition = InCondition(property="foo", value=values, operator="in")
         assert not in_condition.match(
             context=EvaluationContext({"bar": "bar"}), segment_name="test"
         )
 
-        not_on_condition = NotInCondition(property="foo", value=values)
+        not_on_condition = NotInCondition(property="foo", value=values, operator="not_in")
         assert not_on_condition.match(
             context=EvaluationContext({"bar": "bar"}), segment_name="test"
         )
@@ -101,28 +101,28 @@ class TestInConditions:
 
 class TestContainsConditions:
     def test_does_contain(self):
-        condition = ContainsCondition(property="foo", value="bar")
+        condition = ContainsCondition(property="foo", value="bar", operator="contains")
         assert condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
 
-        not_condition = NotContainsCondition(property="foo", value="bar")
+        not_condition = NotContainsCondition(property="foo", value="bar", operator="not_contains")
         assert not not_condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
 
-        condition = ContainsCondition(property="foo", value=1)
+        condition = ContainsCondition(property="foo", value=1, operator="contains")
         assert condition.match(context=EvaluationContext({"foo": [1, 2]}), segment_name="test")
         assert not condition.match(context=EvaluationContext({"foo": [3, 4]}), segment_name="test")
 
     def test_does_not_contain(self):
         values = "baz"
-        condition = ContainsCondition(property="foo", value=values)
+        condition = ContainsCondition(property="foo", value=values, operator="contains")
         assert not condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
 
-        not_condition = NotContainsCondition(property="foo", value=values)
+        not_condition = NotContainsCondition(property="foo", value=values, operator="not_contains")
         assert not_condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
@@ -133,25 +133,27 @@ class TestContainsConditions:
 
         for attr_val in bad_context:
             with pytest.raises(ConditionTypeMismatchException):
-                condition = ContainsCondition(property="foo", value=values)
+                condition = ContainsCondition(property="foo", value=values, operator="contains")
                 assert not condition.match(
                     context=EvaluationContext({"foo": attr_val}), segment_name="test"
                 )
 
         for attr_val in bad_context:
             with pytest.raises(ConditionTypeMismatchException):
-                not_condition = NotContainsCondition(property="foo", value=values)
+                not_condition = NotContainsCondition(
+                    property="foo", value=values, operator="not_contains"
+                )
                 assert not_condition.match(
                     context=EvaluationContext({"foo": attr_val}), segment_name="test"
                 )
 
     def test_missing_context_property(self):
-        condition = ContainsCondition(property="foo", value="bar")
+        condition = ContainsCondition(property="foo", value="bar", operator="contains")
 
         with pytest.raises(ConditionTypeMismatchException):
             condition.match(context=EvaluationContext({"bar": ["foo", "bar"]}), segment_name="test")
 
-        not_condition = NotContainsCondition(property="foo", value="bar")
+        not_condition = NotContainsCondition(property="foo", value="bar", operator="not_contains")
 
         with pytest.raises(ConditionTypeMismatchException):
             not_condition.match(
@@ -162,39 +164,39 @@ class TestContainsConditions:
 class TestEqualsConditions:
     def test_is_equal_string(self):
         value = "foo"
-        condition = EqualsCondition(property="foo", value=value)
+        condition = EqualsCondition(property="foo", value=value, operator="equals")
         assert condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-        not_condition = NotEqualsCondition(property="foo", value=value)
+        not_condition = NotEqualsCondition(property="foo", value=value, operator="not_equals")
         assert not not_condition.match(
             context=EvaluationContext({"foo": "foo"}), segment_name="test"
         )
 
     def test_is_not_equals(self):
         values = "bar"
-        condition = EqualsCondition(property="foo", value=values)
+        condition = EqualsCondition(property="foo", value=values, operator="equals")
         assert not condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-        not_condition = NotEqualsCondition(property="foo", value=values)
+        not_condition = NotEqualsCondition(property="foo", value=values, operator="not_equals")
         assert not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
     def test_is_equal_case_insensitive(self):
         values = "bAr"
-        condition = EqualsCondition(property="foo", value=values)
+        condition = EqualsCondition(property="foo", value=values, operator="equals")
         assert condition.match(context=EvaluationContext({"foo": "BaR"}), segment_name="test")
 
-        not_condition = NotEqualsCondition(property="foo", value=values)
+        not_condition = NotEqualsCondition(property="foo", value=values, operator="not_equals")
         assert not not_condition.match(
             context=EvaluationContext({"foo": "BaR"}), segment_name="test"
         )
 
     def test_equality_type_mismatch_strings(self):
         values = ["foo", "bar"]
-        condition = EqualsCondition(property="foo", value=values)
+        condition = EqualsCondition(property="foo", value=values, operator="equals")
 
         with pytest.raises(ConditionTypeMismatchException):
             condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-        not_condition = NotEqualsCondition(property="foo", value=values)
+        not_condition = NotEqualsCondition(property="foo", value=values, operator="not_equals")
         with pytest.raises(ConditionTypeMismatchException):
             not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
