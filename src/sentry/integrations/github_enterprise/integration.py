@@ -20,9 +20,9 @@ from sentry.integrations.base import (
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -131,10 +131,15 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin
+    IntegrationInstallation, GitHubIssueBasic, RepositoryIntegration, CommitContextMixin
 ):
-    repo_search = True
-    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+    @property
+    def integration_name(self) -> str:
+        return "github_enterprise"
+
+    @property
+    def codeowners_location(self) -> list[str] | None:
+        return ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self):
         if not self.org_integration:

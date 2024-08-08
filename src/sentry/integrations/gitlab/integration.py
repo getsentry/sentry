@@ -17,8 +17,8 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -93,14 +93,19 @@ metadata = IntegrationMetadata(
 
 
 class GitlabIntegration(
-    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextMixin
+    IntegrationInstallation, GitlabIssueBasic, RepositoryIntegration, CommitContextMixin
 ):
-    repo_search = True
-    codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_identity = None
+
+    @property
+    def integration_name(self) -> str:
+        return "gitlab"
+
+    @property
+    def codeowners_locations(self) -> list[str] | None:
+        return ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_group_id(self):
         return self.model.metadata["group_id"]
