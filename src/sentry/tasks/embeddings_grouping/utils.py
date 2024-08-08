@@ -3,11 +3,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
-from sqlite3 import OperationalError
 from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Q
+from django.db.utils import OperationalError
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 

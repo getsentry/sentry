@@ -3,12 +3,12 @@ import time
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from random import choice
-from sqlite3 import OperationalError
 from string import ascii_uppercase
 from typing import Any
 from unittest.mock import ANY, call, patch
 
 import pytest
+from django.db.utils import OperationalError
 from django.test import override_settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
