@@ -52,7 +52,7 @@ export default function ReplayPanel() {
         }}
       >
         {isRecording
-          ? 'In progress. Click to stop recording'
+          ? 'Recording in progress, click to stop'
           : 'Start recording the current session'}
       </Button>
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
@@ -76,7 +76,7 @@ function ReplayLink({lastReplayId}: {lastReplayId: string}) {
   return (
     <SentryAppLink
       to={{
-        url: `/replays/${lastReplayId}`,
+        url: `/replays/${lastReplayId}/`,
         query: {project: projectId},
       }}
     >
