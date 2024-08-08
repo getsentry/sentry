@@ -40,11 +40,13 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str: ...
+def env(key: str) -> str:
+    ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
+    ...
 
 
 def env(
@@ -1433,7 +1435,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "SERVERS": [{"url": "https://sentry.io"}],
+        "SERVERS": [{"url": "https://us.sentry.io"}],
         "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
