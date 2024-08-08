@@ -24,7 +24,7 @@ from sentry.uptime.endpoints.validators import UptimeMonitorValidator
 @extend_schema(tags=["Uptime Monitors"])
 class ProjectUptimeAlertIndexEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
 
