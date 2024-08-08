@@ -6,11 +6,11 @@ from sentry.data_secrecy.service.service import DataSecrecyService
 
 class DatabaseBackedDataSecrecyService(DataSecrecyService):
     def get_data_secrecy_waiver(self, *, organization_id: int) -> RpcDataSecrecyWaiver | None:
-        data_secrecy_waiver = DataSecrecyWaiver.objects.filter(
-            organization_id=organization_id
-        ).first()
-
-        if not data_secrecy_waiver:
+        try:
+            data_secrecy_waiver = DataSecrecyWaiver.objects.filter(
+                organization_id=organization_id
+            ).get()
+        except DataSecrecyWaiver.DoesNotExist:
             return None
 
         return serialize_data_secrecy_waiver(data_secrecy_waiver=data_secrecy_waiver)
