@@ -78,15 +78,17 @@ comment:
   #### FOR TESTING ####
   # Uncomment this if you want to test commenting configurations changes
   require_changes: false
-  require_bundle_changes: false
-  # Only post if coverage drops OR there are uncovered lines of code
-  # require_changes: 'coverage_drop OR uncovered_patch'
-  # Post comment if there are changes in bundle size increases greater than value specified
-  # require_bundle_changes: 'bundle_increase'
+  # require_bundle_changes: false
+  after_n_builds: 0
   ######################
   # This is the addition of carry forward builds and fresh builds, thus, it's the addition
   # of the FE and BE builds
-  after_n_builds: 22
+  # after_n_builds: 22
+  # Only post if coverage drops OR there are uncovered lines of code
+  # require_changes: 'coverage_drop OR uncovered_patch'
+  # Post comment if there are changes in bundle size increases greater than value specified
+  require_bundle_changes: 'bundle_increase'
+  ######################
   # Show the git diff and condensed files
   layout: 'diff, condensed_files'
   # Do not show the project coverage in the comment
