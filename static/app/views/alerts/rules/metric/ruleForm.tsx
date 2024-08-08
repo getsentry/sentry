@@ -1162,7 +1162,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
 
-        {eventView && <IncompatibleAlertQuery eventView={eventView} />}
+        {eventView && (
+          <IncompatibleAlertQuery orgSlug={organization.slug} eventView={eventView} />
+        )}
         <Form
           model={this.form}
           apiMethod={ruleId ? 'PUT' : 'POST'}

@@ -96,6 +96,7 @@ export function checkMetricAlertCompatiablity(
 
 interface IncompatibleAlertQueryProps {
   eventView: EventView;
+  orgSlug: string;
 }
 
 /**
@@ -109,6 +110,15 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
   if (!totalErrors || !isOpen) {
     return null;
   }
+
+  const eventTypeError = props.eventView.clone();
+  eventTypeError.query += ' event.type:error';
+  const eventTypeTransaction = props.eventView.clone();
+  eventTypeTransaction.query += ' event.type:transaction';
+  const eventTypeDefault = props.eventView.clone();
+  eventTypeDefault.query += ' event.type:default';
+  const eventTypeErrorDefault = props.eventView.clone();
+  eventTypeErrorDefault.query += ' event.type:error or event.type:default';
 
   return (
     <StyledAlert
