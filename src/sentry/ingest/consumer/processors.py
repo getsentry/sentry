@@ -161,12 +161,12 @@ def process_event(
         now = time.time()
         # TODO: make the 100 an option
         if len(reprocessed_ids) > 100:
-            logger.info(reprocessed_ids)
+            logger.info(orjson.dumps(reprocessed_ids))
             reprocessed_ids.clear()
             reprocessed_last_logged_time = now
 
         if reprocessed_last_logged_time is None or now > reprocessed_last_logged_time + 10:
-            logger.info(reprocessed_ids)
+            logger.info(orjson.dumps(reprocessed_ids))
             reprocessed_ids.clear()
             reprocessed_last_logged_time = now
 
