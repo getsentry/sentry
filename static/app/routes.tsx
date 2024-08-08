@@ -1700,6 +1700,16 @@ function buildRoutes() {
     </Route>
   );
 
+  const exploreRoutes = (
+    <Route
+      path="/explore/"
+      component={make(() => import('sentry/views/explore'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/explore/content'))} />
+    </Route>
+  );
+
   const tracesRoutes = (
     <Route
       path="/traces/"
@@ -2102,6 +2112,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {exploreRoutes}
       {tracesRoutes}
       {insightsRoutes}
       {llmMonitoringRedirects}
