@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import enum
 from collections.abc import Callable, Mapping
 from re import Pattern
