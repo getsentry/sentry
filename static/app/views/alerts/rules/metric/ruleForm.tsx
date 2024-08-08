@@ -1267,12 +1267,9 @@ const Main = styled(Layout.Main)`
   max-width: 1000px;
 `;
 
-const StyledListItem = styled(ListItem)`
+const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const AlertListItem = styled(StyledListItem)`
   margin-top: 0;
 `;
 
