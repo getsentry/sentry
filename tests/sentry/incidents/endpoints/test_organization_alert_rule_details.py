@@ -64,39 +64,6 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
     endpoint = "sentry-api-0-organization-alert-rule-details"
 
-    @cached_property
-    def dynamic_alert_rule_dict(self):
-        return {
-            "aggregate": "count()",
-            "query": "",
-            "time_window": 30,
-            "detection_type": AlertRuleDetectionType.DYNAMIC,
-            "sensitivity": AlertRuleSensitivity.LOW,
-            "seasonality": AlertRuleSeasonality.AUTO,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 0,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
-                    ],
-                },
-                {
-                    "label": "warning",
-                    "alertThreshold": 0,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
-                    ],
-                },
-            ],
-            "projects": [self.project.slug],
-            "owner": self.user.id,
-            "name": "JustAValidTestRule",
-            "activations": [],
-        }
-
     def new_alert_rule(self, data=None):
         if data is None:
             data = deepcopy(self.alert_rule_dict)
