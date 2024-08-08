@@ -153,12 +153,12 @@ def process_event(
         if reprocess_only_stuck_events and not event_processing_store.exists(data):
             return
 
+        # --- inc-847 starts: verify mitigation is working
         is_reprocessed = event_processing_store.exists(data)
         if is_reprocessed:
             reprocessed_ids[project_id] + 1
 
         now = time.time()
-        # inc-847: verify mitigation is working
         # TODO: make the 100 an option
         if len(reprocessed_ids) > 100:
             logger.info(reprocessed_ids)
