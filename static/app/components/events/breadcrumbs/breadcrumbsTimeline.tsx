@@ -35,7 +35,7 @@ interface BreadcrumbsTimelineProps {
 export default function BreadcrumbsTimeline({
   breadcrumbs,
   startTimeString,
-  fullyExpanded = false,
+  fullyExpanded = true,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
