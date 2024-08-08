@@ -72,7 +72,7 @@ def process_event(
 
     # inc-847: verify mitigation is working
     reprocessed_last_logged_time: int | None = None
-    reprocessed_ids: MutableMapping[int, int] = defaultdict(int)  # projectid: count
+    reprocessed_ids: MutableMapping[str, int] = defaultdict(int)  # projectid: count
 
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
@@ -156,7 +156,7 @@ def process_event(
             else:
                 # Reprocessing the event
                 # inc-847: verify mitigation is working
-                reprocessed_ids[project_id] + 1
+                reprocessed_ids[int(project_id)] + 1
 
                 now = int(time.time())
                 # TODO: make the 100 an option
