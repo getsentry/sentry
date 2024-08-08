@@ -135,13 +135,12 @@ class FormModel {
       fieldState: observable,
       formState: observable,
 
-      isInvalid: computed,
+      isFormInvalid: computed,
       isError: computed,
       isSaving: computed,
       formData: computed,
       formChanged: computed,
 
-      isFormInvalid: action,
       resetForm: action,
       setFieldDescriptor: action,
       removeField: action,
@@ -205,8 +204,10 @@ class FormModel {
   /**
    * Is form invalid
    */
-  get isInvalid() {
-    return this.formState === FormState.INVALID;
+  get isFormInvalid() {
+    return !Array.from(this.fieldDescriptor.keys()).every(field =>
+      this.isValidRequiredField(field)
+    );
   }
 
   /**
@@ -268,8 +269,6 @@ class FormModel {
       this.initialData[id] = props.setValue(this.initialData[id], props);
       this.fields.set(id, this.initialData[id]);
     }
-
-    this.formState = this.isFormInvalid() ? FormState.INVALID : FormState.READY;
   }
 
   /**
@@ -743,21 +742,12 @@ class FormModel {
       this.formState = FormState.ERROR;
       this.errors.set(id, error);
     } else {
-      this.formState = this.isFormInvalid() ? FormState.INVALID : FormState.READY;
+      this.formState = FormState.READY;
       this.errors.delete(id);
     }
 
     // Field should no longer to "saving", but is not necessarily "ready"
     this.setFieldState(id, FormState.SAVING, false);
-  }
-
-  /**
-   * Validates if the current state of all fields is valid
-   */
-  isFormInvalid() {
-    return !Array.from(this.fieldDescriptor.keys()).every(field =>
-      this.isValidRequiredField(field)
-    );
   }
 
   /**

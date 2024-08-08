@@ -235,29 +235,27 @@ function Form({
               )}
 
               <Observer>
-                {() => {
-                  return (
-                    <Button
-                      title={
-                        formModel.isInvalid || formModel.isError
-                          ? t('Required fields must be filled out')
-                          : undefined
-                      }
-                      data-test-id="form-submit"
-                      priority={submitPriority ?? 'primary'}
-                      disabled={
-                        formModel.isInvalid ||
-                        formModel.isError ||
-                        formModel.isSaving ||
-                        submitDisabled ||
-                        (requireChanges ? !formModel.formChanged : false)
-                      }
-                      type="submit"
-                    >
-                      {submitLabel ?? t('Save Changes')}
-                    </Button>
-                  );
-                }}
+                {() => (
+                  <Button
+                    title={
+                      formModel.isFormInvalid || formModel.isError
+                        ? t('Required fields must be filled out and contain valid inputs')
+                        : undefined
+                    }
+                    data-test-id="form-submit"
+                    priority={submitPriority ?? 'primary'}
+                    disabled={
+                      formModel.isFormInvalid ||
+                      formModel.isError ||
+                      formModel.isSaving ||
+                      submitDisabled ||
+                      (requireChanges ? !formModel.formChanged : false)
+                    }
+                    type="submit"
+                  >
+                    {submitLabel ?? t('Save Changes')}
+                  </Button>
+                )}
               </Observer>
             </DefaultButtons>
           </StyledFooter>
