@@ -6,6 +6,10 @@ inputs:
     description: 'Path to coverage file(s) - comma separated for multiple files'
     default: '.artifacts/*.coverage.xml'
     required: true
+  test_result_files:
+    description: 'Path to test result file(s) - comma separated for multiple files'
+    default: '.artifacts/*.junit.xml'
+    required: true
   type:
     description: 'The type of change (frontend, backend)'
     default: 'backend'
@@ -20,13 +24,18 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Upload to codecov
-      uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
-      with:
-        token: ${{ inputs.token }}
-        flags: ${{ inputs.type }}
-        files: ${{ inputs.files }}
-        override_commit: ${{ inputs.commit_sha}}
-        plugin: noop
-        verbose: true
+    - name: Download and Verify Codecov CLI
+      shell: bash
+      run: |
+        ./.github/actions/artifacts/download_codecov_cli.py
+    - name: Upload Coverage and Test Results
       continue-on-error: true
+      shell: bash
+      env:
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
+        INPUT_TYPE: ${{ inputs.type }}
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_TEST_RESULT_FILES: ${{ inputs.test_result_files }}
+      run: |
+        ./.github/actions/artifacts/do_upload.py
