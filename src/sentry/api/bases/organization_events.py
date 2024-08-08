@@ -471,7 +471,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 try:
                     rollup = get_rollup_from_request(
                         request,
-                        params,
+                        params["end"] - params["start"],
                         default_interval=None,
                         error=InvalidSearchQuery(),
                         top_events=top_events,

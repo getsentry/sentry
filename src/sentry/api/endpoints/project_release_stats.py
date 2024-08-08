@@ -55,7 +55,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             params = self.get_filter_params(request, project)
             rollup = get_rollup_from_request(
                 request,
-                params,
+                params["end"] - params["start"],
                 default_interval="24h",
                 error=ProjectEventsError(
                     "Your interval and date range would create too many results. "
