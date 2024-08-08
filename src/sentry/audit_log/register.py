@@ -545,6 +545,31 @@ default_manager.add(
     )
 )
 
+default_manager.add(
+    AuditLogEvent(
+        event_id=200,
+        name="UPTIME_MONITOR_ADD",
+        api_name="uptime_monitor.add",
+        template="added uptime monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=201,
+        name="UPTIME_MONITOR_EDIT",
+        api_name="uptime_monitor.edit",
+        template="edited uptime monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=202,
+        name="UPTIME_MONITOR_REMOVE",
+        api_name="uptime_monitor.remove",
+        template="removed uptime monitor {name}",
+    )
+)
+
 default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
 
 default_manager.add(
