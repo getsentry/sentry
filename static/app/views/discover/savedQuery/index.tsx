@@ -397,6 +397,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
 
     let alertType;
+    let buttonEventView = eventView;
     if (hasDatasetSelector(organization)) {
       alertType = defined(currentDataset)
         ? {
@@ -408,7 +409,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
         // Inject the event.type:transaction filter for to avoid triggering
         // the event.type missing banner error in the alerts form
-        eventView.query = eventView.query
+        buttonEventView = eventView.clone();
+        buttonEventView.query = eventView.query
           ? `(${eventView.query}) AND (event.type:transaction)`
           : 'event.type:transaction';
       }
@@ -417,7 +419,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     return (
       <GuideAnchor target="create_alert_from_discover">
         <CreateAlertFromViewButton
-          eventView={eventView}
+          eventView={buttonEventView}
           organization={organization}
           projects={projects}
           onClick={this.handleCreateAlertSuccess}
