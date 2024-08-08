@@ -124,7 +124,7 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
         """
         try:
             ds = get_object_or_404(DataSecrecyWaiver, organization=organization)
-            ds.update(access_end=timezone.now())
+            ds.delete()
 
             self.create_audit_entry(
                 request=request,
