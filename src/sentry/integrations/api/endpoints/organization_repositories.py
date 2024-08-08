@@ -12,7 +12,6 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.integrations.mixins.repositories import RepositoryMixin
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -76,9 +75,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             for i in integrations:
                 try:
                     installation = i.get_installation(organization_id=organization.id)
-                    if isinstance(installation, RepositoryMixin) or isinstance(
-                        installation, RepositoryIntegration
-                    ):
+                    if isinstance(installation, RepositoryIntegration):
                         repos.extend(installation.get_unmigratable_repositories())
                 except Exception:
                     capture_exception()

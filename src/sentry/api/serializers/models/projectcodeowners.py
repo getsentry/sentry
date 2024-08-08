@@ -22,8 +22,6 @@ class ProjectCodeOwnersSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
-        from sentry.integrations.mixins import RepositoryMixin  # XXX: circular import
-
         attrs = {}
         integrations = {
             i.id: i
@@ -40,7 +38,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             )
             codeowners_url = "unknown"
             if item.repository_project_path_config.organization_integration_id and (
-                isinstance(install, RepositoryMixin) or isinstance(install, RepositoryIntegration)
+                isinstance(install, RepositoryIntegration)
             ):
                 try:
                     codeowners_response = install.get_codeowner_file(

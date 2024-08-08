@@ -7,10 +7,8 @@ from typing import Any
 import sentry_sdk
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.repository import RpcRepository
 from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -21,16 +19,17 @@ REPOSITORY_INTEGRATION_GET_FILE_METRIC = "repository_integration.get_file.{resul
 
 
 class RepositoryIntegration(ABC):
-    repo_search = False
-    model: RpcIntegration | Integration
-
     @property
     # @abstractmethod
-    def codeowners_locations(self) -> Sequence[str] | None:
+    def codeowners_locations(self) -> list[str] | None:
         """
         A list of possible locations for the CODEOWNERS file.
         """
         return None
+
+    @property
+    def repo_search(self) -> bool:
+        return True
 
     @property
     @abstractmethod

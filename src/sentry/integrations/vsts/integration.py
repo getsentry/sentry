@@ -21,16 +21,15 @@ from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.models.integration import Integration as IntegrationModel
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models.apitoken import generate_token
@@ -115,7 +114,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
+class VstsIntegration(RepositoryIntegration, VstsIssueSync):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -127,6 +126,10 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         super().__init__(*args, **kwargs)
         self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: RpcIdentity | None = None
+
+    @property
+    def integration_name(self) -> str:
+        return "vsts"
 
     def all_repos_migrated(self) -> bool:
         return not self.get_unmigratable_repositories()

@@ -17,14 +17,13 @@ from rest_framework.request import Request
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.models.identity import Identity
 from sentry.organizations.services.organization import RpcOrganizationSummary
@@ -225,14 +224,16 @@ class OAuthCallbackView(PipelineView):
             return pipeline.error(f"Could not fetch an access token from Bitbucket. {str(error)}")
 
 
-class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
+class BitbucketServerIntegration(RepositoryIntegration):
     """
     IntegrationInstallation implementation for Bitbucket Server
     """
 
-    repo_search = True
-
     default_identity = None
+
+    @property
+    def integration_name(self) -> str:
+        return "bitbucket_server"
 
     def get_client(self):
         if self.default_identity is None:

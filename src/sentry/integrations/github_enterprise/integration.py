@@ -11,18 +11,13 @@ from rest_framework.request import Request
 from sentry import http
 from sentry.identity.github_enterprise import get_user_info
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations.base import (
-    FeatureDescription,
-    IntegrationFeatures,
-    IntegrationInstallation,
-    IntegrationMetadata,
-)
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures, IntegrationMetadata
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -131,10 +126,15 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextIntegration
+    RepositoryIntegration, GitHubIssueBasic, CommitContextIntegration
 ):
-    repo_search = True
-    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+    @property
+    def integration_name(self) -> str:
+        return "github_enterprise"
+
+    @property
+    def codeowners_location(self) -> list[str] | None:
+        return ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self):
         if not self.org_integration:
