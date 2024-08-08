@@ -218,7 +218,7 @@ def get_similarity_data_from_seer(
             delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
 
             # As with the `IncompleteSeerDataError` above, this will mark the entire request as
-            # errored even if it's only one group that we can't find. The extent to which that's
+            # errored even if it's only one grouphash that we can't find. The extent to which that's
             # inaccurate will be quite small, though, as the vast majority of calls to this function
             # come from ingest (where we're only requesting one matching group, making "one's
             # missing" the same thing as "they're all missing"). We should also almost never land
@@ -226,7 +226,7 @@ def get_similarity_data_from_seer(
             # triggered a request to Seer to delete the corresponding hashes.
             metric_tags.update({"outcome": "error", "error": "SimilarHashNotFoundError"})
             logger.warning(
-                "get_similarity_data_from_seer.parent_group_not_found",
+                "get_similarity_data_from_seer.parent_hash_not_found",
                 extra={
                     "hash": request_hash,
                     "parent_hash": parent_hash,

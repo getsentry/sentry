@@ -373,7 +373,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_nonexistent_group(
+    def test_nonexistent_grouphash(
         self,
         mock_seer_similarity_request,
         mock_logger,
@@ -381,8 +381,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_deletion_request,
     ):
         """
-        The seer API can return groups that do not exist if they have been deleted/merged.
-        Test that these groups are not returned.
+        The seer API can return grouphashes that do not exist if their groups have been deleted/merged.
+        Test info about these groups is not returned.
         """
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             # Two suggested groups, one with valid data, one pointing to a group that doesn't exist.
@@ -421,7 +421,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
         mock_logger.warning.assert_called_with(
-            "get_similarity_data_from_seer.parent_group_not_found",
+            "get_similarity_data_from_seer.parent_hash_not_found",
             extra={
                 "hash": NonNone(self.event.get_primary_hash()),
                 "parent_hash": "not a real hash",
