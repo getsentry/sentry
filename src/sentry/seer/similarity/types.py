@@ -17,6 +17,10 @@ class SimilarHashNotFoundError(Exception):
     pass
 
 
+class SimilarHashMissingGroupError(Exception):
+    pass
+
+
 class SimilarIssuesEmbeddingsRequest(TypedDict):
     project_id: int
     stacktrace: str
