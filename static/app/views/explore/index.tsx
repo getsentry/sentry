@@ -16,7 +16,7 @@ export default function ExploreContainer({children}: Props) {
     <Feature
       // TODO: add a hook for when this is disabled
       // hookName="feature-disabled:explore-page"
-      features="visibility-explore"
+      features="visibility-explore-view"
       organization={organization}
       renderDisabled={NoAccess}
     >

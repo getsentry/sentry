@@ -363,7 +363,7 @@ function Sidebar() {
   );
 
   const exploreView = hasOrganization && (
-    <Feature features="visiblity-explore">
+    <Feature features="visibility-explore-view">
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
