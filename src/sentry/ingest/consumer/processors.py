@@ -72,7 +72,7 @@ def process_event(
 
     # inc-847: verify mitigation is working
     reprocessed_last_logged_time: int | None = None
-    reprocessed_ids: Mapping[int, int] = defaultdict(int)  # projectid: count
+    reprocessed_ids: MutableMapping[int, int] = defaultdict(int)  # projectid: count
 
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
@@ -150,25 +150,27 @@ def process_event(
         # If we only want to reprocess "stuck" events, we check if this event is already in the
         # `processing_store`. We only continue here if the event *is* present, as that will eventually
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
-        if reprocess_only_stuck_events and not event_processing_store.exists(data):
-            return
+        if reprocess_only_stuck_events:
+            if not event_processing_store.exists(data):
+                return
+            else:
+                # Reprocessing the event
+                # inc-847: verify mitigation is working
+                reprocessed_ids[project_id] + 1
 
-        # inc-847: verify mitigation is working
-        is_reprocessed = event_processing_store.exists(data)
-        if is_reprocessed:
-            reprocessed_ids[project_id] + 1
+                now = int(time.time())
+                # TODO: make the 100 an option
+                if len(reprocessed_ids) > 100:
+                    logger.info("Reprocessed events")
+                    logger.info(orjson.dumps(reprocessed_ids))
+                    reprocessed_ids.clear()
+                    reprocessed_last_logged_time = now
 
-        now = time.time()
-        # TODO: make the 100 an option
-        if len(reprocessed_ids) > 100:
-            logger.info(orjson.dumps(reprocessed_ids))
-            reprocessed_ids.clear()
-            reprocessed_last_logged_time = now
-
-        if reprocessed_last_logged_time is None or now > reprocessed_last_logged_time + 10:
-            logger.info(orjson.dumps(reprocessed_ids))
-            reprocessed_ids.clear()
-            reprocessed_last_logged_time = now
+                if reprocessed_last_logged_time is None or now > reprocessed_last_logged_time + 10:
+                    logger.info("Reprocessed events")
+                    logger.info(orjson.dumps(reprocessed_ids))
+                    reprocessed_ids.clear()
+                    reprocessed_last_logged_time = now
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = event_processing_store.store(data)
