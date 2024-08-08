@@ -56,9 +56,9 @@ class ConditionBase:
     value: Any
     """The value to compare against the condition's evaluation context property."""
 
-    operator: str | None = None
+    operator: str
     """
-    The operator to use when comparing the evaluation context property to the condition's value.
+    The name of the operator to use when comparing the evaluation context property to the condition's value.
     Values must be a valid ConditionOperatorKind.
     """
 

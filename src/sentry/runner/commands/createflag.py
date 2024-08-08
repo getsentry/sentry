@@ -42,17 +42,17 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
     operator_kind = click.prompt("Operator type", type=condition_type_choices, show_choices=True)
 
     if operator_kind == ConditionOperatorKind.IN:
-        return InCondition(value=[], property=property_name)
+        return InCondition(value=[], operator="in", property=property_name)
     elif operator_kind == ConditionOperatorKind.NOT_IN:
-        return NotInCondition(value=[], property=property_name)
+        return NotInCondition(value=[], operator="not_in", property=property_name)
     elif operator_kind == ConditionOperatorKind.EQUALS:
-        return EqualsCondition(value="", property=property_name)
+        return EqualsCondition(value="", operator="equals", property=property_name)
     elif operator_kind == ConditionOperatorKind.NOT_EQUALS:
-        return NotEqualsCondition(value="", property=property_name)
+        return NotEqualsCondition(value="", operator="not_equals", property=property_name)
     elif operator_kind == ConditionOperatorKind.CONTAINS:
-        return ContainsCondition(value="", property=property_name)
+        return ContainsCondition(value="", operator="contains", property=property_name)
     elif operator_kind == ConditionOperatorKind.NOT_CONTAINS:
-        return NotContainsCondition(value="", property=property_name)
+        return NotContainsCondition(value="", operator="not_contains", property=property_name)
 
     raise Exception("An unknown condition operator was provided")
 
@@ -143,7 +143,7 @@ def createflag(
             name=f"feature.{scope}:{name}",
             owner=owner,
             segments=segments,
-            created_at=datetime.now(),
+            created_at=datetime.now().isoformat(),
         )
     except Exception as err:
         raise click.ClickException(f"{err}")
