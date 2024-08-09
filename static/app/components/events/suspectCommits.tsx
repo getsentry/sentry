@@ -42,7 +42,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const [suspectCommitDismissed, setSuspectCommitDismissed] = useLocalStorageState(
-    `suspect-commit-dismissed-${eventId}`,
+    `suspect-commit-dismissed-${project.slug}-${eventId}`,
     false
   );
 
@@ -95,31 +95,33 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   const firstCommit = commits[0];
 
-  return hasStreamlinedUI && !suspectCommitDismissed ? (
-    <StreamlinedPanel>
-      <Header>
-        <Title>{t('Suspect Commit')}</Title>
-        <DismissButton
-          borderless
-          icon={<IconClose />}
-          onClick={() => setSuspectCommitDismissed(true)}
-          aria-label={t('Close Suspect Commit Banner')}
-          size="zero"
-        />
-      </Header>
-      <div>
-        <CommitRow
-          key={firstCommit.id}
-          commit={firstCommit}
-          onCommitClick={() => handleCommitClick(firstCommit, 0)}
-          onPullRequestClick={() => handlePullRequestClick(firstCommit, 0)}
-          project={project}
-        />
-      </div>
-      <IllustrationContainer>
-        <Illustration src={bannerIllustration} />
-      </IllustrationContainer>
-    </StreamlinedPanel>
+  return hasStreamlinedUI ? (
+    !suspectCommitDismissed ? (
+      <StreamlinedPanel>
+        <Header>
+          <Title>{t('Suspect Commit')}</Title>
+          <DismissButton
+            borderless
+            icon={<IconClose />}
+            onClick={() => setSuspectCommitDismissed(true)}
+            aria-label={t('Close Suspect Commit Banner')}
+            size="zero"
+          />
+        </Header>
+        <div>
+          <CommitRow
+            key={firstCommit.id}
+            commit={firstCommit}
+            onCommitClick={() => handleCommitClick(firstCommit, 0)}
+            onPullRequestClick={() => handlePullRequestClick(firstCommit, 0)}
+            project={project}
+          />
+        </div>
+        <IllustrationContainer>
+          <Illustration src={bannerIllustration} />
+        </IllustrationContainer>
+      </StreamlinedPanel>
+    ) : null
   ) : (
     <div>
       <SuspectCommitHeader>
