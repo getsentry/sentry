@@ -429,6 +429,30 @@ def test_id_column_validation_failed(params, column, query, message):
 
 
 @pytest.mark.parametrize(
+    ["column"],
+    # [pytest.param(column) for column in chain(SPAN_ID_FIELDS, SPAN_UUID_FIELDS)],
+    [pytest.param(column) for column in ["profile.id", "profile_id"]],
+)
+@django_db_all
+def test_profile_id_column_has(params, column):
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query=f"has:{column}",
+        selected_columns=["count"],
+    )
+
+    assert (
+        Condition(
+            Function("isNull", [Column("profile_id")]),
+            Op.NEQ,
+            1,
+        )
+        in builder.where
+    )
+
+
+@pytest.mark.parametrize(
     ["column", "query"],
     [pytest.param(column, "0" * 32, id=column) for column in SPAN_UUID_FIELDS]
     + [pytest.param(column, "0" * 16, id=column) for column in SPAN_ID_FIELDS]
