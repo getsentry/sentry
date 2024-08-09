@@ -46,6 +46,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
@@ -62,7 +63,9 @@ from sentry.utils.cursors import Cursor, StringCursor
 
 
 class AlertRuleIndexMixin(Endpoint):
-    def fetch_metric_alert(self, request, organization, project=None):
+    def fetch_metric_alert(
+        self, request: Request, organization: Organization, project: Project = None
+    ):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
@@ -92,7 +95,9 @@ class AlertRuleIndexMixin(Endpoint):
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
 
-    def create_metric_alert(self, request, organization, project=None):
+    def create_metric_alert(
+        self, request: Request, organization: Organization, project: Project | None = None
+    ):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
@@ -461,7 +466,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return a list of active metric alert rules bound to an organization.
 
@@ -486,7 +491,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a new metric alert rule for the given organization.
 
