@@ -47,7 +47,9 @@ class MsTeamsUnlinkIdentityView(MsTeamsLinkingView, UnlinkIdentityView):
     def filter_by_user_id(self) -> bool:
         return True
 
-    def notify_on_success(self, integration: Integration | None, params: Mapping[str, Any]) -> None:
+    def notify_on_success(
+        self, integration: Integration, external_id: str, params: Mapping[str, Any]
+    ) -> None:
         client = get_preinstall_client(params["service_url"])
         card = build_unlinked_card()
         client.send_card(params["conversation_id"], card)
