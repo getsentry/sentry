@@ -107,6 +107,7 @@ function fetchIssues(
           // even though we only search for the first 200 characters of the message
           limit: 100,
           project: selection.projects,
+          environment: selection.environments,
           ...normalizeDateTimeParams(selection.datetime),
         },
       },
