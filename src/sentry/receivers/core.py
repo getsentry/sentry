@@ -8,10 +8,10 @@ from django.db import connections, router, transaction
 from django.db.models.signals import post_save
 from django.db.utils import OperationalError, ProgrammingError
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.outbox import outbox_context
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.team import Team

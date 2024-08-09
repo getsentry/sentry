@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from sentry.models.integrations.sentry_app_component import SentryAppComponent
     from sentry.models.project import Project
 
-from sentry.models.outbox import ControlOutboxBase, outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 
 
 def default_uuid():

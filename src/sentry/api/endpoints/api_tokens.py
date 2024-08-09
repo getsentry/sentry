@@ -17,8 +17,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apitoken import ApiToken
-from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
 from sentry.types.token import AuthTokenType
 
