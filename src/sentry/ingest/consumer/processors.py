@@ -1,5 +1,7 @@
 import functools
 import logging
+import time
+from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
@@ -67,6 +69,10 @@ def process_event(
     project_id = int(message["project_id"])
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
+
+    # inc-847: verify mitigation is working
+    reprocessed_last_logged_time: int | None = None
+    reprocessed_ids: MutableMapping[str, int] = defaultdict(int)  # projectid: count
 
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
@@ -144,8 +150,27 @@ def process_event(
         # If we only want to reprocess "stuck" events, we check if this event is already in the
         # `processing_store`. We only continue here if the event *is* present, as that will eventually
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
-        if reprocess_only_stuck_events and not event_processing_store.exists(data):
-            return
+        if reprocess_only_stuck_events:
+            if not event_processing_store.exists(data):
+                return
+            else:
+                # Reprocessing the event
+                # inc-847: verify mitigation is working
+                reprocessed_ids[str(project_id)] + 1
+
+                now = int(time.time())
+                # TODO: make the 100 an option
+                if len(reprocessed_ids) > 250:
+                    logger.info("Reprocessed events")
+                    logger.info(orjson.dumps(reprocessed_ids))
+                    reprocessed_ids.clear()
+                    reprocessed_last_logged_time = now
+
+                if reprocessed_last_logged_time is None or now > reprocessed_last_logged_time + 10:
+                    logger.info("Reprocessed events")
+                    logger.info(orjson.dumps(reprocessed_ids))
+                    reprocessed_ids.clear()
+                    reprocessed_last_logged_time = now
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = event_processing_store.store(data)

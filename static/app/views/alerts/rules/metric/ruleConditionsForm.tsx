@@ -7,33 +7,53 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import SearchBar from 'sentry/components/events/searchBar';
+import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
+import {
+  STATIC_FIELD_TAGS,
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_FIELD_TAGS_WITHOUT_TRACING,
+  STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
+  STATIC_SEMVER_TAGS,
+  STATIC_SPAN_TAGS,
+} from 'sentry/components/events/searchBarFieldConstants';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
 import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils';
+import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
+import {
+  getMeasurements,
+  type MeasurementCollection,
+} from 'sentry/utils/measurements/measurements';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
+import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
 import {
   convertDatasetEventTypesToSource,
@@ -83,8 +103,10 @@ type Props = {
   project: Project;
   projects: Project[];
   router: InjectedRouter;
+  tags: TagCollection;
   thresholdChart: React.ReactNode;
   timeWindow: number;
+  // optional props
   activationCondition?: ActivationConditionType;
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
@@ -99,15 +121,22 @@ type Props = {
 
 type State = {
   environments: Environment[] | null;
+  filterKeys: TagCollection;
+  measurements: MeasurementCollection;
 };
 
 class RuleConditionsForm extends PureComponent<Props, State> {
   state: State = {
     environments: null,
+    measurements: {},
+    filterKeys: {},
   };
 
   componentDidMount() {
     this.fetchData();
+    const measurements = getMeasurements();
+    const filterKeys = this.getFilterKeys();
+    this.setState({measurements, filterKeys});
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -117,6 +146,52 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     this.fetchData();
   }
+
+  getFilterKeys = () => {
+    const {organization, dataset, tags} = this.props;
+    const {measurements} = this.state;
+    const measurementsWithKind = Object.keys(measurements).reduce(
+      (measurement_tags, key) => {
+        measurement_tags[key] = {
+          ...measurements[key],
+          kind: FieldKind.MEASUREMENT,
+        };
+        return measurement_tags;
+      },
+      {}
+    );
+    const orgHasPerformanceView = organization.features.includes('performance-view');
+    const combinedTags: TagCollection =
+      dataset === Dataset.ERRORS
+        ? Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
+        : dataset === Dataset.TRANSACTIONS
+          ? Object.assign(
+              {},
+              measurementsWithKind,
+              STATIC_SPAN_TAGS,
+              STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS
+            )
+          : orgHasPerformanceView
+            ? Object.assign({}, measurementsWithKind, STATIC_SPAN_TAGS, STATIC_FIELD_TAGS)
+            : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
+
+    const tagsWithKind = Object.keys(tags).reduce<Record<string, Tag>>((acc, key) => {
+      acc[key] = {
+        ...tags[key],
+        kind: FieldKind.TAG,
+      };
+      return acc;
+    }, {});
+
+    const {omitTags} = getSupportedAndOmittedTags(dataset, organization);
+
+    Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS);
+    combinedTags.has = getHasTag(combinedTags);
+
+    const list =
+      omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
+    return list;
+  };
 
   formElemBaseStyle = {
     padding: `${space(0.5)}`,
@@ -140,6 +215,36 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       addErrorMessage(t('Unable to fetch environments'));
     }
   }
+
+  getEventFieldValues = async (tag, query): Promise<string[]> => {
+    const {api, organization, project, dataset, router} = this.props;
+
+    if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
+      // We can't really auto suggest values for aggregate fields
+      // or measurements, so we simply don't
+      // NOTE: these in particular are for discover queries. We may not need/support these
+      return Promise.resolve([]);
+    }
+
+    // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+    // and low search filter values because discover maps device.class to these values.
+    if (isDeviceClass(tag.key)) {
+      return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
+    }
+
+    const values = await fetchTagValues({
+      api,
+      orgSlug: organization.slug,
+      tagKey: tag.key,
+      search: query,
+      projectIds: [project.id],
+      endpointParams: normalizeDateTimeParams(router.location.query), // allows searching for tags on transactions as well
+      includeTransactions: true, // allows searching for tags on sessions as well
+      includeSessions: dataset === Dataset.SESSIONS,
+    });
+
+    return values.filter(({name}) => defined(name)).map(({name}) => name);
+  };
 
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
@@ -288,7 +393,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   renderProjectSelector() {
     const {
       project: _selectedProject,
-      projects,
+      projects, // note: org projects
       disabled,
       organization,
       disableProjectSelector,
@@ -527,7 +632,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       project,
     } = this.props;
 
-    const {environments} = this.state;
+    const {environments, filterKeys} = this.state;
     const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -618,76 +723,111 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     />
                   ) : (
                     <SearchContainer>
-                      <StyledSearchBar
-                        disallowWildcard={dataset === Dataset.SESSIONS}
-                        disallowFreeText={[
-                          Dataset.GENERIC_METRICS,
-                          Dataset.TRANSACTIONS,
-                        ].includes(dataset)}
-                        invalidMessages={{
-                          [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                            'The wildcard operator is not supported here.'
-                          ),
-                          [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
-                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
-                          ),
-                        }}
-                        customInvalidTagMessage={item => {
-                          if (dataset !== Dataset.GENERIC_METRICS) {
-                            return null;
+                      {organization.features.includes('search-query-builder-alerts') ? (
+                        <SearchQueryBuilder
+                          initialQuery={initialData?.query ?? ''}
+                          getTagValues={this.getEventFieldValues}
+                          placeholder={this.searchPlaceholder}
+                          searchSource="alert_builder"
+                          filterKeys={filterKeys}
+                          disabled={disabled || isErrorMigration}
+                          onChange={onChange}
+                          invalidMessages={{
+                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                              'The wildcard operator is not supported here.'
+                            ),
+                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                            ),
+                          }}
+                          onSearch={query => {
+                            onFilterSearch(query, true);
+                            onChange(query, {});
+                          }}
+                          onBlur={(query, {parsedQuery}) => {
+                            onFilterSearch(query, parsedQuery);
+                            onBlur(query);
+                          }}
+                          // We only need strict validation for Transaction queries, everything else is fine
+                          disallowUnsupportedFilters={
+                            organization.features.includes('alert-allow-indexed') ||
+                            (hasOnDemandMetricAlertFeature(organization) &&
+                              isOnDemandQueryString(value))
+                              ? false
+                              : dataset === Dataset.GENERIC_METRICS
                           }
-                          return (
-                            <SearchInvalidTag
-                              message={tct(
-                                "The field [field] isn't supported for performance alerts.",
-                                {
-                                  field: <code>{item.desc}</code>,
-                                }
-                              )}
-                              docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
-                            />
-                          );
-                        }}
-                        searchSource="alert_builder"
-                        defaultQuery={initialData?.query ?? ''}
-                        {...getSupportedAndOmittedTags(dataset, organization)}
-                        includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                        disabled={disabled || isErrorMigration}
-                        useFormWrapper={false}
-                        organization={organization}
-                        placeholder={this.searchPlaceholder}
-                        onChange={onChange}
-                        query={initialData.query}
-                        // We only need strict validation for Transaction queries, everything else is fine
-                        highlightUnsupportedTags={
-                          organization.features.includes('alert-allow-indexed') ||
-                          (hasOnDemandMetricAlertFeature(organization) &&
-                            isOnDemandQueryString(value))
-                            ? false
-                            : dataset === Dataset.GENERIC_METRICS
-                        }
-                        onKeyDown={e => {
-                          /**
-                           * Do not allow enter key to submit the alerts form since it is unlikely
-                           * users will be ready to create the rule as this sits above required fields.
-                           */
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            e.stopPropagation();
+                        />
+                      ) : (
+                        <StyledSearchBar
+                          disallowWildcard={dataset === Dataset.SESSIONS}
+                          disallowFreeText={[
+                            Dataset.GENERIC_METRICS,
+                            Dataset.TRANSACTIONS,
+                          ].includes(dataset)}
+                          invalidMessages={{
+                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                              'The wildcard operator is not supported here.'
+                            ),
+                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                            ),
+                          }}
+                          customInvalidTagMessage={item => {
+                            if (dataset !== Dataset.GENERIC_METRICS) {
+                              return null;
+                            }
+                            return (
+                              <SearchInvalidTag
+                                message={tct(
+                                  "The field [field] isn't supported for performance alerts.",
+                                  {
+                                    field: <code>{item.desc}</code>,
+                                  }
+                                )}
+                                docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
+                              />
+                            );
+                          }}
+                          searchSource="alert_builder"
+                          defaultQuery={initialData?.query ?? ''}
+                          {...getSupportedAndOmittedTags(dataset, organization)}
+                          includeSessionTagsValues={dataset === Dataset.SESSIONS}
+                          disabled={disabled || isErrorMigration}
+                          useFormWrapper={false}
+                          organization={organization}
+                          placeholder={this.searchPlaceholder}
+                          onChange={onChange}
+                          query={initialData.query}
+                          // We only need strict validation for Transaction queries, everything else is fine
+                          highlightUnsupportedTags={
+                            organization.features.includes('alert-allow-indexed') ||
+                            (hasOnDemandMetricAlertFeature(organization) &&
+                              isOnDemandQueryString(value))
+                              ? false
+                              : dataset === Dataset.GENERIC_METRICS
                           }
-
-                          onKeyDown?.(e);
-                        }}
-                        onClose={(query, {validSearch}) => {
-                          onFilterSearch(query, validSearch);
-                          onBlur(query);
-                        }}
-                        onSearch={query => {
-                          onFilterSearch(query, true);
-                          onChange(query, {});
-                        }}
-                        hasRecentSearches={dataset !== Dataset.SESSIONS}
-                      />
+                          onKeyDown={e => {
+                            /**
+                             * Do not allow enter key to submit the alerts form since it is unlikely
+                             * users will be ready to create the rule as this sits above required fields.
+                             */
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }
+                            onKeyDown?.(e);
+                          }}
+                          onClose={(query, {validSearch}) => {
+                            onFilterSearch(query, validSearch);
+                            onBlur(query);
+                          }}
+                          onSearch={query => {
+                            onFilterSearch(query, true);
+                            onChange(query, {});
+                          }}
+                          hasRecentSearches={dataset !== Dataset.SESSIONS}
+                        />
+                      )}
                       {isExtrapolatedChartData && isOnDemandQueryString(value) && (
                         <OnDemandWarningIcon
                           color="gray500"
@@ -842,4 +982,4 @@ const ActivatedAlertFields = styled('div')`
   justify-content: space-between;
 `;
 
-export default withApi(withProjects(RuleConditionsForm));
+export default withApi(withProjects(withTags(RuleConditionsForm)));
