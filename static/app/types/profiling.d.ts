@@ -230,7 +230,7 @@ declare namespace Profiling {
   };
 
   type TransactionProfileReference = {
-    projectID: number;
+    project_id: number;
     profile_id: string;
   };
 

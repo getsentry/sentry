@@ -1,10 +1,12 @@
-import type {Location, LocationDescriptor, Path} from 'history';
+import { dropUndefinedKeys } from '@sentry/utils';
+import type { Location, LocationDescriptor, Path } from 'history';
 
-import type {Organization} from 'sentry/types/organization';
-import type {Trace} from 'sentry/types/profiling/core';
-import type {Project} from 'sentry/types/project';
+import type { Organization } from 'sentry/types/organization';
+import type { Trace } from 'sentry/types/profiling/core';
+import type { Project } from 'sentry/types/project';
+import { isContinuousProfileReference, isTransactionProfileReference } from 'sentry/utils/profiling/guards/profile';
 
-export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']}): Path {
+export function generateProfilingRoute({ orgSlug }: { orgSlug: Organization['slug'] }): Path {
   return `/organizations/${orgSlug}/profiling/`;
 }
 
@@ -65,7 +67,7 @@ export function generateProfileDifferentialFlamegraphRouteWithQuery({
   transaction: string;
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateProfileDifferentialFlamegraphRoute({orgSlug, projectSlug});
+  const pathname = generateProfileDifferentialFlamegraphRoute({ orgSlug, projectSlug });
   return {
     pathname,
     query: {
@@ -96,7 +98,7 @@ export function generateProfilingRouteWithQuery({
   orgSlug: Organization['slug'];
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateProfilingRoute({orgSlug});
+  const pathname = generateProfilingRoute({ orgSlug });
   return {
     pathname,
     query: {
@@ -116,7 +118,7 @@ export function generateProfileSummaryRouteWithQuery({
   transaction: string;
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateProfileSummaryRoute({orgSlug, projectSlug});
+  const pathname = generateProfileSummaryRoute({ orgSlug, projectSlug });
   return {
     pathname,
     query: {
@@ -150,14 +152,24 @@ export function generateProfileFlamechartRouteWithQuery({
   };
 }
 
-export function generateContinuousProfileFlamechartRouteWithQuery(
-  orgSlug: Organization['slug'],
-  projectSlug: Project['slug'],
-  profilerId: string,
+export function generateContinuousProfileFlamechartRouteWithQuery({
+  orgSlug,
+  projectSlug,
+  profilerId,
+  start,
+  end,
+  query,
+  frameName, framePackage,
+}: {
+  frameName?: string;
+  framePackage?: string | undefined;
+  orgSlug: Organization['slug'];
+  profilerId: string
   start: string,
   end: string,
-  query: Location['query']
-): LocationDescriptor {
+  projectSlug: Project['slug'];
+  query?: Location['query'];
+}): LocationDescriptor {
   const pathname = generateContinuousProfileFlamechartRoute({
     orgSlug,
     projectSlug,
@@ -165,12 +177,14 @@ export function generateContinuousProfileFlamechartRouteWithQuery(
 
   return {
     pathname,
-    query: {
+    query: dropUndefinedKeys({
       profilerId,
       start,
       end,
+      frameName,
+      framePackage,
       ...query,
-    },
+    }),
   };
 }
 
@@ -199,4 +213,58 @@ export function generateProfileFlamechartRouteWithHighlightFrame({
       framePackage,
     },
   });
+}
+
+export function generateProfileRouteFromProfileReference({
+  orgSlug,
+  projectSlug,
+  frameName,
+  framePackage,
+  reference,
+  query,
+}: {
+  frameName: string;
+  framePackage: string | undefined;
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'] | undefined;
+  reference: Profiling.ProfileReference;
+  query?: Location['query'];
+}): LocationDescriptor {
+  if (typeof reference === 'string' && !!projectSlug) {
+    return generateProfileFlamechartRouteWithHighlightFrame({
+      orgSlug: orgSlug,
+      projectSlug: projectSlug,
+      profileId: reference,
+      frameName: frameName,
+      framePackage: framePackage,
+      query: query,
+    });
+  }
+
+  if (isContinuousProfileReference(reference) && !!reference.project_id) {
+
+    return generateContinuousProfileFlamechartRouteWithQuery({
+      orgSlug
+      projectSlug,
+      profilerId: reference.profiler_id,
+      frameName,
+      framePackage,
+      start: new Date(reference.start_ts).toISOString(),
+      end: new Date(reference.finish_ts).toISOString(),
+      query: dropUndefinedKeys({ ...query, spanId: reference.transaction_id, tid: reference.thread_id as unknown as string }),
+    });
+  }
+
+  if (isTransactionProfileReference(reference)) {
+    return generateProfileFlamechartRouteWithQuery({
+      orgSlug,
+      projectSlug,
+      profileId: reference.profile_id,
+      query: dropUndefinedKeys(
+        { ...query, frameName, framePackage }
+      ),
+    });
+  }
+
+  throw new Error('Not implemented');
 }
