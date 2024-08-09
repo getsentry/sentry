@@ -49,7 +49,7 @@ type State = {
 function PerformanceContent({selection, location, demoMode, router}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const {projects} = useProjects();
+  const {projects, reloadProjects} = useProjects();
   const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
   const [state, setState] = useState<State>({error: undefined});
@@ -106,6 +106,16 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
     show_onboarding: onboardingProject !== undefined,
     tab: getLandingDisplayFromParam(location)?.field,
   });
+
+  // Refetch the project metadata if the selected project does not have performance data, because
+  // we may have received performance data (and subsequently updated `Project.firstTransactionEvent`)
+  // after the initial project fetch.
+  useEffect(() => {
+    if (onboardingProject) {
+      reloadProjects();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onboardingProject]);
 
   useEffect(() => {
     if (!mounted.current) {

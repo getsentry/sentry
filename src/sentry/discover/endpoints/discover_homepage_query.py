@@ -25,9 +25,9 @@ def get_homepage_query(organization, user):
 @region_silo_endpoint
 class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
 

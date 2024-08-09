@@ -11,6 +11,7 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
+import {t} from 'sentry/locale';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
 jest.mock('sentry/actionCreators/modal');
@@ -18,31 +19,30 @@ jest.mock('sentry/actionCreators/modal');
 describe('MessagingIntegrationModal', function () {
   let project, org;
   const providerKeys = ['slack', 'discord', 'msteams'];
-  const providers = [GitHubIntegrationProviderFixture()];
+  const providers = (providerKey: string) => [
+    GitHubIntegrationProviderFixture({key: providerKey}),
+  ];
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
-    org = OrganizationFixture({
-      features: ['messaging-integration-onboarding'],
-    });
+    org = OrganizationFixture();
 
     jest.clearAllMocks();
   });
 
-  const getComponent = (closeModal?, props = {}) => (
+  const getComponent = (closeModal = jest.fn(), props = {}) => (
     <MessagingIntegrationModal
+      closeModal={closeModal}
       Header={makeClosableHeader(() => {})}
       Body={ModalBody}
-      headerContent={<h1>Connect with a messaging tool</h1>}
-      bodyContent={<p>Receive alerts and digests right where you work.</p>}
+      headerContent={t('Connect with a messaging tool')}
+      bodyContent={t('Receive alerts and digests right where you work.')}
       providerKeys={providerKeys}
-      organization={org}
       project={project}
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}
-      closeModal={closeModal ? closeModal : jest.fn()}
       {...props}
     />
   );
@@ -53,11 +53,11 @@ describe('MessagingIntegrationModal', function () {
       mockResponses.push(
         MockApiClient.addMockResponse({
           url: `/organizations/${org.slug}/config/integrations/?provider_key=${providerKey}`,
-          body: {providers: providers},
+          body: {providers: providers(providerKey)},
         })
       );
     });
-    render(getComponent());
+    render(getComponent(), {organization: org});
 
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
@@ -85,7 +85,7 @@ describe('MessagingIntegrationModal', function () {
       );
     });
 
-    render(getComponent(closeModal));
+    render(getComponent(closeModal), {organization: org});
 
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();

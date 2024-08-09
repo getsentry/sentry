@@ -42,7 +42,7 @@ def monkey_patch_single_process_silo_mode_state():
     state = LocalSiloModeState()
 
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
         assert state.mode is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
@@ -59,7 +59,7 @@ def monkey_patch_single_process_silo_mode_state():
             state.region = old_region
 
     @contextlib.contextmanager
-    def exit() -> Generator[None, None, None]:
+    def exit() -> Generator[None]:
         old_mode = state.mode
         old_region = state.region
         state.mode = None
@@ -196,7 +196,7 @@ class _SiloModeTestModification:
         silo_mode_attr = "__silo_mode_override"
 
         @contextmanager
-        def create_context(obj: TestCase) -> Generator[None, None, None]:
+        def create_context(obj: TestCase) -> Generator[None]:
             tagged_class, tagged_mode = getattr(obj, silo_mode_attr)
 
             if type(obj) is not tagged_class:
@@ -425,7 +425,7 @@ _protected_operations: list[re.Pattern] = []
 
 def get_protected_operations() -> list[re.Pattern]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
 
     if len(_protected_operations):
         return _protected_operations

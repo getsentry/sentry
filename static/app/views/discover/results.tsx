@@ -129,16 +129,22 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const eventView = EventView.fromSavedQueryOrLocation(
-      nextProps.savedQuery,
-      nextProps.location
-    );
     const savedQueryDataset = getSavedQueryDataset(
       nextProps.organization,
       nextProps.location,
       nextProps.savedQuery,
       undefined
     );
+    const eventViewFromQuery = EventView.fromSavedQueryOrLocation(
+      nextProps.savedQuery,
+      nextProps.location
+    );
+    const eventView =
+      hasDatasetSelector(nextProps.organization) && !eventViewFromQuery.dataset
+        ? eventViewFromQuery.withDataset(
+            getDatasetFromLocationOrSavedQueryDataset(undefined, savedQueryDataset)
+          )
+        : eventViewFromQuery;
     return {...prevState, eventView, savedQuery: nextProps.savedQuery, savedQueryDataset};
   }
 
@@ -688,6 +694,8 @@ export class Results extends Component<Props, State> {
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
 
+    const hasDatasetSelectorFeature = hasDatasetSelector(organization);
+
     const query = eventView.query;
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
@@ -716,6 +724,7 @@ export class Results extends Component<Props, State> {
                 {this.renderError(error)}
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
+                {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
                   <Feature
@@ -751,10 +760,10 @@ export class Results extends Component<Props, State> {
                       maxQueryLength={MAX_QUERY_LENGTH}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
                       dataset={eventView.dataset}
+                      includeTransactions={hasDatasetSelectorFeature ? false : true}
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
-                <SampleDataAlert query={query} />
                 <MetricsCardinalityProvider
                   organization={organization}
                   location={location}
@@ -791,22 +800,14 @@ export class Results extends Component<Props, State> {
                   queryDataset={savedQueryDataset}
                   setSplitDecision={(value?: SavedQueryDatasets) => {
                     if (
-                      organization.features.includes(
-                        'performance-discover-dataset-selector'
-                      ) &&
+                      hasDatasetSelectorFeature &&
                       value !== SavedQueryDatasets.DISCOVER &&
                       value !== savedQuery?.dataset
                     ) {
                       this.setSplitDecision(value);
                     }
                   }}
-                  dataset={
-                    organization.features.includes(
-                      'performance-discover-dataset-selector'
-                    )
-                      ? eventView.dataset
-                      : undefined
-                  }
+                  dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}

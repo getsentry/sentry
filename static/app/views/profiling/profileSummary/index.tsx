@@ -173,7 +173,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
 }
 
 const ProfilingHeader = styled(Layout.Header)`
-  padding: ${space(1)} ${space(2)} ${space(0)} ${space(2)} !important;
+  padding: ${space(1)} ${space(2)} 0 ${space(2)} !important;
 `;
 
 const ProfilingHeaderContent = styled(Layout.HeaderContent)`

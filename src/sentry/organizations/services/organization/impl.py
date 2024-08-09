@@ -11,6 +11,7 @@ from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
@@ -28,7 +29,7 @@ from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule, RuleActivity
@@ -475,7 +476,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
-        model.flags = self._deserialize_member_flags(organization_member.flags)
+        model.flags = self._deserialize_member_flags(organization_member.flags)  # type: ignore[assignment]  # TODO: make BitField a mypy plugin
         model.save()
 
     @classmethod
@@ -518,7 +519,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return
 
         if to_member is None:
-            to_member = OrganizationMember.objects.create(
+            to_member = OrganizationMember.objects.create(  # type: ignore[misc]  # TODO: make BitField a mypy plugin
                 organization_id=organization_id,
                 user_id=to_user_id,
                 role=from_member.role,

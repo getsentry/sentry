@@ -9,7 +9,6 @@ import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcr
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
@@ -26,6 +25,8 @@ import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalD
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
+import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
+import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
@@ -58,13 +59,18 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {TraceDataSection} from 'sentry/views/issueDetails/traceTimeline/traceDataSection';
 import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
 );
 
-type GroupEventDetailsContentProps = {
+export type GroupEventDetailsContentProps = {
   group: Group;
   project: Project;
   event?: Event;
@@ -75,9 +81,16 @@ type GroupEventEntryProps = {
   event: Event;
   group: Group;
   project: Project;
+  sectionKey: FoldSectionKey;
 };
 
-function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProps) {
+function GroupEventEntry({
+  event,
+  entryType,
+  group,
+  project,
+  ...props
+}: GroupEventEntryProps) {
   const organization = useOrganization();
   const matchingEntry = event.entries.find(entry => entry.type === entryType);
 
@@ -91,11 +104,12 @@ function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProp
       group={group}
       entry={matchingEntry}
       {...{organization, event}}
+      {...props}
     />
   );
 }
 
-function DefaultGroupEventDetailsContent({
+export function DefaultGroupEventDetailsContent({
   group,
   event,
   project,
@@ -103,13 +117,13 @@ function DefaultGroupEventDetailsContent({
   const organization = useOrganization();
   const location = useLocation();
   const hasNewTimelineUI = useHasNewTimelineUI();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const tagsRef = useRef<HTMLDivElement>(null);
 
   const projectSlug = project.slug;
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
   const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
 
   const eventEntryProps = {group, event, project};
@@ -133,15 +147,16 @@ function DefaultGroupEventDetailsContent({
   });
 
   // default to show on error or isPromptDismissed === undefined
-  const showFeedback = !isPromptDismissed || promptError;
+  const showFeedback = !isPromptDismissed || promptError || hasStreamlinedUI;
 
   return (
     <Fragment>
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
+      {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
-        <TraceTimeLineOrRelatedIssue event={event} />
+        {!hasStreamlinedUI && <TraceTimeLineOrRelatedIssue event={event} />}
         <SuspectCommits
           project={project}
           eventId={event.id}
@@ -150,26 +165,28 @@ function DefaultGroupEventDetailsContent({
         />
       </StyledDataSection>
       {event.userReport && (
-        <EventDataSection
+        <InterimSection
           title={t('User Feedback')}
-          type="user-feedback"
+          type={FoldSectionKey.USER_FEEDBACK}
           actions={
-            <ErrorBoundary mini>
-              <Button
-                size="xs"
-                icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
-                onClick={showFeedback ? dismissPrompt : showPrompt}
-                title={
-                  showFeedback
-                    ? t('Hide feedback on all issue details')
-                    : t('Unhide feedback on all issue details')
-                }
-                disabled={promptError}
-                busy={promptLoading}
-              >
-                {showFeedback ? t('Hide') : t('Show')}
-              </Button>
-            </ErrorBoundary>
+            hasStreamlinedUI ? null : (
+              <ErrorBoundary mini>
+                <Button
+                  size="xs"
+                  icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
+                  onClick={showFeedback ? dismissPrompt : showPrompt}
+                  title={
+                    showFeedback
+                      ? t('Hide feedback on all issue details')
+                      : t('Unhide feedback on all issue details')
+                  }
+                  disabled={promptError}
+                  busy={promptLoading}
+                >
+                  {showFeedback ? t('Hide') : t('Show')}
+                </Button>
+              </ErrorBoundary>
+            )
           }
         >
           {promptLoading ? (
@@ -182,7 +199,7 @@ function DefaultGroupEventDetailsContent({
               showEventLink={false}
             />
           ) : null}
-        </EventDataSection>
+        </InterimSection>
       )}
       {event.type === EventOrGroupType.ERROR &&
       organization.features.includes('insights-addon-modules') &&
@@ -225,11 +242,27 @@ function DefaultGroupEventDetailsContent({
         />
       )}
       <EventEvidence event={event} group={group} project={project} />
-      <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.THREADS} {...eventEntryProps} />
-      {hasAnrImprovementsFeature && isANR && (
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.MESSAGE}
+        entryType={EntryType.MESSAGE}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.STACKTRACE}
+        entryType={EntryType.EXCEPTION}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.STACKTRACE}
+        entryType={EntryType.STACKTRACE}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.STACKTRACE}
+        entryType={EntryType.THREADS}
+        {...eventEntryProps}
+      />
+      {isANR && (
         <QuickTraceQuery
           event={event}
           location={location}
@@ -255,15 +288,39 @@ function DefaultGroupEventDetailsContent({
       )}
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
-      <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.EXPECTCT} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.HPKP}
+        entryType={EntryType.HPKP}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.CSP}
+        entryType={EntryType.CSP}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.EXPECTCT}
+        entryType={EntryType.EXPECTCT}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.EXPECTCT}
+        entryType={EntryType.EXPECTSTAPLE}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.TEMPLATE}
+        entryType={EntryType.TEMPLATE}
+        {...eventEntryProps}
+      />
       {hasNewTimelineUI ? (
         <BreadcrumbsDataSection event={event} group={group} project={project} />
       ) : (
-        <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
+        <GroupEventEntry
+          sectionKey={FoldSectionKey.BREADCRUMBS}
+          entryType={EntryType.BREADCRUMBS}
+          {...eventEntryProps}
+        />
       )}
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
@@ -272,16 +329,31 @@ function DefaultGroupEventDetailsContent({
           group={group}
         />
       )}
-      <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
-      <div ref={tagsRef}>
-        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
-      </div>
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.DEBUGMETA}
+        entryType={EntryType.DEBUGMETA}
+        {...eventEntryProps}
+      />
+      <GroupEventEntry
+        sectionKey={FoldSectionKey.REQUEST}
+        entryType={EntryType.REQUEST}
+        {...eventEntryProps}
+      />
+      {hasStreamlinedUI ? (
+        <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+      ) : (
+        <div ref={tagsRef}>
+          <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+        </div>
+      )}
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventViewHierarchy event={event} project={project} />
+      {hasStreamlinedUI && (
+        <ScreenshotDataSection event={event} projectSlug={project.slug} />
+      )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event.groupID && (
@@ -295,7 +367,6 @@ function DefaultGroupEventDetailsContent({
           group={group}
         />
       )}
-
       {!hasReplay && (
         <EventRRWebIntegration
           event={event}
@@ -347,6 +418,7 @@ function ProfilingDurationRegressionIssueDetailsContent({
   event,
   project,
 }: Required<GroupEventDetailsContentProps>) {
+  const organization = useOrganization();
   return (
     <TransactionsDeltaProvider event={event} project={project}>
       <Fragment>
@@ -356,9 +428,11 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventAffectedTransactions event={event} group={group} project={project} />
-        </ErrorBoundary>
+        {!organization.features.includes('continuous-profiling-compat') && (
+          <ErrorBoundary mini>
+            <EventAffectedTransactions event={event} group={group} project={project} />
+          </ErrorBoundary>
+        )}
         <ErrorBoundary mini>
           <DataSection>
             <b>{t('Largest Changes in Call Stack Frequency')}</b>
@@ -379,11 +453,13 @@ function ProfilingDurationRegressionIssueDetailsContent({
   );
 }
 
-function GroupEventDetailsContent({
+export default function GroupEventDetailsContent({
   group,
   event,
   project,
 }: GroupEventDetailsContentProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   if (!event) {
     return (
       <NotFoundMessage>
@@ -414,7 +490,9 @@ function GroupEventDetailsContent({
       );
     }
     default: {
-      return (
+      return hasStreamlinedUI ? (
+        <EventDetails event={event} group={group} project={project} />
+      ) : (
         <DefaultGroupEventDetailsContent group={group} event={event} project={project} />
       );
     }
@@ -436,5 +514,3 @@ const StyledDataSection = styled(DataSection)`
     display: none;
   }
 `;
-
-export default GroupEventDetailsContent;

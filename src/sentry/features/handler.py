@@ -6,14 +6,15 @@ import abc
 from collections.abc import Mapping, MutableSet, Sequence
 from typing import TYPE_CHECKING
 
-from sentry.users.services.user import RpcUser
-
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.features.base import Feature
     from sentry.features.manager import FeatureCheckBatch
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.user import User
+    from sentry.users.services.user import RpcUser
 
 
 class FeatureHandler:
@@ -37,7 +38,10 @@ class FeatureHandler:
 
     @abc.abstractmethod
     def has(
-        self, feature: Feature, actor: User | RpcUser, skip_entity: bool | None = False
+        self,
+        feature: Feature,
+        actor: User | RpcUser | AnonymousUser | None,
+        skip_entity: bool | None = False,
     ) -> bool | None:
         raise NotImplementedError
 
@@ -52,7 +56,7 @@ class FeatureHandler:
     def batch_has(
         self,
         feature_names: Sequence[str],
-        actor: User,
+        actor: User | RpcUser | AnonymousUser | None,
         projects: Sequence[Project] | None = None,
         organization: Organization | None = None,
         batch: bool = True,

@@ -40,7 +40,7 @@ export function GridListSection({node, listState, onToggle, size}: GridListSecti
 
   const hiddenOptions = useContext(SelectFilterContext);
   const childNodes = useMemo(
-    () => [...node.childNodes].filter(child => !hiddenOptions.has(child.props.value)),
+    () => [...node.childNodes].filter(child => !hiddenOptions.has(child.key)),
     [node.childNodes, hiddenOptions]
   );
 

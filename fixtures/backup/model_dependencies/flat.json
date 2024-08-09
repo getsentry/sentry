@@ -203,6 +203,9 @@
   "sentry.dashboardwidgetqueryondemand": [
     "sentry.dashboardwidgetquery"
   ],
+  "sentry.datasecrecywaiver": [
+    "sentry.organization"
+  ],
   "sentry.debugidartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization"

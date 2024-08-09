@@ -38,7 +38,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,
-        status: ObjectStatus | None = None,
+        status: int | None = None,
     ) -> list[RpcRepository]:
         query = Repository.objects.filter(organization_id=organization_id)
         if integration_id is not None:

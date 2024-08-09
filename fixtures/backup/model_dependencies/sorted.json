@@ -77,6 +77,7 @@
   "sentry.discoversavedquery",
   "sentry.deletedteam",
   "sentry.deletedproject",
+  "sentry.datasecrecywaiver",
   "sentry.dashboardtombstone",
   "sentry.dashboard",
   "sentry.customdynamicsamplingrule",

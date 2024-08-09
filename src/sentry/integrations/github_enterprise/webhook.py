@@ -4,6 +4,8 @@ import hashlib
 import hmac
 import logging
 import re
+from collections.abc import Callable
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -11,7 +13,6 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -124,6 +125,8 @@ class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
+    _handlers: dict[str, Callable[[], Callable[[Any], Any]]] = {}
+
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
@@ -144,7 +147,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -157,7 +160,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         else:
             return None
 
-    def handle(self, request: Request) -> HttpResponse:
+    def handle(self, request: HttpRequest) -> HttpResponse:
         clear_tags_and_context()
         scope = Scope.get_isolation_scope()
 
@@ -303,12 +306,12 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
-    def post(self, request: Request) -> HttpResponse:
+    def post(self, request: HttpRequest) -> HttpResponse:
         return self.handle(request)

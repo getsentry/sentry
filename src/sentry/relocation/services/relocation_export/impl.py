@@ -11,9 +11,10 @@ from uuid import UUID
 from django.db import router
 from sentry_sdk import capture_exception
 
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.models.outbox import ControlOutbox
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
@@ -181,7 +182,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             "replying_region_name": replying_region_name,
             "org_slug": org_slug,
             # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-            "encrypt_with_public_key_size": len(encrypted_bytes or []),
+            "encrypted_bytes_size": len(encrypted_bytes or []),
         }
         logger.info("SaaS -> SaaS reply received on proxy", extra=logger_data)
 

@@ -3,11 +3,11 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 
 import orjson
 import sentry_sdk
@@ -305,6 +305,14 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def interfaces(self) -> Mapping[str, Interface]:
         return get_interfaces(self.data)
 
+    @overload
+    def get_interface(self, name: Literal["user"]) -> User:
+        ...
+
+    @overload
+    def get_interface(self, name: str) -> Interface | None:
+        ...
+
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
 
@@ -376,12 +384,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if hierarchical_hashes:
             sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_hashes[0][0])
 
-        flat_hashes = [hash_ for _, hash_ in flat_hashes]
-        hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]
+        flat_hashes_values = [hash_ for _, hash_ in flat_hashes]
+        hierarchical_hashes_values = [hash_ for _, hash_ in hierarchical_hashes]
 
         return CalculatedHashes(
-            hashes=flat_hashes,
-            hierarchical_hashes=hierarchical_hashes,
+            hashes=flat_hashes_values,
+            hierarchical_hashes=hierarchical_hashes_values,
             tree_labels=tree_labels,
             variants=variants,
         )
@@ -389,7 +397,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @staticmethod
     def _hashes_from_sorted_grouping_variants(
         variants: KeyedVariants,
-    ) -> tuple[list[str], list[Any]]:
+    ) -> tuple[list[tuple[str, str]], list[Any]]:
         """Create hashes from variants and filter out duplicates and None values"""
 
         from sentry.grouping.variants import ComponentVariant
@@ -449,7 +457,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             if isinstance(force_config, str):
                 # A string like `"mobile:2021-02-12"`
                 stored_config = self.get_grouping_config()
-                grouping_config = dict(stored_config)
+                grouping_config = stored_config.copy()
                 grouping_config["id"] = force_config
                 loaded_grouping_config = load_grouping_config(grouping_config)
             elif isinstance(force_config, StrategyConfiguration):
@@ -538,9 +546,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
             str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
         )
 
-    def as_dict(self) -> Mapping[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Returns the data in normalized form for external consumers."""
-        data: MutableMapping[str, Any] = {}
+        data: dict[str, Any] = {}
         data["event_id"] = self.event_id
         data["project"] = self.project_id
         data["release"] = self.release

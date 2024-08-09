@@ -18,8 +18,8 @@ audit_logger = logging.getLogger("sentry.audit.user")
 @control_silo_endpoint
 class UserRolesEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 

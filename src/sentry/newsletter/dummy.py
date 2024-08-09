@@ -77,7 +77,7 @@ class DummyNewsletter(Newsletter):
         self._enabled = enabled
 
     @contextlib.contextmanager
-    def enable(self) -> Generator[None, None, None]:
+    def enable(self) -> Generator[None]:
         self._enabled = True
         try:
             yield

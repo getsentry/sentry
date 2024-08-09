@@ -27,8 +27,8 @@ UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
     rate_limits = RateLimitConfig(
@@ -85,7 +85,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
             return Response(serialize(repos, request.user))
 
-        else:
+        elif status:
             queryset = queryset.none()
 
         return self.paginate(

@@ -297,7 +297,7 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
       ? `
         grid-auto-flow: column;
         justify-content: start;
-        gap: ${p.variant === 'filled' ? space(0) : space(2)};
+        gap: ${p.variant === 'filled' || p.variant === 'floating' ? 0 : space(2)};
         ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
       `
       : `

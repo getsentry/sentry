@@ -36,9 +36,9 @@ class ApiApplicationSerializer(serializers.Serializer):
 @control_silo_endpoint
 class ApiApplicationDetailsEndpoint(Endpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)

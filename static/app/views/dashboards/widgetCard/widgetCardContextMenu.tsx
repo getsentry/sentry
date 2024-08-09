@@ -25,6 +25,7 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetMetricsUrl,
+  hasDatasetSelector,
 } from 'sentry/views/dashboards/utils';
 
 import type {Widget} from '../types';
@@ -156,8 +157,13 @@ function WidgetCardContextMenu({
 
   if (
     organization.features.includes('discover-basic') &&
-    widget.widgetType === WidgetType.DISCOVER
+    widget.widgetType &&
+    [WidgetType.DISCOVER, WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
+      widget.widgetType
+    )
   ) {
+    const optionDisabled =
+      hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
     // Open Widget in Discover
     if (widget.queries.length) {
       const discoverPath = getWidgetDiscoverUrl(
@@ -170,7 +176,17 @@ function WidgetCardContextMenu({
       menuOptions.push({
         key: 'open-in-discover',
         label: t('Open in Discover'),
-        to: widget.queries.length === 1 ? discoverPath : undefined,
+        to: optionDisabled
+          ? undefined
+          : widget.queries.length === 1
+            ? discoverPath
+            : undefined,
+        tooltip: t(
+          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+        ),
+        tooltipOptions: {disabled: !optionDisabled},
+        disabled: optionDisabled,
+        showDetailsInOverlay: true,
         onAction: () => {
           if (widget.queries.length === 1) {
             trackAnalytics('dashboards_views.open_in_discover.opened', {

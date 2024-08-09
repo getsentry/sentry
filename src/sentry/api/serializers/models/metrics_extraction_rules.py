@@ -20,7 +20,7 @@ class MetricsExtractionRuleSerializer(Serializer):
 
 
 class SpanAttributeExtractionRuleConfigSerializer(Serializer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     def serialize(self, obj, attrs, user, **kwargs):
@@ -38,6 +38,12 @@ class SpanAttributeExtractionRuleConfigSerializer(Serializer):
 
     def _serialize_conditions(self, obj: SpanAttributeExtractionRuleConfig) -> list[dict[str, Any]]:
         return [
-            {"id": condition.id, "value": condition.value, "mris": condition.generate_mris()}
+            {
+                "id": condition.id,
+                "value": condition.value,
+                "mris": condition.generate_mris(),
+                "dateAdded": condition.date_added,
+                "dateUpdated": condition.date_updated,
+            }
             for condition in obj.conditions.all()
         ]

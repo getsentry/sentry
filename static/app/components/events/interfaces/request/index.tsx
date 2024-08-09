@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -17,6 +16,9 @@ import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {RichHttpContentClippedBoxBodySection} from './richHttpContentClippedBoxBodySection';
 import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBoxKeyValueList';
@@ -51,6 +53,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
 }
 
 export function Request({data, event}: RequestProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.REQUEST);
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
@@ -107,12 +110,13 @@ export function Request({data, event}: RequestProps) {
   );
 
   return (
-    <EventDataSection
-      type={EntryType.REQUEST}
-      title={title}
+    <InterimSection
+      type={FoldSectionKey.REQUEST}
+      title={hasStreamlinedUI ? t('HTTP Request') : title}
       actions={actions}
       className="request"
     >
+      {hasStreamlinedUI && title}
       {view === 'curl' ? (
         <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
       ) : (
@@ -158,7 +162,7 @@ export function Request({data, event}: RequestProps) {
           )}
         </Fragment>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

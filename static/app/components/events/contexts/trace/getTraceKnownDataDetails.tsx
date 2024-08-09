@@ -33,13 +33,6 @@ export function getTraceKnownDataDetails({
         return undefined;
       }
 
-      if (!organization.features.includes('discover-basic')) {
-        return {
-          subject: t('Trace ID'),
-          value: traceId,
-        };
-      }
-
       const link = generateTraceTarget(event, organization, location);
       return {
         subject: t('Trace ID'),

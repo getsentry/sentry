@@ -60,6 +60,7 @@ describe('PagePerformanceTable', function () {
         }),
       ],
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,

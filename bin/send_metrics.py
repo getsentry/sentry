@@ -32,6 +32,7 @@ def make_counter_payload(use_case, org_id, rand_str):
         "org_id": org_id,
         "retention_days": 90,
         "project_id": 3,
+        "sampling_weight": random.uniform(1.0, 24),
     }
 
 
@@ -55,13 +56,14 @@ def make_dist_payload(use_case, org_id, rand_str, value_len, b64_encode):
             }
             if b64_encode
             else {
-                "format": "array",
-                "data": nums,
+                "format": "zstd",
+                "data": "KLUv/QBYrQAAcAAA8D8AQAAAAAAAAAhAAgBgRgCw",
             }
         ),
         "org_id": org_id,
         "retention_days": 90,
         "project_id": 3,
+        "sampling_weight": random.uniform(1.0, 24),
     }
 
 
@@ -95,6 +97,7 @@ def make_set_payload(use_case, org_id, rand_str, value_len, b64_encode):
         "org_id": org_id,
         "retention_days": 90,
         "project_id": 3,
+        "sampling_weight": random.uniform(1.0, 24),
     }
 
 
@@ -104,7 +107,7 @@ def make_gauge_payload(use_case, org_id, rand_str):
         "tags": {
             "environment": "production",
             "session.status": "errored",
-            f"metric_e2e_{use_case}_set_k_{rand_str}": f"metric_e2e_{use_case}_set_v_{rand_str}",
+            f"metric_e2e_{use_case}_gauge_k_{rand_str}": f"metric_e2e_{use_case}_gauge_v_{rand_str}",
         },
         "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
         "type": "g",
@@ -118,6 +121,7 @@ def make_gauge_payload(use_case, org_id, rand_str):
         "org_id": org_id,
         "retention_days": 90,
         "project_id": 3,
+        "sampling_weight": random.uniform(1.0, 24),
     }
 
 

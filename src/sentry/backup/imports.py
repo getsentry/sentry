@@ -36,9 +36,10 @@ from sentry.backup.services.import_export.model import (
 )
 from sentry.backup.services.import_export.service import ImportExportService
 from sentry.db.models.paranoia import ParanoidModel
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxCategory, OutboxFlushError, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxFlushError, RegionOutbox
 from sentry.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -72,7 +73,7 @@ def _clear_model_tables_before_import():
     for model in reversed:
         using = router.db_for_write(model)
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
-        manager.all().delete()  # type: ignore[attr-defined]
+        manager.all().delete()
 
         # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
         # solution.

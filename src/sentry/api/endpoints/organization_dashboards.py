@@ -68,7 +68,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Custom Dashboards",
+        operation_id="List an Organization's Custom Dashboards",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
         request=None,
         responses={
@@ -92,7 +92,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
-        prebuilt = Dashboard.get_prebuilt_list(organization, query)
+        prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
 
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
