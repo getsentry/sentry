@@ -69,7 +69,7 @@ public partial class App : Application
             o.Debug = true;${
               params.isPerformanceSelected
                 ? `
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             o.TracesSampleRate = 1.0;`
                 : ''
@@ -211,7 +211,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance Monitoring'),
+            title: t('Tracing'),
             description: t(
               'You can measure the performance of your code by capturing transactions and spans.'
             ),

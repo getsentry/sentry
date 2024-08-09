@@ -55,7 +55,7 @@ class TraceSummary extends Component<Props> {
   };
 
   getDocumentTitle(): string {
-    return [t('Trace Details'), t('Performance')].join(' — ');
+    return [t('Trace Details'), t('Tracing')].join(' — ');
   }
 
   getTraceSlug(): string {

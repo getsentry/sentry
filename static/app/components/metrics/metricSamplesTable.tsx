@@ -251,7 +251,7 @@ export function MetricSamplesTable({
     if (!hasPerformance) {
       return (
         <PerformanceEmptyState withIcon={false}>
-          <p>{t('You need to set up performance monitoring to collect samples.')}</p>
+          <p>{t('You need to set up tracing to collect samples.')}</p>
           <LinkButton
             priority="primary"
             external

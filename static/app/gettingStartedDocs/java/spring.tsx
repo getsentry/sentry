@@ -363,7 +363,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     },
     {
       id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
+      name: t('Tracing'),
       description: t(
         'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
       ),
