@@ -156,13 +156,15 @@ export function DefaultGroupEventDetailsContent({
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
+        {!hasStreamlinedUI && (
+          <SuspectCommits
+            project={project}
+            eventId={event.id}
+            group={group}
+            commitRow={CommitRow}
+          />
+        )}
         {!hasStreamlinedUI && <TraceTimeLineOrRelatedIssue event={event} />}
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
       </StyledDataSection>
       {event.userReport && (
         <InterimSection
