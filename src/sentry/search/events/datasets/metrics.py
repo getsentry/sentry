@@ -65,6 +65,9 @@ class MetricsDatasetConfig(DatasetConfig):
         }
 
     def resolve_metric(self, value: str) -> int:
+        # SPAN_METRICS_MAP and METRICS_MAP have some overlapping keys
+        mri_map = constants.SPAN_METRICS_MAP | constants.METRICS_MAP
+        metric_id = self.builder.resolve_metric_index(mri_map.get(value, value))
         metric_id = self.builder.resolve_metric_index(constants.METRICS_MAP.get(value, value))
         if metric_id is None:
             # Maybe this is a custom measurment?
