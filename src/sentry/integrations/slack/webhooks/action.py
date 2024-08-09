@@ -321,8 +321,11 @@ class SlackActionEndpoint(Endpoint):
         initial_option_text: str,
         initial_option_value: str,
         callback_id: str,
+        metadata: str | None = None,
     ) -> View:
         formatted_options = self.build_format_options(options)
+        if not metadata:
+            metadata = callback_id
 
         return View(
             type="modal",
@@ -348,11 +351,11 @@ class SlackActionEndpoint(Endpoint):
             ],
             close={"type": "plain_text", "text": "Cancel"},
             submit={"type": "plain_text", "text": title},
-            private_metadata=callback_id,
+            private_metadata=metadata,
             callback_id=callback_id,
         )
 
-    def build_resolve_modal_payload(self, callback_id: str) -> View:
+    def build_resolve_modal_payload(self, callback_id: str, metadata: str) -> View:
         return self.build_modal_payload(
             title="Resolve",
             action_text="Resolve",
@@ -360,9 +363,10 @@ class SlackActionEndpoint(Endpoint):
             initial_option_text="Immediately",
             initial_option_value="resolved",
             callback_id=callback_id,
+            metadata=metadata,
         )
 
-    def build_archive_modal_payload(self, callback_id: str) -> View:
+    def build_archive_modal_payload(self, callback_id: str, metadata: str) -> View:
         return self.build_modal_payload(
             title="Archive",
             action_text="Archive",
@@ -370,6 +374,7 @@ class SlackActionEndpoint(Endpoint):
             initial_option_text="Until escalating",
             initial_option_value="ignored:archived_until_escalating",
             callback_id=callback_id,
+            metadata=metadata,
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
@@ -379,19 +384,22 @@ class SlackActionEndpoint(Endpoint):
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
         org = group.project.organization
-        callback_id = {
+        callback_id_dict = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
-            "tags": list(slack_request.get_tags()),
         }
         if slack_request.data.get("channel"):
-            callback_id["channel_id"] = slack_request.data["channel"]["id"]
-            callback_id["rule"] = slack_request.callback_data.get("rule")
-        callback_id = orjson.dumps(callback_id).decode()
+            callback_id_dict["channel_id"] = slack_request.data["channel"]["id"]
+            callback_id_dict["rule"] = slack_request.callback_data.get("rule")
+        callback_id = orjson.dumps(callback_id_dict).decode()
+
+        # only add tags to metadata
+        callback_id_dict["tags"] = list(slack_request.get_tags())
+        metadata = orjson.dumps(callback_id_dict).decode()
 
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-        modal_payload = self.build_resolve_modal_payload(callback_id)
+        modal_payload = self.build_resolve_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
             slack_client.views_open(
@@ -422,19 +430,22 @@ class SlackActionEndpoint(Endpoint):
     def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         org = group.project.organization
 
-        callback_id = {
+        callback_id_dict = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
             "rule": slack_request.callback_data.get("rule"),
-            "tags": list(slack_request.get_tags()),
         }
 
         if slack_request.data.get("channel"):
-            callback_id["channel_id"] = slack_request.data["channel"]["id"]
-        callback_id = orjson.dumps(callback_id).decode()
+            callback_id_dict["channel_id"] = slack_request.data["channel"]["id"]
+        callback_id = orjson.dumps(callback_id_dict).decode()
 
-        modal_payload = self.build_archive_modal_payload(callback_id)
+        # only add tags to metadata
+        callback_id_dict["tags"] = list(slack_request.get_tags())
+        metadata = orjson.dumps(callback_id_dict).decode()
+
+        modal_payload = self.build_archive_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
             slack_client.views_open(
