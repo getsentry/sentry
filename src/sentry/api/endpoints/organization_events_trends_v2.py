@@ -77,7 +77,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return Response(status=404)
 
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
@@ -91,7 +91,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         query = request.GET.get("query")
 
-        def get_top_events(user_query, params, event_limit, referrer):
+        def get_top_events(user_query, snuba_params, event_limit, referrer):
             top_event_columns = selected_columns[:]
             top_event_columns.append("count()")
 
@@ -101,7 +101,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return metrics_query(
                 top_event_columns,
                 query=user_query,
-                params=params,
+                params={},
+                snuba_params=snuba_params,
                 orderby=["-count()"],
                 limit=event_limit,
                 referrer=referrer,
@@ -136,7 +137,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             used_project_ids = set({event["project_id"] for event in data})
 
             # Get new params with pruned projects
-            pruned_snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            pruned_snuba_params = self.get_snuba_params(request, organization)
             pruned_snuba_params.projects = [
                 project
                 for project in pruned_snuba_params.projects
@@ -223,7 +224,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 )
             return formatted_results
 
-        def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
+        def get_event_stats_metrics(_, user_query, snuba_params, rollup, zerofill_results, __):
             top_event_limit = min(
                 int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
                 MAX_TOP_EVENTS_LIMIT,
@@ -232,7 +233,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # Fetch transactions names with the highest event count
             top_trending_transactions = get_top_events(
                 user_query=user_query,
-                params=params,
+                snuba_params=snuba_params,
                 event_limit=top_event_limit,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )

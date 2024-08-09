@@ -31,7 +31,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
@@ -88,13 +88,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         sentry_sdk.set_tag("query.dataset", dataset_label)
         return result
 
-    def get_snuba_dataclass(
+    def get_snuba_params(
         self,
         request: Request,
         organization: Organization,
         check_global_views: bool = True,
         quantize_date_params: bool = True,
-    ) -> tuple[SnubaParams, ParamsType]:
+    ) -> SnubaParams:
         """Returns params to make snuba queries with"""
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
             if (
@@ -127,8 +127,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 if not has_global_views and len(params.projects) > 1 and not fetching_replay_data:
                     raise ParseError(detail="You cannot view events from multiple projects.")
 
-            # Return both for now
-            return params, filter_params
+            return params
 
     def get_orderby(self, request: Request) -> Sequence[str] | None:
         sort = request.GET.getlist("sort")
@@ -419,7 +418,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 if snuba_params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views
-                        snuba_params, _ = self.get_snuba_dataclass(
+                        snuba_params = self.get_snuba_params(
                             request, organization, check_global_views=False
                         )
                     except NoProjects:
@@ -541,7 +540,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 serialized_result["meta"] = self.handle_results_with_meta(
                     request,
                     organization,
-                    snuba_params,
+                    snuba_params.project_ids,
                     result.data,
                     True,
                     dataset=dataset,
