@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -61,6 +61,13 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
     pageFilters.selection.projects.length > 1 ||
     pageFilters.selection.projects[0] === -1 ||
     pageFilters.selection.projects.length === 0;
+
+  // If the selected condition cannot be found, select the first condition
+  useEffect(() => {
+    if (!selectedCondition && spanConditions.length > 0) {
+      onChange(spanConditions[0].id);
+    }
+  }, [onChange, selectedCondition, spanConditions]);
 
   const options: SelectOptionOrSection<number>[] = useMemo(() => {
     let builtInOption: SelectOption<number> | null = null;
