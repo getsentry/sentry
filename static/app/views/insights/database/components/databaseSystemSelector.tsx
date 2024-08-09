@@ -17,19 +17,25 @@ export function DatabaseSystemSelector() {
     'api.starfish.database-system-selector'
   );
 
-  console.dir(data);
-
   const options = [
     {value: 'PostgreSQL', label: 'PostgreSQL'},
     {value: 'MongoDB', label: 'MongoDB'},
   ];
+
+  const getDefaultValue = () => {
+    if (isLoading || isError) {
+      return t('—');
+    }
+
+    return options[0].value;
+  };
 
   return (
     <CompactSelect
       onChange={handleChange}
       options={options}
       triggerProps={{prefix: t('DB System')}}
-      defaultValue={options[0].value}
+      defaultValue={getDefaultValue()}
       disabled={isLoading || isError}
     />
   );
