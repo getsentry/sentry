@@ -76,28 +76,25 @@ flag_management:
 # Read more here: https://docs.codecov.com/docs/pull-request-comments
 comment:
   #### FOR TESTING ####
-  # If you want to test commenting configurations changes
-  # Comment out these lines and uncomment the next section
-  # You also need to make a change to a tsx or py file to trigger the comment
-  after_n_builds: 1
-  require_changes: false
-  require_bundle_changes: false
+  # If you want to test in your PR commenting configurations changes,
+  # comment out this line and uncomment the next line in the next section
+  # require_bundle_changes: false
+  ######################
+  # Post comment if there are changes in bundle size increases greater than value specified
+  require_bundle_changes: 'bundle_increase'
   ######################
   # This is the addition of carry forward builds and fresh builds, thus, it's the addition
   # of the FE and BE builds
-  # after_n_builds: 22
-  # Only post if coverage drops OR there are uncovered lines of code
-  # require_changes: 'coverage_drop OR uncovered_patch'
-  # Post comment if there are changes in bundle size increases greater than value specified
-  # require_bundle_changes: 'bundle_increase'
-  ######################
-  # Show the git diff and condensed files
+  after_n_builds: 22
+  # What to render in the comment
   layout: 'diff, condensed_files'
   # Do not show the project coverage in the comment
   hide_project_coverage: true
   show_carryforward_flags: true
   # Update, if exists. Otherwise post new. Skip if deleted.
   behavior: once
+  # Only post if coverage drops OR there are uncovered lines of code
+  require_changes: 'coverage_drop OR uncovered_patch'
   require_base: true # must have a base report to post
   require_head: true # must have a head report to post
   bundle_change_threshold: '10Kb'

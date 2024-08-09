@@ -12,6 +12,7 @@ import {
 } from 'sentry/constants/apiErrorCodes';
 import controlsilopatterns from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
