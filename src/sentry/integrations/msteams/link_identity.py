@@ -56,7 +56,7 @@ class MsTeamsLinkingView(LinkingView, ABC):
         return SALT
 
     @property
-    def user_parameter(self) -> str:
+    def external_id_parameter(self) -> str:
         return "teams_user_id"
 
     @property

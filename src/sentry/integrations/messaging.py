@@ -262,7 +262,7 @@ class LinkingView(BaseView, ABC):
 
     @property
     @abstractmethod
-    def user_parameter(self) -> str:
+    def external_id_parameter(self) -> str:
         raise NotImplementedError
 
     # TODO: Replace thw two template properties below with base templates for all
@@ -325,7 +325,7 @@ class LinkingView(BaseView, ABC):
             }
             return render_to_response(self.confirmation_template, request=request, context=context)
 
-        response = self.execute(idp, params[self.user_parameter], request)
+        response = self.execute(idp, params[self.external_id_parameter], request)
         if response is not None:
             return response
 
