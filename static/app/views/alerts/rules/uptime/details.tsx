@@ -97,7 +97,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <Button
               size="sm"
               icon={<IconEdit />}
-              to={`/organizations/${organization.slug}/alerts/utpime-rules/${project.slug}/${uptimeRuleId}/`}
+              to={`/organizations/${organization.slug}/alerts/uptime-rules/${project.slug}/${uptimeRuleId}/`}
             >
               {t('Edit Rule')}
             </Button>
