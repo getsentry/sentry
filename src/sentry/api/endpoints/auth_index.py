@@ -74,7 +74,8 @@ class BaseAuthIndexEndpoint(Endpoint):
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
-                interface: U2fInterface = Authenticator.objects.get_interface(request.user, "u2f")
+                interface = Authenticator.objects.get_interface(request.user, "u2f")
+                assert isinstance(interface, U2fInterface)
                 if not interface.is_enrolled():
                     raise LookupError()
                 challenge = json.loads(validator.validated_data["challenge"])

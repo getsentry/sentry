@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Protocol, Self
 
 from django.core.cache import cache
+from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
@@ -136,7 +137,7 @@ class AuthenticatorInterface:
         """This method is invoked if a new config is required."""
         return {}
 
-    def activate(self, request: Request):
+    def activate(self, request: HttpRequest):
         """If an authenticator overrides this then the method is called
         when the dialog for authentication is brought up.  The returned string
         is then rendered in the UI.
@@ -243,3 +244,24 @@ class OtpMixin:
             self.mark_otp_counter_used(used_counter)
             return True
         return False
+
+
+# TOO OVERCOOKED ?
+# Dummy protocol to be inherited by actual class protocols
+class DummyProtocol(Protocol):
+    pass
+
+
+# Wrapper to make AuthenticatorInterfaceProtocol a Protocol
+class AuthenticatorInterfaceProtocol(AuthenticatorInterface, DummyProtocol):
+    pass
+
+
+# Wrapper to make OtpMixin a Protocol
+class OtpMixinProtocol(OtpMixin, DummyProtocol):
+    pass
+
+
+# Represents a class which is a subclass of AuthenticatorInterface and OtpMixin
+class AuthenticatorInterfaceOptMixinProtocol(OtpMixinProtocol, AuthenticatorInterfaceProtocol):
+    pass

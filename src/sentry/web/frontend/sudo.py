@@ -20,7 +20,8 @@ class SudoView(BaseSudoView):
             return True
 
         try:
-            interface: U2fInterface = Authenticator.objects.get_interface(request.user, "u2f")
+            interface = Authenticator.objects.get_interface(request.user, "u2f")
+            assert isinstance(interface, U2fInterface), "Must be U2F interface to check if enrolled"
             if not interface.is_enrolled():
                 raise LookupError()
         except LookupError:

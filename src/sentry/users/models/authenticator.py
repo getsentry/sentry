@@ -4,6 +4,7 @@ import base64
 import copy
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -16,7 +17,11 @@ from sentry.auth.authenticators import (
     AUTHENTICATOR_INTERFACES_BY_TYPE,
     available_authenticators,
 )
-from sentry.auth.authenticators.base import AuthenticatorInterface, EnrollmentStatus
+from sentry.auth.authenticators.base import (
+    AuthenticatorInterface,
+    AuthenticatorInterfaceOptMixinProtocol,
+    EnrollmentStatus,
+)
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -40,13 +45,15 @@ if TYPE_CHECKING:
 class AuthenticatorManager(BaseManager["Authenticator"]):
     def all_interfaces_for_user(
         self, user: User, return_missing: bool = False, ignore_backup: bool = False
-    ) -> list[AuthenticatorInterface]:
+    ) -> list[AuthenticatorInterfaceOptMixinProtocol]:
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.
         """
 
-        def _sort(x: list[AuthenticatorInterface]) -> list[AuthenticatorInterface]:
+        def _sort(
+            x: list[AuthenticatorInterfaceOptMixinProtocol],
+        ) -> list[AuthenticatorInterfaceOptMixinProtocol]:
             return sorted(x, key=lambda x: (x.type == 0, x.type))
 
         # Collect interfaces user is enrolled in
@@ -98,7 +105,9 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
             return interface
         return None
 
-    def get_interface(self, user: User, interface_id: int) -> AuthenticatorInterface:
+    def get_interface(
+        self, user: User | AnonymousUser, interface_id: str
+    ) -> AuthenticatorInterfaceOptMixinProtocol:
         """Looks up an interface by interface ID for a user.  If the
         interface is not available but configured a
         `Authenticator.DoesNotExist` will be raised just as if the
@@ -186,7 +195,7 @@ class Authenticator(ControlOutboxProducingModel):
         )
 
     @cached_property
-    def interface(self) -> AuthenticatorInterface:
+    def interface(self) -> AuthenticatorInterfaceOptMixinProtocol:
         return AUTHENTICATOR_INTERFACES_BY_TYPE[self.type](self)
 
     def mark_used(self, save: bool = True) -> None:
