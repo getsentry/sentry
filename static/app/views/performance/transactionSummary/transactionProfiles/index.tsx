@@ -124,7 +124,7 @@ function ProfilesLegacy({organization, transaction}: ProfilesProps) {
                   projects={projectIds}
                   initialQuery={rawQuery}
                   onSearch={handleSearch}
-                  searchSource="transaction_summary"
+                  searchSource="transaction_profiles"
                 />
               ) : (
                 <SearchBar
@@ -218,7 +218,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
                   projects={projectIds}
                   initialQuery={rawQuery}
                   onSearch={handleSearch}
-                  searchSource="transaction_summary"
+                  searchSource="transaction_profiles"
                 />
               ) : (
                 <SearchBar

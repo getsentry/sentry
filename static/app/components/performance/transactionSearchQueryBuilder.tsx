@@ -25,7 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
 
-type SearchSource = 'transaction_summary';
+type SearchSource = 'transaction_summary' | 'transaction_profiles';
 
 interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
