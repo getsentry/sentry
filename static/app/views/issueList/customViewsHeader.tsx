@@ -22,16 +22,25 @@ import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpd
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-import type {QueryCounts} from './utils';
-import {IssueSortOptions} from './utils';
+import type {IssueSortOptions, QueryCounts} from './utils';
 
 type CustomViewsIssueListHeaderProps = {
+  organization: Organization;
+  queryCounts: QueryCounts;
+  router: InjectedRouter;
+  selectedProjectIds: number[];
+  initalView?: GroupSearchView;
+};
+
+type CustomViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
   query: string;
   queryCounts: QueryCounts;
   router: InjectedRouter;
-  selectedProjectIds: number[];
-  queryCount?: number;
+  setBorderStyle: (borderStyle: 'dashed' | 'solid') => void;
+  sort: IssueSortOptions;
+  views: GroupSearchView[];
+  defaultView?: string;
 };
 
 function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps) {
@@ -57,6 +66,9 @@ function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps)
     defaultView = 'temporary-tab';
   }
 
+  const query = queryParams.query ?? props.initalView?.query;
+  const sort = queryParams.sort ?? props.initalView?.querySort;
+
   const [borderStyle, setBorderStyle] = useState<'dashed' | 'solid'>(
     defaultView === 'temporary-tab' ? 'dashed' : 'solid'
   );
@@ -79,6 +91,8 @@ function CustomViewsIssueListHeader({...props}: CustomViewsIssueListHeaderProps)
       {groupSearchViews ? (
         <CustomViewsIssueListHeaderTabsContent
           {...props}
+          query={query}
+          sort={sort}
           views={groupSearchViews}
           setBorderStyle={setBorderStyle}
           defaultView={defaultView}
@@ -95,25 +109,17 @@ function CustomViewsIssueListHeaderTabsContent({
   query,
   queryCounts,
   router,
+  setBorderStyle,
+  sort,
   views,
   defaultView,
-  setBorderStyle,
-}: CustomViewsIssueListHeaderProps & {
-  setBorderStyle: (borderStyle: 'dashed' | 'solid') => void;
-  views: GroupSearchView[];
-  defaultView?: string;
-}) {
+}: CustomViewsIssueListHeaderTabsContentProps) {
   // Remove cursor and page when switching tabs
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
-  const sortParam =
-    queryParams.sort === IssueSortOptions.INBOX
-      ? undefined
-      : Object.values(IssueSortOptions).includes(queryParams.sort)
-        ? queryParams.sort
-        : IssueSortOptions.DATE;
+  const sortParam = queryParams.sort ?? sort;
 
   const viewsToTabs = views.map(
-    ({id, name, query: viewQuery, querySort: viewQuerySort}, index) => {
+    ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
       return {
         id: id ?? undefined,
         key: `view-${index}`,
@@ -121,8 +127,6 @@ function CustomViewsIssueListHeaderTabsContent({
         query: viewQuery,
         querySort: viewQuerySort,
         queryCount: queryCounts[viewQuery]?.count ?? undefined,
-        unsavedQuery: query,
-        unsavedQuerySort: viewQuerySort,
         to: normalizeUrl({
           query: {
             ...queryParams,
@@ -181,6 +185,23 @@ function CustomViewsIssueListHeaderTabsContent({
     }
   }, 1000);
 
+  // Update URL with view's query, sort, and id(?) upon initial render. Ideally
+  // we can remove this after overview.tsx gets overhauled.
+  useEffect(() => {
+    router.replace(
+      normalizeUrl({
+        query: {
+          ...queryParams,
+          query: query,
+          sort: sort,
+          ...(draggableTabs[0]?.id ? {viewId: draggableTabs[0].id} : {}),
+        },
+        pathname: `/organizations/${organization.slug}/issues/`,
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
     setDraggableTabs(
@@ -227,6 +248,7 @@ function CustomViewsIssueListHeaderTabsContent({
       currentTab &&
       (query !== currentTab.query || sortParam !== currentTab.querySort)
     ) {
+      // console.log(currentTab.query, query, currentTab.querySort, sortParam);
       setDraggableTabs(
         draggableTabs?.map(tab => {
           if (tab.key === selectedTabKey) {
