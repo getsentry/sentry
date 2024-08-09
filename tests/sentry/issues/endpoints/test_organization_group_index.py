@@ -2913,6 +2913,46 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             assert [int(row["id"]) for row in response.data] == expected_group_ids
 
+    def test_snuba_unassigned(self, _: MagicMock) -> None:
+        # issue 1: assigned to user
+        time = datetime.now() - timedelta(minutes=10)
+        event1 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event1.group, self.user)
+
+        # issue 2: assigned to team
+        time = datetime.now() - timedelta(minutes=9)
+        event2 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event2.group, self.team)
+
+        # issue 3: unassigned
+        time = datetime.now() - timedelta(minutes=2)
+        event3 = self.store_event(
+            data={"timestamp": time.timestamp(), "fingerprint": ["group-3"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        queries_with_expected_ids = [
+            ("is:assigned", [event1.group.id, event2.group.id]),
+            ("!is:assigned", [event3.group.id]),
+            ("!is:unassigned", [event1.group.id, event2.group.id]),
+            ("is:unassigned", [event3.group.id]),
+        ]
+
+        for query, expected_group_ids in queries_with_expected_ids:
+            response = self.get_success_response(
+                sort="new",
+                query=query,
+            )
+            assert {int(row["id"]) for row in response.data} == set(expected_group_ids)
+
     def test_snuba_query_title(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         event1 = self.store_event(

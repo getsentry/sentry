@@ -1277,6 +1277,31 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ],
         )
 
+    def get_unassigned_condition(
+        self,
+        search_filter: SearchFilter,
+        attr_entity: Entity,
+    ) -> Condition:
+        is_assigned = search_filter.value.raw_value is False
+        is_negation = search_filter.is_negation
+
+        check_assigned = (is_assigned and not is_negation) or (not is_assigned and is_negation)
+        if check_assigned:
+            return BooleanCondition(
+                op=BooleanOp.OR,
+                conditions=[
+                    Condition(Column("assignee_user_id", attr_entity), Op.IS_NOT_NULL),
+                    Condition(Column("assignee_team_id", attr_entity), Op.IS_NOT_NULL),
+                ],
+            )
+        return BooleanCondition(
+            op=BooleanOp.AND,
+            conditions=[
+                Condition(Column("assignee_user_id", attr_entity), Op.IS_NULL),
+                Condition(Column("assignee_team_id", attr_entity), Op.IS_NULL),
+            ],
+        )
+
     def get_suggested(self, search_filter: SearchFilter) -> Condition:
         """
         Returns the suggested lookup for a search filter.
@@ -1554,6 +1579,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "substatus": (get_basic_group_snuba_condition, Clauses.WHERE),
         "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
         "assigned_to": (get_assigned, Clauses.WHERE),
+        "unassigned": (get_unassigned_condition, Clauses.WHERE),
         "first_seen": (get_basic_group_snuba_condition, Clauses.WHERE),
         "last_seen": (get_last_seen_filter, Clauses.HAVING),
         "times_seen": (get_times_seen_filter, Clauses.HAVING),
@@ -1741,6 +1767,10 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 elif search_filter.key.name in FIRST_RELEASE_FILTERS:
                     where_conditions.append(
                         self.get_first_release_condition(search_filter, projects)
+                    )
+                elif search_filter.key.name == "unassigned":
+                    where_conditions.append(
+                        self.get_unassigned_condition(search_filter, attr_entity)
                     )
                 elif fn:
                     # dynamic lookup of what clause to use
