@@ -158,7 +158,9 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   selectedSection,
   setSelectedSection,
 }: FilterKeyListBoxProps<T>) {
-  const modifiedHiddenOptions = useMemo<Set<SelectKey>>(() => {
+  // Add recent filters to hiddenOptions so they don't show up the ListBox component.
+  // We render recent filters manually in the RecentFiltersPane component.
+  const hiddenOptionsWithRecentsAdded = useMemo<Set<SelectKey>>(() => {
     return new Set([
       ...hiddenOptions,
       ...recentFilters.map(filter => createRecentFilterOptionKey(filter)),
@@ -168,7 +170,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   useHighlightFirstOptionOnSectionChange({
     state,
     selectedSection,
-    hiddenOptions: modifiedHiddenOptions,
+    hiddenOptions: hiddenOptionsWithRecentsAdded,
     sections,
   });
 
@@ -210,7 +212,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
               ref={listBoxRef}
               listState={state}
               hasSearch={false}
-              hiddenOptions={modifiedHiddenOptions}
+              hiddenOptions={hiddenOptionsWithRecentsAdded}
               keyDownHandler={() => true}
               overlayIsOpen={isOpen}
               showSectionHeaders={!selectedSection}
