@@ -15,7 +15,7 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
+    SimilarHashNotFoundError,
     SimilarIssuesEmbeddingsRequest,
 )
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
@@ -210,7 +210,7 @@ def get_similarity_data_from_seer(
                     "raw_similar_issue_data": raw_similar_issue_data,
                 },
             )
-        except SimilarGroupNotFoundError:
+        except SimilarHashNotFoundError:
             parent_hash = raw_similar_issue_data.get("parent_hash")
 
             # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
@@ -224,7 +224,7 @@ def get_similarity_data_from_seer(
             # missing" the same thing as "they're all missing"). We should also almost never land
             # here in any case, since deleting the group on the Sentry side should already have
             # triggered a request to Seer to delete the corresponding hashes.
-            metric_tags.update({"outcome": "error", "error": "SimilarGroupNotFoundError"})
+            metric_tags.update({"outcome": "error", "error": "SimilarHashNotFoundError"})
             logger.warning(
                 "get_similarity_data_from_seer.parent_group_not_found",
                 extra={

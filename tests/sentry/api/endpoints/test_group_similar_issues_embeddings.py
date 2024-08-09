@@ -413,7 +413,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             tags={
                 "response_status": 200,
                 "outcome": "error",
-                "error": "SimilarGroupNotFoundError",
+                "error": "SimilarHashNotFoundError",
                 "referrer": "similar_issues",
             },
         )
