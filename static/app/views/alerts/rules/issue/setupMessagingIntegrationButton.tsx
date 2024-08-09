@@ -52,9 +52,9 @@ function SetupMessagingIntegrationButton({projectSlug, refetchConfigs}: Props) {
   const {IntegrationFeatures} = getIntegrationFeatureGate();
 
   const shouldRenderSetupButton =
-    projectQuery.data &&
+    projectQuery.data != null &&
     !projectQuery.data.hasAlertIntegrationInstalled &&
-    integrationQuery.data;
+    integrationQuery.data != null;
 
   useRouteAnalyticsParams({
     setup_message_integration_button_shown: shouldRenderSetupButton,
