@@ -17,6 +17,11 @@ export function DatabaseSystemSelector() {
     'api.starfish.database-system-selector'
   );
 
+  // No point in displaying the dropdown if there is only one option
+  if (data.length <= 1) {
+    return null;
+  }
+
   const options = [
     {value: 'PostgreSQL', label: 'PostgreSQL'},
     {value: 'MongoDB', label: 'MongoDB'},
