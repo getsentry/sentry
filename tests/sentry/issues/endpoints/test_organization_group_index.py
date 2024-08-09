@@ -3255,7 +3255,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         sleep(1)
 
         # Request the first page with a limit of 10
-        response = self.get_success_response(limit=10)
+        response = self.get_success_response(limit=10, sort="new")
         assert response.status_code == 200
         assert len(response.data) == 10
         assert response.headers.get("X-Hits") == "30"
