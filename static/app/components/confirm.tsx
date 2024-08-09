@@ -1,5 +1,4 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
-import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -117,10 +116,6 @@ export type OpenConfirmOptions = {
    * Used to render a message instead of using the static `message` prop.
    */
   renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
-  /**
-   * Show the message without bold formatting
-   */
-  withoutBold?: boolean;
 };
 
 interface Props extends OpenConfirmOptions {
@@ -222,7 +217,6 @@ type ModalProps = ModalRenderProps &
     | 'onCancel'
     | 'disableConfirmButton'
     | 'onRender'
-    | 'withoutBold'
   >;
 
 type ModalState = {
@@ -275,7 +269,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
   };
 
   get confirmMessage() {
-    const {message, renderMessage, withoutBold} = this.props;
+    const {message, renderMessage} = this.props;
 
     if (typeof renderMessage === 'function') {
       return renderMessage({
@@ -288,15 +282,11 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    if (isValidElement(message) || withoutBold) {
+    if (isValidElement(message)) {
       return message;
     }
 
-    return (
-      <p>
-        <StrongBreakWord>{message}</StrongBreakWord>
-      </p>
-    );
+    return <p style={{wordWrap: 'break-word'}}>{message}</p>;
   }
 
   render() {
@@ -355,7 +345,3 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
 }
 
 export default Confirm;
-
-const StrongBreakWord = styled('strong')`
-  overflow-wrap: break-word;
-`;
