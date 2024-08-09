@@ -208,13 +208,6 @@ export const platforms: PlatformIntegration[] = [
     language: 'go',
   },
   {
-    link: 'https://docs.sentry.io/platforms/go/guides/martini/',
-    type: 'framework',
-    id: 'go-martini',
-    name: 'Martini',
-    language: 'go',
-  },
-  {
     link: 'https://docs.sentry.io/platforms/go/guides/negroni/',
     type: 'framework',
     id: 'go-negroni',
