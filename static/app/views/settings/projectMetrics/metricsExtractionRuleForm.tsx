@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
+import {hasDuplicates} from 'sentry/utils/array/hasDuplicates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
@@ -347,6 +348,14 @@ export function MetricsExtractionRuleForm({
 
       if (!data.aggregates.length) {
         errors.aggregates = [t('At least one aggregate is required.')];
+      }
+
+      const conditions = [...data.conditions].map(condition => condition.value.trim());
+
+      if (hasDuplicates(conditions)) {
+        errors.conditions = [
+          t('Each filter must be unique; duplicates are not allowed.'),
+        ];
       }
 
       if (Object.keys(errors).length) {
