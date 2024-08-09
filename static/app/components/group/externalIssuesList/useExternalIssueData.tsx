@@ -58,7 +58,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
       return acc;
     }, new Map<string, GroupIntegration[]>());
 
-    return [...activeIntegrationsByProvider.entries()].map(
+    return [...activeIntegrationsByProvider.entries()].map<ExternalIssueComponent>(
       ([provider, configurations]) => ({
         type: 'integration-issue',
         key: provider,

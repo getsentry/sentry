@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import useStreamLinedExternalIssueData from 'sentry/components/group/externalIssuesList/useStreamlinedExternalIssueData';
 import Placeholder from 'sentry/components/placeholder';
@@ -12,13 +13,17 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
+interface StreamlinedExternalIssueListProps {
   event: Event;
   group: Group;
   project: Project;
-};
+}
 
-export function StreamlinedExternalIssueList({group, event, project}: Props) {
+export function StreamlinedExternalIssueList({
+  group,
+  event,
+  project,
+}: StreamlinedExternalIssueListProps) {
   const {isLoading, integrations, linkedIssues} = useStreamLinedExternalIssueData({
     group,
     event,
@@ -43,7 +48,24 @@ export function StreamlinedExternalIssueList({group, event, project}: Props) {
         <IssueActionWrapper>
           {linkedIssues.map(linkedIssue => (
             <ErrorBoundary key={linkedIssue.key} mini>
-              <Tooltip title={t('Unlink Issue')} isHoverable>
+              <Tooltip
+                overlayStyle={{maxWidth: '400px'}}
+                position="bottom"
+                title={
+                  <LinkedIssueTooltipWrapper>
+                    <LinkedIssueName>{linkedIssue.title}</LinkedIssueName>
+                    <HorizontalSeparator />
+                    <UnlinkButton
+                      priority="link"
+                      size="zero"
+                      onClick={linkedIssue.onUnlink}
+                    >
+                      {t('Unlink issue')}
+                    </UnlinkButton>
+                  </LinkedIssueTooltipWrapper>
+                }
+                isHoverable
+              >
                 <LinkedIssue
                   href={linkedIssue.url}
                   external
@@ -56,13 +78,39 @@ export function StreamlinedExternalIssueList({group, event, project}: Props) {
             </ErrorBoundary>
           ))}
           {integrations.length
-            ? integrations.map(({key, displayName, displayIcon}) => (
-                <ErrorBoundary key={key} mini>
-                  <IssueActionButton size="zero" icon={displayIcon}>
-                    <IssueActionName>{displayName}</IssueActionName>
-                  </IssueActionButton>
-                </ErrorBoundary>
-              ))
+            ? integrations.map(integration => {
+                const sharedButtonProps: ButtonProps = {
+                  size: 'zero',
+                  icon: integration.displayIcon,
+                  children: <IssueActionName>{integration.displayName}</IssueActionName>,
+                };
+
+                if (integration.actions.length === 1) {
+                  return (
+                    <ErrorBoundary key={integration.key} mini>
+                      <IssueActionButton
+                        {...sharedButtonProps}
+                        onClick={integration.actions[0].onClick}
+                      />
+                    </ErrorBoundary>
+                  );
+                }
+
+                return (
+                  <ErrorBoundary key={integration.key} mini>
+                    <DropdownMenu
+                      trigger={triggerProps => (
+                        <IssueActionButton {...sharedButtonProps} {...triggerProps} />
+                      )}
+                      items={integration.actions.map(action => ({
+                        key: action.name,
+                        label: action.name,
+                        onAction: action.onClick,
+                      }))}
+                    />
+                  </ErrorBoundary>
+                );
+              })
             : null}
         </IssueActionWrapper>
       </SidebarSection.Content>
@@ -96,11 +144,29 @@ const IssueActionButton = styled(Button)`
   font-weight: normal;
 `;
 
-const IconWrapper = styled('div')`
-  display: flex;
-`;
-
 const IssueActionName = styled('div')`
   ${p => p.theme.overflowEllipsis}
   max-width: 200px;
+`;
+
+const LinkedIssueTooltipWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  white-space: nowrap;
+`;
+
+const LinkedIssueName = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  margin-right: ${space(0.25)};
+`;
+
+const HorizontalSeparator = styled('div')`
+  width: 1px;
+  height: 14px;
+  background: ${p => p.theme.border};
+`;
+
+const UnlinkButton = styled(Button)`
+  color: ${p => p.theme.subText};
 `;

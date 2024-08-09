@@ -480,7 +480,11 @@ export type PluginNoProject = {
   deprecationDate?: string;
   description?: string;
   firstPartyAlternative?: string;
-  issue?: any; // TODO (ts)
+  issue?: {
+    issue_id: string;
+    label: string;
+    url: string;
+  };
   resourceLinks?: Array<{title: string; url: string}>;
   version?: string;
 };
