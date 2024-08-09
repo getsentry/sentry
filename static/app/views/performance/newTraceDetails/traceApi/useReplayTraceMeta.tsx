@@ -77,6 +77,7 @@ export function useReplayTraceMeta(
       data: meta.data,
       isLoading: eventsIsLoading || meta.isLoading,
       errors: meta.errors,
+      status: meta.status,
     };
   }, [meta, eventsIsLoading]);
 

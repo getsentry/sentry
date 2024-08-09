@@ -14,7 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types';
+import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -79,6 +79,7 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         performance_issues: 0,
         projects: 0,
         transactions: 0,
+        transaction_child_count_map: [],
       },
     }),
   });
@@ -261,7 +262,18 @@ async function keyboardNavigationTestSetup() {
       orphan_errors: [],
     },
   });
-  mockTraceMetaResponse();
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: keyboard_navigation_transactions.map(t => ({
+        'transaction.id': t.event_id,
+        count: 5,
+      })),
+    },
+  });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
@@ -1082,7 +1094,6 @@ describe('trace view', () => {
       });
     });
     it('during search, expanding a row retriggers search', async () => {
-      mockTraceMetaResponse();
       mockTraceRootFacets();
       mockTraceRootEvent('0');
       mockTraceEventDetails();
@@ -1117,6 +1128,33 @@ describe('trace view', () => {
             }),
           ],
           orphan_errors: [],
+        },
+      });
+
+      mockTraceMetaResponse({
+        body: {
+          errors: 0,
+          performance_issues: 0,
+          projects: 0,
+          transactions: 0,
+          transaction_child_count_map: [
+            {
+              'transaction.id': '0',
+              count: 5,
+            },
+            {
+              'transaction.id': '1',
+              count: 5,
+            },
+            {
+              'transaction.id': '2',
+              count: 5,
+            },
+            {
+              'transaction.id': '3',
+              count: 5,
+            },
+          ],
         },
       });
 

@@ -25,6 +25,7 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -474,6 +475,7 @@ for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
 type TraceFetchOptions = {
   api: Client;
   filters: any;
+  metaResults: TraceMetaQueryResults | null;
   organization: Organization;
   replayTraces: ReplayTrace[];
   rerender: () => void;
@@ -532,7 +534,11 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace, replayRecord: ReplayRecord | null): TraceTree {
+  static FromTrace(
+    trace: TraceTree.Trace,
+    metaResults: TraceMetaQueryResults | null,
+    replayRecord: ReplayRecord | null
+  ): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -562,7 +568,9 @@ export class TraceTree {
               parent.parent_transaction?.metadata.project_slug,
       });
 
-      node.canFetch = true;
+      const spanChildrenCount =
+        metaResults?.data?.transactiontoSpanChildrenCount[node.value.event_id];
+      node.canFetch = spanChildrenCount ? spanChildrenCount >= 2 : false;
       tree.eventsCount += 1;
       tree.project_ids.add(node.value.project_id);
 
@@ -747,7 +755,7 @@ export class TraceTree {
           } as TraceSplitResults<TraceTree.Transaction>
         );
 
-        this.appendTree(TraceTree.FromTrace(updatedData, null));
+        this.appendTree(TraceTree.FromTrace(updatedData, options.metaResults, null));
         rerender();
       }
 
@@ -1823,10 +1831,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       this.profiles.push({profile_id: value.profile_id, space: this.space ?? [0, 0]});
     }
 
-    if (isTransactionNode(this)) {
-      this.canFetch = true;
-    }
-
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
       this.expanded = true;
     }
@@ -2828,7 +2832,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  const tree = TraceTree.FromTrace(trace, null);
+  const tree = TraceTree.FromTrace(trace, null, null);
 
   return tree;
 }
