@@ -3458,6 +3458,48 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
+    def test_avg_span_self_time(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(span.self_time)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(span.self_time)"] == 3.2
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3946,3 +3988,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_on_demand_with_mep(self):
         super().test_on_demand_with_mep()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_span_self_time(self):
+        super().test_avg_span_self_time()
