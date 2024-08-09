@@ -1,15 +1,22 @@
+from __future__ import annotations
+
 import logging
 from collections.abc import Iterable, Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
+from sentry.digests.types import Record
 from sentry.utils.imports import import_string
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
-    from sentry.digests import Record, ScheduleEntry
     from sentry.models.project import Project
 
 logger = logging.getLogger("sentry.digests")
+
+
+class ScheduleEntry(NamedTuple):
+    key: str
+    timestamp: float
 
 
 def load(options: Mapping[str, str]) -> Any:
@@ -106,7 +113,7 @@ class Backend(Service):
             else:
                 self.truncation_chance = 0.0
 
-    def enabled(self, project: "Project") -> bool:
+    def enabled(self, project: Project) -> bool:
         """
         Check if a project has digests enabled.
         """
@@ -115,7 +122,7 @@ class Backend(Service):
     def add(
         self,
         key: str,
-        record: "Record",
+        record: Record,
         increment_delay: int | None = None,
         maximum_delay: int | None = None,
         timestamp: float | None = None,
@@ -169,9 +176,7 @@ class Backend(Service):
         """
         raise NotImplementedError
 
-    def schedule(
-        self, deadline: float, timestamp: float | None = None
-    ) -> Iterable["ScheduleEntry"]:
+    def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:
         """
         Identify timelines that are ready for processing.
 

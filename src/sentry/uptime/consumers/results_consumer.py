@@ -27,7 +27,7 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     create_uptime_subscription,
-    delete_project_uptime_subscription,
+    delete_uptime_subscriptions_for_project,
     remove_uptime_subscription_if_unused,
 )
 from sentry.utils import metrics
@@ -91,7 +91,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             "status": result["status"],
             "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),
         }
-        metrics.incr("uptime.result_processor.handle_result_for_project", tags=metric_tags)
+
+        status_reason = "none"
+        if result["status_reason"]:
+            status_reason = result["status_reason"]["type"]
+
+        metrics.incr(
+            "uptime.result_processor.handle_result_for_project",
+            tags={"status_reason": status_reason, **metric_tags},
+            sample_rate=1.0,
+        )
         cluster = _get_cluster()
         try:
             if result["scheduled_check_time_ms"] <= last_update_ms:
@@ -141,7 +150,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             failure_count = pipeline.execute()[0]
             if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
                 # If we've hit too many failures during the onboarding period we stop monitoring
-                delete_project_uptime_subscription(
+                delete_uptime_subscriptions_for_project(
                     project_subscription.project,
                     project_subscription.uptime_subscription,
                     modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING],
@@ -207,6 +216,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
                 create_issue_platform_occurrence(result, project_subscription)
+                metrics.incr("uptime.result_processor.active.sent_occurrence", sample_rate=1.0)
+                logger.info(
+                    "uptime_active_sent_occurrence",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
             project_subscription.update(uptime_status=UptimeStatus.FAILED)
         elif (
             project_subscription.uptime_status == UptimeStatus.FAILED
@@ -216,6 +234,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organizations:uptime-create-issues", project_subscription.project.organization
             ):
                 resolve_uptime_issue(project_subscription)
+                metrics.incr("uptime.result_processor.active.resolved", sample_rate=1.0)
+                logger.info(
+                    "uptime_active_resolved",
+                    extra={
+                        "project_id": project_subscription.project_id,
+                        "url": project_subscription.uptime_subscription.url,
+                        **result,
+                    },
+                )
             project_subscription.update(uptime_status=UptimeStatus.OK)
 
 

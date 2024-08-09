@@ -11,9 +11,6 @@ export interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
 }
 
 export type AutofixSetupResponse = {
-  codebaseIndexing: {
-    ok: boolean;
-  };
   genAIConsent: {
     ok: boolean;
   };
@@ -48,9 +45,7 @@ export function useAutofixSetup(
   return {
     ...queryData,
     canStartAutofix: Boolean(
-      queryData.data?.integration.ok &&
-        queryData.data?.genAIConsent.ok &&
-        queryData.data?.codebaseIndexing.ok
+      queryData.data?.integration.ok && queryData.data?.genAIConsent.ok
     ),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration.ok),
   };
