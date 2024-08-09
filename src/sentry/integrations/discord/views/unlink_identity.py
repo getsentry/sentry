@@ -10,6 +10,8 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
+from .constants import SALT
+
 
 def build_unlinking_url(integration: RpcIntegration, discord_id: str) -> str:
     endpoint = "sentry-integration-discord-unlink-identity"
@@ -17,7 +19,7 @@ def build_unlinking_url(integration: RpcIntegration, discord_id: str) -> str:
         "discord_id": discord_id,
         "integration_id": integration.id,
     }
-    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
+    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
 
 
 class DiscordUnlinkIdentityView(DiscordLinkingView, UnlinkIdentityView):
