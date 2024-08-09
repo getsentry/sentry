@@ -30,7 +30,11 @@ from sentry import (
     reprocessing2,
     tsdb,
 )
-from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.attachments import (
+    CachedAttachment,
+    MissingAttachmentChunks,
+    attachment_cache,
+)
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     INSIGHT_MODULE_FILTERS,
@@ -89,7 +93,11 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashrepor
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
-from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.eventattachment import (
+    CRASH_REPORT_TYPES,
+    EventAttachment,
+    get_crashreport_key,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -132,11 +140,17 @@ from sentry.utils.circuit_breaker import (
     circuit_breaker_activated,
 )
 from sentry.utils.dates import to_datetime
-from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
+from sentry.utils.event import (
+    has_event_minified_stack_trace,
+    has_stacktrace,
+    is_handled,
+)
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.performance_issues.performance_detection import detect_performance_problems
+from sentry.utils.performance_issues.performance_detection import (
+    detect_performance_problems,
+)
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
@@ -279,13 +293,13 @@ def has_pending_commit_resolution(group: Group) -> bool:
 
 
 @overload
-def get_max_crashreports(model: Project | Organization) -> int:
-    ...
+def get_max_crashreports(model: Project | Organization) -> int: ...
 
 
 @overload
-def get_max_crashreports(model: Project | Organization, *, allow_none: Literal[True]) -> int | None:
-    ...
+def get_max_crashreports(
+    model: Project | Organization, *, allow_none: Literal[True]
+) -> int | None: ...
 
 
 def get_max_crashreports(model: Project | Organization, *, allow_none: bool = False) -> int | None:
@@ -348,7 +362,7 @@ class ScoreClause(Func):
                 self.last_seen.timestamp(),
             )
         else:
-            sql = "log(times_seen) * 600 + last_seen::abstime::int"
+            sql = "log(times_seen) * 600 + date_part('epoch',date_trunc('second',last_seen))"
 
         return (sql, [])
 
