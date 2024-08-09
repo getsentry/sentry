@@ -30,13 +30,14 @@ def build_unlinking_url(conversation_id, service_url, teams_user_id):
 
 
 class MsTeamsUnlinkIdentityView(MsTeamsLinkingView, UnlinkIdentityView):
+    def get_success_template_and_context(
+        self, params: Mapping[str, Any], integration: Integration | None
+    ) -> tuple[str, dict[str, Any]]:
+        return "sentry/integrations/msteams/unlinked.html", {}
+
     @property
     def confirmation_template(self) -> str:
         return "sentry/integrations/msteams/unlink-identity.html"
-
-    @property
-    def success_template(self) -> str:
-        return "sentry/integrations/msteams/unlinked.html"
 
     @property
     def no_identity_template(self) -> str | None:
@@ -46,7 +47,9 @@ class MsTeamsUnlinkIdentityView(MsTeamsLinkingView, UnlinkIdentityView):
     def filter_by_user_id(self) -> bool:
         return True
 
-    def notify_on_success(self, integration: Integration | None, params: Mapping[str, Any]) -> None:
+    def notify_on_success(
+        self, external_id: str, params: Mapping[str, Any], integration: Integration | None
+    ) -> None:
         client = get_preinstall_client(params["service_url"])
         card = build_unlinked_card()
         client.send_card(params["conversation_id"], card)
