@@ -13,7 +13,11 @@ class IncompleteSeerDataError(Exception):
     pass
 
 
-class SimilarGroupNotFoundError(Exception):
+class SimilarHashNotFoundError(Exception):
+    pass
+
+
+class SimilarHashMissingGroupError(Exception):
     pass
 
 
@@ -42,7 +46,7 @@ class SimilarIssuesEmbeddingsResponse(TypedDict):
     responses: list[RawSeerSimilarIssueData]
 
 
-# Like the data that comes back from seer, but guaranteed to have a parent group id
+# Like the data that comes back from seer, but guaranteed to have an existing parent hash
 @dataclass
 class SeerSimilarIssueData:
     stacktrace_distance: float
@@ -69,11 +73,11 @@ class SeerSimilarIssueData:
         using the parent hash to look up the parent group id. Needs to be run individually on each
         similar issue in the Seer response.
 
-        Throws an `IncompleteSeerDataError` if given data with any required keys missing, and a
-        `SimilarGroupNotFoundError` if the data points to a group which no longer exists. The latter
-        guarantees that if this successfully returns, the parent group id in the return value points
-        to an existing group.
-
+        Throws an `IncompleteSeerDataError` if given data with any required keys missing, a
+        `SimilarHashNotFoundError` if the data points to a grouphash which no longer exists, and a
+        `SimilarHashMissingGroupError` if the the data points to a grouphash not assigned to a
+        group. The latter two guarantee that if this successfully returns, the parent group id in the
+        return value points to an existing group.
         """
 
         # Filter out any data we're not expecting, and then make sure what's left isn't missing anything
@@ -99,7 +103,11 @@ class SeerSimilarIssueData:
 
         if not parent_grouphash:
             # TODO: Report back to seer that the hash has been deleted.
-            raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
+            raise SimilarHashNotFoundError("Similar hash suggested by Seer does not exist")
+
+        if not parent_grouphash.group_id:
+            # TODO: Report back to seer that the hash has been deleted.
+            raise SimilarHashMissingGroupError("Similar hash suggested by Seer missing group id")
 
         # TODO: The `Any` casting here isn't great, but Python currently has no way to
         # relate typeddict keys to dataclass properties
