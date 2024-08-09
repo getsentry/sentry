@@ -1,22 +1,22 @@
-import type { PlainRoute } from 'react-router';
+import type {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
-import type { Location, LocationDescriptor, Query } from 'history';
+import type {Location, LocationDescriptor, Query} from 'history';
 
-import { space } from 'sentry/styles/space';
-import type { Organization } from 'sentry/types/organization';
-import { getDateFromTimestamp } from 'sentry/utils/dates';
-import type { TableDataRow } from 'sentry/utils/discover/discoverQuery';
-import { generateLinkToEventInTraceView } from 'sentry/utils/discover/urls';
+import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
+import {getDateFromTimestamp} from 'sentry/utils/dates';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRoute,
 } from 'sentry/utils/profiling/routes';
-import { MutableSearch } from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import { getTraceDetailsUrl } from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import { TraceViewSources } from '../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -197,7 +197,7 @@ export function generateProfileLink() {
         ? getDateFromTimestamp(tableRow['precise.finish_ts'] * 1000)
         : null;
     if (projectSlug && profilerId && threadId && start && finish) {
-      const query: Record<string, string> = { tid: String(threadId) };
+      const query: Record<string, string> = {tid: String(threadId)};
       if (tableRow.id && tableRow.trace) {
         query.eventId = String(tableRow.id);
         query.traceId = String(tableRow.trace);
@@ -209,7 +209,7 @@ export function generateProfileLink() {
         profilerId: String(profilerId),
         start: start.toISOString(),
         end: finish.toISOString(),
-        query
+        query,
       });
     }
 
