@@ -1,6 +1,7 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -24,8 +25,10 @@ import {
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
@@ -253,10 +256,15 @@ const StyledMain = styled(Layout.Main)`
 `;
 
 function ProfilesIndex() {
+  const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
+  const {selection} = usePageFilters();
   const transaction = decodeScalar(location.query.transaction);
 
+  useEffect(() => {
+    loadOrganizationTags(api, organization.slug, selection);
+  }, [api, organization.slug, selection]);
   if (!transaction) {
     redirectToPerformanceHomepage(organization, location);
     return null;
