@@ -1,17 +1,14 @@
 import {useEffect, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import type {Node} from '@react-types/shared';
 import {debounce} from 'lodash';
 
-import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -171,7 +168,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const {mutate: updateViews} = useUpdateGroupSearchViews();
 
-  const debounceUpdateViews = debounce(newTabs => {
+  const debounceUpdateViews = debounce((newTabs: Tab[]) => {
     if (newTabs) {
       updateViews({
         orgSlug: organization.slug,
@@ -331,15 +328,9 @@ function CustomViewsIssueListHeaderTabsContent({
     }
   };
 
-  const onDeleteView = (key: string) => {
-    const newDraggableTabs = draggableTabs.filter(tab => tab.key !== key);
-    debounceUpdateViews(newDraggableTabs);
-    setDraggableTabs(newDraggableTabs);
-  };
-
-  const onDiscardChanges = (key: string) => {
+  const onDiscardChanges = () => {
     if (draggableTabs) {
-      const originalTab = draggableTabs.find(tab => tab.key === key);
+      const originalTab = draggableTabs.find(tab => tab.key === selectedTabKey);
       if (originalTab?.to) {
         originalTab.unsavedChanges = undefined;
         originalTab.to = normalizeUrl({
@@ -356,44 +347,12 @@ function CustomViewsIssueListHeaderTabsContent({
     }
   };
 
-  const onDuplicateView = (key: string) => {
-    const idx = draggableTabs.findIndex(tab => tab.key === key);
-    const duplicatedTab = draggableTabs[idx];
-    if (idx !== -1) {
-      const newDraggableTabs = [
-        ...draggableTabs.slice(0, idx + 1),
-        {
-          ...duplicatedTab,
-          key: `view-${idx + 1}`,
-          label: `${duplicatedTab.label} (Copy)`,
-        },
-        ...draggableTabs
-          .slice(idx + 1)
-          .map((tab, i) => ({...tab, key: `view-${idx + 2 + i}`})),
-      ];
-      debounceUpdateViews(newDraggableTabs);
-      setDraggableTabs(newDraggableTabs);
-      setSelectedTabKey(`view-${idx + 1}`);
-    }
-  };
-
-  const onSaveChanges = (key: string) => {
+  const onSaveChanges = () => {
     const newDraggableTabs = draggableTabs.map(tab => {
-      if (tab.key === key) {
+      if (tab.key === selectedTabKey) {
         tab.query = tab.unsavedChanges?.[0] ?? query;
         tab.querySort = tab.unsavedChanges?.[1] ?? sortParam;
         tab.unsavedChanges = undefined;
-      }
-      return tab;
-    });
-    debounceUpdateViews(newDraggableTabs);
-    setDraggableTabs(newDraggableTabs);
-  };
-
-  const onRenamedView = (key: string, newLabel: string) => {
-    const newDraggableTabs = draggableTabs.map(tab => {
-      if (tab.key === key) {
-        tab.label = newLabel;
       }
       return tab;
     });
@@ -437,18 +396,6 @@ function CustomViewsIssueListHeaderTabsContent({
     }
   };
 
-  const onReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
-    const newDraggableTabs = newOrder
-      .map(node => {
-        const foundTab = draggableTabs.find(tab => tab.key === node.key);
-        return foundTab?.key === node.key ? foundTab : null;
-      })
-      .filter(defined);
-
-    debounceUpdateViews(newDraggableTabs);
-    setDraggableTabs(newDraggableTabs);
-  };
-
   return (
     <StyledDraggableTabBar
       selectedTabKey={selectedTabKey}
@@ -457,12 +404,12 @@ function CustomViewsIssueListHeaderTabsContent({
       setTabs={setDraggableTabs}
       showTempTab={tempTab !== undefined}
       tempTab={tempTab}
-      onReorder={onReorder}
+      onReorder={debounceUpdateViews}
       onAddView={onAddView}
-      onDelete={onDeleteView}
+      onDelete={debounceUpdateViews}
       onDiscard={onDiscardChanges}
-      onDuplicate={onDuplicateView}
-      onTabRenamed={onRenamedView}
+      onDuplicate={debounceUpdateViews}
+      onTabRenamed={newTabs => debounceUpdateViews(newTabs)}
       onSave={onSaveChanges}
       onDiscardTempView={onDiscardTempView}
       onSaveTempView={onSaveTempView}
