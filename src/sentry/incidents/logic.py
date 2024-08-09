@@ -655,8 +655,8 @@ def create_alert_rule(
                     alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
-                raise TimeoutError
-            except ValidationError:
+                raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
+            except (ValidationError):
                 alert_rule.delete()
                 raise
 
