@@ -25,11 +25,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
 
-type SearchSource = 'profile_landing' | 'transaction_summary' | 'transaction_profiles';
-
 interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
-  searchSource: SearchSource;
+  searchSource: string;
   datetime?: PageFilters['datetime'];
   onSearch?: (query: string, state: CallbackSearchState) => void;
   projects?: PageFilters['projects'];
