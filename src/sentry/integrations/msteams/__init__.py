@@ -1,8 +1,7 @@
-from sentry.rules import rules
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 
 from .actions.form import *  # noqa: F401,F403
 from .actions.notification import *  # noqa: F401,F403
-from .actions.notification import MsTeamsNotifyServiceAction
 from .analytics import *  # noqa: F401,F403
 from .card_builder.base import *  # noqa: F401,F403
 from .card_builder.block import *  # noqa: F401,F403
@@ -19,4 +18,4 @@ from .urls import *  # noqa: F401,F403
 from .utils import *  # noqa: F401,F403
 from .webhook import *  # noqa: F401,F403
 
-rules.add(MsTeamsNotifyServiceAction)
+MsTeamsMessagingSpec().initialize()

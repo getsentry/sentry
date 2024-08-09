@@ -3,9 +3,10 @@ from unittest.mock import patch
 
 import responses
 
-from sentry.incidents.action_handlers import MsTeamsActionHandler
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.integrations.messaging import MessagingActionHandler
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
@@ -18,6 +19,8 @@ from . import FireTest
 class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
+        self.spec = MsTeamsMessagingSpec()
+
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
                 provider="msteams",
@@ -61,7 +64,7 @@ class MsTeamsActionHandlerTest(FireTest):
             json={},
         )
 
-        handler = MsTeamsActionHandler(self.action, incident, self.project)
+        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
@@ -103,7 +106,7 @@ class MsTeamsActionHandlerTest(FireTest):
             json={},
         )
 
-        handler = MsTeamsActionHandler(self.action, incident, self.project)
+        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
         metric_value = 1000
         with self.tasks():
             handler.fire(metric_value, IncidentStatus(incident.status))

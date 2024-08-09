@@ -79,7 +79,6 @@ class IntegrationSlackRejectMemberInvitation(IntegrationSlackApproveMemberInvita
 
 
 analytics.register(SlackIntegrationAssign)
-analytics.register(SlackIntegrationNotificationSent)
 analytics.register(SlackIntegrationStatus)
 analytics.register(IntegrationIdentityLinked)
 analytics.register(IntegrationSlackChartUnfurl)
