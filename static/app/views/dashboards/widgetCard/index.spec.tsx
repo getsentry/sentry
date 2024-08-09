@@ -110,7 +110,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -137,7 +136,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -162,7 +160,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -196,7 +193,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -232,7 +228,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -269,7 +264,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -299,7 +293,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -327,7 +320,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached
-        shouldResize
       />
     );
 
@@ -355,7 +347,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -383,7 +374,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -418,7 +408,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
         tableItemLimit={20}
       />
     );
@@ -453,7 +442,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -499,7 +487,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
         tableItemLimit={20}
       />
     );
@@ -534,7 +521,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
         tableItemLimit={20}
       />
     );
@@ -562,7 +548,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
         index="10"
         isPreview
       />
@@ -603,7 +588,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
         showStoredAlert
       />
     );
@@ -675,7 +659,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
     await waitFor(function () {
@@ -774,7 +757,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
     await waitFor(function () {
@@ -810,7 +792,6 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
         isPreview
       />
     );

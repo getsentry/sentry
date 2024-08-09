@@ -95,7 +95,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -126,7 +125,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />,
       {router}
     );
@@ -156,7 +154,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 
@@ -181,7 +178,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached
-        shouldResize
       />
     );
 
@@ -214,7 +210,6 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        shouldResize
       />
     );
 

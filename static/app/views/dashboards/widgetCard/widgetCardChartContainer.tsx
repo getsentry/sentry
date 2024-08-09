@@ -28,7 +28,6 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
-  shouldResize: boolean;
   widget: Widget;
   chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
@@ -52,6 +51,7 @@ type Props = {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onZoom?: AugmentedEChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  shouldResize?: boolean;
   showSlider?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;

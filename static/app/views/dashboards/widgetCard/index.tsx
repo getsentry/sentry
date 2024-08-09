@@ -74,7 +74,6 @@ type Props = WithRouterProps & {
   location: Location;
   organization: Organization;
   selection: PageFilters;
-  shouldResize: boolean;
   widget: Widget;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
@@ -94,6 +93,7 @@ type Props = WithRouterProps & {
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  shouldResize?: boolean;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;

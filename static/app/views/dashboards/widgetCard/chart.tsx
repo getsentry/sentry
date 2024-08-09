@@ -82,7 +82,6 @@ type WidgetCardChartProps = Pick<
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  shouldResize: boolean;
   theme: Theme;
   widget: Widget;
   chartGroup?: string;
@@ -97,6 +96,7 @@ type WidgetCardChartProps = Pick<
     type: 'legendselectchanged';
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
+  shouldResize?: boolean;
   showSlider?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
@@ -397,7 +397,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     };
 
     const chartOptions = {
-      autoHeightResize: shouldResize,
+      autoHeightResize: shouldResize ?? true,
       grid: {
         left: 0,
         right: 4,
@@ -511,7 +511,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={shouldResize} noPadding={noPadding}>
+              <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,
