@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
 
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils import get_query_hash
@@ -178,3 +179,6 @@ class BitbucketApiClient(ApiClient):
                 path=path,
             ),
         )
+
+    def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
+        raise IntegrationFeatureNotImplementedError
