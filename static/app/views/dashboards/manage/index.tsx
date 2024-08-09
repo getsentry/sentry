@@ -12,6 +12,7 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -317,6 +318,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                         toggle={this.toggleTemplates}
                       />
                     </TemplateSwitch>
+                    <FeedbackWidgetButton />
                     <DashboardImportButton />
                     <Button
                       data-test-id="dashboard-create"
