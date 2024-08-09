@@ -1,8 +1,18 @@
+import logging
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
+from django.core.signing import BadSignature, SignatureExpired
+from django.db import IntegrityError
+from django.http import Http404, HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import re_path
 from django.urls.resolvers import URLPattern
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from django.views.generic import View
 
 from sentry import analytics
@@ -10,10 +20,21 @@ from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
 from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils import get_identity_or_404
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
+from sentry.types.actor import ActorType
+from sentry.utils.signing import unsign
+from sentry.web.frontend.base import BaseView, control_silo_view
+from sentry.web.helpers import render_to_response
+
+logger = logging.getLogger("sentry.integrations.messaging")
 
 
 @dataclass(frozen=True)
@@ -216,3 +237,174 @@ class _MessagingHandlerFactory(ActionHandlerFactory):
         self, action: AlertRuleTriggerAction, incident: Incident, project: Project
     ) -> ActionHandler:
         return MessagingActionHandler(action, incident, project, self.spec)
+
+
+@control_silo_view
+class LinkingView(BaseView, ABC):
+    @property
+    @abstractmethod
+    def parent_messaging_spec(self) -> MessagingIntegrationSpec:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def provider(self) -> ExternalProviders:
+        raise NotImplementedError
+
+    @property
+    def provider_slug(self) -> str:
+        return self.parent_messaging_spec.provider_slug
+
+    @property
+    @abstractmethod
+    def salt(self) -> str:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def external_id_parameter(self) -> str:
+        raise NotImplementedError
+
+    # TODO: Replace thw two template properties below with base templates for all
+    #       integrations to use. Add service-specific parts to the context as needed.
+
+    @property
+    @abstractmethod
+    def confirmation_template(self) -> str:
+        """Path to the HTML template to render for a non-POST request."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def expired_link_template(self) -> str:
+        """Path to the HTML template to show when a link is expired."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def success_template(self) -> str:
+        """Path to the HTML template to show when an identity has been linked."""
+        raise NotImplementedError
+
+    @property
+    def success_metric(self) -> str | None:
+        """Optional analytics key to record on success."""
+        return None
+
+    def notify_on_success(self, integration: Integration | None, params: Mapping[str, Any]) -> None:
+        pass
+
+    @method_decorator(never_cache)
+    def handle(
+        self, request: HttpRequest, signed_params: Any, *args: Any, **kwargs: Any
+    ) -> HttpResponseBase:
+        try:
+            params = unsign(signed_params, salt=self.salt)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                self.expired_link_template,
+                request=request,
+            )
+
+        organization: RpcOrganization | None = None
+        integration: Integration | None = None
+        idp: IdentityProvider | None = None
+        integration_id = params.get("integration_id")
+        if integration_id:
+            organization, integration, idp = get_identity_or_404(
+                self.provider,
+                request.user,
+                integration_id=integration_id,
+                organization_id=params.get("organization_id"),
+            )
+
+        if request.method != "POST":
+            context = {
+                "organization": organization,
+                "provider": integration.get_provider() if integration else None,
+            }
+            return render_to_response(self.confirmation_template, request=request, context=context)
+
+        response = self.execute(idp, params[self.external_id_parameter], request)
+        if response is not None:
+            return response
+
+        self.notify_on_success(integration, params)
+
+        if self.success_metric:
+            provider_slug = self.parent_messaging_spec.provider_slug
+            analytics.record(
+                self.success_metric,
+                provider=provider_slug,
+                actor_id=request.user.id,
+                actor_type=ActorType.USER,
+            )
+
+        team_id = params.get("team_id")
+        context = {"team_id": team_id} if team_id else {}
+        return render_to_response(self.success_template, request=request, context=context)
+
+    @abstractmethod
+    def execute(
+        self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
+    ) -> HttpResponse | None:
+        """Execute the operation on the Identity table.
+
+        Return a response to trigger an early halt under exceptional conditions.
+        Return None if everything is normal.
+        """
+        raise NotImplementedError
+
+
+class LinkIdentityView(LinkingView, ABC):
+    @property
+    def confirmation_template(self) -> str:
+        return "sentry/auth-link-identity.html"
+
+    def execute(
+        self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
+    ) -> HttpResponse | None:
+        if idp is None:
+            raise ValueError('idp is required for linking (params must include "integration_id")')
+
+        user = request.user
+        if isinstance(user, AnonymousUser):
+            raise TypeError("Cannot link identity without a logged-in user")
+
+        Identity.objects.link_identity(user=user, idp=idp, external_id=external_id)
+
+        return None
+
+
+class UnlinkIdentityView(LinkingView, ABC):
+    @property
+    def confirmation_template(self) -> str:
+        return "sentry/auth-unlink-identity.html"
+
+    @property
+    def no_identity_template(self) -> str | None:
+        """Optional page to show if identities were not found."""
+        return None
+
+    @property
+    def filter_by_user_id(self) -> bool:
+        # TODO: Is it okay to just make this True everywhere?
+        return False
+
+    def execute(
+        self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
+    ) -> HttpResponse | None:
+        try:
+            identities = Identity.objects.filter(external_id=external_id)
+            if idp is not None:
+                identities = identities.filter(idp=idp)
+            if self.filter_by_user_id:
+                identities = identities.filter(user_id=request.user.id)
+            if self.no_identity_template and not identities:
+                return render_to_response(self.no_identity_template, request=request, context={})
+            identities.delete()
+        except IntegrityError:
+            tag = f"{self.provider_slug}.unlink.integrity-error"
+            logger.exception(tag)
+            raise Http404
+        return None
