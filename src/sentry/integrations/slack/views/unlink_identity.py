@@ -37,7 +37,7 @@ class SlackUnlinkIdentityView(SlackLinkingView, UnlinkIdentityView):
         return SlackCommand.UNLINK
 
     def get_success_template_and_context(
-        self, integration: Integration, params: Mapping[str, Any]
+        self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
         return "sentry/integrations/slack/unlinked.html", {
             "channel_id": params["channel_id"],

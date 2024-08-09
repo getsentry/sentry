@@ -24,7 +24,7 @@ def build_unlinking_url(integration: RpcIntegration, discord_id: str) -> str:
 
 class DiscordUnlinkIdentityView(DiscordLinkingView, UnlinkIdentityView):
     def get_success_template_and_context(
-        self, integration: Integration, params: Mapping[str, Any]
+        self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
         return "sentry/integrations/discord/unlinked.html", {}
 

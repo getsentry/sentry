@@ -60,7 +60,7 @@ class SlackLinkingView(LinkingView, ABC):
         return "sentry/integrations/slack/expired-link.html"
 
     def notify_on_success(
-        self, integration: Integration, external_id: str, params: Mapping[str, Any]
+        self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
         respond_to_slack_command(
             self.slack_command, integration, external_id, params.get("response_url")
@@ -83,7 +83,7 @@ class SlackLinkIdentityView(SlackLinkingView, LinkIdentityView):
         return SlackCommand.LINK
 
     def get_success_template_and_context(
-        self, integration: Integration, params: Mapping[str, Any]
+        self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
         return "sentry/integrations/slack/linked.html", {
             "channel_id": params["channel_id"],

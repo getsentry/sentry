@@ -53,7 +53,7 @@ class DiscordLinkingView(LinkingView, ABC):
 
 class DiscordLinkIdentityView(DiscordLinkingView, LinkIdentityView):
     def get_success_template_and_context(
-        self, integration: Integration, params: Mapping[str, Any]
+        self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
         return "sentry/integrations/discord/linked.html", {}
 

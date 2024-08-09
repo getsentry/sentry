@@ -290,7 +290,7 @@ class LinkingView(BaseView, ABC):
 
     @abstractmethod
     def get_success_template_and_context(
-        self, integration: Integration, params: Mapping[str, Any]
+        self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
         """HTML content to show when the operation has been completed."""
         raise NotImplementedError
@@ -346,28 +346,29 @@ class LinkingView(BaseView, ABC):
         logger.info("get_identity_success", extra={"integration_id": integration_id})
         metrics.incr(self.get_metric_key("success.get_identity"), sample_rate=1.0)
         params.update({"organization": organization, "integration": integration, "idp": idp})
-        return super().dispatch(
-            request, organization=organization, integration=integration, idp=idp, params=params
+
+        dispatch_kwargs = dict(
+            organization=organization, integration=integration, idp=idp, params=params
         )
+        dispatch_kwargs = {k: v for (k, v) in dispatch_kwargs.items() if v is not None}
+        return super().dispatch(request, **dispatch_kwargs)
 
     def get(self, request: Request, *args, **kwargs) -> HttpResponse:
         params = kwargs["params"]
-        organization, integration = params["organization"], params["integration"]
-
-        return render_to_response(
-            self.confirmation_template,
-            request=request,
-            context={"organization": organization, "provider": integration.get_provider()},
-        )
+        context = {"organization": params["organization"]}
+        integration = params.get("integration")
+        if integration:
+            context["provider"] = integration.get_provider()
+        return render_to_response(self.confirmation_template, request=request, context=context)
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if isinstance(request.user, AnonymousUser):
             return HttpResponse(status=401)
 
         try:
-            organization: RpcOrganization = kwargs["organization"]
-            integration: Integration = kwargs["integration"]
-            idp: IdentityProvider = kwargs["idp"]
+            organization: RpcOrganization | None = kwargs.get("organization")
+            integration: Integration | None = kwargs.get("integration")
+            idp: IdentityProvider | None = kwargs.get("idp")
 
             params_dict: Mapping[str, Any] = kwargs["params"]
             external_id: str = params_dict[self.external_id_parameter]
@@ -385,8 +386,19 @@ class LinkingView(BaseView, ABC):
         if exc_response is not None:
             return exc_response
 
-        self.notify_on_success(integration, external_id, params_dict)
+        self.notify_on_success(external_id, params_dict, integration)
 
+        if organization is not None:
+            self._send_nudge_notification(organization, request)
+
+        metrics.incr(self.get_metric_key("success.post"), sample_rate=1.0)
+
+        success_template, success_context = self.get_success_template_and_context(
+            params_dict, integration
+        )
+        return render_to_response(success_template, request=request, context=success_context)
+
+    def _send_nudge_notification(self, organization: RpcOrganization, request: Request):
         controller = NotificationController(
             recipients=[request.user],
             organization_id=organization.id,
@@ -395,16 +407,8 @@ class LinkingView(BaseView, ABC):
         has_provider_settings = controller.user_has_any_provider_settings(
             self.external_provider_enum
         )
-
         if not has_provider_settings:
             IntegrationNudgeNotification(organization, request.user, self.provider).send()
-
-        metrics.incr(self.get_metric_key("success.post"), sample_rate=1.0)
-
-        success_template, success_context = self.get_success_template_and_context(
-            integration, params_dict
-        )
-        return render_to_response(success_template, request=request, context=success_context)
 
     @abstractmethod
     def persist_identity(
@@ -418,7 +422,7 @@ class LinkingView(BaseView, ABC):
         raise NotImplementedError
 
     def notify_on_success(
-        self, integration: Integration, external_id: str, params: Mapping[str, Any]
+        self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
         pass
 
