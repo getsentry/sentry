@@ -329,6 +329,34 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["title", "count()"]
         assert query_info["dataset"] == "issuePlatform"
 
+    def test_valid_dataset_transactions(self):
+        """
+        Tests that the transactions dataset is valid
+        """
+        payload = self.make_payload(
+            "discover", {"field": ["title", "count()"], "dataset": "transactions"}
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["title", "count()"]
+        assert query_info["dataset"] == "transactions"
+
+    def test_valid_dataset_errors(self):
+        """
+        Tests that the errors dataset is valid
+        """
+        payload = self.make_payload(
+            "discover", {"field": ["title", "count()"], "dataset": "errors"}
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["title", "count()"]
+        assert query_info["dataset"] == "errors"
+
     def test_invalid_dataset(self):
         """
         Ensures that equations are handled

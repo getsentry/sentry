@@ -4,6 +4,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.utils.samples import load_data
 
 
 class DiscoverProcessorTest(TestCase, SnubaTestCase):
@@ -88,6 +89,51 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         assert new_result_list[0] != result_list
         assert new_result_list[0]["count(id) / fake(field)"] == 5
         assert new_result_list[0]["count(id) / 2"] == 8
+
+    def test_handle_transactions_dataset(self):
+        # Store an error event to show we're querying transactions
+        self.store_event(load_data("python"), project_id=self.project1.id)
+
+        transaction_data = load_data("transaction")
+        transaction = self.store_event(
+            {**transaction_data, "transaction": "test transaction"}, project_id=self.project1.id
+        )
+        self.discover_query = {
+            **self.discover_query,
+            "field": ["title", "transaction.status"],
+            "dataset": "transactions",
+        }
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
+        data = processor.data_fn(offset=0, limit=2)["data"]
+        assert data[0] == {
+            "title": "test transaction",
+            "transaction.status": 0,
+            "id": transaction.event_id,
+            "project.name": self.project1.slug,
+        }
+
+    def test_handle_errors_dataset(self):
+        # Store a transaction event to show we're querying errors
+        self.store_event(load_data("transaction"), project_id=self.project1.id)
+
+        error_data = load_data("python")
+        error_event = self.store_event(error_data, project_id=self.project1.id)
+        self.discover_query = {
+            **self.discover_query,
+            "field": ["title"],
+            "dataset": "errors",
+        }
+        processor = DiscoverProcessor(
+            organization_id=self.org.id, discover_query=self.discover_query
+        )
+        data = processor.data_fn(offset=0, limit=2)["data"]
+        assert data[0] == {
+            "title": error_event.message,
+            "id": error_event.event_id,
+            "project.name": self.project1.slug,
+        }
 
 
 class DiscoverIssuesProcessorTest(TestCase, PerformanceIssueTestCase):
