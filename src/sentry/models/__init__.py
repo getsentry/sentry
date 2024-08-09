@@ -1,4 +1,4 @@
-from ..users.models.email import *  # NOQA
+from sentry.users.models.email import *  # NOQA
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
