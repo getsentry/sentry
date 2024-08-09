@@ -28,7 +28,9 @@ export function usePluginExternalIssues({
         displayIcon,
         title: plugin.issue.issue_id,
         url: plugin.issue.url,
-        onUnlink: () => {},
+        onUnlink: () => {
+          // TODO
+        },
       });
     } else {
       integrations.push({
@@ -44,7 +46,9 @@ export function usePluginExternalIssues({
                 group,
                 project,
                 organization,
-                onModalClose: () => {},
+                onModalClose: () => {
+                  // TODO
+                },
               });
             },
           },
