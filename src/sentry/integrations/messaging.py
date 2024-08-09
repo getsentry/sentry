@@ -325,11 +325,15 @@ class LinkingView(BaseView, ABC):
                 request=request,
             )
 
-        integration_id = params["integration_id"]
+        organization: RpcOrganization | None = None
+        integration: Integration | None = None
+        idp: IdentityProvider | None = None
+        integration_id = params.get("integration_id")
         try:
-            organization, integration, idp = get_identity_or_404(
-                self.provider, request.user, integration_id=integration_id
-            )
+            if integration_id:
+                organization, integration, idp = get_identity_or_404(
+                    self.provider, request.user, integration_id=integration_id
+                )
         except Http404:
             logger.exception("get_identity_error", extra={"integration_id": integration_id})
             metrics.incr(self.get_metric_key("failure.get_identity"), sample_rate=1.0)
