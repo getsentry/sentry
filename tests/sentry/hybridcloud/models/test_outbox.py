@@ -2,23 +2,28 @@ import functools
 import threading
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any, ContextManager
-from unittest.mock import call, patch
+from typing import Any
+from unittest.mock import Mock, call, patch
 
 import pytest
 from django.db import connections
 from django.test import RequestFactory
 from pytest import raises
 
+from sentry.hybridcloud.models.outbox import (
+    ControlOutbox,
+    OutboxFlushError,
+    RegionOutbox,
+    outbox_context,
+)
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.models.outbox import ControlOutbox, OutboxFlushError, RegionOutbox, outbox_context
 from sentry.models.user import User
 from sentry.silo.base import SiloMode
-from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
@@ -40,7 +45,7 @@ def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @pytest.fixture(autouse=True, scope="function")
-def setup_clear_fixture_outbox_messages():
+def setup_clear_fixture_outbox_messages() -> None:
     with outbox_runner():
         pass
 
@@ -56,7 +61,7 @@ class ControlOutboxTest(TestCase):
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def test_skip_shards(self):
+    def test_skip_shards(self) -> None:
         with self.options({"hybrid_cloud.authentication.disabled_user_shards": [100]}):
             assert ControlOutbox(
                 shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
@@ -69,7 +74,7 @@ class ControlOutboxTest(TestCase):
             shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
         ).should_skip_shard()
 
-    def test_control_sharding_keys(self):
+    def test_control_sharding_keys(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             org = Factories.create_organization()
 
@@ -108,7 +113,7 @@ class ControlOutboxTest(TestCase):
             (OutboxScope.USER_SCOPE.value, user2.id, expected_region_name),
         }
 
-    def test_prepare_next_from_shard_no_conflict_with_processing(self):
+    def test_prepare_next_from_shard_no_conflict_with_processing(self) -> None:
         with outbox_runner():
             org = Factories.create_organization()
             user1 = Factories.create_user()
@@ -120,7 +125,7 @@ class ControlOutboxTest(TestCase):
             with outbox.process_shard(None) as next_shard_row:
                 assert next_shard_row is not None
 
-                def test_with_other_connection():
+                def test_with_other_connection() -> None:
                     try:
                         assert (
                             ControlOutbox.prepare_next_from_shard(
@@ -142,7 +147,7 @@ class ControlOutboxTest(TestCase):
 
 class OutboxDrainTest(TransactionTestCase):
     @patch("sentry.models.outbox.process_region_outbox.send")
-    def test_draining_with_disabled_shards(self, mock_send):
+    def test_draining_with_disabled_shards(self, mock_send: Mock) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
         outbox3 = Organization(id=2).outbox_for_update()
@@ -166,7 +171,7 @@ class OutboxDrainTest(TransactionTestCase):
 
             assert mock_send.call_count == 1
 
-    def test_drain_shard_not_flush_all__upper_bound(self):
+    def test_drain_shard_not_flush_all__upper_bound(self) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
 
@@ -192,7 +197,9 @@ class OutboxDrainTest(TransactionTestCase):
         assert RegionOutbox.objects.filter(id=outbox2.id).first()
 
     @patch("sentry.models.outbox.process_region_outbox.send")
-    def test_drain_shard_not_flush_all__concurrent_processing(self, mock_process_region_outbox):
+    def test_drain_shard_not_flush_all__concurrent_processing(
+        self, mock_process_region_outbox: Mock
+    ) -> None:
         outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
         outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
 
@@ -229,7 +236,7 @@ class OutboxDrainTest(TransactionTestCase):
 
         assert mock_process_region_outbox.call_count == 2
 
-    def test_drain_shard_flush_all__upper_bound(self):
+    def test_drain_shard_flush_all__upper_bound(self) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
 
@@ -260,8 +267,8 @@ class OutboxDrainTest(TransactionTestCase):
 
     @patch("sentry.models.outbox.process_region_outbox.send")
     def test_drain_shard_flush_all__concurrent_processing__cooperation(
-        self, mock_process_region_outbox
-    ):
+        self, mock_process_region_outbox: Mock
+    ) -> None:
         outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
         outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
 
@@ -299,7 +306,7 @@ class OutboxDrainTest(TransactionTestCase):
 
 
 class RegionOutboxTest(TestCase):
-    def test_creating_org_outboxes(self):
+    def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):
             Organization(id=10).outbox_for_update().save()
             OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
@@ -310,15 +317,15 @@ class RegionOutboxTest(TestCase):
             pass
         assert RegionOutbox.objects.count() == 0
 
-    def test_skip_shards(self):
+    def test_skip_shards(self) -> None:
         with self.options({"hybrid_cloud.authentication.disabled_organization_shards": [100]}):
             assert Organization(id=100).outbox_for_update().should_skip_shard()
             assert not Organization(id=101).outbox_for_update().should_skip_shard()
 
         assert not Organization(id=100).outbox_for_update().should_skip_shard()
 
-    @patch("sentry.models.outbox.metrics")
-    def test_concurrent_coalesced_object_processing(self, mock_metrics):
+    @patch("sentry.hybridcloud.models.outbox.metrics")
+    def test_concurrent_coalesced_object_processing(self, mock_metrics: Mock) -> None:
         # Two objects coalesced
         outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
         with outbox_context(flush=False):
@@ -331,7 +338,7 @@ class RegionOutboxTest(TestCase):
 
         assert len(list(RegionOutbox.find_scheduled_shards())) == 2
 
-        ctx: ContextManager = outbox.process_coalesced(is_synchronous_flush=True)
+        ctx = outbox.process_coalesced(is_synchronous_flush=True)
         try:
             ctx.__enter__()
             assert RegionOutbox.objects.count() == 4
@@ -367,13 +374,13 @@ class RegionOutboxTest(TestCase):
             ctx.__exit__(type(e), e, None)
             raise
 
-    def test_outbox_rescheduling(self):
+    def test_outbox_rescheduling(self) -> None:
         with patch("sentry.models.outbox.process_region_outbox.send") as mock_process_region_outbox:
 
-            def raise_exception(**kwds):
+            def raise_exception(**kwargs: Any) -> None:
                 raise ValueError("This is just a test mock exception")
 
-            def run_with_error(concurrency=1):
+            def run_with_error(concurrency: int = 1) -> None:
                 mock_process_region_outbox.side_effect = raise_exception
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
@@ -381,13 +388,13 @@ class RegionOutboxTest(TestCase):
                         enqueue_outbox_jobs(concurrency=concurrency, process_outbox_backfills=False)
                     assert mock_process_region_outbox.call_count == 1
 
-            def ensure_converged():
+            def ensure_converged() -> None:
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
                     enqueue_outbox_jobs(process_outbox_backfills=False)
                     assert mock_process_region_outbox.call_count == 0
 
-            def assert_called_for_org(org):
+            def assert_called_for_org(org: int) -> None:
                 mock_process_region_outbox.assert_called_with(
                     sender=OutboxCategory.ORGANIZATION_UPDATE,
                     payload=None,
@@ -427,7 +434,7 @@ class RegionOutboxTest(TestCase):
                 run_with_error()
                 ensure_converged()
 
-    def test_outbox_converges(self):
+    def test_outbox_converges(self) -> None:
         with patch(
             "sentry.models.outbox.process_region_outbox.send"
         ) as mock_process_region_outbox, outbox_context(flush=False):
@@ -447,7 +454,7 @@ class RegionOutboxTest(TestCase):
 
             assert last_call_count == 2
 
-    def test_region_sharding_keys(self):
+    def test_region_sharding_keys(self) -> None:
         org1 = Factories.create_organization()
         org2 = Factories.create_organization()
 
@@ -467,7 +474,7 @@ class RegionOutboxTest(TestCase):
             (OutboxScope.ORGANIZATION_SCOPE.value, org2.id),
         }
 
-    def test_scheduling_with_future_outbox_time(self):
+    def test_scheduling_with_future_outbox_time(self) -> None:
         with outbox_runner():
             pass
 
@@ -488,7 +495,7 @@ class RegionOutboxTest(TestCase):
             #  outbox message not to be processed
             assert RegionOutbox.objects.count() == 1
 
-    def test_scheduling_with_past_and_future_outbox_times(self):
+    def test_scheduling_with_past_and_future_outbox_times(self) -> None:
         with outbox_runner():
             pass
 
@@ -515,7 +522,7 @@ class RegionOutboxTest(TestCase):
 
 
 class TestOutboxesManager(TestCase):
-    def test_bulk_operations(self):
+    def test_bulk_operations(self) -> None:
         org = self.create_organization()
         team = self.create_team(organization=org)
         members = [
@@ -572,7 +579,7 @@ class TestOutboxesManager(TestCase):
 
 @control_silo_test
 class OutboxAggregationTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         shard_counts = {1: (4, "eu"), 2: (7, "us"), 3: (1, "us")}
         with outbox_runner():
             pass
@@ -588,7 +595,7 @@ class OutboxAggregationTest(TestCase):
                     payload={"foo": "bar"},
                 ).save()
 
-    def test_calculate_sharding_depths(self):
+    def test_calculate_sharding_depths(self) -> None:
         shard_depths = ControlOutbox.get_shard_depths_descending()
 
         assert shard_depths == [
@@ -623,10 +630,10 @@ class OutboxAggregationTest(TestCase):
             )
         ]
 
-    def test_calculate_sharding_depths_empty(self):
+    def test_calculate_sharding_depths_empty(self) -> None:
         ControlOutbox.objects.all().delete()
         assert ControlOutbox.objects.count() == 0
         assert ControlOutbox.get_shard_depths_descending() == []
 
-    def test_total_count(self):
+    def test_total_count(self) -> None:
         assert ControlOutbox.get_total_outbox_count() == 7 + 4 + 1
