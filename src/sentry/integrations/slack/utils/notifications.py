@@ -195,14 +195,14 @@ def respond_to_slack_command(
             metrics.incr(
                 SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
-                tags={"type": "webhook", "command": command},
+                tags={"type": "webhook", "command": command.value},
             )
         except (SlackApiError, SlackRequestError) as e:
             if unpack_slack_api_error(e) != EXPIRED_URL:
                 metrics.incr(
                     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
                     sample_rate=1.0,
-                    tags={"type": "webhook", "command": command},
+                    tags={"type": "webhook", "command": command.value},
                 )
                 logger.exception(log + "error", extra={"error": str(e)})
     else:
@@ -218,13 +218,13 @@ def respond_to_slack_command(
             metrics.incr(
                 SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
-                tags={"type": "ephemeral", "command": command},
+                tags={"type": "ephemeral", "command": command.value},
             )
         except SlackApiError as e:
             if unpack_slack_api_error(e) != EXPIRED_URL:
                 metrics.incr(
                     SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
                     sample_rate=1.0,
-                    tags={"type": "ephemeral", "command": command},
+                    tags={"type": "ephemeral", "command": command.value},
                 )
                 logger.exception(log + "error", extra={"error": str(e)})
