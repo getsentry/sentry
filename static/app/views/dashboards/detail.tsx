@@ -1,5 +1,6 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import type {PlainRoute, RouteComponentProps} from 'react-router';
+import type {Location} from 'react-router-dom';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -35,6 +36,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -173,8 +175,6 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const {route, router} = this.props;
-    router.setRouteLeaveHook(route, this.onRouteLeave);
     window.addEventListener('beforeunload', this.onUnload);
     this.checkIfShouldMountWidgetViewerModal();
   }
@@ -191,6 +191,24 @@ class DashboardDetail extends Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onUnload);
   }
+
+  onUnload = (event: BeforeUnloadEvent) => {
+    const {dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+
+    if (
+      [
+        DashboardState.VIEW,
+        DashboardState.PENDING_DELETE,
+        DashboardState.PREVIEW,
+      ].includes(this.state.dashboardState) ||
+      isEqual(modifiedDashboard, dashboard)
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = UNSAVED_MESSAGE;
+  };
 
   checkIfShouldMountWidgetViewerModal() {
     const {
@@ -341,39 +359,25 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  onRouteLeave = () => {
-    const {dashboard} = this.props;
-    const {modifiedDashboard} = this.state;
-
+  onLegacyRouteLeave = () => {
     if (
       ![
         DashboardState.VIEW,
         DashboardState.PENDING_DELETE,
         DashboardState.PREVIEW,
       ].includes(this.state.dashboardState) &&
-      !isEqual(modifiedDashboard, dashboard)
+      !isEqual(this.state.modifiedDashboard, this.props.dashboard)
     ) {
       return UNSAVED_MESSAGE;
     }
     return undefined;
   };
 
-  onUnload = (event: BeforeUnloadEvent) => {
-    const {dashboard} = this.props;
-    const {modifiedDashboard} = this.state;
-
-    if (
-      [
-        DashboardState.VIEW,
-        DashboardState.PENDING_DELETE,
-        DashboardState.PREVIEW,
-      ].includes(this.state.dashboardState) ||
-      isEqual(modifiedDashboard, dashboard)
-    ) {
-      return;
-    }
-    event.preventDefault();
-    event.returnValue = UNSAVED_MESSAGE;
+  onRouteLeave = (state: {currentLocation: Location; nextLocation: Location}) => {
+    return (
+      state.currentLocation.pathname !== state.nextLocation.pathname &&
+      !!this.onLegacyRouteLeave()
+    );
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
@@ -758,6 +762,13 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
+        <OnRouteLeave
+          router={this.props.router}
+          route={this.props.route}
+          message={UNSAVED_MESSAGE}
+          legacyWhen={this.onLegacyRouteLeave}
+          when={this.onRouteLeave}
+        />
         <Layout.Page withPadding>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -885,6 +896,13 @@ class DashboardDetail extends Component<Props, State> {
             },
           }}
         >
+          <OnRouteLeave
+            router={this.props.router}
+            route={this.props.route}
+            message={UNSAVED_MESSAGE}
+            legacyWhen={this.onLegacyRouteLeave}
+            when={this.onRouteLeave}
+          />
           <Layout.Page>
             <OnDemandControlProvider location={location}>
               <MetricsResultsMetaProvider>
