@@ -13,7 +13,6 @@ from django.utils import timezone
 from sentry_relay.processing import parse_release
 from slack_sdk.web import SlackResponse
 
-from sentry.digests.types import Notification
 from sentry.event_manager import EventManager
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -587,17 +586,3 @@ class ActivityNotificationTest(APITestCase):
             notification_uuid=notification_uuid,
             actor_type="User",
         )
-
-
-class NotificationTupleTest(APITestCase):
-    def test_missing_notification_uuid(self):
-        rule = self.create_project_rule()
-        group = self.create_group()
-        notification = Notification(rule, group)
-        assert notification.notification_uuid is None
-
-    def test_notification_uuid(self):
-        rule = self.create_project_rule()
-        group = self.create_group()
-        notification = Notification(rule, group, notification_uuid=str(uuid.uuid4()))
-        assert notification.notification_uuid is not None

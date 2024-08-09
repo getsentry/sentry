@@ -1747,7 +1747,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        project, primary.config, primary.hashes, secondary.config, secondary.hashes
+        primary.config, primary.hashes, secondary.config, secondary.hashes
     )
     # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
     # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
@@ -2348,8 +2348,11 @@ def _get_severity_metadata_for_group(
     seer_based_priority_enabled = features.has(
         "organizations:seer-based-priority", event.project.organization, actor=None
     )
+    if not seer_based_priority_enabled:
+        return {}
+
     feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
-    if not seer_based_priority_enabled and not feature_enabled:
+    if not feature_enabled:
         return {}
 
     is_supported_platform = (

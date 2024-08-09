@@ -119,59 +119,56 @@ export default function StreamlinedGroupHeader({
           level={group.level}
           showUnhandled={group.isUnhandled}
         />
-        {firstRelease && lastRelease && (
-          <Fragment>
-            <Divider />
-            <ReleaseWrapper>
-              {t('Releases')}
-              <VersionHoverCard
-                organization={organization}
-                projectSlug={project.slug}
-                releaseVersion={firstRelease.version}
-              >
-                <span>
+        <TitleHeading>
+          <TitleWrapper>
+            <StyledEventOrGroupTitle data={group} />
+          </TitleWrapper>
+        </TitleHeading>
+        <MessageWrapper>
+          <EventMessage
+            message={message}
+            type={group.type}
+            level={group.level}
+            showUnhandled={group.isUnhandled}
+          />
+          {firstRelease && lastRelease && (
+            <Fragment>
+              <Divider />
+              <ReleaseWrapper>
+                {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
+                <VersionHoverCard
+                  organization={organization}
+                  projectSlug={project.slug}
+                  releaseVersion={firstRelease.version}
+                >
                   <Version version={firstRelease.version} projectId={project.id} />
-                </span>
-              </VersionHoverCard>
-              -
-              <VersionHoverCard
-                organization={organization}
-                projectSlug={project.slug}
-                releaseVersion={lastRelease.version}
-              >
-                <span>
-                  <Version version={lastRelease.version} projectId={project.id} />
-                </span>
-              </VersionHoverCard>
-            </ReleaseWrapper>
-          </Fragment>
-        )}
-      </MessageWrapper>
-      <StyledBreak />
-      <InfoWrapper
-        isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
-      >
-        <GroupActions
-          group={group}
-          project={project}
-          disabled={disableActions}
-          event={event}
-          query={location.query}
-        />
-        <PriorityWorkflowWrapper>
-          <Wrapper>
-            {t('Priority')}
-            <GroupPriority group={group} />
-          </Wrapper>
-          <Wrapper>
-            {t('Assignee')}
-            <AssigneeSelector
-              group={group}
-              assigneeLoading={assigneeLoading}
-              handleAssigneeChange={handleAssigneeChange}
-            />
-          </Wrapper>
-          {group.participants.length > 0 && (
+                </VersionHoverCard>
+                {firstRelease.id === lastRelease.id ? null : (
+                  <Fragment>
+                    -
+                    <VersionHoverCard
+                      organization={organization}
+                      projectSlug={project.slug}
+                      releaseVersion={lastRelease.version}
+                    >
+                      <Version version={lastRelease.version} projectId={project.id} />
+                    </VersionHoverCard>
+                  </Fragment>
+                )}
+              </ReleaseWrapper>
+            </Fragment>
+          )}
+        </MessageWrapper>
+        <StyledBreak />
+        <InfoWrapper isResolved={group.status === 'resolved'}>
+          <GroupActions
+            group={group}
+            project={project}
+            disabled={disableActions}
+            event={event}
+            query={location.query}
+          />
+          <PriorityWorkflowWrapper>
             <Wrapper>
               {t('Participants')}
               <ParticipantList users={userParticipants} teams={teamParticipants} />
