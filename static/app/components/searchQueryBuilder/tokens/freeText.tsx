@@ -173,6 +173,7 @@ function createItem(tag: Tag, fieldDefinition: FieldDefinition | null): KeyItem 
     hideCheck: true,
     showDetailsInOverlay: true,
     details: <KeyDescription tag={tag} />,
+    type: 'item',
   };
 }
 
@@ -186,6 +187,7 @@ function createSection(
     value: section.value,
     label: section.label,
     options: section.children.map(key => createItem(keys[key], getFieldDefinition(key))),
+    type: 'section',
   };
 }
 
@@ -602,7 +604,7 @@ function SearchQueryBuilderInputInternal({
             </Section>
           ) : (
             <Item {...keyItem} key={keyItem.key}>
-              {keyItem.value}
+              {keyItem.label}
             </Item>
           )
         }
