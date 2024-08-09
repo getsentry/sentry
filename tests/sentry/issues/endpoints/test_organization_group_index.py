@@ -2400,7 +2400,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date",
             limit=10,
             collapse=["unhandled"],
-            searchId=view.id,
+            viewId=view.id,
             savedSearch=0,
         )
         assert response.status_code == 200
@@ -2459,8 +2459,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="!is:regressed is:unresolved"
         )  # (status=unresolved, substatus=(!regressed))
         response6 = get_query_response(
-            query="!is:until_escalating"
-        )  # (status=(!unresolved), substatus=(!until_escalating))
+            query="!is:archived_until_escalating"
+        )  # (status=(!unresolved), substatus=(!archived_until_escalating))
 
         assert (
             response0.status_code
@@ -2498,9 +2498,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response1 = get_query_response(query="is:escalating")
         response2 = get_query_response(query="is:new")
         response3 = get_query_response(query="is:regressed")
-        response4 = get_query_response(query="is:forever")
-        response5 = get_query_response(query="is:until_condition_met")
-        response6 = get_query_response(query="is:until_escalating")
+        response4 = get_query_response(query="is:archived_forever")
+        response5 = get_query_response(query="is:archived_until_condition_met")
+        response6 = get_query_response(query="is:archived_until_escalating")
         response7 = get_query_response(query="is:resolved")
         response8 = get_query_response(query="is:ignored")
         response9 = get_query_response(query="is:muted")

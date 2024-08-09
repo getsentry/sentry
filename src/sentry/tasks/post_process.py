@@ -819,12 +819,13 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             not is_reprocessed and not has_reappeared
         ):  # If true, we added the .ONGOING reason already
             if is_new:
-                group = Group.objects.filter(id=event.group.id).exclude(
-                    substatus=GroupSubStatus.NEW
+                group = (
+                    Group.objects.filter(id=event.group.id)
+                    .exclude(substatus=GroupSubStatus.NEW)
                 )
                 if group.exists():
                     logger.warning(
-                        "no_substatus: Found NEW group with incorrect substatus",
+                        "incorrect_substatus: Found NEW group with incorrect substatus",
                         extra={"group_id": event.group.id, "substatus": event.group.substatus},
                     )
 

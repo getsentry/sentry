@@ -1,6 +1,8 @@
 import functools
 import logging
-from collections.abc import Mapping
+import time
+from collections import defaultdict
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import orjson
@@ -67,6 +69,10 @@ def process_event(
     project_id = int(message["project_id"])
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
+
+    # inc-847: verify mitigation is working
+    reprocessed_last_logged_time: int | None = None
+    reprocessed_ids: MutableMapping[str, int] = defaultdict(int)  # projectid: count
 
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
@@ -144,8 +150,27 @@ def process_event(
         # If we only want to reprocess "stuck" events, we check if this event is already in the
         # `processing_store`. We only continue here if the event *is* present, as that will eventually
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
-        if reprocess_only_stuck_events and not event_processing_store.exists(data):
-            return
+        if reprocess_only_stuck_events:
+            if not event_processing_store.exists(data):
+                return
+            else:
+                # Reprocessing the event
+                # inc-847: verify mitigation is working
+                reprocessed_ids[str(project_id)] + 1
+
+                now = int(time.time())
+                # TODO: make the 100 an option
+                if len(reprocessed_ids) > 250:
+                    logger.info("Reprocessed events")
+                    logger.info(orjson.dumps(reprocessed_ids))
+                    reprocessed_ids.clear()
+                    reprocessed_last_logged_time = now
+
+                if reprocessed_last_logged_time is None or now > reprocessed_last_logged_time + 10:
+                    logger.info("Reprocessed events")
+                    logger.info(orjson.dumps(reprocessed_ids))
+                    reprocessed_ids.clear()
+                    reprocessed_last_logged_time = now
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = event_processing_store.store(data)
@@ -187,6 +212,11 @@ def process_event(
                 event_id=event_id,
                 project_id=project_id,
             )
+
+            try:
+                collect_span_metrics(project, data)
+            except Exception:
+                pass
         elif data.get("type") == "feedback":
             if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
                 save_event_feedback.delay(
@@ -324,3 +354,20 @@ def process_userreport(message: IngestMessage, project: Project) -> bool:
         # If you want to remove this make sure to have triaged all errors in Sentry
         logger.exception("userreport.save.crash")
         return False
+
+
+def collect_span_metrics(
+    project: Project,
+    data: MutableMapping[str, Any],
+):
+    if not features.has("organizations:am3-tier", project.organization) and not features.has(
+        "organizations:dynamic-sampling", project.organization
+    ):
+        amount = (
+            len(data.get("spans", [])) + 1
+        )  # Segment spans also get added to the total span count.
+        metrics.incr(
+            "event.save_event.unsampled.spans.count",
+            amount=amount,
+            tags={"organization": project.organization.slug},
+        )

@@ -53,7 +53,11 @@ from sentry.models.team import Team
 from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeStatus,
+)
 from sentry.utils.cursors import Cursor, StringCursor
 
 
@@ -200,7 +204,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             project__in=projects,
         )
 
-        uptime_rules = ProjectUptimeSubscription.objects.filter(project__in=projects)
+        uptime_rules = ProjectUptimeSubscription.objects.filter(
+            project__in=projects,
+            mode__in=(
+                ProjectUptimeSubscriptionMode.MANUAL,
+                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            ),
+        )
 
         if not features.has("organizations:uptime-rule-api", organization):
             uptime_rules = ProjectUptimeSubscription.objects.none()

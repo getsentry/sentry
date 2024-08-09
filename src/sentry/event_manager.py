@@ -2349,8 +2349,11 @@ def _get_severity_metadata_for_group(
     seer_based_priority_enabled = features.has(
         "organizations:seer-based-priority", event.project.organization, actor=None
     )
+    if not seer_based_priority_enabled:
+        return {}
+
     feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
-    if not seer_based_priority_enabled and not feature_enabled:
+    if not feature_enabled:
         return {}
 
     is_supported_platform = (

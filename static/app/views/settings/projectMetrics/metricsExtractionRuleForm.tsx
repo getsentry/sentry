@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
+import {hasDuplicates} from 'sentry/utils/array/hasDuplicates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
@@ -349,6 +350,14 @@ export function MetricsExtractionRuleForm({
         errors.aggregates = [t('At least one aggregate is required.')];
       }
 
+      const conditions = [...data.conditions].map(condition => condition.value.trim());
+
+      if (hasDuplicates(conditions)) {
+        errors.conditions = [
+          t('Each filter must be unique; duplicates are not allowed.'),
+        ];
+      }
+
       if (Object.keys(errors).length) {
         onSubmitError({responseJSON: errors});
         return;
@@ -358,7 +367,10 @@ export function MetricsExtractionRuleForm({
     [onSubmit]
   );
 
-  const isNewCustomSpanAttribute = useCallback((value: string) => {
+  const isNewCustomSpanAttribute = useCallback((value?: string) => {
+    if (!value) {
+      return false;
+    }
     return !attributeOptions.some(option => option.value === value);
     // attributeOptions is being mutated when a new custom attribute is created
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -493,7 +505,7 @@ export function MetricsExtractionRuleForm({
                 {isCardinalityLimited && (
                   <Tooltip
                     title={t(
-                      'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
+                      'One of the selected tags is exceeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
                     )}
                   >
                     <StyledIconWarning size="xs" color="yellow300" />
@@ -623,35 +635,32 @@ export function MetricsExtractionRuleForm({
             }}
           </FormField>
           <Observer>
-            {() =>
-              model.formChanged ? (
-                <Alert
-                  type="info"
-                  showIcon
-                  expand={
-                    <Fragment>
-                      <b>{t('Why that?')}</b>
-                      <p>
-                        {isNewCustomSpanAttribute(model.getValue('spanAttribute'))
-                          ? tct(
-                              'We’ll only collect data from spans sent after you created the metric and not before. If you haven’t already, please [link:instrument your custom attribute.]',
-                              {
-                                link: (
-                                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
-                                ),
-                              }
-                            )
-                          : t(
-                              'Well, it’s because we’ll only collect data once you’ve created a metric and not before. Likewise, if you deleted an existing metric, then we’ll stop collecting data for that metric.'
-                            )}
-                      </p>
-                    </Fragment>
-                  }
-                >
-                  {t('Hey, we’ll need a moment to collect data that matches the above.')}
-                </Alert>
-              ) : null
-            }
+            {() => {
+              if (!isEdit && isNewCustomSpanAttribute(model.getValue('spanAttribute'))) {
+                return (
+                  <Alert type="info" showIcon>
+                    {tct(
+                      'You want to track a custom attribute, so if you haven’t already, please [link:add it to your span data].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/explore/metrics/metrics-set-up/" />
+                        ),
+                      }
+                    )}
+                  </Alert>
+                );
+              }
+
+              if (isEdit && model.formChanged) {
+                return (
+                  <Alert type="info" showIcon>
+                    {t('The changes you made will only be reflected on future data.')}
+                  </Alert>
+                );
+              }
+
+              return null;
+            }}
           </Observer>
         </Fragment>
       )}

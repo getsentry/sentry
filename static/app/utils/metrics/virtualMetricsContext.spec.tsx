@@ -42,10 +42,10 @@ describe('createMRIToVirtualMap', () => {
     const result = createMRIToVirtualMap(rules);
     expect(result).toEqual(
       new Map([
-        ['c:custom/mri1@none', 'v:custom/span1|1@none'],
-        ['c:custom/mri2@none', 'v:custom/span1|1@none'],
-        ['c:custom/mri3@none', 'v:custom/span2|2@millisecond'],
-        ['c:custom/mri4@none', 'v:custom/span2|2@millisecond'],
+        ['c:custom/mri1@none', 'v:custom/span1@none'],
+        ['c:custom/mri2@none', 'v:custom/span1@none'],
+        ['c:custom/mri3@none', 'v:custom/span2@none'],
+        ['c:custom/mri4@none', 'v:custom/span2@none'],
       ])
     );
   });

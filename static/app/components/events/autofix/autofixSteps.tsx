@@ -515,10 +515,13 @@ const LogText = styled('div')<{expanded: boolean; isExpandable: boolean}>`
   -webkit-box-orient: vertical;
   overflow-y: hidden;
   max-height: ${props => (props.expanded ? 'none' : '3em')};
+  flex: 1;
 `;
 
 const ExpandableLogRow = styled('div')`
+  overflow-x: scroll;
   display: flex;
   flex-direction: row;
-  align-items: flex-start; /* Ensure items align to the start of the container */
+  align-items: flex-start;
+  width: 100%;
 `;

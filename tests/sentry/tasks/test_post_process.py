@@ -207,9 +207,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
             instance=mock.ANY,
             tags={"occurrence_type": mock.ANY},
         )
-        assert "tasks.post_process.old_time_to_post_process" not in [
-            msg for (msg, _) in logger_mock.warning.call_args_list
-        ]
+        logger_mock.warning.assert_not_called()
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
