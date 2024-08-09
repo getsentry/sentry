@@ -30,7 +30,7 @@ function Issue({data}: {data: Group}) {
   const organization = useOrganization();
 
   return (
-    <StyledPanelItem>
+    <StyledPanelItem as="tr">
       <IssueSummaryWrapper>
         <IssueSummary data={data} organization={organization} event_id={'0'} />
         <EventOrGroupExtraDetails data={data} />
@@ -64,7 +64,7 @@ function Issue({data}: {data: Group}) {
 
 function IssueListHeader({issues}: {issues?: Group[]}) {
   return (
-    <StyledPanelHeader>
+    <StyledPanelHeader as="tr">
       <IssueHeading>
         {tct(`[count] [text]`, {
           count: issues?.length ?? 0,
@@ -145,7 +145,7 @@ export default function InsightIssuesList({
   );
 }
 
-const Heading = styled('div')`
+const Heading = styled('th')`
   display: flex;
   align-self: center;
   margin: 0 ${space(2)};
@@ -207,7 +207,7 @@ const StyledIconWrapper = styled(IconWrapper)`
   margin: 0;
 `;
 
-const IssueSummaryWrapper = styled('div')`
+const IssueSummaryWrapper = styled('td')`
   overflow: hidden;
   flex: 1;
   width: 66.66%;
@@ -217,7 +217,7 @@ const IssueSummaryWrapper = styled('div')`
   }
 `;
 
-const ColumnWrapper = styled('div')`
+const ColumnWrapper = styled('td')`
   display: flex;
   justify-content: flex-end;
   align-self: center;
@@ -243,7 +243,7 @@ const AssineeWrapper = styled(ColumnWrapper)`
   }
 `;
 
-const ChartWrapper = styled('div')`
+const ChartWrapper = styled('td')`
   width: 200px;
   align-self: center;
 

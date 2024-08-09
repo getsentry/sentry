@@ -79,7 +79,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {data: indexedSpansByGroupId, isFetching: areIndexedSpansByGroupIdLoading} =
+  const {data: indexedSpansByGroupId, isLoading: areIndexedSpansByGroupIdLoading} =
     useSpansIndexed(
       {
         search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
