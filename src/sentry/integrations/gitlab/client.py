@@ -313,7 +313,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(self, repo: Repository, path: str, ref: str | None) -> BaseApiResponseX | None:
+    def check_file(
+        self, repo: Repository, path: str, version: str | None
+    ) -> BaseApiResponseX | None:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
@@ -325,7 +327,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             encoded_path = quote(path, safe="")
 
             request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-            return self.head_cached(request_path, params={"ref": ref})
+            return self.head_cached(request_path, params={"ref": version})
         except ApiError as e:
             # Gitlab can return 404 or 400 if the file doesn't exist
             if e.code != 400:
