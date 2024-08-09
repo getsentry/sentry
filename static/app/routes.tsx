@@ -1236,7 +1236,7 @@ function buildRoutes() {
             component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
           >
             <Route
-              path=":uptimeRuleId/"
+              path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
