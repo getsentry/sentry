@@ -10,11 +10,13 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
 from .card_builder.identity import build_unlinked_card
+from .constants import SALT
 from .utils import get_preinstall_client
 
 
 def build_unlinking_url(conversation_id, service_url, teams_user_id):
     signed_params = sign(
+        salt=SALT,
         conversation_id=conversation_id,
         service_url=service_url,
         teams_user_id=teams_user_id,
