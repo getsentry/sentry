@@ -82,6 +82,7 @@ type WidgetCardChartProps = Pick<
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  shouldResize: boolean;
   theme: Theme;
   widget: Widget;
   chartGroup?: string;
@@ -305,6 +306,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       noPadding,
       chartZoomOptions,
       timeseriesResultsTypes,
+      shouldResize,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -349,9 +351,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     const {location, router, selection, onLegendSelectChanged} = this.props;
     const {start, end, period, utc} = selection.datetime;
-
-    // Only allow height resizing for widgets that are on a dashboard
-    const autoHeightResize = Boolean(widget.id || widget.tempId);
 
     const legend = {
       left: 0,
@@ -398,7 +397,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     };
 
     const chartOptions = {
-      autoHeightResize,
+      autoHeightResize: shouldResize,
       grid: {
         left: 0,
         right: 4,
@@ -512,7 +511,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={autoHeightResize} noPadding={noPadding}>
+              <ChartWrapper autoHeightResize={shouldResize} noPadding={noPadding}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,

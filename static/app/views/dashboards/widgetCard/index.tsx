@@ -74,6 +74,7 @@ type Props = WithRouterProps & {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  shouldResize: boolean;
   widget: Widget;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
@@ -238,6 +239,7 @@ class WidgetCard extends Component<Props, State> {
       isWidgetInvalid,
       location,
       onWidgetSplitDecision,
+      shouldResize,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -387,6 +389,7 @@ class WidgetCard extends Component<Props, State> {
                     dashboardFilters={dashboardFilters}
                     chartGroup={DASHBOARD_CHART_GROUP}
                     onWidgetSplitDecision={onWidgetSplitDecision}
+                    shouldResize={shouldResize}
                   />
                 ) : (
                   <LazyRender containerHeight={200} withoutContainer>
@@ -404,6 +407,7 @@ class WidgetCard extends Component<Props, State> {
                       dashboardFilters={dashboardFilters}
                       chartGroup={DASHBOARD_CHART_GROUP}
                       onWidgetSplitDecision={onWidgetSplitDecision}
+                      shouldResize={shouldResize}
                     />
                   </LazyRender>
                 )}

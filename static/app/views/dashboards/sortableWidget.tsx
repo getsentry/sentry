@@ -58,6 +58,7 @@ function SortableWidget(props: Props) {
     isMobile,
     windowWidth,
     tableItemLimit: TABLE_ITEM_LIMIT,
+    shouldResize: true,
   };
 
   return (

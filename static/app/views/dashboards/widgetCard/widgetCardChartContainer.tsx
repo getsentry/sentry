@@ -28,6 +28,7 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  shouldResize: boolean;
   widget: Widget;
   chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
@@ -76,6 +77,7 @@ export function WidgetCardChartContainer({
   chartZoomOptions,
   onWidgetSplitDecision,
   chartGroup,
+  shouldResize,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -147,6 +149,7 @@ export function WidgetCardChartContainer({
                 noPadding={noPadding}
                 chartZoomOptions={chartZoomOptions}
                 chartGroup={chartGroup}
+                shouldResize={shouldResize}
               />
             </Fragment>
           );
@@ -199,6 +202,7 @@ export function WidgetCardChartContainer({
               chartZoomOptions={chartZoomOptions}
               timeseriesResultsTypes={timeseriesResultsTypes}
               chartGroup={chartGroup}
+              shouldResize={shouldResize}
             />
           </Fragment>
         );
