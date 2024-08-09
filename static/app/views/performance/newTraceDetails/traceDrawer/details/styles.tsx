@@ -76,9 +76,7 @@ const Actions = styled(FlexBox)`
   width: 100%;
 `;
 
-const Title = styled('div')`
-  display: flex;
-  align-items: center;
+const Title = styled(FlexBox)`
   gap: ${space(1)};
   flex-grow: 1;
   overflow: hidden;
@@ -159,9 +157,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   }
 `;
 
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
+const HeaderContainer = styled(FlexBox)`
   justify-content: space-between;
   gap: ${space(3)};
   container-type: inline-size;
