@@ -8,6 +8,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
+import {EventActionableItems} from 'sentry/components/events/eventActionableItems';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -151,7 +152,7 @@ export function DefaultGroupEventDetailsContent({
 
   return (
     <Fragment>
-      {hasActionableItems && (
+      {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
@@ -356,6 +357,7 @@ export function DefaultGroupEventDetailsContent({
       )}
       <EventAttachments event={event} projectSlug={project.slug} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      <EventActionableItems event={event} project={project} />
       {event.groupID && (
         <EventGroupingInfo
           projectSlug={project.slug}

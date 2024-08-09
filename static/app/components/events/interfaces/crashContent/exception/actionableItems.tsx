@@ -315,7 +315,7 @@ interface ErrorMessageType extends ErrorMessage {
   type: ActionableItemTypes;
 }
 
-function groupedErrors(
+export function groupedErrors(
   event: Event,
   data?: ActionableItemsResponse,
   progaurdErrors?: EventErrorData[]
