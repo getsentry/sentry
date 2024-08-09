@@ -29,7 +29,7 @@ class ProjectUptimeSubscriptionSerializerTest(TestCase):
         assert result == {
             "id": str(uptime_monitor.id),
             "projectSlug": self.project.slug,
-            "name": f"Uptime monitor of {uptime_monitor.uptime_subscription.url}",
+            "name": f"Uptime Monitoring for {uptime_monitor.uptime_subscription.url}",
             "status": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
