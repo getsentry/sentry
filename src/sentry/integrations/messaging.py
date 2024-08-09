@@ -27,6 +27,7 @@ from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.organizations.services.organization import RpcOrganization
@@ -399,8 +400,11 @@ class LinkingView(BaseView, ABC):
         return render_to_response(success_template, request=request, context=success_context)
 
     def _send_nudge_notification(self, organization: RpcOrganization, request: Request):
+        # TODO: Delete this if no longer needed
+
+        user: User = request.user  # type: ignore[assignment]
         controller = NotificationController(
-            recipients=[request.user],
+            recipients=[user],
             organization_id=organization.id,
             provider=self.external_provider_enum,
         )
@@ -408,7 +412,11 @@ class LinkingView(BaseView, ABC):
             self.external_provider_enum
         )
         if not has_provider_settings:
-            IntegrationNudgeNotification(organization, request.user, self.provider).send()
+            # Expects Organization, not RpcOrganization. Suspect this to be a bug
+            # that isn't being hit because these notifications aren't being sent.
+            nudge_notification = IntegrationNudgeNotification(organization, user, self.provider)  # type: ignore[arg-type]
+
+            nudge_notification.send()
 
     @abstractmethod
     def persist_identity(

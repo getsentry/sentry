@@ -70,7 +70,7 @@ class MsTeamsLinkingView(LinkingView, ABC):
 
 class MsTeamsLinkIdentityView(MsTeamsLinkingView, LinkIdentityView):
     def get_success_template_and_context(
-        self, params: Mapping[str, Any], integration: Integration
+        self, params: Mapping[str, Any], integration: Integration | None
     ) -> tuple[str, dict[str, Any]]:
         return "sentry/integrations/msteams/linked.html", {}
 
