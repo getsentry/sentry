@@ -20,10 +20,10 @@ from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
 from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations import Integration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization

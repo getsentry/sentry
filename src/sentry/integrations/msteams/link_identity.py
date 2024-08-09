@@ -5,7 +5,7 @@ from typing import Any
 from django.urls import reverse
 
 from sentry.integrations.messaging import LinkIdentityView, LinkingView, MessagingIntegrationSpec
-from sentry.models.integrations import Integration
+from sentry.integrations.models.integration import Integration
 from sentry.models.organization import Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
