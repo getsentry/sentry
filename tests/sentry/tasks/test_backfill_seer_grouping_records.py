@@ -1728,14 +1728,15 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
-    @patch("sentry.tasks.embeddings_grouping.utils._make_postgres_call")
+    @patch(
+        "sentry.tasks.embeddings_grouping.utils._make_postgres_call", side_effect=OperationalError
+    )
     def test_backfill_seer_grouping_records_postgres_exception(
         self, mock_make_postgres_call, mock_logger
     ):
         """
         Test log after postgres query retries with decreased batch size
         """
-        mock_make_postgres_call.side_effect = OperationalError
         batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
         with pytest.raises(Exception), TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id, None)
