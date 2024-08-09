@@ -54,6 +54,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class IntegrationFeatureNotImplementedError(Exception):
+    pass
+
+
 class FeatureDescription(NamedTuple):
     description: str  # A markdown description of the feature
     featureGate: IntegrationFeatures  # A IntegrationFeature that gates this feature
