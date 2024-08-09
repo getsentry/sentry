@@ -7,6 +7,7 @@ const excludedModuleNames = [
   ModuleName.ALL,
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
+  ModuleName.MOBILE_VITALS,
 ] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];

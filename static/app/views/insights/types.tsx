@@ -15,6 +15,7 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AI = 'ai',
   MOBILE_UI = 'mobile-ui',
+  MOBILE_VITALS = 'mobile-vitals',
   ALL = '',
   OTHER = 'other',
 }

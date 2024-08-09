@@ -7,6 +7,7 @@ import {MODULE_TITLE as AI_MODULE_TITLE} from 'sentry/views/insights/llmMonitori
 import {MODULE_TITLE as APP_STARTS_MODULE_TITLE} from 'sentry/views/insights/mobile/appStarts/settings';
 import {MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE} from 'sentry/views/insights/mobile/screenload/settings';
 import {MODULE_TITLE as MOBILE_UI_MODULE_TITLE} from 'sentry/views/insights/mobile/ui/settings';
+import {MODULE_TITLE as MOBILE_VITALS_MODULE_TITLE} from 'sentry/views/insights/mobile/vitals/settings';
 import {MODULE_TITLE as QUEUE_MODULE_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -21,6 +22,7 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_MODULE_TITLE,
   [ModuleName.AI]: AI_MODULE_TITLE,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
+  [ModuleName.MOBILE_VITALS]: MOBILE_VITALS_MODULE_TITLE,
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
 };

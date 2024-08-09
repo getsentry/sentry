@@ -305,7 +305,12 @@ function Sidebar() {
     </Feature>
   );
 
-  const screenLoads = hasOrganization && (
+  // the mobile vitals module is meant to be as a replacement for screen load, app start, and mobile ui
+  // so if mobile vitals is enabled, we should not show the other mobile modules
+  const hasMobileVitalsModule =
+    hasOrganization && organization.features.includes('insights-mobile-vitals-module');
+
+  const screenLoads = hasOrganization && !hasMobileVitalsModule && (
     <Feature
       key="screen_load"
       features="insights-entry-points"
@@ -321,7 +326,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const appStarts = hasOrganization && (
+  const appStarts = hasOrganization && !hasMobileVitalsModule && (
     <Feature key="app_start" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
@@ -333,7 +338,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const mobileUI = hasOrganization && (
+  const mobileUI = hasOrganization && !hasMobileVitalsModule && (
     <Feature
       key="mobile-ui"
       features={['insights-entry-points', 'starfish-mobile-ui-module']}
@@ -344,6 +349,23 @@ function Sidebar() {
         label={MODULE_TITLES['mobile-ui']}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-ui')}/`}
         id="performance-mobile-ui"
+        icon={<SubitemDot collapsed />}
+        isAlpha
+      />
+    </Feature>
+  );
+
+  const mobileVitals = hasOrganization && hasMobileVitalsModule && (
+    <Feature
+      key="mobile-vitals"
+      features={['insights-entry-points', 'insights-mobile-vitals-module']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES['mobile-vitals']}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-vitals')}/`}
+        id="performance-mobile-vitals"
         icon={<SubitemDot collapsed />}
         isAlpha
       />
@@ -577,6 +599,7 @@ function Sidebar() {
         {caches}
         {queues}
         {mobileUI}
+        {mobileVitals}
         {llmMonitoring}
       </SidebarAccordion>
     </Feature>
