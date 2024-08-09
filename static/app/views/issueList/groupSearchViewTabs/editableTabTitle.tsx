@@ -61,7 +61,7 @@ function EditableTabTitle({
       onKeyDown={handleOnKeyDown}
       onBlur={handleOnBlur}
       ref={inputRef}
-      size={inputValue.length > 1 ? inputValue.length - 1 : 1}
+      size={Math.max(inputValue.length - 3, 2)}
     />
   ) : (
     label

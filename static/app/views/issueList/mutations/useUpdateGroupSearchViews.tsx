@@ -38,10 +38,10 @@ export const useUpdateGroupSearchViews = (
     UpdateGroupSearchViewsVariables
   >({
     ...options,
-    mutationFn: ({orgSlug, groupSearchViews: data}: UpdateGroupSearchViewsVariables) =>
+    mutationFn: ({orgSlug, groupSearchViews}: UpdateGroupSearchViewsVariables) =>
       api.requestPromise(`/organizations/${orgSlug}/group-search-views/`, {
         method: 'PUT',
-        data,
+        data: {views: groupSearchViews},
       }),
     onSuccess: (groupSearchViews, parameters, context) => {
       setApiQueryData<GroupSearchView[]>(
