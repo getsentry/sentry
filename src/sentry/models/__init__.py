@@ -1,3 +1,5 @@
+from sentry.users.models.email import *  # NOQA
+
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -29,7 +31,6 @@ from .deletedteam import *  # NOQA
 from .deploy import *  # NOQA
 from .distribution import *  # NOQA
 from .dynamicsampling import *  # NOQA
-from .email import *  # NOQA
 from .environment import *  # NOQA
 from .event import *  # NOQA
 from .eventattachment import *  # NOQA
