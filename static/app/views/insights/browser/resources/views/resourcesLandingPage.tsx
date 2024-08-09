@@ -65,6 +65,7 @@ function ResourcesLandingPage() {
                   moduleName={ModuleName.RESOURCE}
                   extraFilters={
                     <DomainSelector
+                      moduleName={ModuleName.RESOURCE}
                       emptyOptionLocation="top"
                       value={filters[SPAN_DOMAIN] || ''}
                       additionalQuery={[
