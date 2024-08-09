@@ -26,6 +26,7 @@ describe('ModulesOnboarding', () => {
     jest.mocked(useProjects).mockReturnValue({
       projects: [project],
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -66,6 +67,7 @@ describe('ModulesOnboarding', () => {
     jest.mocked(useProjects).mockReturnValue({
       projects: [project],
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,
@@ -105,6 +107,7 @@ describe('ModulesOnboarding', () => {
     jest.mocked(useProjects).mockReturnValue({
       projects: [project],
       onSearch: jest.fn(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       fetching: false,
       hasMore: null,

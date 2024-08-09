@@ -22,6 +22,7 @@ describe('DatabaseLandingPage', function () {
   jest.mocked(useProjects).mockReturnValue({
     projects: [ProjectFixture({hasInsightsDb: true})],
     onSearch: jest.fn(),
+    reloadProjects: jest.fn(),
     placeholders: [],
     fetching: false,
     hasMore: null,

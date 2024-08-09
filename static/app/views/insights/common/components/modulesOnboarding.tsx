@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -42,7 +43,18 @@ export function ModulesOnboarding({
 }) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
+  const {reloadProjects} = useProjects();
   const hasData = useHasFirstSpan(moduleName);
+
+  // Refetch the project metadata if the selected project does not have insights data, because
+  // we may have received insight data (and subsequently updated `Project.hasInsightxx`)
+  // after the initial project fetch.
+  useEffect(() => {
+    if (!hasData) {
+      reloadProjects();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasData]);
 
   if (onboardingProject) {
     return (

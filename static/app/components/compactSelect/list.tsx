@@ -23,6 +23,7 @@ import type {
   SelectKey,
   SelectOption,
   SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
   SelectSection,
 } from './types';
 import {
@@ -72,7 +73,7 @@ interface BaseListProps<Value extends SelectKey>
    * Custom function to determine whether an option is disabled. By default, an option
    * is considered disabled when it has {disabled: true}.
    */
-  isOptionDisabled?: (opt: SelectOption<Value>) => boolean;
+  isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
@@ -160,7 +161,7 @@ function List<Value extends SelectKey>({
     const disabledKeys = [
       ...getDisabledOptions(items, isOptionDisabled),
       ...hiddenOptions,
-    ].map(getEscapedKey);
+    ];
 
     if (multiple) {
       return {
@@ -345,7 +346,7 @@ function List<Value extends SelectKey>({
           // This is a section
           item.type === 'section' &&
           // Options inside the section haven't been all filtered out
-          ![...item.childNodes].every(child => hiddenOptions.has(child.props.value))
+          ![...item.childNodes].every(child => hiddenOptions.has(child.key))
       ),
 
     [listState.collection, hiddenOptions]

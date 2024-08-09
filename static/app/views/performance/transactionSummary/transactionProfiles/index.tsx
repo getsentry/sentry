@@ -1,41 +1,21 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import type {SelectOption} from 'sentry/components/compactSelect/types';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import Panel from 'sentry/components/panels/panel';
-import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
-import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
-import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import type {DeepPartial} from 'sentry/types/utils';
-import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
-import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
-import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import type {Frame} from 'sentry/utils/profiling/frame';
-import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import type {ProfilingFieldType} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {
   getProfilesTableFields,
@@ -44,30 +24,30 @@ import {
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
-import {
-  FlamegraphProvider,
-  useFlamegraph,
-} from 'sentry/views/profiling/flamegraphProvider';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
 import PageLayout, {redirectToPerformanceHomepage} from '../pageLayout';
 
-function ProfilesLegacy() {
+import {TransactionProfilesContent} from './content';
+
+interface ProfilesProps {
+  organization: Organization;
+  transaction: string;
+}
+
+function ProfilesLegacy({organization, transaction}: ProfilesProps) {
   const location = useLocation();
-  const organization = useOrganization();
-  const projects = useProjects();
+  const {projects} = useProjects();
 
   const profilesCursor = useMemo(
     () => decodeScalar(location.query.cursor),
     [location.query.cursor]
   );
 
-  const project = projects.projects.find(p => p.id === location.query.project);
+  const project = projects.find(p => p.id === location.query.project);
   const fields = getProfilesTableFields(project?.platform);
   const sortableFields = useMemo(() => new Set(fields), [fields]);
 
@@ -76,23 +56,29 @@ function ProfilesLegacy() {
     order: 'desc',
   });
 
-  const [query, setQuery] = useState(() => {
-    // The search fields from the URL differ between profiling and
-    // events dataset. For now, just drop everything except transaction
-    const search = new MutableSearch('');
-    const transaction = decodeScalar(location.query.transaction);
+  const rawQuery = useMemo(
+    () => decodeScalar(location.query.query, ''),
+    [location.query.query]
+  );
 
-    if (defined(transaction)) {
-      search.setFilterValues('transaction', [transaction]);
-    }
+  const query = useMemo(() => {
+    const conditions = new MutableSearch(rawQuery);
+    conditions.setFilterValues('event.type', ['transaction']);
+    conditions.setFilterValues('transaction', [transaction]);
 
-    return search;
-  });
+    Object.keys(conditions.filters).forEach(field => {
+      if (isAggregateField(field)) {
+        conditions.removeFilter(field);
+      }
+    });
+
+    return conditions.formatString();
+  }, [transaction, rawQuery]);
 
   const profiles = useProfileEvents<ProfilingFieldType>({
     cursor: profilesCursor,
     fields,
-    query: query.formatString(),
+    query,
     sort,
     limit: 30,
     referrer: 'api.profiling.transactions-profiles-table',
@@ -100,7 +86,6 @@ function ProfilesLegacy() {
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
-      setQuery(new MutableSearch(searchQuery));
       browserHistory.push({
         ...location,
         query: {
@@ -113,13 +98,16 @@ function ProfilesLegacy() {
     [location]
   );
 
-  const transaction = decodeScalar(location.query.transaction);
+  const projectIds = useMemo(
+    () => (project ? [parseInt(project?.id, 10)] : undefined),
+    [project]
+  );
 
   return (
     <PageLayout
       location={location}
       organization={organization}
-      projects={projects.projects}
+      projects={projects}
       tab={Tab.PROFILING}
       generateEventView={() => EventView.fromLocation(location)}
       getDocumentTitle={() => t(`Profile: %s`, transaction)}
@@ -131,14 +119,23 @@ function ProfilesLegacy() {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <SearchBar
-                searchSource="transaction_profiles"
-                organization={organization}
-                projectIds={projects.projects.map(p => parseInt(p.id, 10))}
-                query={query.formatString()}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
+              {organization.features.includes('search-query-builder-performance') ? (
+                <TransactionSearchQueryBuilder
+                  projects={projectIds}
+                  initialQuery={rawQuery}
+                  onSearch={handleSearch}
+                  searchSource="transaction_profiles"
+                />
+              ) : (
+                <SearchBar
+                  searchSource="transaction_profiles"
+                  organization={organization}
+                  projectIds={projects.map(p => parseInt(p.id, 10))}
+                  query={rawQuery}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              )}
             </FilterActions>
             <ProfileEventsTable
               columns={fields}
@@ -155,37 +152,16 @@ function ProfilesLegacy() {
   );
 }
 
-function ProfilesWrapper() {
-  const organization = useOrganization();
-  const location = useLocation();
-  const transaction = decodeScalar(location.query.transaction);
-
-  if (!transaction) {
-    redirectToPerformanceHomepage(organization, location);
-    return null;
-  }
-
-  return <Profiles organization={organization} transaction={transaction} />;
-}
-
-const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
-  preferences: {
-    sorting: 'alphabetical' satisfies FlamegraphState['preferences']['sorting'],
-  },
-};
-
-const noop = () => void 0;
-
-interface ProfilesProps {
-  organization: Organization;
-  transaction: string;
-}
-
 function Profiles({organization, transaction}: ProfilesProps) {
   const location = useLocation();
-  const projects = useProjects();
+  const {projects} = useProjects();
 
-  const rawQuery = decodeScalar(location.query.query, '');
+  const project = projects.find(p => p.id === location.query.project);
+
+  const rawQuery = useMemo(
+    () => decodeScalar(location.query.query, ''),
+    [location.query.query]
+  );
 
   const query = useMemo(() => {
     const conditions = new MutableSearch(rawQuery);
@@ -197,6 +173,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
         conditions.removeFilter(field);
       }
     });
+
     return conditions.formatString();
   }, [transaction, rawQuery]);
 
@@ -214,50 +191,16 @@ function Profiles({organization, transaction}: ProfilesProps) {
     [location]
   );
 
-  const [visualization, setVisualization] = useLocalStorageState<
-    'flamegraph' | 'call tree'
-  >('flamegraph-visualization', 'flamegraph');
-
-  const onVisualizationChange = useCallback(
-    (value: 'flamegraph' | 'call tree') => {
-      setVisualization(value);
-    },
-    [setVisualization]
+  const projectIds = useMemo(
+    () => (project ? [parseInt(project?.id, 10)] : undefined),
+    [project]
   );
-
-  const [frameFilter, setFrameFilter] = useLocalStorageState<
-    'system' | 'application' | 'all'
-  >('flamegraph-frame-filter', 'application');
-
-  const onFrameFilterChange = useCallback(
-    (value: 'system' | 'application' | 'all') => {
-      setFrameFilter(value);
-    },
-    [setFrameFilter]
-  );
-
-  const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
-    if (frameFilter === 'all') {
-      return () => true;
-    }
-    if (frameFilter === 'application') {
-      return frame => frame.is_application;
-    }
-    return frame => !frame.is_application;
-  }, [frameFilter]);
-
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
-    query,
-  });
-
-  const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
-  const scheduler = useCanvasScheduler(canvasPoolManager);
 
   return (
     <PageLayout
       location={location}
       organization={organization}
-      projects={projects.projects}
+      projects={projects}
       tab={Tab.PROFILING}
       generateEventView={() => EventView.fromLocation(location)}
       getDocumentTitle={() => t(`Profile: %s`, transaction)}
@@ -270,138 +213,29 @@ function Profiles({organization, transaction}: ProfilesProps) {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <StyledSearchBar
-                searchSource="transaction_profiles"
-                organization={organization}
-                projectIds={projects.projects.map(p => parseInt(p.id, 10))}
-                query={rawQuery}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
+              {organization.features.includes('search-query-builder-performance') ? (
+                <TransactionSearchQueryBuilder
+                  projects={projectIds}
+                  initialQuery={rawQuery}
+                  onSearch={handleSearch}
+                  searchSource="transaction_profiles"
+                />
+              ) : (
+                <SearchBar
+                  searchSource="transaction_profiles"
+                  organization={organization}
+                  projectIds={projectIds}
+                  query={rawQuery}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              )}
             </FilterActions>
-            <ProfileVisualization>
-              <ProfileGroupProvider
-                traceID=""
-                type="flamegraph"
-                input={data ?? null}
-                frameFilter={flamegraphFrameFilter}
-              >
-                <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
-                  <FlamegraphThemeProvider>
-                    <FlamegraphProvider>
-                      <AggregateFlamegraphToolbar
-                        scheduler={scheduler}
-                        canvasPoolManager={canvasPoolManager}
-                        visualization={visualization}
-                        onVisualizationChange={onVisualizationChange}
-                        frameFilter={frameFilter}
-                        onFrameFilterChange={onFrameFilterChange}
-                        hideSystemFrames={false}
-                        setHideSystemFrames={noop}
-                      />
-                      <StyledPanel>
-                        {visualization === 'flamegraph' ? (
-                          <AggregateFlamegraph
-                            canvasPoolManager={canvasPoolManager}
-                            scheduler={scheduler}
-                          />
-                        ) : (
-                          <AggregateFlamegraphTreeTable
-                            recursion={null}
-                            expanded={false}
-                            frameFilter={frameFilter}
-                            canvasPoolManager={canvasPoolManager}
-                            withoutBorders
-                          />
-                        )}
-                      </StyledPanel>
-                      {isLoading ? (
-                        <RequestStateMessageContainer>
-                          <LoadingIndicator />
-                        </RequestStateMessageContainer>
-                      ) : isError ? (
-                        <RequestStateMessageContainer>
-                          {t('There was an error loading the flamegraph.')}
-                        </RequestStateMessageContainer>
-                      ) : null}
-                    </FlamegraphProvider>
-                  </FlamegraphThemeProvider>
-                </FlamegraphStateProvider>
-              </ProfileGroupProvider>
-            </ProfileVisualization>
+            <TransactionProfilesContent query={query} transaction={transaction} />
           </StyledMain>
         );
       }}
     />
-  );
-}
-
-interface AggregateFlamegraphToolbarProps {
-  canvasPoolManager: CanvasPoolManager;
-  frameFilter: 'system' | 'application' | 'all';
-  hideSystemFrames: boolean;
-  onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
-  onVisualizationChange: (value: 'flamegraph' | 'call tree') => void;
-  scheduler: CanvasScheduler;
-  setHideSystemFrames: (value: boolean) => void;
-  visualization: 'flamegraph' | 'call tree';
-}
-
-function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
-  const flamegraph = useFlamegraph();
-  const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
-  const spans = useMemo(() => [], []);
-
-  const frameSelectOptions: SelectOption<'system' | 'application' | 'all'>[] =
-    useMemo(() => {
-      return [
-        {value: 'system', label: t('System Frames')},
-        {value: 'application', label: t('Application Frames')},
-        {value: 'all', label: t('All Frames')},
-      ];
-    }, []);
-
-  const onResetZoom = useCallback(() => {
-    props.scheduler.dispatch('reset zoom');
-  }, [props.scheduler]);
-
-  const onFrameFilterChange = useCallback(
-    (value: {value: 'application' | 'system' | 'all'}) => {
-      props.onFrameFilterChange(value.value);
-    },
-    [props]
-  );
-
-  return (
-    <AggregateFlamegraphToolbarContainer>
-      <ViewSelectContainer>
-        <SegmentedControl
-          aria-label={t('View')}
-          size="xs"
-          value={props.visualization}
-          onChange={props.onVisualizationChange}
-        >
-          <SegmentedControl.Item key="flamegraph">
-            {t('Flamegraph')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="call tree">{t('Call Tree')}</SegmentedControl.Item>
-        </SegmentedControl>
-      </ViewSelectContainer>
-      <AggregateFlamegraphSearch
-        spans={spans}
-        canvasPoolManager={props.canvasPoolManager}
-        flamegraphs={flamegraphs}
-      />
-      <Button size="xs" onClick={onResetZoom}>
-        {t('Reset Zoom')}
-      </Button>
-      <CompactSelect
-        onChange={onFrameFilterChange}
-        value={props.frameFilter}
-        size="xs"
-        options={frameSelectOptions}
-      />
-    </AggregateFlamegraphToolbarContainer>
   );
 }
 
@@ -412,78 +246,27 @@ const FilterActions = styled('div')`
   grid-template-columns: min-content 1fr;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    order: 1;
-    grid-column: 1/4;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    order: initial;
-    grid-column: auto;
-  }
-`;
-
 const StyledMain = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
   flex: 1;
 `;
 
-const ProfileVisualization = styled('div')`
-  display: grid;
-  grid-template-rows: min-content 1fr;
-  height: 100%;
-  flex: 1;
-`;
-
-const RequestStateMessageContainer = styled('div')`
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  pointer-events: none;
-`;
-
-const AggregateFlamegraphToolbarContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(1)};
-  padding-bottom: ${space(1)};
-  background-color: ${p => p.theme.background};
-  /*
-    force height to be the same as profile digest header,
-    but subtract 1px for the border that doesnt exist on the header
-   */
-  height: 41px;
-`;
-
-const ViewSelectContainer = styled('div')`
-  min-width: 160px;
-`;
-
-const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
-  max-width: 300px;
-`;
-
-const StyledPanel = styled(Panel)`
-  overflow: hidden;
-  display: flex;
-`;
-
 function ProfilesIndex() {
   const organization = useOrganization();
+  const location = useLocation();
+  const transaction = decodeScalar(location.query.transaction);
 
-  if (organization.features.includes('continuous-profiling-compat')) {
-    return <ProfilesWrapper />;
+  if (!transaction) {
+    redirectToPerformanceHomepage(organization, location);
+    return null;
   }
 
-  return <ProfilesLegacy />;
+  if (organization.features.includes('continuous-profiling-compat')) {
+    return <Profiles organization={organization} transaction={transaction} />;
+  }
+
+  return <ProfilesLegacy organization={organization} transaction={transaction} />;
 }
 
 export default ProfilesIndex;

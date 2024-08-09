@@ -571,6 +571,7 @@ class SetCommitsTestCase(TestCase):
             ]
         )
         commit = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="a" * 40)
+        assert commit.author is not None
         assert commit.author.email == truncatechars(commit_email, 75)
 
 

@@ -1,23 +1,21 @@
-import type {AnchorHTMLAttributes} from 'react';
-import {cloneElement, createContext, useCallback, useState} from 'react';
-import styled from '@emotion/styled';
+import {createContext, useCallback, useState} from 'react';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
+import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {EventDataSection} from './eventDataSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -54,9 +52,9 @@ type Props = {
   projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
-  title: React.ReactElement<any, any>;
+  title: React.ReactNode;
   type: string;
-  wrapTitle?: boolean;
+  isNestedSection?: boolean;
 };
 
 export const TraceEventDataSectionContext = createContext<ChildProps | undefined>(
@@ -66,7 +64,6 @@ export const TraceEventDataSectionContext = createContext<ChildProps | undefined
 export function TraceEventDataSection({
   type,
   title,
-  wrapTitle,
   stackTraceNotFound,
   fullStackTrace,
   recentFirst,
@@ -80,9 +77,11 @@ export function TraceEventDataSection({
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
   hasAppOnlyFrames,
+  isNestedSection = false,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const [state, setState] = useState<State>({
     sortBy: recentFirst ? 'recent-first' : 'recent-last',
@@ -355,11 +354,14 @@ export function TraceEventDataSection({
     fullStackTrace: state.fullStackTrace,
   };
 
+  const SectionComponent = isNestedSection ? EventDataSection : InterimSection;
+
   return (
-    <EventDataSection
+    <SectionComponent
       type={type}
-      title={cloneElement(title, {type})}
-      guideTarget="stacktrace"
+      showPermalink={!hasStreamlinedUI}
+      title={title}
+      guideTarget={type}
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>
@@ -434,44 +436,10 @@ export function TraceEventDataSection({
           </ButtonBar>
         )
       }
-      showPermalink={false}
-      wrapTitle={wrapTitle}
     >
       <TraceEventDataSectionContext.Provider value={childProps}>
         {children(childProps)}
       </TraceEventDataSectionContext.Provider>
-    </EventDataSection>
+    </SectionComponent>
   );
 }
-
-interface PermalinkTitleProps
-  extends React.DetailedHTMLProps<
-    AnchorHTMLAttributes<HTMLAnchorElement>,
-    HTMLAnchorElement
-  > {}
-
-export function PermalinkTitle(props: PermalinkTitleProps) {
-  return (
-    <Permalink {...props} href={'#' + props.type} className="permalink">
-      <StyledIconLink size="xs" color="subText" />
-      <h3>{props.children}</h3>
-    </Permalink>
-  );
-}
-
-const StyledIconLink = styled(IconLink)`
-  display: none;
-  position: absolute;
-  top: 50%;
-  left: -${space(2)};
-  transform: translateY(-50%);
-`;
-
-const Permalink = styled('a')`
-  display: inline-flex;
-  justify-content: flex-start;
-
-  &:hover ${StyledIconLink} {
-    display: block;
-  }
-`;

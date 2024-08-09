@@ -217,6 +217,7 @@ class ProcessCandidateUrlTest(TestCase):
         assert process_candidate_url(self.project, 100, url, 50)
         assert is_url_auto_monitored_for_project(self.project, url)
         assert self.project.get_option("sentry:uptime_autodetection") is False
+        assert self.organization.get_option("sentry:uptime_autodetection") is False
 
     def test_succeeds_new_no_feature(self):
         with mock.patch(
@@ -225,6 +226,7 @@ class ProcessCandidateUrlTest(TestCase):
             assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
             mock_monitor_url_for_project.assert_not_called()
             assert self.project.get_option("sentry:uptime_autodetection") is None
+            assert self.organization.get_option("sentry:uptime_autodetection") is None
 
     @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_existing_subscription_other_project(self):
@@ -240,6 +242,7 @@ class ProcessCandidateUrlTest(TestCase):
         assert process_candidate_url(self.project, 100, url, 50)
         assert is_url_auto_monitored_for_project(self.project, url)
         assert self.project.get_option("sentry:uptime_autodetection") is False
+        assert self.organization.get_option("sentry:uptime_autodetection") is False
 
     @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_existing_subscription_this_project(self):
@@ -250,6 +253,7 @@ class ProcessCandidateUrlTest(TestCase):
         new_subscription = get_auto_monitored_subscriptions_for_project(self.project)[0]
         assert subscription.id == new_subscription.id
         assert self.project.get_option("sentry:uptime_autodetection") is False
+        assert self.organization.get_option("sentry:uptime_autodetection") is False
 
     def test_below_thresholds(self):
         assert not process_candidate_url(self.project, 500, "https://sentry.io", 1)
@@ -275,7 +279,7 @@ class ProcessCandidateUrlTest(TestCase):
     def test_failed_robots_txt_user_agent(self):
         url = "https://sentry.io"
         test_robot_parser = RobotFileParser()
-        robots_txt = ["User-agent: sentry.io_uptime_checker_v_1", "Disallow: /"]
+        robots_txt = ["User-agent: SentryUptimeBot", "Disallow: /"]
         test_robot_parser.parse(robots_txt)
         with mock.patch(
             "sentry.uptime.detectors.tasks.get_robots_txt_parser",

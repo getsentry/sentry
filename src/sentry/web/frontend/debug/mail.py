@@ -25,8 +25,8 @@ from django.views.generic import View
 
 from sentry import eventstore
 from sentry.constants import LOG_LEVELS
-from sentry.digests import Record
-from sentry.digests.notifications import Notification, build_digest
+from sentry.digests.notifications import build_digest
+from sentry.digests.types import Notification, Record
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
@@ -146,7 +146,7 @@ def make_group_metadata(random: Random) -> dict[str, Any]:
     }
 
 
-def make_group_generator(random: Random, project: Project) -> Generator[Group, None, None]:
+def make_group_generator(random: Random, project: Project) -> Generator[Group]:
     epoch = int(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp())
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)

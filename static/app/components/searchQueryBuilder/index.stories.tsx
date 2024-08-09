@@ -2,7 +2,10 @@ import {Fragment, useState} from 'react';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  FieldDefinitionGetter,
+  FilterKeySection,
+} from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
 import JSXNode from 'sentry/components/stories/jsxNode';
@@ -13,6 +16,7 @@ import {
   FieldKey,
   FieldKind,
   FieldValueType,
+  getFieldDefinition,
   MobileVital,
   WebVital,
 } from 'sentry/utils/fields';
@@ -77,17 +81,11 @@ const FILTER_KEYS: TagCollection = {
   },
 };
 
-const FITLER_KEY_SECTIONS: FilterKeySection[] = [
+const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_1',
     label: 'Category 1',
-    children: [
-      FieldKey.ASSIGNED,
-      FieldKey.BROWSER_NAME,
-      FieldKey.IS,
-      FieldKey.LAST_SEEN,
-      FieldKey.TIMES_SEEN,
-    ],
+    children: [FieldKey.ASSIGNED, FieldKey.BROWSER_NAME, FieldKey.IS],
   },
   {
     value: 'cat_2',
@@ -97,6 +95,16 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_3',
     label: 'Category 3',
+    children: [FieldKey.TIMES_SEEN],
+  },
+  {
+    value: 'cat_4',
+    label: 'Category 4',
+    children: [FieldKey.LAST_SEEN],
+  },
+  {
+    value: 'cat_5',
+    label: 'Category 5',
     children: ['custom_tag_name'],
   },
 ];
@@ -279,7 +287,7 @@ export default storyBook(SearchQueryBuilder, story => {
       <Fragment>
         <p>
           A special menu can be displayed when no text is entered in the search input,
-          allowing for better oranization and discovery of filter keys.
+          allowing for better organization and discovery of filter keys.
         </p>
         <p>
           This menu is defined by <code>filterKeySections</code>, which accepts a list of
@@ -288,10 +296,22 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery=""
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
+        />
+        <p>
+          If you wish to modify the size of the filter key menu, use
+          <code>filterKeyMenuWidth</code> to define the width in pixels.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          filterKeyMenuWidth={600}
         />
       </Fragment>
     );
@@ -317,11 +337,198 @@ export default storyBook(SearchQueryBuilder, story => {
           getTagValues={getTagValues}
           fieldDefinitionGetter={() => {
             return {
-              desc: 'Customized field defintion',
+              desc: 'Customized field definition',
               kind: FieldKind.FIELD,
               valueType: FieldValueType.BOOLEAN,
             };
           }}
+          searchSource="storybook"
+        />
+      </Fragment>
+    );
+  });
+
+  story('Aggregate filters', () => {
+    const aggregateFilterKeys: TagCollection = {
+      apdex: {
+        key: 'apdex',
+        name: 'apdex',
+        kind: FieldKind.FUNCTION,
+      },
+      count: {
+        key: 'count',
+        name: 'count',
+        kind: FieldKind.FUNCTION,
+      },
+      count_if: {
+        key: 'count_if',
+        name: 'count_if',
+        kind: FieldKind.FUNCTION,
+      },
+      'transaction.duration': {
+        key: 'transaction.duration',
+        name: 'transaction.duration',
+        kind: FieldKind.FIELD,
+      },
+      timesSeen: {
+        key: 'timesSeen',
+        name: 'timesSeen',
+        kind: FieldKind.FIELD,
+      },
+      lastSeen: {
+        key: 'lastSeen',
+        name: 'lastSeen',
+        kind: FieldKind.FIELD,
+      },
+    };
+
+    const getAggregateFieldDefinition: FieldDefinitionGetter = (key: string) => {
+      switch (key) {
+        case 'apdex':
+          return {
+            desc: 'Returns results with the Apdex score that you entered. Values must be between 0 and 1. Higher apdex values indicate higher user satisfaction.',
+            kind: FieldKind.FUNCTION,
+            valueType: FieldValueType.NUMBER,
+            parameters: [
+              {
+                name: 'threshold',
+                kind: 'value' as const,
+                dataType: FieldValueType.NUMBER,
+                defaultValue: '300',
+                required: true,
+              },
+            ],
+          };
+        case 'count':
+          return {
+            desc: 'Returns results with a matching count.',
+            kind: FieldKind.FUNCTION,
+            valueType: FieldValueType.INTEGER,
+            parameters: [],
+          };
+        case 'count_if':
+          return {
+            desc: 'Returns results with a matching count that satisfy the condition passed to the parameters of the function.',
+            kind: FieldKind.FUNCTION,
+            valueType: FieldValueType.INTEGER,
+            parameters: [
+              {
+                name: 'column',
+                kind: 'column' as const,
+                columnTypes: [
+                  FieldValueType.STRING,
+                  FieldValueType.NUMBER,
+                  FieldValueType.DURATION,
+                ],
+                defaultValue: 'transaction.duration',
+                required: true,
+              },
+              {
+                name: 'operator',
+                kind: 'value' as const,
+                options: [
+                  {
+                    label: 'is equal to',
+                    value: 'equals',
+                  },
+                  {
+                    label: 'is not equal to',
+                    value: 'notEquals',
+                  },
+                  {
+                    label: 'is less than',
+                    value: 'less',
+                  },
+                  {
+                    label: 'is greater than',
+                    value: 'greater',
+                  },
+                  {
+                    label: 'is less than or equal to',
+                    value: 'lessOrEquals',
+                  },
+                  {
+                    label: 'is greater than or equal to',
+                    value: 'greaterOrEquals',
+                  },
+                ],
+                dataType: FieldValueType.STRING,
+                defaultValue: 'equals',
+                required: true,
+              },
+              {
+                name: 'value',
+                kind: 'value',
+                dataType: FieldValueType.STRING,
+                defaultValue: '300ms',
+                required: true,
+              },
+            ],
+          };
+        default:
+          return getFieldDefinition(key);
+      }
+    };
+
+    return (
+      <Fragment>
+        <p>
+          Filter keys can be defined as aggregate filters, which allow for more complex
+          operations. They may accept any number of parameters, which are defined in the
+          field definition.
+        </p>
+        <p>
+          To define an aggregate filter, set the <code>kind</code> to{' '}
+          <code>FieldKind.FUNCTION</code>, and the <code>valueType</code> to the return
+          type of the function. Then define the <code>parameters</code>, which is an array
+          of acceptable column types or a predicate function.
+        </p>
+        <ul>
+          <li>
+            <strong>
+              <code>name</code>
+            </strong>
+            : The name of the parameter.
+            <li>
+              <strong>
+                <code>kind</code>
+              </strong>
+              : Parameters may be defined as either a column parameter or a value
+              parameter.
+              <ul>
+                <li>
+                  <code>'value'</code>: If this parameter is a value it also requires a{' '}
+                  <code>dataType</code> and, optionally, a list of <code>options</code>{' '}
+                  that will be displayed as suggestions.
+                </li>
+                <li>
+                  <code>'column'</code>: Column parameters suggest other existing filter
+                  keys. This also requires <code>columnTypes</code> to be defined, which
+                  may be a list of data types that the column may be or a predicate
+                  function.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <strong>
+                <code>required</code>
+              </strong>
+              : Whether or not the parameter is required.
+            </li>
+            <li>
+              <strong>
+                <code>defaultValue</code>
+              </strong>
+              : The default value that the parameter will be set to when the filter is
+              first added.
+            </li>
+          </li>
+        </ul>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeys={aggregateFilterKeys}
+          getTagValues={getTagValues}
+          fieldDefinitionGetter={getAggregateFieldDefinition}
           searchSource="storybook"
         />
       </Fragment>
@@ -360,7 +567,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery=""
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
@@ -406,7 +613,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </MultipleCheckbox>
         <SearchQueryBuilder
           initialQuery="(unsupported_key:value OR browser.name:Internet*) TypeError"
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"
@@ -425,7 +632,7 @@ export default storyBook(SearchQueryBuilder, story => {
         </p>
         <SearchQueryBuilder
           initialQuery="AND"
-          filterKeySections={FITLER_KEY_SECTIONS}
+          filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
           searchSource="storybook"

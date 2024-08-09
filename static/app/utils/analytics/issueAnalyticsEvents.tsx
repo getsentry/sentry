@@ -50,7 +50,6 @@ export type IssueEventParameters = {
   'autofix.setup_modal_viewed': {
     groupId: string;
     projectId: string;
-    setup_codebase_index: boolean;
     setup_gen_ai_consent: boolean;
     setup_integration: boolean;
     setup_write_integration: boolean;
@@ -112,6 +111,10 @@ export type IssueEventParameters = {
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
+  };
+  'issue_details.section_fold': {
+    open: boolean;
+    sectionKey: string;
   };
   'issue_details.set_priority': SetPriorityParams;
   'issue_details.similar_issues.diff_clicked': {
@@ -403,5 +406,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
+  'issue_details.section_fold': 'Issue Details: Section Fold',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };

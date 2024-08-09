@@ -28,7 +28,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:

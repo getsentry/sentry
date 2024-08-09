@@ -8,6 +8,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   SearchQueryBuilder,
@@ -20,8 +21,13 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import type {TagCollection} from 'sentry/types/group';
-import {FieldKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import {
+  FieldKey,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
 const FILTER_KEYS: TagCollection = {
@@ -104,6 +110,8 @@ describe('SearchQueryBuilder', function () {
 
     // Combobox announcements will pollute the test output if we don't clear them
     destroyAnnouncer();
+
+    MockApiClient.clearMockResponses();
   });
 
   afterEach(function () {
@@ -265,6 +273,163 @@ describe('SearchQueryBuilder', function () {
           'browser.name:firefox assigned:me',
           expect.anything()
         );
+      });
+    });
+  });
+
+  describe('filter key menu', function () {
+    it('breaks keys into sections', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+
+      // Should show tab button for each section
+      expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Category 1'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Category 2'})).toBeInTheDocument();
+
+      const menu = screen.getByRole('listbox');
+      const groups = within(menu).getAllByRole('group');
+      expect(groups).toHaveLength(2);
+
+      // First group (Field) should have age, assigned, browser.name
+      const group1 = groups[0];
+      expect(within(group1).getByRole('option', {name: 'age'})).toBeInTheDocument();
+      expect(within(group1).getByRole('option', {name: 'assigned'})).toBeInTheDocument();
+      expect(
+        within(group1).getByRole('option', {name: 'browser.name'})
+      ).toBeInTheDocument();
+
+      // Second group (Tag) should have custom_tag_name
+      const group2 = groups[1];
+      expect(
+        within(group2).getByRole('option', {name: 'custom_tag_name'})
+      ).toBeInTheDocument();
+
+      // Clicking "Category 2" should filter the options to only category 2
+      await userEvent.click(screen.getByRole('button', {name: 'Category 2'}));
+      await waitFor(() => {
+        expect(screen.queryByRole('option', {name: 'age'})).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('option', {name: 'custom_tag_name'})).toBeInTheDocument();
+    });
+
+    it('can navigate between sections with arrow keys', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(getLastInput());
+      expect(screen.getByRole('button', {name: 'All'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // Arrow right while an option is not focused does nothing
+      await userEvent.keyboard('{ArrowRight}');
+      expect(screen.getByRole('button', {name: 'All'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // Arrowing down to an option and arrowing to the right should select the first section
+      await userEvent.keyboard('{ArrowDown}{ArrowDown}{ArrowRight}');
+      expect(screen.getByRole('button', {name: 'Category 1'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    describe('recent filter keys', function () {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          body: [
+            {query: 'assigned:me'},
+            {query: 'assigned:me browser:firefox'},
+            {query: 'assigned:me browser:firefox is:unresolved'},
+          ],
+        });
+      });
+
+      it('can select from recently-used filter keys', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+        );
+
+        await userEvent.click(getLastInput());
+
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+
+        expect(recentFilterKeys).toHaveLength(3);
+        expect(recentFilterKeys[0]).toHaveTextContent('assigned');
+        expect(recentFilterKeys[1]).toHaveTextContent('browser');
+        expect(recentFilterKeys[2]).toHaveTextContent('is');
+
+        await userEvent.click(recentFilterKeys[0]);
+
+        expect(await screen.findByRole('row', {name: 'assigned:""'})).toBeInTheDocument();
+      });
+
+      it('does not display filters present in the query', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery="assigned:me"
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Should not show "assigned" in the recent filter keys
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+        expect(recentFilterKeys).toHaveLength(2);
+        expect(recentFilterKeys[0]).toHaveTextContent('browser');
+        expect(recentFilterKeys[1]).toHaveTextContent('is');
+      });
+
+      it('can navigate between filters with arrow keys', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
+        );
+
+        await userEvent.click(getLastInput());
+
+        const recentFilterKeys = await screen.findAllByTestId('recent-filter-key');
+
+        // Arrow down once should focus the first recent filter key
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[0].id
+          );
+        });
+
+        // Arrow right should go to the next recent filter
+        await userEvent.keyboard('{ArrowRight}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[1].id
+          );
+        });
+
+        // Arrow down again skip to the next non-recent filter key
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            screen.getByRole('option', {name: 'age'}).id
+          );
+        });
+
+        // Arrow up should go back to the first recent filter key
+        await userEvent.keyboard('{ArrowUp}');
+        await waitFor(() => {
+          expect(getLastInput()).toHaveAttribute(
+            'aria-activedescendant',
+            recentFilterKeys[0].id
+          );
+        });
       });
     });
   });
@@ -489,29 +654,6 @@ describe('SearchQueryBuilder', function () {
       await waitFor(() => {
         expect(getLastInput()).toHaveValue('"Error: foo"');
       });
-    });
-
-    it('breaks keys into sections', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
-      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-
-      const menu = screen.getByRole('listbox');
-      const groups = within(menu).getAllByRole('group');
-      expect(groups).toHaveLength(2);
-
-      // First group (Field) should have age, assigned, browser.name
-      const group1 = groups[0];
-      expect(within(group1).getByRole('option', {name: 'age'})).toBeInTheDocument();
-      expect(within(group1).getByRole('option', {name: 'assigned'})).toBeInTheDocument();
-      expect(
-        within(group1).getByRole('option', {name: 'browser.name'})
-      ).toBeInTheDocument();
-
-      // Second group (Tag) should have custom_tag_name
-      const group2 = groups[1];
-      expect(
-        within(group2).getByRole('option', {name: 'custom_tag_name'})
-      ).toBeInTheDocument();
     });
 
     it('can search by key description', async function () {
@@ -1976,6 +2118,216 @@ describe('SearchQueryBuilder', function () {
 
         expect(screen.getByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
+      });
+    });
+
+    describe('aggregate filters', function () {
+      const aggregateFilterKeys: TagCollection = {
+        count: {
+          key: 'count',
+          name: 'count',
+          kind: FieldKind.FUNCTION,
+        },
+        count_if: {
+          key: 'count_if',
+          name: 'count_if',
+          kind: FieldKind.FUNCTION,
+        },
+        'transaction.duration': {
+          key: 'transaction.duration',
+          name: 'transaction.duration',
+          kind: FieldKind.FIELD,
+        },
+        timesSeen: {
+          key: 'timesSeen',
+          name: 'timesSeen',
+          kind: FieldKind.FIELD,
+        },
+        lastSeen: {
+          key: 'lastSeen',
+          name: 'lastSeen',
+          kind: FieldKind.FIELD,
+        },
+      };
+
+      const aggregateGetFieldDefinition: FieldDefinitionGetter = key => {
+        switch (key) {
+          case 'count':
+            return {
+              desc: 'count() description',
+              kind: FieldKind.FUNCTION,
+              valueType: FieldValueType.INTEGER,
+              parameters: [],
+            };
+          case 'count_if':
+            return {
+              desc: 'count_if() description',
+              kind: FieldKind.FUNCTION,
+              valueType: FieldValueType.INTEGER,
+              parameters: [
+                {
+                  name: 'column',
+                  kind: 'column' as const,
+                  columnTypes: [
+                    FieldValueType.STRING,
+                    FieldValueType.NUMBER,
+                    FieldValueType.DURATION,
+                  ],
+                  defaultValue: 'transaction.duration',
+                  required: true,
+                },
+                {
+                  name: 'operator',
+                  kind: 'value' as const,
+                  options: [{value: 'less'}, {value: 'greater'}],
+                  dataType: FieldValueType.STRING,
+                  defaultValue: 'greater',
+                  required: true,
+                },
+                {
+                  name: 'value',
+                  kind: 'value' as const,
+                  dataType: FieldValueType.STRING,
+                  defaultValue: '300ms',
+                  required: false,
+                },
+              ],
+            };
+          default:
+            return getFieldDefinition(key);
+        }
+      };
+
+      const aggregateDefaultProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: aggregateFilterKeys,
+        fieldDefinitionGetter: aggregateGetFieldDefinition,
+        filterKeySections: [],
+      };
+
+      it('can add an aggregate filter with default values', async function () {
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(transaction.duration,greater,300ms):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameter with predefined options', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="count_if(transaction.duration,):>100"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+        expect(input).toHaveFocus();
+        expect(input).toHaveValue('transaction.duration,');
+
+        await userEvent.click(await screen.findByRole('option', {name: 'less'}));
+        await waitFor(() => {
+          expect(input).toHaveValue('transaction.duration,less');
+        });
+        // Cursor should be at end of `less`
+        expect((input as HTMLInputElement).selectionStart).toBe(25);
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(transaction.duration,less):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameter with column options', async function () {
+        render(
+          <SearchQueryBuilder {...aggregateDefaultProps} initialQuery="count_if():>100" />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+        expect(input).toHaveFocus();
+        expect(input).toHaveValue('');
+
+        await userEvent.click(await screen.findByRole('option', {name: 'timesSeen'}));
+        await waitFor(() => {
+          expect(input).toHaveValue('timesSeen');
+        });
+        // Cursor should be at end of `timesSeen`
+        expect((input as HTMLInputElement).selectionStart).toBe(9);
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(timesSeen):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('can modify parameters by typing a manual value', async function () {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="count_if(transaction.duration,greater,300ms):>100"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+
+        await userEvent.clear(input);
+        await userEvent.keyboard('a,b,c{enter}');
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'count_if(a,b,c):>100',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('displays a description of the function and parameters while editing', async function () {
+        render(
+          <SearchQueryBuilder {...aggregateDefaultProps} initialQuery="count_if():>100" />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+        );
+
+        const descriptionTooltip = await screen.findByRole('tooltip');
+        expect(
+          within(descriptionTooltip).getByText('count_if() description')
+        ).toBeInTheDocument();
+        expect(
+          within(descriptionTooltip).getByText(
+            textWithMarkupMatcher(
+              'count_if(column: string, operator: string, value?: string)'
+            )
+          )
+        ).toBeInTheDocument();
+        expect(within(descriptionTooltip).getByTestId('focused-param')).toHaveTextContent(
+          'column: string'
+        );
+
+        // After moving to next parameter, should now highlight 'operator'
+        await userEvent.keyboard('a,');
+        await waitFor(() => {
+          expect(
+            within(descriptionTooltip).getByTestId('focused-param')
+          ).toHaveTextContent('operator: string');
+        });
       });
     });
   });

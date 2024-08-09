@@ -53,21 +53,21 @@ class GlobalParams:
 - `s` for seconds
 - `w` for weeks
 
-For example `24h`, to mean query data starting from 24 hours ago to now.""",
+For example, `24h`, to mean query data starting from 24 hours ago to now.""",
     )
     START = OpenApiParameter(
         name="start",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The start of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
+        description="The start of the period of time for the query, expected in ISO-8601 format. For example, `2001-12-14T12:34:56.7890`.",
     )
     END = OpenApiParameter(
         name="end",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
+        description="The end of the period of time for the query, expected in ISO-8601 format. For example, `2001-12-14T12:34:56.7890`.",
     )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
@@ -106,7 +106,7 @@ class OrganizationParams:
         required=False,
         many=True,
         type=str,
-        description="""The project slugs to filter by. Use `$all` to include all available projects. For example the following are valid parameters:
+        description="""The project slugs to filter by. Use `$all` to include all available projects. For example, the following are valid parameters:
 - `/?projectSlug=$all`
 - `/?projectSlug=android&projectSlug=javascript-react`
 """,
@@ -118,7 +118,7 @@ class OrganizationParams:
         many=True,
         type=int,
         description="""The IDs of projects to filter by. `-1` means all available projects.
-For example the following are valid parameters:
+For example, the following are valid parameters:
 - `/?project=1234&project=56789`
 - `/?project=-1`
 """,
@@ -169,6 +169,14 @@ Valid fields include:
 - `projects`: By number of projects
 - `events`: By number of events in the past 24 hours
 """,
+    )
+
+    EXTERNAL_USER_ID = OpenApiParameter(
+        name="external_user_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the external user object. This is returned when creating an external user.",
     )
 
 
@@ -273,7 +281,7 @@ class VisibilityParams:
         type=str,
         description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
-example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
+Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 """,
     )
     FIELD = OpenApiParameter(
@@ -352,6 +360,16 @@ class MonitorParams:
         required=False,
         type=OpenApiTypes.UUID,
         description="The ID of the processing error.",
+    )
+
+
+class UptimeParams:
+    UPTIME_ALERT_ID = OpenApiParameter(
+        name="uptime_subscription_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the uptime alert rule you'd like to query.",
     )
 
 
@@ -513,22 +531,22 @@ class IntegrationParams:
         type=str,
         many=True,
         description="""Integration features to filter by. See our [Integrations Documentation](/product/integrations/) for an updated list of features. Current available ones are:
-- alert-rule
-- chat-unfurl
-- codeowners
-- commits
-- data-forwarding
-- deployment
-- enterprise-alert-rule
-- enterprise-incident-management
-- incident-management
-- issue-basic
-- issue-sync
-- mobile
-- serverless
-- session-replay
-- stacktrace-link
-- ticket-rules
+- `alert-rule`
+- `chat-unfurl`
+- `codeowners`
+- `commits`
+- `data-forwarding`
+- `deployment`
+- `enterprise-alert-rule`
+- `enterprise-incident-management`
+- `incident-management`
+- `issue-basic`
+- `issue-sync`
+- `mobile`
+- `serverless`
+- `session-replay`
+- `stacktrace-link`
+- `ticket-rules`
     """,
     )
     INCLUDE_CONFIG = OpenApiParameter(
@@ -553,7 +571,7 @@ The available fields are
 - `sum(session)`
 - `count_unique(user)`
 - `avg`, `p50`, `p75`, `p90`, `p95`, `p99`, `max` applied to `session.duration`. For example, `p99(session.duration)`. Session duration is [no longer being recorded](https://github.com/getsentry/sentry/discussions/42716) as of on Jan 12, 2023. Returned data may be incomplete.
-- `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example,`crash_free_rate(user)`
+- `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example, `crash_free_rate(user)`
 """,
     )
     INTERVAL = OpenApiParameter(
@@ -576,6 +594,7 @@ The available fields are
         location="query",
         required=False,
         type=str,
+        many=True,
         description="""The list of properties to group by.\n\nThe available groupBy conditions are `project`,
         `release`, `environment` and `session.status`.""",
     )
@@ -585,7 +604,7 @@ The available fields are
         required=False,
         type=str,
         description="""An optional field to order by, which must be one of the fields provided in `field`. Use `-`
-        for descending order, for example `-sum(session)`""",
+        for descending order, for example, `-sum(session)`""",
     )
     INCLUDE_TOTALS = OpenApiParameter(
         name="includeTotals",
@@ -610,4 +629,41 @@ class DashboardParams:
         required=True,
         type=int,
         description="""The ID of the dashboard you'd like to retrieve.""",
+    )
+
+
+class DiscoverSavedQueryParams:
+    DISCOVER_SAVED_QUERY_ID = OpenApiParameter(
+        name="query_id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the Discover query you'd like to retrieve.""",
+    )
+
+
+class DiscoverSavedQueriesParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""The name of the Discover query you'd like to filter by.""",
+    )
+
+    SORT = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the results are sorted by query name.
+
+Available fields are:
+- `name`
+- `dateCreated`
+- `dateUpdated`
+- `mostPopular`
+- `recentlyViewed`
+- `myqueries`
+        """,
     )

@@ -8,9 +8,6 @@ import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import {AutofixInstructionsModal} from 'sentry/components/events/autofix/autofixInstructionsModal';
 import {AutofixSetupModal} from 'sentry/components/events/autofix/autofixSetupModal';
-import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
-import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAutofixCodebaseIndexing';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
@@ -68,21 +65,8 @@ function AutofixBannerContent({
   hasSuccessfulSetup,
   projectId,
 }: Props) {
-  const {status: indexingStatus} = useAutofixCodebaseIndexing({projectId, groupId});
-
   if (hasSuccessfulSetup) {
     return <SuccessfulSetup groupId={groupId} triggerAutofix={triggerAutofix} />;
-  }
-
-  if (indexingStatus === AutofixCodebaseIndexingStatus.INDEXING) {
-    return (
-      <RowStack>
-        <LoadingIndicator mini />
-        <LoadingMessage>
-          Indexing your repositories, hold tight this may take up to 30 minutes...
-        </LoadingMessage>
-      </RowStack>
-    );
   }
 
   return (
@@ -205,15 +189,4 @@ const PiiMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   margin-top: ${space(1.5)};
-`;
-
-const RowStack = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-`;
-
-const LoadingMessage = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
 `;

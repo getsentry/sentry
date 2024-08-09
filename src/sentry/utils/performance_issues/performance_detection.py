@@ -9,7 +9,7 @@ from typing import Any
 import sentry_sdk
 
 from sentry import nodestore, options, projectoptions
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -58,7 +58,7 @@ class EventPerformanceProblem:
     to and fetch from Nodestore
     """
 
-    def __init__(self, event: Event, problem: PerformanceProblem):
+    def __init__(self, event: Event | GroupEvent, problem: PerformanceProblem):
         self.event = event
         self.problem = problem
 
@@ -99,7 +99,7 @@ class EventPerformanceProblem:
 
     @classmethod
     def fetch_multi(
-        cls, items: Sequence[tuple[Event, str]]
+        cls, items: Sequence[tuple[Event | GroupEvent, str]]
     ) -> list[EventPerformanceProblem | None]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
         results = nodestore.backend.get_multi(ids)
@@ -366,8 +366,6 @@ def _detect_performance_problems(
         )
 
     organization = project.organization
-    if project is None or organization is None:
-        return []
 
     problems: list[PerformanceProblem] = []
     with sentry_sdk.start_span(op="performance_detection", description="is_creation_allowed"):

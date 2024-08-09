@@ -49,7 +49,7 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     if subscription.status != QuerySubscription.Status.CREATING.value:
         metrics.incr("snuba.subscriptions.create.incorrect_status")
         return
-    if subscription.subscription_id is not None:
+    if subscription.subscription_id is not None and subscription.snuba_query is not None:
         metrics.incr("snuba.subscriptions.create.already_created_in_snuba")
         # This mostly shouldn't happen, but it's possible that a subscription can get
         # into this state. Just attempt to delete the existing subscription and then
@@ -102,7 +102,7 @@ def update_subscription_in_snuba(
         metrics.incr("snuba.subscriptions.update.incorrect_status")
         return
 
-    if subscription.subscription_id is not None:
+    if subscription.subscription_id is not None and subscription.snuba_query is not None:
         dataset = Dataset(
             old_dataset if old_dataset is not None else subscription.snuba_query.dataset
         )
@@ -156,6 +156,8 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     If the local subscription is marked for deletion (as opposed to disabled),
     then we delete the local subscription once we've successfully removed from Snuba.
     """
+    from sentry.incidents.models.alert_rule import AlertRule
+
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
     except QuerySubscription.DoesNotExist:
@@ -169,7 +171,7 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         metrics.incr("snuba.subscriptions.delete.incorrect_status")
         return
 
-    if subscription.subscription_id is not None:
+    if subscription.subscription_id is not None and subscription.snuba_query is not None:
         query_dataset = Dataset(subscription.snuba_query.dataset)
         entity_key = get_entity_key_from_snuba_query(
             subscription.snuba_query,
@@ -184,12 +186,23 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         )
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
+        snuba_query = subscription.snuba_query
         subscription.delete()
+        # check that there are no subscriptions left related to the SnubaQuery before deleting
+        # add a check for the alert rule - in the snapshot case we could fall in here but the alert rule isn't deleted
+        if (
+            snuba_query
+            and not QuerySubscription.objects.filter(snuba_query=snuba_query.id).exists()
+            and not AlertRule.objects_with_snapshots.filter(snuba_query=snuba_query.id).exists()
+        ):
+            snuba_query.delete()
     else:
         subscription.update(subscription_id=None)
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
+    assert subscription.snuba_query is not None
+
     with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
         span.set_tag(
             "uses_metrics_layer",

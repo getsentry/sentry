@@ -15,13 +15,18 @@ import Pills from 'sentry/components/pills';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization, Project, Thread} from 'sentry/types';
-import {EntryType, StackType, StackView} from 'sentry/types';
+import {StackType, StackView} from 'sentry/types';
+import type {Event, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
@@ -39,7 +44,6 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
     values?: Array<Thread>;
   };
   event: Event;
-  organization: Organization;
   projectSlug: Project['slug'];
 };
 
@@ -99,10 +103,9 @@ export function Threads({
   projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
-  organization,
 }: Props) {
   const threads = data.values ?? [];
-
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
 
   const stackTraceNotFound = !threads.length;
@@ -228,12 +231,16 @@ export function Threads({
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
   const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
-  return (
+  const threadComponent = (
     <Fragment>
-      {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
+      {hasMoreThanOneThread && (
         <Fragment>
           <Grid>
-            <EventDataSection type={EntryType.THREADS} title={t('Threads')}>
+            <EventDataSection
+              type="threads"
+              title={t('Threads')}
+              showPermalink={!hasStreamlinedUI}
+            >
               {activeThread && (
                 <Wrapper>
                   <ThreadSelector
@@ -249,7 +256,11 @@ export function Threads({
               )}
             </EventDataSection>
             {activeThread?.state && (
-              <EventDataSection type={EntryType.THREAD_STATE} title={t('Thread State')}>
+              <EventDataSection
+                title={t('Thread State')}
+                type="thread-state"
+                showPermalink={!hasStreamlinedUI}
+              >
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}
                   <ThreadState>{threadStateDisplay}</ThreadState>
@@ -267,7 +278,11 @@ export function Threads({
             )}
           </Grid>
           {!hideThreadTags && (
-            <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
+            <EventDataSection
+              title={t('Thread Tags')}
+              type={'thread-tags'}
+              showPermalink={!hasStreamlinedUI}
+            >
               {renderPills()}
             </EventDataSection>
           )}
@@ -279,27 +294,9 @@ export function Threads({
         eventId={event.id}
         recentFirst={isStacktraceNewestFirst()}
         fullStackTrace={stackView === StackView.FULL}
-        title={
-          hasMoreThanOneThread &&
-          activeThread &&
-          !organization.features.includes('anr-improvements') ? (
-            <ThreadSelector
-              threads={threads}
-              activeThread={activeThread}
-              event={event}
-              onChange={thread => {
-                setActiveThread(thread);
-              }}
-              exception={exception}
-              fullWidth
-            />
-          ) : (
-            <PermalinkTitle>
-              {hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
-            </PermalinkTitle>
-          )
-        }
+        title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
         platform={platform}
+        isNestedSection
         hasMinified={
           !!exception?.values?.find(value => value.rawStacktrace) ||
           !!activeThread?.rawStacktrace
@@ -342,7 +339,6 @@ export function Threads({
           ) || (activeThread?.stacktrace?.frames ?? []).length > 1
         }
         stackTraceNotFound={stackTraceNotFound}
-        wrapTitle={false}
       >
         {childrenProps => {
           // TODO(scttcper): These are duplicated from renderContent, should consolidate
@@ -357,8 +353,6 @@ export function Threads({
 
           return (
             <Fragment>
-              {!organization.features.includes('anr-improvements') && renderPills()}
-
               {stackTrace && !isRaw && (
                 <ErrorBoundary customComponent={null}>
                   <StacktraceBanners event={event} stacktrace={stackTrace} />
@@ -370,6 +364,17 @@ export function Threads({
         }}
       </TraceEventDataSection>
     </Fragment>
+  );
+
+  return hasStreamlinedUI ? (
+    <InterimSection
+      title={tn('Stack Trace', 'Stack Traces', threads.length)}
+      type={FoldSectionKey.STACKTRACE}
+    >
+      {threadComponent}
+    </InterimSection>
+  ) : (
+    threadComponent
   );
 }
 
