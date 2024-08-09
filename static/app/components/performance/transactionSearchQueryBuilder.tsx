@@ -27,7 +27,7 @@ import useTags from 'sentry/utils/useTags';
 
 type SearchSource = 'transaction_summary';
 
-interface PerformanceSearchQueryBuilderProps {
+interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: SearchSource;
   datetime?: PageFilters['datetime'];
@@ -35,13 +35,13 @@ interface PerformanceSearchQueryBuilderProps {
   projects?: PageFilters['projects'];
 }
 
-export function PerformanceSearchQueryBuilder({
+export function TransactionSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
   onSearch,
   projects,
-}: PerformanceSearchQueryBuilderProps) {
+}: TransactionSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();

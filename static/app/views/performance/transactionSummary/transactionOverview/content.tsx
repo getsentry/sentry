@@ -11,7 +11,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {PerformanceSearchQueryBuilder} from 'sentry/components/performance/performanceSearchQueryBuilder';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import type {ActionBarItem} from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -356,7 +356,7 @@ function SummaryContent({
   function renderSearchBar() {
     if (organization.features.includes('search-query-builder-performance')) {
       return (
-        <PerformanceSearchQueryBuilder
+        <TransactionSearchQueryBuilder
           projects={projectIds}
           initialQuery={query}
           onSearch={handleSearch}
