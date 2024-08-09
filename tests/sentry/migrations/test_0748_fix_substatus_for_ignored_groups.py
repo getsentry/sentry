@@ -10,7 +10,7 @@ class FixSubstatusForIgnoreedGroupsTest(TestMigrations):
     migrate_from = "0747_create_datasecrecywaiver_table"
     migrate_to = "0748_fix_substatus_for_ignored_groups"
 
-    def setup_initial_state(self):
+    def setup_before_migration(self, app):
         self.do_not_update = Group.objects.create(
             project=self.project,
             status=GroupStatus.IGNORED,
