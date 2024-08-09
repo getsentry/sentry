@@ -30,6 +30,7 @@ import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreensho
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -62,8 +63,7 @@ import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resources
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {TraceDataSection} from 'sentry/views/issueDetails/traceTimeline/traceDataSection';
-import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
+import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const LLMMonitoringSection = lazy(
@@ -151,12 +151,15 @@ export function DefaultGroupEventDetailsContent({
 
   return (
     <Fragment>
+      {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
+
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
-        {!hasStreamlinedUI && (
+        {!hasStreamlinedUI && <TraceDataSection event={event} />}
+         {!hasStreamlinedUI && (
           <SuspectCommits
             project={project}
             eventId={event.id}
@@ -164,7 +167,6 @@ export function DefaultGroupEventDetailsContent({
             commitRow={CommitRow}
           />
         )}
-        {!hasStreamlinedUI && <TraceTimeLineOrRelatedIssue event={event} />}
       </StyledDataSection>
       {event.userReport && (
         <InterimSection

@@ -1747,7 +1747,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        project, primary.config, primary.hashes, secondary.config, secondary.hashes
+        primary.config, primary.hashes, secondary.config, secondary.hashes
     )
     # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
     # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
