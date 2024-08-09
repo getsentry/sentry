@@ -95,17 +95,17 @@ function TitleWithTestId(props: PropsWithChildren<{}>) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
-function TitleOp({description}: {description: string}) {
+function TitleOp({text}: {text: string}) {
   return (
     <Tooltip
       title={
         <Fragment>
-          {description}
+          {text}
           <CopyToClipboardButton
             borderless
             size="zero"
             iconSize="xs"
-            text={description}
+            text={text}
             tooltipProps={{disabled: true}}
           />
         </Fragment>
@@ -113,7 +113,7 @@ function TitleOp({description}: {description: string}) {
       showOnlyOnOverflow
       isHoverable
     >
-      <TitleOpText>{description}</TitleOpText>
+      <TitleOpText>{text}</TitleOpText>
     </Tooltip>
   );
 }
@@ -163,7 +163,7 @@ const HeaderContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(2)};
+  gap: ${space(3)};
   container-type: inline-size;
 
   @container (max-width: 780px) {
@@ -556,7 +556,6 @@ const ActionsContainer = styled('div')`
   justify-content: end;
   align-items: center;
   gap: ${space(1)};
-  min-width: 80px;
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {

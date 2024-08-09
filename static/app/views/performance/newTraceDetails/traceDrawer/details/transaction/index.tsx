@@ -73,7 +73,7 @@ function TransactionNodeDetailHeader({
         <TraceDrawerComponents.TitleText>
           <div>{t('transaction')}</div>
           <TraceDrawerComponents.TitleOp
-            description={node.value['transaction.op'] + ' - ' + node.value.transaction}
+            text={node.value['transaction.op'] + ' - ' + node.value.transaction}
           />
         </TraceDrawerComponents.TitleText>
       </TraceDrawerComponents.Title>
