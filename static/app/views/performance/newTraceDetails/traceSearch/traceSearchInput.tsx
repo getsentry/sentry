@@ -8,7 +8,6 @@ import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -26,17 +25,16 @@ interface TraceSearchInputProps {
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     behavior: 'track result' | 'persist'
   ) => void;
-  organization: Organization;
 }
 
 const MIN_LOADING_TIME = 300;
 
-export function TraceSearchInput(props: TraceSearchInputProps) {
-  const organization = useOrganization();
+function useTraceSearchInput(props: TraceSearchInputProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const [status, setStatus] = useState<TraceSearchState['status']>();
 
+  const organization = useOrganization();
   const timeoutRef = useRef<number | undefined>(undefined);
   const statusRef = useRef<TraceSearchState['status']>(status);
   statusRef.current = status;
@@ -168,6 +166,20 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     traceDispatch({type: 'go to previous match'});
   }, [traceDispatch, organization]);
 
+  return {
+    onPreviousSearchClick,
+    onNextSearchClick,
+    onSearchFocus,
+    onChange,
+    onSearchClear,
+    onKeyDown,
+    traceState,
+  };
+}
+
+function LegazyTraceSearchInput(props: TraceSearchInputProps) {
+  const inputProps = useTraceSearchInput(props);
+
   return (
     <StyledSearchBar>
       <InputGroup.LeadingItems>
@@ -188,24 +200,25 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         name="query"
         autoComplete="off"
         placeholder={t('Search in trace')}
-        defaultValue={traceState.search.query ?? ''}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        onFocus={onSearchFocus}
+        defaultValue={inputProps.traceState.search.query ?? ''}
+        onChange={inputProps.onChange}
+        onKeyDown={inputProps.onKeyDown}
+        onFocus={inputProps.onSearchFocus}
       />
       <InputGroup.TrailingItems>
         <StyledTrailingText data-test-id="trace-search-result-iterator">
           {`${
-            traceState.search.query && !traceState.search.results?.length
+            inputProps.traceState.search.query &&
+            !inputProps.traceState.search.results?.length
               ? t('no results')
-              : traceState.search.query
-                ? (traceState.search.resultIteratorIndex !== null
-                    ? traceState.search.resultIteratorIndex + 1
-                    : '-') + `/${traceState.search.results?.length ?? 0}`
+              : inputProps.traceState.search.query
+                ? (inputProps.traceState.search.resultIteratorIndex !== null
+                    ? inputProps.traceState.search.resultIteratorIndex + 1
+                    : '-') + `/${inputProps.traceState.search.results?.length ?? 0}`
                 : ''
           }`}
         </StyledTrailingText>
-        {traceState.search.query ? (
+        {inputProps.traceState.search.query ? (
           <Fragment>
             <StyledSearchBarTrailingButton
               size="zero"
@@ -213,7 +226,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
               icon={<IconChevron size="xs" />}
               aria-label={t('Next')}
               disabled={status?.[1] === 'loading'}
-              onClick={onPreviousSearchClick}
+              onClick={inputProps.onPreviousSearchClick}
             />
             <StyledSearchBarTrailingButton
               size="zero"
@@ -221,13 +234,13 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
               icon={<IconChevron size="xs" direction="down" />}
               aria-label={t('Previous')}
               disabled={status?.[1] === 'loading'}
-              onClick={onNextSearchClick}
+              onClick={inputProps.onNextSearchClick}
             />
             <StyledSearchBarTrailingButton
               size="zero"
               borderless
               disabled={status?.[1] === 'loading'}
-              onClick={onSearchClear}
+              onClick={inputProps.onSearchClear}
               icon={<IconClose size="xs" />}
               aria-label={t('Clear')}
             />
@@ -235,6 +248,15 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         ) : null}
       </InputGroup.TrailingItems>
     </StyledSearchBar>
+  );
+}
+
+export function TraceSearchInput(props: TraceSearchInputProps) {
+  const organization = useOrganization();
+  return organization.features.includes('@TODO') ? (
+    <LegazyTraceSearchInput {...props} />
+  ) : (
+    <LegazyTraceSearchInput {...props} />
   );
 }
 
