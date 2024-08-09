@@ -53,10 +53,11 @@ function SpanNodeDetailHeader({
         </Tooltip>
         <TraceDrawerComponents.TitleText>
           <div>{t('span')}</div>
-          <TraceDrawerComponents.TitleOp>
-            {' '}
-            {getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
-          </TraceDrawerComponents.TitleOp>
+          <TraceDrawerComponents.TitleOp
+            description={
+              getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)
+            }
+          />
         </TraceDrawerComponents.TitleText>
       </TraceDrawerComponents.Title>
       <TraceDrawerComponents.NodeActions
