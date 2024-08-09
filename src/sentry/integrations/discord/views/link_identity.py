@@ -8,6 +8,8 @@ from sentry.integrations.types import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 
+from .constants import SALT
+
 
 def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
     endpoint = "sentry-integration-discord-link-identity"
@@ -15,7 +17,7 @@ def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
         "discord_id": discord_id,
         "integration_id": integration.id,
     }
-    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
+    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
 
 
 class DiscordLinkingView(LinkingView, ABC):
@@ -31,8 +33,6 @@ class DiscordLinkingView(LinkingView, ABC):
 
     @property
     def salt(self) -> str:
-        from .constants import SALT
-
         return SALT
 
     @property
