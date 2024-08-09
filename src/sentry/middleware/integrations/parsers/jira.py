@@ -17,11 +17,11 @@ from sentry.integrations.jira.webhooks import (
     JiraSentryUninstalledWebhook,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     parse_integration_from_request,
 )
-from sentry.models.integrations import Integration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)

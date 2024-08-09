@@ -1,5 +1,6 @@
+import type React from 'react';
 import {memo, useCallback, useMemo} from 'react';
-import {css} from '@emotion/react';
+import {ClassNames, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -246,7 +247,11 @@ export const QueryBuilder = memo(function QueryBuilder({
   return (
     <QueryBuilderWrapper metricsNewInputs={hasMetricsNewInputs(organization)}>
       {hasMetricsNewInputs(organization) && (
-        <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
+        <FlexGuideAnchor
+          target="metrics_selector"
+          position="bottom"
+          disabled={index !== 0}
+        >
           <QueryFieldGroup>
             <QueryFieldGroup.Label>{t('Visualize')}</QueryFieldGroup.Label>
             <MRISelect
@@ -259,7 +264,7 @@ export const QueryBuilder = memo(function QueryBuilder({
               value={metricsQuery.mri}
             />
           </QueryFieldGroup>
-        </GuideAnchor>
+        </FlexGuideAnchor>
       )}
       <FlexBlock>
         {!hasMetricsNewInputs(organization) && (
@@ -376,41 +381,47 @@ export const QueryBuilder = memo(function QueryBuilder({
         </FlexBlock>
       </FlexBlock>
       {hasMetricsNewInputs(organization) ? (
-        selectedMeta && isVirtualMetric(selectedMeta) ? (
-          <QueryFieldGroup>
-            <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
-            <MetricQuerySelect
-              mri={metricsQuery.mri}
-              conditionId={metricsQuery.condition}
-              onChange={handleConditionChange}
-            />
-            <QueryFieldGroup.Label>{t('And')}</QueryFieldGroup.Label>
-            <SearchBar
-              mri={resolvedMRI}
-              disabled={!metricsQuery.mri}
-              onChange={handleQueryChange}
-              query={metricsQuery.query}
-              projectIds={projectIdStrings}
-              blockedTags={
-                selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
-              }
-            />
-          </QueryFieldGroup>
-        ) : (
-          <QueryFieldGroup>
-            <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
-            <SearchBar
-              mri={resolvedMRI}
-              disabled={!metricsQuery.mri}
-              onChange={handleQueryChange}
-              query={metricsQuery.query}
-              projectIds={projectIdStrings}
-              blockedTags={
-                selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
-              }
-            />
-          </QueryFieldGroup>
-        )
+        <FlexGuideAnchor
+          target="metrics_filterby"
+          position="bottom"
+          disabled={index !== 0}
+        >
+          {selectedMeta && isVirtualMetric(selectedMeta) ? (
+            <QueryFieldGroup>
+              <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
+              <MetricQuerySelect
+                mri={metricsQuery.mri}
+                conditionId={metricsQuery.condition}
+                onChange={handleConditionChange}
+              />
+              <QueryFieldGroup.Label>{t('And')}</QueryFieldGroup.Label>
+              <SearchBar
+                mri={resolvedMRI}
+                disabled={!metricsQuery.mri}
+                onChange={handleQueryChange}
+                query={metricsQuery.query}
+                projectIds={projectIdStrings}
+                blockedTags={
+                  selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
+                }
+              />
+            </QueryFieldGroup>
+          ) : (
+            <QueryFieldGroup>
+              <QueryFieldGroup.Label>{t('Where')}</QueryFieldGroup.Label>
+              <SearchBar
+                mri={resolvedMRI}
+                disabled={!metricsQuery.mri}
+                onChange={handleQueryChange}
+                query={metricsQuery.query}
+                projectIds={projectIdStrings}
+                blockedTags={
+                  selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
+                }
+              />
+            </QueryFieldGroup>
+          )}
+        </FlexGuideAnchor>
       ) : (
         <SearchBar
           mri={resolvedMRI}
@@ -442,6 +453,22 @@ function TagWarningIcon() {
         <IconWarning size="xs" color="warning" />
       </Tooltip>
     </TooltipIconWrapper>
+  );
+}
+
+function FlexGuideAnchor(props: React.ComponentProps<typeof GuideAnchor>) {
+  return (
+    <ClassNames>
+      {({css: classNamesCss}) => (
+        <GuideAnchor
+          {...props}
+          containerClassName={classNamesCss`
+            display: flex;
+            flex-grow: 1;
+          `}
+        />
+      )}
+    </ClassNames>
   );
 }
 

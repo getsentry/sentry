@@ -1451,7 +1451,26 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 ),
                 0,
             ],
-            alias="score",
+            alias="last_seen_score",
+        )
+
+    def get_first_seen_aggregation(self) -> Function:
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "toUInt64",
+                            [Function("max", [Column("group_first_seen", self.entities["attrs"])])],
+                        ),
+                        1000,
+                    ],
+                ),
+                0,
+            ],
+            alias="first_seen_score",
         )
 
     def get_handled_condition(
@@ -1563,20 +1582,19 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "first_release": (get_first_release_condition, Clauses.WHERE),
         "firstRelease": (get_first_release_condition, Clauses.WHERE),
     }
-    first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
 
     def get_sort_defs(self, entity):
         return {
             "date": self.get_last_seen_aggregation(entity),
-            "new": self.first_seen,
+            "new": self.get_first_seen_aggregation(),
             "freq": self.times_seen_aggregation,
             "user": Function("uniq", [Column("tags[sentry:user]", entity)], "user_count"),
         }
 
     sort_strategies = {
-        "new": "g.group_first_seen",
-        "date": "score",
+        "new": "first_seen_score",
+        "date": "last_seen_score",
         "freq": "times_seen",
         "user": "user_count",
     }

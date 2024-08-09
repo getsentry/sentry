@@ -117,7 +117,7 @@ def build_test_message_blocks(
             tags_text += f"{k}: `{v}`  "
 
         tags_section = {
-            "block_id": f'{{"issue":{group.id},"block":"text"}}',
+            "block_id": f'{{"issue":{group.id},"block":"tags"}}',
             "type": "section",
             "text": {"type": "mrkdwn", "text": tags_text},
         }
