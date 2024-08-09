@@ -119,6 +119,8 @@ async function fetchTraceMetaInBatches(
     metaResults.performance_issues = updatedData.performance_issues;
     metaResults.projects = Math.max(updatedData.projects, metaResults.projects);
     metaResults.transactions = updatedData.transactions;
+    metaResults.transactiontoSpanChildrenCount =
+      updatedData.transactiontoSpanChildrenCount;
   }
 
   return {metaResults, apiErrors};

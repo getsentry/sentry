@@ -568,9 +568,13 @@ export class TraceTree {
               parent.parent_transaction?.metadata.project_slug,
       });
 
-      const spanChildrenCount =
-        metaResults?.data?.transactiontoSpanChildrenCount[node.value.event_id];
-      node.canFetch = spanChildrenCount ? spanChildrenCount >= 2 : false;
+      // We check for at least 2 spans because the first span is the transaction itself.
+      if (isTransactionNode(node)) {
+        const spanChildrenCount =
+          metaResults?.data?.transactiontoSpanChildrenCount[node.value.event_id];
+        node.canFetch = spanChildrenCount ? spanChildrenCount >= 2 : false;
+      }
+
       tree.eventsCount += 1;
       tree.project_ids.add(node.value.project_id);
 
