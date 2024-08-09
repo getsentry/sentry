@@ -4,6 +4,7 @@ from sentry_sdk import capture_exception
 
 from sentry import roles
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -15,7 +16,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservationType
-from sentry.models.outbox import RegionOutbox, outbox_context
 from sentry.services.organization import OrganizationProvisioningOptions
 
 
