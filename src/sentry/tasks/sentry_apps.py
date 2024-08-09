@@ -409,9 +409,9 @@ def send_webhooks(installation, event, **kwargs):
 
 
 @instrumented_task(
-    "sentry.tasks.create_or_update_service_hooks_for_integration", **CONTROL_TASK_OPTIONS
+    "sentry.tasks.create_or_update_service_hooks_for_sentry_app", **CONTROL_TASK_OPTIONS
 )
-def create_or_update_service_hooks_for_integration(
+def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
 ) -> None:
     installations = SentryAppInstallation.objects.filter(sentry_app_id=sentry_app_id)

@@ -38,7 +38,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
-from sentry.tasks.sentry_apps import create_or_update_service_hooks_for_integration
+from sentry.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.sentry_apps.hook_manager import create_or_update_service_hooks_for_installation
 
@@ -188,7 +188,7 @@ class SentryAppUpdater:
         if self.sentry_app.is_published:
             # if it's a published integration, we need to do many updates so we have to do it in a task so we don't time out
             # the client won't know it succeeds but there's not much we can do about that unfortunately
-            create_or_update_service_hooks_for_integration(
+            create_or_update_service_hooks_for_sentry_app(
                 sentry_app_id=self.sentry_app.id,
                 webhook_url=self.sentry_app.webhook_url,
                 events=self.sentry_app.events,
