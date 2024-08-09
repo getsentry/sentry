@@ -98,7 +98,7 @@ function FieldGroup({
       style={style}
     >
       <FieldDescription
-        hidden={!shouldRenderLabel && !helpElement}
+        displayNone={!shouldRenderLabel && !helpElement}
         inline={inline}
         htmlFor={id}
         aria-label={ariaLabel}
