@@ -21,10 +21,10 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.outbox import outbox_context
-from sentry.models.user import User
 from sentry.organizations.services.organization.service import organization_service
 from sentry.signals import sso_enabled
 from sentry.silo.safety import unguarded_write
+from sentry.users.models.user import User
 
 
 class DatabaseBackedAuthService(AuthService):

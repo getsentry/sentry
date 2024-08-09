@@ -4,7 +4,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.models.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 

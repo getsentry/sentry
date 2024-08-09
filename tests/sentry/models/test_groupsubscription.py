@@ -8,7 +8,6 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
@@ -21,6 +20,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 

@@ -17,10 +17,10 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.search.base import ANY
 from sentry.search.events.constants import MAX_PARAMETERS_IN_ARRAY
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service

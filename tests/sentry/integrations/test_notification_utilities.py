@@ -7,11 +7,11 @@ from sentry.integrations.notifications import get_integrations_by_channel_by_rec
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.types import ExternalProviders
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import DummyNotification
 from sentry.testutils.silo import control_silo_test
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 
 
 @control_silo_test

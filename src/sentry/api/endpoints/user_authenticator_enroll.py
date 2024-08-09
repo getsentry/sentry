@@ -19,9 +19,9 @@ from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.models.authenticator import Authenticator
-from sentry.models.user import User
 from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
+from sentry.users.models.user import User
 from sentry.utils.auth import MFA_SESSION_KEY
 
 logger = logging.getLogger(__name__)

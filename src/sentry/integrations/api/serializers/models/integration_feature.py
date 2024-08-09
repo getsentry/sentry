@@ -3,7 +3,7 @@ from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.integrations.models.integration_feature import IntegrationFeature
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 
 @register(IntegrationFeature)

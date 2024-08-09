@@ -11,7 +11,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.team import Team
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 
 class QueryAggregations(Enum):

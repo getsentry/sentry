@@ -14,10 +14,10 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.signals import issue_archived
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service

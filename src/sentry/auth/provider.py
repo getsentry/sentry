@@ -12,10 +12,10 @@ from django.utils.encoding import force_str
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.user import User
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import PipelineProvider
 from sentry.plugins.base.response import DeferredResponse
+from sentry.users.models.user import User
 
 
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):

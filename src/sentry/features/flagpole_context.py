@@ -6,10 +6,10 @@ from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.projects.services.project import RpcProject
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
@@ -20,9 +20,9 @@ class InvalidContextDataException(Exception):
 @dataclass()
 class SentryContextData:
     actor: User | RpcUser | AnonymousUser | None = None
-    organization: Organization | RpcOrganization | RpcOrganizationSummary | RpcOrganizationMapping | None = (
-        None
-    )
+    organization: (
+        Organization | RpcOrganization | RpcOrganizationSummary | RpcOrganizationMapping | None
+    ) = None
     project: Project | RpcProject | None = None
 
 
@@ -89,7 +89,7 @@ def user_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     if isinstance(user, RpcUser):
         verified_emails = list(user.emails)
     else:
-        verified_emails = user.get_verified_emails().values_list("email", flat=True)
+        verified_emails = list(user.get_verified_emails().values_list("email", flat=True))
 
     if user.email in verified_emails:
         context_data["user_email"] = user.email

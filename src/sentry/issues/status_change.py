@@ -13,10 +13,10 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 from sentry.utils import json
 
 ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))

@@ -13,8 +13,8 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
     integration_service,
 )
-from sentry.models.user import User
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 

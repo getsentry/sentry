@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from sentry.models.user import User
+from sentry.users.models.user import User
 from sentry.utils.email.address import is_valid_email_address
 
 

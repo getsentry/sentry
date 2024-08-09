@@ -13,7 +13,7 @@ from sentry.users.services.user.model import RpcUser
 from .emails import generate_security_email
 
 if TYPE_CHECKING:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 logger = logging.getLogger("sentry.security")

@@ -8,9 +8,9 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
 
 EXAMPLE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQC1cd9t8sA03awggLiX2gjZxyvOVUPJksLly1E662tttTeR3Wm9

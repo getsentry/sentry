@@ -29,7 +29,7 @@ from sentry.users.services.user.model import RpcUser
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.team import Team
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, 
 def recipient_is_user(
     recipient: Actor | Team | RpcUser | User,
 ) -> TypeGuard[Actor | RpcUser | User]:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     if isinstance(recipient, Actor) and recipient.is_user:
         return True

@@ -16,7 +16,6 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.team import TeamStatus
-from sentry.models.user import User
 from sentry.models.userrole import UserRole
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
@@ -24,6 +23,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
+from sentry.users.models.user import User
 
 
 def silo_from_user(

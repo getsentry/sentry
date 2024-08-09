@@ -41,7 +41,6 @@ from sentry.models.relocation import (
     RelocationValidationAttempt,
     ValidationStatus,
 )
-from sentry.models.user import User
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.relocation import (
@@ -93,6 +92,7 @@ from sentry.testutils.helpers.task_runner import (
 )
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, OrderedTask
 
