@@ -280,7 +280,8 @@ declare namespace Profiling {
     >;
     shared: {
       frames: ReadonlyArray<Omit<Profiling.FrameInfo, 'key'>>;
-      profile_ids?: ProfileReference[];
+      profile_ids?: ReadonlyArray<string>[];
+      profiles?: ReadonlyArray<ProfileReference>;
     };
     activeProfileIndex?: number;
   }

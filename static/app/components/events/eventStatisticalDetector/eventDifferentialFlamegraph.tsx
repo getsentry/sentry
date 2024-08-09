@@ -195,15 +195,21 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       if (!frame.profileIds?.length) {
         return '';
       }
-      return generateProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
-        projectSlug: props.project.slug,
-        profileId: frame.profileIds?.[0] ?? '',
-        query: {
-          frameName: frame.frame.name,
-          framePackage: frame.frame.package,
-        },
-      });
+      const profileId = frame.profileIds[0];
+
+      if (typeof profileId === 'string') {
+        return generateProfileFlamechartRouteWithQuery({
+          orgSlug: organization.slug,
+          projectSlug: props.project.slug,
+          profileId: profileId,
+          query: {
+            frameName: frame.frame.name,
+            framePackage: frame.frame.package,
+          },
+        });
+      }
+
+      return '';
     },
     [organization.slug, props.project]
   );

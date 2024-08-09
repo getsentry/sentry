@@ -522,7 +522,7 @@ function ProfileIdsSubMenu(props: {
   frameName: string;
   framePackage: string | undefined;
   organizationSlug: string;
-  profileIds: string[];
+  profileIds: Profiling.ProfileReference[];
   projectSlug: string | undefined;
   subMenuPortalRef: HTMLElement | null;
 }) {
@@ -614,17 +614,20 @@ function ProfileIdsSubMenu(props: {
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Profiles')}</ProfilingContextMenuHeading>
               {props.profileIds.map(profileId => {
-                const to = generateFlamechartLink(profileId);
-                return (
-                  <ProfilingContextMenuItemButton
-                    key={profileId}
-                    {...props.contextMenu.getMenuItemProps({})}
-                  >
-                    <Link to={to} css={{color: 'unset'}}>
-                      {getShortEventId(profileId)}{' '}
-                    </Link>
-                  </ProfilingContextMenuItemButton>
-                );
+                if (typeof profileId === 'string') {
+                  const to = generateFlamechartLink(profileId);
+                  return (
+                    <ProfilingContextMenuItemButton
+                      key={profileId}
+                      {...props.contextMenu.getMenuItemProps({})}
+                    >
+                      <Link to={to} css={{color: 'unset'}}>
+                        {getShortEventId(profileId)}{' '}
+                      </Link>
+                    </ProfilingContextMenuItemButton>
+                  );
+                }
+                return null;
               })}
             </ProfilingContextMenuGroup>
           </ProfilingContextMenu>,

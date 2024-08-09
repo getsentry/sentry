@@ -59,7 +59,9 @@ export class SampledProfile extends Profile {
     options: {
       type: 'flamechart' | 'flamegraph';
       frameFilter?: (frame: Frame) => boolean;
-      profileIds?: Profiling.Schema['shared']['profile_ids'];
+      profileIds?:
+        | Profiling.Schema['shared']['profile_ids']
+        | Profiling.Schema['shared']['profiles'];
     }
   ): Profile {
     assertValidProfilingUnit(sampledProfile.unit);
@@ -87,7 +89,7 @@ export class SampledProfile extends Profile {
     ) {
       resolvedProfileIds = resolveFlamegraphSamplesProfileIds(
         sampledProfile.samples_profiles,
-        options.profileIds
+        options.profileIds as Profiling.ProfileReference[]
       );
     }
 
@@ -222,7 +224,7 @@ export class SampledProfile extends Profile {
     stack: Frame[],
     weight: number,
     end: number,
-    resolvedProfileIds?: Profiling.ProfileReference[],
+    resolvedProfileIds?: Profiling.ProfileReference[] | string[],
     aggregate_duration_ns?: number
   ): void {
     // Keep track of discarded samples and ones that may have negative weights
