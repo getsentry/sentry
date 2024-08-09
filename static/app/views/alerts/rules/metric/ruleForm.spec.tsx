@@ -467,6 +467,21 @@ describe('Incident Rules Form', () => {
       );
     });
 
+    it('switches to anomaly detection threshold', async () => {
+      organization.features = [...organization.features, 'anomaly-detection-alerts'];
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: ['default'],
+        },
+      });
+      const anomaly_option = await screen.findByText(
+        'Anomaly: when evaluated values are outside of expected bounds'
+      );
+      expect(anomaly_option).toBeInTheDocument();
+    });
+
     it('switches event type from error to default', async () => {
       createWrapper({
         ruleId: rule.id,
