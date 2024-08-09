@@ -8,11 +8,15 @@ from sentry import eventstore
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.unfurl.types import (
+    Handler,
+    UnfurlableUrl,
+    UnfurledUrl,
+    make_type_coercer,
+)
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.user import User
-
-from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
 map_issue_args = make_type_coercer(
     {

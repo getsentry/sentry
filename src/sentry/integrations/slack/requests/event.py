@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
-from sentry.integrations.slack.unfurl import LinkType, match_link
+from sentry.integrations.slack.unfurl.types import LinkType, match_link
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
