@@ -30,7 +30,7 @@ function sortStacks(
 
 function stacksWithWeights(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Readonly<string[][]> = [],
+  profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
 ) {
   return profile.samples.map((stack, index) => {
@@ -45,7 +45,7 @@ function stacksWithWeights(
 
 function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Readonly<string[][]> = [],
+  profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
 ): {aggregate_sample_duration: number; stack: number[]; weight: number}[] {
   return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
@@ -59,7 +59,7 @@ export class SampledProfile extends Profile {
     options: {
       type: 'flamechart' | 'flamegraph';
       frameFilter?: (frame: Frame) => boolean;
-      profileIds?: Readonly<string[]>;
+      profileIds?: Profiling.Schema['shared']['profile_ids'];
     }
   ): Profile {
     assertValidProfilingUnit(sampledProfile.unit);
@@ -79,7 +79,7 @@ export class SampledProfile extends Profile {
       );
     }
 
-    let resolvedProfileIds: string[][] = [];
+    let resolvedProfileIds: Profiling.ProfileReference[][] = [];
     if (
       options.type === 'flamegraph' &&
       sampledProfile.samples_profiles &&
@@ -222,7 +222,7 @@ export class SampledProfile extends Profile {
     stack: Frame[],
     weight: number,
     end: number,
-    resolvedProfileIds?: string[],
+    resolvedProfileIds?: Profiling.ProfileReference[],
     aggregate_duration_ns?: number
   ): void {
     // Keep track of discarded samples and ones that may have negative weights

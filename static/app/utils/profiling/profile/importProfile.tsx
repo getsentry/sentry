@@ -33,7 +33,7 @@ export interface ImportOptions {
   activeThreadId?: string | null;
   continuous?: boolean;
   frameFilter?: (frame: Frame) => boolean;
-  profileIds?: Readonly<string[]>;
+  profileIds?: Profiling.Schema['shared']['profile_ids'];
 }
 
 export interface ProfileGroup {

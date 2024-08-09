@@ -46,7 +46,7 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
-  callTreeNodeProfileIdMap: Map<CallTreeNode, string[]> = new Map();
+  callTreeNodeProfileIdMap: Map<CallTreeNode, Profiling.ProfileReference[]> = new Map();
 
   constructor({
     duration,
