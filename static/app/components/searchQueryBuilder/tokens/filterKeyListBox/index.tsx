@@ -158,6 +158,8 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   selectedSection,
   setSelectedSection,
 }: FilterKeyListBoxProps<T>) {
+  const {filterKeyMenuWidth} = useSearchQueryBuilder();
+
   // Add recent filters to hiddenOptions so they don't show up the ListBox component.
   // We render recent filters manually in the RecentFiltersPane component.
   const hiddenOptionsWithRecentsAdded = useMemo<Set<SelectKey>>(() => {
@@ -175,7 +177,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   });
 
   return (
-    <SectionedOverlay ref={popoverRef}>
+    <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
       {isOpen ? (
         <Fragment>
           <RecentFiltersPane visible={recentFilters.length > 0}>
@@ -226,12 +228,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   );
 }
 
-const SectionedOverlay = styled(Overlay)`
+const SectionedOverlay = styled(Overlay)<{width: number}>`
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   overflow: hidden;
   height: 400px;
-  width: 360px;
+  width: ${p => p.width}px;
 `;
 
 const SectionedOverlayFooter = styled('div')`

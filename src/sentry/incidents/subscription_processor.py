@@ -59,6 +59,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import json, metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.json import JSONDecodeError
@@ -483,13 +484,9 @@ class SubscriptionProcessor:
 
         if not hasattr(self, "alert_rule"):
             # QuerySubscriptions must _always_ have an associated AlertRule
-            # If the alert rule has been removed then just skip
+            # If the alert rule has been removed then clean up associated tables and return
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription")
-            logger.error(
-                "Received an update for a subscription, but no associated alert rule exists"
-            )
-            # TODO: Delete QuerySubscription here
-            # TODO: Delete SnubaQuery here
+            delete_snuba_subscription(self.subscription)
             return
 
         if subscription_update["timestamp"] <= self.last_update:

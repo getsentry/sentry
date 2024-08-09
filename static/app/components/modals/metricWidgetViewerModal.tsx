@@ -37,6 +37,7 @@ import {
   getMetricQueries,
   getMetricWidgetTitle,
   getVirtualAlias,
+  isVirtualAlias,
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -111,26 +112,18 @@ function MetricWidgetViewerModal({
         const updated = [...curr];
         const currentQuery = updated[index];
         const updatedQuery = {...updated[index], ...data} as DashboardMetricsQuery;
-        const currentSpanAttribute =
-          defined(currentQuery.condition) &&
-          getExtractionRule(currentQuery.mri, currentQuery.condition)?.spanAttribute;
+
         const spanAttribute =
           defined(updatedQuery.condition) &&
           getExtractionRule(updatedQuery.mri, updatedQuery.condition)?.spanAttribute;
 
         if (spanAttribute) {
+          const updatedAlias = getVirtualAlias(updatedQuery.aggregation, spanAttribute);
           if (!updatedQuery.alias) {
-            updatedQuery.alias = getVirtualAlias(updatedQuery.aggregation, spanAttribute);
-          } else if (currentQuery.alias && currentSpanAttribute !== spanAttribute) {
-            if (
-              currentQuery.alias.trim() ===
-              getVirtualAlias(currentQuery.aggregation, currentSpanAttribute)
-            ) {
-              updatedQuery.alias = getVirtualAlias(
-                updatedQuery.aggregation,
-                spanAttribute
-              );
-            }
+            updatedQuery.alias = updatedAlias;
+          }
+          if (isVirtualAlias(currentQuery.alias) && isVirtualAlias(updatedQuery.alias)) {
+            updatedQuery.alias = updatedAlias;
           }
         }
 

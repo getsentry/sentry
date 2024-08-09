@@ -7,10 +7,7 @@ import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompati
 import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/data';
 
 function renderComponent(eventView: EventView) {
-  const organization = OrganizationFixture();
-  return render(
-    <IncompatibleAlertQuery orgSlug={organization.slug} eventView={eventView} />
-  );
+  return render(<IncompatibleAlertQuery eventView={eventView} />);
 }
 
 describe('IncompatibleAlertQuery', () => {
