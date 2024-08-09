@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,7 +16,6 @@ import {
 import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
-import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
@@ -241,54 +240,51 @@ export default function HighlightsDataSection({
   ) : null;
 
   return (
-    <Fragment>
-      {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
-      <InterimSection
-        key="event-highlights"
-        type={FoldSectionKey.HIGHLIGHTS}
-        title={hasStreamlinedUI ? t('Highlights') : t('Event Highlights')}
-        help={tct(
-          'Promoted tags and context items saved for this project. [link:Learn more]',
-          {
-            link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
-          }
-        )}
-        isHelpHoverable
-        data-test-id="event-highlights"
-        actions={
-          <ErrorBoundary mini>
-            <ButtonBar gap={1}>
-              {openForm && (
-                <Button
-                  aria-label={t('Give Feedback')}
-                  icon={<IconMegaphone />}
-                  size={'xs'}
-                  onClick={() =>
-                    openForm({
-                      messagePlaceholder: t(
-                        'How can we make tags, context or highlights more useful to you?'
-                      ),
-                      tags: {
-                        ['feedback.source']: 'issue_details_highlights',
-                        ['feedback.owner']: 'issues',
-                      },
-                    })
-                  }
-                >
-                  {t('Feedback')}
-                </Button>
-              )}
-              {viewAllButton}
-              <EditHighlightsButton project={project} event={event} />
-            </ButtonBar>
-          </ErrorBoundary>
+    <InterimSection
+      key="event-highlights"
+      type={FoldSectionKey.HIGHLIGHTS}
+      title={hasStreamlinedUI ? t('Highlights') : t('Event Highlights')}
+      help={tct(
+        'Promoted tags and context items saved for this project. [link:Learn more]',
+        {
+          link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
         }
-      >
-        <ErrorBoundary mini message={t('There was an error loading event highlights')}>
-          <HighlightsData event={event} project={project} />
+      )}
+      isHelpHoverable
+      data-test-id="event-highlights"
+      actions={
+        <ErrorBoundary mini>
+          <ButtonBar gap={1}>
+            {openForm && (
+              <Button
+                aria-label={t('Give Feedback')}
+                icon={<IconMegaphone />}
+                size={'xs'}
+                onClick={() =>
+                  openForm({
+                    messagePlaceholder: t(
+                      'How can we make tags, context or highlights more useful to you?'
+                    ),
+                    tags: {
+                      ['feedback.source']: 'issue_details_highlights',
+                      ['feedback.owner']: 'issues',
+                    },
+                  })
+                }
+              >
+                {t('Feedback')}
+              </Button>
+            )}
+            {viewAllButton}
+            <EditHighlightsButton project={project} event={event} />
+          </ButtonBar>
         </ErrorBoundary>
-      </InterimSection>
-    </Fragment>
+      }
+    >
+      <ErrorBoundary mini message={t('There was an error loading event highlights')}>
+        <HighlightsData event={event} project={project} />
+      </ErrorBoundary>
+    </InterimSection>
   );
 }
 
