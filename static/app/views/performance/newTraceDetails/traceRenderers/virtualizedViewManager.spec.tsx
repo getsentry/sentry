@@ -95,6 +95,7 @@ function makeSingleTransactionTree(): TraceTree {
         }),
       ],
     }),
+    null,
     null
   );
 }
@@ -323,6 +324,7 @@ describe('VirtualizedViewManger', () => {
           transactions: [makeTransaction()],
           orphan_errors: [],
         }),
+        null,
         null
       );
 
@@ -347,6 +349,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -380,6 +383,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -416,6 +420,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -452,6 +457,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -494,6 +500,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -699,6 +706,7 @@ describe('VirtualizedViewManger', () => {
             },
           ],
         }),
+        null,
         null
       );
 
