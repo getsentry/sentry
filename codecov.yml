@@ -90,7 +90,6 @@ comment:
   layout: 'diff, condensed_files'
   # Do not show the project coverage in the comment
   hide_project_coverage: true
-  show_carryforward_flags: true
   # Update, if exists. Otherwise post new. Skip if deleted.
   behavior: once
   # Only post if coverage drops OR there are uncovered lines of code
