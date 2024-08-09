@@ -1991,15 +1991,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
+    def _register_slack_handler(self) -> None:
+        from sentry.integrations.slack.spec import SlackMessagingSpec
+
+        factory = SlackMessagingSpec().get_incident_handler_factory()
+        AlertRuleTriggerAction.register_factory(factory)
+
     def test_slack_multiple_triggers_critical_before_warning(self):
         """
         Test that ensures that when we get a critical update is sent followed by a warning update,
         the warning update is not swallowed and an alert is triggered as a warning alert granted
         the count is above the warning trigger threshold
         """
-        from sentry.incidents.action_handlers import SlackActionHandler
-
-        slack_handler = SlackActionHandler
 
         # Create Slack Integration
         integration, _ = self.create_provider_integration_for(
@@ -2014,13 +2017,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             },
         )
 
-        # Register Slack Handler
-        AlertRuleTriggerAction.register_type(
-            "slack",
-            AlertRuleTriggerAction.Type.SLACK,
-            [AlertRuleTriggerAction.TargetType.SPECIFIC],
-            integration_provider="slack",
-        )(slack_handler)
+        self._register_slack_handler()
 
         rule = self.create_alert_rule(
             projects=[self.project, self.other_project],
@@ -2066,10 +2063,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_slack_metric_alert_chart(self, mock_generate_chart):
-        from sentry.incidents.action_handlers import SlackActionHandler
-
-        slack_handler = SlackActionHandler
-
         # Create Slack Integration
         integration, _ = self.create_provider_integration_for(
             self.project.organization,
@@ -2083,13 +2076,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             },
         )
 
-        # Register Slack Handler
-        AlertRuleTriggerAction.register_type(
-            "slack",
-            AlertRuleTriggerAction.Type.SLACK,
-            [AlertRuleTriggerAction.TargetType.SPECIFIC],
-            integration_provider="slack",
-        )(slack_handler)
+        self._register_slack_handler()
 
         rule = self.create_alert_rule(
             projects=[self.project, self.other_project],
@@ -2145,9 +2132,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         the warning update is not swallowed and an alert is triggered as a warning alert granted
         the count is above the warning trigger threshold
         """
-        from sentry.incidents.action_handlers import SlackActionHandler
-
-        slack_handler = SlackActionHandler
 
         # Create Slack Integration
         integration, _ = self.create_provider_integration_for(
@@ -2162,13 +2146,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             },
         )
 
-        # Register Slack Handler
-        AlertRuleTriggerAction.register_type(
-            "slack",
-            AlertRuleTriggerAction.Type.SLACK,
-            [AlertRuleTriggerAction.TargetType.SPECIFIC],
-            integration_provider="slack",
-        )(slack_handler)
+        self._register_slack_handler()
 
         rule = self.create_alert_rule(
             projects=[self.project, self.other_project],
