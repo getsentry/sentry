@@ -376,20 +376,36 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         if not self.use_metrics_layer:
             super().validate_aggregate_arguments()
 
+    # This property is used to determine if a query is using at least one of the fields in the spans namespace.
     @property
-    def is_insights_metric_query(self) -> bool:
+    def is_spans_metrics_query(self) -> bool:
         for query in self.parse_query(self.query):
-            if query.key.name in constants.INSIGHTS_METRICS_TAGS:
+            if query.key.name in constants.SPANS_METRICS_TAGS:
                 return True
         for column in self.selected_columns:
             # Not using parse_function since it checks against function_converter
             # which is not loaded yet and we also do not need it
             match = fields.is_function(column)
             func = match.group("function") if match else None
-            if func in constants.INSIGHTS_METRICS_FUNCTIONS:
+            if func in constants.SPANS_METRICS_FUNCTIONS:
                 return True
             argument = match.group("columns") if match else None
             if argument in constants.SPAN_METRICS_MAP.keys() - constants.METRICS_MAP.keys():
+                return True
+        return False
+
+    # Some fields and functions cannot be translated to metrics layer queries.
+    # This property is used to determine if a query is using at least one of these fields or functions, and if so, we must not use the metrics layer.
+    @property
+    def is_unsupported_metrics_layer_query(self) -> bool:
+        if self.is_spans_metrics_query:
+            return True
+        for column in self.selected_columns:
+            # Not using parse_function since it checks against function_converter
+            # which is not loaded yet and we also do not need it
+            match = fields.is_function(column)
+            func = match.group("function") if match else None
+            if func in constants.METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS:
                 return True
         return False
 
@@ -400,7 +416,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
     @property
     def use_case_id(self) -> UseCaseID:
 
-        if self.spans_metrics_builder:
+        if self.spans_metrics_builder or self.is_spans_metrics_query:
             return UseCaseID.SPANS
         elif self.is_performance:
             return UseCaseID.TRANSACTIONS
@@ -415,7 +431,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         # NOT supported.
         if (
             self.builder_config.insights_metrics_override_metric_layer
-            and self.is_insights_metric_query
+            and self.is_unsupported_metrics_layer_query
         ):
             return False
         return self.builder_config.use_metrics_layer and not self.spans_metrics_builder
