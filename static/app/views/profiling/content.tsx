@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -14,6 +15,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
   ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
@@ -34,6 +36,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -163,14 +166,23 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
                   <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
                   <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
                 </PageFilterBar>
-                <SearchBar
-                  searchSource="profile_landing"
-                  organization={organization}
-                  projectIds={selection.projects}
-                  query={query}
-                  onSearch={handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
+                {organization.features.includes('search-query-builder-performance') ? (
+                  <TransactionSearchQueryBuilder
+                    projects={selection.projects}
+                    initialQuery={query}
+                    onSearch={handleSearch}
+                    searchSource="profile_landing"
+                  />
+                ) : (
+                  <SearchBar
+                    searchSource="profile_landing"
+                    organization={organization}
+                    projectIds={selection.projects}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
                 <Fragment>
@@ -446,14 +458,23 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
           <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
           <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
         </PageFilterBar>
-        <SearchBar
-          searchSource="profile_landing"
-          organization={organization}
-          projectIds={selection.projects}
-          query={query}
-          onSearch={handleSearch}
-          maxQueryLength={MAX_QUERY_LENGTH}
-        />
+        {organization.features.includes('search-query-builder-performance') ? (
+          <TransactionSearchQueryBuilder
+            projects={selection.projects}
+            initialQuery={query}
+            onSearch={handleSearch}
+            searchSource="profile_landing"
+          />
+        ) : (
+          <SearchBar
+            searchSource="profile_landing"
+            organization={organization}
+            projectIds={selection.projects}
+            query={query}
+            onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
+          />
+        )}
       </ActionBar>
       {props.shouldShowProfilingOnboardingPanel ? (
         <ProfilingOnboardingCTA />
@@ -664,7 +685,13 @@ const WidgetsContainer = styled('div')`
 `;
 
 function ProfilingContentWrapper(props: ProfilingContentProps) {
+  const api = useApi();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  useEffect(() => {
+    loadOrganizationTags(api, organization.slug, selection);
+  }, [api, organization.slug, selection]);
 
   if (organization.features.includes('continuous-profiling-compat')) {
     return <ProfilingContent {...props} />;

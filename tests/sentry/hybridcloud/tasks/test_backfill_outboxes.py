@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import patch
 
 from django.apps import apps
@@ -5,6 +7,12 @@ from django.test.utils import override_settings
 
 from sentry.db.models import BaseModel
 from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
+from sentry.hybridcloud.tasks.backfill_outboxes import (
+    backfill_outboxes_for,
+    get_backfill_key,
+    get_processing_state,
+    process_outbox_backfill_batch,
+)
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
@@ -13,12 +21,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import ControlOutbox, RegionOutbox, outbox_context
 from sentry.silo.base import SiloMode
-from sentry.tasks.backfill_outboxes import (
-    backfill_outboxes_for,
-    get_backfill_key,
-    get_processing_state,
-    process_outbox_backfill_batch,
-)
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
@@ -27,7 +29,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_s
 from sentry.utils import redis
 
 
-def reset_processing_state():
+def reset_processing_state() -> None:
     with redis.clusters.get("default").get_local_client_for_key("backfill_outboxes") as client:
         for app_models in apps.all_models.values():
             for model in app_models.values():
@@ -36,7 +38,7 @@ def reset_processing_state():
 
 @django_db_all
 @no_silo_test
-def test_processing_awaits_options():
+def test_processing_awaits_options() -> None:
     reset_processing_state()
     org = Factories.create_organization()
     with outbox_context(flush=False):
@@ -60,7 +62,7 @@ def test_processing_awaits_options():
 
 
 @django_db_all
-def test_region_processing(task_runner):
+def test_region_processing(task_runner: Callable[..., Any]) -> None:
     with outbox_context(flush=False):
         for i in range(5):
             Factories.create_organization()
@@ -78,7 +80,7 @@ def test_region_processing(task_runner):
 
 @django_db_all
 @control_silo_test
-def test_control_processing(task_runner):
+def test_control_processing(task_runner: Callable[..., Any]) -> None:
     reset_processing_state()
 
     org = Factories.create_organization()
@@ -96,7 +98,7 @@ def test_control_processing(task_runner):
         assert not AuthProviderReplica.objects.filter(auth_provider_id=ap.id).exists()
         assert not AuthIdentityReplica.objects.filter(auth_provider_id=ap.id).exists()
 
-    def run_for_model(model: type[BaseModel]):
+    def run_for_model(model: type[BaseModel]) -> None:
         while True:
             if process_outbox_backfill_batch(model, 1, force_synchronous=True) is None:
                 break
@@ -159,7 +161,7 @@ def test_control_processing(task_runner):
 
 @django_db_all
 @no_silo_test
-def test_run_outbox_replications_for_self_hosted():
+def test_run_outbox_replications_for_self_hosted() -> None:
     reset_processing_state()
 
     with outbox_context(flush=False):

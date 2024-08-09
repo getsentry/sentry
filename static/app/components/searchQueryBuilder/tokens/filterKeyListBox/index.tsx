@@ -92,8 +92,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   selectedSection,
   setSelectedSection,
 }: FilterKeyListBoxProps<T>) {
+  const {filterKeyMenuWidth} = useSearchQueryBuilder();
+
   return (
-    <SectionedOverlay ref={popoverRef}>
+    <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
       {isOpen ? (
         <Fragment>
           <SectionedListBoxTabPane>
@@ -139,12 +141,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   );
 }
 
-const SectionedOverlay = styled(Overlay)`
+const SectionedOverlay = styled(Overlay)<{width: number}>`
   display: grid;
   grid-template-rows: auto 1fr auto;
   overflow: hidden;
   height: 400px;
-  width: 360px;
+  width: ${p => p.width}px;
 `;
 
 const SectionedOverlayFooter = styled('div')`
