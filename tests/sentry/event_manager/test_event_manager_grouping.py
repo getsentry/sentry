@@ -11,7 +11,6 @@ from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
-from sentry.grouping.ingest.config import DO_NOT_UPGRADE_YET
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
@@ -165,19 +164,6 @@ class EventManagerGroupingTest(TestCase):
             int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
         )
         assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
-
-    def test_does_not_update_project_in_exclude_list(self):
-        # It does not update the config because it is listed in DO_NOT_UPGRADE_YET
-        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
-        assert LEGACY_CONFIG in DO_NOT_UPGRADE_YET
-        save_new_event({"message": "foo"}, self.project)
-        assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
-
-        # It updates the config because it is not listed in DO_NOT_UPGRADE_YET
-        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-        assert "mobile:2021-02-12" not in DO_NOT_UPGRADE_YET
-        save_new_event({"message": "foo"}, self.project)
-        assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
 
 class PlaceholderTitleTest(TestCase):
@@ -382,18 +368,24 @@ class EventManagerGroupingMetricsTest(TestCase):
         project = self.project
 
         cases: list[Any] = [
-            [LEGACY_CONFIG, None, None, 1],
-            [NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
+            ["Dogs are great!", LEGACY_CONFIG, None, None, 1],
+            ["Adopt don't shop", NEWSTYLE_CONFIG, LEGACY_CONFIG, time() + 3600, 2],
         ]
 
-        for primary_config, secondary_config, transition_expiry, expected_total_calcs in cases:
+        for (
+            message,
+            primary_config,
+            secondary_config,
+            transition_expiry,
+            expected_total_calcs,
+        ) in cases:
             mock_metrics_incr.reset_mock()
 
             project.update_option("sentry:grouping_config", primary_config)
             project.update_option("sentry:secondary_grouping_config", secondary_config)
             project.update_option("sentry:secondary_grouping_expiry", transition_expiry)
 
-            save_new_event({"message": "Dogs are great!"}, self.project)
+            save_new_event({"message": message}, self.project)
 
             total_calculations_calls = get_relevant_metrics_calls(
                 mock_metrics_incr, "grouping.total_calculations"
@@ -437,9 +429,16 @@ class EventManagerGroupingMetricsTest(TestCase):
             transition_expiry,
             expected_in_transition,
         ) in in_transition_cases:
-            for has_flag, expected_using_optimization in optimized_logic_cases:
-                with self.feature(
-                    {"organizations:grouping-suppress-unnecessary-secondary-hash": has_flag}
+            for using_optimization, expected_using_optimization in optimized_logic_cases:
+                with (
+                    mock.patch(
+                        "sentry.event_manager.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
+                    mock.patch(
+                        "sentry.grouping.ingest.metrics.project_uses_optimized_grouping",
+                        return_value=using_optimization,
+                    ),
                 ):
                     mock_metrics_incr.reset_mock()
 
