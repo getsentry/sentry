@@ -123,26 +123,26 @@ export default function StreamlinedGroupHeader({
           <Fragment>
             <Divider />
             <ReleaseWrapper>
-              {t('Releases')}
+              {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
               <VersionHoverCard
                 organization={organization}
                 projectSlug={project.slug}
                 releaseVersion={firstRelease.version}
               >
-                <span>
-                  <Version version={firstRelease.version} projectId={project.id} />
-                </span>
+                <Version version={firstRelease.version} projectId={project.id} />
               </VersionHoverCard>
-              -
-              <VersionHoverCard
-                organization={organization}
-                projectSlug={project.slug}
-                releaseVersion={lastRelease.version}
-              >
-                <span>
-                  <Version version={lastRelease.version} projectId={project.id} />
-                </span>
-              </VersionHoverCard>
+              {firstRelease.id === lastRelease.id ? null : (
+                <Fragment>
+                  -
+                  <VersionHoverCard
+                    organization={organization}
+                    projectSlug={project.slug}
+                    releaseVersion={lastRelease.version}
+                  >
+                    <Version version={lastRelease.version} projectId={project.id} />
+                  </VersionHoverCard>
+                </Fragment>
+              )}
             </ReleaseWrapper>
           </Fragment>
         )}
