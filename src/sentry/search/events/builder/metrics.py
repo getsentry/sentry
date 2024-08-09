@@ -416,7 +416,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
     @property
     def use_case_id(self) -> UseCaseID:
 
-        if self.spans_metrics_builder or self.is_spans_metrics_query:
+        if self.spans_metrics_builder:
             return UseCaseID.SPANS
         elif self.is_performance:
             return UseCaseID.TRANSACTIONS
@@ -717,7 +717,11 @@ class MetricsQueryBuilder(BaseQueryBuilder):
     def resolve_metric_index(self, value: str) -> int | None:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            result = indexer.resolve(self.use_case_id, self.organization_id, value)
+            result = indexer.resolve(
+                UseCaseID.SPANS if self.is_spans_metrics_query else self.use_case_id,
+                self.organization_id,
+                value,
+            )
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
