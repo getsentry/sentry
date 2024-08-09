@@ -17,8 +17,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -93,14 +94,17 @@ metadata = IntegrationMetadata(
 
 
 class GitlabIntegration(
-    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextMixin
+    IntegrationInstallation, GitlabIssueBasic, RepositoryIntegration, CommitContextMixin
 ):
-    repo_search = True
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_identity = None
+
+    @property
+    def integration_name(self) -> str:
+        return "gitlab"
 
     def get_group_id(self):
         return self.model.metadata["group_id"]
@@ -114,6 +118,10 @@ class GitlabIntegration(
 
         return GitLabApiClient(self)
 
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        # TODO: define this, used to migrate repositories
+        return False
+
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
@@ -123,7 +131,7 @@ class GitlabIntegration(
     def source_url_matches(self, url: str) -> bool:
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]
         repo_name = repo.config["path"]
 

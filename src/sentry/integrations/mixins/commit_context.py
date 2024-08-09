@@ -47,10 +47,6 @@ class GetClient(Protocol):
 
 
 class CommitContextMixin(GetClient):
-    # whether or not integration has the ability to search through Repositories
-    # dynamically given a search query
-    repo_search = False
-
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
     ) -> list[FileBlameInfo]:

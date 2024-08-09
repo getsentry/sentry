@@ -12,7 +12,9 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
 from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode, control_silo_function
@@ -61,7 +63,7 @@ class GitLabSetupApiClient(IntegrationProxyClient):
         return self.get(path)
 
 
-class GitLabApiClient(IntegrationProxyClient):
+class GitLabApiClient(IntegrationProxyClient, RepositoryClient):
     integration_name = "gitlab"
 
     def __init__(self, installation: GitlabIntegration):
@@ -307,7 +309,7 @@ class GitLabApiClient(IntegrationProxyClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(self, repo: Repository, path: str, ref: str) -> str | None:
+    def check_file(self, repo: Repository, path: str, ref: str | None) -> BaseApiResponseX | None:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
@@ -326,7 +328,9 @@ class GitLabApiClient(IntegrationProxyClient):
                 raise
             return None
 
-    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository

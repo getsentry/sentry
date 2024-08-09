@@ -11,7 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
     RegionOrganizationIntegrationBaseEndpoint,
 )
-from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -59,7 +59,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
 
         install = integration.get_installation(organization_id=organization.id)
 
-        if isinstance(install, RepositoryMixin):
+        if isinstance(install, RepositoryIntegration):
             try:
                 repositories = install.get_repositories(request.GET.get("search"))
             except (IntegrationError, IdentityNotValid) as e:
