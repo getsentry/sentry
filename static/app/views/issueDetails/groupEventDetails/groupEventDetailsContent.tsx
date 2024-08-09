@@ -159,7 +159,7 @@ export function DefaultGroupEventDetailsContent({
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
-         {!hasStreamlinedUI && (
+        {!hasStreamlinedUI && (
           <SuspectCommits
             project={project}
             eventId={event.id}
