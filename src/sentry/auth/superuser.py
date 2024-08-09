@@ -26,10 +26,13 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.api.exceptions import SentryAPIException
+from sentry.api.exceptions import DataSecrecyError, SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.services.auth.model import RpcAuthState
 from sentry.auth.system import is_system_auth
+from sentry.data_secrecy.data_secrecy_logic import should_allow_superuser_access
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
@@ -78,7 +81,15 @@ SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuser"})
 
 
-def get_superuser_scopes(auth_state: RpcAuthState, user: Any) -> set[str]:
+def get_superuser_scopes(
+    auth_state: RpcAuthState,
+    user: Any,
+    organization_context: Organization | RpcUserOrganizationContext,
+) -> set[str]:
+
+    if not should_allow_superuser_access(organization_context):
+        raise DataSecrecyError()
+
     superuser_scopes = SUPERUSER_SCOPES
     if (
         not is_self_hosted()

@@ -472,13 +472,29 @@ class SuperuserTestCase(TestCase):
             sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
         )
 
-        assert get_superuser_scopes(auth_state, user) == SUPERUSER_SCOPES
-        assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
+        assert (
+            get_superuser_scopes(auth_state, user, organization_context=self.organization)
+            == SUPERUSER_SCOPES
+        )
+        assert (
+            get_superuser_scopes(
+                auth_state_with_write, user, organization_context=self.organization
+            )
+            == SUPERUSER_SCOPES
+        )
 
         # test scope separation
         with self.options({"superuser.read-write.ga-rollout": True}):
-            assert get_superuser_scopes(auth_state, user) == SUPERUSER_READONLY_SCOPES
-            assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
+            assert (
+                get_superuser_scopes(auth_state, user, organization_context=self.organization)
+                == SUPERUSER_READONLY_SCOPES
+            )
+            assert (
+                get_superuser_scopes(
+                    auth_state_with_write, user, organization_context=self.organization
+                )
+                == SUPERUSER_SCOPES
+            )
 
     def test_superuser_scopes_self_hosted(self):
         # self hosted always has superuser write scopes
@@ -490,12 +506,28 @@ class SuperuserTestCase(TestCase):
             sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
         )
 
-        assert get_superuser_scopes(auth_state, user) == SUPERUSER_SCOPES
-        assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
+        assert (
+            get_superuser_scopes(auth_state, user, organization_context=self.organization)
+            == SUPERUSER_SCOPES
+        )
+        assert (
+            get_superuser_scopes(
+                auth_state_with_write, user, organization_context=self.organization
+            )
+            == SUPERUSER_SCOPES
+        )
 
         with self.feature({"superuser.read-write.ga-rollout": True}):
-            assert get_superuser_scopes(auth_state, user) == SUPERUSER_SCOPES
-            assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
+            assert (
+                get_superuser_scopes(auth_state, user, organization_context=self.organization)
+                == SUPERUSER_SCOPES
+            )
+            assert (
+                get_superuser_scopes(
+                    auth_state_with_write, user, organization_context=self.organization
+                )
+                == SUPERUSER_SCOPES
+            )
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission(self):
