@@ -80,6 +80,7 @@ from sentry.grouping.ingest.utils import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -117,7 +118,6 @@ from sentry.signals import (
     first_transaction_received,
     issue_unresolved,
 )
-from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
@@ -1403,7 +1403,7 @@ def _save_aggregate(
     # hashes, we're free to perform a config update if permitted. Future events will use the new
     # config, but will also be grandfathered into the current config for a month, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_permitted(project)
+    update_grouping_config_if_permitted(project, "ingest")
 
     _materialize_metadata_many([job])
     metadata = dict(job["event_metadata"])
@@ -1761,7 +1761,7 @@ def _save_aggregate_new(
     # hashes, we're free to perform a config update if needed. Future events will use the new
     # config, but will also be grandfathered into the current config for a week, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_permitted(project)
+    update_grouping_config_if_permitted(project, "ingest")
 
     return group_info
 
@@ -2348,8 +2348,11 @@ def _get_severity_metadata_for_group(
     seer_based_priority_enabled = features.has(
         "organizations:seer-based-priority", event.project.organization, actor=None
     )
+    if not seer_based_priority_enabled:
+        return {}
+
     feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
-    if not seer_based_priority_enabled and not feature_enabled:
+    if not feature_enabled:
         return {}
 
     is_supported_platform = (

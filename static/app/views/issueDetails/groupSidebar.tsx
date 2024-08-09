@@ -44,12 +44,11 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {
   getGroupDetailsQueryData,
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
-
-import {ParticipantList} from './participantList';
 
 type Props = {
   environments: string[];

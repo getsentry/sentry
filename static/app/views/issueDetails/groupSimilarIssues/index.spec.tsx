@@ -213,7 +213,7 @@ describe('Issues Similar Embeddings View', function () {
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01',
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01&useReranking=true',
       body: mockData.simlarEmbeddings,
     });
   });
@@ -353,7 +353,7 @@ describe('Issues Similar Embeddings View', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01',
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01&useReranking=true',
       body: [],
     });
 

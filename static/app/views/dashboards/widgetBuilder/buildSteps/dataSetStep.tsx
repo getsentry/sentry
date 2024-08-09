@@ -49,7 +49,6 @@ function DiscoverSplitAlert({onDismiss, splitDecision}) {
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
-  hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
   source?: DatasetSource;
   splitDecision?: WidgetType;
@@ -58,7 +57,6 @@ interface Props {
 export function DataSetStep({
   dataSet,
   onChange,
-  hasReleaseHealthFeature,
   displayType,
   splitDecision,
   source,
@@ -94,9 +92,7 @@ export function DataSetStep({
   }
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
 
-  if (hasReleaseHealthFeature) {
-    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
-  }
+  datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
 
   return (
     <BuildStep
