@@ -100,9 +100,14 @@ export interface SearchQueryBuilderProps {
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
+  /**
+   * Render custom content in the trailing section of the search bar, located
+   * to the left of the clear button.
+   */
+  trailingItems?: React.ReactNode;
 }
 
-function ActionButtons() {
+function ActionButtons({trailingItems = null}: {trailingItems?: React.ReactNode}) {
   const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
 
   if (disabled) {
@@ -111,6 +116,7 @@ function ActionButtons() {
 
   return (
     <ButtonsWrapper>
+      {trailingItems}
       <ActionButton
         aria-label={t('Clear search query')}
         size="zero"
@@ -147,6 +153,7 @@ export function SearchQueryBuilder({
   queryInterface = QueryInterfaceType.TOKENIZED,
   recentSearches,
   searchSource,
+  trailingItems,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const {state, dispatch} = useQueryBuilderState({
@@ -251,7 +258,7 @@ export function SearchQueryBuilder({
           ) : (
             <TokenizedQueryGrid label={label} />
           )}
-          {size !== 'small' && <ActionButtons />}
+          {size !== 'small' && <ActionButtons trailingItems={trailingItems} />}
         </Wrapper>
       </PanelProvider>
     </SearchQueryBuilerContext.Provider>
