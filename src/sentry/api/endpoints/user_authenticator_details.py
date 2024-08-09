@@ -13,9 +13,9 @@ from sentry.api.serializers import serialize
 from sentry.auth.authenticators.u2f import decode_credential_id
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.authenticator import Authenticator
 from sentry.models.user import User
 from sentry.security.utils import capture_security_activity
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils.auth import MFA_SESSION_KEY
 
 

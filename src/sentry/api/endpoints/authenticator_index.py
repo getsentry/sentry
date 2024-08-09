@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.models.authenticator import Authenticator
+from sentry.users.models.authenticator import Authenticator
 
 
 @control_silo_endpoint
