@@ -5,6 +5,7 @@ enum FormState {
   READY = 'Ready',
   SAVING = 'Saving',
   ERROR = 'Error',
+  INCOMPLETE = 'Incomplete',
 }
 
 export default FormState;
