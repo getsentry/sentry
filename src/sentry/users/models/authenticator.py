@@ -17,11 +17,8 @@ from sentry.auth.authenticators import (
     AUTHENTICATOR_INTERFACES_BY_TYPE,
     available_authenticators,
 )
-from sentry.auth.authenticators.base import (
-    AuthenticatorInterface,
-    AuthenticatorInterfaceOptMixinProtocol,
-    EnrollmentStatus,
-)
+from sentry.auth.authenticators.base import AuthenticatorInterface, EnrollmentStatus, OtpMixin
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -45,7 +42,7 @@ if TYPE_CHECKING:
 class AuthenticatorManager(BaseManager["Authenticator"]):
     def all_interfaces_for_user(
         self, user: User, return_missing: bool = False, ignore_backup: bool = False
-    ) -> list[AuthenticatorInterfaceOptMixinProtocol]:
+    ) -> list[OtpMixin | AuthenticatorInterface]:
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.
@@ -74,7 +71,7 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
 
     def auto_add_recovery_codes(
         self, user: User, force: bool = False
-    ) -> AuthenticatorInterface | None:
+    ) -> RecoveryCodeInterface | None:
         """This automatically adds the recovery code backup interface in
         case no backup interface is currently set for the user.  Returns
         the interface that was added.
@@ -102,7 +99,7 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
 
     def get_interface(
         self, user: User | AnonymousUser, interface_id: str
-    ) -> AuthenticatorInterfaceOptMixinProtocol:
+    ) -> OtpMixin | AuthenticatorInterface:
         """Looks up an interface by interface ID for a user.  If the
         interface is not available but configured a
         `Authenticator.DoesNotExist` will be raised just as if the
@@ -190,7 +187,7 @@ class Authenticator(ControlOutboxProducingModel):
         )
 
     @cached_property
-    def interface(self) -> AuthenticatorInterfaceOptMixinProtocol:
+    def interface(self) -> OtpMixin | AuthenticatorInterface:
         return AUTHENTICATOR_INTERFACES_BY_TYPE[self.type](self)
 
     def mark_used(self, save: bool = True) -> None:

@@ -58,7 +58,7 @@ class NewEnrollmentDisallowed(Exception):
     pass
 
 
-class AuthenticatorInterface:
+class AuthenticatorInterface(Protocol):
     type = -1
     interface_id: str
     name: str | _StrPromise
@@ -71,6 +71,9 @@ class AuthenticatorInterface:
     is_available = True
     allow_multi_enrollment = False
     allow_rotation_in_place = False
+    authenticator: Authenticator | None
+    status: EnrollmentStatus
+    _unbound_config: dict[Any, Any]
 
     def __init__(
         self, authenticator=None, status: EnrollmentStatus = EnrollmentStatus.EXISTING
@@ -137,13 +140,14 @@ class AuthenticatorInterface:
         """This method is invoked if a new config is required."""
         return {}
 
-    def activate(self, request: HttpRequest):
+    def activate(self, request: HttpRequest) -> None:
         """If an authenticator overrides this then the method is called
         when the dialog for authentication is brought up.  The returned string
         is then rendered in the UI.
         """
         # This method needs to be empty for the default
         # `requires_activation` property to make sense.
+        return None
 
     def enroll(self, user: User) -> None:
         """Invoked to enroll a user for this interface.  If already enrolled
@@ -193,7 +197,7 @@ class AuthenticatorInterface:
         return False
 
 
-class OtpMixin:
+class OtpMixin(AuthenticatorInterface):
     # mixed in from base class
     config: dict[str, Any]
     authenticator: Authenticator | None
@@ -244,24 +248,3 @@ class OtpMixin:
             self.mark_otp_counter_used(used_counter)
             return True
         return False
-
-
-# TOO OVERCOOKED ?
-# Dummy protocol to be inherited by actual class protocols
-class DummyProtocol(Protocol):
-    pass
-
-
-# Wrapper to make AuthenticatorInterfaceProtocol a Protocol
-class AuthenticatorInterfaceProtocol(AuthenticatorInterface, DummyProtocol):
-    pass
-
-
-# Wrapper to make OtpMixin a Protocol
-class OtpMixinProtocol(OtpMixin, DummyProtocol):
-    pass
-
-
-# Represents a class which is a subclass of AuthenticatorInterface and OtpMixin
-class AuthenticatorInterfaceOptMixinProtocol(OtpMixinProtocol, AuthenticatorInterfaceProtocol):
-    pass
