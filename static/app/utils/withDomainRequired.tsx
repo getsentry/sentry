@@ -3,14 +3,6 @@ import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import ConfigStore from 'sentry/stores/configStore';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-
-export {
-  /**
-   * @deprecated Use `import normalizeUrl from 'sentry/utils/url/normalizeUrl';` instead
-   */
-  normalizeUrl,
-};
 
 /**
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within
