@@ -12,6 +12,7 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
 from sentry.api.serializers.base import serialize
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -429,6 +430,60 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             },
         )
         mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["not a real hash"])
+
+    @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_grouphash_with_no_group(
+        self,
+        mock_seer_similarity_request,
+        mock_logger,
+        mock_metrics_incr,
+        mock_seer_deletion_request,
+    ):
+        """
+        The seer API can return groups that do not exist if they have been deleted/merged.
+        Test that these groups are not returned.
+        """
+        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        assert existing_grouphash.group_id is None
+
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            "responses": [
+                {
+                    "message_distance": 0.05,
+                    "parent_hash": "dogs are great",
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+            ]
+        }
+        mock_seer_similarity_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
+        response = self.client.get(self.path)
+
+        mock_metrics_incr.assert_any_call(
+            "seer.similar_issues_request",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={
+                "response_status": 200,
+                "outcome": "error",
+                "error": "SimilarHashMissingGroupError",
+                "referrer": "similar_issues",
+            },
+        )
+        assert response.data == []
+
+        mock_logger.warning.assert_called_with(
+            "get_similarity_data_from_seer.parent_hash_missing_group",
+            extra={
+                "hash": NonNone(self.event.get_primary_hash()),
+                "parent_hash": "dogs are great",
+                "project_id": self.project.id,
+            },
+        )
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")

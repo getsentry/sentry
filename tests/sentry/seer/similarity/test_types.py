@@ -2,10 +2,12 @@ from typing import Any
 
 import pytest
 
+from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     RawSeerSimilarIssueData,
     SeerSimilarIssueData,
+    SimilarHashMissingGroupError,
     SimilarHashNotFoundError,
 )
 from sentry.testutils.cases import TestCase
@@ -105,6 +107,20 @@ class SeerSimilarIssueDataTest(TestCase):
         with pytest.raises(SimilarHashNotFoundError):
             raw_similar_issue_data = {
                 "parent_hash": "not a real hash",
+                "message_distance": 0.05,
+                "should_group": True,
+                "stacktrace_distance": 0.01,
+            }
+
+            SeerSimilarIssueData.from_raw(self.project.id, raw_similar_issue_data)
+
+    def test_from_raw_grouphash_with_no_group(self):
+        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        assert existing_grouphash.group_id is None
+
+        with pytest.raises(SimilarHashMissingGroupError):
+            raw_similar_issue_data = {
+                "parent_hash": "dogs are great",
                 "message_distance": 0.05,
                 "should_group": True,
                 "stacktrace_distance": 0.01,
