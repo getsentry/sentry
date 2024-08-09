@@ -360,6 +360,7 @@ function SummaryContent({
           initialQuery={query}
           onSearch={handleSearch}
           searchSource="transaction_summary"
+          disableLoadingTags // already loaded by the parent component
         />
       );
     }
