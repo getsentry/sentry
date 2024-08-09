@@ -12,6 +12,7 @@ from django.core.cache import cache
 from jsonschema import ValidationError
 
 from sentry import eventstore
+from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -122,8 +123,10 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert occurrence is not None
 
         event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
-        event = event.for_group(event.group)
-        assert event.occurrence_id == occurrence.id
+        assert isinstance(event, Event)
+        assert event.group is not None
+        event_for_group = event.for_group(event.group)
+        assert event_for_group.occurrence_id == occurrence.id
 
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, project_id)
         assert fetched_occurrence is not None

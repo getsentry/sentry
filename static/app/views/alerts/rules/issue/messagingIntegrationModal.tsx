@@ -6,18 +6,18 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApiQueries} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {
-  headerContent: React.ReactElement<any, any>;
-  organization: Organization;
+  headerContent: React.ReactNode;
   project: Project;
   providerKeys: string[];
-  bodyContent?: React.ReactElement<any, any>;
+  bodyContent?: React.ReactNode;
+  onAddIntegration?: () => void;
 };
 
 function MessagingIntegrationModal({
@@ -27,9 +27,10 @@ function MessagingIntegrationModal({
   headerContent,
   bodyContent,
   providerKeys,
-  organization,
   project,
+  onAddIntegration,
 }: Props) {
+  const organization = useOrganization();
   const queryResults = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
       `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
@@ -49,9 +50,11 @@ function MessagingIntegrationModal({
 
   return (
     <Fragment>
-      <Header closeButton>{headerContent}</Header>
+      <Header closeButton>
+        <h1>{headerContent}</h1>
+      </Header>
       <Body>
-        {bodyContent}
+        <p>{bodyContent}</p>
         <IntegrationsWrapper>
           {queryResults.map(result => {
             const provider = result.data?.providers[0];
@@ -68,12 +71,13 @@ function MessagingIntegrationModal({
                   installStatus: 'Not Installed',
                   analyticsParams: {
                     already_installed: false,
-                    view: 'onboarding',
+                    view: 'messaging_integration_onboarding',
                   },
+                  onAddIntegration: onAddIntegration,
                   modalParams: {projectId: project.id},
                 }}
               >
-                <AddIntegrationRow organization={organization} onClick={closeModal} />
+                <AddIntegrationRow onClick={closeModal} />
               </IntegrationContext.Provider>
             );
           })}

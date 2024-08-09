@@ -11,9 +11,15 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import type {
+  KeyItem,
+  KeySectionItem,
+} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
+import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   getDefaultFilterValue,
+  itemIsSection,
   useShiftFocusToChild,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
@@ -53,34 +59,12 @@ type SearchQueryBuilderInputInternalProps = {
   token: TokenResult<Token.FREE_TEXT>;
 };
 
-type KeyItem = {
-  description: string;
-  details: React.ReactNode;
-  hideCheck: boolean;
-  key: string;
-  label: string;
-  showDetailsInOverlay: boolean;
-  textValue: string;
-  value: string;
-};
-
-type KeySectionItem = {
-  key: string;
-  options: KeyItem[];
-  title: React.ReactNode;
-  value: string;
-};
-
 const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<KeyItem> = {
   keys: ['label', 'description'],
   threshold: 0.2,
   includeMatches: false,
   minMatchCharLength: 1,
 };
-
-function isSection(item: KeyItem | KeySectionItem): item is KeySectionItem {
-  return 'options' in item;
-}
 
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
   const words = value.split(' ');
@@ -200,7 +184,7 @@ function createSection(
   return {
     key: section.value,
     value: section.value,
-    title: section.label,
+    label: section.label,
     options: section.children.map(key => createItem(keys[key], getFieldDefinition(key))),
   };
 }
@@ -380,7 +364,6 @@ function SearchQueryBuilderInputInternal({
   const {
     query,
     filterKeys,
-    filterKeySections,
     dispatch,
     getFieldDefinition,
     handleSearch,
@@ -470,6 +453,11 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
+    items,
+    filterValue,
+  });
+
   return (
     <Fragment>
       <HiddenText
@@ -480,8 +468,9 @@ function SearchQueryBuilderInputInternal({
         isOpen={isOpen}
       />
       <SearchQueryBuilderCombobox
+        customMenu={customMenu}
         ref={inputRef}
-        items={items}
+        items={sectionItems}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={value => {
           dispatch({
@@ -588,11 +577,11 @@ function SearchQueryBuilderInputInternal({
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}
+        onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
         tabIndex={item.key === state.selectionManager.focusedKey ? 0 : -1}
-        maxOptions={50}
+        maxOptions={maxOptions}
         onPaste={onPaste}
-        displayTabbedMenu={inputValue.length === 0 && filterKeySections.length > 0}
         shouldFilterResults={false}
         shouldCloseOnInteractOutside={el => {
           if (rowRef.current?.contains(el)) {
@@ -603,8 +592,8 @@ function SearchQueryBuilderInputInternal({
         onClick={onClick}
       >
         {keyItem =>
-          isSection(keyItem) ? (
-            <Section title={keyItem.title} key={keyItem.key}>
+          itemIsSection(keyItem) ? (
+            <Section title={keyItem.label} key={keyItem.key}>
               {keyItem.options.map(child => (
                 <Item {...child} key={child.key}>
                   {child.label}
@@ -613,7 +602,7 @@ function SearchQueryBuilderInputInternal({
             </Section>
           ) : (
             <Item {...keyItem} key={keyItem.key}>
-              {keyItem.label}
+              {keyItem.value}
             </Item>
           )
         }

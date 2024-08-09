@@ -15,6 +15,8 @@ from typing import Any
 
 from django.dispatch import receiver
 
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.outbox.signals import process_control_outbox
 from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.integrations.models.integration import Integration
 from sentry.issues.services.issue import issue_service
@@ -23,7 +25,6 @@ from sentry.models.files.utils import get_relocation_storage
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.organizations.services.organization import RpcOrganizationSignal, organization_service
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import region_relocation_export_service

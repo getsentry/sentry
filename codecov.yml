@@ -78,9 +78,11 @@ comment:
   # This is the addition of carry forward builds and fresh builds, thus, it's the addition
   # of the FE and BE builds
   after_n_builds: 22
-  layout: 'diff, files'
-  # Update, if comment exists. Otherwise post new.
-  behavior: default
+  # Show only the git diff / patch coverage, and exclude any comparison between base and head:
+  layout: 'condensed_header, condensed_files, condensed_footer'
+  hide_project_coverage: true
+  # Update, if exists. Otherwise post new. Skip if deleted.
+  behavior: once
   # Comments will only post when coverage changes. Furthermore, if a comment
   # already exists, and a newer commit results in no coverage change for the
   # entire pull, the comment will be deleted.
@@ -88,6 +90,7 @@ comment:
   require_base: true # must have a base report to post
   require_head: true # must have a head report to post
   require_bundle_changes: True # only post a comment when there are bundle size changes
+  bundle_change_threshold: '10Kb'
 
 cli:
   # This would be used when uploading the ats results

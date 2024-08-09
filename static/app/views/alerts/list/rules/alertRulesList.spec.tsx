@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {TeamFixture} from 'sentry-fixture/team';
+import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -573,5 +574,25 @@ describe('AlertRulesList', () => {
     expect(await screen.findByText('Test Metric Alert 2')).toBeInTheDocument();
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(await screen.findByText('activated Test Metric Alert')).toBeInTheDocument();
+  });
+
+  it('renders uptime alert rules', async () => {
+    rulesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        {
+          ...UptimeRuleFixture({owner: undefined}),
+          type: CombinedAlertType.UPTIME,
+        },
+      ],
+    });
+
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
+
+    expect(await screen.findByText('Uptime Rule')).toBeInTheDocument();
+    expect(await screen.findByText('Auto Detected')).toBeInTheDocument();
+    expect(await screen.findByText('Up')).toBeInTheDocument();
   });
 });

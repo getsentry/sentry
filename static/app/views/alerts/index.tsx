@@ -10,12 +10,14 @@ type Props = {
 function AlertsContainer({children}: Props) {
   const organization = useOrganization();
   const hasMetricAlerts = organization.features.includes('incidents');
+  const hasUptimeAlerts = organization.features.includes('uptime-rule-api');
 
   const content =
     children && isValidElement(children)
       ? cloneElement<any>(children, {
           organization,
           hasMetricAlerts,
+          hasUptimeAlerts,
         })
       : children;
 

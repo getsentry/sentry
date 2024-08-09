@@ -10,6 +10,7 @@ import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCaus
 import {
   type AutofixData,
   type AutofixProgressItem,
+  type AutofixRepository,
   type AutofixStep,
   AutofixStepType,
   type AutofixUserResponseStep,
@@ -76,6 +77,7 @@ function stepShouldBeginExpanded(step: AutofixStep, isLastStep?: boolean) {
 interface StepProps {
   groupId: string;
   onRetry: () => void;
+  repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
   isChild?: boolean;
@@ -114,10 +116,12 @@ function Progress({
   groupId,
   runId,
   onRetry,
+  repos,
 }: {
   groupId: string;
   onRetry: () => void;
   progress: AutofixProgressItem | AutofixStep;
+  repos: AutofixRepository[];
   runId: string;
 }) {
   if (isProgressLog(progress)) {
@@ -147,6 +151,7 @@ function Progress({
         groupId={groupId}
         runId={runId}
         onRetry={onRetry}
+        repos={repos}
       />
     </ProgressStepContainer>
   );
@@ -159,6 +164,7 @@ export function ExpandableStep({
   runId,
   isLastStep,
   onRetry,
+  repos,
 }: StepProps) {
   const previousIsLastStep = usePrevious(isLastStep);
   const previousStepStatus = usePrevious(step.status);
@@ -241,6 +247,7 @@ export function ExpandableStep({
                   groupId={groupId}
                   runId={runId}
                   onRetry={onRetry}
+                  repos={repos}
                 />
               ))}
             </ProgressContainer>
@@ -251,6 +258,7 @@ export function ExpandableStep({
               runId={runId}
               causes={step.causes}
               rootCauseSelection={step.selection}
+              repos={repos}
             />
           )}
           {step.type === AutofixStepType.CHANGES && (
@@ -284,7 +292,7 @@ function UserStep({step, groupId}: UserStepProps) {
   );
 }
 
-function Step({step, groupId, runId, onRetry, stepNumber, isLastStep}: StepProps) {
+function Step({step, groupId, runId, onRetry, stepNumber, isLastStep, repos}: StepProps) {
   if (step.type === AutofixStepType.USER_RESPONSE) {
     return (
       <UserStep
@@ -293,6 +301,7 @@ function Step({step, groupId, runId, onRetry, stepNumber, isLastStep}: StepProps
         runId={runId}
         onRetry={onRetry}
         isLastStep={isLastStep}
+        repos={repos}
       />
     );
   }
@@ -305,12 +314,14 @@ function Step({step, groupId, runId, onRetry, stepNumber, isLastStep}: StepProps
       onRetry={onRetry}
       stepNumber={stepNumber}
       isLastStep={isLastStep}
+      repos={repos}
     />
   );
 }
 
 export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps) {
   const steps = data.steps;
+  const repos = data.repositories;
 
   if (!steps) {
     return null;
@@ -330,6 +341,7 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
           runId={runId}
           onRetry={onRetry}
           isLastStep={index === steps.length - 1}
+          repos={repos}
         />
       ))}
       {showInputField && <AutofixInputField runId={data.run_id} groupId={groupId} />}
@@ -503,10 +515,13 @@ const LogText = styled('div')<{expanded: boolean; isExpandable: boolean}>`
   -webkit-box-orient: vertical;
   overflow-y: hidden;
   max-height: ${props => (props.expanded ? 'none' : '3em')};
+  flex: 1;
 `;
 
 const ExpandableLogRow = styled('div')`
+  overflow-x: scroll;
   display: flex;
   flex-direction: row;
-  align-items: flex-start; /* Ensure items align to the start of the container */
+  align-items: flex-start;
+  width: 100%;
 `;
