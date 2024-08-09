@@ -103,7 +103,5 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.testing.pytestArgs": ["tests"],
-  "python.analysis.autoImportCompletions": true,
-  "editor.defaultFormatter": "biomejs.biome",
-  "editor.formatOnSave": true
+  "python.analysis.autoImportCompletions": true
 }
