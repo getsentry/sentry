@@ -435,8 +435,15 @@ class LinkIdentityView(LinkingView, ABC):
     def persist_identity(
         self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> None:
+        if idp is None:
+            raise ValueError('idp is required for linking (params must include "integration_id")')
+
+        user = request.user
+        if isinstance(user, AnonymousUser):
+            raise TypeError("Cannot link identity without a logged-in user")
+
         try:
-            Identity.objects.link_identity(user=request.user, idp=idp, external_id=external_id)
+            Identity.objects.link_identity(user=user, idp=idp, external_id=external_id)
         except IntegrityError:
             logger.exception("slack.link.integrity_error")
             metrics.incr(
