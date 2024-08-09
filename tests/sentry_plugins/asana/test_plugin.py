@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest.mock import patch
 
 import orjson
 import pytest
@@ -88,6 +89,54 @@ class AsanaPluginTest(PluginTestCase):
         # URL needs to be absolute so that we don't get customer domains
         # Asana redirect_urls are set to the root domain.
         assert "http://testserver" in response.data["auth_url"]
+
+    @responses.activate
+    @patch(
+        "sentry.plugins.bases.issue2.IssueTrackingPlugin2.check_config_and_auth", return_value=None
+    )
+    def test_view_create_with_auth(self, mock_check_auth):
+        responses.add(
+            responses.POST,
+            "https://app.asana.com/api/1.0/tasks",
+            json={"data": {"name": "Hello world!", "notes": "Fix this.", "gid": 1}},
+        )
+
+        responses.add(
+            responses.GET,
+            "https://app.asana.com/api/1.0/workspaces",
+            json={"data": [{"gid": "12345678", "name": "workspace"}]},
+        )
+
+        self.plugin.set_option("workspace", "12345678", self.project)
+        event = self.store_event(
+            data={"message": "Hello world", "culprit": "foo.bar"}, project_id=self.project.id
+        )
+        group = event.group
+        assert group
+
+        self.login_as(self.user)
+        self.create_usersocialauth(
+            user=self.user, provider=self.plugin.auth_provider, extra_data={"access_token": "foo"}
+        )
+
+        request = self.request.get("/")
+        request.user = self.user
+        response = self.plugin.view_create(request, group)
+        assert response.status_code == 200
+
+        assert {
+            "name": "title",
+            "label": "Name",
+            "default": "issue.name",
+            "type": "text",
+        } in response.data
+        assert {
+            "name": "description",
+            "label": "Notes",
+            "default": "issue.description",
+            "type": "textarea",
+            "required": False,
+        } in response.data
 
     @responses.activate
     def test_link_issue(self):
