@@ -3,29 +3,22 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
-import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
-import {
-  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
-  STATIC_SEMVER_TAGS,
-  STATIC_SPAN_TAGS,
-} from 'sentry/components/events/searchBarFieldConstants';
+import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {PerformanceSearchQueryBuilder} from 'sentry/components/performance/performanceSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {ActionBarItem} from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined, generateQueryWithTag} from 'sentry/utils';
@@ -33,24 +26,17 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
-  ALL_INSIGHTS_FILTER_KEY_SECTIONS,
   formatTagKey,
-  isAggregateField,
-  isMeasurement,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
-import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import useApi from 'sentry/utils/useApi';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import useTags from 'sentry/utils/useTags';
 import withProjects from 'sentry/utils/withProjects';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -117,24 +103,6 @@ function SummaryContent({
 }: Props) {
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
-  const tagStoreCollection = useTags();
-  const api = useApi();
-
-  const filterTags = useMemo(() => {
-    return getTransactionFilterTags(tagStoreCollection);
-  }, [tagStoreCollection]);
-
-  const filterKeySections = useMemo(
-    () => [
-      ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
-      {
-        value: 'custom_fields',
-        label: 'Custom Tags',
-        children: Object.keys(tagStoreCollection),
-      },
-    ],
-    [tagStoreCollection]
-  );
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -383,68 +351,16 @@ function SummaryContent({
     organization.features.includes('performance-spans-new-ui') &&
     organization.features.includes('insights-initial-modules');
 
-  // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
-  const getTransactionFilterTagValues = useCallback(
-    async (tag: Tag, queryString: string) => {
-      const projectIdStrings = eventView.project?.map(String);
-
-      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
-        // We can't really auto suggest values for aggregate fields
-        // or measurements, so we simply don't
-        return Promise.resolve([]);
-      }
-
-      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
-      // and low search filter values because discover maps device.class to these values.
-      if (isDeviceClass(tag.key)) {
-        return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
-      }
-
-      try {
-        const results = await fetchTagValues({
-          api,
-          orgSlug: organization.slug,
-          tagKey: tag.key,
-          search: queryString,
-          projectIds: projectIdStrings,
-          includeTransactions: true,
-          includeSessions: true,
-          sort: '-count',
-          endpointParams: {
-            start: eventView.start,
-            end: eventView.end,
-            statsPeriod: eventView.statsPeriod,
-          },
-        });
-
-        return results.filter(({name}) => defined(name)).map(({name}) => name);
-      } catch (e) {
-        throw new Error(`Unable to fetch event field values: ${e}`);
-      }
-    },
-    [
-      organization,
-      eventView.project,
-      eventView.start,
-      eventView.end,
-      eventView.statsPeriod,
-      api,
-    ]
-  );
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
   function renderSearchBar() {
     if (organization.features.includes('search-query-builder-performance')) {
       return (
-        <SearchQueryBuilder
-          filterKeys={filterTags}
+        <PerformanceSearchQueryBuilder
+          projects={projectIds}
           initialQuery={query}
           onSearch={handleSearch}
-          searchSource={'transaction_summary'}
-          getTagValues={getTransactionFilterTagValues}
-          filterKeySections={filterKeySections}
-          disallowFreeText
-          disallowUnsupportedFilters
-          recentSearches={SavedSearchType.EVENT}
+          searchSource="transaction_summary"
         />
       );
     }
@@ -669,22 +585,6 @@ function getTransactionsListSort(
   );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selected: selectedSort, options: sortOptions};
-}
-
-function getTransactionFilterTags(tagStoreCollection): TagCollection {
-  const measurements = getMeasurements();
-
-  const combinedTags: TagCollection = {
-    ...STATIC_SPAN_TAGS,
-    ...STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
-    ...STATIC_SEMVER_TAGS,
-    ...measurements,
-    ...tagStoreCollection,
-  };
-
-  combinedTags.has = getHasTag(combinedTags);
-
-  return combinedTags;
 }
 
 const FilterActions = styled('div')`
