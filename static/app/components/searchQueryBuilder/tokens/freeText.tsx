@@ -407,7 +407,19 @@ function SearchQueryBuilderInputInternal({
         ref={inputRef}
         items={items}
         placeholder={query === '' ? placeholder : undefined}
-        onOptionSelected={value => {
+        onOptionSelected={option => {
+          if (option.type === 'recent-query') {
+            dispatch({
+              type: 'UPDATE_QUERY',
+              query: option.value,
+              focusOverride: {itemKey: 'end'},
+            });
+            handleSearch(option.value);
+            return;
+          }
+
+          const value = option.value;
+
           dispatch({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],
