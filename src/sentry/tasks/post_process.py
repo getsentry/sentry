@@ -819,9 +819,8 @@ def process_inbox_adds(job: PostProcessJob) -> None:
             not is_reprocessed and not has_reappeared
         ):  # If true, we added the .ONGOING reason already
             if is_new:
-                group = (
-                    Group.objects.filter(id=event.group.id)
-                    .exclude(substatus=GroupSubStatus.NEW)
+                group = Group.objects.filter(id=event.group.id).exclude(
+                    substatus=GroupSubStatus.NEW
                 )
                 if group.exists():
                     logger.warning(
