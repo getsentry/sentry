@@ -25,7 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useTags from 'sentry/utils/useTags';
 
-type SearchSource = 'transaction_summary' | 'transaction_profiles';
+type SearchSource = 'profile_landing' | 'transaction_summary' | 'transaction_profiles';
 
 interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
@@ -97,7 +97,6 @@ export function TransactionSearchQueryBuilder({
           search: queryString,
           projectIds: projects?.map(String) ?? selection.projects?.map(String),
           includeTransactions: true,
-          includeSessions: true,
           sort: '-count',
           endpointParams: normalizeDateTimeParams(datetime ?? selection.datetime),
         });
